@@ -1,23 +1,25 @@
 {
   "$schema": "https://json.schemastore.org/package",
-  "name": "@mark1russell7/render-pack",
-  "version": "0.1.1",
-  "description": "Rectangle packing for the layout of the render viewer.",
+  "name": "@mark1russell7/packing",
+  "version": "0.1.0",
+  "description": "Rectangle packing: shelf, guillotine and skyline strategies, push cascades and measures of a layout.",
   "keywords": [
     "rectangle-packing",
     "bin-packing",
+    "strip-packing",
     "layout",
     "guillotine",
+    "skyline",
     "typescript"
   ],
-  "homepage": "https://mark1russell7.github.io/render/",
+  "homepage": "https://mark1russell7.github.io/packing/",
   "bugs": {
-    "url": "https://github.com/mark1russell7/render/issues"
+    "url": "https://github.com/mark1russell7/packing/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mark1russell7/render.git",
-    "directory": "packages/pack"
+    "url": "git+https://github.com/mark1russell7/packing.git",
+    "directory": "packages/packing"
   },
   "license": "MIT",
   "author": "Mark Russell (https://github.com/mark1russell7)",
@@ -59,7 +61,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "devDependencies": {
-    "@mark1russell7/cue": "github:mark1russell7/cue",
+    "@mark1russell7/cue": "^1.0.2",
     "@types/node": "^26.6.4",
     "tsdown": "^0.23.1",
     "typescript": "^7.0.2",

@@ -1,15 +1,15 @@
-# @mark1russell7/render-pack
+# @mark1russell7/packing
 
-[![npm](https://img.shields.io/npm/v/@mark1russell7/render-pack?color=2346c4)](https://www.npmjs.com/package/@mark1russell7/render-pack) [![CI](https://github.com/mark1russell7/render/actions/workflows/ci.yml/badge.svg)](https://github.com/mark1russell7/render/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-2346c4)](https://github.com/mark1russell7/render/blob/main/LICENSE)
+[![npm](https://img.shields.io/npm/v/@mark1russell7/packing?color=2346c4)](https://www.npmjs.com/package/@mark1russell7/packing) [![CI](https://github.com/mark1russell7/packing/actions/workflows/ci.yml/badge.svg)](https://github.com/mark1russell7/packing/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-2346c4)](https://github.com/mark1russell7/packing/blob/main/packages/packing/LICENSE)
 
 Rectangle packing for layouts: a guillotine row packer and a skyline packer that place rectangles in an outer rectangle.
 
 ```sh
-npm i @mark1russell7/render-pack
+npm i @mark1russell7/packing
 ```
 
 ```ts
-import { pack, Rect } from "@mark1russell7/render-pack";
+import { pack, Rect } from "@mark1russell7/packing";
 
 const rects = [[30, 10], [20, 20], [10, 5]].map(([w, h]) => {
   const r = new Rect<string>();
@@ -38,7 +38,9 @@ Both functions also work alone, in an outer rectangle with a width that you set.
 
 A `locked` rectangle keeps its position. `packSkyline` puts the other rectangles under it. `packRows` only keeps its position.
 
-The sort orders are `height-desc` (the default), `height-asc`, `width-desc` and `area-desc`. `SORT_ORDERS` lists them, and `compareRects` gives the comparator of one.
+The sort orders are `height-desc` (the default), `height-asc`, `width-desc`, `area-desc` and `input`. `SORT_ORDERS` lists them, and `compareRects` gives the comparator of one.
+
+The order `input` keeps the order of your array. Use it for a ranked list. `packRows` then fills no gaps, so the rows read in your order: left to right, and top to bottom. `packSkyline` places the rectangles in your order, but a later rectangle can go higher than an earlier one.
 
 ## Pushes and measurements
 
@@ -59,8 +61,7 @@ const { utilization, raggedness, rows } = packingMetrics(Rect.packed(rects));
 
 ## More
 
-- [The site](https://mark1russell7.github.io/render/): the guide, live demos and the viewer.
-- [The API reference](https://mark1russell7.github.io/render/reference/api/): the exports of each package.
-- [The repository](https://github.com/mark1russell7/render): the source, the tests and the review of each known defect.
+- [The repository](https://github.com/mark1russell7/packing): the source, the tests and the roadmap.
+- This package was `@mark1russell7/render-pack` before 0.1.0. `render-pack` re-exports this package for one more minor, and then it is deprecated.
 
-Each package of render is ESM, has TypeScript declarations, and works in Node.js 22.12 or later and in browsers. The license is MIT.
+The package is ESM, has TypeScript declarations, and works in Node.js 22.12 or later and in browsers. The license is MIT.

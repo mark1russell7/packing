@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { packingMetrics, pushCascade, Rect } from "@mark1russell7/render-pack";
+import { packingMetrics, pushCascade, Rect } from "@mark1russell7/packing";
 
 /** This helper makes a rectangle at a position, with a size. */
 const box = (x: number, y: number, w = 100, h = 100): Rect<string> => {

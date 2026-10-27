@@ -33,3 +33,7 @@ Write all prose of this repository in the style of ASD-STE100 Simplified Technic
 - Do not edit `.github/workflows/release.yml` or `scripts/release/`.
 - Is a package that is not on npm a block? Use `workspace:*`, or a `github:` specifier pinned to a commit.
 - `RELEASING.md` tells how a release and a new package work.
+
+## The roadmap
+
+- `docs/ROADMAP.md` is the roadmap. The tracker folder is `~/git/fleet/artifacts/packing-roadmap/`. Change both together.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { compareRects, lowestWindow, pack, packRows, packSkyline, Rect, SORT_ORDERS } from "@mark1russell7/render-pack";
+import { compareRects, lowestWindow, pack, packRows, packSkyline, Rect, SORT_ORDERS } from "@mark1russell7/packing";
 
 /** This helper makes a Rect with a given size. */
 const rect = (w: number, h: number): Rect => {
@@ -146,6 +146,7 @@ describe("the sort orders", () => {
     expect(sorted("height-asc")).toEqual([c, b, a]);
     expect(sorted("width-desc")).toEqual([b, c, a]);
     expect(sorted("area-desc")).toEqual([b, a, c]);
+    expect(sorted("input")).toEqual([a, b, c]);
   });
 });
 

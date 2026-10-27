@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Vector } from "@mark1russell7/render-pack";
+import { Vector } from "@mark1russell7/packing";
 
 describe("Vector", () => {
   it("constructor defaults to 0,0", () => {

@@ -1,0 +1,133 @@
+# The public API of @mark1russell7/packing
+#
+# The names of each entry of the exports field, and the declaration of each name, without comments
+# and private members. The command `api-report check` compares this file with the built .d.ts files.
+# To accept a change of the API, start the build, then `api-report update`, and review the diff.
+
+## . (build/index.d.ts): 16 names
+
+type MetricsOptions: build/index.d.ts#MetricsOptions
+type PackLayoutOptions: build/index.d.ts#PackLayoutOptions
+type PackOptions: build/index.d.ts#PackOptions
+type PackingMetrics: build/index.d.ts#PackingMetrics
+type PushOptions: build/index.d.ts#PushOptions
+Rect: build/index.d.ts#Rect
+SORT_ORDERS: build/index.d.ts#SORT_ORDERS
+type SortOrder: build/index.d.ts#SortOrder
+Vector: build/index.d.ts#Vector
+compareRects: build/index.d.ts#compareRects
+lowestWindow: build/index.d.ts#lowestWindow
+pack: build/index.d.ts#pack
+packRows: build/index.d.ts#packRows
+packSkyline: build/index.d.ts#packSkyline
+packingMetrics: build/index.d.ts#packingMetrics
+pushCascade: build/index.d.ts#pushCascade
+
+## Declarations
+
+### build/index.d.ts#MetricsOptions
+interface MetricsOptions {
+  rowTolerance?: number;
+}
+
+### build/index.d.ts#PackLayoutOptions
+interface PackLayoutOptions extends PackOptions {
+  strategy?: "rows" | "skyline";
+}
+
+### build/index.d.ts#PackOptions
+interface PackOptions {
+  sortOrder?: SortOrder;
+}
+
+### build/index.d.ts#PackingMetrics
+interface PackingMetrics {
+  count: number;
+  hull: {
+    width: number;
+    height: number;
+  };
+  hullAspect: number;
+  rows: number[];
+  raggedness: number;
+  utilization: number;
+  widestOverMedian: number;
+}
+
+### build/index.d.ts#PushOptions
+interface PushOptions {
+  gap?: number;
+  maxShoves?: number;
+}
+
+### build/index.d.ts#Rect
+export declare class Rect<T = unknown> {
+  id?: T;
+  wasPacked: boolean;
+  fixedWidth: boolean;
+  fixedSize: boolean;
+  locked: boolean;
+  get position(): Vector;
+  get size(): Vector;
+  right(): number;
+  bottom(): number;
+  shrinkLeft(amount: number): this;
+  translateBy(offset: Vector): this;
+  area(): number;
+  static packed<U>(rects: Rect<U>[]): Rect<U>[];
+  static unpacked<U>(rects: Rect<U>[]): Rect<U>[];
+  static resetPacked<U>(rects: Rect<U>[]): void;
+  static maxRight<U>(rects: Rect<U>[]): number;
+  static maxBottom<U>(rects: Rect<U>[]): number;
+}
+
+### build/index.d.ts#SORT_ORDERS
+export declare const SORT_ORDERS: readonly SortOrder[];
+
+### build/index.d.ts#SortOrder
+type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
+
+### build/index.d.ts#Vector
+export declare class Vector {
+  constructor(x?: number, y?: number);
+  get x(): number;
+  set x(v: number);
+  get y(): number;
+  set y(v: number);
+  set(x: number, y: number): void;
+  setTo(v: Vector): void;
+  add(other: Vector): Vector;
+  area(): number;
+  clone(): Vector;
+  clamp(min: Vector, max: Vector): Vector;
+  static of(scalar: number): Vector;
+  static min(vectors: Vector[]): Vector;
+  static max(vectors: Vector[]): Vector;
+  static get Infinity(): Vector;
+}
+
+### build/index.d.ts#compareRects
+export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
+
+### build/index.d.ts#lowestWindow
+export declare function lowestWindow(skyline: ArrayLike<number>, width: number, rw: number): {
+  x: number;
+  y: number;
+};
+
+### build/index.d.ts#pack
+export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;
+
+### build/index.d.ts#packRows
+export declare function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options?: PackOptions): Rect<T>;
+
+### build/index.d.ts#packSkyline
+export declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options?: {
+  sortOrder?: SortOrder;
+}): Rect<T>;
+
+### build/index.d.ts#packingMetrics
+export declare function packingMetrics(rects: readonly Rect[], options?: MetricsOptions): PackingMetrics;
+
+### build/index.d.ts#pushCascade
+export declare function pushCascade<T>(placed: Rect<T>, rects: readonly Rect<T>[], options?: PushOptions): Rect<T>[];
