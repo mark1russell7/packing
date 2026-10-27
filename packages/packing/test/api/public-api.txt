@@ -162,7 +162,7 @@ interface CorpusGenerator<P extends GeneratorParams = GeneratorParams> {
   readonly version: number;
   readonly set: string;
   readonly defaults: Readonly<P>;
-  readonly values: { readonly [K in keyof P]?: readonly P[K][] };
+  readonly values: { readonly [K in keyof P]?: readonly P[K][]; };
   withDefaults(params?: Partial<P>): P;
   cell(params?: Partial<P>): CorpusCell;
   generate(seed: number, params?: Partial<P>, set?: string): LayoutInput;
