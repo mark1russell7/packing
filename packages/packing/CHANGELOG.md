@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6
 
 - Fix: in the rule `in-container`, `checkHard` makes each fixed side smaller by `container.inset` (decision 3).
 - Fix: for a shaped item, `checkHard` uses the bounding box of its turned `shape`, not `w` by `h` (decision 5).

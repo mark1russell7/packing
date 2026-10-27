@@ -14,14 +14,20 @@ type Alias<T> = { [K in keyof T]: T[K] };
 /** The keys of the fields that a type must have. */
 type RequiredKeys<T> = { [K in keyof T]-?: object extends Pick<T, K> ? never : K }[keyof T];
 
+/** A port of the contract without readonly and with a side. A port of packing needs a side (gap 14). */
+type SidedPort = Mutable<C.Port> & { side: C.Side };
+
+/** A box of the contract without readonly, with a side on each port. */
+type SidedBox = Omit<Mutable<C.LayoutBox>, "ports"> & { ports?: SidedPort[] };
+
 describe("the types of packing and of the contract", () => {
-  it("fit for Placement, Tolerance, Port and the hard rules, in both directions", () => {
+  it("fit for Placement, Tolerance and the hard rules, in both directions, and for a port with a side", () => {
     expectTypeOf<P.Placement>().toExtend<C.Placement>();
     expectTypeOf<C.Placement>().toExtend<P.Placement>();
     expectTypeOf<P.Tolerance>().toExtend<C.Tolerance>();
     expectTypeOf<C.Tolerance>().toExtend<P.Tolerance>();
     expectTypeOf<P.Port>().toExtend<C.Port>();
-    expectTypeOf<C.Port>().toExtend<P.Port>();
+    expectTypeOf<SidedPort>().toExtend<P.Port>();
     expectTypeOf<P.Port["side"]>().toEqualTypeOf<C.Side>();
     expectTypeOf<P.HardBreaks>().toExtend<C.PackHard>();
     expectTypeOf<C.PackHard>().toExtend<P.HardBreaks>();
@@ -45,7 +51,7 @@ describe("the types of packing and of the contract", () => {
   it("have the same fields for each input type", () => {
     expectTypeOf<keyof P.Container>().toEqualTypeOf<keyof C.LayoutContainer>();
     expectTypeOf<keyof P.Obstacle>().toEqualTypeOf<keyof C.Obstacle>();
-    expectTypeOf<keyof P.Item>().toEqualTypeOf<keyof C.LayoutBox>();
+    expectTypeOf<keyof P.Item>().toEqualTypeOf<Exclude<keyof C.LayoutBox, "data">>();
     expectTypeOf<keyof P.PackInput>().toEqualTypeOf<keyof C.PackInput>();
     expectTypeOf<keyof P.PackOutput>().toEqualTypeOf<keyof C.PackOutput>();
     expectTypeOf<RequiredKeys<P.Item>>().toEqualTypeOf<RequiredKeys<C.LayoutBox>>();
@@ -59,12 +65,12 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<C.LayoutBox>().not.toExtend<P.Item>();
     expectTypeOf<C.PackInput>().not.toExtend<P.PackInput>();
     expectTypeOf<C.LayoutInput>().not.toExtend<Parameters<typeof P.toPackInput>[0]>();
-    // Without readonly, each of these types fits packing.
+    // Without readonly, and with a side on each port (gap 14), each of these types fits packing.
     expectTypeOf<Mutable<C.Region>>().toExtend<P.Region>();
     expectTypeOf<Mutable<C.LayoutContainer>>().toExtend<P.Container>();
     expectTypeOf<Mutable<C.Obstacle>>().toExtend<P.Obstacle>();
-    expectTypeOf<Mutable<C.LayoutBox>>().toExtend<P.Item>();
-    expectTypeOf<Mutable<C.PackInput>>().toExtend<P.PackInput>();
+    expectTypeOf<SidedBox>().toExtend<P.Item>();
+    expectTypeOf<Omit<Mutable<C.PackInput>, "items"> & { items: SidedBox[] }>().toExtend<P.PackInput>();
   });
 
   it("gap 2: the contract has an optional trace, ms and measures, packing has them required", () => {
@@ -88,21 +94,38 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<P.Rect<unknown>>().not.toExtend<C.Rect>();
   });
 
-  it("gap 4: the file LayoutInput of packing has a change of any string, and two fields more", () => {
-    expectTypeOf<P.LayoutInput>().not.toExtend<C.LayoutInput>();
+  it("gap 4 is partly closed: the contract has packed, generator, step and cell, but packing has a change of any string", () => {
+    // Closed in the contract 0.2.0: the field generator, the field step and the change packed.
+    expectTypeOf<C.LayoutInput["change"]>().toEqualTypeOf<"add" | "remove" | "resize" | "reorder" | "packed" | undefined>();
+    expectTypeOf<Exclude<keyof P.LayoutInput, keyof C.LayoutInput>>().toEqualTypeOf<never>();
+    expectTypeOf<P.GeneratorStamp>().toExtend<C.LayoutGenerator>();
+    expectTypeOf<P.LayoutInput["generator"]>().toExtend<C.LayoutInput["generator"]>();
+    expectTypeOf<P.LayoutInput["step"]>().toEqualTypeOf<C.LayoutInput["step"]>();
+    expectTypeOf<P.CorpusCell>().toExtend<C.LayoutCell>();
     expectTypeOf<Omit<P.LayoutInput, "change">>().toExtend<C.LayoutInput>();
+    // Open: the change of packing is any string. The file of packing has no cell, and the cell is optional in the contract.
+    expectTypeOf<P.LayoutInput>().not.toExtend<C.LayoutInput>();
     expectTypeOf<P.LayoutInput["change"]>().toEqualTypeOf<string | undefined>();
-    expectTypeOf<C.LayoutInput["change"]>().toEqualTypeOf<"add" | "remove" | "resize" | "reorder" | undefined>();
-    expectTypeOf<Exclude<keyof P.LayoutInput, keyof C.LayoutInput>>().toEqualTypeOf<"generator" | "step">();
-    expectTypeOf<Exclude<keyof C.LayoutInput, keyof P.LayoutInput>>().toEqualTypeOf<never>();
+    expectTypeOf<Exclude<keyof C.LayoutInput, keyof P.LayoutInput>>().toEqualTypeOf<"cell">();
     expectTypeOf<Exclude<RequiredKeys<P.LayoutInput>, RequiredKeys<C.LayoutInput>>>().toEqualTypeOf<
-      "set" | "family" | "seed" | "source" | "generator" | "edges" | "hash"
+      "set" | "family" | "seed" | "source" | "generator" | "container" | "edges" | "hash"
     >();
   });
 
-  it("gap 5: an edge of the contract has data, an edge of packing has no data", () => {
+  it("gap 5: an edge and a box of the contract have data, an edge and an item of packing have no data", () => {
     expectTypeOf<C.LayoutEdge>().toExtend<P.Edge>();
     expectTypeOf<Exclude<keyof C.LayoutEdge, keyof P.Edge>>().toEqualTypeOf<"data">();
+    expectTypeOf<SidedBox>().toExtend<P.Item>();
+    expectTypeOf<Exclude<keyof C.LayoutBox, keyof P.Item>>().toEqualTypeOf<"data">();
+  });
+
+  it("gap 14: a port of the contract has an optional side, a port of packing needs a side", () => {
+    expectTypeOf<C.Port>().not.toExtend<P.Port>();
+    expectTypeOf<SidedPort>().toExtend<P.Port>();
+    expectTypeOf<RequiredKeys<C.Port>>().toEqualTypeOf<"id">();
+    expectTypeOf<RequiredKeys<P.Port>>().toEqualTypeOf<"id" | "side">();
+    const free: C.Port = { id: "p", x: 3 };
+    expect(C.turnPort(free, 10)).toEqual({ id: "p", y: 3 });
   });
 
   it("gap 6 is closed: Supports of packing is a type alias, and it fits the record of the contract", () => {
@@ -111,22 +134,41 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<Alias<P.Supports>>().toEqualTypeOf<P.Supports>();
   });
 
-  it("gap 12: checkHard reads the packer input and output, packHard reads two files and the overflow", () => {
+  it("gap 12 is closed: checkHard and packHard both read the input, the output and an optional tolerance", () => {
     expectTypeOf(P.checkHard).parameters.toHaveProperty("length").toEqualTypeOf<2 | 3>();
     expectTypeOf(P.checkHard).parameter(0).toEqualTypeOf<P.PackInput>();
     expectTypeOf(P.checkHard).parameter(1).toEqualTypeOf<P.PackOutput>();
     expectTypeOf(P.checkHard).parameter(2).toEqualTypeOf<Pick<P.Tolerance, "overlap"> | undefined>();
-    expectTypeOf(C.packHard).parameters.toHaveProperty("length").toEqualTypeOf<3 | 4>();
+    expectTypeOf(C.packHard).parameters.toHaveProperty("length").toEqualTypeOf<2 | 3>();
     expectTypeOf(C.packHard).parameter(0).toEqualTypeOf<C.LayoutInput>();
-    expectTypeOf(C.packHard).parameter(1).toEqualTypeOf<C.LayoutInput>();
-    expectTypeOf(C.packHard).parameter(2).toEqualTypeOf<readonly string[]>();
-    expectTypeOf(C.packHard).parameter(3).toEqualTypeOf<number | undefined>();
+    expectTypeOf(C.packHard).parameter(1).toEqualTypeOf<C.PackOutput>();
+    expectTypeOf(C.packHard).parameter(2).toEqualTypeOf<number | undefined>();
+    expectTypeOf(C.packHard).returns.toEqualTypeOf<C.PackHard>();
+    expectTypeOf<P.PackOutput>().toExtend<Parameters<typeof C.packHard>[1]>();
+    // The forms stay different: the input of packHard is a file, and its tolerance is a number, not a record.
+    expectTypeOf<P.PackInput>().not.toExtend<C.LayoutInput>();
   });
 
-  it("gap 13: the contract has toPackInput and applyPack, not the converter pair of decision 5", () => {
+  it("gap 13 is closed: the contract has the converter pair, the common fields of a strategy and the measure specs", () => {
     expect(typeof C.toPackInput).toBe("function");
+    expect(typeof C.toLayoutRecord).toBe("function");
     expect(typeof C.applyPack).toBe("function");
-    for (const name of ["fromLayoutInput", "toLayoutRecord"]) expect(name in C, name).toBe(false);
+    expect("fromLayoutInput" in C).toBe(false);
+    expectTypeOf<P.Strategy>().toExtend<C.StrategyInfo<unknown, P.Supports>>();
+    expectTypeOf<Exclude<keyof C.StrategyInfo, keyof P.Strategy>>().toEqualTypeOf<never>();
+    expectTypeOf<Exclude<keyof P.Strategy, keyof C.StrategyInfo>>().toEqualTypeOf<"pack">();
+    expectTypeOf<P.Direction>().toEqualTypeOf<C.Direction>();
+  });
+
+  it("the measure specs of packing fit MeasureSpec of the contract", () => {
+    expectTypeOf<P.MeasureSpec>().toExtend<C.MeasureSpec<P.MeasureId>>();
+    expectTypeOf<(typeof P.MEASURE_SPECS)[P.MeasureId]>().toExtend<C.MeasureSpec<P.MeasureId>>();
+    expectTypeOf<Exclude<keyof P.MeasureSpec, keyof C.MeasureSpec>>().toEqualTypeOf<never>();
+    expectTypeOf<RequiredKeys<C.MeasureSpec>>().toEqualTypeOf<"id" | "unit" | "direction" | "min" | "max">();
+    const specs: readonly C.MeasureSpec<P.MeasureId>[] = Object.values(P.MEASURE_SPECS);
+    for (const spec of specs) expect(P.MEASURE_SPECS[spec.id], spec.id).toBe(spec);
+    const joint = new Set<string>(C.JOINT_MEASURES.map((s) => s.id));
+    for (const spec of specs) expect(joint.has(spec.id), spec.id).toBe(false);
   });
 });
 
@@ -190,13 +232,13 @@ describe("the shared values and functions", () => {
     expect(P.marginOf({ margin: 2 })).toEqual(C.marginSides(2));
   });
 
-  it("gap 7: turn a port with only x or only y in different ways", () => {
+  it("gap 7 is closed: turn a port with only x or only y in the same way", () => {
     const onlyX: P.Port = { id: "p", side: "top", x: 10 };
     const onlyY: P.Port = { id: "p", side: "left", y: 4 };
     expect(P.turnPort(onlyX, 10)).toEqual({ id: "p", side: "right", y: 10 });
-    expect(C.turnPort(onlyX, 10)).toEqual({ id: "p", side: "right", x: 10 });
+    expect(C.turnPort(onlyX, 10)).toEqual(P.turnPort(onlyX, 10));
     expect(P.turnPort(onlyY, 10)).toEqual({ id: "p", side: "top", x: 6 });
-    expect(C.turnPort(onlyY, 10)).toEqual({ id: "p", side: "top", y: 4 });
+    expect(C.turnPort(onlyY, 10)).toEqual(P.turnPort(onlyY, 10));
   });
 
   it("make the same packer input of a generated file", () => {
@@ -209,16 +251,38 @@ describe("the shared values and functions", () => {
       expect(shared.items).toBe(local.items);
     }
   });
+
+  it("make the record of a run with toLayoutRecord from the facts of a generated file", () => {
+    const { change: _change, ...file } = P.rectGrid.generate(4, { count: 12 });
+    const run: C.RunFacts = {
+      stage: "pack",
+      step: "made-up",
+      strategy: "shelf",
+      options: {},
+      corpus: "made-up",
+      seed: 4,
+      measures: {},
+      hard: {},
+      deterministic: true,
+      ms: 0,
+    };
+    expect(C.toLayoutRecord(file, run)).toMatchObject({
+      schema: "layout-record/1",
+      input: file.id,
+      inputHash: file.hash,
+      set: file.set,
+      nodes: 12,
+      edges: file.edges.length,
+    });
+  });
 });
 
 /** The packer input as a contract file, for `packHard`. */
 const fileOf = (input: P.PackInput): C.LayoutInput => ({ schema: "layout-input/1", id: "made-up", ...input, boxes: input.items });
 
 /** The hard rules of the contract for a packer input and its output. */
-const contractHard = (input: P.PackInput, output: P.PackOutput): C.PackHard => {
-  const before = fileOf(input);
-  return C.packHard(before, C.applyPack(before, output), output.overflow);
-};
+const contractHard = (input: P.PackInput, output: P.PackOutput, tolerance?: number): C.PackHard =>
+  C.packHard(fileOf(input), output, tolerance);
 
 const output = (placements: P.Placement[], overflow: string[] = []): P.PackOutput => ({
   placements,
@@ -294,11 +358,82 @@ describe("the hard rules of packing and of the contract", () => {
     expect(P.checkHard(input, output(cases[4]!))["in-container"]).toBe(1);
   });
 
-  it("gap 8: only packing counts an item on an obstacle", () => {
+  it("gap 8 is closed: both count an item on a rectangle obstacle", () => {
     const withObstacle: P.PackInput = { ...input, obstacles: [{ id: "o", region: { kind: "rect", x: 80, y: 80, w: 20, h: 20 } }] };
-    const out = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 85, y: 85 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }]);
-    expect(P.checkHard(withObstacle, out)["no-overlap"]).toBe(1);
-    expect(contractHard(withObstacle, out)["no-overlap"]).toBe(0);
+    const cases: P.Placement[][] = [
+      [{ id: "a", x: 2, y: 2 }, { id: "b", x: 85, y: 85 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }],
+      [{ id: "a", x: 2, y: 2 }, { id: "b", x: 70, y: 70 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }],
+      [{ id: "a", x: 69, y: 69 }, { id: "b", x: 70, y: 85 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }],
+    ];
+    for (const [i, placements] of cases.entries()) {
+      const out = output(placements);
+      expect(contractHard(withObstacle, out), `case ${i}`).toEqual(P.checkHard(withObstacle, out));
+    }
+    expect(P.checkHard(withObstacle, output(cases[0]!))["no-overlap"]).toBe(1);
+    expect(P.checkHard(withObstacle, output(cases[1]!))["no-overlap"]).toBe(0);
+    // The margin of a goes over the obstacle. The item b only touches it.
+    expect(P.checkHard(withObstacle, output(cases[2]!))["no-overlap"]).toBe(1);
+  });
+
+  it("agree on an obstacle that moved: both count the item at the new place of the obstacle", () => {
+    const movable: P.PackInput = {
+      ...input,
+      obstacles: [{ id: "o", region: { kind: "rect", x: 80, y: 80, w: 20, h: 20 }, move: { cost: 1 } }],
+    };
+    const cases: P.Placement[][] = [
+      [{ id: "a", x: 2, y: 2 }, { id: "b", x: 5, y: 85 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }],
+      [{ id: "a", x: 2, y: 2 }, { id: "b", x: 85, y: 85 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }],
+    ];
+    const moved = [{ id: "o", x: 0, y: 80 }];
+    const counts = cases.map((placements) => {
+      const out: P.PackOutput = { ...output(placements), moved };
+      const hard = P.checkHard(movable, out);
+      expect(contractHard(movable, out)).toEqual(hard);
+      return hard["no-overlap"];
+    });
+    expect(counts).toEqual([1, 0]);
+    expect(P.checkHard(movable, output(cases[1]!))["no-overlap"]).toBe(1);
+  });
+
+  it("a circle or a hole in an obstacle: packing reads the bounding box, the contract reads the exact region", () => {
+    // Packing adopts the exact test of the contract in its 0.2.0.
+    const small: P.PackInput = { container: { w: 100, h: 100, fixed: "size" }, items: [{ id: "s", w: 4, h: 4 }] };
+    const circle: P.PackInput = { ...small, obstacles: [{ id: "o", region: { kind: "circle", cx: 50, cy: 50, r: 10 } }] };
+    const ring: P.Region = {
+      kind: "polygon",
+      points: [
+        [20, 20],
+        [40, 20],
+        [40, 40],
+        [20, 40],
+      ],
+      holes: [
+        [
+          [25, 25],
+          [35, 25],
+          [35, 35],
+          [25, 35],
+        ],
+      ],
+    };
+    const holed: P.PackInput = { ...small, obstacles: [{ id: "o", region: ring }] };
+    // In the corner of the bounding box of the circle, out of the circle.
+    const corner = output([{ id: "s", x: 38, y: 38 }]);
+    expect(P.checkHard(circle, corner)["no-overlap"]).toBe(1);
+    expect(contractHard(circle, corner)["no-overlap"]).toBe(0);
+    // In the hole of the polygon.
+    const inHole = output([{ id: "s", x: 28, y: 28 }]);
+    expect(P.checkHard(holed, inHole)["no-overlap"]).toBe(1);
+    expect(contractHard(holed, inHole)["no-overlap"]).toBe(0);
+    // In the circle, and on the ring of the polygon, both count the item.
+    const hits: [P.PackInput, P.PackOutput][] = [
+      [circle, output([{ id: "s", x: 48, y: 48 }])],
+      [holed, output([{ id: "s", x: 21, y: 21 }])],
+    ];
+    for (const [i, [inp, out]] of hits.entries()) {
+      expect(contractHard(inp, out), `hit ${i}`).toEqual(P.checkHard(inp, out));
+      expect(P.checkHard(inp, out)["no-overlap"], `hit ${i}`).toBe(1);
+    }
   });
 
   it("gap 9 is closed: both read the inset of the container", () => {
@@ -342,9 +477,35 @@ describe("the hard rules of packing and of the contract", () => {
     expect(P.checkHard(shaped, output(cases[2]!))).toMatchObject({ "no-overlap": 0, "in-container": 0 });
   });
 
-  it("gap 11: only packing counts an item with no placement that keeps the position of the input", () => {
-    const out = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 0 }, { id: "t", x: 0, y: 60 }]);
-    expect(P.checkHard(input, out)).toMatchObject({ "locked-kept": 1, complete: 1 });
-    expect(contractHard(input, out)).toMatchObject({ "locked-kept": 0, complete: 0 });
+  it("gap 11 is partly closed: both count an item with no placement, but not in the same way for a locked item", () => {
+    // Closed: an item with no placement that is not in the overflow breaks complete in both.
+    const noB = output([{ id: "a", x: 2, y: 2 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }]);
+    expect(contractHard(input, noB)).toEqual(P.checkHard(input, noB));
+    expect(P.checkHard(input, noB)).toMatchObject({ "locked-kept": 0, complete: 1 });
+    const overB = output(noB.placements, ["b"]);
+    expect(contractHard(input, overB)).toEqual(P.checkHard(input, overB));
+    expect(P.checkHard(input, overB).complete).toBe(0);
+    // Open: a locked item with no placement breaks locked-kept in both. Only packing also counts it in complete.
+    const noPin = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 0 }, { id: "t", x: 0, y: 60 }]);
+    expect(P.checkHard(input, noPin)).toMatchObject({ "locked-kept": 1, complete: 1 });
+    expect(contractHard(input, noPin)).toMatchObject({ "locked-kept": 1, complete: 0 });
+    // Open: the contract keeps a locked item with no placement at its input position for the overlaps. Packing ignores it.
+    const onPin = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 52, y: 52 }, { id: "t", x: 0, y: 60 }]);
+    expect(P.checkHard(input, onPin)["no-overlap"]).toBe(0);
+    expect(contractHard(input, onPin)["no-overlap"]).toBe(1);
+  });
+
+  it("a locked item: packing reads RECORD_EPS and a position, the contract reads the tolerance and no position as 0", () => {
+    const near = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 0 }, { id: "pin", x: 50.01, y: 50 }, { id: "t", x: 0, y: 60 }]);
+    expect(P.checkHard(input, near, { overlap: 0.1 })["locked-kept"]).toBe(1);
+    expect(contractHard(input, near, 0.1)["locked-kept"]).toBe(0);
+    expect(contractHard(input, near)).toEqual(P.checkHard(input, near));
+    const noPosition: P.PackInput = {
+      ...input,
+      items: input.items.map((i) => (i.id === "pin" ? { id: "pin", w: 10, h: 10, locked: true } : i)),
+    };
+    const placed = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 0 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }]);
+    expect(P.checkHard(noPosition, placed)["locked-kept"]).toBe(0);
+    expect(contractHard(noPosition, placed)["locked-kept"]).toBe(1);
   });
 });
