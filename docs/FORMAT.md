@@ -96,7 +96,7 @@ The manifest of a corpus is `corpus.json`:
 
 | Dimension | Values |
 |---|---|
-| `containerSize` | `fixed`, `freeWidth`, `freeAspect` |
+| `containerSize` | `fixed`, `freeHeight`, `freeWidth`, `freeAspect`, `freeArea` |
 | `containerShape` | `rect`, `convex`, `polygon`, `circle`, `ellipse`, `holes` |
 | `obstacles` | `none`, `center`, `scattered`, `wall`, `corridors`, `touching`, `edge` |
 | `sizes` | `identical`, `uniform`, `heavyTail`, `bimodal`, `extremeAspect`, `nearIdentical` |

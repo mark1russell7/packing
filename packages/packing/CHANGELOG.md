@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4
 
 - New: the seeded generators of the corpus (roadmap item k19). Each generator writes `layout-input/1` files, as `docs/FORMAT.md` tells.
 - New: `rectScattered` is the shared generator `rect-scattered` version 1. Its 3 pinned hashes stay the same.
