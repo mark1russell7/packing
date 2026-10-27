@@ -78,6 +78,38 @@ const moved = pushCascade(dropped, cards, { gap: 8 });
 const { utilization, raggedness, rows } = packingMetrics(Rect.packed(rects));
 ```
 
+## The Packer interface
+
+Each strategy has one interface: `pack(input, options, context)`. The input is a `PackInput`: a container, items, obstacles and a gap. The output is a `PackOutput`. The output does not change the input.
+
+```ts
+import { checkHard, packWith, type PackInput } from "@mark1russell7/packing";
+
+const input: PackInput = {
+  container: { w: 400, fixed: "width", inset: 8 },
+  gap: 4,
+  items: [
+    { id: "a", w: 120, h: 40, margin: 2 },
+    { id: "pin", w: 60, h: 60, x: 200, y: 8, locked: true },
+    { id: "b", w: 80, h: 30 },
+  ],
+  obstacles: [{ id: "logo", region: { kind: "rect", x: 300, y: 0, w: 100, h: 50 } }],
+};
+const output = packWith("shelf", input, { sortOrder: "input" });
+output.placements; // the position of each item
+output.size; // the size of the container
+checkHard(input, output); // { "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 }
+```
+
+- The registry `strategies` has `rows`, `skyline`, `shelf` and `push`. `strategy(id)` gives one, and `packWith(id, input, options, seed)` packs with it.
+- `fixed` is `size`, `width`, `height` or `none`. A fixed height turns the axes. The value `none` uses the size search `logSweep`, which wraps `packFree`.
+- Each strategy declares its cells in `supports`. `cellOf(input)` gives the cell of an input. A strategy throws `UnsupportedCell` for an input outside its cells.
+- The strategies of this version do not turn items, read groups or pack shapes. A turnable item, a group or a shape gives `UnsupportedCell`.
+- `checkHard` counts the breaks of the hard rules: `no-overlap`, `in-container`, `locked-kept` and `complete`.
+- `fromRects` and `toRects` connect the interface to the `Rect` objects.
+
+`docs/PACKER.md` in the repository gives the interface in full.
+
 ## More
 
 - [The repository](https://github.com/mark1russell7/packing): the source, the tests and the roadmap.

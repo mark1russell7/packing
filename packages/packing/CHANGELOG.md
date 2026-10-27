@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- New: the Packer interface of `docs/PACKER.md` (roadmap item k7). The data types `PackInput`, `Item`, `Container`, `Obstacle`, `Region`, `Port`, `PackOutput`, `Placement` and `StageTrace` are plain data.
+- New: `Strategy`, `Supports`, `PackContext`, `SizeSearch`, `cellOf`, `supportsCell` and `UnsupportedCell`. Each strategy declares its cells, and refuses an input outside them.
+- New: the strategies `rows`, `skyline`, `shelf` and `push` put the functions of 0.1 behind the interface. The size search `logSweep` wraps `packFree`.
+- New: the adapters pack each item with its margin, keep the gap and the inset, go around locked items and rectangle obstacles, and turn the axes for a fixed height.
+- New: the registry `strategies`, `strategy(id)` and `packWith(id, input, options, seed)`.
+- New: `checkHard` counts the breaks of the 4 hard rules of the packer. The result has no tolerance in it.
+- New: the turn helper `turnItem` (with `turnPoint`, `turnPort` and `turnRegion`), `marginOf`, `EPS`, `RECORD_EPS` and `DEFAULT_TOLERANCE`.
+- New: `fromRects` and `toRects` connect the interface to the `Rect` objects of 0.1. `mulberry32` and `createContext` give the seeded context.
+- Fix: `packRows` put a rectangle of a gap fill in a gap fill at a double offset, out of the width. Now it stays in its region.
+
 ## 0.1.2
 
 - New: `packFree` packs with a free width. It tries many widths with a strategy of `pack`, and keeps the width with the lowest objective: the area of the bounding box times `1 + aspectWeight * aspectError`. The target aspect is 1 by default. The result gives the size, the fill, the aspect error and each width that the search tried.
