@@ -8,7 +8,7 @@ Status: done, done, waiting, next, done.
 |---|---|---|---|---|
 | k0 | The repo from the template, with the history of `render-pack` | move | done | |
 | k1 | The first publish of `@mark1russell7/packing` 0.1.0 | move | done | k0 |
-| k2 | `render-pack` re-exports `@mark1russell7/packing` | move | later | k1 |
+| k2 | `render-pack` re-exports `@mark1russell7/packing` | move | active | k1 |
 | k3 | The downstream app moves its imports to the new name | move | waiting | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | later | k2, k3 |
 | k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
