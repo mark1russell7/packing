@@ -37,14 +37,17 @@ The corpus is a folder of input files and an index. Each input is one JSON file.
 | `container.aspect` | The target aspect: the width divided by the height. The default is 1. With `fixed` set to `none`, the packer searches the size for this aspect. |
 | `container.shape` | A region. Without it, the container is the rectangle `w` by `h`. |
 | `obstacles` | A list of `{ "id", "region", "move"? }`. Without `move`, an obstacle stays. With `move: { "cost" }`, the packer can move it for the cost times the distance. The router reads each obstacle as an area to avoid. |
-| `gap` | The space between two boxes. Optional. The router ignores it. |
+| `gap` | The free space between two boxes with their margins. Routes use it. Optional. |
 | `boxes[].w`, `boxes[].h` | The size of a box. The packer reads them. |
 | `boxes[].x`, `boxes[].y` | The position. The packer writes them. The router reads them. |
 | `boxes[].locked` | The box is an obstacle: its `x` and `y` stay. |
 | `boxes[].rank` | The reading order that the caller wants. Without it, the order of the array is the rank. |
 | `boxes[].parent`, `boxes[].group` | The nesting and the grouping. |
 | `boxes[].shape` | A region relative to the origin of the box, for items of other shapes. Without it, the box is the rectangle `w` by `h`. |
-| `boxes[].ports` | The ports of a box, each with a `side`: `top`, `right`, `bottom` or `left`. An edge names a port in `sourcePort` or `targetPort`. |
+| `boxes[].ports` | The ports of a box, each with a `side`: `top`, `right`, `bottom` or `left`. An optional `x` and `y` put the port on the border of the box. An edge names a port in `sourcePort` or `targetPort`. |
+| `boxes[].margin` | A ring around the box: a number, or `top`, `right`, `bottom` and `left`. No box and no route enters it. The default is 0. |
+| `boxes[].turnable` | The packer can turn the box by 90 degrees. The record has the turned box and ports. |
+| `container.inset` | The space between the border and the boxes with their margins. |
 | `base`, `change` | A variant names its base input and its change: `add`, `remove`, `resize` or `reorder`. The stability measures compare the run on the variant with the run on its base. |
 
 ### Regions
@@ -166,7 +169,7 @@ Each run writes one line of JSON Lines: one line for each strategy, input and se
   "nodes": 40,
   "edges": 52,
   "measures": { "pack.area": 182400, "pack.whitespace": 0.21 },
-  "hard": { "no-overlap": 0, "in-container": 0, "locked-kept": 0, "complete": 0 },
+  "hard": { "no-overlap": 0, "in-container": 0, "locked-kept": 0, "complete": 0, "tolerance": { "overlap": 0.001 } },
   "deterministic": true,
   "prediction": "p-2026-10-27-shelf-order",
   "ms": 1.8,
@@ -177,6 +180,7 @@ Each run writes one line of JSON Lines: one line for each strategy, input and se
 - `stage` is `pack`, `route` or `joint`.
 - `inputHash` is the `hash` of the input file.
 - `hard` counts the breaks of each hard rule. A good run has 0 for each rule.
+- `hard.tolerance` gives the tolerance of each rule of the run. The defaults are `overlap` 0.001 and `through` 0.5. `docs/PACKER.md` tells why.
 - `deterministic` is `true` when two runs with the same seed give the same positions.
 - `ms` is the time of the run. Time runs go in CI only.
 
@@ -210,7 +214,7 @@ Each measure moves when the placement changes. The router measures (`route.*`) a
 
 | Rule | Break |
 |---|---|
-| `no-overlap` | Two boxes overlap. Two boxes with a common edge do not overlap. |
+| `no-overlap` | The insides of two boxes with their margins overlap by more than `hard.tolerance.overlap`. Two boxes with a common edge do not overlap. |
 | `in-container` | A box goes out of a fixed container. |
 | `locked-kept` | A locked box moved. |
 | `complete` | A box has no position and is not in `pack.overflow`. |

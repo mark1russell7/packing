@@ -8,7 +8,7 @@ Status: done, done, waiting, next, done.
 |---|---|---|---|---|
 | k0 | The repo from the template, with the history of `render-pack` | move | done | |
 | k1 | The first publish of `@mark1russell7/packing` 0.1.0 | move | done | k0 |
-| k2 | `render-pack` re-exports `@mark1russell7/packing` | move | active | k1 |
+| k2 | `render-pack` re-exports `@mark1russell7/packing` | move | done | k1 |
 | k3 | The downstream app moves its imports to the new name | move | done | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | later | k2, k3 |
 | k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
@@ -41,7 +41,7 @@ Status: done, done, waiting, next, done.
 | k32 | Every result on the site, the losers too | site | later | k11, k14 |
 | k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
 | k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | done | k33 |
-| k35 | The problem taxonomy: the dimensions of the problem and their values | theory | active |  |
+| k35 | The problem taxonomy: the dimensions of the problem and their values | theory | done |  |
 | k36 | The catalog for each cell: nesting, circles, polygons, obstacles and holes | theory | later | k35, k6 |
 | k37 | Containers of each shape: a convex polygon, any polygon, a circle or an ellipse, a region with holes | strategies | later | k7, k35 |
 | k38 | Obstacles that move at a cost | strategies | later | k7, k35 |
