@@ -12,11 +12,11 @@ Status: done, done, waiting, next, done.
 | k3 | The downstream app moves its imports to the new name | move | waiting | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | later | k2, k3 |
 | k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
-| k6 | A literature survey: shelf, guillotine, maxrects, skyline, exact search, online and offline | theory | next | |
-| k7 | One `Packer` interface for each strategy | core | later | k0 |
+| k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | next |  |
+| k7 | One Packer interface for every strategy | core | later | k0, k18 |
 | k8 | An algebra of measures | theory | later | k6, k7 |
-| k9 | The strategy zoo | strategies | later | k6, k7 |
-| k10 | An exact baseline for small inputs | strategies | later | k7 |
+| k9 | The strategy zoo: each family of the catalog behind the interface | strategies | later | k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k10 |
+| k10 | An exact baseline for small inputs: branch and bound, and a constraint solver | strategies | later | k7 |
 | k11 | Benchmarks in CI, with a prediction before each run | measure | later | k8, k9 |
 | k12 | Stability: the movement when one item changes | measure | later | k8 |
 | k13 | Speed and its scaling | measure | later | k11 |
@@ -24,6 +24,21 @@ Status: done, done, waiting, next, done.
 | k15 | The s38 checks: `conventions` and `api-report` in CI | move | done | k0 |
 | k16 | The sort order `input` | strategies | done | |
 | k17 | `packShelf`: rows in the input order around obstacles | strategies | done | k1 |
+| k18 | The shared corpus and record format with highways (`layout-input/1`, `layout-record/1`) | measure | active |  |
+| k19 | The benchmark corpus: made-up inputs of each kind, with variants for stability | measure | later | k18 |
+| k20 | A selector: measure the choice of a strategy for each input | measure | later | k9, k11 |
+| k21 | Shelf family: next fit, first fit and best fit by decreasing height, and the input order | strategies | later | k6, k7 |
+| k22 | Skyline variants: bottom-left, minimum waste, with a waste map | strategies | later | k6, k7 |
+| k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | later | k6, k7 |
+| k24 | MaxRects: best short side, best long side, best area, bottom-left, contact point | strategies | later | k6, k7 |
+| k25 | Bottom-left fill: Baker, Chazelle and the lowest-gap variants | strategies | later | k6, k7 |
+| k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | later | k6, k7 |
+| k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi | strategies | later | k6, k7 |
+| k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
+| k29 | Methods that keep the reading order or the layout under change | strategies | later | k6, k7 |
+| k30 | Online and incremental packing | strategies | later | k6, k7 |
+| k31 | New ideas of our own | strategies | later | k6, k7 |
+| k32 | Every result on the site, the losers too | site | later | k11, k14 |
 
 ## Rules
 
