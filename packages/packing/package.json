@@ -61,6 +61,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
     "@mark1russell7/cue": "^1.0.2",
     "@types/node": "^26.6.4",
     "tsdown": "^0.23.1",
