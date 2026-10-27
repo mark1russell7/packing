@@ -13,7 +13,7 @@ Status: done, done, waiting, next, done.
 | k4 | `npm deprecate` of `render-pack` | move | done | k2, k3 |
 | k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
 | k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
-| k7 | One Packer interface for every strategy | core | active | k0, k18, k35 |
+| k7 | One Packer interface for every strategy | core | done | k0, k18, k35 |
 | k8 | An algebra of measures | theory | later | k6, k7 |
 | k9 | The strategy zoo: each family of the catalog behind the interface | strategies | later | k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k10 |
 | k10 | An exact baseline for small inputs: branch and bound, and a constraint solver | strategies | later | k7 |
@@ -24,7 +24,7 @@ Status: done, done, waiting, next, done.
 | k15 | The s38 checks: `conventions` and `api-report` in CI | move | done | k0 |
 | k16 | The sort order `input` | strategies | done | |
 | k17 | `packShelf`: rows in the input order around obstacles | strategies | done | k1 |
-| k18 | The shared corpus and record format with highways (`layout-input/1`, `layout-record/1`) | measure | active |  |
+| k18 | The shared corpus and record format with highways (`layout-input/1`, `layout-record/1`) | measure | done |  |
 | k19 | The corpus from first principles: a seeded generator for each dimension of the taxonomy | measure | later | k18, k35 |
 | k20 | A selector: measure the choice of a strategy for each input | measure | later | k9, k11 |
 | k21 | Shelf family: next fit, first fit and best fit by decreasing height, and the input order | strategies | later | k6, k7 |
@@ -63,6 +63,7 @@ Status: done, done, waiting, next, done.
 | k54 | Compaction: a constraint graph in one direction, mixed constraints and the exact form | strategies | later | k6, k7 |
 | k55 | Component packing: polyominoes and the placement of the parts of a graph | strategies | later | k6, k7 |
 | k56 | Labels and word clouds: greedy, annealing, four places, and the spiral | strategies | later | k6, k7 |
+| k57 | The types of packing fit `@mark1russell7/layout-contract`, then packing uses them | core | later | k7 |
 
 ## Rules
 
