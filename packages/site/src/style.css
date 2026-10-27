@@ -244,6 +244,33 @@ button.danger {
   grid-column: 1 / -1;
 }
 
+.hint:empty {
+  display: none;
+}
+
+/* The target of a free width: only when a layout has a free width */
+.free-bar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 12px 20px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rule);
+}
+
+.free-bar[hidden] {
+  display: none;
+}
+
+.free-bar .row {
+  align-items: center;
+}
+
+.free-bar input[type="number"] {
+  width: 6.5em;
+  flex: 0 0 auto;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -421,6 +448,109 @@ select {
   height: auto;
   overflow: visible;
   touch-action: pan-y;
+}
+
+/* A free width keeps its shape. The page sets the width of the drawing, and centers it. */
+.canvas.free svg {
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+/* ---- The chart of the width search ---- */
+
+.search {
+  margin: 0;
+  padding: 10px 8px 8px;
+  background: var(--bg);
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.search[hidden] {
+  display: none;
+}
+
+.search svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.search figcaption {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.search .grid {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.search .axis {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.search .tick {
+  fill: var(--muted);
+  font: 11px "JetBrains Mono", ui-monospace, monospace;
+}
+
+.search .axis-title {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.search .trace {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.search .dot {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.search .chosen .dot {
+  fill: var(--late);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.search .hit {
+  fill: transparent;
+  cursor: default;
+}
+
+.search .pt:hover .dot {
+  stroke: var(--ink);
+}
+
+.search .pick {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.search .pick-label {
+  fill: var(--ink);
+  font: 600 12px "JetBrains Mono", ui-monospace, monospace;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.m.free {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .well {
