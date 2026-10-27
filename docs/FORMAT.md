@@ -169,7 +169,8 @@ Each run writes one line of JSON Lines: one line for each strategy, input and se
   "nodes": 40,
   "edges": 52,
   "measures": { "pack.area": 182400, "pack.whitespace": 0.21 },
-  "hard": { "no-overlap": 0, "in-container": 0, "locked-kept": 0, "complete": 0, "tolerance": { "overlap": 0.001 } },
+  "hard": { "no-overlap": 0, "in-container": 0, "locked-kept": 0, "complete": 0 },
+  "tolerance": { "overlap": 0.001 },
   "deterministic": true,
   "prediction": "p-2026-10-27-shelf-order",
   "ms": 1.8,
@@ -180,7 +181,7 @@ Each run writes one line of JSON Lines: one line for each strategy, input and se
 - `stage` is `pack`, `route` or `joint`.
 - `inputHash` is the `hash` of the input file.
 - `hard` counts the breaks of each hard rule. A good run has 0 for each rule.
-- `hard.tolerance` gives the tolerance of each rule of the run. The defaults are `overlap` 0.001 and `through` 0.5. `docs/PACKER.md` tells why.
+- `tolerance` gives the tolerance of each hard rule of the run. The defaults are `overlap` 0.001 and `through` 0.5. `docs/PACKER.md` tells why. `hard` holds only the counts.
 - `deterministic` is `true` when two runs with the same seed give the same positions.
 - `ms` is the time of the run. Time runs go in CI only.
 
@@ -214,7 +215,7 @@ Each measure moves when the placement changes. The router measures (`route.*`) a
 
 | Rule | Break |
 |---|---|
-| `no-overlap` | The insides of two boxes with their margins overlap by more than `hard.tolerance.overlap`. Two boxes with a common edge do not overlap. |
+| `no-overlap` | The insides of two boxes with their margins overlap by more than `tolerance.overlap`. Two boxes with a common edge do not overlap. |
 | `in-container` | A box goes out of a fixed container. |
 | `locked-kept` | A locked box moved. |
 | `complete` | A box has no position and is not in `pack.overflow`. |
