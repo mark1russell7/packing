@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.5
 
 - New: `docs/MEASURES.md` defines each measure of the packer, with its range, unit, direction and edge cases (roadmap item k8).
 - New: `measure(input, output)` gives the measures of one layout by id. `measureChange` gives the stability measures of a change pair.
