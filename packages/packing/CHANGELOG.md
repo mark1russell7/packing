@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- New: `packFree` packs with a free width. It tries many widths with a strategy of `pack`, and keeps the width with the lowest objective: the area of the bounding box times `1 + aspectWeight * aspectError`. The target aspect is 1 by default. The result gives the size, the fill, the aspect error and each width that the search tried.
+- New: `aspectError` gives the distance between an aspect and a target aspect on a log scale.
+
 ## 0.1.1
 
 - New: `packShelf` packs into shelves, left to right in the sort order, and goes around each `locked` rectangle. With the sort order `input`, the rows read in the order of the array, also around locked rectangles. With the default `height-desc`, it is Next-Fit Decreasing Height.

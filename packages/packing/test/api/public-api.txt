@@ -4,8 +4,11 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 18 names
+## . (build/index.d.ts): 23 names
 
+type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
+type FreeWidthResult: build/index.d.ts#FreeWidthResult
+type FreeWidthTry: build/index.d.ts#FreeWidthTry
 type MetricsOptions: build/index.d.ts#MetricsOptions
 type PackLayoutOptions: build/index.d.ts#PackLayoutOptions
 type PackOptions: build/index.d.ts#PackOptions
@@ -16,9 +19,11 @@ SORT_ORDERS: build/index.d.ts#SORT_ORDERS
 type ShelfOptions: build/index.d.ts#ShelfOptions
 type SortOrder: build/index.d.ts#SortOrder
 Vector: build/index.d.ts#Vector
+aspectError: build/index.d.ts#aspectError
 compareRects: build/index.d.ts#compareRects
 lowestWindow: build/index.d.ts#lowestWindow
 pack: build/index.d.ts#pack
+packFree: build/index.d.ts#packFree
 packRows: build/index.d.ts#packRows
 packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
@@ -26,6 +31,32 @@ packingMetrics: build/index.d.ts#packingMetrics
 pushCascade: build/index.d.ts#pushCascade
 
 ## Declarations
+
+### build/index.d.ts#FreeWidthOptions
+interface FreeWidthOptions extends PackLayoutOptions {
+  aspect?: number;
+  aspectWeight?: number;
+  samples?: number;
+}
+
+### build/index.d.ts#FreeWidthResult
+interface FreeWidthResult<T> {
+  outer: Rect<T>;
+  area: number;
+  fill: number;
+  aspect: number;
+  aspectError: number;
+  objective: number;
+  tried: FreeWidthTry[];
+}
+
+### build/index.d.ts#FreeWidthTry
+interface FreeWidthTry {
+  width: number;
+  contentWidth: number;
+  contentHeight: number;
+  objective: number;
+}
 
 ### build/index.d.ts#MetricsOptions
 interface MetricsOptions {
@@ -113,6 +144,9 @@ export declare class Vector {
   static get Infinity(): Vector;
 }
 
+### build/index.d.ts#aspectError
+export declare function aspectError(width: number, height: number, target?: number): number;
+
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
 
@@ -124,6 +158,9 @@ export declare function lowestWindow(skyline: ArrayLike<number>, width: number, 
 
 ### build/index.d.ts#pack
 export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;
+
+### build/index.d.ts#packFree
+export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?: FreeWidthOptions): FreeWidthResult<T>;
 
 ### build/index.d.ts#packRows
 export declare function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options?: PackOptions): Rect<T>;
