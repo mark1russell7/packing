@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>packing: rectangle packing, live</title>
+    <meta name="description" content="Pack rectangles into a container in your browser. Change the strategy, the sort order and the width, edit the items, and compare the measures." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23202a44'/%3E%3Crect x='5' y='5' width='13' height='9' rx='1' fill='%235b8def'/%3E%3Crect x='20' y='5' width='7' height='14' rx='1' fill='%23e9a23b'/%3E%3Crect x='5' y='16' width='13' height='11' rx='1' fill='%23a77fe0'/%3E%3Crect x='20' y='21' width='7' height='6' rx='1' fill='%2348b59a'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip" href="#stages">Skip to the layout</a>
+    <header class="top">
+      <div class="brand">
+        <h1 class="wordmark"><span class="mark" aria-hidden="true"></span>packing</h1>
+        <div class="lead" id="lead"></div>
+      </div>
+      <nav class="links" aria-label="Links">
+        <a href="https://github.com/mark1russell7/packing">Source on GitHub</a>
+        <a href="#about">About</a>
+        <button type="button" class="theme" id="theme" aria-label="Color theme">Auto</button>
+      </nav>
+    </header>
+
+    <main class="app">
+      <section class="items-bar" aria-label="Items and container">
+        <div class="field presets">
+          <span class="label" id="preset-label">Items</span>
+          <div class="seg" role="radiogroup" aria-labelledby="preset-label" id="presets"></div>
+          <p class="hint" id="preset-hint"></p>
+        </div>
+        <div class="field">
+          <label class="label" for="count">Count <output id="count-out" for="count"></output></label>
+          <input type="range" id="count" min="1" max="80" step="1" />
+        </div>
+        <div class="field">
+          <label class="label" for="width">Container width <output id="width-out" for="width"></output></label>
+          <input type="range" id="width" min="160" max="1200" step="10" />
+        </div>
+        <div class="field seed">
+          <label class="label" for="seed">Seed</label>
+          <div class="row">
+            <input type="number" id="seed" min="0" max="999999" step="1" inputmode="numeric" />
+            <button type="button" id="reseed">New seed</button>
+          </div>
+        </div>
+        <div class="field compare">
+          <label class="switch"><input type="checkbox" id="compare" /> <span>Compare two settings</span></label>
+        </div>
+      </section>
+
+      <section class="stages" id="stages" aria-label="Layouts"></section>
+
+      <section class="editor" aria-label="Edit the items">
+        <div class="editor-head">
+          <h2 id="sel-title">No item selected</h2>
+          <button type="button" id="add" class="primary">Add item</button>
+        </div>
+        <p class="hint" id="sel-hint">Click an item to select it. Then drag its corner, or type a size. Changes pack again at once.</p>
+        <div class="sel-tools" id="sel-tools" hidden>
+          <label>Width <input type="number" id="sel-w" min="4" max="2000" step="1" inputmode="numeric" /></label>
+          <label>Height <input type="number" id="sel-h" min="4" max="2000" step="1" inputmode="numeric" /></label>
+          <div class="row">
+            <button type="button" id="earlier" title="Move the item one rank up in the list">Rank up</button>
+            <button type="button" id="later" title="Move the item one rank down in the list">Rank down</button>
+            <button type="button" id="remove" class="danger">Remove</button>
+          </div>
+        </div>
+        <p class="legend"><span>Color shows the rank in the list:</span> <span class="ramp" aria-hidden="true"></span> <span>first to last</span></p>
+      </section>
+
+      <section class="about" id="about" aria-label="About"></section>
+    </main>
+
+    <footer class="foot">
+      <p>Made-up data only. MIT license. <a href="https://github.com/mark1russell7/packing">github.com/mark1russell7/packing</a></p>
+    </footer>
+
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>

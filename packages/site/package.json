@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "@packing/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "devDependencies": {
+    "@mark1russell7/cue": "^1.0.2",
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@mark1russell7/packing": "workspace:*",
+    "marked": "^18.1.2"
+  },
+  "description": "The GitHub Pages site of packing: a live demo of the strategies, the sort orders and the measures."
+}
