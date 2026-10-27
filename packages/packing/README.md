@@ -33,14 +33,15 @@ pack(rects, outer, { strategy: "skyline", sortOrder: "area-desc" });
 
 - `packRows` (the default): a guillotine row packing. It fills the space under the short rectangles of each row.
 - `packSkyline`: each rectangle goes to the lowest place where it fits. It packs around a `locked` rectangle.
+- `packShelf`: it fills rows left to right in the sort order, and goes around each `locked` rectangle. With the sort order `input`, the rows read in your order.
 
 Both functions also work alone, in an outer rectangle with a width that you set. They do not change the width.
 
-A `locked` rectangle keeps its position. `packSkyline` puts the other rectangles under it. `packRows` only keeps its position.
+A `locked` rectangle keeps its position. `packSkyline` and `packShelf` put the other rectangles around it. `packRows` only keeps its position.
 
 The sort orders are `height-desc` (the default), `height-asc`, `width-desc`, `area-desc` and `input`. `SORT_ORDERS` lists them, and `compareRects` gives the comparator of one.
 
-The order `input` keeps the order of your array. Use it for a ranked list. `packRows` then fills no gaps, so the rows read in your order: left to right, and top to bottom. `packSkyline` places the rectangles in your order, but a later rectangle can go higher than an earlier one.
+The order `input` keeps the order of your array. Use it for a ranked list. `packRows` then fills no gaps, so the rows read in your order: left to right, and top to bottom. `packSkyline` places the rectangles in your order, but a later rectangle can go higher than an earlier one. For a ranked list with `locked` rectangles, use `packShelf`.
 
 ## Pushes and measurements
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- New: `packShelf` packs into shelves, left to right in the sort order, and goes around each `locked` rectangle. With the sort order `input`, the rows read in the order of the array, also around locked rectangles. With the default `height-desc`, it is Next-Fit Decreasing Height.
+- New: the strategy `shelf` of `pack`.
+
 ## 0.1.0
 
 - The first release as `@mark1russell7/packing`. The code and its history come from `@mark1russell7/render-pack` 0.1.1, with no change of the API. The versions under this one are the versions of `render-pack`.
