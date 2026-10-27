@@ -23,6 +23,7 @@ Status: done, done, waiting, next, done.
 | k14 | A live site with interactive examples | site | later | k7, k8 |
 | k15 | The s38 checks: `conventions` and `api-report` in CI | move | active | k0 |
 | k16 | The sort order `input` | strategies | active | |
+| k17 | `packShelf`: rows in the input order around obstacles | strategies | active | k1 |
 
 ## Rules
 

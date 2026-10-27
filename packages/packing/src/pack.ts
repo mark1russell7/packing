@@ -1,5 +1,6 @@
 import { compareRects, type SortOrder } from "./order.ts";
 import { Rect } from "./rect.ts";
+import { packShelf } from "./shelf.ts";
 import { packSkyline } from "./skyline.ts";
 import { Vector } from "./vector.ts";
 
@@ -11,8 +12,11 @@ export interface PackOptions {
 
 /** The options of `pack` */
 export interface PackLayoutOptions extends PackOptions {
-  /** The packing: `rows` (the default) or `skyline`. Use `skyline` to pack around locked rectangles. */
-  strategy?: "rows" | "skyline";
+  /**
+   * The packing: `rows` (the default), `skyline` or `shelf`. `skyline` and `shelf` pack around locked rectangles.
+   * Use `shelf` with the sort order `input` to keep the order of the array around locked rectangles.
+   */
+  strategy?: "rows" | "skyline" | "shelf";
 }
 
 function packInto<T>(rects: Rect<T>[], region: Rect<T>, offset: Vector, order: SortOrder): void {
@@ -96,7 +100,7 @@ export function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options: PackOptio
  *   This width is not less than the width of the widest rectangle. The height grows until all rectangles fit.
  * - With `fixedWidth`, the width stays. A rectangle wider than that width goes on its own row and overflows.
  * - With `fixedSize`, a rectangle that does not fit is not packed: its `wasPacked` stays `false`.
- * - `options.strategy` selects `packRows` (the default) or `packSkyline` after the width is set.
+ * - `options.strategy` selects `packRows` (the default), `packSkyline` or `packShelf` after the width is set.
  */
 export function pack<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), options: PackLayoutOptions = {}): Rect<T> {
   let totalArea = 0;
@@ -119,6 +123,7 @@ export function pack<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), options: 
   // A fixed width stays, also when a rectangle is wider: that rectangle overflows
   if (!outer.fixedSize) outer.size.setTo(outer.fixedWidth ? new Vector(outer.size.x, ideal.y) : ideal);
   if (options.strategy === "skyline") packSkyline(rects, outer, options);
+  else if (options.strategy === "shelf") packShelf(rects, outer, options);
   else packRows(rects, outer, options);
 
   if (!outer.fixedSize) {
