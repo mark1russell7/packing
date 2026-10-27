@@ -63,7 +63,7 @@ Status: done, done, waiting, next, done.
 | k54 | Compaction: a constraint graph in one direction, mixed constraints and the exact form | strategies | later | k6, k7 |
 | k55 | Component packing: polyominoes and the placement of the parts of a graph | strategies | later | k6, k7 |
 | k56 | Labels and word clouds: greedy, annealing, four places, and the spiral | strategies | later | k6, k7 |
-| k57 | The types of packing fit `@mark1russell7/layout-contract`, then packing uses them | core | later | k7 |
+| k57 | The types of packing fit `@mark1russell7/layout-contract`, then packing uses them | core | active | k7 |
 | k58 | Promotion: a winner of the catalog becomes the default or a rule of the selector, by the shared promotion rule | measure | later | k11, k20 |
 
 ## Rules
