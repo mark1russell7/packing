@@ -43,6 +43,24 @@ The sort orders are `height-desc` (the default), `height-asc`, `width-desc`, `ar
 
 The order `input` keeps the order of your array. Use it for a ranked list. `packRows` then fills no gaps, so the rows read in your order: left to right, and top to bottom. `packSkyline` places the rectangles in your order, but a later rectangle can go higher than an earlier one. For a ranked list with `locked` rectangles, use `packShelf`.
 
+## Free width
+
+`packFree` searches the width. It tries many widths with one strategy of `pack`, and keeps the width with the lowest objective: the area of the bounding box times `1 + aspectWeight * aspectError`.
+
+```ts
+import { packFree } from "@mark1russell7/packing";
+
+const result = packFree(rects, undefined, { strategy: "skyline", aspect: 16 / 9 });
+result.outer.size; // the chosen size
+result.fill; // the area of the rectangles divided by the area of the box
+result.aspectError; // the distance from the target aspect, on a log scale
+result.tried; // each width that the search tried, with its objective
+```
+
+- `aspect` is the target: the width divided by the height. The default is 1, a square.
+- `aspectWeight` sets the weight of the aspect. With 0, only the area counts.
+- The search is deterministic. The same input gives the same result.
+
 ## Pushes and measurements
 
 `pushCascade` moves the rectangles that a placed rectangle overlaps, and the rectangles that those overlap in turn:
