@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fix: in the rule `in-container`, `checkHard` makes each fixed side smaller by `container.inset` (decision 3).
+- Fix: for a shaped item, `checkHard` uses the bounding box of its turned `shape`, not `w` by `h` (decision 5).
+- Change: `Supports` is a type alias, not an interface. It has the same fields, and it fits the record `Supports` of the contract.
+- The test of the type fit with `@mark1russell7/layout-contract` shows that gaps 6, 9 and 10 are closed (roadmap item k57).
+
 ## 0.1.5
 
 - New: `docs/MEASURES.md` defines each measure of the packer, with its range, unit, direction and edge cases (roadmap item k8).

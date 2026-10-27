@@ -588,7 +588,7 @@ interface Strategy<O = unknown> {
 }
 
 ### build/index.d.ts#Supports
-interface Supports {
+type Supports = {
   containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
   containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
   obstacleMove: ("fixed" | "costly" | "free")[];
@@ -597,7 +597,7 @@ interface Supports {
   order: ("free" | "soft" | "hard")[];
   groups: ("none" | "flat" | "nested")[];
   mode: ("offline" | "online" | "incremental")[];
-}
+};
 
 ### build/index.d.ts#Tolerance
 interface Tolerance {

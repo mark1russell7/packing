@@ -26,11 +26,13 @@ function overlap(a: Box, b: Box, tolerance: number): boolean {
  * This function counts the breaks of the 4 hard rules of the packer for an output.
  *
  * - `no-overlap`: each pair of items with their margins, and each pair of an item and an obstacle, that overlap by more than `tolerance.overlap`.
- * - `in-container`: each item with its margin that goes out of a fixed side by more than `tolerance.overlap`.
+ * - `in-container`: each item with its margin that goes out of a fixed side by more than `tolerance.overlap`. The inset of
+ *   the container makes each fixed side smaller (decision 3 of `docs/PACKER.md`).
  * - `locked-kept`: each locked item that moved by more than `RECORD_EPS`, or that has no position.
  * - `complete`: each item with no position that is not in the overflow.
  *
- * The rules read a shape of the container or of an obstacle as its bounding box. The result has no tolerance in it.
+ * The rules read a shape of the container, of an obstacle or of an item as its bounding box (decision 5). The bounding box
+ * of an item shape is relative to the position of the item. The result has no tolerance in it.
  */
 export function checkHard(input: PackInput, output: PackOutput, tolerance: Pick<Tolerance, "overlap"> = DEFAULT_TOLERANCE): HardBreaks {
   const tol = tolerance.overlap;
@@ -52,7 +54,10 @@ export function checkHard(input: PackInput, output: PackOutput, tolerance: Pick<
     }
     const placed: Item = p.turn === 90 ? turnItem(item) : item;
     const m = marginOf(placed);
-    boxes.push({ l: p.x - m.left, t: p.y - m.top, r: p.x + placed.w + m.right, b: p.y + placed.h + m.bottom });
+    const area = placed.shape === undefined ? { x: 0, y: 0, w: placed.w, h: placed.h } : boundsOf(placed.shape);
+    const l = p.x + area.x;
+    const t = p.y + area.y;
+    boxes.push({ l: l - m.left, t: t - m.top, r: l + area.w + m.right, b: t + area.h + m.bottom });
   }
 
   const moved = new Map(output.moved.map((m) => [m.id, m]));
@@ -73,11 +78,12 @@ export function checkHard(input: PackInput, output: PackOutput, tolerance: Pick<
   const y = shape?.y ?? 0;
   const w = shape?.w ?? container.w ?? Infinity;
   const h = shape?.h ?? container.h ?? Infinity;
+  const inset = container.inset ?? 0;
   const fixedW = container.fixed === "size" || container.fixed === "width";
   const fixedH = container.fixed === "size" || container.fixed === "height";
   for (const box of boxes) {
-    const outX = fixedW && (box.l < x - tol || box.r > x + w + tol);
-    const outY = fixedH && (box.t < y - tol || box.b > y + h + tol);
+    const outX = fixedW && (box.l < x + inset - tol || box.r > x + w - inset + tol);
+    const outY = fixedH && (box.t < y + inset - tol || box.b > y + h - inset + tol);
     if (outX || outY) breaks["in-container"] += 1;
   }
   return breaks;
