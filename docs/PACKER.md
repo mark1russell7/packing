@@ -2,7 +2,8 @@
 
 This document is the draft of the interface of each strategy of `packing` (roadmap item k7). The interface is the intermediate form of the layout compiler. A view describes itself as a packing input. A strategy packs it. The router routes the edges of the output.
 
-- The status is **draft**. The code comes after the review of the layout-stack session, `highways` and the owner.
+- The status is **draft**. The layout-stack session, `highways` and `packing` settled its open questions on 2026-10-27. The section "The decisions" gives them.
+- The shared types go to the package `@mark1russell7/layout-contract` of the repository `layout-stack`. The section "The contract and packing" tells which types.
 - The field names are those of `layout-input/1` in [`docs/FORMAT.md`](FORMAT.md). A packing input is a `layout-input/1` file without `edges`.
 - The cell names are those of [`docs/research/TAXONOMY.md`](research/TAXONOMY.md).
 - The API of 0.1 (`Rect`, `pack`, `packShelf`, `packFree` and the others) stays. An adapter puts each function behind the interface.
@@ -38,6 +39,8 @@ interface Container {
   aspectWeight?: number;
   /** The shape. Without it, the container is the rectangle from 0, 0 to w, h. */
   shape?: Region;
+  /** The space between the border and the items with their margins. The default is 0. */
+  inset?: number;
 }
 
 interface Obstacle {
@@ -61,13 +64,27 @@ interface Item {
   locked?: boolean;
   x?: number;
   y?: number;
+  /** true when the packer can turn the item by 90 degrees. The default is false. */
+  turnable?: boolean;
+  /** A ring around the item that no other item and no route enters. The default is 0. */
+  margin?: number | { top: number; right: number; bottom: number; left: number };
+  /** The ports. The packer keeps them, and turns them with the item. */
+  ports?: Port[];
+}
+
+interface Port {
+  id: string;
+  side: "top" | "right" | "bottom" | "left";
+  /** A point on the border of the item, relative to its top-left corner. Without it, the router chooses the point. */
+  x?: number;
+  y?: number;
 }
 
 interface PackInput {
   container: Container;
   items: Item[];
   obstacles?: Obstacle[];
-  /** The space between two items, and between an item and an obstacle. */
+  /** The free space between two items with their margins. Routes use this space. */
   gap?: number;
 }
 
@@ -75,7 +92,7 @@ interface Placement {
   id: string;
   x: number;
   y: number;
-  /** 0 or 90, for a strategy that supports rotation "quarter". */
+  /** 0 or 90, only for an item with turnable set to true. */
   turn?: 0 | 90;
 }
 
@@ -220,10 +237,67 @@ The benchmark starts each strategy of the registry on each input of the corpus. 
 
 `fromRects(rects, outer)` makes a `PackInput` from the `Rect` objects of 0.1, and `toRects(output, rects, outer)` writes the output back.
 
-## The open questions
+## The decisions
 
-1. **Rotation.** A user interface turns an item only in rare cases. Do we keep `turn` in the first version, or add it with the first strategy that uses it?
-2. **The tolerance.** Two items with a common edge do not overlap. The draft uses a tolerance of `1e-6` for the comparisons. Do `packing` and `highways` use the same value?
-3. **Margins.** The draft has one `gap`. Later options of `Item` and `Container` can add a margin of each item and a gap at the border.
-4. **The ports.** The router reads `boxes[].ports`. The packer ignores them in this draft. The idea `new-port-aware` of the catalog reads them.
-5. **The name `Item` against `boxes`.** The file format uses `boxes`. The draft uses `items` in the code, because an item can be a circle or a polygon. The converter maps the two names.
+The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.
+
+### 1. The rotation
+
+- `Item.turnable` (default `false`) lets a strategy turn the item. `Placement.turn` is `0` or `90`.
+- A turn of 90 is clockwise, with the y axis down. The turned item has `w` and `h` changed. Its top-left corner is at `x`, `y`.
+- A port at `px`, `py` goes to `h - py`, `px`. Its side turns from `top` to `right`, `right` to `bottom`, `bottom` to `left` and `left` to `top`.
+- The output and the record for the router have the turned items and ports. Thus the router does not read `turn`.
+- The rotation is in the first version. A later addition changes the `supports` of each strategy.
+
+### 2. The tolerances
+
+| Name | Value | Use |
+|---|---|---|
+| `EPS` | `1e-6` | The comparison of two numbers in an engine. |
+| `RECORD_EPS` | `1e-3` | The comparison of two numbers of a file. The files round to 3 decimals, so two values can differ by `0.0005` each. |
+| `hard.tolerance.overlap` | `0.001` | The rule `no-overlap`. The packer is exact, so a small tolerance finds each real overlap. |
+| `hard.tolerance.through` | `0.5` | The router rule that a route does not go through a box. A route is a curve on the line of the margin. |
+
+- The boxes are closed. Two boxes overlap only when their insides overlap. A common edge is not an overlap.
+- Each record writes the tolerances of its rules in `hard.tolerance`. The table gives the defaults.
+- A route in the margin of an item, outside the item, is a soft measure, not a break of a hard rule.
+
+### 3. The margins and the gap
+
+- `Item.margin` is a ring around the item. It is a part of the item. The packer packs the item with its margin. The router keeps each route out of the ring.
+- A port stub crosses the ring at a right angle. This crossing is not a break.
+- `gap` is the free space between two items with their margins. Routes use it.
+- `Container.inset` is the space between the border and the items with their margins.
+- Thus two items are `mA + gap + mB` apart.
+- A gap with `k` routes at a spacing `s` needs `gap >= (k - 1) * s` when the margins give the clearance.
+- The joint corpus keeps the inputs with a gap of 0 and no margin as a labelled stress cell. On these inputs, the router rule `through` is expected to fail. Each other joint input has a margin and a gap larger than 0.
+
+### 4. The ports
+
+- The ports are a part of the item, with the form of `boxes[].ports` of `layout-input/1`. A port has an `id`, a `side`, and an optional `x` and `y` on the border of the item.
+- The packer keeps the ports, and turns them with the item (decision 1).
+- The strategies of the first version ignore the ports. A port-aware strategy (`new-port-aware` of the catalog) reads them.
+
+### 5. The items and the boxes
+
+- The file format keeps the name `boxes`. The packer API uses `Item`, because an item can be a circle or a polygon.
+- One pair of converters in the contract (`fromLayoutInput` and `toLayoutRecord`) maps the two names. Neither engine has its own mapping.
+- A router that knows only rectangles routes around the bounding box of an item. It declares this in its own `supports`.
+- The obstacles of the packer go to the router as obstacles, not as boxes. A shaped item goes to the router as its shape, or as its bounding box when the router does not support the shape.
+
+## The contract and packing
+
+The package `@mark1russell7/layout-contract` holds what the packer, the router and the consumer share. Neither engine depends on the other.
+
+| In the contract | In `packing` |
+|---|---|
+| `Region`, `Item` with `Port` and `margin`, `Container`, `Obstacle` | The packer part of `Strategy`: `pack` and `PackContext` |
+| `PackInput`, `PackOutput`, `Placement` | The stages: `SizeSearch`, `Split`, `Assign`, `Pass`, `pipeline` |
+| The turn helper, `EPS`, `RECORD_EPS` | The selector and `cellOf` |
+| The converters and the validators | The registry and the adapters of 0.1 |
+| The common fields of a strategy, with `supports` as a record of each dimension and its values | The dimensions of the packer, with their names in `docs/FORMAT.md` |
+| The registry of the measure names | |
+
+- The release of `packing` refuses a `github:` dependency. Thus `packing` keeps its own copy of the types until the contract is on npm.
+- A test of `packing` makes sure that its types fit the types of the contract.
+- The adapters of 0.1 stay until the contract is final.
