@@ -39,7 +39,7 @@ Status: done, done, waiting, next, done.
 | k30 | Online and incremental packing | strategies | later | k6, k7 |
 | k31 | New ideas of our own | strategies | later | k6, k7 |
 | k32 | Every result on the site, the losers too | site | later | k11, k14 |
-| k33 | Free width: `packFree` searches the width for a target aspect | core | active |  |
+| k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
 | k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | next | k33 |
 | k35 | The problem taxonomy: the dimensions of the problem and their values | theory | next |  |
 | k36 | The catalog for each cell: nesting, circles, polygons, obstacles and holes | theory | later | k35, k6 |
