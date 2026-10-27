@@ -10,7 +10,7 @@ Status: done, done, waiting, next, done.
 | k1 | The first publish of `@mark1russell7/packing` 0.1.0 | move | done | k0 |
 | k2 | `render-pack` re-exports `@mark1russell7/packing` | move | done | k1 |
 | k3 | The downstream app moves its imports to the new name | move | done | k1 |
-| k4 | `npm deprecate` of `render-pack` | move | later | k2, k3 |
+| k4 | `npm deprecate` of `render-pack` | move | done | k2, k3 |
 | k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
 | k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
 | k7 | One Packer interface for every strategy | core | active | k0, k18, k35 |
