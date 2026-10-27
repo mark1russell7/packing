@@ -255,11 +255,11 @@ The layout-stack session, `highways` and `packing` settled these questions on 20
 |---|---|---|
 | `EPS` | `1e-6` | The comparison of two numbers in an engine. |
 | `RECORD_EPS` | `1e-3` | The comparison of two numbers of a file. The files round to 3 decimals, so two values can differ by `0.0005` each. |
-| `hard.tolerance.overlap` | `0.001` | The rule `no-overlap`. The packer is exact, so a small tolerance finds each real overlap. |
-| `hard.tolerance.through` | `0.5` | The router rule that a route does not go through a box. A route is a curve on the line of the margin. |
+| `tolerance.overlap` | `0.001` | The rule `no-overlap`. The packer is exact, so a small tolerance finds each real overlap. |
+| `tolerance.through` | `0.5` | The router rule that a route does not go through a box. A route is a curve on the line of the margin. |
 
 - The boxes are closed. Two boxes overlap only when their insides overlap. A common edge is not an overlap.
-- Each record writes the tolerances of its rules in `hard.tolerance`. The table gives the defaults.
+- Each record writes the tolerances of its rules in the field `tolerance`, next to `hard`. The table gives the defaults. `hard` holds only the count of each rule.
 - A route in the margin of an item, outside the item, is a soft measure, not a break of a hard rule.
 
 ### 3. The margins and the gap
