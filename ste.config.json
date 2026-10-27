@@ -21,7 +21,7 @@
     "**/*.spec.ts",
     "**/*.spec.tsx"
   ],
-  "technicalNouns": [],
+  "technicalNouns": ["nesting"],
   "technicalVerbs": [],
   "properNouns": [
     "ASD",
