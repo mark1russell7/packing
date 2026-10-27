@@ -31,9 +31,9 @@ The corpus is a folder of input files and an index. Each input is one JSON file.
 | Field | Use |
 |---|---|
 | `id`, `set`, `family`, `seed` | The name of the input. The `set` is the corpus version, for example `screen-v1`. |
-| `source` | Always `made-up`. The repository is public. |
+| `source` | The origin of the input: `made-up`, `published:<set>` or `known-best:<construction>`. A generated input has `made-up`. The repository is public, so no input comes from a real product. |
 | `hash` | The first 16 hex characters of the SHA-256 of the canonical file: sorted keys, no whitespace, without the field `hash`. |
-| `container` | The outer rectangle. `fixed` is `none`, `width` or `size`. The router ignores it. |
+| `container` | The outer rectangle. `fixed` is `none`, `width`, `height` or `size`. The router ignores it. |
 | `container.aspect` | The target aspect: the width divided by the height. The default is 1. With `fixed` set to `none`, the packer searches the size for this aspect. |
 | `container.shape` | A region. Without it, the container is the rectangle `w` by `h`. |
 | `obstacles` | A list of `{ "id", "region", "move"? }`. Without `move`, an obstacle stays. With `move: { "cost" }`, the packer can move it for the cost times the distance. The router reads each obstacle as an area to avoid. |
@@ -71,7 +71,7 @@ The corpus comes from seeded generators. The same generator, version, parameters
 - Each generated input has `"generator": { "name", "version", "params", "seed" }`. A hand-made or published input has `"generator": null`, and its `source` tells its origin: `made-up`, `published:<set>` or `known-best:<construction>`.
 - A generator is a pipeline of steps: the container shape, then the obstacles, then the sizes and the count of the items. Thus a packing input and a routing input with the same seed have the same obstacles.
 - The random numbers come from `mulberry32`. Each step has its own seed: `fnv1a32("<input seed>:<step name>")`, of the UTF-8 bytes of the string.
-- Each number in a file is a JSON number, rounded to 3 decimals. Thus the output stays the same on each runtime.
+- Each number in a file is a JSON number, rounded to 3 decimals with `Math.round(x * 1000) / 1000`. A half goes up, to positive infinity. The file writes `-0` as `0`. Thus the output stays the same on each runtime.
 - The canonical form for `hash` has sorted keys and no whitespace. The numbers have the form of `JSON.stringify`.
 - A routing input needs positions. It is either generated with positions, or it names a packing input in `base` with `"change": "packed"`: it routes the packed output of that input.
 - In a change sequence, `step` gives the place of an input in the sequence.
@@ -99,7 +99,7 @@ The manifest of a corpus is `corpus.json`:
 | `sizes` | `identical`, `uniform`, `heavyTail`, `bimodal`, `extremeAspect`, `nearIdentical` |
 | `count` | `1`, `10`, `100`, `1k`, `10k` |
 | `mode` | `offline`, `online`, `incremental` |
-| `edgeDensity` (routing) | `sparse`, `medium`, `dense`: about 0.5, 1.5 and 4 edges for each box |
+| `edgeDensity` (routing) | `sparse`, `medium`, `dense`: approximately 0.5, 1.5 and 4 edges for each box |
 | `edgeShape` (routing) | `random`, `clustered`, `hubChain`, `longRange`, `tree`, `bundled` |
 | `groups` (routing) | `none`, `flat`, `nested` |
 | `ports` (routing) | `free`, `sides`, `fixed` |

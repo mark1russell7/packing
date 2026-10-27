@@ -12,8 +12,8 @@ Status: done, done, waiting, next, done.
 | k3 | The downstream app moves its imports to the new name | move | done | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | later | k2, k3 |
 | k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
-| k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | next |  |
-| k7 | One Packer interface for every strategy | core | later | k0, k18, k35 |
+| k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
+| k7 | One Packer interface for every strategy | core | active | k0, k18, k35 |
 | k8 | An algebra of measures | theory | later | k6, k7 |
 | k9 | The strategy zoo: each family of the catalog behind the interface | strategies | later | k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k10 |
 | k10 | An exact baseline for small inputs: branch and bound, and a constraint solver | strategies | later | k7 |
@@ -40,8 +40,8 @@ Status: done, done, waiting, next, done.
 | k31 | New ideas of our own | strategies | later | k6, k7 |
 | k32 | Every result on the site, the losers too | site | later | k11, k14 |
 | k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
-| k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | next | k33 |
-| k35 | The problem taxonomy: the dimensions of the problem and their values | theory | next |  |
+| k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | done | k33 |
+| k35 | The problem taxonomy: the dimensions of the problem and their values | theory | active |  |
 | k36 | The catalog for each cell: nesting, circles, polygons, obstacles and holes | theory | later | k35, k6 |
 | k37 | Containers of each shape: a convex polygon, any polygon, a circle or an ellipse, a region with holes | strategies | later | k7, k35 |
 | k38 | Obstacles that move at a cost | strategies | later | k7, k35 |
@@ -57,6 +57,12 @@ Status: done, done, waiting, next, done.
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
 | k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
+| k51 | Lower bounds, so each result shows its distance to the best | measure | later | k6 |
+| k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
+| k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
+| k54 | Compaction: a constraint graph in one direction, mixed constraints and the exact form | strategies | later | k6, k7 |
+| k55 | Component packing: polyominoes and the placement of the parts of a graph | strategies | later | k6, k7 |
+| k56 | Labels and word clouds: greedy, annealing, four places, and the spiral | strategies | later | k6, k7 |
 
 ## Rules
 
