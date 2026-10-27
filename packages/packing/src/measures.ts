@@ -166,7 +166,7 @@ function traceSum(output: PackOutput, id: string): number {
  * record rounds them with `roundMeasures`.
  *
  * - The boxes are the placed items with a width and a height above 0. The hull is the smallest rectangle around them.
- * - An empty layout gives an area of 0, an aspect of 1, an aspect error of 0, a fill of 0 and a whitespace of 1.
+ * - An empty layout gives the area 0, the aspect 1 and the aspect error 0. Its fill is 0 and its whitespace is 1.
  * - The time `pack.search.ms` comes from the trace. It is not part of the determinism rule.
  *
  * @example
@@ -270,7 +270,7 @@ export function measureChange(baseInput: PackInput, baseOutput: PackOutput, chan
  * `true` when the runs have the same placements, overflow, size and moved obstacles.
  *
  * - The placements match by id, so their order in the list does not count. The numbers must be equal.
- * - The trace is not part of the rule, because its times change from run to run.
+ * - The trace is not part of the rule, because its times change each time.
  */
 export function isDeterministic(first: PackOutput, second: PackOutput): boolean {
   const key = <T extends { id: string }>(list: readonly T[]): Map<string, T> => new Map(list.map((e) => [e.id, e]));
