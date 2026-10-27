@@ -70,7 +70,8 @@ function packRow<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrder): boolean
     if (fillGaps && row.length > 1) {
       const rectInRow = row[row.length - 1]!;
       const outerLeft = new Rect<T>();
-      outerLeft.position.set(rectInRow.position.x, rectInRow.bottom());
+      // The position of the region is relative to the outer rectangle, as packInto adds the position of the outer rectangle
+      outerLeft.position.set(rectInRow.position.x - outer.position.x, rectInRow.bottom() - outer.position.y);
       outerLeft.size.set(rectInRow.size.x, rowRect.size.y - rectInRow.size.y);
       outerLeft.fixedWidth = true;
       outerLeft.fixedSize = true;

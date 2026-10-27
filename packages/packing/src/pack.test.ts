@@ -119,6 +119,29 @@ describe("regressions (docs/REVIEW.md)", () => {
       expect(r.bottom()).toBeLessThanOrEqual(outer.size.y);
     }
   });
+
+  it("a gap fill in a gap fill stays in its region: each rect in the width, with no overlap", () => {
+    // mulberry32, so each case is the same at each run
+    const random = (seed: number) => () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    for (let seed = 1; seed <= 400; seed++) {
+      const next = random(seed);
+      const width = 100 + Math.floor(next() * 300);
+      const rects = Array.from({ length: 5 + Math.floor(next() * 40) }, () => rect(4 + Math.floor(next() * 70), 4 + Math.floor(next() * 50)));
+      const outer = new Rect();
+      outer.size.set(width, 0);
+      outer.fixedWidth = true;
+      pack(rects, outer);
+      for (const [i, r] of rects.entries()) {
+        expect(r.position.x >= 0 && r.right() <= width, `seed ${seed}`).toBe(true);
+        for (const other of rects.slice(i + 1)) expect(overlaps(r, other), `seed ${seed}`).toBe(false);
+      }
+    }
+  });
 });
 
 describe("the sort order input", () => {

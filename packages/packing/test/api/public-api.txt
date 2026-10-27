@@ -4,33 +4,114 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 23 names
+## . (build/index.d.ts): 70 names
 
+type Cell: build/index.d.ts#Cell
+type Container: build/index.d.ts#Container
+DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
+type Dimension: build/index.d.ts#Dimension
+type DimensionValue: build/index.d.ts#DimensionValue
+EPS: build/index.d.ts#EPS
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
+type HardBreaks: build/index.d.ts#HardBreaks
+type Item: build/index.d.ts#Item
+type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
+type Margin: build/index.d.ts#Margin
 type MetricsOptions: build/index.d.ts#MetricsOptions
+type Obstacle: build/index.d.ts#Obstacle
+type PackContext: build/index.d.ts#PackContext
+type PackInput: build/index.d.ts#PackInput
 type PackLayoutOptions: build/index.d.ts#PackLayoutOptions
 type PackOptions: build/index.d.ts#PackOptions
+type PackOutput: build/index.d.ts#PackOutput
 type PackingMetrics: build/index.d.ts#PackingMetrics
+type Placement: build/index.d.ts#Placement
+type Port: build/index.d.ts#Port
 type PushOptions: build/index.d.ts#PushOptions
+type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
+RECORD_EPS: build/index.d.ts#RECORD_EPS
 Rect: build/index.d.ts#Rect
+type Region: build/index.d.ts#Region
 SORT_ORDERS: build/index.d.ts#SORT_ORDERS
 type ShelfOptions: build/index.d.ts#ShelfOptions
+type SizeSearch: build/index.d.ts#SizeSearch
 type SortOrder: build/index.d.ts#SortOrder
+type StageTrace: build/index.d.ts#StageTrace
+type Strategy: build/index.d.ts#Strategy
+type Supports: build/index.d.ts#Supports
+type Tolerance: build/index.d.ts#Tolerance
+UnsupportedCell: build/index.d.ts#UnsupportedCell
 Vector: build/index.d.ts#Vector
 aspectError: build/index.d.ts#aspectError
+assertSupported: build/index.d.ts#assertSupported
+cellOf: build/index.d.ts#cellOf
+checkHard: build/index.d.ts#checkHard
 compareRects: build/index.d.ts#compareRects
+createContext: build/index.d.ts#createContext
+fromRects: build/index.d.ts#fromRects
+logSweep: build/index.d.ts#logSweep
 lowestWindow: build/index.d.ts#lowestWindow
+marginOf: build/index.d.ts#marginOf
+mulberry32: build/index.d.ts#mulberry32
 pack: build/index.d.ts#pack
 packFree: build/index.d.ts#packFree
 packRows: build/index.d.ts#packRows
 packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
+packWith: build/index.d.ts#packWith
 packingMetrics: build/index.d.ts#packingMetrics
+push: build/index.d.ts#push
 pushCascade: build/index.d.ts#pushCascade
+rows: build/index.d.ts#rows
+shelf: build/index.d.ts#shelf
+skyline: build/index.d.ts#skyline
+strategies: build/index.d.ts#strategies
+strategy: build/index.d.ts#strategy
+supportsCell: build/index.d.ts#supportsCell
+toRects: build/index.d.ts#toRects
+turnItem: build/index.d.ts#turnItem
+turnPoint: build/index.d.ts#turnPoint
+turnPort: build/index.d.ts#turnPort
+turnRegion: build/index.d.ts#turnRegion
+unsupportedOf: build/index.d.ts#unsupportedOf
 
 ## Declarations
+
+### build/index.d.ts#Cell
+interface Cell {
+  containerSize: DimensionValue<"containerSize">;
+  containerShape: DimensionValue<"containerShape">;
+  obstacleMove?: DimensionValue<"obstacleMove">;
+  itemShape: DimensionValue<"itemShape">;
+  rotation: DimensionValue<"rotation">;
+  order: DimensionValue<"order">;
+  groups: DimensionValue<"groups">;
+}
+
+### build/index.d.ts#Container
+interface Container {
+  w?: number;
+  h?: number;
+  fixed: "size" | "width" | "height" | "none";
+  aspect?: number;
+  aspectWeight?: number;
+  shape?: Region;
+  inset?: number;
+}
+
+### build/index.d.ts#DEFAULT_TOLERANCE
+export declare const DEFAULT_TOLERANCE: Readonly<Tolerance>;
+
+### build/index.d.ts#Dimension
+type Dimension = keyof Supports;
+
+### build/index.d.ts#DimensionValue
+type DimensionValue<D extends Dimension = Dimension> = Supports[D][number];
+
+### build/index.d.ts#EPS
+export declare const EPS = 1e-6;
 
 ### build/index.d.ts#FreeWidthOptions
 interface FreeWidthOptions extends PackLayoutOptions {
@@ -58,9 +139,76 @@ interface FreeWidthTry {
   objective: number;
 }
 
+### build/index.d.ts#HardBreaks
+interface HardBreaks {
+  "no-overlap": number;
+  "in-container": number;
+  "locked-kept": number;
+  complete: number;
+}
+
+### build/index.d.ts#Item
+interface Item {
+  id: string;
+  w: number;
+  h: number;
+  rank?: number;
+  group?: string;
+  parent?: string;
+  shape?: Region;
+  locked?: boolean;
+  x?: number;
+  y?: number;
+  turnable?: boolean;
+  margin?: number | Margin;
+  ports?: Port[];
+}
+
+### build/index.d.ts#LayoutStrategyOptions
+interface LayoutStrategyOptions {
+  sortOrder: SortOrder;
+  samples: number;
+}
+
+### build/index.d.ts#Margin
+interface Margin {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
 ### build/index.d.ts#MetricsOptions
 interface MetricsOptions {
   rowTolerance?: number;
+}
+
+### build/index.d.ts#Obstacle
+interface Obstacle {
+  id: string;
+  region: Region;
+  move?: {
+    cost: number;
+  };
+}
+
+### build/index.d.ts#PackContext
+interface PackContext {
+  seed: number;
+  rng: () => number;
+  budget?: {
+    ms?: number;
+    steps?: number;
+  };
+  previous?: PackOutput;
+}
+
+### build/index.d.ts#PackInput
+interface PackInput {
+  container: Container;
+  items: Item[];
+  obstacles?: Obstacle[];
+  gap?: number;
 }
 
 ### build/index.d.ts#PackLayoutOptions
@@ -71,6 +219,22 @@ interface PackLayoutOptions extends PackOptions {
 ### build/index.d.ts#PackOptions
 interface PackOptions {
   sortOrder?: SortOrder;
+}
+
+### build/index.d.ts#PackOutput
+interface PackOutput {
+  placements: Placement[];
+  overflow: string[];
+  size: {
+    w: number;
+    h: number;
+  };
+  moved: {
+    id: string;
+    x: number;
+    y: number;
+  }[];
+  trace: StageTrace[];
 }
 
 ### build/index.d.ts#PackingMetrics
@@ -87,11 +251,36 @@ interface PackingMetrics {
   widestOverMedian: number;
 }
 
+### build/index.d.ts#Placement
+interface Placement {
+  id: string;
+  x: number;
+  y: number;
+  turn?: 0 | 90;
+}
+
+### build/index.d.ts#Port
+interface Port {
+  id: string;
+  side: "top" | "right" | "bottom" | "left";
+  x?: number;
+  y?: number;
+}
+
 ### build/index.d.ts#PushOptions
 interface PushOptions {
   gap?: number;
   maxShoves?: number;
 }
+
+### build/index.d.ts#PushStrategyOptions
+interface PushStrategyOptions {
+  sortOrder: SortOrder;
+  maxShovesPerItem: number;
+}
+
+### build/index.d.ts#RECORD_EPS
+export declare const RECORD_EPS = .001;
 
 ### build/index.d.ts#Rect
 export declare class Rect<T = unknown> {
@@ -114,6 +303,30 @@ export declare class Rect<T = unknown> {
   static maxBottom<U>(rects: Rect<U>[]): number;
 }
 
+### build/index.d.ts#Region
+type Region = {
+  kind: "rect";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} | {
+  kind: "polygon";
+  points: [number, number][];
+  holes?: [number, number][][];
+} | {
+  kind: "circle";
+  cx: number;
+  cy: number;
+  r: number;
+} | {
+  kind: "ellipse";
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+};
+
 ### build/index.d.ts#SORT_ORDERS
 export declare const SORT_ORDERS: readonly SortOrder[];
 
@@ -122,8 +335,57 @@ interface ShelfOptions {
   sortOrder?: SortOrder;
 }
 
+### build/index.d.ts#SizeSearch
+interface SizeSearch {
+  id: string;
+  search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
+}
+
 ### build/index.d.ts#SortOrder
 type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
+
+### build/index.d.ts#StageTrace
+interface StageTrace {
+  id: string;
+  ms: number;
+  measures: Record<string, number>;
+}
+
+### build/index.d.ts#Strategy
+interface Strategy<O = unknown> {
+  id: string;
+  family: string;
+  catalog: string[];
+  supports: Supports;
+  defaults: O;
+  deterministic: boolean;
+  pack(input: PackInput, options: O, context: PackContext): PackOutput;
+}
+
+### build/index.d.ts#Supports
+interface Supports {
+  containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
+  containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
+  obstacleMove: ("fixed" | "costly" | "free")[];
+  itemShape: ("rect" | "circle" | "convex" | "polygon" | "mixed")[];
+  rotation: ("none" | "quarter" | "any")[];
+  order: ("free" | "soft" | "hard")[];
+  groups: ("none" | "flat" | "nested")[];
+  mode: ("offline" | "online" | "incremental")[];
+}
+
+### build/index.d.ts#Tolerance
+interface Tolerance {
+  overlap: number;
+  through: number;
+}
+
+### build/index.d.ts#UnsupportedCell
+export declare class UnsupportedCell extends Error {
+  readonly dimension: Dimension;
+  readonly value: string;
+  constructor(dimension: Dimension, value: string);
+}
 
 ### build/index.d.ts#Vector
 export declare class Vector {
@@ -147,14 +409,38 @@ export declare class Vector {
 ### build/index.d.ts#aspectError
 export declare function aspectError(width: number, height: number, target?: number): number;
 
+### build/index.d.ts#assertSupported
+export declare function assertSupported(supports: Supports, input: PackInput): void;
+
+### build/index.d.ts#cellOf
+export declare function cellOf(input: PackInput): Cell;
+
+### build/index.d.ts#checkHard
+export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">): HardBreaks;
+
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
+
+### build/index.d.ts#createContext
+export declare function createContext(seed?: number, more?: Omit<PackContext, "seed" | "rng">): PackContext;
+
+### build/index.d.ts#fromRects
+export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>): PackInput;
+
+### build/index.d.ts#logSweep
+export declare const logSweep: SizeSearch;
 
 ### build/index.d.ts#lowestWindow
 export declare function lowestWindow(skyline: ArrayLike<number>, width: number, rw: number): {
   x: number;
   y: number;
 };
+
+### build/index.d.ts#marginOf
+export declare function marginOf(item: Pick<Item, "margin">): Margin;
+
+### build/index.d.ts#mulberry32
+export declare function mulberry32(seed: number): () => number;
 
 ### build/index.d.ts#pack
 export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;
@@ -173,8 +459,53 @@ export declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options
   sortOrder?: SortOrder;
 }): Rect<T>;
 
+### build/index.d.ts#packWith
+export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
+
 ### build/index.d.ts#packingMetrics
 export declare function packingMetrics(rects: readonly Rect[], options?: MetricsOptions): PackingMetrics;
 
+### build/index.d.ts#push
+export declare const push: Strategy<PushStrategyOptions>;
+
 ### build/index.d.ts#pushCascade
 export declare function pushCascade<T>(placed: Rect<T>, rects: readonly Rect<T>[], options?: PushOptions): Rect<T>[];
+
+### build/index.d.ts#rows
+export declare const rows: Strategy<LayoutStrategyOptions>;
+
+### build/index.d.ts#shelf
+export declare const shelf: Strategy<LayoutStrategyOptions>;
+
+### build/index.d.ts#skyline
+export declare const skyline: Strategy<LayoutStrategyOptions>;
+
+### build/index.d.ts#strategies
+export declare const strategies: readonly Strategy[];
+
+### build/index.d.ts#strategy
+export declare function strategy(id: string): Strategy;
+
+### build/index.d.ts#supportsCell
+export declare function supportsCell(supports: Supports, cell: Partial<Record<Dimension, string>>): boolean;
+
+### build/index.d.ts#toRects
+export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
+
+### build/index.d.ts#turnItem
+export declare function turnItem(item: Item): Item;
+
+### build/index.d.ts#turnPoint
+export declare function turnPoint(px: number, py: number, h: number): [number, number];
+
+### build/index.d.ts#turnPort
+export declare function turnPort(port: Port, h: number): Port;
+
+### build/index.d.ts#turnRegion
+export declare function turnRegion(region: Region, h: number): Region;
+
+### build/index.d.ts#unsupportedOf
+export declare function unsupportedOf(supports: Supports, cell: Partial<Record<Dimension, string>>): {
+  dimension: Dimension;
+  value: string;
+} | undefined;
