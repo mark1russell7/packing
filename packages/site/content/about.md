@@ -7,6 +7,9 @@ There is no single best layout. A dense layout can mix up the order of the boxes
 - **Rows** fills the container row by row, from left to right. It also fills the space under the short boxes of a row.
 - **Skyline** puts each box at the lowest place where it fits.
 - **The sort order** sets the order in which the packer takes the boxes. With `input`, the packer takes them in the order of the list. The number on each box is its rank in that list.
+- **A free width** lets `packFree` find the width. It packs the boxes at many widths and keeps the width with the lowest objective.
+- **The objective** is the area of the box times (1 + weight × aspect error). The aspect error is the distance from the target aspect, on a log scale.
+- **The chart of the search** shows the objective of each width that `packFree` tried. The large dot shows the width that it kept.
 
 ## What comes next
 

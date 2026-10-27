@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>packing: rectangle packing, live</title>
-    <meta name="description" content="Pack rectangles into a container in your browser. Change the strategy, the sort order and the width, edit the items, and compare the measures." />
+    <meta name="description" content="Pack rectangles into a container in your browser. Change the strategy, the sort order and the width, or let a search find the width. Edit the items, and compare the measures." />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23202a44'/%3E%3Crect x='5' y='5' width='13' height='9' rx='1' fill='%235b8def'/%3E%3Crect x='20' y='5' width='7' height='14' rx='1' fill='%23e9a23b'/%3E%3Crect x='5' y='16' width='13' height='11' rx='1' fill='%23a77fe0'/%3E%3Crect x='20' y='21' width='7' height='6' rx='1' fill='%2348b59a'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,6 +39,7 @@
         <div class="field">
           <label class="label" for="width">Container width <output id="width-out" for="width"></output></label>
           <input type="range" id="width" min="160" max="1200" step="10" />
+          <p class="hint" id="width-hint"></p>
         </div>
         <div class="field seed">
           <label class="label" for="seed">Seed</label>
@@ -49,6 +50,20 @@
         </div>
         <div class="field compare">
           <label class="switch"><input type="checkbox" id="compare" /> <span>Compare two settings</span></label>
+        </div>
+        <div class="free-bar" id="free" hidden>
+          <div class="field">
+            <span class="label" id="aspect-label">Target aspect (width ÷ height)</span>
+            <div class="row">
+              <div class="seg" role="radiogroup" aria-labelledby="aspect-label" id="aspects"></div>
+              <input type="number" id="aspect" min="0.1" max="10" step="0.01" inputmode="decimal" aria-label="Target aspect, width divided by height" />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="weight">Aspect weight <output id="weight-out" for="weight"></output></label>
+            <input type="range" id="weight" min="0" max="4" step="0.1" />
+            <p class="hint">At 0, only the area counts. A larger weight gives a shape nearer to the target.</p>
+          </div>
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { makeItem, makeItems, ORDERS, PRESETS, random, runPacking, STRATEGIES, type Placed } from "./model.ts";
+import { packFree, Rect } from "@mark1russell7/packing";
+import { chosenTry, makeItem, makeItems, ORDERS, PRESETS, random, runPacking, searchChart, STRATEGIES, type Placed } from "./model.ts";
 
 const overlaps = (a: Placed, b: Placed): boolean =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -74,5 +75,101 @@ describe("runPacking", () => {
   it("lets an item wider than the container go past the right edge", () => {
     const run = runPacking([{ key: 0, w: 500, h: 50 }, { key: 1, w: 100, h: 50 }], 300, { strategy: "rows", order: "height-desc" });
     expect(run.right).toBe(500);
+  });
+});
+
+describe("runPacking with a free width", () => {
+  const items = makeItems("cards", 24, 7);
+  const target = { aspect: 4 / 3, weight: 1 };
+
+  const freeOf = (strategy: "rows" | "skyline") => {
+    const rects = items.map((item) => {
+      const r = new Rect<number>();
+      r.id = item.key;
+      r.size.set(item.w, item.h);
+      return r;
+    });
+    return packFree(rects, new Rect<number>(), { strategy, sortOrder: "height-desc", aspect: target.aspect, aspectWeight: target.weight });
+  };
+
+  it("gives the size and the measures of packFree", () => {
+    const run = runPacking(items, 640, { strategy: "rows", order: "height-desc", mode: "free" }, undefined, target);
+    const expected = freeOf("rows");
+    expect(run.width).toBe(expected.outer.size.x);
+    expect(run.height).toBe(expected.outer.size.y);
+    expect(run.free).toBeDefined();
+    expect(run.free!.aspect).toBe(expected.aspect);
+    expect(run.free!.fill).toBe(expected.fill);
+    expect(run.free!.aspectError).toBe(expected.aspectError);
+    expect(run.free!.objective).toBe(expected.objective);
+    expect(run.free!.tried).toEqual(expected.tried);
+    expect(run.free!.target).toEqual(target);
+    // The width of the fixed mode has no effect
+    expect(runPacking(items, 300, { strategy: "rows", order: "height-desc", mode: "free" }, undefined, target).width).toBe(run.width);
+    for (const p of run.placed) {
+      expect(p.packed).toBe(true);
+      expect(p.x + p.w).toBeLessThanOrEqual(run.width);
+      expect(p.y + p.h).toBeLessThanOrEqual(run.height);
+    }
+  });
+
+  it("chooses the first try with the lowest objective", () => {
+    const run = runPacking(items, 640, { strategy: "skyline", order: "area-desc", mode: "free" }, undefined, target);
+    const free = run.free!;
+    const best = Math.min(...free.tried.map((t) => t.objective));
+    expect(free.tried[free.chosen]!.objective).toBe(best);
+    expect(free.objective).toBe(best);
+    expect(free.tried[free.chosen]!.contentWidth).toBe(run.width);
+    expect(chosenTry([])).toBe(-1);
+    expect(chosenTry([{ width: 1, contentWidth: 1, contentHeight: 1, objective: 5 }, { width: 2, contentWidth: 2, contentHeight: 1, objective: 5 }])).toBe(0);
+  });
+
+  it("keeps the fixed mode without a mode", () => {
+    const a = runPacking(items, 640, { strategy: "rows", order: "height-desc" });
+    const b = runPacking(items, 640, { strategy: "rows", order: "height-desc", mode: "fixed" });
+    expect(a.free).toBeUndefined();
+    expect(a.width).toBe(640);
+    expect(b.placed).toEqual(a.placed);
+  });
+
+  it("uses the same target for each compared strategy, and gives the measures of each", () => {
+    const runs = STRATEGIES.map((strategy) => runPacking(items, 640, { strategy, order: "height-desc", mode: "free" }, undefined, target));
+    for (const [i, run] of runs.entries()) {
+      const expected = freeOf(STRATEGIES[i]!);
+      expect(run.free!.target).toEqual(target);
+      expect(run.width).toBe(expected.outer.size.x);
+      expect(run.free!.objective).toBe(expected.objective);
+      expect(run.free!.tried.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives a chart with one point for each try", () => {
+    const run = runPacking(items, 640, { strategy: "rows", order: "height-desc", mode: "free" }, undefined, target);
+    const free = run.free!;
+    const chart = searchChart(free, { width: 560, height: 200 });
+    const byWidth = (a: { width: number }, b: { width: number }) => a.width - b.width;
+    expect(chart.points.map((p) => ({ width: p.width, objective: p.objective })).toSorted(byWidth)).toEqual(
+      free.tried.map((t) => ({ width: t.width, objective: t.objective })).toSorted(byWidth),
+    );
+    const chosen = chart.points.filter((p) => p.chosen);
+    expect(chosen).toHaveLength(1);
+    expect(chosen[0]!.width).toBe(free.tried[free.chosen]!.width);
+    // The x axis has a log scale: the points go from left to right in the order of the width
+    for (let i = 1; i < chart.points.length; i++) expect(chart.points[i]!.x).toBeGreaterThanOrEqual(chart.points[i - 1]!.x);
+    for (const p of chart.points) {
+      expect(p.x).toBeGreaterThanOrEqual(chart.plot.left - 1e-9);
+      expect(p.x).toBeLessThanOrEqual(chart.plot.right + 1e-9);
+      expect(p.y).toBeGreaterThanOrEqual(chart.plot.top - 1e-9);
+      expect(p.y).toBeLessThanOrEqual(chart.plot.bottom + 1e-9);
+    }
+    // The lowest objective is the lowest point: the largest y
+    expect(chosen[0]!.y).toBe(Math.max(...chart.points.map((p) => p.y)));
+    expect(chart.xTicks.length).toBeGreaterThanOrEqual(2);
+    expect(chart.yTicks.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("gives an empty chart for no try", () => {
+    const chart = searchChart({ target, aspect: 0, fill: 0, aspectError: 0, objective: 0, tried: [], chosen: -1 });
+    expect(chart.points).toEqual([]);
   });
 });

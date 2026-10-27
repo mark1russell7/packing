@@ -2,7 +2,25 @@ import { marked } from "marked";
 import type { SortOrder } from "@mark1russell7/packing";
 import aboutText from "../content/about.md?raw";
 import leadText from "../content/lead.md?raw";
-import { makeItem, makeItems, ORDERS, PRESETS, presetOf, runPacking, STRATEGIES, type Item, type Run, type Setting, type Strategy } from "./model.ts";
+import {
+  ASPECT_PRESETS,
+  DEFAULT_TARGET,
+  makeItem,
+  makeItems,
+  ORDERS,
+  PRESETS,
+  presetOf,
+  runPacking,
+  searchChart,
+  STRATEGIES,
+  WIDTH_MODES,
+  type FreeTarget,
+  type Item,
+  type Run,
+  type Setting,
+  type Strategy,
+  type WidthMode,
+} from "./model.ts";
 import "./style.css";
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -17,6 +35,8 @@ const esc = (text: string): string =>
 
 const num = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const dec = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+const dec3 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
+const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 
 const ORDER_LABELS: Record<SortOrder, string> = {
   "height-desc": "Tallest first",
@@ -26,6 +46,7 @@ const ORDER_LABELS: Record<SortOrder, string> = {
   input: "List order",
 };
 const STRATEGY_LABELS: Record<Strategy, string> = { rows: "Rows", skyline: "Skyline" };
+const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 
 interface State {
   preset: string;
@@ -34,6 +55,7 @@ interface State {
   width: number;
   compare: boolean;
   settings: [Setting, Setting];
+  target: FreeTarget;
   items: Item[];
   selected: number | undefined;
   nextKey: number;
@@ -45,7 +67,11 @@ const DEFAULTS = { preset: "cards", count: 24, seed: 7, width: 640 } as const;
 const state: State = {
   ...DEFAULTS,
   compare: false,
-  settings: [{ strategy: "rows", order: "height-desc" }, { strategy: "skyline", order: "height-desc" }],
+  settings: [
+    { strategy: "rows", order: "height-desc", mode: "fixed" },
+    { strategy: "skyline", order: "height-desc", mode: "fixed" },
+  ],
+  target: { ...DEFAULT_TARGET },
   items: [],
   selected: undefined,
   nextKey: 0,
@@ -54,6 +80,9 @@ const state: State = {
 const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
 const isStrategy = (s: string | undefined): s is Strategy => STRATEGIES.includes(s as Strategy);
 const isOrder = (s: string | undefined): s is SortOrder => ORDERS.includes(s as SortOrder);
+const isMode = (s: string | undefined): s is WidthMode => WIDTH_MODES.includes(s as WidthMode);
+const ASPECT_MIN = 0.1;
+const ASPECT_MAX = 10;
 
 function readHash(): void {
   const p = new URLSearchParams(location.hash.slice(1));
@@ -67,10 +96,19 @@ function readHash(): void {
   state.width = int("w", DEFAULTS.width, 160, 1200);
   state.compare = p.get("c") === "1";
   for (const [i, key] of (["a", "b"] as const).entries()) {
-    const [strategy, order] = (p.get(key) ?? "").split(".");
+    const [strategy, order, mode] = (p.get(key) ?? "").split(".");
     if (isStrategy(strategy)) state.settings[i]!.strategy = strategy;
     if (isOrder(order)) state.settings[i]!.order = order;
+    state.settings[i]!.mode = isMode(mode) ? mode : "fixed";
   }
+  const real = (key: string, fallback: number, min: number, max: number): number => {
+    const v = Number.parseFloat(p.get(key) ?? "");
+    return Number.isFinite(v) ? clamp(v, min, max) : fallback;
+  };
+  state.target = {
+    aspect: real("t", DEFAULT_TARGET.aspect, ASPECT_MIN, ASPECT_MAX),
+    weight: real("k", DEFAULT_TARGET.weight, 0, 4),
+  };
 }
 
 function writeHash(): void {
@@ -80,9 +118,11 @@ function writeHash(): void {
     n: String(state.count),
     s: String(state.seed),
     w: String(state.width),
-    a: `${a.strategy}.${a.order}`,
-    b: `${b.strategy}.${b.order}`,
+    a: `${a.strategy}.${a.order}.${a.mode ?? "fixed"}`,
+    b: `${b.strategy}.${b.order}.${b.mode ?? "fixed"}`,
     c: state.compare ? "1" : "0",
+    t: String(Number(state.target.aspect.toFixed(4))),
+    k: String(Number(state.target.weight.toFixed(2))),
   });
   history.replaceState(null, "", `#${p.toString()}`);
 }
@@ -171,6 +211,55 @@ compareEl.addEventListener("change", () => {
   update();
 });
 
+// ---- The target of a free width ----
+
+const freeEl = $("free");
+const aspectsEl = $("aspects");
+const aspectEl = $<HTMLInputElement>("aspect");
+const weightEl = $<HTMLInputElement>("weight");
+const screenAspect = (): number => clamp(innerWidth / Math.max(1, innerHeight), ASPECT_MIN, ASPECT_MAX);
+const sameAspect = (a: number, b: number): boolean => Math.abs(a - b) < 0.005;
+aspectsEl.innerHTML = [
+  ...ASPECT_PRESETS.map((p) => `<button type="button" role="radio" data-aspect="${p.aspect}">${p.label}</button>`),
+  `<button type="button" role="radio" data-aspect="screen" title="The width of this window divided by its height">Screen</button>`,
+].join("");
+aspectsEl.addEventListener("click", (e) => {
+  const b = (e.target as Element).closest<HTMLElement>("[data-aspect]");
+  if (!b) return;
+  const v = b.dataset["aspect"] === "screen" ? screenAspect() : Number(b.dataset["aspect"]);
+  state.target.aspect = Number(v.toFixed(4));
+  update();
+});
+aspectEl.addEventListener("change", () => {
+  const v = Number.parseFloat(aspectEl.value);
+  if (!Number.isFinite(v) || v <= 0) return;
+  state.target.aspect = clamp(v, ASPECT_MIN, ASPECT_MAX);
+  update();
+});
+weightEl.addEventListener("input", () => {
+  state.target.weight = clamp(Number(weightEl.value), 0, 4);
+  update();
+});
+
+function drawTarget(): void {
+  const active = state.compare ? state.settings : state.settings.slice(0, 1);
+  freeEl.hidden = !active.some((s) => s.mode === "free");
+  const allFree = active.every((s) => s.mode === "free");
+  $("width-hint").textContent = allFree ? "A free width does not use this value." : "";
+  const aspect = state.target.aspect;
+  const preset = ASPECT_PRESETS.find((p) => sameAspect(p.aspect, aspect));
+  const screen = screenAspect();
+  for (const b of aspectsEl.querySelectorAll<HTMLElement>("[data-aspect]")) {
+    const isScreen = b.dataset["aspect"] === "screen";
+    const on = isScreen ? !preset && sameAspect(screen, aspect) : sameAspect(Number(b.dataset["aspect"]), aspect);
+    b.setAttribute("aria-checked", String(on));
+    if (isScreen) b.textContent = `Screen ${dec.format(screen)}`;
+  }
+  if (document.activeElement !== aspectEl) aspectEl.value = String(Number(aspect.toFixed(3)));
+  weightEl.value = String(state.target.weight);
+  $("weight-out").textContent = dec.format(state.target.weight);
+}
+
 // ---- The layouts ----
 
 interface Panel {
@@ -178,7 +267,9 @@ interface Panel {
   canvas: HTMLElement;
   svg: SVGSVGElement;
   strategy: HTMLElement;
+  mode: HTMLElement;
   order: HTMLSelectElement;
+  search: HTMLElement;
   status: HTMLElement;
   metrics: HTMLElement;
   /** The size of one unit of the layout on the screen, in CSS pixels. */
@@ -201,9 +292,15 @@ const panels: Panel[] = [0, 1].map((i) => {
           ${ORDERS.map((o) => `<option value="${o}">${ORDER_LABELS[o]} (${o})</option>`).join("")}
         </select>
       </label>
+      <span class="order mode">Width
+        <span class="seg" role="radiogroup" aria-label="Width ${i === 0 ? "A" : "B"}">
+          ${WIDTH_MODES.map((m) => `<button type="button" role="radio" data-mode="${m}">${MODE_LABELS[m]}</button>`).join("")}
+        </span>
+      </span>
     </header>
     <div class="canvas"><svg xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Layout ${i === 0 ? "A" : "B"}"></svg></div>
     <p class="status" role="status"></p>
+    <figure class="search" hidden></figure>
     <dl class="metrics"></dl>`;
   stagesEl.append(root);
   const panel: Panel = {
@@ -211,7 +308,9 @@ const panels: Panel[] = [0, 1].map((i) => {
     canvas: root.querySelector(".canvas")!,
     svg: root.querySelector("svg")!,
     strategy: root.querySelector(".seg")!,
+    mode: root.querySelector(".mode .seg")!,
     order: root.querySelector("select")!,
+    search: root.querySelector(".search")!,
     status: root.querySelector(".status")!,
     metrics: root.querySelector(".metrics")!,
     scale: 1,
@@ -222,6 +321,13 @@ const panels: Panel[] = [0, 1].map((i) => {
     const s = b?.dataset["strategy"];
     if (!isStrategy(s)) return;
     state.settings[i]!.strategy = s;
+    update();
+  });
+  panel.mode.addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-mode]");
+    const m = b?.dataset["mode"];
+    if (!isMode(m)) return;
+    state.settings[i]!.mode = m;
     update();
   });
   panel.order.addEventListener("change", () => {
@@ -244,7 +350,12 @@ function drawPanel(panel: Panel, run: Run): void {
   const vbW = Math.max(run.width, run.right, 1);
   const vbH = Math.max(run.height, 40);
   const px = panel.canvas.clientWidth;
-  panel.scale = px > 0 ? px / vbW : 1;
+  // A free width can give a tall layout. Its height on the screen stops at 70% of the window.
+  let shown = px;
+  if (run.free) shown = Math.min(px, (Math.max(240, innerHeight * 0.7) * vbW) / vbH);
+  panel.svg.style.width = run.free && px > 0 ? `${Math.round(shown)}px` : "";
+  panel.canvas.classList.toggle("free", run.free !== undefined);
+  panel.scale = shown > 0 ? shown / vbW : 1;
   const s = panel.scale;
   const count = run.placed.length;
   const parts: string[] = [];
@@ -273,14 +384,57 @@ function drawPanel(panel: Panel, run: Run): void {
 
 interface Measure {
   label: string;
-  value: (r: Run) => number;
+  /** The value of the measure. A measure without a value for a run does not show. */
+  value: (r: Run) => number | undefined;
   text: (v: number) => string;
-  note: string;
+  note: string | ((r: Run) => string);
   /** 1: more is better, -1: less is better, 0: no direction. */
   better: 1 | -1 | 0;
 }
 
 const MEASURES: Measure[] = [
+  {
+    label: "Chosen width",
+    value: (r) => r.free?.tried[r.free.chosen]?.width,
+    text: (v) => num.format(v),
+    note: (r) => `The width that the search chose. The items use ${num.format(r.width)} of it, and the box gets that width.`,
+    better: 0,
+  },
+  {
+    label: "Aspect",
+    value: (r) => r.free?.aspect,
+    text: (v) => dec.format(v),
+    note: (r) => `Width divided by height. The target is ${dec.format(r.free?.target.aspect ?? 1)}.`,
+    better: 0,
+  },
+  {
+    label: "Fill",
+    value: (r) => r.free?.fill,
+    text: (v) => `${dec.format(v * 100)}%`,
+    note: "The area of the items divided by the area of the box.",
+    better: 1,
+  },
+  {
+    label: "Aspect error",
+    value: (r) => r.free?.aspectError,
+    text: (v) => dec3.format(v),
+    note: "The distance from the target aspect, on a log scale. 0 is on the target.",
+    better: -1,
+  },
+  {
+    label: "Objective",
+    value: (r) => r.free?.objective,
+    text: (v) => compact.format(v),
+    note: (r) => `Area × (1 + ${dec.format(r.free?.target.weight ?? 1)} × aspect error). The search keeps the lowest.`,
+    better: -1,
+  },
+  {
+    label: "Widths tried",
+    value: (r) => r.free?.tried.length,
+    text: (v) => num.format(v),
+    note: "The number of widths that the search packed.",
+    better: 0,
+  },
   { label: "Space covered", value: (r) => r.metrics.utilization, text: (v) => `${dec.format(v * 100)}%`, note: "The part of the outline that the items fill. More is denser.", better: 1 },
   { label: "Height", value: (r) => r.height, text: (v) => num.format(v), note: "The height that the container needs. Less is better.", better: -1 },
   { label: "Ragged right edge", value: (r) => r.metrics.raggedness, text: (v) => num.format(v), note: "The longest row less the shortest row. 0 is a straight edge.", better: -1 },
@@ -289,14 +443,19 @@ const MEASURES: Measure[] = [
   { label: "Widest item", value: (r) => r.metrics.widestOverMedian, text: (v) => `${dec.format(v)}×`, note: "The widest item against the median width.", better: 0 },
 ];
 
+/** The labels of the measures that only a free width has. */
+const FREE_MEASURES = new Set(["Chosen width", "Aspect", "Fill", "Aspect error", "Objective", "Widths tried"]);
+
 const timeText = (ms: number): string => (ms <= 0 ? "under 0.1 ms" : ms < 1 ? `${ms.toFixed(2)} ms` : `${ms.toFixed(1)} ms`);
 
 function drawMetrics(panel: Panel, run: Run, base: Run | undefined): void {
-  const rows = MEASURES.map((m) => {
+  const rows = MEASURES.flatMap((m) => {
     const v = m.value(run);
+    if (v === undefined) return [];
+    const b = base ? m.value(base) : undefined;
     let delta = "";
-    if (base) {
-      const d = v - m.value(base);
+    if (b !== undefined) {
+      const d = v - b;
       if (Math.abs(d) > 1e-9) {
         const tone = m.better === 0 ? "" : d * m.better > 0 ? " good" : " bad";
         const sign = d > 0 ? "+" : "−";
@@ -304,10 +463,66 @@ function drawMetrics(panel: Panel, run: Run, base: Run | undefined): void {
       } else delta = `<span class="delta" title="Against layout A">same</span>`;
     }
     const meter = m.label === "Space covered" ? `<span class="meter" aria-hidden="true"><span style="width:${clamp(v * 100, 0, 100)}%"></span></span>` : "";
-    return `<div class="m"><dt>${m.label}</dt><dd><b>${m.text(v)}</b>${delta}${meter}<small>${m.note}</small></dd></div>`;
+    const note = typeof m.note === "function" ? m.note(run) : m.note;
+    const own = FREE_MEASURES.has(m.label) ? " free" : "";
+    return [`<div class="m${own}"><dt>${m.label}</dt><dd><b>${m.text(v)}</b>${delta}${meter}<small>${note}</small></dd></div>`];
   });
-  rows.push(`<div class="m time"><dt>Packing time</dt><dd><b>${timeText(run.ms)}</b><small>This browser, this run. One call of <code>pack</code>.</small></dd></div>`);
+  rows.push(`<div class="m time"><dt>Packing time</dt><dd><b>${timeText(run.ms)}</b><small>This browser, this run. One call of <code>${run.free ? "packFree" : "pack"}</code>.</small></dd></div>`);
   panel.metrics.innerHTML = rows.join("");
+}
+
+// ---- The chart of the width search ----
+
+let chartId = 0;
+
+function drawSearch(panel: Panel, run: Run): void {
+  const free = run.free;
+  panel.search.hidden = free === undefined;
+  if (!free) {
+    panel.search.innerHTML = "";
+    return;
+  }
+  const width = Math.max(280, Math.round(panel.canvas.clientWidth || 560));
+  const height = 190;
+  const chart = searchChart(free, { width, height });
+  const { plot, points } = chart;
+  const chosen = points.find((p) => p.chosen);
+  const id = `search-${++chartId}`;
+  const widths = points.map((p) => p.width);
+  const desc = chosen
+    ? `The search tried ${points.length} widths, from ${num.format(Math.min(...widths))} to ${num.format(Math.max(...widths))}. The width ${num.format(chosen.width)} has the lowest objective, ${compact.format(chosen.objective)}.`
+    : "The search tried no width.";
+  const parts: string[] = [];
+  parts.push(`<title id="${id}-t">The objective of each width that the search tried</title><desc id="${id}-d">${esc(desc)}</desc>`);
+  for (const t of chart.yTicks) {
+    parts.push(`<line class="grid" x1="${plot.left}" y1="${t.at}" x2="${plot.right}" y2="${t.at}" />`);
+    parts.push(`<text class="tick" x="${plot.left - 6}" y="${t.at}" text-anchor="end" dominant-baseline="central">${compact.format(t.value)}</text>`);
+  }
+  parts.push(`<line class="axis" x1="${plot.left}" y1="${plot.bottom}" x2="${plot.right}" y2="${plot.bottom}" />`);
+  for (const t of chart.xTicks) {
+    parts.push(`<line class="axis" x1="${t.at}" y1="${plot.bottom}" x2="${t.at}" y2="${plot.bottom + 4}" />`);
+    parts.push(`<text class="tick" x="${t.at}" y="${plot.bottom + 16}" text-anchor="middle">${num.format(t.value)}</text>`);
+  }
+  parts.push(`<text class="axis-title" x="${plot.left}" y="${plot.top - 4}">Objective (lower is better)</text>`);
+  parts.push(`<text class="axis-title" x="${plot.right}" y="${height - 2}" text-anchor="end">Width tried (log scale)</text>`);
+  if (chosen) parts.push(`<line class="pick" x1="${chosen.x}" y1="${chosen.y}" x2="${chosen.x}" y2="${plot.bottom}" />`);
+  parts.push(`<polyline class="trace" points="${points.map((p) => `${p.x},${p.y}`).join(" ")}" />`);
+  for (const p of points) {
+    if (p.chosen) continue;
+    parts.push(
+      `<g class="pt"><circle class="dot" cx="${p.x}" cy="${p.y}" r="3" /><circle class="hit" cx="${p.x}" cy="${p.y}" r="9"><title>Width ${num.format(p.width)}: objective ${num.format(p.objective)}</title></circle></g>`,
+    );
+  }
+  if (chosen) {
+    const anchor = chosen.x > plot.right - 80 ? "end" : chosen.x < plot.left + 80 ? "start" : "middle";
+    const labelY = Math.max(plot.top + 12, chosen.y - 12);
+    parts.push(
+      `<g class="pt chosen"><circle class="dot" cx="${chosen.x}" cy="${chosen.y}" r="6" /><circle class="hit" cx="${chosen.x}" cy="${chosen.y}" r="10"><title>Chosen width ${num.format(chosen.width)}: objective ${num.format(chosen.objective)}</title></circle></g>`,
+    );
+    parts.push(`<text class="pick-label" x="${chosen.x}" y="${labelY}" text-anchor="${anchor}">Chosen: ${num.format(chosen.width)}</text>`);
+  }
+  panel.search.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${id}-t ${id}-d">${parts.join("")}</svg>
+    <figcaption>Each dot is one width that the search packed. The large dot has the lowest objective, so the search keeps that width.</figcaption>`;
 }
 
 // ---- Selection, resize by drag, and keys ----
@@ -474,14 +689,16 @@ function render(): void {
   let base: Run | undefined;
   for (const [i, panel] of active.entries()) {
     const setting = state.settings[i]!;
-    const run = runPacking(state.items, state.width, setting);
+    const run = runPacking(state.items, state.width, setting, undefined, state.target);
     panel.run = run;
     panel.root.querySelector(".tag")!.classList.toggle("on", state.compare);
     for (const b of panel.strategy.querySelectorAll<HTMLElement>("[data-strategy]")) b.setAttribute("aria-checked", String(b.dataset["strategy"] === setting.strategy));
+    for (const b of panel.mode.querySelectorAll<HTMLElement>("[data-mode]")) b.setAttribute("aria-checked", String(b.dataset["mode"] === (setting.mode ?? "fixed")));
     panel.order.value = setting.order;
     drawPanel(panel, run);
     const over = run.placed.filter((p) => p.x + p.w > run.width).length;
     panel.status.textContent = over > 0 ? `${over} ${over === 1 ? "item is" : "items are"} wider than the container. ${over === 1 ? "It goes" : "They go"} past the dashed edge.` : "";
+    drawSearch(panel, run);
     drawMetrics(panel, run, i === 1 ? base : undefined);
     base ??= run;
   }
@@ -496,6 +713,7 @@ function update(): void {
   $("width-out").textContent = num.format(state.width);
   seedEl.value = String(state.seed);
   compareEl.checked = state.compare;
+  drawTarget();
   writeHash();
   render();
 }
