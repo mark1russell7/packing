@@ -14,7 +14,7 @@ Status: done, done, waiting, next, done.
 | k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
 | k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
 | k7 | One Packer interface for every strategy | core | done | k0, k18, k35 |
-| k8 | An algebra of measures | theory | active | k6, k7 |
+| k8 | An algebra of measures | theory | done | k6, k7 |
 | k9 | The strategy zoo: each family of the catalog behind the interface | strategies | later | k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k10 |
 | k10 | An exact baseline for small inputs: branch and bound, and a constraint solver | strategies | later | k7 |
 | k11 | Benchmarks in CI, with a prediction before each run | measure | later | k8, k9 |
