@@ -11,6 +11,8 @@ export interface Edge {
   target: string;
   sourcePort?: string;
   targetPort?: string;
+  /** The free data of the edge. The packer does not read it. */
+  data?: Readonly<Record<string, unknown>>;
 }
 
 /** The parameters of a generator: a name and a string or a number for each parameter. */

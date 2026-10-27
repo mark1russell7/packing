@@ -309,6 +309,29 @@ describe("MEASURE_SPECS", () => {
     }
     expect(Object.keys(MEASURE_SPECS)).toHaveLength(15);
   });
+
+  it("has the floor and the tolerance of each guard of the floor rule, and no floor for the other measures", () => {
+    const guards: Partial<Record<MeasureId, { floor: number; tol: number }>> = {
+      "pack.order.inversions": { floor: 0, tol: 0 },
+      "pack.overflow": { floor: 0, tol: 0 },
+      "pack.aspectError": { floor: 0, tol: 0.01 },
+      "pack.stability.mean": { floor: 0, tol: 0.005 },
+      "pack.stability.q95": { floor: 0, tol: 0.01 },
+      "pack.stability.moved": { floor: 0, tol: 0.02 },
+    };
+    for (const [id, s] of Object.entries(MEASURE_SPECS)) {
+      const guard = guards[id as MeasureId];
+      expect({ floor: s.floor, tol: s.tol }, id).toEqual(guard ?? { floor: undefined, tol: undefined });
+      if (s.floor !== undefined) {
+        expect(s.tol, id).toBeTypeOf("number");
+        expect(s.floor, id).toBeGreaterThanOrEqual(s.min);
+        expect(s.floor, id).toBeLessThanOrEqual(s.max);
+      }
+      expect("floor" in s, id).toBe(guard !== undefined);
+      expect("tol" in s, id).toBe(guard !== undefined);
+    }
+    expect(Object.values(MEASURE_SPECS).filter((s) => s.floor !== undefined)).toHaveLength(6);
+  });
 });
 
 describe("the measures of generated inputs", () => {

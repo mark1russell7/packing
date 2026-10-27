@@ -23,6 +23,20 @@ export interface MeasureSpec {
   min: number;
   /** The highest value. The value `Infinity` tells that the measure has no upper limit. */
   max: number;
+  /**
+   * The floor is the best value of a guard measure. The floor rule of `docs/PROMOTION.md` of `highways` reads it. Each
+   * guard of the packer has the floor 0. A measure without a floor has no floor rule.
+   */
+  floor?: number;
+  /**
+   * The tolerance is the absolute tolerance at the floor. A candidate within the tolerance ties with a default at the floor.
+   *
+   * - `pack.order.inversions` and `pack.overflow` have the tolerance 0. Thus each new inversion and each new unplaced item is a loss.
+   * - `pack.aspectError` has 0.01, approximately 1% of the aspect. An exact tiling gives the default an error of 0.
+   * - `pack.stability.mean` has 0.005 container widths, and `pack.stability.q95` has 0.01. The default often moves no item.
+   * - `pack.stability.moved` has 0.02: 2% of the items that stay. On a small change, the default often moves no item.
+   */
+  tol?: number;
 }
 
 /** The measures of one layout, by id. `measure` gives them. The values are not rounded. */
@@ -56,29 +70,33 @@ export interface MeasureOptions {
   rowTolerance?: number;
 }
 
-const spec = (id: MeasureId, family: MeasureFamily, unit: string, direction: Direction, min: number, max: number): MeasureSpec => ({
-  id,
-  family,
-  unit,
-  direction,
-  min,
-  max,
-});
+const spec = (
+  id: MeasureId,
+  family: MeasureFamily,
+  unit: string,
+  direction: Direction,
+  min: number,
+  max: number,
+  guard?: { floor: number; tol: number },
+): MeasureSpec => ({ id, family, unit, direction, min, max, ...guard });
 
-/** The facts of each measure, by id. `docs/MEASURES.md` gives the full definitions. */
+/**
+ * The facts of each measure, by id. `docs/MEASURES.md` gives the full definitions. This record is the source of the floor
+ * and the tolerance of each guard of the packer.
+ */
 export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.freeze({
   "pack.area": spec("pack.area", "density", "square units", "lower", 0, Infinity),
   "pack.fill": spec("pack.fill", "density", "share", "higher", 0, 1),
   "pack.whitespace": spec("pack.whitespace", "density", "share", "lower", 0, 1),
   "pack.aspect": spec("pack.aspect", "aspect", "ratio", "lower", 1, Infinity),
-  "pack.aspectError": spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity),
-  "pack.order.inversions": spec("pack.order.inversions", "order", "share", "lower", 0, 1),
+  "pack.aspectError": spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity, { floor: 0, tol: 0.01 }),
+  "pack.order.inversions": spec("pack.order.inversions", "order", "share", "lower", 0, 1, { floor: 0, tol: 0 }),
   "pack.order.breaks": spec("pack.order.breaks", "order", "count", "lower", 0, Infinity),
   "pack.raggedness": spec("pack.raggedness", "raggedness", "share", "lower", 0, 1),
-  "pack.overflow": spec("pack.overflow", "overflow", "count", "lower", 0, Infinity),
-  "pack.stability.moved": spec("pack.stability.moved", "stability", "share", "lower", 0, 1),
-  "pack.stability.mean": spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity),
-  "pack.stability.q95": spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity),
+  "pack.overflow": spec("pack.overflow", "overflow", "count", "lower", 0, Infinity, { floor: 0, tol: 0 }),
+  "pack.stability.moved": spec("pack.stability.moved", "stability", "share", "lower", 0, 1, { floor: 0, tol: 0.02 }),
+  "pack.stability.mean": spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity, { floor: 0, tol: 0.005 }),
+  "pack.stability.q95": spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity, { floor: 0, tol: 0.01 }),
   "pack.deterministic": spec("pack.deterministic", "determinism", "boolean", "higher", 0, 1),
   "pack.search.widths": spec("pack.search.widths", "speed", "count", "lower", 0, Infinity),
   "pack.search.ms": spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity),

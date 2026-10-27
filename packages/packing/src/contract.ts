@@ -72,6 +72,8 @@ export interface Item {
   margin?: number | Margin;
   /** The ports. The packer keeps them, and turns them with the item. */
   ports?: Port[];
+  /** The free data of the item. The packer does not read it, and the turn and the converters keep it. */
+  data?: Readonly<Record<string, unknown>>;
 }
 
 /** The input of a packing: a `layout-input/1` file without `edges`, with `items` for `boxes`. */
