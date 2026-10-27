@@ -51,7 +51,8 @@ describe("the types of packing and of the contract", () => {
   it("have the same fields for each input type", () => {
     expectTypeOf<keyof P.Container>().toEqualTypeOf<keyof C.LayoutContainer>();
     expectTypeOf<keyof P.Obstacle>().toEqualTypeOf<keyof C.Obstacle>();
-    expectTypeOf<keyof P.Item>().toEqualTypeOf<Exclude<keyof C.LayoutBox, "data">>();
+    expectTypeOf<keyof P.Item>().toEqualTypeOf<keyof C.LayoutBox>();
+    expectTypeOf<keyof P.Edge>().toEqualTypeOf<keyof C.LayoutEdge>();
     expectTypeOf<keyof P.PackInput>().toEqualTypeOf<keyof C.PackInput>();
     expectTypeOf<keyof P.PackOutput>().toEqualTypeOf<keyof C.PackOutput>();
     expectTypeOf<RequiredKeys<P.Item>>().toEqualTypeOf<RequiredKeys<C.LayoutBox>>();
@@ -112,11 +113,21 @@ describe("the types of packing and of the contract", () => {
     >();
   });
 
-  it("gap 5: an edge and a box of the contract have data, an edge and an item of packing have no data", () => {
+  it("gap 5 is closed: an edge and an item of packing have the optional data of the contract", () => {
     expectTypeOf<C.LayoutEdge>().toExtend<P.Edge>();
-    expectTypeOf<Exclude<keyof C.LayoutEdge, keyof P.Edge>>().toEqualTypeOf<"data">();
+    expectTypeOf<P.Edge>().toExtend<C.LayoutEdge>();
+    expectTypeOf<keyof P.Edge>().toEqualTypeOf<keyof C.LayoutEdge>();
+    expectTypeOf<P.Edge["data"]>().toEqualTypeOf<C.LayoutEdge["data"]>();
+    expectTypeOf<P.Item["data"]>().toEqualTypeOf<C.LayoutBox["data"]>();
     expectTypeOf<SidedBox>().toExtend<P.Item>();
-    expectTypeOf<Exclude<keyof C.LayoutBox, keyof P.Item>>().toEqualTypeOf<"data">();
+    expectTypeOf<Exclude<keyof C.LayoutBox, keyof P.Item>>().toEqualTypeOf<never>();
+    // The turn and the converter keep the data of an item, as the contract does.
+    const item: P.Item = { ...ITEM, data: { label: "made-up", weight: 2 } };
+    expect(P.turnItem(item).data).toBe(item.data);
+    expect(P.turnItem(item)).toEqual(C.turnBox(item));
+    const file = P.rectGrid.generate(5, { count: 3 });
+    const withData = { ...file, boxes: file.boxes.map((b) => ({ ...b, data: { tag: b.id } })) };
+    expect(P.toPackInput(withData).items.map((i) => i.data)).toEqual(file.boxes.map((b) => ({ tag: b.id })));
   });
 
   it("gap 14: a port of the contract has an optional side, a port of packing needs a side", () => {
@@ -477,35 +488,50 @@ describe("the hard rules of packing and of the contract", () => {
     expect(P.checkHard(shaped, output(cases[2]!))).toMatchObject({ "no-overlap": 0, "in-container": 0 });
   });
 
-  it("gap 11 is partly closed: both count an item with no placement, but not in the same way for a locked item", () => {
-    // Closed: an item with no placement that is not in the overflow breaks complete in both.
+  it("gap 11 is closed: both count an item with no placement, and a locked item with no placement, in the same way", () => {
+    // An item with no placement that is not in the overflow breaks complete in both.
     const noB = output([{ id: "a", x: 2, y: 2 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }]);
     expect(contractHard(input, noB)).toEqual(P.checkHard(input, noB));
     expect(P.checkHard(input, noB)).toMatchObject({ "locked-kept": 0, complete: 1 });
     const overB = output(noB.placements, ["b"]);
     expect(contractHard(input, overB)).toEqual(P.checkHard(input, overB));
     expect(P.checkHard(input, overB).complete).toBe(0);
-    // Open: a locked item with no placement breaks locked-kept in both. Only packing also counts it in complete.
+    // A locked item with no placement breaks only locked-kept in both, also when it is in the overflow.
     const noPin = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 0 }, { id: "t", x: 0, y: 60 }]);
-    expect(P.checkHard(input, noPin)).toMatchObject({ "locked-kept": 1, complete: 1 });
-    expect(contractHard(input, noPin)).toMatchObject({ "locked-kept": 1, complete: 0 });
-    // Open: the contract keeps a locked item with no placement at its input position for the overlaps. Packing ignores it.
+    expect(contractHard(input, noPin)).toEqual(P.checkHard(input, noPin));
+    expect(P.checkHard(input, noPin)).toMatchObject({ "locked-kept": 1, complete: 0 });
+    const overPin = output(noPin.placements, ["pin"]);
+    expect(contractHard(input, overPin)).toEqual(P.checkHard(input, overPin));
+    // Both keep a locked item with no placement at its input position for no-overlap and in-container.
     const onPin = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 52, y: 52 }, { id: "t", x: 0, y: 60 }]);
-    expect(P.checkHard(input, onPin)["no-overlap"]).toBe(0);
-    expect(contractHard(input, onPin)["no-overlap"]).toBe(1);
+    expect(contractHard(input, onPin)).toEqual(P.checkHard(input, onPin));
+    expect(P.checkHard(input, onPin)).toMatchObject({ "no-overlap": 1, "locked-kept": 1, complete: 0 });
+    const edge: P.PackInput = { ...input, items: [{ id: "pin", w: 10, h: 10, locked: true, x: 95, y: 0 }] };
+    expect(contractHard(edge, output([]))).toEqual(P.checkHard(edge, output([])));
+    expect(P.checkHard(edge, output([]))).toMatchObject({ "in-container": 1, "locked-kept": 1 });
   });
 
-  it("a locked item: packing reads RECORD_EPS and a position, the contract reads the tolerance and no position as 0", () => {
+  it("a locked item: both read RECORD_EPS for the move, and the tolerance argument does not change it", () => {
     const near = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 0 }, { id: "pin", x: 50.01, y: 50 }, { id: "t", x: 0, y: 60 }]);
     expect(P.checkHard(input, near, { overlap: 0.1 })["locked-kept"]).toBe(1);
-    expect(contractHard(input, near, 0.1)["locked-kept"]).toBe(0);
+    expect(contractHard(input, near, 0.1)).toEqual(P.checkHard(input, near, { overlap: 0.1 }));
     expect(contractHard(input, near)).toEqual(P.checkHard(input, near));
+  });
+
+  it("a locked item with no position: both give no locked-kept break, and only the contract calls it a bad input", () => {
     const noPosition: P.PackInput = {
       ...input,
       items: input.items.map((i) => (i.id === "pin" ? { id: "pin", w: 10, h: 10, locked: true } : i)),
     };
     const placed = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 0 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 0, y: 60 }]);
+    expect(contractHard(noPosition, placed)).toEqual(P.checkHard(noPosition, placed));
     expect(P.checkHard(noPosition, placed)["locked-kept"]).toBe(0);
-    expect(contractHard(noPosition, placed)["locked-kept"]).toBe(1);
+    expect(C.checkInput(fileOf(noPosition))).toEqual(["box pin: a locked box has no position"]);
+    expect(C.checkInput(fileOf(input))).toEqual([]);
+    // Open, on a bad input only: with no placement, packing reads the item as not locked and counts it in complete.
+    // The contract skips the item.
+    const unplaced = output(placed.placements.filter((p) => p.id !== "pin"));
+    expect(P.checkHard(noPosition, unplaced)).toMatchObject({ "locked-kept": 0, complete: 1 });
+    expect(contractHard(noPosition, unplaced)).toMatchObject({ "locked-kept": 0, complete: 0 });
   });
 });

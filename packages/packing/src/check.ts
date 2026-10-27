@@ -28,8 +28,11 @@ function overlap(a: Box, b: Box, tolerance: number): boolean {
  * - `no-overlap`: each pair of items with their margins, and each pair of an item and an obstacle, that overlap by more than `tolerance.overlap`.
  * - `in-container`: each item with its margin that goes out of a fixed side by more than `tolerance.overlap`. The inset of
  *   the container makes each fixed side smaller (decision 3 of `docs/PACKER.md`).
- * - `locked-kept`: each locked item that moved by more than `RECORD_EPS`, or that has no position.
- * - `complete`: each item with no position that is not in the overflow.
+ * - `locked-kept`: each locked item that moved by more than `RECORD_EPS`, or that has no placement.
+ * - `complete`: each item with no placement that is not in the overflow. A locked item breaks `locked-kept` in its place.
+ *
+ * A locked item with no placement stays at its input position for `no-overlap` and `in-container`. A locked item with no
+ * `x` or no `y` in the input is not locked for these rules.
  *
  * The rules read a shape of the container, of an obstacle or of an item as its bounding box (decision 5). The bounding box
  * of an item shape is relative to the position of the item. The result has no tolerance in it.
@@ -43,14 +46,18 @@ export function checkHard(input: PackInput, output: PackOutput, tolerance: Pick<
 
   const boxes: Box[] = [];
   for (const item of input.items) {
-    const p = placements.get(item.id);
+    const lockedAt = item.locked === true && item.x !== undefined && item.y !== undefined ? { x: item.x, y: item.y } : undefined;
+    let p: Pick<PackOutput["placements"][number], "x" | "y" | "turn"> | undefined = placements.get(item.id);
     if (p === undefined) {
-      if (item.locked === true && item.x !== undefined && item.y !== undefined) breaks["locked-kept"] += 1;
-      if (!overflow.has(item.id)) breaks.complete += 1;
-      continue;
-    }
-    if (item.locked === true && item.x !== undefined && item.y !== undefined) {
-      if (Math.abs(p.x - item.x) > RECORD_EPS || Math.abs(p.y - item.y) > RECORD_EPS) breaks["locked-kept"] += 1;
+      if (lockedAt === undefined) {
+        if (!overflow.has(item.id)) breaks.complete += 1;
+        continue;
+      }
+      // A locked item with no placement breaks locked-kept, and it stays at its input position for the other rules
+      breaks["locked-kept"] += 1;
+      p = lockedAt;
+    } else if (lockedAt !== undefined) {
+      if (Math.abs(p.x - lockedAt.x) > RECORD_EPS || Math.abs(p.y - lockedAt.y) > RECORD_EPS) breaks["locked-kept"] += 1;
     }
     const placed: Item = p.turn === 90 ? turnItem(item) : item;
     const m = marginOf(placed);

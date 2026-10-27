@@ -237,6 +237,7 @@ interface Edge {
   target: string;
   sourcePort?: string;
   targetPort?: string;
+  data?: Readonly<Record<string, unknown>>;
 }
 
 ### build/index.d.ts#EdgeCase
@@ -308,6 +309,7 @@ interface Item {
   turnable?: boolean;
   margin?: number | Margin;
   ports?: Port[];
+  data?: Readonly<Record<string, unknown>>;
 }
 
 ### build/index.d.ts#LayoutInput
@@ -381,6 +383,8 @@ interface MeasureSpec {
   direction: Direction;
   min: number;
   max: number;
+  floor?: number;
+  tol?: number;
 }
 
 ### build/index.d.ts#MetricsOptions

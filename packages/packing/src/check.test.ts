@@ -114,6 +114,30 @@ describe("checkHard", () => {
     expect(checkHard(input, out([{ id: "a", x: 2, y: 2 }], ["b", "c", "pin"]))).toMatchObject({ "locked-kept": 1, complete: 0 });
   });
 
+  it("counts a locked item with no placement only in locked-kept, also when it is not in the overflow", () => {
+    const result = checkHard(input, out([{ id: "a", x: 2, y: 2 }, { id: "b", x: 14, y: 0 }], ["c"]));
+    expect(result).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 1, complete: 0 });
+    // A locked item with no x or no y is not locked for the rules. With no placement, it breaks complete.
+    const noPosition: PackInput = { ...input, items: input.items.map((i) => (i.id === "pin" ? { id: "pin", w: 10, h: 10, locked: true } : i)) };
+    const missing = checkHard(noPosition, out([{ id: "a", x: 2, y: 2 }, { id: "b", x: 14, y: 0 }], ["c"]));
+    expect(missing).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 1 });
+  });
+
+  it("keeps a locked item with no placement at its input position for no-overlap and in-container", () => {
+    // The item b goes on the locked item at 50, 50. The locked item has no placement.
+    const onPin = checkHard(input, out([{ id: "a", x: 2, y: 2 }, { id: "b", x: 55, y: 55 }], ["c"]));
+    expect(onPin).toEqual({ "no-overlap": 1, "in-container": 0, "locked-kept": 1, complete: 0 });
+    // The input position of the locked item, with its margin, goes out of the container.
+    const outside: PackInput = {
+      container: { w: 100, h: 100, fixed: "size" },
+      items: [{ id: "pin", w: 10, h: 10, locked: true, x: 92, y: 0, margin: 1 }],
+    };
+    expect(checkHard(outside, out([]))).toEqual({ "no-overlap": 0, "in-container": 1, "locked-kept": 1, complete: 0 });
+    // The input position of the locked item overlaps the obstacle o, also when the item is in the overflow.
+    const onObstacle: PackInput = { ...input, items: [{ id: "pin", w: 10, h: 10, locked: true, x: 85, y: 5 }] };
+    expect(checkHard(onObstacle, out([], ["pin"]))).toEqual({ "no-overlap": 1, "in-container": 0, "locked-kept": 1, complete: 0 });
+  });
+
   it("reads a turned item and a moved obstacle", () => {
     const turnable: PackInput = {
       container: { w: 100, h: 100, fixed: "size" },

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7
+
+- New: the optional fields `floor` and `tol` of `MeasureSpec`. `MEASURE_SPECS` is the source of the floor and the tolerance of each guard of the floor rule.
+- New: the optional field `data` of `Item` and `Edge`, with the type of the contract. The turn and `toPackInput` keep it.
+- Fix: `checkHard` counts a locked item with no placement only in `locked-kept`, not in `complete`.
+- Fix: `checkHard` keeps a locked item with no placement at its input position for `no-overlap` and `in-container`.
+- The test of the type fit uses `@mark1russell7/layout-contract` at commit `710ec51`. It shows that gaps 5 and 11 are closed (roadmap item k57).
+
 ## 0.1.6
 
 - Fix: in the rule `in-container`, `checkHard` makes each fixed side smaller by `container.inset` (decision 3).

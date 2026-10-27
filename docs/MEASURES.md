@@ -20,7 +20,7 @@ The functions:
 | `measure(input, output, options?)` | The measures of one layout, by id. |
 | `measureChange(baseInput, baseOutput, changeInput, changeOutput)` | The stability measures of a change pair. The items match by id. |
 | `isDeterministic(first, second)` | The measure `pack.deterministic` of two runs. |
-| `MEASURE_SPECS` | The family, the unit, the direction and the range of each id. |
+| `MEASURE_SPECS` | The family, the unit, the direction and the range of each id. Each guard also has its `floor` and its `tol`. |
 
 ### The numbers
 
@@ -259,3 +259,22 @@ The promotion rule names the guard measures of the packer in words ([PROMOTION, 
 - `pack.deterministic` and the hard rules of FORMAT are the hard rule test of PROMOTION. They are not ratios.
 - `pack.search.ms` and the field `ms` of a record feed the time test. CI does this test.
 - The joint selector of `layout-stack` uses `pack.area`, `pack.fill`, `pack.aspectError` and `pack.order.inversions` as its `pack.*` guards.
+
+### The floors of the guards
+
+The floor rule of PROMOTION ([the floor rule](https://github.com/mark1russell7/highways/blob/main/docs/PROMOTION.md#the-floor-rule)) applies to a guard when the default is at the floor. This document does not copy its tests.
+
+`MEASURE_SPECS` is the source of the floor and the tolerance of each `pack.*` guard. The fields are `floor` and `tol`, as in `MeasureSpec` of `@mark1russell7/layout-contract`.
+
+| Id | `floor` | `tol` | Reason |
+|---|---|---|---|
+| `pack.order.inversions` | 0 | 0 | Each new inversion is a loss. |
+| `pack.overflow` | 0 | 0 | A count. Each new unplaced item in a fixed container is a loss. |
+| `pack.aspectError` | 0 | 0.01 (natural log) | An exact tiling gives the default an error of 0. The tolerance is approximately 1% of the aspect. |
+| `pack.stability.mean` | 0 | 0.005 container widths | The default often moves no item. |
+| `pack.stability.q95` | 0 | 0.01 container widths | The default often moves no item. |
+| `pack.stability.moved` | 0 | 0.02 | On a small change, the default often moves no item. The tolerance is 2% of the items that stay. |
+
+- The other measures have no `floor` and no `tol`.
+- The tolerances of `pack.aspectError` and `pack.stability` are first values. The records of the floor rule give the data to measure them later.
+- A change of a value is a change of `MEASURE_SPECS`, its test and this table.
