@@ -4,9 +4,10 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 104 names
+## . (build/index.d.ts): 120 names
 
 type Cell: build/index.d.ts#Cell
+type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type Container: build/index.d.ts#Container
 type Corpus: build/index.d.ts#Corpus
 type CorpusCell: build/index.d.ts#CorpusCell
@@ -18,6 +19,7 @@ type CountScale: build/index.d.ts#CountScale
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 type Dimension: build/index.d.ts#Dimension
 type DimensionValue: build/index.d.ts#DimensionValue
+type Direction: build/index.d.ts#Direction
 EPS: build/index.d.ts#EPS
 type Edge: build/index.d.ts#Edge
 type EdgeCase: build/index.d.ts#EdgeCase
@@ -30,8 +32,14 @@ type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type HardBreaks: build/index.d.ts#HardBreaks
 type Item: build/index.d.ts#Item
 type LayoutInput: build/index.d.ts#LayoutInput
+type LayoutMeasures: build/index.d.ts#LayoutMeasures
 type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
+MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
 type Margin: build/index.d.ts#Margin
+type MeasureFamily: build/index.d.ts#MeasureFamily
+type MeasureId: build/index.d.ts#MeasureId
+type MeasureOptions: build/index.d.ts#MeasureOptions
+type MeasureSpec: build/index.d.ts#MeasureSpec
 type MetricsOptions: build/index.d.ts#MetricsOptions
 type Obstacle: build/index.d.ts#Obstacle
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
@@ -80,9 +88,13 @@ gallery: build/index.d.ts#gallery
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
 hashInput: build/index.d.ts#hashInput
+isDeterministic: build/index.d.ts#isDeterministic
 logSweep: build/index.d.ts#logSweep
 lowestWindow: build/index.d.ts#lowestWindow
 marginOf: build/index.d.ts#marginOf
+measure: build/index.d.ts#measure
+measureChange: build/index.d.ts#measureChange
+medianRatio: build/index.d.ts#medianRatio
 mulberry32: build/index.d.ts#mulberry32
 pack: build/index.d.ts#pack
 packFree: build/index.d.ts#packFree
@@ -91,17 +103,21 @@ packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
 packWith: build/index.d.ts#packWith
 packingMetrics: build/index.d.ts#packingMetrics
+pairedRatio: build/index.d.ts#pairedRatio
 push: build/index.d.ts#push
 pushCascade: build/index.d.ts#pushCascade
+quantile: build/index.d.ts#quantile
 rectGrid: build/index.d.ts#rectGrid
 rectScattered: build/index.d.ts#rectScattered
 round3: build/index.d.ts#round3
+roundMeasures: build/index.d.ts#roundMeasures
 rows: build/index.d.ts#rows
 shelf: build/index.d.ts#shelf
 skyline: build/index.d.ts#skyline
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 supportsCell: build/index.d.ts#supportsCell
+tailShare: build/index.d.ts#tailShare
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
 turnItem: build/index.d.ts#turnItem
@@ -122,6 +138,13 @@ interface Cell {
   rotation: DimensionValue<"rotation">;
   order: DimensionValue<"order">;
   groups: DimensionValue<"groups">;
+}
+
+### build/index.d.ts#ChangeMeasures
+interface ChangeMeasures {
+  "pack.stability.moved": number;
+  "pack.stability.mean": number;
+  "pack.stability.q95": number;
 }
 
 ### build/index.d.ts#Container
@@ -200,6 +223,9 @@ type Dimension = keyof Supports;
 
 ### build/index.d.ts#DimensionValue
 type DimensionValue<D extends Dimension = Dimension> = Supports[D][number];
+
+### build/index.d.ts#Direction
+type Direction = "lower" | "higher";
 
 ### build/index.d.ts#EPS
 export declare const EPS = 1e-6;
@@ -304,11 +330,29 @@ interface LayoutInput {
   hash: string;
 }
 
+### build/index.d.ts#LayoutMeasures
+interface LayoutMeasures {
+  "pack.area": number;
+  "pack.fill": number;
+  "pack.whitespace": number;
+  "pack.aspect": number;
+  "pack.aspectError": number;
+  "pack.order.inversions": number;
+  "pack.order.breaks": number;
+  "pack.raggedness": number;
+  "pack.overflow": number;
+  "pack.search.widths": number;
+  "pack.search.ms": number;
+}
+
 ### build/index.d.ts#LayoutStrategyOptions
 interface LayoutStrategyOptions {
   sortOrder: SortOrder;
   samples: number;
 }
+
+### build/index.d.ts#MEASURE_SPECS
+export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
 
 ### build/index.d.ts#Margin
 interface Margin {
@@ -316,6 +360,27 @@ interface Margin {
   right: number;
   bottom: number;
   left: number;
+}
+
+### build/index.d.ts#MeasureFamily
+type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
+
+### build/index.d.ts#MeasureId
+type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
+
+### build/index.d.ts#MeasureOptions
+interface MeasureOptions {
+  rowTolerance?: number;
+}
+
+### build/index.d.ts#MeasureSpec
+interface MeasureSpec {
+  id: MeasureId;
+  family: MeasureFamily;
+  unit: string;
+  direction: Direction;
+  min: number;
+  max: number;
 }
 
 ### build/index.d.ts#MetricsOptions
@@ -626,6 +691,9 @@ export declare const generators: readonly CorpusGenerator[];
 ### build/index.d.ts#hashInput
 export declare function hashInput(file: Omit<LayoutInput, "hash"> | LayoutInput): string;
 
+### build/index.d.ts#isDeterministic
+export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
+
 ### build/index.d.ts#logSweep
 export declare const logSweep: SizeSearch;
 
@@ -637,6 +705,15 @@ export declare function lowestWindow(skyline: ArrayLike<number>, width: number, 
 
 ### build/index.d.ts#marginOf
 export declare function marginOf(item: Pick<Item, "margin">): Margin;
+
+### build/index.d.ts#measure
+export declare function measure(input: PackInput, output: PackOutput, options?: MeasureOptions): LayoutMeasures;
+
+### build/index.d.ts#measureChange
+export declare function measureChange(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput, changeOutput: PackOutput): ChangeMeasures;
+
+### build/index.d.ts#medianRatio
+export declare function medianRatio(ratios: readonly number[]): number;
 
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
@@ -664,11 +741,17 @@ export declare function packWith(id: string, input: PackInput, options?: unknown
 ### build/index.d.ts#packingMetrics
 export declare function packingMetrics(rects: readonly Rect[], options?: MetricsOptions): PackingMetrics;
 
+### build/index.d.ts#pairedRatio
+export declare function pairedRatio(candidate: number, current: number, direction: Direction): number;
+
 ### build/index.d.ts#push
 export declare const push: Strategy<PushStrategyOptions>;
 
 ### build/index.d.ts#pushCascade
 export declare function pushCascade<T>(placed: Rect<T>, rects: readonly Rect<T>[], options?: PushOptions): Rect<T>[];
+
+### build/index.d.ts#quantile
+export declare function quantile(values: readonly number[], q: number): number;
 
 ### build/index.d.ts#rectGrid
 export declare const rectGrid: CorpusGenerator<RectGridParams>;
@@ -678,6 +761,9 @@ export declare const rectScattered: CorpusGenerator<RectScatteredParams>;
 
 ### build/index.d.ts#round3
 export declare function round3(x: number): number;
+
+### build/index.d.ts#roundMeasures
+export declare function roundMeasures<T extends object>(measures: T): T;
 
 ### build/index.d.ts#rows
 export declare const rows: Strategy<LayoutStrategyOptions>;
@@ -696,6 +782,9 @@ export declare function strategy(id: string): Strategy;
 
 ### build/index.d.ts#supportsCell
 export declare function supportsCell(supports: Supports, cell: Partial<Record<Dimension, string>>): boolean;
+
+### build/index.d.ts#tailShare
+export declare function tailShare(ratios: readonly number[], limit: number): number;
 
 ### build/index.d.ts#toPackInput
 export declare function toPackInput(file: Pick<LayoutInput, "container" | "boxes" | "obstacles" | "gap">): PackInput;

@@ -228,14 +228,14 @@ Each prediction is written before its run. The predictions are a JSON Lines file
 
 ## The measures of the packer
 
-The names are lowercase, with a dot after the stage.
+The names are lowercase, with a dot after the stage. This table is the short list. [`docs/MEASURES.md`](MEASURES.md) defines each measure, with its edge cases and its range.
 
 | Name | Unit | Better | What it measures |
 |---|---|---|---|
 | `pack.area` | square units | lower | The area of the hull of the boxes. |
 | `pack.aspect` | ratio | lower | The aspect of the hull: the larger of `w / h` and `h / w`. |
 | `pack.whitespace` | 0 to 1 | lower | 1 minus the area of the boxes divided by the area of the hull. |
-| `pack.order.inversions` | 0 to 1 | lower | The pairs of boxes out of rank order in the reading order, divided by all pairs. |
+| `pack.order.inversions` | 0 to 1 | lower | The pairs of boxes out of rank order in the reading order, divided by the pairs with different ranks. |
 | `pack.order.breaks` | count | lower | The places where the reading order goes back. |
 | `pack.raggedness` | 0 to 1 | lower | The spread of the right ends of the rows, divided by the width. |
 | `pack.fill` | 0 to 1 | higher | The area of the boxes divided by the area of the bounding box. |
@@ -244,7 +244,8 @@ The names are lowercase, with a dot after the stage.
 | `pack.search.ms` | milliseconds | lower | The time of the search of the size. |
 | `pack.overflow` | count | lower | The boxes that the packer did not place. |
 | `pack.stability.moved` | 0 to 1 | lower | The part of the boxes that moved, against the run on the base input. |
-| `pack.stability.mean` | 0 to 1 | lower | The mean movement of a box against the base run, divided by the width of the container. |
+| `pack.stability.mean` | 0 or more | lower | The mean movement of a box against the base run, divided by the width of the container. |
+| `pack.stability.q95` | 0 or more | lower | The quantile 0.95 of the movement of a box against the base run, divided by the width of the container. |
 
 Each measure moves when the placement changes. The router measures (`route.*`) and the joint measures (`joint.*`) are in the twin document.
 

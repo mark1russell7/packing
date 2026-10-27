@@ -1,3 +1,4 @@
+import { hullOf, rowsOf } from "./measures.ts";
 import type { Rect } from "./rect.ts";
 
 /** The measurements of a packing. */
@@ -35,31 +36,18 @@ export interface MetricsOptions {
  */
 export function packingMetrics(rects: readonly Rect[], options: MetricsOptions = {}): PackingMetrics {
   const tolerance = options.rowTolerance ?? 40;
-  const boxes = rects.filter((r) => r.size.x > 0 && r.size.y > 0);
+  const boxes = rects.filter((r) => r.size.x > 0 && r.size.y > 0).map((r) => ({ x: r.position.x, y: r.position.y, w: r.size.x, h: r.size.y }));
   if (boxes.length === 0) return { count: 0, hull: { width: 0, height: 0 }, hullAspect: 0, rows: [], raggedness: 0, utilization: 0, widestOverMedian: 0 };
 
-  const left = Math.min(...boxes.map((r) => r.position.x));
-  const top = Math.min(...boxes.map((r) => r.position.y));
-  const right = Math.max(...boxes.map((r) => r.right()));
-  const bottom = Math.max(...boxes.map((r) => r.bottom()));
-  const hull = { width: right - left, height: bottom - top };
-
-  // The rows: the rectangles by their top, and a row takes each rectangle near the top of its first rectangle
-  const rows: { top: number; right: number; count: number }[] = [];
-  for (const r of boxes.toSorted((a, b) => a.position.y - b.position.y)) {
-    const row = rows.at(-1);
-    if (row && Math.abs(r.position.y - row.top) <= tolerance) {
-      row.right = Math.max(row.right, r.right());
-      row.count += 1;
-    } else {
-      rows.push({ top: r.position.y, right: r.right(), count: 1 });
-    }
-  }
+  // The hull and the rows come from the helpers of `measure`, so the two functions agree
+  const box = hullOf(boxes);
+  const hull = { width: box.w, height: box.h };
+  const rows = rowsOf(boxes, tolerance);
   const rights = rows.map((row) => row.right);
-  const widths = boxes.map((r) => r.size.x).toSorted((a, b) => a - b);
+  const widths = boxes.map((r) => r.w).toSorted((a, b) => a - b);
   const median = widths[Math.floor(widths.length / 2)] ?? 0;
   const widest = widths.at(-1) ?? 0;
-  const area = boxes.reduce((sum, r) => sum + r.area(), 0);
+  const area = boxes.reduce((sum, r) => sum + r.w * r.h, 0);
   return {
     count: boxes.length,
     hull,
