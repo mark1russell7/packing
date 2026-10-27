@@ -104,7 +104,48 @@ The manifest of a corpus is `corpus.json`:
 | `groups` (routing) | `none`, `flat`, `nested` |
 | `ports` (routing) | `free`, `sides`, `fixed` |
 
-A test in each repository generates 3 seeds of one shared generator (a rectangle container with scattered obstacles) and compares the hashes with those of the other repository.
+### The shared generator `rect-scattered` (version 1)
+
+A test in each repository generates the seeds 1, 2 and 3 of this generator with `{ "count": 40 }`, and compares the hashes with the values below.
+
+The functions:
+
+```js
+// mulberry32: one generator of random numbers in [0, 1)
+const mulberry32 = (seed) => {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+// fnv1a32 of the UTF-8 bytes of a string
+const fnv1a32 = (str) => {
+  let h = 0x811c9dc5;
+  for (const b of new TextEncoder().encode(str)) h = Math.imul(h ^ b, 0x01000193) >>> 0;
+  return h;
+};
+// A whole number from lo to hi, both included
+const int = (r, lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+```
+
+The steps, in this order. Each step starts its own generator: `r = mulberry32(fnv1a32(seed + ":" + step))`, with the seed in decimal.
+
+1. Step `container`: `w = int(r, 600, 1000)`, then `h = int(r, 400, 800)`. The container is `{ "w": w, "h": h, "fixed": "size" }`.
+2. Step `obstacles`: `n = int(r, 3, 8)`. For each `i` from 0 to `n - 1`, in this order: `ow = int(r, 40, 160)`, `oh = int(r, 40, 160)`, `x = int(r, 0, w - ow)`, `y = int(r, 0, h - oh)`. The obstacle is `{ "id": "o<i>", "region": { "kind": "rect", "x": x, "y": y, "w": ow, "h": oh } }`. Two obstacles can overlap.
+3. Step `boxes`: for each `i` from 0 to `count - 1`: `bw = int(r, 20, 120)`, then `bh = int(r, 20, 80)`. The box is `{ "id": "b<i>", "w": bw, "h": bh }`.
+
+The file has these fields: `schema` `"layout-input/1"`, `id` `"xcheck-v1/rect-scattered/s<seed>"`, `set` `"xcheck-v1"`, `family` `"rect-scattered"`, `seed`, `source` `"made-up"`, `generator` `{ "name": "rect-scattered", "version": 1, "params": { "count": 40 }, "seed": <seed> }`, `container`, `obstacles`, `boxes` and `edges` `[]`. The `hash` is the first 16 hex characters of the SHA-256 of the canonical form of the other fields.
+
+| Seed | `w` | `h` | Obstacles | First obstacle | First box | `hash` |
+|---|---|---|---|---|---|---|
+| 1 | 970 | 705 | 4 | `x 690, y 281, w 111, h 100` | `70 by 66` | `f5f5c51d1560e41c` |
+| 2 | 733 | 437 | 7 | `x 292, y 7, w 138, h 121` | `114 by 77` | `cfd6ef0ef232aaa3` |
+| 3 | 871 | 554 | 8 | `x 551, y 56, w 59, h 138` | `78 by 39` | `d1638f2406360b2e` |
+
+A check value: `fnv1a32("1:container")` is `3139901265`.
 
 ## The record: `layout-record/1`
 
