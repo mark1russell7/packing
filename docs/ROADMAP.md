@@ -25,7 +25,7 @@ Status: done, done, waiting, next, done.
 | k16 | The sort order `input` | strategies | done | |
 | k17 | `packShelf`: rows in the input order around obstacles | strategies | done | k1 |
 | k18 | The shared corpus and record format with highways (`layout-input/1`, `layout-record/1`) | measure | active |  |
-| k19 | The benchmark corpus: made-up inputs of each kind, with variants for stability | measure | later | k18 |
+| k19 | The corpus from first principles: a seeded generator for each dimension of the taxonomy | measure | later | k18, k35 |
 | k20 | A selector: measure the choice of a strategy for each input | measure | later | k9, k11 |
 | k21 | Shelf family: next fit, first fit and best fit by decreasing height, and the input order | strategies | later | k6, k7 |
 | k22 | Skyline variants: bottom-left, minimum waste, with a waste map | strategies | later | k6, k7 |
@@ -47,6 +47,16 @@ Status: done, done, waiting, next, done.
 | k38 | Obstacles that move at a cost | strategies | later | k7, k35 |
 | k39 | Items of other shapes: circles and polygons (nesting) | strategies | later | k7, k36 |
 | k40 | The site: a picker for the container shape and the obstacles | site | later | k34, k37 |
+| k41 | Pack-around: the split of the free space as a stage of its own | core | later | k7, k35 |
+| k42 | The ways to split the free space: maximal empty rectangles, slabs, cuts at obstacle edges, cells, or one region with holes | strategies | later | k41, k36 |
+| k43 | The ways to give items to the parts: greedy in reading order, assignment, and a flow that keeps the reading order | strategies | later | k41 |
+| k44 | The measures of pack-around: fill of each part, slivers, order breaks across parts, stability when an obstacle moves | measure | later | k8, k41 |
+| k45 | Inputs with a known best answer: perfect cuts that are shuffled, and the consecutive squares | measure | later | k19 |
+| k46 | The published benchmark sets for strip packing and nesting | measure | later | k19 |
+| k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | later | k19, k9 |
+| k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
+| k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
+| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
 
 ## Rules
 
