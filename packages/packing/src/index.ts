@@ -8,6 +8,24 @@ export { compareRects, SORT_ORDERS, type SortOrder } from "./order.ts";
 export { pushCascade, type PushOptions } from "./push.ts";
 export { packingMetrics, type MetricsOptions, type PackingMetrics } from "./metrics.ts";
 export {
+  MEASURE_SPECS,
+  isDeterministic,
+  measure,
+  measureChange,
+  medianRatio,
+  pairedRatio,
+  quantile,
+  roundMeasures,
+  tailShare,
+  type ChangeMeasures,
+  type Direction,
+  type LayoutMeasures,
+  type MeasureFamily,
+  type MeasureId,
+  type MeasureOptions,
+  type MeasureSpec,
+} from "./measures.ts";
+export {
   DEFAULT_TOLERANCE,
   EPS,
   RECORD_EPS,

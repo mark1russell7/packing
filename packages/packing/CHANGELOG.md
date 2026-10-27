@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- New: `docs/MEASURES.md` defines each measure of the packer, with its range, unit, direction and edge cases (roadmap item k8).
+- New: `measure(input, output)` gives the measures of one layout by id. `measureChange` gives the stability measures of a change pair.
+- New: the measure `pack.stability.q95`: the quantile 0.95 of the moves of the items that stay, in widths of the container.
+- New: `isDeterministic(first, second)` gives the measure `pack.deterministic`. The trace is not part of the rule.
+- New: `MEASURE_SPECS` gives the family, the unit, the direction and the range of each measure id.
+- New: `roundMeasures` rounds a record of measures as `docs/FORMAT.md` tells. The measure functions do not round.
+- New: the ratio helpers `pairedRatio`, `quantile`, `medianRatio` and `tailShare` for the promotion screen.
+- `packingMetrics` uses the hull and the rows of `measure`. Its output stays the same.
+
 ## 0.1.4
 
 - New: the seeded generators of the corpus (roadmap item k19). Each generator writes `layout-input/1` files, as `docs/FORMAT.md` tells.
