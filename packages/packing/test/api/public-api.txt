@@ -4,23 +4,37 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 70 names
+## . (build/index.d.ts): 104 names
 
 type Cell: build/index.d.ts#Cell
 type Container: build/index.d.ts#Container
+type Corpus: build/index.d.ts#Corpus
+type CorpusCell: build/index.d.ts#CorpusCell
+type CorpusEntry: build/index.d.ts#CorpusEntry
+type CorpusGenerator: build/index.d.ts#CorpusGenerator
+type CorpusManifest: build/index.d.ts#CorpusManifest
+type CorpusSpec: build/index.d.ts#CorpusSpec
+type CountScale: build/index.d.ts#CountScale
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 type Dimension: build/index.d.ts#Dimension
 type DimensionValue: build/index.d.ts#DimensionValue
 EPS: build/index.d.ts#EPS
+type Edge: build/index.d.ts#Edge
+type EdgeCase: build/index.d.ts#EdgeCase
+type EdgeCaseParams: build/index.d.ts#EdgeCaseParams
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
+type GeneratorParams: build/index.d.ts#GeneratorParams
+type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type HardBreaks: build/index.d.ts#HardBreaks
 type Item: build/index.d.ts#Item
+type LayoutInput: build/index.d.ts#LayoutInput
 type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
 type Margin: build/index.d.ts#Margin
 type MetricsOptions: build/index.d.ts#MetricsOptions
 type Obstacle: build/index.d.ts#Obstacle
+type ObstacleLayout: build/index.d.ts#ObstacleLayout
 type PackContext: build/index.d.ts#PackContext
 type PackInput: build/index.d.ts#PackInput
 type PackLayoutOptions: build/index.d.ts#PackLayoutOptions
@@ -33,24 +47,39 @@ type PushOptions: build/index.d.ts#PushOptions
 type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 Rect: build/index.d.ts#Rect
+type RectGridParams: build/index.d.ts#RectGridParams
+type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: build/index.d.ts#Region
 SORT_ORDERS: build/index.d.ts#SORT_ORDERS
 type ShelfOptions: build/index.d.ts#ShelfOptions
+type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/index.d.ts#SizeSearch
 type SortOrder: build/index.d.ts#SortOrder
 type StageTrace: build/index.d.ts#StageTrace
 type Strategy: build/index.d.ts#Strategy
 type Supports: build/index.d.ts#Supports
 type Tolerance: build/index.d.ts#Tolerance
+type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/index.d.ts#UnsupportedCell
 Vector: build/index.d.ts#Vector
 aspectError: build/index.d.ts#aspectError
 assertSupported: build/index.d.ts#assertSupported
+canonicalJson: build/index.d.ts#canonicalJson
+cards: build/index.d.ts#cards
 cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 compareRects: build/index.d.ts#compareRects
+corpus: build/index.d.ts#corpus
+countCell: build/index.d.ts#countCell
 createContext: build/index.d.ts#createContext
+dashboard: build/index.d.ts#dashboard
+edgeCases: build/index.d.ts#edgeCases
+fnv1a32: build/index.d.ts#fnv1a32
 fromRects: build/index.d.ts#fromRects
+gallery: build/index.d.ts#gallery
+generator: build/index.d.ts#generator
+generators: build/index.d.ts#generators
+hashInput: build/index.d.ts#hashInput
 logSweep: build/index.d.ts#logSweep
 lowestWindow: build/index.d.ts#lowestWindow
 marginOf: build/index.d.ts#marginOf
@@ -64,18 +93,23 @@ packWith: build/index.d.ts#packWith
 packingMetrics: build/index.d.ts#packingMetrics
 push: build/index.d.ts#push
 pushCascade: build/index.d.ts#pushCascade
+rectGrid: build/index.d.ts#rectGrid
+rectScattered: build/index.d.ts#rectScattered
+round3: build/index.d.ts#round3
 rows: build/index.d.ts#rows
 shelf: build/index.d.ts#shelf
 skyline: build/index.d.ts#skyline
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 supportsCell: build/index.d.ts#supportsCell
+toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
 turnItem: build/index.d.ts#turnItem
 turnPoint: build/index.d.ts#turnPoint
 turnPort: build/index.d.ts#turnPort
 turnRegion: build/index.d.ts#turnRegion
 unsupportedOf: build/index.d.ts#unsupportedOf
+wordCloud: build/index.d.ts#wordCloud
 
 ## Declarations
 
@@ -101,6 +135,63 @@ interface Container {
   inset?: number;
 }
 
+### build/index.d.ts#Corpus
+interface Corpus {
+  manifest: CorpusManifest;
+  inputs: LayoutInput[];
+}
+
+### build/index.d.ts#CorpusCell
+interface CorpusCell extends Cell {
+  obstacles: ObstacleLayout;
+  sizes: SizeDistribution;
+  count: CountScale;
+  mode: "offline" | "online" | "incremental";
+}
+
+### build/index.d.ts#CorpusEntry
+interface CorpusEntry {
+  id: string;
+  hash: string;
+  cell: CorpusCell;
+}
+
+### build/index.d.ts#CorpusGenerator
+interface CorpusGenerator<P extends GeneratorParams = GeneratorParams> {
+  readonly name: string;
+  readonly version: number;
+  readonly set: string;
+  readonly defaults: Readonly<P>;
+  readonly values: { readonly [K in keyof P]?: readonly P[K][]; };
+  withDefaults(params?: Partial<P>): P;
+  cell(params?: Partial<P>): CorpusCell;
+  generate(seed: number, params?: Partial<P>, set?: string): LayoutInput;
+}
+
+### build/index.d.ts#CorpusManifest
+interface CorpusManifest {
+  schema: "layout-corpus/1";
+  corpus: string;
+  specs: {
+    generator: string;
+    version: number;
+    params: GeneratorParams;
+    seeds: number[];
+  }[];
+  inputs: CorpusEntry[];
+}
+
+### build/index.d.ts#CorpusSpec
+interface CorpusSpec {
+  generator: string;
+  version?: number;
+  params?: GeneratorParams;
+  seeds: readonly number[];
+}
+
+### build/index.d.ts#CountScale
+type CountScale = "1" | "10" | "100" | "1k" | "10k";
+
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Readonly<Tolerance>;
 
@@ -112,6 +203,24 @@ type DimensionValue<D extends Dimension = Dimension> = Supports[D][number];
 
 ### build/index.d.ts#EPS
 export declare const EPS = 1e-6;
+
+### build/index.d.ts#Edge
+interface Edge {
+  id: string;
+  source: string;
+  target: string;
+  sourcePort?: string;
+  targetPort?: string;
+}
+
+### build/index.d.ts#EdgeCase
+type EdgeCase = "empty" | "one" | "oversize" | "exactTiling" | "touchObstacles";
+
+### build/index.d.ts#EdgeCaseParams
+type EdgeCaseParams = {
+  case: EdgeCase;
+  count: number;
+};
 
 ### build/index.d.ts#FreeWidthOptions
 interface FreeWidthOptions extends PackLayoutOptions {
@@ -139,6 +248,17 @@ interface FreeWidthTry {
   objective: number;
 }
 
+### build/index.d.ts#GeneratorParams
+type GeneratorParams = Record<string, string | number>;
+
+### build/index.d.ts#GeneratorStamp
+interface GeneratorStamp {
+  name: string;
+  version: number;
+  params: GeneratorParams;
+  seed: number;
+}
+
 ### build/index.d.ts#HardBreaks
 interface HardBreaks {
   "no-overlap": number;
@@ -162,6 +282,26 @@ interface Item {
   turnable?: boolean;
   margin?: number | Margin;
   ports?: Port[];
+}
+
+### build/index.d.ts#LayoutInput
+interface LayoutInput {
+  schema: "layout-input/1";
+  id: string;
+  set: string;
+  family: string;
+  seed: number;
+  source: string;
+  generator: GeneratorStamp | null;
+  container: Container;
+  obstacles?: Obstacle[];
+  gap?: number;
+  boxes: Item[];
+  edges: Edge[];
+  base?: string;
+  change?: string;
+  step?: number;
+  hash: string;
 }
 
 ### build/index.d.ts#LayoutStrategyOptions
@@ -191,6 +331,9 @@ interface Obstacle {
     cost: number;
   };
 }
+
+### build/index.d.ts#ObstacleLayout
+type ObstacleLayout = "none" | "center" | "scattered" | "wall" | "corridors" | "touching" | "edge";
 
 ### build/index.d.ts#PackContext
 interface PackContext {
@@ -303,6 +446,20 @@ export declare class Rect<T = unknown> {
   static maxBottom<U>(rects: Rect<U>[]): number;
 }
 
+### build/index.d.ts#RectGridParams
+type RectGridParams = {
+  containerSize: DimensionValue<"containerSize">;
+  containerShape: DimensionValue<"containerShape">;
+  obstacles: ObstacleLayout;
+  sizes: SizeDistribution;
+  count: number;
+};
+
+### build/index.d.ts#RectScatteredParams
+type RectScatteredParams = {
+  count: number;
+};
+
 ### build/index.d.ts#Region
 type Region = {
   kind: "rect";
@@ -334,6 +491,9 @@ export declare const SORT_ORDERS: readonly SortOrder[];
 interface ShelfOptions {
   sortOrder?: SortOrder;
 }
+
+### build/index.d.ts#SizeDistribution
+type SizeDistribution = "identical" | "nearIdentical" | "uniform" | "heavyTail" | "bimodal" | "extremeAspect";
 
 ### build/index.d.ts#SizeSearch
 interface SizeSearch {
@@ -380,6 +540,12 @@ interface Tolerance {
   through: number;
 }
 
+### build/index.d.ts#UiParams
+type UiParams = {
+  containerSize: DimensionValue<"containerSize">;
+  count: number;
+};
+
 ### build/index.d.ts#UnsupportedCell
 export declare class UnsupportedCell extends Error {
   readonly dimension: Dimension;
@@ -412,6 +578,12 @@ export declare function aspectError(width: number, height: number, target?: numb
 ### build/index.d.ts#assertSupported
 export declare function assertSupported(supports: Supports, input: PackInput): void;
 
+### build/index.d.ts#canonicalJson
+export declare function canonicalJson(value: unknown): string;
+
+### build/index.d.ts#cards
+export declare const cards: CorpusGenerator<UiParams>;
+
 ### build/index.d.ts#cellOf
 export declare function cellOf(input: PackInput): Cell;
 
@@ -421,11 +593,38 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
 
+### build/index.d.ts#corpus
+export declare function corpus(name: string, specs: readonly CorpusSpec[]): Corpus;
+
+### build/index.d.ts#countCell
+export declare function countCell(count: number): CountScale;
+
 ### build/index.d.ts#createContext
 export declare function createContext(seed?: number, more?: Omit<PackContext, "seed" | "rng">): PackContext;
 
+### build/index.d.ts#dashboard
+export declare const dashboard: CorpusGenerator<UiParams>;
+
+### build/index.d.ts#edgeCases
+export declare const edgeCases: CorpusGenerator<EdgeCaseParams>;
+
+### build/index.d.ts#fnv1a32
+export declare function fnv1a32(text: string): number;
+
 ### build/index.d.ts#fromRects
 export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>): PackInput;
+
+### build/index.d.ts#gallery
+export declare const gallery: CorpusGenerator<UiParams>;
+
+### build/index.d.ts#generator
+export declare function generator(name: string): CorpusGenerator;
+
+### build/index.d.ts#generators
+export declare const generators: readonly CorpusGenerator[];
+
+### build/index.d.ts#hashInput
+export declare function hashInput(file: Omit<LayoutInput, "hash"> | LayoutInput): string;
 
 ### build/index.d.ts#logSweep
 export declare const logSweep: SizeSearch;
@@ -471,6 +670,15 @@ export declare const push: Strategy<PushStrategyOptions>;
 ### build/index.d.ts#pushCascade
 export declare function pushCascade<T>(placed: Rect<T>, rects: readonly Rect<T>[], options?: PushOptions): Rect<T>[];
 
+### build/index.d.ts#rectGrid
+export declare const rectGrid: CorpusGenerator<RectGridParams>;
+
+### build/index.d.ts#rectScattered
+export declare const rectScattered: CorpusGenerator<RectScatteredParams>;
+
+### build/index.d.ts#round3
+export declare function round3(x: number): number;
+
 ### build/index.d.ts#rows
 export declare const rows: Strategy<LayoutStrategyOptions>;
 
@@ -488,6 +696,9 @@ export declare function strategy(id: string): Strategy;
 
 ### build/index.d.ts#supportsCell
 export declare function supportsCell(supports: Supports, cell: Partial<Record<Dimension, string>>): boolean;
+
+### build/index.d.ts#toPackInput
+export declare function toPackInput(file: Pick<LayoutInput, "container" | "boxes" | "obstacles" | "gap">): PackInput;
 
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
@@ -509,3 +720,6 @@ export declare function unsupportedOf(supports: Supports, cell: Partial<Record<D
   dimension: Dimension;
   value: string;
 } | undefined;
+
+### build/index.d.ts#wordCloud
+export declare const wordCloud: CorpusGenerator<UiParams>;
