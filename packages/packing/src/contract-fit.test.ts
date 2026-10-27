@@ -105,9 +105,10 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<Exclude<keyof C.LayoutEdge, keyof P.Edge>>().toEqualTypeOf<"data">();
   });
 
-  it("gap 6: Supports of packing is an interface, and the contract needs a record", () => {
-    expectTypeOf<P.Supports>().not.toExtend<C.Supports>();
-    expectTypeOf<Alias<P.Supports>>().toExtend<C.Supports>();
+  it("gap 6 is closed: Supports of packing is a type alias, and it fits the record of the contract", () => {
+    expectTypeOf<P.Supports>().toExtend<C.Supports>();
+    expectTypeOf<P.Strategy["supports"]>().toExtend<C.Supports>();
+    expectTypeOf<Alias<P.Supports>>().toEqualTypeOf<P.Supports>();
   });
 
   it("gap 12: checkHard reads the packer input and output, packHard reads two files and the overflow", () => {
@@ -239,18 +240,30 @@ describe("the hard rules of packing and of the contract", () => {
       P.edgeCases.generate(1, { case: "oversize", count: 12 }),
       P.edgeCases.generate(1, { case: "touchObstacles", count: 6 }),
     ];
-    let compared = 0;
-    for (const file of files) {
+    // The generators give no inset. The first 4 files also go in with an inset, so the agreement covers the inset too.
+    const inputs = files.map((file) => ({ label: file.id, input: P.toPackInput(file) }));
+    for (const [i, file] of files.slice(0, 4).entries()) {
       const input = P.toPackInput(file);
+      inputs.push({ label: `${file.id} inset`, input: { ...input, container: { ...input.container, inset: 3 + i } } });
+    }
+    let compared = 0;
+    let withInset = 0;
+    for (const { label, input } of inputs) {
       const cell = P.cellOf(input);
       for (const s of P.strategies) {
         if (!P.supportsCell(s.supports, cell)) continue;
         const out = P.packWith(s.id, input);
-        expect(contractHard(input, out), `${file.id} ${s.id}`).toEqual(P.checkHard(input, out));
+        const hard = P.checkHard(input, out);
+        expect(contractHard(input, out), `${label} ${s.id}`).toEqual(hard);
+        if (input.container.inset !== undefined) {
+          expect(hard["in-container"], `${label} ${s.id}`).toBe(0);
+          withInset += 1;
+        }
         compared += 1;
       }
     }
     expect(compared).toBeGreaterThan(10);
+    expect(withInset).toBeGreaterThan(4);
   });
 
   const input: P.PackInput = {
@@ -288,24 +301,45 @@ describe("the hard rules of packing and of the contract", () => {
     expect(contractHard(withObstacle, out)["no-overlap"]).toBe(0);
   });
 
-  it("gap 9: only the contract reads the inset of the container", () => {
+  it("gap 9 is closed: both read the inset of the container", () => {
     const withInset: P.PackInput = { ...input, container: { ...input.container, inset: 5 } };
-    const out = output([{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 20 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 20, y: 60 }]);
-    expect(P.checkHard(withInset, out)["in-container"]).toBe(0);
-    expect(contractHard(withInset, out)["in-container"]).toBe(1);
+    const cases: P.Placement[][] = [
+      [{ id: "a", x: 2, y: 2 }, { id: "b", x: 20, y: 20 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 20, y: 60 }],
+      [{ id: "a", x: 7, y: 7 }, { id: "b", x: 85, y: 85 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 20, y: 60 }],
+      [{ id: "a", x: 7, y: 7 }, { id: "b", x: 86, y: 20 }, { id: "pin", x: 50, y: 50 }, { id: "t", x: 86, y: 60, turn: 90 }],
+    ];
+    for (const [i, placements] of cases.entries()) {
+      const out = output(placements);
+      expect(P.checkHard(withInset, out), `case ${i}`).toEqual(contractHard(withInset, out));
+    }
+    expect(P.checkHard(withInset, output(cases[0]!))["in-container"]).toBe(1);
+    expect(P.checkHard(withInset, output(cases[1]!))["in-container"]).toBe(0);
+    expect(P.checkHard(withInset, output(cases[2]!))["in-container"]).toBe(2);
   });
 
-  it("gap 10: packing reads an item as w by h, the contract reads the bounds of its shape", () => {
+  it("gap 10 is closed: both read a shaped item as the bounding box of its shape", () => {
     const shaped: P.PackInput = {
       container: { w: 100, h: 100, fixed: "size" },
       items: [
         { id: "s", w: 20, h: 20, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } },
+        { id: "e", w: 20, h: 10, turnable: true, shape: { kind: "ellipse", cx: 10, cy: 5, rx: 10, ry: 3 }, margin: 1 },
+        { id: "p", w: 30, h: 30, shape: { kind: "polygon", points: [[10, 10], [20, 10], [15, 20]] } },
         { id: "b", w: 10, h: 10 },
       ],
     };
-    const out = output([{ id: "s", x: 0, y: 0 }, { id: "b", x: 12, y: 12 }]);
-    expect(P.checkHard(shaped, out)["no-overlap"]).toBe(1);
-    expect(contractHard(shaped, out)["no-overlap"]).toBe(0);
+    const cases: P.Placement[][] = [
+      [{ id: "s", x: 0, y: 0 }, { id: "e", x: 40, y: 0 }, { id: "p", x: 60, y: 60 }, { id: "b", x: 12, y: 12 }],
+      [{ id: "s", x: 0, y: 0 }, { id: "e", x: 40, y: 0, turn: 90 }, { id: "p", x: 60, y: 60 }, { id: "b", x: 9, y: 9 }],
+      [{ id: "s", x: 0, y: 0 }, { id: "e", x: 40, y: 0 }, { id: "p", x: 75, y: 75 }, { id: "b", x: 70, y: 70 }],
+    ];
+    for (const [i, placements] of cases.entries()) {
+      const out = output(placements);
+      expect(P.checkHard(shaped, out), `case ${i}`).toEqual(contractHard(shaped, out));
+    }
+    expect(P.checkHard(shaped, output(cases[0]!))["no-overlap"]).toBe(0);
+    // The turned ellipse with its margin goes 1 above the top of the container.
+    expect(P.checkHard(shaped, output(cases[1]!))).toMatchObject({ "no-overlap": 1, "in-container": 1 });
+    expect(P.checkHard(shaped, output(cases[2]!))).toMatchObject({ "no-overlap": 0, "in-container": 0 });
   });
 
   it("gap 11: only packing counts an item with no placement that keeps the position of the input", () => {

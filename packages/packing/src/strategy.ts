@@ -1,7 +1,10 @@
 import type { Container, PackInput, PackOutput, Region } from "./contract.ts";
 
-/** For each dimension of the taxonomy, the values that a strategy supports. `docs/research/TAXONOMY.md` gives the values. */
-export interface Supports {
+/**
+ * For each dimension of the taxonomy, the values that a strategy supports. `docs/research/TAXONOMY.md` gives the values.
+ * The type is an alias, not an interface. Thus it fits the record `Supports` of the contract.
+ */
+export type Supports = {
   containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
   containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
   /** The movement of the obstacles. An empty list supports only an input with no obstacle and no locked item. */
@@ -11,7 +14,7 @@ export interface Supports {
   order: ("free" | "soft" | "hard")[];
   groups: ("none" | "flat" | "nested")[];
   mode: ("offline" | "online" | "incremental")[];
-}
+};
 
 /** A dimension of `Supports`. */
 export type Dimension = keyof Supports;

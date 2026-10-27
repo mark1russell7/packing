@@ -75,12 +75,12 @@ function randomInput(seed: number, shape: Shape): PackInput {
   }
 
   if (shape.locked) {
-    // Lock a few items at free places inside the container, with their margins
+    // Lock a few items at free places inside the container less its inset, with their margins
     for (const item of items.slice(0, int(r, 1, 3))) {
       const m = marginOf(item);
       for (let attempt = 0; attempt < 20; attempt++) {
-        const x = origin.x + m.left + int(r, 0, Math.max(0, W - item.w - m.left - m.right));
-        const y = origin.y + m.top + int(r, 0, Math.max(0, H - item.h - m.top - m.bottom));
+        const x = origin.x + inset + m.left + int(r, 0, Math.max(0, W - 2 * inset - item.w - m.left - m.right));
+        const y = origin.y + inset + m.top + int(r, 0, Math.max(0, H - 2 * inset - item.h - m.top - m.bottom));
         const box = [x - m.left, y - m.top, item.w + m.left + m.right, item.h + m.top + m.bottom];
         if (taken.some((t) => hit(t, box))) continue;
         taken.push(box);
