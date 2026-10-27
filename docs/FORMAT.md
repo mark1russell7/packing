@@ -64,6 +64,48 @@ A region is one of these forms:
 - Each hole is fully in the outer ring, and a hole does not touch the outer ring.
 - Until the router supports true shapes, it uses the bounding box of each region. That area is larger, thus it is safe.
 
+## The generators: `layout-corpus/1`
+
+The corpus comes from seeded generators. The same generator, version, parameters and seed give the same file, byte for byte, in `packing` and in `highways`.
+
+- Each generated input has `"generator": { "name", "version", "params", "seed" }`. A hand-made or published input has `"generator": null`, and its `source` tells its origin: `made-up`, `published:<set>` or `known-best:<construction>`.
+- A generator is a pipeline of steps: the container shape, then the obstacles, then the sizes and the count of the items. Thus a packing input and a routing input with the same seed have the same obstacles.
+- The random numbers come from `mulberry32`. Each step has its own seed: `fnv1a32("<input seed>:<step name>")`, of the UTF-8 bytes of the string.
+- Each number in a file is a JSON number, rounded to 3 decimals. Thus the output stays the same on each runtime.
+- The canonical form for `hash` has sorted keys and no whitespace. The numbers have the form of `JSON.stringify`.
+- A routing input needs positions. It is either generated with positions, or it names a packing input in `base` with `"change": "packed"`: it routes the packed output of that input.
+- In a change sequence, `step` gives the place of an input in the sequence.
+
+The manifest of a corpus is `corpus.json`:
+
+```json
+{
+  "schema": "layout-corpus/1",
+  "corpus": "screen-v1",
+  "specs": [{ "generator": "rect-scattered", "version": 1, "params": { "count": 40 }, "seeds": [1, 2, 3] }],
+  "inputs": [{ "id": "screen-v1/rect-scattered/s1", "hash": "3f9a0c1d2e4b5a67", "cell": { "containerShape": "rect", "obstacles": "scattered" } }]
+}
+```
+
+### The cells
+
+`cell` names the cell of an input in the taxonomy, with one value for each dimension. The coverage of a corpus (the cells and the pairs of values that it covers) comes from these cells.
+
+| Dimension | Values |
+|---|---|
+| `containerSize` | `fixed`, `freeWidth`, `freeAspect` |
+| `containerShape` | `rect`, `convex`, `polygon`, `circle`, `ellipse`, `holes` |
+| `obstacles` | `none`, `center`, `scattered`, `wall`, `corridors`, `touching`, `edge` |
+| `sizes` | `identical`, `uniform`, `heavyTail`, `bimodal`, `extremeAspect`, `nearIdentical` |
+| `count` | `1`, `10`, `100`, `1k`, `10k` |
+| `mode` | `offline`, `online`, `incremental` |
+| `edgeDensity` (routing) | `sparse`, `medium`, `dense`: about 0.5, 1.5 and 4 edges for each box |
+| `edgeShape` (routing) | `random`, `clustered`, `hubChain`, `longRange`, `tree`, `bundled` |
+| `groups` (routing) | `none`, `flat`, `nested` |
+| `ports` (routing) | `free`, `sides`, `fixed` |
+
+A test in each repository generates 3 seeds of one shared generator (a rectangle container with scattered obstacles) and compares the hashes with those of the other repository.
+
 ## The record: `layout-record/1`
 
 Each run writes one line of JSON Lines: one line for each strategy, input and seed.
