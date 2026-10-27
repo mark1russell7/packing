@@ -280,7 +280,7 @@ interface PushStrategyOptions {
 }
 
 ### build/index.d.ts#RECORD_EPS
-export declare const RECORD_EPS = 1e-3;
+export declare const RECORD_EPS = .001;
 
 ### build/index.d.ts#Rect
 export declare class Rect<T = unknown> {
