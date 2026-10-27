@@ -14,14 +14,20 @@ type Alias<T> = { [K in keyof T]: T[K] };
 /** The keys of the fields that a type must have. */
 type RequiredKeys<T> = { [K in keyof T]-?: object extends Pick<T, K> ? never : K }[keyof T];
 
+/** A port of the contract without readonly and with a side. A port of packing needs a side (gap 14). */
+type SidedPort = Mutable<C.Port> & { side: C.Side };
+
+/** A box of the contract without readonly, with a side on each port. */
+type SidedBox = Omit<Mutable<C.LayoutBox>, "ports"> & { ports?: SidedPort[] };
+
 describe("the types of packing and of the contract", () => {
-  it("fit for Placement, Tolerance, Port and the hard rules, in both directions", () => {
+  it("fit for Placement, Tolerance and the hard rules, in both directions, and for a port with a side", () => {
     expectTypeOf<P.Placement>().toExtend<C.Placement>();
     expectTypeOf<C.Placement>().toExtend<P.Placement>();
     expectTypeOf<P.Tolerance>().toExtend<C.Tolerance>();
     expectTypeOf<C.Tolerance>().toExtend<P.Tolerance>();
     expectTypeOf<P.Port>().toExtend<C.Port>();
-    expectTypeOf<C.Port>().toExtend<P.Port>();
+    expectTypeOf<SidedPort>().toExtend<P.Port>();
     expectTypeOf<P.Port["side"]>().toEqualTypeOf<C.Side>();
     expectTypeOf<P.HardBreaks>().toExtend<C.PackHard>();
     expectTypeOf<C.PackHard>().toExtend<P.HardBreaks>();
@@ -59,12 +65,12 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<C.LayoutBox>().not.toExtend<P.Item>();
     expectTypeOf<C.PackInput>().not.toExtend<P.PackInput>();
     expectTypeOf<C.LayoutInput>().not.toExtend<Parameters<typeof P.toPackInput>[0]>();
-    // Without readonly, each of these types fits packing.
+    // Without readonly, and with a side on each port (gap 14), each of these types fits packing.
     expectTypeOf<Mutable<C.Region>>().toExtend<P.Region>();
     expectTypeOf<Mutable<C.LayoutContainer>>().toExtend<P.Container>();
     expectTypeOf<Mutable<C.Obstacle>>().toExtend<P.Obstacle>();
-    expectTypeOf<Mutable<C.LayoutBox>>().toExtend<P.Item>();
-    expectTypeOf<Mutable<C.PackInput>>().toExtend<P.PackInput>();
+    expectTypeOf<SidedBox>().toExtend<P.Item>();
+    expectTypeOf<Omit<Mutable<C.PackInput>, "items"> & { items: SidedBox[] }>().toExtend<P.PackInput>();
   });
 
   it("gap 2: the contract has an optional trace, ms and measures, packing has them required", () => {
@@ -109,8 +115,17 @@ describe("the types of packing and of the contract", () => {
   it("gap 5: an edge and a box of the contract have data, an edge and an item of packing have no data", () => {
     expectTypeOf<C.LayoutEdge>().toExtend<P.Edge>();
     expectTypeOf<Exclude<keyof C.LayoutEdge, keyof P.Edge>>().toEqualTypeOf<"data">();
-    expectTypeOf<Mutable<C.LayoutBox>>().toExtend<P.Item>();
+    expectTypeOf<SidedBox>().toExtend<P.Item>();
     expectTypeOf<Exclude<keyof C.LayoutBox, keyof P.Item>>().toEqualTypeOf<"data">();
+  });
+
+  it("gap 14: a port of the contract has an optional side, a port of packing needs a side", () => {
+    expectTypeOf<C.Port>().not.toExtend<P.Port>();
+    expectTypeOf<SidedPort>().toExtend<P.Port>();
+    expectTypeOf<RequiredKeys<C.Port>>().toEqualTypeOf<"id">();
+    expectTypeOf<RequiredKeys<P.Port>>().toEqualTypeOf<"id" | "side">();
+    const free: C.Port = { id: "p", x: 3 };
+    expect(C.turnPort(free, 10)).toEqual({ id: "p", y: 3 });
   });
 
   it("gap 6 is closed: Supports of packing is a type alias, and it fits the record of the contract", () => {

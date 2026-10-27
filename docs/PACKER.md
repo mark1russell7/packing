@@ -311,14 +311,14 @@ The package `@mark1russell7/layout-contract` holds what the packer, the router a
 The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract 0.2.0 at commit `69933a6` (roadmap item k57).
 
 - The contract is a dev dependency. The release refuses a `github:` specifier only in `dependencies`, `peerDependencies` and `optionalDependencies`.
-- `Placement`, `Tolerance`, `Port` and the counts of the hard rules fit in both directions.
+- `Placement`, `Tolerance` and the counts of the hard rules fit in both directions. `Port` of `packing` fits the contract.
 - Each input type and output type of `packing` fits the contract type.
 - `EPS`, `RECORD_EPS` and `DEFAULT_TOLERANCE` are the same. The turn of a point, a region, an item and each port is the same.
 - `toPackInput` gives the same packer input. `packHard` and `checkHard` give the same counts on the packed outputs of the generators, with and without an inset.
 - `packHard` and `checkHard` give the same counts for a rectangle obstacle, also after a move in `output.moved`.
 - `Strategy` fits `StrategyInfo`, and each entry of `MEASURE_SPECS` fits `MeasureSpec`. `Direction` is the same.
 
-The gaps are below. The test has a check for each gap from 1 to 13. When a gap closes, its check fails. Then change the check and this list. A closed gap keeps its line and its number, and its check shows the fit.
+The gaps are below. The test has a check for each gap from 1 to 14. When a gap closes, its check fails. Then change the check and this list. A closed gap keeps its line and its number, and its check shows the fit.
 
 0. The install. `packing`: the specifier `github:mark1russell7/layout-contract#69933a6` installs the root of the repository. The contract: the package is in `packages/layout-contract`. Thus `packing` adds `&path:packages/layout-contract`. No decision applies. The npm release closes this gap.
 1. The arrays. `packing`: mutable arrays, for example `Item[]`, `Port[]` and the rings of a polygon. The contract: readonly arrays and fields. The decisions favor the contract, because a packer does not change its input.
@@ -328,7 +328,7 @@ The gaps are below. The test has a check for each gap from 1 to 13. When a gap c
    - **Closed in `layout-contract` 0.2.0:** `change` has `packed`. The file has `generator`, `step` and `cell`, and `GeneratorStamp` and `CorpusCell` fit them.
    - Open: `change` of `packing` is any string, thus `LayoutInput` of `packing` does not fit.
 5. The edge data. `packing`: `Edge` has no `data`. The contract: `LayoutEdge.data` is an optional record. No decision applies. The router reads the edges, thus its twin document in `highways` decides.
-   - In 0.2.0, `LayoutBox.data` is also an optional record. `Item` of `packing` has no `data`. Each contract box fits `Item` without `readonly`.
+   - In 0.2.0, `LayoutBox.data` is also an optional record. `Item` of `packing` has no `data`. Each contract box fits `Item` without `readonly`, when each port has a side.
 6. The supports. `packing`: `Supports` is an interface with one field for each dimension. The contract: `Supports` is a record. An interface has no index signature, thus it does not fit. The table above favors the contract. **Closed in `packing` 0.1.6:** `Supports` is a type alias with the same fields, and it fits the record.
 7. The turn of a port with only `x` or only `y`. `packing`: the value turns, thus `x` becomes the new `y`, and `h - y` becomes the new `x`. The contract: the side turns, but the value stays on the old axis. Decision 1 favors `packing`.
    - **Closed in `layout-contract` 0.2.0:** `turnPort` turns the value as `packing` does.
@@ -348,3 +348,4 @@ The gaps are below. The test has a check for each gap from 1 to 13. When a gap c
     - **Closed in `layout-contract` 0.2.0:** `packHard(input, output, tolerance)` applies the output itself. The contract removed the old form. The input of `packHard` is a file, and its tolerance is a number.
 13. The parts that are not in the contract. The table above puts these parts in the contract: the converters `toPackInput` and `toLayoutRecord`, the common fields of a strategy and the measure names. The contract 0.1.0 has `toPackInput` and `applyPack`, but not the other parts. Decision 5 and the table favor the plan.
     - **Closed in `layout-contract` 0.2.0:** the contract has `toLayoutRecord`, `StrategyInfo`, `MeasureSpec`, `Direction` and `JOINT_MEASURES`. `applyPack` goes from an output back to a file. The `pack.*` specs stay in `packing` as the source, with the type `MeasureSpec`.
+14. The side of a port, new in 0.2.0. `packing`: `Port.side` is necessary. The contract: `Port.side` is optional, and the router picks the side. Thus a contract port without a side does not fit `packing`. `packing` closes this gap in its 0.2.0, when it imports the contract.
