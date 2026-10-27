@@ -2,7 +2,7 @@
 
 This document is the draft of the interface of each strategy of `packing` (roadmap item k7). The interface is the intermediate form of the layout compiler. A view describes itself as a packing input. A strategy packs it. The router routes the edges of the output.
 
-- The status is **draft**. The layout-stack session, `highways` and `packing` settled its open questions on 2026-10-27. The section "The decisions" gives them.
+- The status is **draft**, and the code of 0.1.3 builds it. The layout-stack session, `highways` and `packing` settled its open questions on 2026-10-27. The section "The decisions" gives them.
 - The shared types go to the package `@mark1russell7/layout-contract` of the repository `layout-stack`. The section "The contract and packing" tells which types.
 - The field names are those of `layout-input/1` in [`docs/FORMAT.md`](FORMAT.md). A packing input is a `layout-input/1` file without `edges`.
 - The cell names are those of [`docs/research/TAXONOMY.md`](research/TAXONOMY.md).
@@ -125,7 +125,7 @@ interface Strategy<O = unknown> {
   supports: Supports;
   /** The default options. A record writes the options in full. */
   defaults: O;
-  /** true when the result depends only on the input, the options and the seed. */
+  /** true when the placements depend only on the input, the options and the seed. The times in the trace are not part of this rule. */
   deterministic: boolean;
   pack(input: PackInput, options: O, context: PackContext): PackOutput;
 }
@@ -155,6 +155,8 @@ interface PackContext {
 
 - A strategy refuses an input outside its cells. It throws `UnsupportedCell`, with the dimension and the value. The benchmark records this result. It is not a failure of the strategy.
 - The layout of the obstacles, the sizes and the count are not in `Supports`. Each strategy supports each of their values. The benchmark measures how well.
+- An obstacle that is not a rectangle has no dimension of its own. `cellOf` reports it as the container shape `holes`.
+- The input format has no field for a hard order. Thus `cellOf` gives the order `free` or `soft`, and a caller asks for `hard` through the options of the strategy.
 
 ## The stages
 
@@ -164,7 +166,7 @@ A strategy is one function, or a pipeline of stages. Each stage is an interface,
 /** The size search: it gives a strategy of a fixed size the cells freeAspect and freeArea. */
 interface SizeSearch {
   id: string; // "log-sweep" (packFree of 0.1.2), "breakpoints", "golden", ...
-  search(input: PackInput, inner: Strategy, context: PackContext): PackOutput;
+  search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
 }
 
 /** The split of the free space around the obstacles and the holes (k41, k42). */
@@ -227,13 +229,15 @@ The benchmark starts each strategy of the registry on each input of the corpus. 
 
 ## The adapters of 0.1
 
+The code of 0.1.3 builds these adapters. This document gives the contract, and the TSDoc of each strategy gives its details.
+
 | Function of 0.1 | Strategy id | Its `supports` |
 |---|---|---|
-| `packRows` | `rows` | `fixed`, `freeHeight`. Obstacles: none. |
+| `packRows` | `rows` | `fixed`, `freeHeight`. Obstacles: none. Its `obstacleMove` is an empty list, so an input with an obstacle or a locked item is outside its cells. |
 | `packSkyline` | `skyline` | `fixed`, `freeHeight`. Obstacles: `fixed`. |
 | `packShelf` | `shelf` | `fixed`, `freeHeight`. Obstacles: `fixed`. Order: `free`, `hard`. |
 | `pushCascade` | `push` | `fixed`, `freeHeight`. Obstacles: `free`. Mode: `incremental`. |
-| `packFree` | the size search `log-sweep` | It wraps any strategy above. |
+| `packFree` | the size search `log-sweep` | It wraps `rows`, `skyline` and `shelf`. `push` moves the items from their start positions, so a size search does not fit it. |
 
 `fromRects(rects, outer)` makes a `PackInput` from the `Rect` objects of 0.1, and `toRects(output, rects, outer)` writes the output back.
 
