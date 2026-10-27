@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- New: the seeded generators of the corpus (roadmap item k19). Each generator writes `layout-input/1` files, as `docs/FORMAT.md` tells.
+- New: `rectScattered` is the shared generator `rect-scattered` version 1. Its 3 pinned hashes stay the same.
+- New: `rectGrid` covers each value of `containerSize`, `containerShape`, `obstacles` and `sizes`, with counts from 0 to 100000.
+- New: `gallery`, `dashboard`, `cards` and `wordCloud` make the families of a user interface. `edgeCases` makes the inputs at the limits.
+- New: `corpus(name, specs)` gives the manifest `layout-corpus/1` and the input files. `generators` and `generator(name)` give the generators.
+- New: `fnv1a32`, `round3`, `canonicalJson`, `hashInput`, `countCell` and `toPackInput`, with the types `LayoutInput` and `CorpusCell`.
+- The hash uses a SHA-256 in plain TypeScript. Thus the generators also operate in a browser.
+
 ## 0.1.3
 
 - New: the Packer interface of `docs/PACKER.md` (roadmap item k7). The data types `PackInput`, `Item`, `Container`, `Obstacle`, `Region`, `Port`, `PackOutput`, `Placement` and `StageTrace` are plain data.

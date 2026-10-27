@@ -150,6 +150,43 @@ The file has these fields: `schema` `"layout-input/1"`, `id` `"xcheck-v1/rect-sc
 
 A check value: `fnv1a32("1:container")` is `3139901265`.
 
+### The generators of `packing`
+
+The package exports each generator below, with `generators`, `generator(name)` and `corpus(name, specs)`. Each generator is at version 1. A test pins the hash of seed 1 for each value of each parameter.
+
+- The `id` of an input is `<set>/<family>/s<seed>`. The family has the generator name and the values of the parameters, for example `rect-grid.fixed.rect.wall.uniform.n100`.
+- The default set is `corpus-v1`, and `xcheck-v1` for `rect-scattered`. The function `corpus` gives each input the name of the corpus as its set.
+- The steps are `container`, `obstacles` and `boxes`. The obstacles of a seed do not change with the sizes, the count or the container size.
+- The cell of an input comes from the parameters, not from the seed. The manifest writes it in `inputs[].cell`. The input file does not have it, thus the hash of `rect-scattered` stays the same.
+- The cell has the values of `cellOf`, and `obstacles`, `sizes`, `count` and `mode`. The mode is always `offline`.
+- The count scale is the nearest of 1, 10, 100, 1000 and 10000 on a log scale. The counts 0 to 3 give `1`.
+
+| Generator | Parameters and defaults | The cells that it covers |
+|---|---|---|
+| `rect-scattered` | `count` 40 | `fixed`, `rect`, `scattered`, `uniform` |
+| `rect-grid` | `containerSize` `fixed`, `containerShape` `rect`, `obstacles` `none`, `sizes` `uniform`, `count` 100 | Each value of the 4 dimensions, and each count from 0 to 100000 |
+| `gallery` | `containerSize` `freeHeight`, `count` 100 | `identical`: thumbnails with one size and one aspect |
+| `dashboard` | `containerSize` `freeHeight`, `count` 10 | `bimodal`: tiles in 6 standard sizes of a grid unit |
+| `cards` | `containerSize` `freeHeight`, `count` 100 | `uniform`: one width, a different height for each card |
+| `word-cloud` | `containerSize` `freeHeight`, `count` 100 | `heavyTail`: the height from 6 font sizes, the width from the count of letters |
+| `edge-cases` | `case` `oversize`, `count` 12 | The cases `empty`, `one`, `oversize`, `exactTiling` and `touchObstacles` |
+
+The parameter `containerSize` of `rect-grid` and of the families of a user interface has the values `fixed`, `freeHeight`, `freeWidth`, `freeAspect` and `freeArea`.
+
+The parts of `rect-grid`:
+
+- The container is a nominal rectangle of 600 to 1000 by 400 to 800. The obstacles and the boxes go in a frame: a rectangle in the shape.
+- The shapes: `convex` cuts the 4 corners, `polygon` is an L shape, and `holes` has 1 or 2 rectangle holes. A `circle` or `ellipse` touches the sides of the rectangle.
+- The obstacle layouts: `center` has one obstacle. `scattered` has 3 to 8. A `wall` crosses 70 to 85 percent of the frame. `corridors` is a grid of blocks with narrow paths. `touching` is a chain of 2 to 4 obstacles. `edge` puts 2 to 5 obstacles against the sides of the frame.
+- The boxes have a mean area of 40 percent of the frame divided by the count. No box is wider or higher than the frame.
+
+The cases of `edge-cases` have a fixed rectangle container:
+
+- `empty` has no box, and `one` has one box. These 2 cases ignore `count`.
+- `oversize` has one box that is wider than the container.
+- `exactTiling` has identical boxes that fill the container with no free space.
+- `touchObstacles` has a locked box on an obstacle, and boxes as wide as the path between 2 obstacles. Its cell has the obstacles `corridors`.
+
 ## The record: `layout-record/1`
 
 Each run writes one line of JSON Lines: one line for each strategy, input and seed.

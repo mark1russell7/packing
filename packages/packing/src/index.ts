@@ -48,3 +48,37 @@ export { logSweep, push, rows, shelf, skyline, type LayoutStrategyOptions, type 
 export { fromRects, toRects } from "./convert.ts";
 export { packWith, strategies, strategy } from "./registry.ts";
 export { checkHard, type HardBreaks } from "./check.ts";
+export {
+  canonicalJson,
+  countCell,
+  fnv1a32,
+  hashInput,
+  round3,
+  toPackInput,
+  type CorpusCell,
+  type CountScale,
+  type Edge,
+  type GeneratorParams,
+  type GeneratorStamp,
+  type LayoutInput,
+  type ObstacleLayout,
+  type SizeDistribution,
+} from "./layout-input.ts";
+export {
+  cards,
+  dashboard,
+  edgeCases,
+  gallery,
+  generator,
+  generators,
+  rectGrid,
+  rectScattered,
+  wordCloud,
+  type CorpusGenerator,
+  type EdgeCase,
+  type EdgeCaseParams,
+  type RectGridParams,
+  type RectScatteredParams,
+  type UiParams,
+} from "./generators.ts";
+export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
