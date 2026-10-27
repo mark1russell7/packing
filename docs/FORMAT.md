@@ -34,14 +34,35 @@ The corpus is a folder of input files and an index. Each input is one JSON file.
 | `source` | Always `made-up`. The repository is public. |
 | `hash` | The first 16 hex characters of the SHA-256 of the canonical file: sorted keys, no whitespace, without the field `hash`. |
 | `container` | The outer rectangle. `fixed` is `none`, `width` or `size`. The router ignores it. |
+| `container.aspect` | The target aspect: the width divided by the height. The default is 1. With `fixed` set to `none`, the packer searches the size for this aspect. |
+| `container.shape` | A region. Without it, the container is the rectangle `w` by `h`. |
+| `obstacles` | A list of `{ "id", "region", "move"? }`. Without `move`, an obstacle stays. With `move: { "cost" }`, the packer can move it for the cost times the distance. The router reads each obstacle as an area to avoid. |
 | `gap` | The space between two boxes. Optional. The router ignores it. |
 | `boxes[].w`, `boxes[].h` | The size of a box. The packer reads them. |
 | `boxes[].x`, `boxes[].y` | The position. The packer writes them. The router reads them. |
 | `boxes[].locked` | The box is an obstacle: its `x` and `y` stay. |
 | `boxes[].rank` | The reading order that the caller wants. Without it, the order of the array is the rank. |
 | `boxes[].parent`, `boxes[].group` | The nesting and the grouping. |
+| `boxes[].shape` | A region relative to the origin of the box, for items of other shapes. Without it, the box is the rectangle `w` by `h`. |
 | `boxes[].ports` | The ports of a box, each with a `side`: `top`, `right`, `bottom` or `left`. An edge names a port in `sourcePort` or `targetPort`. |
 | `base`, `change` | A variant names its base input and its change: `add`, `remove`, `resize` or `reorder`. The stability measures compare the run on the variant with the run on its base. |
+
+### Regions
+
+A region is one of these forms:
+
+```json
+{ "kind": "rect", "x": 0, "y": 0, "w": 400, "h": 300 }
+{ "kind": "polygon", "points": [[0, 0], [400, 0], [400, 300], [0, 300]], "holes": [[[100, 100], [200, 100], [200, 200]]] }
+{ "kind": "circle", "cx": 200, "cy": 200, "r": 150 }
+{ "kind": "ellipse", "cx": 200, "cy": 150, "rx": 200, "ry": 150 }
+```
+
+- The coordinates are those of the input. The y axis points down.
+- A ring of a polygon closes without a copy of its first point at its end.
+- The outer ring can have any winding. The tools make the winding the same.
+- Each hole is fully in the outer ring, and a hole does not touch the outer ring.
+- Until the router supports true shapes, it uses the bounding box of each region. That area is larger, thus it is safe.
 
 ## The record: `layout-record/1`
 
@@ -92,6 +113,10 @@ The names are lowercase, with a dot after the stage.
 | `pack.order.inversions` | 0 to 1 | lower | The pairs of boxes out of rank order in the reading order, divided by all pairs. |
 | `pack.order.breaks` | count | lower | The places where the reading order goes back. |
 | `pack.raggedness` | 0 to 1 | lower | The spread of the right ends of the rows, divided by the width. |
+| `pack.fill` | 0 to 1 | higher | The area of the boxes divided by the area of the bounding box. |
+| `pack.aspectError` | 0 or more | lower | The absolute value of `log(w / h) - log(target)`, for the bounding box and the target aspect. |
+| `pack.search.widths` | count | lower | The widths that a search of the size tried. |
+| `pack.search.ms` | milliseconds | lower | The time of the search of the size. |
 | `pack.overflow` | count | lower | The boxes that the packer did not place. |
 | `pack.stability.moved` | 0 to 1 | lower | The part of the boxes that moved, against the run on the base input. |
 | `pack.stability.mean` | 0 to 1 | lower | The mean movement of a box against the base run, divided by the width of the container. |
