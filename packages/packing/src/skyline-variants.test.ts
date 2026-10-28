@@ -61,7 +61,7 @@ describe("the skyline variants of k22", () => {
 
   it("count the move of each option in the trace", () => {
     const input = toPackInput(rectGrid.generate(3, { containerSize: "freeHeight", containerShape: "rect", obstacles: "none", sizes: "bimodal", count: 40 }));
-    const measures = (options: Record<string, unknown>): Record<string, number> => packWith("skyline", input, options).trace!.at(-1)!.measures;
+    const measures = (options: Record<string, unknown>): Readonly<Record<string, number>> => packWith("skyline", input, options).trace!.at(-1)!.measures!;
     expect(Object.keys(measures({}))).toEqual(["pack.overflow", "move.lowerWindow"]);
     expect(Object.keys(measures({ rule: "mw" }))).toEqual(["pack.overflow", "move.minWaste"]);
     expect(Object.keys(measures({ rule: "mw", wasteMap: true }))).toEqual(["pack.overflow", "move.minWaste", "move.wasteFill"]);
@@ -77,7 +77,7 @@ describe("the skyline variants of k22", () => {
     const input: PackInput = { container: { w: 20, fixed: "width" }, items };
     const plain = packWith("skyline", input, { sortOrder: "input" });
     const waste = packWith("skyline", input, { sortOrder: "input", wasteMap: true });
-    expect(waste.trace!.at(-1)!.measures["move.wasteFill"]).toBe(1);
+    expect(waste.trace!.at(-1)!.measures!["move.wasteFill"]).toBe(1);
     expect(waste.placements.find((p) => p.id === "d")).toMatchObject({ x: 10, y: 4 });
     expect(waste.size.h).toBe(16);
     expect(plain.size.h).toBe(21);
