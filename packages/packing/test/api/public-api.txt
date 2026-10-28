@@ -4,20 +4,26 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 238 names
+## . (build/index.d.ts): 254 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
+BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
 BOUND_KINDS: build/index.d.ts#BOUND_KINDS
+type BerkeyWangClass: build/index.d.ts#BerkeyWangClass
+type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
+type BerkeyWangRule: build/index.d.ts#BerkeyWangRule
 type BoundKind: build/index.d.ts#BoundKind
 type BoundMeasures: build/index.d.ts#BoundMeasures
 type BoundObjective: build/index.d.ts#BoundObjective
 type BoundOptions: build/index.d.ts#BoundOptions
+CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
+type ClassContainer: build/index.d.ts#ClassContainer
 type ConsecutiveSquaresParams: build/index.d.ts#ConsecutiveSquaresParams
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
 type Corpus: build/index.d.ts#Corpus
@@ -51,10 +57,14 @@ type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
 type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
 type LayoutMeasures: build/index.d.ts#LayoutMeasures
 type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
+MARTELLO_VIGO_BIN: build/index.d.ts#MARTELLO_VIGO_BIN
+MARTELLO_VIGO_TYPES: build/index.d.ts#MARTELLO_VIGO_TYPES
 MAXRECTS_BANDS: build/index.d.ts#MAXRECTS_BANDS
 MAXRECTS_RULES: build/index.d.ts#MAXRECTS_RULES
 MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
 type Margin: @mark1russell7/layout-contract#Margin (external)
+type MartelloVigoClass: build/index.d.ts#MartelloVigoClass
+type MartelloVigoParams: build/index.d.ts#MartelloVigoParams
 type MaxRectsOptions: build/index.d.ts#MaxRectsOptions
 type MaxRectsRule: build/index.d.ts#MaxRectsRule
 type MaxRectsStrategyOptions: build/index.d.ts#MaxRectsStrategyOptions
@@ -146,6 +156,9 @@ aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
 assertSupported: build/index.d.ts#assertSupported
+berkeyWang: build/index.d.ts#berkeyWang
+berkeyWangFamily: build/index.d.ts#berkeyWangFamily
+binCountBound: build/index.d.ts#binCountBound
 boundGap: build/index.d.ts#boundGap
 boundMeasures: build/index.d.ts#boundMeasures
 canonicalJson: build/index.d.ts#canonicalJson
@@ -156,6 +169,7 @@ cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
+classGenerators: build/index.d.ts#classGenerators
 compareRects: build/index.d.ts#compareRects
 composites: build/index.d.ts#composites
 consecutiveSquares: build/index.d.ts#consecutiveSquares
@@ -182,6 +196,8 @@ isDeterministic: build/index.d.ts#isDeterministic
 logSweep: build/index.d.ts#logSweep
 lowestWindow: build/index.d.ts#lowestWindow
 marginOf: build/index.d.ts#marginOf
+martelloVigo: build/index.d.ts#martelloVigo
+martelloVigoFamily: build/index.d.ts#martelloVigoFamily
 maxrects: build/index.d.ts#maxrects
 measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
@@ -268,8 +284,28 @@ interface AspectFitStrategyOptions {
   targetAspect?: number;
 }
 
+### build/index.d.ts#BERKEY_WANG_RULES
+export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>>;
+
 ### build/index.d.ts#BOUND_KINDS
 export declare const BOUND_KINDS: readonly BoundKind[];
+
+### build/index.d.ts#BerkeyWangClass
+type BerkeyWangClass = "I" | "II" | "III" | "IV" | "V" | "VI";
+
+### build/index.d.ts#BerkeyWangParams
+type BerkeyWangParams = {
+  class: BerkeyWangClass;
+  containerSize: ClassContainer;
+  count: number;
+};
+
+### build/index.d.ts#BerkeyWangRule
+interface BerkeyWangRule {
+  readonly bin: number;
+  readonly min: number;
+  readonly max: number;
+}
 
 ### build/index.d.ts#BoundKind
 type BoundKind = "strip.area" | "strip.tallest" | "strip.mmv" | "strip.margin" | "hull.area" | "hull.extent" | "hull.margin" | "placed.free";
@@ -289,6 +325,9 @@ interface BoundOptions {
   readonly tolerance?: number;
 }
 
+### build/index.d.ts#CLASS_COUNTS
+export declare const CLASS_COUNTS: readonly number[];
+
 ### build/index.d.ts#Cell
 interface Cell {
   containerSize: DimensionValue<"containerSize">;
@@ -306,6 +345,9 @@ interface ChangeMeasures {
   "pack.stability.mean": number;
   "pack.stability.q95": number;
 }
+
+### build/index.d.ts#ClassContainer
+type ClassContainer = "fixed" | "freeHeight";
 
 ### build/index.d.ts#ConsecutiveSquaresParams
 type ConsecutiveSquaresParams = {
@@ -499,6 +541,15 @@ interface LayoutStrategyOptions {
   fit?: ShelfFit;
 }
 
+### build/index.d.ts#MARTELLO_VIGO_BIN
+export declare const MARTELLO_VIGO_BIN = 100;
+
+### build/index.d.ts#MARTELLO_VIGO_TYPES
+export declare const MARTELLO_VIGO_TYPES: readonly {
+  readonly w: readonly [number, number];
+  readonly h: readonly [number, number];
+}[];
+
 ### build/index.d.ts#MAXRECTS_BANDS
 export declare const MAXRECTS_BANDS = 128;
 
@@ -507,6 +558,16 @@ export declare const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp"
 
 ### build/index.d.ts#MEASURE_SPECS
 export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
+
+### build/index.d.ts#MartelloVigoClass
+type MartelloVigoClass = "VII" | "VIII" | "IX" | "X";
+
+### build/index.d.ts#MartelloVigoParams
+type MartelloVigoParams = {
+  class: MartelloVigoClass;
+  containerSize: ClassContainer;
+  count: number;
+};
 
 ### build/index.d.ts#MaxRectsOptions
 interface MaxRectsOptions {
@@ -955,6 +1016,19 @@ export declare const aspectFitStrategy: Strategy<AspectFitStrategyOptions>;
 ### build/index.d.ts#assertSupported
 export declare function assertSupported(supports: Supports, input: PackInput): void;
 
+### build/index.d.ts#berkeyWang
+export declare const berkeyWang: CorpusGenerator<BerkeyWangParams>;
+
+### build/index.d.ts#berkeyWangFamily
+export declare const berkeyWangFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#binCountBound
+export declare function binCountBound(input: {
+  readonly container: LayoutContainer;
+  readonly boxes?: readonly Item[];
+  readonly items?: readonly Item[];
+}): number | null;
+
 ### build/index.d.ts#boundGap
 export declare function boundGap(result: number, bound: number, sense: "lower" | "upper"): number;
 
@@ -981,6 +1055,9 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 
 ### build/index.d.ts#checkSelectTable
 export declare function checkSelectTable(table: SelectNode, members: number): void;
+
+### build/index.d.ts#classGenerators
+export declare const classGenerators: readonly CorpusGenerator[];
 
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
@@ -1062,6 +1139,12 @@ export declare function lowestWindow(skyline: ArrayLike<number>, width: number, 
 
 ### build/index.d.ts#marginOf
 export declare function marginOf(item: Pick<Item$1, "margin">): Sides$1;
+
+### build/index.d.ts#martelloVigo
+export declare const martelloVigo: CorpusGenerator<MartelloVigoParams>;
+
+### build/index.d.ts#martelloVigoFamily
+export declare const martelloVigoFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#maxrects
 export declare const maxrects: Strategy<MaxRectsStrategyOptions>;
