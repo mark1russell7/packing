@@ -2,7 +2,7 @@
 
 The GitHub Pages site of packing: <https://mark1russell7.github.io/packing/>.
 
-The site has three pages: the live demo (`index.html`), the measured results (`results/`) and the news (`whats-new/`). The deploy adds the pages `status/` and `releases/`.
+The site has five pages: the live demo (`index.html`), the compare page (`compare/`) and the measured results (`results/`). It also has a card for each strategy (`strategies/`) and the news (`whats-new/`). The deploy adds the pages `status/` and `releases/`.
 
 ## Build
 

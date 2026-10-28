@@ -23,6 +23,7 @@ describe("navLinks", () => {
     expect(links.map((l) => [l.label, l.href])).toEqual([
       ["Demo", "/packing/"],
       ["Compare", "/packing/compare/"],
+      ["Strategies", "/packing/strategies/"],
       ["Results", "/packing/results/"],
       ["What's new", "/packing/whats-new/"],
       ["Status", "/packing/status/"],
@@ -33,7 +34,7 @@ describe("navLinks", () => {
   });
 
   it("adds the slash at the end of a base without one", () => {
-    expect(navLinks("/x", "demo")[2]!.href).toBe("/x/results/");
+    expect(navLinks("/x", "demo").find((l) => l.id === "results")!.href).toBe("/x/results/");
     expect(navLinks("/", "demo")[0]!.href).toBe("/");
   });
 });

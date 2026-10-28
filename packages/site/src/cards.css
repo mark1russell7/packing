@@ -1,0 +1,428 @@
+/* The page of the strategy cards. The colors come from style.css. */
+
+/* A filter hides a card or a family with the attribute hidden. The display of a class does not override it. */
+.sc-card[hidden],
+.sc-family[hidden],
+.empty-note[hidden] {
+  display: none;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The stages of the pipeline: one button each, with an arrow between them */
+.pipeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.pipeline li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pipeline li + li + li::before {
+  content: "→";
+  color: var(--muted);
+}
+
+.pipe {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--well);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pipe b {
+  font-weight: 600;
+}
+
+.pipe span {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.pipe[aria-pressed="true"] {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.pipe.all {
+  margin-right: 6px;
+}
+
+#families small {
+  color: var(--muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* The families and the cards */
+#cards {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.sc-family h2 {
+  font-size: 1.2rem;
+  margin: 0 0 10px;
+}
+
+.sc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.sc-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  scroll-margin-top: 12px;
+}
+
+.sc-card:target,
+.sc-entry:target {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sc-card code {
+  overflow-wrap: anywhere;
+}
+
+.sc-head h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.sc-anchor {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.sc-anchor:hover {
+  text-decoration: underline;
+}
+
+.sc-name {
+  margin: 2px 0 8px;
+  color: var(--muted);
+}
+
+.sc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sc-tag {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+}
+
+.sc-tag.stage {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+
+.sc-part {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sc-part h4 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* A method of the catalog */
+.sc-method {
+  border-top: 1px solid var(--rule);
+  padding-top: 6px;
+}
+
+.sc-method:first-of-type,
+.sc-own {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.sc-method summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.sc-method summary code {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.sc-method p {
+  margin: 6px 0;
+}
+
+.sc-from {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sc-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.sc-facts div {
+  min-width: 0;
+}
+
+.sc-facts dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sc-facts dd {
+  margin: 0;
+}
+
+.sc-bound {
+  font-weight: 600;
+}
+
+.sc-bound.unverified {
+  border-bottom: 2px dashed var(--late);
+}
+
+.sc-none {
+  color: var(--muted);
+}
+
+/* The options */
+.sc-opts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sc-oname {
+  font-weight: 600;
+}
+
+.sc-type {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.sc-def,
+.sc-nodef,
+.sc-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* The supported cells */
+.sc-cells {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sc-cells div {
+  display: grid;
+  grid-template-columns: 8.5em minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.sc-cells dt {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.sc-cells dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sc-cell {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--muted) 50%, transparent);
+}
+
+.sc-cell.on {
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+@media (max-width: 420px) {
+  .sc-cells div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+/* The named entries and their verdict strips */
+.sc-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sc-entry {
+  background: var(--well);
+  border-radius: 10px;
+  padding: 8px 10px;
+  scroll-margin-top: 12px;
+  min-width: 0;
+}
+
+.sc-ehead a {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sc-emeta {
+  margin: 2px 0 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.sc-strip {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 0.8rem;
+  width: 100%;
+  max-width: 360px;
+  table-layout: fixed;
+}
+
+.sc-strip thead th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.sc-strip thead th:first-child {
+  width: 4.6em;
+}
+
+.sc-strip tbody th {
+  text-align: left;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-v {
+  text-align: center;
+  border-radius: 6px;
+  height: 1.7em;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: var(--muted);
+}
+
+.sc-v.better {
+  color: var(--good);
+  border-color: color-mix(in oklab, var(--good) 45%, transparent);
+  background: color-mix(in oklab, var(--good) 14%, var(--surface));
+}
+
+.sc-v.worse {
+  color: var(--bad);
+  border-color: color-mix(in oklab, var(--bad) 45%, transparent);
+  background: color-mix(in oklab, var(--bad) 14%, var(--surface));
+}
+
+.sc-v.mixed {
+  color: var(--ink);
+  border-color: var(--late);
+}
+
+.sc-v.unmeasured {
+  border-style: dashed;
+  background: transparent;
+}
+
+.sc-v.base {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+}
+
+.sc-key {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8em;
+}
+
+.empty-note {
+  text-align: center;
+  padding: 16px;
+}
