@@ -315,6 +315,31 @@ const rows = packWith("restarts", input, { member: "rows", iterations: 32, pertu
 - The output gets the trace stage `restarts` (`RESTARTS_STAGE`). Its measures are `move.restartPick`, `restarts.run` (the index of the pick) and `restarts.runs`.
 - The cost of one call is `iterations` packs of the member, and the key of each output.
 
+### Shapes by their bounding boxes
+
+Roadmap item k91 adds the composite strategy `bbox` (catalog row `bbox-shapes`, idea S2 of the survey). It packs items of each shape kind: `rect`, `polygon`, `circle` and `free`. It is opt-in. No default uses it.
+
+```ts
+const output = packWith("bbox", input); // maxrects-bl on the bounding boxes
+const lower = packWith("bbox", input, { member: "skyline", turn: true });
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `member` | `maxrects` with the rule `bl` | A strategy id, or a `PortfolioEntry` with options. |
+| `turn` | `false` | With `true`, `bbox` turns each turnable item that is not locked. Then the member gets no turnable item. |
+
+- The member packs one rectangle for each item: the bounding box of its shape (`boundsOf` of the contract). The margin and the other fields stay.
+- The placement of an item is the place of its box minus the offset of the bounding box. Thus each shape is inside its box.
+- Thus no two shapes overlap when no two boxes overlap. `packHard` of the contract tests the bounding boxes, so its count is safe.
+- A locked item keeps its position. Its box is at the position plus the offset.
+- With `turn`, a turn wins when its box area is smaller, then when its box is lower. A tie keeps the item unturned.
+- A turn of 90 degrees does not change the area of a bounding box. Thus only the lower box decides a turn.
+- Without `turn`, the member decides the turns. A turn of the member turns the shape.
+- An input with no shape and without `turn` gives the output of the member, byte for byte.
+- The area measures stay `rect` only (roadmap item k75). The contract has no area function for a shape, so `packing` has no `pack.shapeFill`.
+- In `packSpace`, the option `combine.bbox` supports each shape kind, and `packConfig` packs a shaped input with it. Its member supports only `rect`.
+
 ## The registry
 
 ```ts
