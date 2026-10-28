@@ -27,6 +27,7 @@
         <a href="#gaps">Distance to the best</a>
         <a href="#speed">Speed</a>
         <a href="#select">Select</a>
+        <a href="#coverage">Coverage</a>
       </nav>
 
       <section class="panel" id="strategies" aria-labelledby="strategies-h">
@@ -74,6 +75,32 @@
         <div class="prose" id="select-text"></div>
         <ol class="leaves" id="leaves"></ol>
         <div id="select-origin"></div>
+      </section>
+
+      <section class="panel" id="coverage">
+        <div class="prose" id="coverage-text"></div>
+        <p class="hint" id="coverage-note"></p>
+        <div class="tiles" id="coverage-tiles"></div>
+        <h3>The model error against the median</h3>
+        <p class="hint">The full bar is the held-out error of the median. The dark bar is the held-out error of the model. A shorter dark bar is better.</p>
+        <ul class="cchart" id="coverage-errors" aria-label="The held-out error of the model and of the median, for each measure"></ul>
+        <h3>What changes each measure</h3>
+        <div class="controls">
+          <span class="label" id="coverage-measure-label">Measure</span>
+          <div class="seg" role="radiogroup" aria-labelledby="coverage-measure-label" id="coverage-measures"></div>
+        </div>
+        <p class="hint" id="coverage-explained"></p>
+        <ul class="ichart" id="coverage-indices" aria-label="The first-order index of each feature, highest first"></ul>
+        <h3>The weekly trend of the share</h3>
+        <figure class="trend">
+          <div id="coverage-trend"></div>
+          <figcaption class="legend" id="coverage-legend"></figcaption>
+        </figure>
+        <details class="notes">
+          <summary>The points of the trend as a table</summary>
+          <div class="scroll"><table class="vtable" id="coverage-table"></table></div>
+        </details>
+        <div id="coverage-origin"></div>
       </section>
     </main>
 

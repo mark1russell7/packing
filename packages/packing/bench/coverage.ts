@@ -456,7 +456,7 @@ function valueOf(r: CoverageRecord, m: CoverageMeasure): number | undefined {
  * 1. It fits a regression tree on the features of the strategy and of the input, in k folds by input or by spec.
  * 2. It compares the held-out error of the tree with the held-out error of the median of the training rows.
  * 3. It gives the first-order index of each feature, over all the rows.
- * 4. A cell is a strategy, a family and a bin of each param of the family. A cell is covered when its held-out mean error is at the tolerance or below.
+ * 4. A cell is a strategy, a family and a bin of each param of the family. The model covers a cell when the held-out mean error of the cell is at the tolerance or below.
  *
  * A skipped record and a record of an input that is not in the manifest are not rows.
  */

@@ -14,11 +14,15 @@ import selectJson from "../data/select-table.json?raw";
 import gapsText from "../content/results-gaps.md?raw";
 import gapsKnownJson from "../data/gaps-pack-known-v1.json?raw";
 import gapsSelectJson from "../data/gaps-pack-select-v2.json?raw";
+import coverageText from "../content/results-coverage.md?raw";
+import coverageJson from "../data/coverage.json?raw";
 import { mountChrome } from "./chrome.ts";
-import { CORPUS_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
+import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
 import {
   divergingAt,
+  errorText,
+  errorWidth,
   gapAt,
   gapRanking,
   gapScale,
@@ -27,11 +31,13 @@ import {
   gapText,
   labelCounts,
   parseVerdictHash,
+  percentText,
   pickHolds,
   rankStrategies,
   ratioAt,
   scaleOf,
   stepText,
+  trendChart,
   verdictHash,
   verdictOf,
 } from "./results-model.ts";
@@ -48,6 +54,7 @@ const snapshots: StrategySnapshot[] = [test2Json, test1Json, screenJson, freeJso
 const paired = parseSnapshot(pairedJson, "paired");
 const select = parseSnapshot(selectJson, "select");
 const gapSnaps = [gapsKnownJson, gapsSelectJson].map((t) => parseSnapshot(t, "gaps"));
+const cover = parseSnapshot(coverageJson, "coverage");
 
 mountChrome($("links"), "results");
 
@@ -309,7 +316,105 @@ function mountGaps(): void {
   drawGaps();
 }
 
+// ---- The space coverage of k105 ----
+
+let coverCurrent = 0;
+
+/** This function gives the name of a measure of the coverage. */
+const coverLabel = (id: string): string => COVERAGE_LABELS[id]?.label ?? id;
+
+function drawIndices(): void {
+  const measures = cover.latest.measures;
+  const m = measures[coverCurrent]!;
+  for (const b of $("coverage-measures").querySelectorAll<HTMLButtonElement>("button")) b.setAttribute("aria-checked", String(Number(b.dataset["i"]) === coverCurrent));
+  const e = m.explained;
+  $("coverage-explained").innerHTML = `<b>${esc(coverLabel(m.id))}</b>: ${esc(COVERAGE_LABELS[m.id]?.note ?? "")} The strategy alone explains ${e.strategy.toFixed(2)} of the variance, the input spec alone ${e.input.toFixed(2)}, and the two together ${e.joint.toFixed(2)}. The seeds explain the rest, ${m.noise.toFixed(2)}.`;
+  $("coverage-indices").innerHTML = m.indices
+    .map(
+      (x) => `<li class="irow" title="${esc(`${x.feature}: index ${x.index}, a feature of the ${x.group}`)}">
+        <span class="iname"><code>${esc(x.feature)}</code> <small class="ctag ${x.group}">${x.group}</small></span>
+        <span class="ibar" aria-hidden="true"><span class="ifill ${x.group}" style="width:${Math.max(0.6, x.index * 100)}%"></span></span>
+        <span class="ival">${x.index.toFixed(2)}</span>
+      </li>`,
+    )
+    .join("");
+}
+
+/** This function gives the SVG of the trend chart of the shares. */
+function trendSvg(): string {
+  const W = 640;
+  const H = 220;
+  const P = 34;
+  const ids = cover.latest.measures.map((m) => m.id);
+  const chart = trendChart(cover.trend, ids, W, H, P);
+  const grid = [0, 0.25, 0.5, 0.75, 1]
+    .map((s) => {
+      const y = H - P - s * (H - 2 * P);
+      return `<line class="grid" x1="${P}" x2="${W - P / 2}" y1="${y}" y2="${y}"/><text class="axis" x="${P - 6}" y="${y + 4}" text-anchor="end">${percentText(s)}</text>`;
+    })
+    .join("");
+  const ticks = chart.ticks.map((t) => `<text class="axis" x="${t.x}" y="${H - P + 18}" text-anchor="middle">${esc(t.date)}</text>`).join("");
+  const lines = chart.series
+    .map((s, i) => {
+      const cls = `s${i + 1}`;
+      const path = s.points.length > 1 ? `<polyline class="line ${cls}" points="${s.points.map((p) => `${p.x},${p.y}`).join(" ")}"/>` : "";
+      const dots = s.points.map((p) => `<circle class="dot ${cls}" cx="${p.x}" cy="${p.y}" r="5"><title>${esc(`${coverLabel(s.id)}, ${p.date}: ${percentText(p.share)} of the cells`)}</title></circle>`).join("");
+      return path + dots;
+    })
+    .join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="The share of the covered cells of each measure, by week">${grid}${ticks}${lines}</svg>`;
+}
+
+function mountCoverage(): void {
+  const l = cover.latest;
+  $("coverage-text").innerHTML = marked.parse(coverageText, { async: false });
+  $("coverage-note").innerHTML = `The data: ${dataLine(cover.origin)}. The corpus <code>${esc(l.corpus)}</code>: ${l.records} records of ${l.strategies.length} strategies on ${l.inputs} inputs. The model: a regression tree, ${l.model.folds} parts by ${esc(l.model.by)}, the seed ${l.model.seed}.`;
+  $("coverage-origin").innerHTML = originHtml(cover.origin);
+  $("coverage-tiles").innerHTML = l.measures
+    .map(
+      (m) => `<div class="tile cover">
+        <span>${esc(coverLabel(m.id))}</span>
+        <b>${percentText(m.share)}</b>
+        <span class="cmeter" aria-hidden="true"><i style="width:${m.share * 100}%"></i></span>
+        <small>${m.cells.covered} of ${m.cells.space} cells within ${esc(errorText(m, m.tolerance))}</small>
+      </div>`,
+    )
+    .join("");
+  $("coverage-errors").innerHTML = l.measures
+    .map((m) => {
+      const skill = m.skill === null ? "" : `, ${percentText(m.skill)} less error`;
+      return `<li class="crow" title="${esc(`${coverLabel(m.id)}: ${m.n} records`)}">
+        <span class="cname">${esc(coverLabel(m.id))} <small>tolerance ${esc(errorText(m, m.tolerance))}</small></span>
+        <span class="cbar" aria-hidden="true"><span class="base"></span><span class="model" style="width:${errorWidth(m)}%"></span></span>
+        <span class="cval">${esc(errorText(m, m.mae))} against ${esc(errorText(m, m.baselineMae))}${skill}</span>
+      </li>`;
+    })
+    .join("");
+  $("coverage-measures").innerHTML = l.measures
+    .map((m, i) => `<button type="button" role="radio" data-i="${i}" aria-checked="${i === coverCurrent}">${esc(coverLabel(m.id))}</button>`)
+    .join("");
+  $("coverage-measures").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-i]");
+    if (b === null) return;
+    coverCurrent = Number(b.dataset["i"]);
+    drawIndices();
+  });
+  drawIndices();
+  $("coverage-trend").innerHTML = trendSvg();
+  const last = cover.trend.at(-1)!;
+  $("coverage-legend").innerHTML = l.measures
+    .map((m, i) => `<span class="ckey"><i class="csw s${i + 1}" aria-hidden="true"></i>${esc(coverLabel(m.id))} <b>${percentText(last.shares[m.id] ?? 0)}</b></span>`)
+    .join("");
+  const head = l.measures.map((m) => `<th scope="col" class="num">${esc(coverLabel(m.id))}</th>`).join("");
+  const body = [...cover.trend]
+    .reverse()
+    .map((p) => `<tr><th scope="row">${esc(p.date)}</th><td><code>${esc(p.corpus)}</code></td><td><code>${esc(p.commit)}</code></td>${l.measures.map((m) => `<td class="num">${p.shares[m.id] === undefined ? "" : percentText(p.shares[m.id]!)}</td>`).join("")}</tr>`)
+    .join("");
+  $("coverage-table").innerHTML = `<thead><tr><th scope="col">Date</th><th scope="col">Corpus</th><th scope="col">Commit</th>${head}</tr></thead><tbody>${body}</tbody>`;
+}
+
 mountStrategies();
 mountGaps();
 mountSpeed();
 mountSelect();
+mountCoverage();

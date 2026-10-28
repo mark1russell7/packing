@@ -36,7 +36,7 @@ function madeUp(): { manifest: CoverageManifest; records: CoverageRecord[] } {
   const records: CoverageRecord[] = [];
   for (const strategy of ["rows", "maxrects-bl"]) {
     for (const i of inputs) {
-      const size = i.cell.size!;
+      const size = i.cell["size"]!;
       const count = Number(/\.n(\d+)\//.exec(i.id)![1]);
       const seed = Number(i.id.slice(i.id.lastIndexOf("s") + 1));
       // The fill depends on the strategy and the size. The seed adds a small change.
