@@ -1,0 +1,739 @@
+/* The header links of each page, and the pages of results and news. The colors come from style.css. */
+
+.links a[aria-current="page"] {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2px solid var(--accent);
+}
+
+.page {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 8px 16px 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  background: var(--well);
+  border-radius: 10px;
+  justify-self: start;
+}
+
+.toc a {
+  padding: 4px 12px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.toc a:hover {
+  background: var(--surface);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  scroll-margin-top: 12px;
+}
+
+.panel h3,
+.panel h4 {
+  margin: 8px 0 0;
+  font-size: 1rem;
+}
+
+.prose h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+}
+
+.prose p {
+  margin: 0 0 8px;
+  max-width: 72ch;
+}
+
+.prose ul {
+  margin: 0;
+  padding-left: 1.2em;
+  max-width: 72ch;
+  color: var(--muted);
+}
+
+.prose li {
+  margin: 3px 0;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* The tiles of a headline: one number each */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 8px;
+}
+
+.tile {
+  background: var(--well);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 4px solid var(--rule);
+  min-width: 0;
+}
+
+.tile b {
+  font-size: 1.6rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tile small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.tile.hero {
+  grid-column: span 2;
+  border-left-color: var(--accent);
+}
+
+@media (max-width: 420px) {
+  .tile.hero {
+    grid-column: auto;
+  }
+}
+
+.tile.better {
+  border-left-color: var(--good);
+}
+
+.tile.worse {
+  border-left-color: var(--bad);
+}
+
+.tile.mixed {
+  border-left-color: var(--late);
+}
+
+.tile.unmeasured {
+  border-left-style: dashed;
+}
+
+/* The chips of a verdict: a mark and a word, so the color is not alone */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+}
+
+.chip b {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.chip.better {
+  color: var(--good);
+  border-color: color-mix(in oklab, var(--good) 45%, transparent);
+  background: color-mix(in oklab, var(--good) 10%, transparent);
+}
+
+.chip.worse {
+  color: var(--bad);
+  border-color: color-mix(in oklab, var(--bad) 45%, transparent);
+  background: color-mix(in oklab, var(--bad) 10%, transparent);
+}
+
+.chip.mixed {
+  color: var(--ink);
+  border-color: var(--late);
+}
+
+.chip.unmeasured {
+  border-style: dashed;
+}
+
+/* The list of the strategies */
+.slist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shead,
+.srow summary {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 4px;
+}
+
+.shead {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+}
+
+.srow {
+  border-bottom: 1px solid var(--rule);
+}
+
+.srow summary {
+  cursor: pointer;
+  list-style: none;
+  border-radius: 8px;
+}
+
+.srow summary::-webkit-details-marker {
+  display: none;
+}
+
+.srow summary:hover {
+  background: var(--well);
+}
+
+.sname {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sname code {
+  background: none;
+  padding: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sname small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(4, 7.6rem);
+  gap: 4px;
+}
+
+.mhead {
+  padding-left: 8px;
+}
+
+.dhead {
+  text-align: center;
+}
+
+/* The diverging bar: the stratified mean and its interval. The middle is no change. */
+.dbar {
+  position: relative;
+  height: 18px;
+  background: var(--well);
+  border-radius: 4px;
+}
+
+.dbar.empty {
+  background: repeating-linear-gradient(135deg, var(--well) 0 6px, transparent 6px 12px);
+}
+
+.dbar .zero {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+
+.dbar .fillbar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 4px;
+  background: var(--muted);
+}
+
+.dbar .fillbar.better {
+  background: var(--good);
+}
+
+.dbar .fillbar.worse {
+  background: var(--bad);
+}
+
+.dbar .whisker {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--ink);
+  opacity: 0.7;
+}
+
+.sdetails {
+  padding: 4px 4px 14px;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.vtable {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.vtable th,
+.vtable td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+
+.vtable thead th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.num {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.signs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.sbar {
+  display: inline-flex;
+  width: 96px;
+  height: 10px;
+  gap: 2px;
+}
+
+.sbar span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.sbar .better {
+  background: var(--good);
+}
+
+.sbar .worse {
+  background: var(--bad);
+}
+
+.sbar .tie {
+  background: var(--rule);
+}
+
+.scount {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.groups {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 4px 16px;
+  font-size: 0.85rem;
+}
+
+.groups li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gname {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.notes summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.notes ul {
+  margin: 6px 0 0;
+  padding-left: 1.2em;
+  color: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .shead {
+    display: none;
+  }
+
+  .srow summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cells .cell::before {
+    content: attr(data-m);
+    display: block;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+}
+
+/* The origin of a snapshot */
+.origin {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px dashed var(--rule);
+  color: var(--muted);
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.origin .rel {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The chart of the time ratios, on a log scale */
+.rchart {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rrow,
+.raxis {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 4.2rem;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+}
+
+.rrow.slow {
+  font-weight: 700;
+}
+
+.rname {
+  overflow-wrap: anywhere;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+}
+
+.rrow.slow .rname {
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.rname small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.rbar {
+  position: relative;
+  height: 14px;
+  background: var(--well);
+  border-radius: 4px;
+}
+
+.rbar .one {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+
+.rfill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 4px;
+  background: var(--muted);
+}
+
+.rfill.faster {
+  background: var(--good);
+}
+
+.rfill.slower {
+  background: var(--bad);
+}
+
+.rval {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticks {
+  position: relative;
+  height: 1.2em;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.ticks i {
+  position: absolute;
+  transform: translateX(-50%);
+  font-style: normal;
+}
+
+@media (max-width: 640px) {
+  .rrow,
+  .raxis {
+    grid-template-columns: minmax(0, 1fr) 3.6rem;
+  }
+
+  .rname {
+    grid-column: 1 / -1;
+  }
+
+  .raxis > span:first-child,
+  .raxis > span:last-child {
+    display: none;
+  }
+}
+
+/* The leaves of the select table */
+.leaves {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 10px;
+}
+
+.leaf {
+  background: var(--well);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border-top: 4px solid var(--early);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.leaf.pick-max {
+  border-top-color: var(--late);
+}
+
+.lhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.lid {
+  font-weight: 700;
+}
+
+.pick code {
+  font-weight: 600;
+}
+
+.path {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  font-size: 0.85rem;
+}
+
+.path .arrow {
+  color: var(--muted);
+}
+
+.lbars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lbars li {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr) 6.4rem;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.lname {
+  color: var(--muted);
+}
+
+.lbar {
+  position: relative;
+  height: 10px;
+  background: var(--surface);
+  border-radius: 4px;
+}
+
+.lbar .half {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+
+.lfill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: var(--late);
+}
+
+.lval {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  text-align: right;
+  font-size: 0.75rem;
+}
+
+/* The list of the releases */
+.day h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 8px 0 6px;
+}
+
+.day h3 small {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.news {
+  list-style: none;
+  margin: 0 0 0 6px;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+}
+
+.news li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.2rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.news li::before {
+  content: "";
+  position: absolute;
+  left: -23px;
+  top: 14px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+}
+
+.ver {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 600;
+}
+
+.ntitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nlink {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 560px) {
+  .news li {
+    grid-template-columns: 3.8rem minmax(0, 1fr);
+  }
+
+  .nlink {
+    grid-column: 2;
+  }
+}

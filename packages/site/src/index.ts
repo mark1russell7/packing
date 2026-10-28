@@ -21,7 +21,9 @@ import {
   type Strategy,
   type WidthMode,
 } from "./model.ts";
+import { mountChrome } from "./chrome.ts";
 import "./style.css";
+import "./pages.css";
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -138,33 +140,9 @@ function regenerate(): void {
 $("lead").innerHTML = marked.parse(leadText, { async: false });
 $("about").innerHTML = marked.parse(aboutText, { async: false });
 
-// ---- The theme: auto, light or dark ----
+// ---- The links of the header and the theme: auto, light or dark ----
 
-const THEMES = ["auto", "light", "dark"] as const;
-type Theme = (typeof THEMES)[number];
-const themeButton = $<HTMLButtonElement>("theme");
-function setTheme(theme: Theme): void {
-  if (theme === "auto") delete document.documentElement.dataset["theme"];
-  else document.documentElement.dataset["theme"] = theme;
-  themeButton.textContent = `Theme: ${theme}`;
-  try {
-    localStorage.setItem("packing-theme", theme);
-  } catch {
-    // A private window can refuse the storage. The theme then lasts only for this visit.
-  }
-}
-let theme: Theme = "auto";
-try {
-  const saved = localStorage.getItem("packing-theme");
-  if (saved === "light" || saved === "dark") theme = saved;
-} catch {
-  // No storage: the theme follows the system.
-}
-setTheme(theme);
-themeButton.addEventListener("click", () => {
-  theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!;
-  setTheme(theme);
-});
+mountChrome($("links"), "demo");
 
 // ---- The controls of the items ----
 

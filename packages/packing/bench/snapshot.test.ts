@@ -1,0 +1,133 @@
+import { describe, expect, it } from "vitest";
+import { SELECT_TABLE } from "@mark1russell7/packing";
+import {
+  familyOfInput,
+  groupOfFamily,
+  leafWins,
+  pairedSnapshot,
+  releaseEntries,
+  SELECT_LEAF_WINS,
+  selectSnapshot,
+  sig,
+  strategySnapshot,
+  tableLeaves,
+  type LeafWins,
+  type SnapshotRecord,
+} from "./snapshot.ts";
+import { SLOW_SET, type PairedRecord } from "./paired.ts";
+
+// The snapshots of the site (k32). Made-up records only.
+
+const rec = (strategy: string, input: string, seed: number, fill: number, extra: Partial<SnapshotRecord> = {}): SnapshotRecord => ({
+  strategy,
+  input,
+  seed,
+  measures: { "pack.fill": fill, "pack.order.inversions": 0 },
+  hard: { "no-overlap": 0 },
+  ms: 1,
+  ...extra,
+});
+
+const origin = [{ release: "0.0.1", commit: "abc1234", date: "2026-01-01", run: 1, source: "made up" }];
+
+describe("snapshot", () => {
+  it("gives the family and the group of an input id", () => {
+    expect(familyOfInput("c/rect-grid.fixed.rect.none.uniform.n10/s31")).toBe("rect-grid.fixed.rect.none.uniform.n10");
+    expect(groupOfFamily("rect-grid.fixed.rect.none.uniform.n10")).toBe("rect-grid.fixed");
+    expect(sig(0.123456)).toBe(0.1235);
+    expect(sig(Infinity)).toBe(Infinity);
+  });
+
+  it("has a pinned win count for each leaf of SELECT_TABLE, and no other leaf", () => {
+    const leaves = tableLeaves(SELECT_TABLE);
+    expect(leaves.map((l) => l.leaf).sort()).toEqual(SELECT_LEAF_WINS.map((w) => w.leaf).sort());
+    expect(new Set(leaves.map((l) => l.leaf)).size).toBe(leaves.length);
+    // The training records hold 1305 inputs of pack-screen-v1 and 720 inputs of pack-free-v1.
+    expect(SELECT_LEAF_WINS.reduce((s, w) => s + w.of, 0)).toBe(1305 + 720);
+    expect(leaves[0]!.path.map((p) => p.test)).toEqual(["fixed", "count below 317", "spread below 0.02"]);
+  });
+
+  it("counts a win at a fill ratio of 1.05 with no added hard break", () => {
+    const records = [
+      rec("rows", "c/a/s1", 1, 0.5),
+      rec("maxrects-bl", "c/a/s1", 1, 0.525),
+      rec("rows", "c/a/s2", 2, 0.5),
+      rec("maxrects-bl", "c/a/s2", 2, 0.6, { hard: { "no-overlap": 1 } }),
+      rec("rows", "c/b/s1", 1, 0),
+      rec("maxrects-bl", "c/b/s1", 1, 0),
+    ];
+    const wins = leafWins(records, "rows", "maxrects-bl", (input) => (input.includes("/a/") ? 1 : 2));
+    expect(wins.get(1)).toEqual({ wins: 1, of: 2 });
+    expect(wins.get(2)).toEqual({ wins: 0, of: 1 });
+  });
+
+  it("refuses training counts that are not the pinned counts", () => {
+    const train: LeafWins = new Map(SELECT_LEAF_WINS.map((w) => [w.leaf, { wins: w.wins, of: w.of }]));
+    const snap = selectSnapshot(train, [{ corpus: "t", wins: new Map([[1, { wins: 3, of: 4 }]]) }], origin);
+    expect(snap.leaves).toHaveLength(SELECT_LEAF_WINS.length);
+    expect(snap.leaves.find((l) => l.leaf === 1)).toMatchObject({ member: "maxrects-bl", train: { wins: 635, of: 850 }, test: [{ corpus: "t", wins: 3, of: 4 }] });
+    train.set(0, { wins: 1, of: 15 });
+    expect(() => selectSnapshot(train, [], origin)).toThrow(RangeError);
+  });
+
+  it("gives a verdict over families for each strategy, and the losers too", () => {
+    const records: SnapshotRecord[] = [];
+    for (const family of ["f1", "f2", "f3", "f4"]) {
+      for (let seed = 1; seed <= 5; seed++) {
+        const input = `c/rect-grid.fixed.${family}/s${seed}`;
+        const base = 0.5 + seed / 100;
+        records.push(rec("rows", input, seed, base));
+        records.push(rec("good", input, seed, base + 0.1));
+        records.push(rec("bad", input, seed, base - 0.1));
+        records.push(rec("off", input, seed, 0, { skipped: "mode offline" }));
+      }
+    }
+    const snap = strategySnapshot(records, { corpus: "c", origin, measures: ["pack.fill"], runs: 200, draws: 200 });
+    expect(snap).toMatchObject({ kind: "strategies", baseline: "rows", inputs: 20, families: 4 });
+    const of = (id: string) => snap.strategies.find((s) => s.strategy === id)!;
+    expect(of("good").verdicts[0]).toMatchObject({ label: "better", n: 20, families: 4, signs: { wins: 4, losses: 0, ties: 0 } });
+    expect(of("good").verdicts[0]!.means!.b).toBeGreaterThan(of("good").verdicts[0]!.means!.a);
+    expect(of("bad").verdicts[0]).toMatchObject({ label: "worse", signs: { wins: 0, losses: 4 } });
+    expect(of("bad").groups).toEqual([{ group: "rect-grid.fixed", wins: 0, losses: 4, ties: 0 }]);
+    expect(of("off")).toMatchObject({ skipped: 20, msMedian: null, verdicts: [{ label: "not measured", n: 0 }] });
+    expect(of("rows").verdicts).toEqual([]);
+  });
+
+  it("checks the slow set of a paired artifact against its records", () => {
+    const slow = "c/rect-grid.freeArea.rect.none.uniform.free.n100/s31";
+    const records: PairedRecord[] = [{ input: slow, set: "c", msA: 50, msB: 2, ratio: 0.04, hashA: "h", hashB: "h" }];
+    const group = { inputs: 1, medianRatio: 0.04, medianMsA: 50, medianMsB: 2 };
+    const artifact = { corpus: "c", strategy: "rows", prediction: "p", repeats: 5, summary: { inputs: 1, errors: 0, hashesEqual: 1, slow: group, other: group, classes: { "x n1": group } } };
+    const snap = pairedSnapshot(artifact, records, SLOW_SET, { a: "v1", b: "v2" }, origin);
+    expect(snap.slow).toMatchObject({ maxMsA: 50, maxMsB: 2 });
+    expect(snap.classes).toEqual([{ name: "x n1", ...group }]);
+    expect(() => pairedSnapshot(artifact, [], SLOW_SET, { a: "v1", b: "v2" }, origin)).toThrow(RangeError);
+  });
+
+  it("lists the tagged releases of a changelog, newest first", () => {
+    const changelog = [
+      "# Changelog",
+      "",
+      "## 0.2.0",
+      "",
+      "A new layout. This release has breaking changes.",
+      "",
+      "## 0.1.1",
+      "",
+      "- New: `packShelf` packs into shelves. It keeps the order.",
+      "",
+      "## 0.1.0",
+      "",
+      "- No tag.",
+      "",
+    ].join("\n");
+    const tags = [
+      { version: "0.2.0", commit: "bbbbbbb", date: "2026-01-02", subject: "release: 0.2.0 (#9)" },
+      { version: "0.1.1", commit: "aaaaaaa", date: "2026-01-01", subject: "release: 0.1.1" },
+    ];
+    expect(releaseEntries(changelog, tags)).toEqual([
+      { release: "0.2.0", date: "2026-01-02", title: "A new layout.", breaking: true, commit: "bbbbbbb", pr: 9, link: "https://github.com/mark1russell7/packing/pull/9" },
+      { release: "0.1.1", date: "2026-01-01", title: "`packShelf` packs into shelves.", breaking: false, commit: "aaaaaaa", pr: null, link: "https://github.com/mark1russell7/packing/commit/aaaaaaa" },
+    ]);
+  });
+});
