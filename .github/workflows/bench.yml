@@ -155,7 +155,6 @@ jobs:
       # A run with fewer than 50 measured records gives a note in coverage.json. The step does not fail the job.
       - name: Compute the space coverage
         if: always()
-        continue-on-error: true
         run: |
           out="$RUNNER_TEMP/merged"
           if [ ! -f "$out/records.jsonl" ] || [ ! -f "$out/corpus.json" ]; then
