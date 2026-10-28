@@ -227,7 +227,8 @@ describe("packSpace and the options of the strategies", () => {
       want({ iterations: 4, perturb: "shuffle", strength: 0.5, key: ["pack.area", "pack.overflow.excessArea", "pack.fill"] }),
     );
     expect(outputHash(packConfig(input, restarts({ limitTime: true, budgetMs: 2000 }), 3))).toBe(want({ limitTime: true, budgetMs: 2000 }));
-    // Without the switch param, the param budgetMs has no effect
-    expect(outputHash(packConfig(input, restarts({ budgetMs: 1 }), 3))).toBe(want({}));
+    // Without the switch param, the config has no budgetMs, and checkConfig refuses it
+    expect(outputHash(packConfig(input, restarts({ limitTime: false }), 3))).toBe(want({}));
+    expect(() => packConfig(input, restarts({ budgetMs: 1 }), 3)).toThrow(/budgetMs/);
   });
 });

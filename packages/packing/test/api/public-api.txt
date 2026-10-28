@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 233 names
+## . (build/index.d.ts): 228 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -99,11 +99,15 @@ type PortfolioTrainScore: build/index.d.ts#PortfolioTrainScore
 type PushOptions: build/index.d.ts#PushOptions
 type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
+RESTARTS_STAGE: build/index.d.ts#RESTARTS_STAGE
+RESTART_PERTURBS: build/index.d.ts#RESTART_PERTURBS
 Rect: build/index.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
 type RectGridV2Params: build/index.d.ts#RectGridV2Params
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
+type RestartPerturb: build/index.d.ts#RestartPerturb
+type RestartsStrategyOptions: build/index.d.ts#RestartsStrategyOptions
 SELECT_MAX_DEPTH: build/index.d.ts#SELECT_MAX_DEPTH
 SELECT_MEMBERS: build/index.d.ts#SELECT_MEMBERS
 SELECT_STAGE: build/index.d.ts#SELECT_STAGE
@@ -146,7 +150,6 @@ boundGap: build/index.d.ts#boundGap
 boundMeasures: build/index.d.ts#boundMeasures
 canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
-cardsFamily: build/index.d.ts#cardsFamily
 cellKey: build/index.d.ts#cellKey
 cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
@@ -155,20 +158,15 @@ checkSelectTable: build/index.d.ts#checkSelectTable
 compareRects: build/index.d.ts#compareRects
 composites: build/index.d.ts#composites
 consecutiveSquares: build/index.d.ts#consecutiveSquares
-consecutiveSquaresFamily: build/index.d.ts#consecutiveSquaresFamily
 corpus: build/index.d.ts#corpus
-corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
 createContext: build/index.d.ts#createContext
 dashboard: build/index.d.ts#dashboard
-dashboardFamily: build/index.d.ts#dashboardFamily
 edgeCases: build/index.d.ts#edgeCases
-edgeCasesFamily: build/index.d.ts#edgeCasesFamily
 fnv1a32: build/index.d.ts#fnv1a32
 freeSpace: build/index.d.ts#freeSpace
 fromRects: build/index.d.ts#fromRects
 gallery: build/index.d.ts#gallery
-galleryFamily: build/index.d.ts#galleryFamily
 gapToOpt: build/index.d.ts#gapToOpt
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
@@ -201,7 +199,6 @@ packWith: build/index.d.ts#packWith
 packingMetrics: build/index.d.ts#packingMetrics
 pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
-perfectCutFamily: build/index.d.ts#perfectCutFamily
 perfectCutOf: build/index.d.ts#perfectCutOf
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
@@ -212,10 +209,9 @@ push: build/index.d.ts#push
 pushCascade: build/index.d.ts#pushCascade
 quantile: build/index.d.ts#quantile
 rectGrid: build/index.d.ts#rectGrid
-rectGridFamily: build/index.d.ts#rectGridFamily
 rectGridV2: build/index.d.ts#rectGridV2
-rectGridV2Family: build/index.d.ts#rectGridV2Family
 rectScattered: build/index.d.ts#rectScattered
+restartsStrategy: build/index.d.ts#restartsStrategy
 round3: build/index.d.ts#round3
 roundMeasures: build/index.d.ts#roundMeasures
 rows: build/index.d.ts#rows
@@ -238,7 +234,6 @@ turnPort: @mark1russell7/layout-contract#turnPort (external)
 turnRegion: @mark1russell7/layout-contract#turnRegion (external)
 unsupportedOf: build/index.d.ts#unsupportedOf
 wordCloud: build/index.d.ts#wordCloud
-wordCloudFamily: build/index.d.ts#wordCloudFamily
 
 ## Declarations
 
@@ -716,6 +711,12 @@ interface PushStrategyOptions {
   maxShovesPerItem: number;
 }
 
+### build/index.d.ts#RESTARTS_STAGE
+export declare const RESTARTS_STAGE = "restarts";
+
+### build/index.d.ts#RESTART_PERTURBS
+export declare const RESTART_PERTURBS: readonly RestartPerturb[];
+
 ### build/index.d.ts#Rect
 export declare class Rect<T = unknown> {
   id?: T;
@@ -755,6 +756,20 @@ type RectGridV2Params = RectGridParams & {
 type RectScatteredParams = {
   count: number;
 };
+
+### build/index.d.ts#RestartPerturb
+type RestartPerturb = "swap" | "shuffle-blocks" | "shuffle";
+
+### build/index.d.ts#RestartsStrategyOptions
+interface RestartsStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  perturb?: RestartPerturb;
+  strength?: number;
+  key?: readonly string[];
+  limitTime?: boolean;
+  budgetMs?: number;
+}
 
 ### build/index.d.ts#SELECT_MAX_DEPTH
 export declare const SELECT_MAX_DEPTH = 3;
@@ -942,9 +957,6 @@ export declare function canonicalJson(value: unknown): string;
 ### build/index.d.ts#cards
 export declare const cards: CorpusGenerator<UiParams>;
 
-### build/index.d.ts#cardsFamily
-export declare const cardsFamily: CorpusFamily<GeneratedInput>;
-
 ### build/index.d.ts#cellKey
 export declare function cellKey(cell: PortfolioCell): string;
 
@@ -966,14 +978,8 @@ export declare const composites: readonly Strategy[];
 ### build/index.d.ts#consecutiveSquares
 export declare const consecutiveSquares: CorpusGenerator<ConsecutiveSquaresParams>;
 
-### build/index.d.ts#consecutiveSquaresFamily
-export declare const consecutiveSquaresFamily: CorpusFamily<GeneratedInput>;
-
 ### build/index.d.ts#corpus
 export declare function corpus(name: string, specs: readonly CorpusSpec[]): Corpus;
-
-### build/index.d.ts#corpusFamilies
-export declare const corpusFamilies: readonly CorpusFamily<GeneratedInput>[];
 
 ### build/index.d.ts#countCell
 export declare function countCell(count: number): CountScale;
@@ -984,14 +990,8 @@ export declare function createContext(seed?: number, more?: Omit<PackContext, "s
 ### build/index.d.ts#dashboard
 export declare const dashboard: CorpusGenerator<UiParams>;
 
-### build/index.d.ts#dashboardFamily
-export declare const dashboardFamily: CorpusFamily<GeneratedInput>;
-
 ### build/index.d.ts#edgeCases
 export declare const edgeCases: CorpusGenerator<EdgeCaseParams>;
-
-### build/index.d.ts#edgeCasesFamily
-export declare const edgeCasesFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
@@ -1004,9 +1004,6 @@ export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>):
 
 ### build/index.d.ts#gallery
 export declare const gallery: CorpusGenerator<UiParams>;
-
-### build/index.d.ts#galleryFamily
-export declare const galleryFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#gapToOpt
 export declare function gapToOpt(input: PackInput, output: PackOutput, known: KnownBest): number;
@@ -1110,9 +1107,6 @@ export declare function pairedRatio(candidate: number, current: number, directio
 ### build/index.d.ts#perfectCut
 export declare const perfectCut: CorpusGenerator<PerfectCutParams>;
 
-### build/index.d.ts#perfectCutFamily
-export declare const perfectCutFamily: CorpusFamily<GeneratedInput>;
-
 ### build/index.d.ts#perfectCutOf
 export declare function perfectCutOf(seed: number, params?: Partial<PerfectCutParams>): {
   w: number;
@@ -1151,17 +1145,14 @@ export declare function quantile(values: readonly number[], q: number): number;
 ### build/index.d.ts#rectGrid
 export declare const rectGrid: CorpusGenerator<RectGridParams>;
 
-### build/index.d.ts#rectGridFamily
-export declare const rectGridFamily: CorpusFamily<GeneratedInput>;
-
 ### build/index.d.ts#rectGridV2
 export declare const rectGridV2: CorpusGenerator<RectGridV2Params>;
 
-### build/index.d.ts#rectGridV2Family
-export declare const rectGridV2Family: CorpusFamily<GeneratedInput>;
-
 ### build/index.d.ts#rectScattered
 export declare const rectScattered: CorpusGenerator<RectScatteredParams>;
+
+### build/index.d.ts#restartsStrategy
+export declare const restartsStrategy: Strategy<RestartsStrategyOptions>;
 
 ### build/index.d.ts#round3
 export declare function round3(x: number): number;
@@ -1209,7 +1200,7 @@ export declare function supportsCell(supports: Supports, cell: Partial<Record<Di
 export declare function tailShare(ratios: readonly number[], limit: number): number;
 
 ### build/index.d.ts#toPackInput
-export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "boxes" | "obstacles" | "gap" | "pairGaps">): PackInput;
+export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "boxes" | "obstacles" | "gap">): PackInput;
 
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
@@ -1225,6 +1216,3 @@ export declare function unsupportedOf(supports: Supports, cell: Partial<Record<D
 
 ### build/index.d.ts#wordCloud
 export declare const wordCloud: CorpusGenerator<UiParams>;
-
-### build/index.d.ts#wordCloudFamily
-export declare const wordCloudFamily: CorpusFamily<GeneratedInput>;
