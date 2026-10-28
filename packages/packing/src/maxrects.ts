@@ -89,18 +89,37 @@ function inside(a: Box, b: Box): boolean {
  */
 function cut(free: Box[], b: Box, minW: number, minH: number): { free: Box[]; hits: number } {
   const kept: Box[] = [];
-  const parts: Box[] = [];
-  // The side of the box at each part: 0 left, 1 right, 2 top, 3 bottom
-  const sides: number[] = [];
   // A part spans the box on one axis and touches the box on the other axis. Thus a part of one side is not in a part of
   // another side. A kept rectangle with the part in it has an edge on the same side of the box.
   const near: Box[][] = [[], [], [], []];
+  // The parts that stay so far, in the order of creation: four edges in `edges` and the side in `sides`
+  // The side of the box: 0 left, 1 right, 2 top, 3 bottom. A removed part gets the side -1.
+  const edges: number[] = [];
+  const sides: number[] = [];
+  // For each side, the indices of its parts that stay so far
+  const stay: number[][] = [[], [], [], []];
   let hits = 0;
+  // A part stays when no other part holds more than it, and no equal part comes before it. This rule does not use an order.
+  // Thus a new part goes when a part that stays holds it. Else it removes each part that it holds.
   const add = (side: number, x0: number, y0: number, x1: number, y1: number): void => {
-    if (x1 - x0 >= minW && y1 - y0 >= minH) {
-      parts.push({ x0, y0, x1, y1 });
-      sides.push(side);
+    if (x1 - x0 < minW || y1 - y0 < minH) return;
+    const own = stay[side]!;
+    for (let k = 0; k < own.length; ) {
+      const j = own[k]!;
+      const qx0 = edges[4 * j]!;
+      const qy0 = edges[4 * j + 1]!;
+      const qx1 = edges[4 * j + 2]!;
+      const qy1 = edges[4 * j + 3]!;
+      if (x0 >= qx0 && y0 >= qy0 && x1 <= qx1 && y1 <= qy1) return;
+      if (qx0 >= x0 && qy0 >= y0 && qx1 <= x1 && qy1 <= y1) {
+        sides[j] = -1;
+        own[k] = own[own.length - 1]!;
+        own.pop();
+      } else k++;
     }
+    own.push(sides.length);
+    edges.push(x0, y0, x1, y1);
+    sides.push(side);
   };
   for (const f of free) {
     if (b.x0 >= f.x1 || b.x1 <= f.x0 || b.y0 >= f.y1 || b.y1 <= f.y0) {
@@ -117,37 +136,13 @@ function cut(free: Box[], b: Box, minW: number, minH: number): { free: Box[]; hi
     if (b.y0 > f.y0) add(2, f.x0, f.y0, f.x1, b.y0);
     if (b.y1 < f.y1) add(3, f.x0, b.y1, f.x1, f.y1);
   }
-  if (parts.length === 0) return { free: kept, hits };
   // Each part is in the free rectangle that it comes from. Thus no kept rectangle is in a part.
-  // A part stays when no other part holds more than it, and no equal part comes before it. This rule does not use an order.
-  // Each list of `stay` holds the parts of one side that stay so far. A new part removes the parts that it holds.
-  const gone = new Uint8Array(parts.length);
-  const stay: number[][] = [[], [], [], []];
-  for (let i = 0; i < parts.length; i++) {
-    const p = parts[i]!;
-    const own = stay[sides[i]!]!;
+  for (let i = 0; i < sides.length; i++) {
+    const side = sides[i]!;
+    if (side < 0) continue;
+    const p: Box = { x0: edges[4 * i]!, y0: edges[4 * i + 1]!, x1: edges[4 * i + 2]!, y1: edges[4 * i + 3]! };
     let drop = false;
-    for (let k = 0; k < own.length; ) {
-      const j = own[k]!;
-      const q = parts[j]!;
-      if (inside(p, q)) {
-        drop = true;
-        break;
-      }
-      if (inside(q, p)) {
-        gone[j] = 1;
-        own[k] = own[own.length - 1]!;
-        own.pop();
-      } else k++;
-    }
-    if (drop) gone[i] = 1;
-    else own.push(i);
-  }
-  for (let i = 0; i < parts.length; i++) {
-    if (gone[i] === 1) continue;
-    const p = parts[i]!;
-    let drop = false;
-    for (const k of near[sides[i]!]!) {
+    for (const k of near[side]!) {
       if (inside(p, k)) {
         drop = true;
         break;
