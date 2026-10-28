@@ -522,7 +522,7 @@ The job starts `bench/profile.ts`:
 1. It picks the inputs with the highest time ratio `t / max(b, 5 / 1.5)` from the time records.
 2. It times the strategy and `rows` on each input without the profiler, in alternation.
 3. It packs each input 3 times with the strategy under the V8 CPU profiler.
-4. It does steps 2 and 3 again with the flag `--no-turbo-inlining` of V8.
+4. It does steps 2 and 3 again with the flags `--no-turbo-inlining` and `--no-maglev-inlining` of V8.
 
 V8 gives the samples of an inlined function to its caller. The second profile keeps the samples of each function apart, but its times are longer.
 

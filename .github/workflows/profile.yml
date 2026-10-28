@@ -75,7 +75,7 @@ jobs:
       - name: Profile the slowest inputs without inlining
         working-directory: packages/packing
         run: |
-          node --no-turbo-inlining bench/profile.ts --corpus "$CORPUS" --strategy "$STRATEGY" --default rows \
+          node --no-turbo-inlining --no-maglev-inlining bench/profile.ts --corpus "$CORPUS" --strategy "$STRATEGY" --default rows \
             --slowest "$SLOWEST" --times "$RUNNER_TEMP/time" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile/no-inlining"
       - name: Write the tables to the job summary
         if: ${{ !cancelled() }}
