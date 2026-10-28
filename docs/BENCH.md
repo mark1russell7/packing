@@ -538,6 +538,27 @@ A run on a local computer gives no valid times. Use it only to examine the scrip
 node bench/profile.ts --corpus smoke-v1 --strategy maxrects-bl --inputs <id>,<id> --out bench-out/profile
 ```
 
+## The cells of a candidate
+
+`packages/packing/bench/cells.ts` finds the cells where a candidate fills more than the default (roadmap item k66). It reads the records of one run. It does not start a packer.
+
+```sh
+node bench/cells.ts <folder> --candidate maxrects-bl --default rows --times <folder> --out <folder>
+```
+
+- Each fill ratio is `fill(candidate) / fill(default)`, in the field `candidateOverDefault`. Above 1, the candidate fills more. `bench/promote.ts` uses the opposite direction.
+- A win: the ratio is 1.05 (`WIN_RATIO`) or more, and the candidate has no hard count above that of the default. `hardTest` of `bench/promote.ts` gives the hard counts.
+- A cell is the input id without its seed. The held-out seed is `heldOut` of `corpus.json`, or 3. The option `--held-out <seed>` changes it.
+- The cell selector picks the candidate in a cell when the median ratio of the training seeds is 1.05 or more. The tool scores it on the held-out seed only.
+- The oracle picks the strategy with fewer hard breaks on each input, then the strategy with more fill.
+- `--times <folder>` gives the time records. The time ratio is the time of the pick divided by `max(b, 5 / 1.5)` ms, from `timeTest` of `bench/promote.ts`.
+- The tool also adds a cost bound of the features: `nodes` of the record times `--ns-per-item`, 50 ns by default. The size spread needs one pass over the items.
+- The cheap features are the count, the shape, the size spread, the container size and the order.
+- The tables give the inputs by each cheap feature with two values or more.
+- The decision tables use 1, 2 and 3 of these features. Each leaf picks with the rule of the selector. The best table of each size has the highest training accuracy.
+
+The tool writes `cells.json` and `cells.md` in the `--out` folder. The corpus `pack-free-v1` has the seeds 11 to 15 and no `heldOut`. Thus it has no held-out input, and `--held-out 13` gives a split.
+
 ## Read the summary
 
 The summary `summary.md` has these sections:

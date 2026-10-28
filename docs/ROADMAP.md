@@ -72,6 +72,7 @@ Status: done, done, waiting, next, done.
 | k63 | `skyline` overlap in free curved and polygon containers: in a shaped space, a box wider than the cells of the skyline did not move the skyline up, thus the next such box went to the same place. Fixed in 0.2.10. | strategies | done | k37 |
 | k64 | The time tail of `maxrects`: in a curved container, the check of each new part against all parts and free rectangles was most of the work. It now compares only parts on the same side of the box, with the same outputs. | strategies | active | k58, k61 |
 | k65 | A corpus with a margin and a gap axis. The screen corpora have no margin and no gap, but callers use them. Its manifest declares its properties. | measure | later | k62 |
+| k66 | Where maxrects beats rows: a selector by cheap features (count, shape, spread) that runs maxrects only in its cells, so the other cells keep the time of rows. | strategies | active | k61, k62 |
 
 ## Rules
 
