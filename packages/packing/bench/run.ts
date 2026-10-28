@@ -3,6 +3,8 @@
 
 import {
   outputHash,
+  boundMeasures,
+  BOUND_KINDS,
   checkHard,
   corpus,
   DEFAULT_TOLERANCE,
@@ -501,6 +503,8 @@ export function runBench(options: BenchOptions): BenchResult {
         // The counts of the characteristic moves, and the boxes out of the true outline of the container
         Object.assign(values, moveCounts(first));
         values[OUTSIDE_EXACT] = checkHard(input, first, DEFAULT_TOLERANCE, { exactContainer: true })["in-container"];
+        // The bound of the cell and the distance of the result to it (roadmap item k51)
+        Object.assign(values, boundMeasures(input, first));
         const base = file.base === undefined ? undefined : done.get(file.base);
         if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
         done.set(file.id, { input, output: first });
@@ -673,6 +677,34 @@ function compare(measured: number, op: NonNullable<BenchPrediction["op"]>, expec
   return { "<=": measured <= expected, ">=": measured >= expected, "<": measured < expected, ">": measured > expected, "==": measured === expected }[op];
 }
 
+/** The group of a kind of bound: the part of its name before the dot. `strip`, `hull` and `placed` are the 3 objectives. */
+const boundGroupOf = (code: number): string => (BOUND_KINDS[code] ?? "unknown").split(".")[0]!;
+
+/**
+ * This function writes the table of the bounds (roadmap item k51). Each row is a strategy and a group of bound kinds.
+ * The row gives the records with `pack.gap`, the median and the quantile 0.95 of the gap, and the count of each winning kind.
+ */
+export function boundsMarkdown(strategies: readonly string[], records: readonly MeasuredRecord[]): string[] {
+  const rows: string[] = [];
+  for (const id of strategies) {
+    const own = records.filter((r) => r.strategy === id && r.measures["pack.gap"] !== undefined && r.measures["pack.bound.kind"] !== undefined);
+    const groups = [...new Set(own.map((r) => boundGroupOf(r.measures["pack.bound.kind"]!)))];
+    for (const group of groups) {
+      const rs = own.filter((r) => boundGroupOf(r.measures["pack.bound.kind"]!) === group);
+      const gaps = rs.map((r) => r.measures["pack.gap"]!);
+      const kinds = new Map<string, number>();
+      for (const r of rs) {
+        const kind = BOUND_KINDS[r.measures["pack.bound.kind"]!] ?? "unknown";
+        kinds.set(kind, (kinds.get(kind) ?? 0) + 1);
+      }
+      const kindText = [...kinds].map(([k, n]) => `\`${k}\` ${n}`).join(", ");
+      rows.push(`| ${id} | ${group} | ${rs.length} | ${num(median(gaps))} | ${num(quantile(gaps, 0.95))} | ${kindText} |`);
+    }
+  }
+  if (rows.length === 0) return ["No measured record has the measure `pack.gap`."];
+  return ["| strategy | objective | records | gap median | gap q0.95 | winning bounds |", "|---|---|---:|---:|---:|---|", ...rows];
+}
+
 /**
  * This function writes the summary of a run as Markdown. The first table has one row for each strategy. A section for
  * each strategy has one row for each family. Then come the coverage, the sections of the screen, the skipped cells, the
@@ -769,6 +801,8 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
   const changed = measured.filter((r) => r.measures["pack.stability.moved"] !== undefined);
   if (changed.length === 0) lines.push("No input of the corpus has a base, so no record has the stability measures.");
   else lines.push(`${changed.length} records have the stability measures. The tables above show their medians.`);
+
+  lines.push("", "## Bounds", "", ...boundsMarkdown(run.strategies, measured));
 
   lines.push("", "## Predictions", "");
   const own = predictions.filter((p) => p.id === run.prediction);

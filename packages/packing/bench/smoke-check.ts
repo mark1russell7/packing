@@ -42,6 +42,7 @@ export function parseRecords(text: string): BenchRecord[] {
  * - A measured record has a hard break, or it is not deterministic.
  * - A measured record has a forced overflow above its overflow, or a box out of the true outline (`pack.outsideExact` above 0).
  * - A measured record has a `pack.overflow.forcedArea` above its `pack.overflow.area` by more than `AREA_NOISE`.
+ * - A measured record has a `pack.gap` below 0. Then the bound of the cell is above the result, and the bound is wrong.
  * - A strategy has no coverage in the run, or its coverage does not agree with its records.
  * - A strategy of `full` has a coverage below 1, or the run does not have that strategy.
  */
@@ -65,6 +66,8 @@ export function smokeCheck(run: BenchRun, records: readonly BenchRecord[], full:
     }
     const outside = r.measures[OUTSIDE_EXACT];
     if (outside !== undefined && outside > 0) failures.push(`The record of ${r.strategy} on ${r.input} has ${outside} boxes out of the true outline of the container.`);
+    const gap = r.measures["pack.gap"];
+    if (gap !== undefined && gap < 0) failures.push(`The record of ${r.strategy} on ${r.input} has a gap of ${gap} below 0: its result is better than its bound.`);
   }
 
   const rows: SmokeRow[] = [];

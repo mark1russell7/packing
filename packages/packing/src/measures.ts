@@ -10,10 +10,10 @@ import { round3 } from "./layout-input.ts";
 export type { Direction } from "@mark1russell7/layout-contract";
 
 /** The family of a measure. Each family has a section in `docs/MEASURES.md`. */
-export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
+export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound";
 
 /** The id of a measure of the packer. The ids are those of `docs/FORMAT.md`, and `highways` uses the same ids. */
-export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
+export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap";
 
 /**
  * The facts of one measure: its family, its unit, its direction and its range.
@@ -131,6 +131,8 @@ export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.fr
   "pack.deterministic": spec("pack.deterministic", "determinism", "boolean", "higher", 0, 1, 0),
   "pack.search.widths": spec("pack.search.widths", "speed", "count", "lower", 0, Infinity, 0),
   "pack.search.ms": spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity, undefined),
+  // The distance to the bound of the cell (roadmap item k51). `boundMeasures` of `src/bounds.ts` gives it, not `measure`.
+  "pack.gap": spec("pack.gap", "bound", "ratio", "lower", 0, Infinity, 0.005),
 });
 
 /** A placed box: the rectangle of an item at its position, with its rank. */
