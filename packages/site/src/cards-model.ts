@@ -301,7 +301,7 @@ const DIMENSION_VALUES = {
   containerSize: { fixed: 1, freeHeight: 1, freeWidth: 1, freeAspect: 1, freeArea: 1 },
   containerShape: { rect: 1, convex: 1, polygon: 1, circle: 1, ellipse: 1, holes: 1 },
   obstacleMove: { fixed: 1, costly: 1, free: 1 },
-  itemShape: { rect: 1, circle: 1, convex: 1, polygon: 1, mixed: 1 },
+  itemShape: { rect: 1, polygon: 1, circle: 1, free: 1, mixed: 1 },
   rotation: { none: 1, quarter: 1, any: 1 },
   order: { free: 1, soft: 1, hard: 1 },
   groups: { none: 1, flat: 1, nested: 1 },

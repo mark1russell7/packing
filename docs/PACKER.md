@@ -65,7 +65,7 @@ type Supports = {
   containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
   containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
   obstacleMove: ("fixed" | "costly" | "free")[];
-  itemShape: ("rect" | "circle" | "convex" | "polygon" | "mixed")[];
+  itemShape: ("rect" | "polygon" | "circle" | "free" | "mixed")[];
   rotation: ("none" | "quarter" | "any")[];
   order: ("free" | "soft" | "hard")[];
   groups: ("none" | "flat" | "nested")[];

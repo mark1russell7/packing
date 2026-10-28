@@ -72,9 +72,9 @@ A locked box (`boxes[].locked`) is an obstacle with `obstacleMove` set to `fixed
 | Value | The items |
 |---|---|
 | `rect` | Rectangles. All the methods of today. |
+| `polygon` | Any polygon, convex or not. The name of this problem is nesting. |
 | `circle` | Circles. |
-| `convex` | Convex polygons. |
-| `polygon` | Any polygon. The name of this problem is nesting. |
+| `free` | A shape that the contract knows only by its bounding box, for example an ellipse. |
 | `mixed` | More than one of the shapes above. |
 
 ### 5. The rotation of the items: `rotation`
