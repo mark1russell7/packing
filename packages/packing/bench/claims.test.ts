@@ -81,6 +81,19 @@ describe("the corpus files", () => {
     expect(manifest.inputs.some((i) => i.id.includes(".identical."))).toBe(true);
   });
 
+  it("makes the claim of pack-select-v1 true: the specs of pack-screen-v1 and pack-free-v1 with the fresh seeds 21 to 25", () => {
+    const select = parseCorpus(corpusFile("pack-select-v1"), "pack-select-v1");
+    const screen = parseCorpus(corpusFile("pack-screen-v1"), "pack-screen-v1");
+    const free = parseCorpus(corpusFile("pack-free-v1"), "pack-free-v1");
+    const fresh = [21, 22, 23, 24, 25];
+    expect(select.specs).toEqual([...screen.specs, ...free.specs].map((s) => ({ ...s, seeds: fresh })));
+    expect(select.heldOut).toBe("all");
+    const { manifest } = corpus(select.corpus, select.specs);
+    expect(manifest.inputs).toHaveLength(2025);
+    expect(checkDeclared(select)).toEqual({ order: 360, aspect: 360, "free-size": 740, shaped: 1650 });
+    expect(select.declared!.thin).toEqual([]);
+  }, 120_000);
+
   it("stops a run before the first packing when the claim is not true, and prints the counts of a true claim", () => {
     const specs = [{ generator: "rect-grid", version: 1, params: { count: 5, containerShape: "circle" }, seeds: [1, 2] }];
     const wrong = { schema: "layout-corpus/1" as const, corpus: "claim-v1", specs, declared: { minCount: 1, thin: [], counts: { order: 0, aspect: 0, "free-size": 0, shaped: 1 } } };

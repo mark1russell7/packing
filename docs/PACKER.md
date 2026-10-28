@@ -249,11 +249,48 @@ For a free size, the function makes a portfolio of widths around the target. It 
 - The id of the result is `aspect-fit(<id>)`. It keeps the family, the supports, the defaults and `deterministic` of the wrapped strategy.
 - The composite strategy `aspect-fit` of the registry takes the options `strategy`, `options` and `targetAspect`.
 
+### The feature select
+
+Roadmap item k66 (part 2) adds the composite strategy `select`. It reads 4 cheap features of the input, walks a small decision table and packs with exactly one member. It is opt-in. No default uses it.
+
+```ts
+const output = packWith("select", input); // the members rows and maxrects-bl, with SELECT_TABLE
+const leaf = selectLeaf(selectFeatures(input)); // { leaf, pick }
+```
+
+`selectFeatures(input)` gives the features in one pass over the items and the obstacles:
+
+| Feature | Value |
+|---|---|
+| `count` | The count of the items. |
+| `fixed` | `true` when the container has `fixed: "size"`. |
+| `rect` | `true` when the container is a rectangle with no obstacle of another shape. |
+| `spread` | `spreadOf`: the standard deviation of `ln(sqrt(w * h))` over the items. |
+
+`SELECT_TABLE` is data with comments. It has 3 levels and 7 leaves. Pick 0 is `rows`, and pick 1 is `maxrects` with the rule `bl`:
+
+| Leaf | Path | Pick | Wins of `maxrects-bl` in the training records |
+|---:|---|---|---:|
+| 0 | fixed, count below 317, spread below 0.02 | `rows` | 0 of 15 |
+| 1 | fixed, count below 317, spread 0.02 or more | `maxrects-bl` | 635 of 850 |
+| 2 | fixed, count 317 or more, spread below 0.27 | `rows` | 10 of 210 |
+| 3 | fixed, count 317 or more, spread 0.27 or more | `maxrects-bl` | 184 of 210 |
+| 4 | free, spread below 0.27 | `rows` | 49 of 490 |
+| 5 | free, spread 0.27 or more, a rectangle | `rows` | 7 of 50 |
+| 6 | free, spread 0.27 or more, another shape | `maxrects-bl` | 172 of 200 |
+
+- The fit used all seeds of `pack-screen-v1` and `pack-free-v1`. A win is a fill ratio of 1.05 or more with no added hard break.
+- The fit tests the run-time features against the wins, not the generator labels of the inputs.
+- Each threshold is in a plateau of the training accuracy. The table takes the value that other code uses: `SPREAD_THRESHOLDS` and the end of the band `100` of `countCell`.
+- The option `members` replaces the members, and the option `table` replaces the table. `checkSelectTable` refuses a path of more than 3 tests, a bad pick and a threshold that is not a number.
+- The output gets the trace stage `select` (`SELECT_STAGE`) as its last stage. Its measures are `move.select`, `select.member`, `select.pick.<id>`, `select.leaf` and the 4 feature values.
+- The measure `move.select` is 1 when the pick is not member 0. A flag feature is 1 for `true`, and `select.spread` has 3 decimals.
+
 ## The registry
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
-const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit"
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit" and "select"
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```

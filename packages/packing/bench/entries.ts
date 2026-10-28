@@ -69,8 +69,16 @@ export const ASPECT_FIT_ENTRIES: readonly BenchEntry[] = Object.freeze([
   },
 ]);
 
+/**
+ * The composite entries of roadmap item k66, part 2. They are not in the pool of the oracle.
+ *
+ * - `select-rows-bl`: the strategy `select` with its defaults. It packs each input with `rows` or `maxrects-bl` by `SELECT_TABLE`.
+ *   Its base is `rows`, the default. Its move is `move.select`.
+ */
+export const SELECT_ENTRIES: readonly BenchEntry[] = Object.freeze([{ id: "select-rows-bl", strategy: "select", options: {}, base: "rows" }]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -87,6 +95,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...MAXRECTS_VARIANTS,
   ...PORTFOLIO_ENTRIES,
   ...ASPECT_FIT_ENTRIES,
+  ...SELECT_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

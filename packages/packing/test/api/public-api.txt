@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 181 names
+## . (build/index.d.ts): 194 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -90,10 +90,19 @@ type RectGridParams: build/index.d.ts#RectGridParams
 type RectGridV2Params: build/index.d.ts#RectGridV2Params
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
+SELECT_MAX_DEPTH: build/index.d.ts#SELECT_MAX_DEPTH
+SELECT_MEMBERS: build/index.d.ts#SELECT_MEMBERS
+SELECT_STAGE: build/index.d.ts#SELECT_STAGE
+SELECT_TABLE: build/index.d.ts#SELECT_TABLE
 SHELF_FITS: build/index.d.ts#SHELF_FITS
 SORT_ORDERS: build/index.d.ts#SORT_ORDERS
 SPREAD_THRESHOLDS: build/index.d.ts#SPREAD_THRESHOLDS
+type SelectFeatures: build/index.d.ts#SelectFeatures
+type SelectFlagFeature: build/index.d.ts#SelectFlagFeature
 type SelectLevel: @mark1russell7/layout-contract#SelectLevel (external)
+type SelectNode: build/index.d.ts#SelectNode
+type SelectNumberFeature: build/index.d.ts#SelectNumberFeature
+type SelectStrategyOptions: build/index.d.ts#SelectStrategyOptions
 type ShelfFit: build/index.d.ts#ShelfFit
 type ShelfOptions: build/index.d.ts#ShelfOptions
 type Side: @mark1russell7/layout-contract#Side (external)
@@ -122,6 +131,7 @@ cellKey: build/index.d.ts#cellKey
 cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
+checkSelectTable: build/index.d.ts#checkSelectTable
 compareRects: build/index.d.ts#compareRects
 composites: build/index.d.ts#composites
 corpus: build/index.d.ts#corpus
@@ -171,6 +181,9 @@ rectScattered: build/index.d.ts#rectScattered
 round3: build/index.d.ts#round3
 roundMeasures: build/index.d.ts#roundMeasures
 rows: build/index.d.ts#rows
+selectFeatures: build/index.d.ts#selectFeatures
+selectLeaf: build/index.d.ts#selectLeaf
+selectStrategy: build/index.d.ts#selectStrategy
 shelf: build/index.d.ts#shelf
 skyline: build/index.d.ts#skyline
 spreadBand: build/index.d.ts#spreadBand
@@ -629,6 +642,18 @@ type RectScatteredParams = {
   count: number;
 };
 
+### build/index.d.ts#SELECT_MAX_DEPTH
+export declare const SELECT_MAX_DEPTH = 3;
+
+### build/index.d.ts#SELECT_MEMBERS
+export declare const SELECT_MEMBERS: readonly PortfolioEntry[];
+
+### build/index.d.ts#SELECT_STAGE
+export declare const SELECT_STAGE = "select";
+
+### build/index.d.ts#SELECT_TABLE
+export declare const SELECT_TABLE: SelectNode;
+
 ### build/index.d.ts#SHELF_FITS
 export declare const SHELF_FITS: readonly ShelfFit[];
 
@@ -640,6 +665,41 @@ export declare const SPREAD_THRESHOLDS: Readonly<{
   identical: number;
   uniform: number;
 }>;
+
+### build/index.d.ts#SelectFeatures
+interface SelectFeatures {
+  count: number;
+  fixed: boolean;
+  rect: boolean;
+  spread: number;
+}
+
+### build/index.d.ts#SelectFlagFeature
+type SelectFlagFeature = "fixed" | "rect";
+
+### build/index.d.ts#SelectNode
+type SelectNode = {
+  readonly leaf: number;
+  readonly pick: number;
+} | {
+  readonly feature: SelectNumberFeature;
+  readonly below: number;
+  readonly yes: SelectNode;
+  readonly no: SelectNode;
+} | {
+  readonly feature: SelectFlagFeature;
+  readonly yes: SelectNode;
+  readonly no: SelectNode;
+};
+
+### build/index.d.ts#SelectNumberFeature
+type SelectNumberFeature = "count" | "spread";
+
+### build/index.d.ts#SelectStrategyOptions
+interface SelectStrategyOptions {
+  members?: readonly (string | PortfolioEntry)[];
+  table?: SelectNode;
+}
 
 ### build/index.d.ts#ShelfFit
 type ShelfFit = "next" | "first" | "best";
@@ -764,6 +824,9 @@ export declare function cellOf(input: PackInput): Cell;
 
 ### build/index.d.ts#checkHard
 export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">, options?: ContainerTest$1): PackHard$1;
+
+### build/index.d.ts#checkSelectTable
+export declare function checkSelectTable(table: SelectNode, members: number): void;
 
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
@@ -918,6 +981,18 @@ export declare function roundMeasures<T extends object>(measures: T): T;
 
 ### build/index.d.ts#rows
 export declare const rows: Strategy<LayoutStrategyOptions>;
+
+### build/index.d.ts#selectFeatures
+export declare function selectFeatures(input: PackInput): SelectFeatures;
+
+### build/index.d.ts#selectLeaf
+export declare function selectLeaf(features: SelectFeatures, table?: SelectNode): {
+  leaf: number;
+  pick: number;
+};
+
+### build/index.d.ts#selectStrategy
+export declare const selectStrategy: Strategy<SelectStrategyOptions>;
 
 ### build/index.d.ts#shelf
 export declare const shelf: Strategy<LayoutStrategyOptions>;

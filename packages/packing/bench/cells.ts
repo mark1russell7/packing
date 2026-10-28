@@ -2,7 +2,7 @@
 // records of one run and finds the cells where the candidate wins. It does not start a packer.
 //
 //   node bench/cells.ts <folder> --candidate <id> --default <id> --out <folder> [--times <folder>] [--held-out <seed>]
-//     [--ns-per-item <n>]
+//     [--split <name>] [--splits <folder>] [--ns-per-item <n>]
 //
 // Each fill ratio of this script is `fill(candidate) / fill(default)`. A ratio above 1 tells that the candidate fills more.
 // This direction is the opposite of the oriented ratios of `bench/promote.ts`.
@@ -13,6 +13,7 @@ import { medianRatio, pairedRatio } from "@mark1russell7/packing";
 import { readRecords } from "./choose-sets.ts";
 import { HELD_OUT_SEED, hardOf, seedOf, type HeldOut } from "./portfolio.ts";
 import { cellsOf, hardTest, numText, pairsOf, PROMOTION_PARAMETERS, timeOf, timeTest, type InputCell, type PromotionRecord, type TimeResult } from "./promote.ts";
+import { loadSplit, type SplitFold, type SplitManifest } from "./split.ts";
 
 /** A win: the fill ratio of an input is this value or more, and the candidate adds no hard break. */
 export const WIN_RATIO = 1.05;
@@ -71,6 +72,29 @@ export interface CellInput {
 
 /** The strategy that a selector picks. */
 export type Choice = "candidate" | "default";
+
+/** One fold as two tests of a seed: the training seeds fit the selector, and the held-out seeds score it. */
+export interface FoldTest {
+  train: (seed: number | undefined) => boolean;
+  heldOut: (seed: number | undefined) => boolean;
+}
+
+/** This function gives the fold of a held-out split: the held-out seed, or `all`. Each other input is a training input. */
+export function foldOfHeldOut(heldOut: HeldOut): FoldTest {
+  const held = (seed: number | undefined): boolean => heldOut === "all" || seed === heldOut;
+  return { train: (seed) => !held(seed), heldOut: held };
+}
+
+/** This function gives the fold of a split file. An input with a seed of neither list is not in the fold. */
+export function foldOfSplit(fold: SplitFold): FoldTest {
+  return {
+    train: (seed) => seed !== undefined && fold.train.includes(seed),
+    heldOut: (seed) => seed !== undefined && fold.heldOut.includes(seed),
+  };
+}
+
+/** This function gives the fold test of a held-out split or of a fold test. */
+const foldOf = (h: HeldOut | FoldTest): FoldTest => (typeof h === "object" ? h : foldOfHeldOut(h));
 
 /** The facts of one cell. */
 export interface CellFacts {
@@ -164,7 +188,10 @@ export interface CellsReport {
   /** The direction of each ratio of the report */
   direction: string;
   winRatio: number;
-  heldOut: HeldOut;
+  /** The held-out seed, `all`, or the name of the split of the option `--split` */
+  heldOut: HeldOut | string;
+  /** The folds of the split. It is absent without a split file. */
+  folds?: SplitFold[];
   inputs: number;
   /** The inputs without a measured record of each strategy */
   leftOut: number;
@@ -174,10 +201,11 @@ export interface CellsReport {
   medianRatio: number;
   /** The share of the inputs in a cell with a win share of `1 - CLEAR_SHARE` or more, or `CLEAR_SHARE` or less */
   clearShare: number;
+  /** The training inputs of the first fold */
   trainInputs: number;
-  /** The share of all the inputs in a cell where the selector picks the default */
+  /** The share of all the inputs in a cell where the selector picks the default. The picks come from the first fold. */
   defaultShareAll: number;
-  /** The score of the cell selector on the held-out inputs */
+  /** The score of the cell selector on the held-out inputs of each fold, with the picks of that fold */
   selector: SelectorScore;
   /** The time of the cell selector on the held-out inputs. It is absent without time records. */
   time?: SelectorTime;
@@ -213,9 +241,6 @@ const medianOf = (values: readonly number[]): number => (values.length === 0 ? N
 
 /** This function gives the mean of some values, or `NaN` for no value. */
 const meanOf = (values: readonly number[]): number => (values.length === 0 ? NaN : values.reduce((a, b) => a + b, 0) / values.length);
-
-/** This function tells if an input is held out. */
-const isHeldOut = (seed: number | undefined, heldOut: HeldOut): boolean => heldOut === "all" || seed === heldOut;
 
 /**
  * This function gives the facts of each input with a measured record of each strategy. The pairs come from `pairsOf`,
@@ -269,10 +294,11 @@ function groupBy<T>(values: readonly T[], key: (v: T) => string): Map<string, T[
 /** This function gives the pick of the selector rule from the training ratios: the candidate when their median is `WIN_RATIO` or more. */
 export const pickOf = (trainRatios: readonly number[]): Choice => (trainRatios.length > 0 && medianOf(trainRatios) >= WIN_RATIO ? "candidate" : "default");
 
-/** This function gives the facts of each cell, with the pick of the cell selector from the training seeds. */
-export function cellFactsOf(inputs: readonly CellInput[], heldOut: HeldOut): CellFacts[] {
+/** This function gives the facts of each cell, with the pick of the cell selector from the training seeds of a fold. */
+export function cellFactsOf(inputs: readonly CellInput[], heldOut: HeldOut | FoldTest): CellFacts[] {
+  const fold = foldOf(heldOut);
   return [...groupBy(inputs, (i) => i.cell)].map(([cell, own]) => {
-    const train = own.filter((i) => !isHeldOut(i.seed, heldOut)).map((i) => i.candidateOverDefault);
+    const train = own.filter((i) => fold.train(i.seed)).map((i) => i.candidateOverDefault);
     const wins = own.filter((i) => i.win).length;
     return {
       cell,
@@ -284,7 +310,7 @@ export function cellFactsOf(inputs: readonly CellInput[], heldOut: HeldOut): Cel
       trainInputs: train.length,
       trainMedian: medianOf(train),
       pick: pickOf(train),
-      heldOutInputs: own.length - train.length,
+      heldOutInputs: own.filter((i) => fold.heldOut(i.seed)).length,
     };
   });
 }
@@ -380,10 +406,29 @@ export function groupsOf(inputs: readonly CellInput[], cells: readonly CellFacts
   return rows.toSorted((a, b) => valuesKey(a.values, features).localeCompare(valuesKey(b.values, features)));
 }
 
-/** This function gives the decision table of some features. Each leaf picks with `pickOf` on its training inputs. */
-export function decisionOf(inputs: readonly CellInput[], features: readonly Feature[], heldOut: HeldOut, nsPerItem?: number): DecisionTable {
-  const leaves = [...groupBy(inputs, (i) => valuesKey(i.features, features))].map(([, own]): Leaf => {
-    const train = own.filter((i) => !isHeldOut(i.seed, heldOut)).map((i) => i.candidateOverDefault);
+/** The inputs of some folds, each one with the pick of its fold. */
+export interface Pooled {
+  inputs: CellInput[];
+  pickFor: (i: CellInput) => Choice;
+}
+
+/**
+ * This function pools one part of each fold: its training inputs or its held-out inputs. `pickerOf` gives the pick function of a
+ * fold. A pooled input is a copy, so an input of two folds counts two times, each time with the pick of its fold.
+ */
+export function pooledOf(inputs: readonly CellInput[], folds: readonly FoldTest[], part: "train" | "heldOut", pickerOf: (fold: FoldTest) => (i: CellInput) => Choice): Pooled {
+  const picks = new Map<CellInput, Choice>();
+  for (const fold of folds) {
+    const pick = pickerOf(fold);
+    for (const i of inputs) if (fold[part](i.seed)) picks.set({ ...i }, pick(i));
+  }
+  return { inputs: [...picks.keys()], pickFor: (i) => picks.get(i) ?? "default" };
+}
+
+/** This function gives the leaves of a decision table from the training inputs of one fold. */
+function leavesOf(inputs: readonly CellInput[], features: readonly Feature[], fold: FoldTest): Leaf[] {
+  return [...groupBy(inputs, (i) => valuesKey(i.features, features))].map(([, own]): Leaf => {
+    const train = own.filter((i) => fold.train(i.seed)).map((i) => i.candidateOverDefault);
     return {
       values: valuesOf(own[0]!.features, features),
       inputs: own.length,
@@ -393,19 +438,33 @@ export function decisionOf(inputs: readonly CellInput[], features: readonly Feat
       pick: pickOf(train),
     };
   });
+}
+
+/** This function gives the pick function of some leaves. An input with no leaf gets the default. */
+function leafPicker(leaves: readonly Leaf[], features: readonly Feature[]): (i: CellInput) => Choice {
   const pickByKey = new Map(leaves.map((l) => [features.map((k) => l.values[k]).join(" / "), l.pick]));
-  const pickFor = (i: CellInput): Choice => pickByKey.get(valuesKey(i.features, features)) ?? "default";
-  const train = inputs.filter((i) => !isHeldOut(i.seed, heldOut));
-  const held = inputs.filter((i) => isHeldOut(i.seed, heldOut));
+  return (i) => pickByKey.get(valuesKey(i.features, features)) ?? "default";
+}
+
+/**
+ * This function gives the decision table of some features. Each leaf picks with `pickOf` on its training inputs. With a list of
+ * folds, each fold fits its own leaves. The table shows the leaves of the first fold, and the scores pool all the folds.
+ */
+export function decisionOf(inputs: readonly CellInput[], features: readonly Feature[], heldOut: HeldOut | readonly FoldTest[], nsPerItem?: number): DecisionTable {
+  const folds: readonly FoldTest[] = Array.isArray(heldOut) ? heldOut : [foldOfHeldOut(heldOut as HeldOut)];
+  const leaves = leavesOf(inputs, features, folds[0]!);
+  const pickerOf = (fold: FoldTest) => leafPicker(fold === folds[0] ? leaves : leavesOf(inputs, features, fold), features);
+  const train = pooledOf(inputs, folds, "train", pickerOf);
+  const held = pooledOf(inputs, folds, "heldOut", pickerOf);
   const table: DecisionTable = {
     features: [...features],
     leaves: leaves.toSorted((a, b) => b.inputs - a.inputs),
     leafCount: leaves.length,
-    trainAccuracy: scoreOf(train, pickFor).accuracy,
-    heldOutAccuracy: scoreOf(held, pickFor).accuracy,
-    heldOut: scoreOf(held, pickFor),
+    trainAccuracy: scoreOf(train.inputs, train.pickFor).accuracy,
+    heldOutAccuracy: scoreOf(held.inputs, held.pickFor).accuracy,
+    heldOut: scoreOf(held.inputs, held.pickFor),
   };
-  if (inputs.some((i) => i.candidateMs !== undefined)) table.time = selectorTimeOf(held, pickFor, nsPerItem);
+  if (inputs.some((i) => i.candidateMs !== undefined)) table.time = selectorTimeOf(held.inputs, held.pickFor, nsPerItem);
   return table;
 }
 
@@ -430,8 +489,12 @@ export interface CellsOptions {
   current: string;
   /** The cells of each input, by input id */
   cells: ReadonlyMap<string, CorpusCell>;
-  /** The held-out split. The default is `HELD_OUT_SEED`. */
+  /** The held-out split. The default is `HELD_OUT_SEED`. The option `folds` replaces it. */
   heldOut?: HeldOut;
+  /** The folds of a split file. The scores pool the held-out inputs of each fold. */
+  folds?: readonly SplitFold[];
+  /** The name of the split of `folds`, for the report */
+  split?: string;
   /** The time records. Without them, the report has no time. */
   times?: readonly CellRecord[];
   nsPerItem?: number;
@@ -440,38 +503,43 @@ export interface CellsOptions {
 /** This function gives the report of the cells of a candidate against a default. */
 export function cellsReportOf(records: readonly CellRecord[], options: CellsOptions): CellsReport {
   const heldOut = options.heldOut ?? HELD_OUT_SEED;
+  const folds = options.folds === undefined || options.folds.length === 0 ? [foldOfHeldOut(heldOut)] : options.folds.map(foldOfSplit);
   const { inputs, leftOut } = cellInputsOf(records, options.cells, options.candidate, options.current, options.times);
-  const cells = cellFactsOf(inputs, heldOut);
-  const pickOfCell = new Map(cells.map((c) => [c.cell, c.pick]));
-  const pickFor = (i: CellInput): Choice => pickOfCell.get(i.cell) ?? "default";
-  const held = inputs.filter((i) => isHeldOut(i.seed, heldOut));
+  const cells = cellFactsOf(inputs, folds[0]!);
+  const cellPicker = (list: readonly CellFacts[]): ((i: CellInput) => Choice) => {
+    const pickOfCell = new Map(list.map((c) => [c.cell, c.pick]));
+    return (i) => pickOfCell.get(i.cell) ?? "default";
+  };
+  const pickFor = cellPicker(cells);
+  const held = pooledOf(inputs, folds, "heldOut", (fold) => (fold === folds[0] ? pickFor : cellPicker(cellFactsOf(inputs, fold))));
   const clear = cells.filter((c) => c.winShare >= 1 - CLEAR_SHARE || c.winShare <= CLEAR_SHARE).reduce((n, c) => n + c.inputs, 0);
   const wins = inputs.filter((i) => i.win).length;
   const groupFeatures = usedFeatures(inputs);
-  const tables = subsetsOf(groupFeatures).map((f) => decisionOf(inputs, f, heldOut, options.nsPerItem));
+  const tables = subsetsOf(groupFeatures).map((f) => decisionOf(inputs, f, folds, options.nsPerItem));
   const best = [1, 2, 3].flatMap((n) => tables.filter((t) => t.features.length === n).toSorted(byAccuracy).slice(0, 1));
   const report: CellsReport = {
     candidate: options.candidate,
     current: options.current,
     direction: `each ratio is fill(${options.candidate}) / fill(${options.current}). Above 1, ${options.candidate} fills more.`,
     winRatio: WIN_RATIO,
-    heldOut,
+    heldOut: options.folds === undefined ? heldOut : (options.split ?? "split"),
+    ...(options.folds === undefined ? {} : { folds: options.folds.map((f) => ({ train: [...f.train], heldOut: [...f.heldOut] })) }),
     inputs: inputs.length,
     leftOut,
     wins,
     winShare: inputs.length === 0 ? NaN : wins / inputs.length,
     medianRatio: medianOf(inputs.map((i) => i.candidateOverDefault)),
     clearShare: inputs.length === 0 ? NaN : clear / inputs.length,
-    trainInputs: inputs.length - held.length,
+    trainInputs: inputs.filter((i) => folds[0]!.train(i.seed)).length,
     defaultShareAll: inputs.length === 0 ? NaN : inputs.filter((i) => pickFor(i) === "default").length / inputs.length,
-    selector: scoreOf(held, pickFor),
+    selector: scoreOf(held.inputs, held.pickFor),
     cells,
     groupFeatures,
     groups: groupsOf(inputs, cells, groupFeatures),
     decision: best,
     decisionRanks: tables.toSorted(byAccuracy).map(({ leaves: _, time: __, ...rest }) => rest),
   };
-  if (options.times !== undefined) report.time = selectorTimeOf(held, pickFor, options.nsPerItem);
+  if (options.times !== undefined) report.time = selectorTimeOf(held.inputs, held.pickFor, options.nsPerItem);
   return report;
 }
 
@@ -495,7 +563,12 @@ export function cellsMarkdown(r: CellsReport): string {
     "",
     `- The direction: ${r.direction} The field is \`candidateOverDefault\`.`,
     `- A win: the ratio is ${r.winRatio} or more, and \`${r.candidate}\` has no hard count above that of \`${r.current}\`.`,
-    `- A cell is the input id without its seed. The held-out split is \`${r.heldOut}\`. The training inputs are the other seeds.`,
+    ...(r.folds === undefined
+      ? [`- A cell is the input id without its seed. The held-out split is \`${r.heldOut}\`. The training inputs are the other seeds.`]
+      : [
+          `- A cell is the input id without its seed. The split is \`${r.heldOut}\`, with ${r.folds.length} folds: ${r.folds.map((f) => `train ${f.train.join(" ")} and held out ${f.heldOut.join(" ")}`).join(", ")}.`,
+          "- Each fold fits its own picks. The held-out rows pool the held-out inputs of all the folds. The tables of leaves and cells show the first fold.",
+        ]),
     `- The selector picks \`${r.candidate}\` in a cell when the median ratio of its training inputs is ${r.winRatio} or more.`,
     "",
     "| value | result |",
@@ -561,9 +634,9 @@ const optionOf = (argv: readonly string[], name: string): string | undefined => 
 };
 
 /** This function reads `records.jsonl` and `corpus.json` of a folder. */
-function readFolder(folder: string): { records: CellRecord[]; manifest: { heldOut?: HeldOut } } {
+function readFolder(folder: string): { records: CellRecord[]; manifest: SplitManifest & { heldOut?: HeldOut } } {
   const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8")) as CellRecord[];
-  const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as { heldOut?: HeldOut };
+  const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as SplitManifest & { heldOut?: HeldOut };
   return { records, manifest };
 }
 
@@ -574,11 +647,15 @@ export function cellsMain(argv: readonly string[]): CellsReport {
   const current = optionOf(argv, "--default");
   const out = optionOf(argv, "--out");
   if (folder === undefined || candidate === undefined || current === undefined || out === undefined) {
-    throw new Error("Start the report with: node bench/cells.ts <folder> --candidate <id> --default <id> --out <folder> [--times <folder>] [--held-out <seed>] [--ns-per-item <n>]");
+    throw new Error("Start the report with: node bench/cells.ts <folder> --candidate <id> --default <id> --out <folder> [--times <folder>] [--held-out <seed>] [--split <name>] [--splits <folder>] [--ns-per-item <n>]");
   }
   const { records, manifest } = readFolder(folder);
   const heldOutText = optionOf(argv, "--held-out");
   const heldOut: HeldOut = heldOutText === undefined ? (manifest.heldOut ?? HELD_OUT_SEED) : heldOutText === "all" ? "all" : Number(heldOutText);
+  const split = optionOf(argv, "--split");
+  if (split !== undefined && heldOutText !== undefined) throw new Error("The report takes the option --held-out or the option --split, not the two.");
+  const splitsDir = optionOf(argv, "--splits");
+  const folds = split === undefined ? undefined : splitsDir === undefined ? loadSplit(manifest, split) : loadSplit(manifest, split, splitsDir);
   const timesFolder = optionOf(argv, "--times");
   const nsText = optionOf(argv, "--ns-per-item");
   const report = cellsReportOf(records, {
@@ -586,6 +663,7 @@ export function cellsMain(argv: readonly string[]): CellsReport {
     current,
     cells: cellsOf(manifest) as Map<string, CorpusCell>,
     heldOut,
+    ...(folds === undefined || split === undefined ? {} : { folds, split }),
     ...(timesFolder === undefined ? {} : { times: readFolder(timesFolder).records }),
     ...(nsText === undefined ? {} : { nsPerItem: Number(nsText) }),
   });

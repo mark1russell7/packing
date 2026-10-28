@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { cellKeyOf, cellsMain, cellsMarkdown, cellsReportOf, decisionOf, fillRatio, oracleOf, subsetsOf, WIN_RATIO, type CellRecord, type CorpusCell } from "./cells.ts";
+import { corpusHashOf } from "./split.ts";
 
 // The cells report of k66 on made-up records only. The test reads no time of this computer.
 
@@ -120,6 +121,39 @@ describe("the decision tables", () => {
   });
 });
 
+describe("the folds of a split", () => {
+  const loso = SEEDS.map((s) => ({ train: SEEDS.filter((t) => t !== s), heldOut: [s] }));
+
+  it("gives the same scores as --held-out 3 for one fold that holds out seed 3", () => {
+    const split = cellsReportOf(records, { candidate: "bl", current: "rows", cells: cellMap, folds: [{ train: [1, 2, 4, 5], heldOut: [3] }], split: "default" });
+    expect(split.selector).toEqual(report.selector);
+    expect(split.decision).toEqual(report.decision);
+    expect([split.heldOut, split.trainInputs, split.folds]).toEqual(["default", 16, [{ train: [1, 2, 4, 5], heldOut: [3] }]]);
+  });
+
+  it("pools the held-out inputs of each fold, so leave-one-seed-out scores each input once", () => {
+    const r = cellsReportOf(records, { candidate: "bl", current: "rows", cells: cellMap, folds: loso, split: "loso" });
+    const s = r.selector;
+    expect([s.inputs, s.defaultPicks, s.hardBreaks, s.accuracy]).toEqual([20, 10, 5, 0.75]);
+    expect(r.decision.find((t) => t.features.join() === "count")!.heldOut.inputs).toBe(20);
+    expect(cellsMarkdown(r)).toContain("The split is `loso`, with 5 folds: train 2 3 4 5 and held out 1");
+  });
+
+  it("leaves out an input whose seed is in no list of the fold", () => {
+    const r = cellsReportOf(records, { candidate: "bl", current: "rows", cells: cellMap, folds: [{ train: [1, 2], heldOut: [3] }] });
+    expect([r.trainInputs, r.selector.inputs, r.cells[0]!.trainInputs, r.cells[0]!.heldOutInputs]).toEqual([8, 4, 2, 1]);
+  });
+
+  it("gives a different pick to each fold when the training seeds differ", () => {
+    // In the cell `win` of these records, only seed 1 wins.
+    const mixed = SEEDS.flatMap((s) => [record("bl", `t/win/s${s}`, s === 1 ? 0.9 : 0.6), record("rows", `t/win/s${s}`, 0.6)]);
+    const folds = [{ train: [1], heldOut: [2] }, { train: [2], heldOut: [1] }];
+    const r = cellsReportOf(mixed, { candidate: "bl", current: "rows", cells: cellMap, folds });
+    // Fold 0 trains on seed 1 (a win) and picks bl on seed 2. Fold 1 trains on seed 2 and picks rows on seed 1.
+    expect([r.selector.inputs, r.selector.defaultPicks, r.selector.accuracy]).toEqual([2, 1, 0]);
+  });
+});
+
 describe("the command line", () => {
   const dir = mkdtempSync(join(tmpdir(), "cells-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -137,5 +171,25 @@ describe("the command line", () => {
     expect(md).toBe(cellsMarkdown(r));
     expect(JSON.parse(readFileSync(join(out, "cells.json"), "utf8")).cells).toHaveLength(4);
     expect(() => cellsMain([bench])).toThrow(/Start the report/);
+  });
+
+  it("reads the split of --split from the file of the corpus hash, and refuses a missing file", () => {
+    const bench = join(dir, "split-bench");
+    mkdirSync(bench);
+    const manifest = { corpus: "t", specs: [{ seeds: SEEDS }], inputs: [...cellMap].map(([id, cell]) => ({ id, hash: `h-${id}`, cell })) };
+    writeFileSync(join(bench, "records.jsonl"), records.map((r) => JSON.stringify(r)).join("\n"));
+    writeFileSync(join(bench, "corpus.json"), JSON.stringify(manifest));
+    const splits = join(dir, "splits");
+    mkdirSync(splits);
+    const folds = SEEDS.map((s) => ({ train: SEEDS.filter((t) => t !== s), heldOut: [s] }));
+    const file = { schema: "corpus-split/1", corpus: "t", corpusHash: corpusHashOf(manifest), splits: { loso: { folds } } };
+    writeFileSync(join(splits, `t.${corpusHashOf(manifest)}.json`), JSON.stringify(file));
+    const out = join(dir, "split-out");
+    const r = cellsMain([bench, "--candidate", "bl", "--default", "rows", "--out", out, "--split", "loso", "--splits", splits]);
+    expect([r.heldOut, r.selector.inputs]).toEqual(["loso", 20]);
+    expect(() => cellsMain([bench, "--candidate", "bl", "--default", "rows", "--out", out, "--split", "nope", "--splits", splits])).toThrow(/has no split nope/);
+    expect(() => cellsMain([bench, "--candidate", "bl", "--default", "rows", "--out", out, "--split", "loso", "--held-out", "3", "--splits", splits])).toThrow(/not the two/);
+    writeFileSync(join(bench, "corpus.json"), JSON.stringify({ ...manifest, inputs: manifest.inputs.slice(1) }));
+    expect(() => cellsMain([bench, "--candidate", "bl", "--default", "rows", "--out", out, "--split", "loso", "--splits", splits])).toThrow(/does not exist/);
   });
 });

@@ -103,6 +103,21 @@ export {
 } from "./portfolio-cell.ts";
 export { PORTFOLIO_SETS } from "./portfolio-sets.ts";
 export { portfolioStrategy, type PortfolioStrategyOptions } from "./portfolio-strategy.ts";
+export {
+  checkSelectTable,
+  SELECT_MAX_DEPTH,
+  SELECT_MEMBERS,
+  SELECT_STAGE,
+  SELECT_TABLE,
+  selectFeatures,
+  selectLeaf,
+  selectStrategy,
+  type SelectFeatures,
+  type SelectFlagFeature,
+  type SelectNode,
+  type SelectNumberFeature,
+  type SelectStrategyOptions,
+} from "./select.ts";
 export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export {
