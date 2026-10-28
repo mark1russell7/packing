@@ -174,6 +174,8 @@ The package exports each generator below, with `generators`, `generator(name)` a
 | `edge-cases` | `case` `oversize`, `count` 12 | The cases `empty`, `one`, `oversize`, `exactTiling` and `touchObstacles` |
 | `perfect-cut` | `cut` `guillotine`, `containerSize` `fixed`, `count` 30 | `fixed`, `freeHeight` and `freeArea`: pieces of a cut with a known optimum |
 | `consecutive-squares` | `containerSize` `freeHeight`, `count` 30 | `freeHeight` and `freeArea`: the squares 1 to `count` with a known lower bound |
+| `berkey-wang` | `class` `I`, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: the classes `I` to `VI` of Berkey 1987 (k106, `docs/BENCH.md`) |
+| `martello-vigo` | `class` `VII`, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: the classes `VII` to `X` of Martello 1998 (k106, `docs/BENCH.md`) |
 
 The parameter `containerSize` of `rect-grid` and of the families of a user interface has the values `fixed`, `freeHeight`, `freeWidth`, `freeAspect` and `freeArea`.
 
