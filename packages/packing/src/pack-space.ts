@@ -19,6 +19,7 @@ import {
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
 import type { LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions } from "./adapters.ts";
+import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
 import { MEASURE_SPECS } from "./measures.ts";
@@ -76,6 +77,9 @@ const RESTARTS_PARAMS: readonly SpaceParam[] = [
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
 const RECT_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["rect"] as const) });
+
+/** The inputs of the option `bbox` of roadmap item k91: each shape kind. Its member gets only `rect` items. */
+const BBOX_ONLY: OptionSupports = Object.freeze({ shape: BBOX_SHAPES });
 
 /** This function gives the stage choice of a param list, without an empty list of params. */
 const choice = (option: string, params: Record<string, string | number | boolean> = {}): StageChoice =>
@@ -163,6 +167,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "select", params: [{ name: "table", kind: "enum", values: ["k66"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
       { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "restarts", params: RESTARTS_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true }, supports: BBOX_ONLY },
     ],
   },
 ];
@@ -188,12 +193,12 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
  *
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` only.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit` and `restarts`. The option `restarts` has 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts` and `bbox`. `restarts` and `bbox` have 1 member.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
  * - The named config `aspect-fit` wraps `maxrects`, because the registry strategy needs an inner strategy.
- * - Each option supports only the shape kind `rect`. Thus `spaceSize` with other `shapes` gives 0.
+ * - Each option supports only the shape kind `rect`, but `bbox` supports each kind. Its members support only `rect`, so `spaceSize` with other `shapes` gives 0.
  * - Each option of each strategy is a param, a stage or the members of a meta option. `PACK_SPACE_OPTIONS` tells the place.
  */
 export const packSpace: StrategySpace = Object.freeze({
@@ -221,6 +226,9 @@ export const packSpace: StrategySpace = Object.freeze({
     "restarts-rows-k16": metaConfig("restarts", [single("rows")], { iterations: 16 }),
     "restarts-maxrects-bl-shuffle-k16": metaConfig("restarts", [single("maxrects-bl")], { iterations: 16, perturb: "shuffle" }),
     restarts: metaConfig("restarts", [single("maxrects-bl")]),
+    "bbox-maxrects-bl": metaConfig("bbox", [single("maxrects-bl")]),
+    "bbox-skyline": metaConfig("bbox", [single("skyline")]),
+    bbox: metaConfig("bbox", [single("maxrects-bl")]),
   },
 } satisfies StrategySpace);
 
@@ -279,6 +287,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     limitTime: "combine.restarts.limitTime",
     budgetMs: "combine.restarts.budgetMs",
   } satisfies Places<RestartsStrategyOptions>,
+  bbox: { member: "combine.bbox.members", turn: "combine.bbox.turn" } satisfies Places<BboxStrategyOptions>,
   pack: {
     sortOrder: "order",
     space: null,
@@ -360,23 +369,31 @@ function wrapped(id: string, options: Record<string, unknown>, params: Readonly<
   return packWith("aspect-fit", input, { strategy: id, options, ...target }, seed);
 }
 
+/** This function gives the option of the stage `combine` of a config, or `undefined`. It reads a config that is not checked. */
+function combineOf(config: StrategyConfig): string | undefined {
+  const c = (config as { stages?: Record<string, { option?: unknown } | null> }).stages?.["combine"];
+  return typeof c?.option === "string" ? c.option : undefined;
+}
+
 /**
  * This function packs an input with a config of `packSpace` and a seed. The default seed is 0.
  *
  * - The function checks the config with `checkConfig`. A config with a break causes a `RangeError` with the details of each break.
  * - The function checks the shape kinds of the items with `checkShapes` and `checkConfig`. A break causes `UnsupportedShape`.
+ * - A `bbox` config supports each shape kind. Its member gets only `rect` items. The caller checks the measures with `checkShapes`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
- * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select`, `aspect-fit` or `restarts`.
+ * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts` or `bbox`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  */
 export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): PackOutput {
   const boxes = { id: SHAPE_INPUT_ID, boxes: input.items };
-  const found = checkConfig(packSpace, config, { shapes: shapeKindsOf(boxes) });
+  const bbox = combineOf(config) === "bbox";
+  const found = checkConfig(packSpace, config, bbox ? {} : { shapes: shapeKindsOf(boxes) });
   const breaks = found.filter((b) => b.claim !== "shape");
   if (breaks.length > 0) throw new RangeError(`The config is not a config of the space packing: ${breaks.map((b) => b.detail).join("; ")}.`);
-  const shapeBreaks = [...checkShapes(boxes, [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES]), ...found];
+  const shapeBreaks = bbox ? [] : [...checkShapes(boxes, [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES]), ...found];
   if (shapeBreaks.length > 0) throw new UnsupportedShape(itemShapeOf(boxes), shapeBreaks);
   const c = canonicalConfig(packSpace, config);
   const combine = c.stages["combine"];
@@ -406,6 +423,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       const options = { member: entryOf(members[0]!), iterations: params["iterations"], perturb: params["perturb"], strength: params["strength"] };
       return packWith("restarts", input, { ...options, ...key, ...time }, seed);
     }
+    case "bbox":
+      return packWith("bbox", input, { member: entryOf(members[0]!), turn: params["turn"] === true }, seed);
     default: {
       const run = runOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);
