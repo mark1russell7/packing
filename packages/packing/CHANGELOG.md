@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.8
+
+A fix of the opt-in portfolio. This release has no breaking changes. The default outputs do not change.
+
+### Fixed
+
+- The key of `packPortfolio` reads the measures after `roundMeasures`, as a record keeps them. Before, the key read the exact values.
+- On screen 6, the report replay of the records and the live pick did not agree on 3 of 522 inputs for `portfolio-k2`, and 7 for `portfolio-k3`. The two values of each of these inputs were near the `minEffect` limit.
+- Now a replay of the records gives the pick of the strategy `portfolio`.
+
 ## 0.2.7
 
 The per-cell portfolio of roadmap item k20, part 2. This release has no breaking changes.

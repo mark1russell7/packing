@@ -11,6 +11,8 @@ import {
   PORTFOLIO_LEVELS,
   PORTFOLIO_STAGE,
   rectGrid,
+  round3,
+  roundMeasures,
   toPackInput,
   type PackInput,
   type PackOutput,
@@ -52,13 +54,13 @@ describe("outputHash", () => {
 });
 
 describe("packPortfolio", () => {
-  it("picks the member that selectBest picks on the hard breaks, the excess area and the fill", () => {
+  it("picks the member that selectBest picks on the hard breaks, the excess area and the fill of the records", () => {
     const p = packPortfolio(MEMBERS);
     let picked = 0;
     for (const input of inputs()) {
       const outputs = MEMBERS.map((m) => packMember(m, input));
       const candidates = MEMBERS.map((m, i) => {
-        const values = measure(input, outputs[i]!);
+        const values = roundMeasures(measure(input, outputs[i]!));
         return { id: typeof m === "string" ? m : m.id, values: { hard: hardBreaks(input, outputs[i]!), "pack.overflow.excessArea": values["pack.overflow.excessArea"], "pack.fill": values["pack.fill"] } };
       });
       const expected = selectBest(candidates, PORTFOLIO_LEVELS);
@@ -73,6 +75,8 @@ describe("packPortfolio", () => {
       expect(got.output.trace!.at(-1)).toEqual({ id: PORTFOLIO_STAGE, measures: { "move.pick": got.trace.picked ? 1 : 0 } });
       expect(got.trace.members.map((m) => m.outputHash)).toEqual(outputs.map(outputHash));
       expect(got.trace.deterministic).toBe(true);
+      // The key values have the precision of a record
+      for (const t of got.trace.members) for (const v of Object.values(t.values ?? {})) expect(v).toBe(round3(v));
       if (got.trace.picked) picked++;
     }
     // The inputs exercise the pick: member 0 does not win each one
