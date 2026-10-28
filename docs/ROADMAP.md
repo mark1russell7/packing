@@ -69,6 +69,7 @@ Status: done, done, waiting, next, done.
 | k60 | Overflow excess by area, and fill ranked on shared clean records | measure | done | k59 |
 | k61 | DEFAULT-CANDIDATE: `portfolio-k2` and `maxrects-bl` against the default `rows`, each by the promotion rule. The default changes only when a candidate passes. | measure | active | k58, k20 |
 | k62 | `aspectFit(strategy, { targetAspect })`: for a free-size container, a portfolio of widths around the target aspect, kept by a key with the aspect in it. It wraps any strategy. | strategies | next | k20, k61 |
+| k63 | `skyline` overlap in free curved and polygon containers: in a shaped space, a box wider than the cells of the skyline did not move the skyline up, thus the next such box went to the same place. Fixed in 0.2.10. | strategies | done | k37 |
 
 ## Rules
 

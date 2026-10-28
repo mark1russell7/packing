@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.10
+
+A fix of a hard-rule break of the strategy `skyline`, roadmap item k63. This release has no breaking changes. The default `pack()` and the outputs of rectangle containers do not change.
+
+### Fixed
+
+- In a container with a free size and a circle, ellipse or polygon shape, `skyline` put identical boxes on top of each other. `checkHard` found the breaks as `no-overlap`.
+- The cause: `packFree` tries the width of the widest box. When that width is not a whole number, the box needs one cell more than the skyline has.
+- The skyline of a shaped space put such a box at the left edge, but it did not move the skyline up. Thus the next such box went to the same place.
+- Now the box goes to the first y where each cell is free over its height, and each cell starts after it. This is the same rule as the plain skyline.
+
+### Changed outputs
+
+- Only `skyline` changes its output, in a shaped container with a free height, and only for a box wider than the cells of the skyline.
+- In a sweep of `rect-grid`, each changed input had the size `freeArea` or `freeAspect`, and a convex, polygon, circle, ellipse or holes shape.
+- `rows`, `shelf`, `push`, `maxrects`, `portfolio` and the outputs of rectangle containers do not change.
+
 ## 0.2.9
 
 A dependency update with one behavior change of the opt-in strategy `portfolio`. The default outputs do not change.
