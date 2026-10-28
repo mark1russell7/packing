@@ -41,6 +41,33 @@ Watch the run with `gh run watch <run id>`. Get the result with `gh run download
 
 A job of the matrix fails when a strategy throws an error on an input. The other jobs continue, and `merge` keeps their records.
 
+## The smoke check of each pull request
+
+The workflow `Bench smoke` (`.github/workflows/bench-smoke.yml`) runs on each pull request and on each push to `main`. It has one job with these steps:
+
+1. It installs the dependencies with `pnpm install --frozen-lockfile`.
+2. It gets the strategies with `main.ts list`. Then it runs the corpus `smoke-v1` once for each strategy, with `--repeats 1` and `--warmup 0`.
+3. It joins the folders of the strategies with `main.ts merge`.
+4. It examines the merged folder with `main.ts check`, and it writes the coverage table into the summary of the job.
+
+The command of the check is:
+
+```sh
+node packages/packing/bench/main.ts check <folder>
+```
+
+The check reads `run.json` and `records.jsonl` of the folder. The code is in `packages/packing/bench/smoke-check.ts`. The check fails when one of these conditions is true:
+
+- A strategy has an error on an input.
+- The file `records.jsonl` has no records.
+- A measured record has a hard count above 0, or `deterministic` is `false`.
+- The coverage of a strategy in `run.json` does not agree with its records.
+- The coverage of `rows`, `shelf` or `skyline` is below 1.
+
+The strategy `push` has only the mode `incremental`, and each input of `smoke-v1` is offline. Thus its coverage is 0. The table shows it, and the check does not fail on it.
+
+The check reads no time. The times of this job are not a gate. Only the runs of `Bench` give times that compare.
+
 ## The runner
 
 The runner is `packages/packing/bench/main.ts`. Node.js starts it with no build step. The script `bench` of the package starts it:
