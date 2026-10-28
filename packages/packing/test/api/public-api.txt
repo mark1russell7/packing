@@ -4,10 +4,11 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 129 names
+## . (build/index.d.ts): 130 names
 
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
+type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
 type Corpus: build/index.d.ts#Corpus
 type CorpusCell: build/index.d.ts#CorpusCell
 type CorpusEntry: build/index.d.ts#CorpusEntry
@@ -536,7 +537,7 @@ export declare const cards: CorpusGenerator<UiParams>;
 export declare function cellOf(input: PackInput): Cell;
 
 ### build/index.d.ts#checkHard
-export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">): PackHard$1;
+export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">, options?: ContainerTest$1): PackHard$1;
 
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;

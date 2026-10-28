@@ -65,7 +65,7 @@ Status: done, done, waiting, next, done.
 | k56 | Labels and word clouds: greedy, annealing, four places, and the spiral | strategies | later | k6, k7 |
 | k57 | The types of packing fit `@mark1russell7/layout-contract`, then packing uses them | core | done | k7 |
 | k58 | Promotion: a winner of the catalog becomes the default or a rule of the selector, by the shared promotion rule | measure | later | k11, k20 |
-| k59 | Screen guards: overflow measures with a forced bound, fill ranked without overflow, distinct strategies, activation | measure | active | k11, k37 |
+| k59 | Screen guards: overflow measures with a forced bound, an exact container test, fill ranked without overflow, distinct strategies, activation | measure | active | k11, k37 |
 
 ## Rules
 

@@ -57,7 +57,7 @@ describe("the types of packing and of the contract", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.3");
+    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.4");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
   });
 
@@ -150,15 +150,18 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<RequiredKeys<C.RunEnv>>().toEqualTypeOf<keyof B.BenchEnv>();
   });
 
-  it("gap 12 is closed: checkHard and packHard both read the input, the output and an optional tolerance", () => {
-    expectTypeOf(P.checkHard).parameters.toHaveProperty("length").toEqualTypeOf<2 | 3>();
+  it("gap 12 is closed: checkHard and packHard both read the input, the output, an optional tolerance and the container test", () => {
+    expectTypeOf(P.checkHard).parameters.toHaveProperty("length").toEqualTypeOf<2 | 3 | 4>();
     expectTypeOf(P.checkHard).parameter(0).toEqualTypeOf<C.PackInput>();
     expectTypeOf(P.checkHard).parameter(1).toEqualTypeOf<C.PackOutput>();
     expectTypeOf(P.checkHard).parameter(2).toEqualTypeOf<Pick<C.Tolerance, "overlap"> | undefined>();
-    expectTypeOf(C.packHard).parameters.toHaveProperty("length").toEqualTypeOf<2 | 3>();
+    expectTypeOf(P.checkHard).parameter(3).toEqualTypeOf<C.ContainerTest | undefined>();
+    expectTypeOf(C.packHard).parameters.toHaveProperty("length").toEqualTypeOf<2 | 3 | 4>();
     expectTypeOf(C.packHard).parameter(0).toEqualTypeOf<C.LayoutInput>();
     expectTypeOf(C.packHard).parameter(1).toEqualTypeOf<C.PackOutput>();
     expectTypeOf(C.packHard).parameter(2).toEqualTypeOf<number | undefined>();
+    expectTypeOf(C.packHard).parameter(3).toEqualTypeOf<C.ContainerTest | undefined>();
+    expectTypeOf<P.ContainerTest>().toEqualTypeOf<C.ContainerTest>();
     expectTypeOf(C.packHard).returns.toEqualTypeOf<C.PackHard>();
     // Pinned: checkHard reads the packer input, and packHard reads a file. Both forms stay, as decided in gap 12.
     expectTypeOf<P.PackInput>().not.toExtend<C.LayoutInput>();
@@ -297,8 +300,8 @@ describe("the shared values and functions", () => {
 const fileOf = (input: P.PackInput): C.LayoutInput => ({ schema: "layout-input/1", id: "made-up", ...input, boxes: input.items });
 
 /** The hard rules of the contract for a packer input and its output. */
-const contractHard = (input: P.PackInput, output: P.PackOutput, tolerance?: number): C.PackHard =>
-  C.packHard(fileOf(input), output, tolerance);
+const contractHard = (input: P.PackInput, output: P.PackOutput, tolerance?: number, options?: C.ContainerTest): C.PackHard =>
+  C.packHard(fileOf(input), output, tolerance, options);
 
 const output = (placements: readonly P.Placement[], overflow: readonly string[] = []): P.PackOutput => ({
   placements,
@@ -344,6 +347,59 @@ describe("the hard rules of packing and of the contract", () => {
     }
     expect(compared).toBeGreaterThan(10);
     expect(withInset).toBeGreaterThan(4);
+  });
+
+  it("agree with exactContainer on the packed outputs of each container shape", () => {
+    const exact = { exactContainer: true } as const;
+    let compared = 0;
+    let shaped = 0;
+    for (const containerShape of ["rect", "convex", "polygon", "circle", "ellipse", "holes"] as const) {
+      for (const obstacles of ["none", "scattered"] as const) {
+        const file = P.toPackInput(P.rectGrid.generate(2, { containerShape, obstacles, count: 40 }));
+        for (const input of [file, { ...file, container: { ...file.container, inset: 4 } }]) {
+          const cell = P.cellOf(input);
+          for (const s of P.strategies) {
+            if (!P.supportsCell(s.supports, cell)) continue;
+            const out = P.packWith(s.id, input);
+            const hard = P.checkHard(input, out, undefined, exact);
+            expect(contractHard(input, out, undefined, exact), `${containerShape} ${obstacles} ${s.id}`).toEqual(hard);
+            // The layer packs into the true outline, thus no box is out of the shape
+            expect(hard["in-container"], `${containerShape} ${obstacles} ${s.id}`).toBe(0);
+            if (input.container.shape !== undefined) shaped += 1;
+            compared += 1;
+          }
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(30);
+    expect(shaped).toBeGreaterThan(20);
+  });
+
+  it("agree with exactContainer on a box in the bounding box of a shape, but out of the shape", () => {
+    const circle: P.PackInput = {
+      container: { fixed: "size", shape: { kind: "circle", cx: 50, cy: 50, r: 50 } },
+      items: [{ id: "corner", w: 10, h: 10 }, { id: "center", w: 10, h: 10 }],
+    };
+    const holes: P.PackInput = {
+      container: {
+        fixed: "size",
+        shape: { kind: "polygon", points: [[0, 0], [100, 0], [100, 100], [0, 100]], holes: [[[40, 40], [60, 40], [60, 60], [40, 60]]] },
+        inset: 2,
+      },
+      items: [{ id: "corner", w: 10, h: 10 }, { id: "center", w: 10, h: 10 }],
+    };
+    const out = output([{ id: "corner", x: 1, y: 1 }, { id: "center", x: 45, y: 45 }]);
+    for (const input of [circle, holes]) {
+      expect(P.checkHard(input, out)["in-container"]).toBe(input === holes ? 1 : 0);
+      expect(contractHard(input, out)).toEqual(P.checkHard(input, out));
+      const hard = P.checkHard(input, out, undefined, { exactContainer: true });
+      expect(contractHard(input, out, undefined, { exactContainer: true })).toEqual(hard);
+      // The circle: the corner box is out of the circle. The holes: the inset puts the corner out, and the center box is on the hole.
+      expect(hard["in-container"]).toBe(input === holes ? 2 : 1);
+    }
+    // A free side keeps the test of the bounding box
+    const free: P.PackInput = { ...circle, container: { ...circle.container, fixed: "width" } };
+    expect(P.checkHard(free, out, undefined, { exactContainer: true })["in-container"]).toBe(0);
   });
 
   const input: P.PackInput = {

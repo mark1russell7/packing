@@ -2,7 +2,7 @@
 
 ## 0.2.2
 
-New overflow measures with a forced bound, and a minimum effect for each measure (roadmap item k59). This release has no breaking changes.
+New overflow measures with a forced bound, a minimum effect for each measure and an exact container test (roadmap item k59). This release has no breaking changes.
 
 ### New
 
@@ -10,7 +10,10 @@ New overflow measures with a forced bound, and a minimum effect for each measure
 - `pack.overflow.forced` is a lower bound of the overflow of a fixed container. `docs/MEASURES.md` defines it, with the free area of each container shape.
 - `MeasureId` and `LayoutMeasures` have the 5 new ids. `MEASURE_SPECS` has 20 specs, in the family `overflow` for the new ids.
 - Each spec of `MEASURE_SPECS` has `minEffect`, except `pack.search.ms`. `docs/MEASURES.md` has the table "The minimum effects".
-- The dependency `@mark1russell7/layout-contract` is `^0.2.3`, for `minEffect` and `compareMeasure`.
+- `checkHard` takes an optional fourth parameter `options` of the type `ContainerTest`. With `{ exactContainer: true }`, `in-container` also tests the true outline of a shaped container with the size `fixed`.
+- That test uses `rectInRegion` of the contract, as `packHard` does. The default `false` keeps the counts of 0.2.1.
+- New export: the type `ContainerTest` of the contract.
+- The dependency `@mark1russell7/layout-contract` is `^0.2.4`, for `minEffect`, `compareMeasure`, `rectInRegion` and `ContainerTest`.
 
 ### The outputs
 
