@@ -1,3 +1,4 @@
+import type { ClaimBreak } from "@mark1russell7/layout-contract";
 import type { LayoutContainer, PackInput, PackOutput, Region } from "./contract.ts";
 
 /**
@@ -88,6 +89,22 @@ export class UnsupportedCell extends Error {
     this.name = "UnsupportedCell";
     this.dimension = dimension;
     this.value = value;
+  }
+}
+
+/**
+ * The error of `packConfig` for an input with a shape kind that a measure, a hard rule or a config option does not support.
+ * Its dimension is `itemShape`, and its value is the shape kind of the input, or `mixed`.
+ */
+export class UnsupportedShape extends UnsupportedCell {
+  /** The breaks of `checkShapes` and `checkConfig`, each with the claim `shape`. */
+  readonly breaks: readonly ClaimBreak[];
+
+  constructor(value: string, breaks: readonly ClaimBreak[]) {
+    super("itemShape", value);
+    this.name = "UnsupportedShape";
+    this.message = `The run does not support the shape kinds of the input: ${breaks.map((b) => b.detail).join("; ")}.`;
+    this.breaks = breaks;
   }
 }
 

@@ -56,7 +56,7 @@
     "node": ">=22.12"
   },
   "dependencies": {
-    "@mark1russell7/layout-contract": "^0.2.12"
+    "@mark1russell7/layout-contract": "^0.2.13"
   },
   "scripts": {
     "bench": "node bench/main.ts",

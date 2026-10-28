@@ -28,7 +28,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { declaredClaimOf, type DeclaredClaim } from "@mark1russell7/layout-contract";
+import { declaredClaimOf, type DeclaredClaim, type ShapeKind } from "@mark1russell7/layout-contract";
 import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
 import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
 import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
@@ -83,6 +83,11 @@ interface BenchRecordHead {
   /** The count of the boxes and the obstacles of the input, as the twin document of `highways` counts them. */
   nodes: number;
   edges: number;
+  /**
+   * The shape kinds of the boxes of the input (`docs/SHAPES.md` of the contract). The runner does not write it.
+   * Each box of the corpora is a `rect`, and a record without `shapes` has only `rect` boxes.
+   */
+  shapes?: readonly ShapeKind[];
   tolerance: { overlap: number };
   deterministic: boolean;
   prediction: string;

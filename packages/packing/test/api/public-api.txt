@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 219 names
+## . (build/index.d.ts): 223 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -67,6 +67,9 @@ type MetricsOptions: build/index.d.ts#MetricsOptions
 type ObjectiveBound: build/index.d.ts#ObjectiveBound
 type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
+type OptionPlace: build/index.d.ts#OptionPlace
+PACK_SPACE_LEFT_OUT: build/index.d.ts#PACK_SPACE_LEFT_OUT
+PACK_SPACE_OPTIONS: build/index.d.ts#PACK_SPACE_OPTIONS
 PORTFOLIO_FRAME_MS: build/index.d.ts#PORTFOLIO_FRAME_MS
 PORTFOLIO_LEVELS: build/index.d.ts#PORTFOLIO_LEVELS
 PORTFOLIO_SETS: build/index.d.ts#PORTFOLIO_SETS
@@ -133,6 +136,7 @@ THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/index.d.ts#UnsupportedCell
+UnsupportedShape: build/index.d.ts#UnsupportedShape
 Vector: build/index.d.ts#Vector
 aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
@@ -546,6 +550,15 @@ interface ObjectiveBound {
 ### build/index.d.ts#ObstacleLayout
 type ObstacleLayout = "none" | "center" | "scattered" | "wall" | "corridors" | "touching" | "edge";
 
+### build/index.d.ts#OptionPlace
+type OptionPlace = string | null;
+
+### build/index.d.ts#PACK_SPACE_LEFT_OUT
+export declare const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>>;
+
+### build/index.d.ts#PACK_SPACE_OPTIONS
+export declare const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string, OptionPlace>>>>;
+
 ### build/index.d.ts#PORTFOLIO_FRAME_MS
 export declare const PORTFOLIO_FRAME_MS = 50;
 
@@ -868,6 +881,12 @@ export declare class UnsupportedCell extends Error {
   readonly dimension: Dimension;
   readonly value: string;
   constructor(dimension: Dimension, value: string);
+}
+
+### build/index.d.ts#UnsupportedShape
+export declare class UnsupportedShape extends UnsupportedCell {
+  readonly breaks: readonly ClaimBreak[];
+  constructor(value: string, breaks: readonly ClaimBreak[]);
 }
 
 ### build/index.d.ts#Vector

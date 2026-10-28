@@ -1,6 +1,6 @@
 // The algebra of measures (roadmap item k8). `docs/MEASURES.md` defines each measure. This file computes them.
 
-import type { MeasureSpec as ContractMeasureSpec, Direction } from "@mark1russell7/layout-contract";
+import { SHAPE_KIND_IDS, type MeasureSpec as ContractMeasureSpec, type Direction } from "@mark1russell7/layout-contract";
 import { RECORD_EPS, type PackInput, type PackOutput } from "./contract.ts";
 import { aspectError } from "./free.ts";
 import { overflowBound } from "./overflow.ts";
@@ -97,6 +97,12 @@ const spec = (
 const REL = Object.freeze({ rel: 0.01 });
 
 /**
+ * This function gives a spec that supports each shape kind of the contract (`docs/SHAPES.md`).
+ * The measure reads only the bounding boxes, the positions, the counts or the times of the boxes.
+ */
+const anyShape = (s: MeasureSpec): MeasureSpec => ({ ...s, shapes: SHAPE_KIND_IDS });
+
+/**
  * The facts of each measure, by id. `docs/MEASURES.md` gives the full definitions. This record is the source of the floor
  * and the tolerance of each guard of the packer, and of the minimum effect of each measure.
  *
@@ -107,18 +113,20 @@ const REL = Object.freeze({ rel: 0.01 });
  * - `pack.overflow.forcedAreaMin` is a deprecated alias of `pack.overflow.forcedArea`. Its spec is the same, except the id.
  *   The alias stays until the next minor version.
  * - `pack.gapToOpt` has 0.005: half of 1 percent of the known best value.
+ * - A measure of the bounding boxes, the positions, the counts or the times supports each shape kind. Its spec has `shapes`.
+ * - A measure of the area of the boxes has no `shapes`. Thus it supports only `rect`, and `checkShapes` refuses the other kinds.
  */
 export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.freeze({
-  "pack.area": spec("pack.area", "density", "square units", "lower", 0, Infinity, REL),
+  "pack.area": anyShape(spec("pack.area", "density", "square units", "lower", 0, Infinity, REL)),
   "pack.fill": spec("pack.fill", "density", "share", "higher", 0, 1, 0.005),
   "pack.whitespace": spec("pack.whitespace", "density", "share", "lower", 0, 1, 0.005),
-  "pack.aspect": spec("pack.aspect", "aspect", "ratio", "lower", 1, Infinity, REL),
-  "pack.aspectError": spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 }),
-  "pack.order.inversions": spec("pack.order.inversions", "order", "share", "lower", 0, 1, 0, { floor: 0, tol: 0 }),
-  "pack.order.breaks": spec("pack.order.breaks", "order", "count", "lower", 0, Infinity, 0),
-  "pack.raggedness": spec("pack.raggedness", "raggedness", "share", "lower", 0, 1, 0.005),
-  "pack.overflow": spec("pack.overflow", "overflow", "count", "lower", 0, Infinity, 0, { floor: 0, tol: 0 }),
-  "pack.overflow.rate": spec("pack.overflow.rate", "overflow", "share", "lower", 0, 1, 0),
+  "pack.aspect": anyShape(spec("pack.aspect", "aspect", "ratio", "lower", 1, Infinity, REL)),
+  "pack.aspectError": anyShape(spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 })),
+  "pack.order.inversions": anyShape(spec("pack.order.inversions", "order", "share", "lower", 0, 1, 0, { floor: 0, tol: 0 })),
+  "pack.order.breaks": anyShape(spec("pack.order.breaks", "order", "count", "lower", 0, Infinity, 0)),
+  "pack.raggedness": anyShape(spec("pack.raggedness", "raggedness", "share", "lower", 0, 1, 0.005)),
+  "pack.overflow": anyShape(spec("pack.overflow", "overflow", "count", "lower", 0, Infinity, 0, { floor: 0, tol: 0 })),
+  "pack.overflow.rate": anyShape(spec("pack.overflow.rate", "overflow", "share", "lower", 0, 1, 0)),
   "pack.overflow.area": spec("pack.overflow.area", "overflow", "share", "lower", 0, 1, 0.005),
   "pack.overflow.forced": spec("pack.overflow.forced", "overflow", "count", "lower", 0, Infinity, 0),
   "pack.overflow.forcedArea": spec("pack.overflow.forcedArea", "overflow", "share", "lower", 0, 1, 0.005),
@@ -126,12 +134,12 @@ export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.fr
   // The deprecated alias of pack.overflow.forcedArea, until the next minor version
   "pack.overflow.forcedAreaMin": spec("pack.overflow.forcedAreaMin", "overflow", "share", "lower", 0, 1, 0.005),
   "pack.overflow.excessArea": spec("pack.overflow.excessArea", "overflow", "share", "lower", 0, 1, 0.005),
-  "pack.stability.moved": spec("pack.stability.moved", "stability", "share", "lower", 0, 1, 0.02, { floor: 0, tol: 0.02 }),
-  "pack.stability.mean": spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity, 0.005, { floor: 0, tol: 0.005 }),
-  "pack.stability.q95": spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 }),
-  "pack.deterministic": spec("pack.deterministic", "determinism", "boolean", "higher", 0, 1, 0),
-  "pack.search.widths": spec("pack.search.widths", "speed", "count", "lower", 0, Infinity, 0),
-  "pack.search.ms": spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity, undefined),
+  "pack.stability.moved": anyShape(spec("pack.stability.moved", "stability", "share", "lower", 0, 1, 0.02, { floor: 0, tol: 0.02 })),
+  "pack.stability.mean": anyShape(spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity, 0.005, { floor: 0, tol: 0.005 })),
+  "pack.stability.q95": anyShape(spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 })),
+  "pack.deterministic": anyShape(spec("pack.deterministic", "determinism", "boolean", "higher", 0, 1, 0)),
+  "pack.search.widths": anyShape(spec("pack.search.widths", "speed", "count", "lower", 0, Infinity, 0)),
+  "pack.search.ms": anyShape(spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity, undefined)),
   // The distance to the bound of the cell (roadmap item k51). `boundMeasures` of `src/bounds.ts` gives it, not `measure`.
   "pack.gap": spec("pack.gap", "bound", "ratio", "lower", 0, Infinity, 0.005),
   "pack.gapToOpt": spec("pack.gapToOpt", "density", "ratio", "lower", 0, Infinity, 0.005),

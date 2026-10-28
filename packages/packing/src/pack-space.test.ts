@@ -1,6 +1,22 @@
-import { checkConfig, checkSpace, configId, spaceSize } from "@mark1russell7/layout-contract";
+import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, SHAPE_KIND_IDS, spaceSize, type PackInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
-import { outputHash, packConfig, packSpace, packWith, PORTFOLIO_SETS, rectGrid, toPackInput, type StrategyConfig } from "./index.ts";
+import {
+  composites,
+  MEASURE_SPECS,
+  outputHash,
+  PACK_SPACE_LEFT_OUT,
+  PACK_SPACE_OPTIONS,
+  packConfig,
+  packSpace,
+  packWith,
+  PORTFOLIO_SETS,
+  rectGrid,
+  strategies,
+  toPackInput,
+  UnsupportedCell,
+  UnsupportedShape,
+  type StrategyConfig,
+} from "./index.ts";
 import { baseConfig } from "./pack-space.ts";
 
 // The strategy space of k68. Made-up inputs of the generators only. `bench/pack-space.test.ts` compares the outputs of the named configs.
@@ -55,5 +71,138 @@ describe("packSpace", () => {
   it("throws a RangeError for an option that the space does not have", () => {
     expect(() => baseConfig("push", { samples: 4 })).toThrow(RangeError);
     expect(() => baseConfig("portfolio")).toThrow(RangeError);
+  });
+});
+
+// Roadmap item k75: the shape kinds of the items. Each option of packSpace supports only rect.
+describe("packSpace and the shape kinds", () => {
+  const items = [
+    { id: "a", w: 10, h: 10 },
+    { id: "b", w: 20, h: 10 },
+  ];
+  const rect: PackInput = { container: { fixed: "none" }, items };
+  const circle: PackInput = { container: { fixed: "none" }, items: [...items, { id: "c", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] };
+  const polygon: PackInput = { container: { fixed: "none" }, items: [...items, { id: "p", w: 10, h: 10, shape: { kind: "polygon", points: [[0, 0], [10, 0], [5, 10]] } }] };
+
+  it("declares the shape kind rect on each option of each stage", () => {
+    for (const s of packSpace.stages) for (const o of s.options) expect(o.supports, `${s.name}.${o.id}`).toEqual({ shape: ["rect"] });
+  });
+
+  it("counts no config for a circle and the same configs for a rect", () => {
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 0n, meta: 0n });
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["polygon"] }).base).toBe(0n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"] })).toEqual(spaceSize(packSpace, { levels: 3 }));
+  });
+
+  it("refuses a polygon item and a circle item with UnsupportedShape", () => {
+    for (const input of [circle, polygon]) {
+      for (const name of ["rows", "maxrects-bl", "portfolio", "aspect-fit"]) {
+        let error: unknown;
+        try {
+          packConfig(input, named[name]!);
+        } catch (e) {
+          error = e;
+        }
+        expect(error, name).toBeInstanceOf(UnsupportedShape);
+        expect(error, name).toBeInstanceOf(UnsupportedCell);
+        const e = error as UnsupportedShape;
+        expect(e.dimension).toBe("itemShape");
+        expect(e.value).toBe("mixed");
+        expect(e.breaks.length).toBeGreaterThan(0);
+        expect(e.breaks.every((b) => b.claim === "shape")).toBe(true);
+      }
+    }
+    const only: PackInput = { container: { fixed: "none" }, items: [{ id: "c", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] };
+    expect(() => packConfig(only, named["rows"]!)).toThrow(/circle/);
+  });
+
+  it("gives a RangeError for a bad config before the shape check", () => {
+    expect(() => packConfig(circle, { space: "packing", stages: {} })).toThrow(RangeError);
+    expect(() => packConfig(circle, { space: "packing", stages: {} })).not.toThrow(UnsupportedShape);
+  });
+
+  it("packs a rect input as packWith does", () => {
+    expect(outputHash(packConfig(rect, named["maxrects-bl"]!, 3))).toBe(outputHash(packWith("maxrects", rect, { rule: "bl" }, 3)));
+  });
+
+  it("declares each shape kind only on the measures of the bounding boxes, the positions, the counts and the times", () => {
+    const any = Object.values(MEASURE_SPECS).filter((s) => s.shapes !== undefined).map((s) => s.id);
+    expect(any).toEqual([
+      "pack.area",
+      "pack.aspect",
+      "pack.aspectError",
+      "pack.order.inversions",
+      "pack.order.breaks",
+      "pack.raggedness",
+      "pack.overflow",
+      "pack.overflow.rate",
+      "pack.stability.moved",
+      "pack.stability.mean",
+      "pack.stability.q95",
+      "pack.deterministic",
+      "pack.search.widths",
+      "pack.search.ms",
+    ]);
+    for (const s of Object.values(MEASURE_SPECS)) if (s.shapes !== undefined) expect(s.shapes).toEqual(SHAPE_KIND_IDS);
+    const uses = [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES];
+    expect(checkShapes({ id: "c", boxes: circle.items }, uses).map((b) => b.detail.split(" ")[0])).toEqual([
+      "pack.fill",
+      "pack.whitespace",
+      "pack.overflow.area",
+      "pack.overflow.forced",
+      "pack.overflow.forcedArea",
+      "pack.overflow.excess",
+      "pack.overflow.forcedAreaMin",
+      "pack.overflow.excessArea",
+      "pack.gap",
+      "pack.gapToOpt",
+      "no-overlap",
+      "in-container",
+    ]);
+    expect(checkShapes({ id: "r", boxes: rect.items }, uses)).toEqual([]);
+  });
+});
+
+// The options of each strategy as params of packSpace. The joint playground of layout-stack builds its controls from them.
+describe("packSpace and the options of the strategies", () => {
+  /** This function tells if a place names a stage, a param or the members of an option of packSpace. */
+  const resolves = (place: string): boolean => {
+    const [stage, option, field, ...rest] = place.split(".");
+    const s = packSpace.stages.find((x) => x.name === stage);
+    if (s === undefined || rest.length > 0) return false;
+    if (option === undefined) return field === undefined;
+    const o = s.options.find((x) => x.id === option);
+    if (o === undefined || field === undefined) return false;
+    return field === "members" ? o.members !== undefined : o.params.some((p) => p.name === field);
+  };
+
+  it("gives each option of each strategy a place in the space, or a reason in PACK_SPACE_LEFT_OUT", () => {
+    const leftOut: string[] = [];
+    for (const [id, places] of Object.entries(PACK_SPACE_OPTIONS)) {
+      for (const [key, place] of Object.entries(places)) {
+        if (place === null) leftOut.push(`${id}.${key}`);
+        else expect(resolves(place), `${id}.${key} at ${place}`).toBe(true);
+      }
+    }
+    expect(leftOut.toSorted()).toEqual(Object.keys(PACK_SPACE_LEFT_OUT).toSorted());
+    for (const reason of Object.values(PACK_SPACE_LEFT_OUT)) expect(reason.split(" ").length).toBeLessThanOrEqual(25);
+  });
+
+  it("has a record for each strategy of the registry, with each key of its defaults", () => {
+    for (const s of [...strategies, ...composites]) {
+      expect(PACK_SPACE_OPTIONS, s.id).toHaveProperty([s.id]);
+      for (const key of Object.keys(s.defaults as object)) expect(PACK_SPACE_OPTIONS[s.id], `${s.id}.${key}`).toHaveProperty([key]);
+    }
+  });
+
+  it("gives the options maxMembers and budgetMs with the params limitMembers and limitTime", () => {
+    const pool = named["portfolio"]!.stages["combine"]!.members!;
+    const cell = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "cell-portfolio", params, members: pool } } });
+    expect(outputHash(packConfig(input, cell({ limitMembers: true, maxMembers: 1 }), 2))).toBe(outputHash(packWith("portfolio", input, { maxMembers: 1 }, 2)));
+    expect(outputHash(packConfig(input, cell({ k: 2, limitMembers: true, maxMembers: 1 }), 2))).toBe(outputHash(packWith("portfolio", input, { k: 2, maxMembers: 1 }, 2)));
+    const list: StrategyConfig = { space: "packing", stages: { combine: { option: "portfolio", params: { limitTime: true, budgetMs: 2000 }, members: [named["rows"]!, named["maxrects"]!] } } };
+    expect(outputHash(packConfig(input, list))).toBe(outputHash(packWith("portfolio", input, { members: ["rows", "maxrects"], budgetMs: 2000 })));
+    // Without the switch params, the outputs do not change
+    expect(outputHash(packConfig(input, cell({})))).toBe(outputHash(packWith("portfolio", input)));
   });
 });
