@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
 export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict | undefined => s.verdicts.find((v) => v.measure === measure);
@@ -99,3 +99,59 @@ export function pickHolds(leaf: SelectLeaf, counts: { wins: number; of: number }
   const share = counts.wins / counts.of;
   return leaf.member === "rows" ? share <= 0.5 : share > 0.5;
 }
+
+// ---- The distance to the best ----
+
+/** This function gives the strategies of a gap snapshot by the median over all inputs, best first. A tie goes to the lower `q3`, then to the name. */
+export function gapRanking(snap: GapSnapshot): GapStrategy[] {
+  return [...snap.strategies].sort((x, y) => x.all.median - y.all.median || x.all.q3 - y.all.q3 || x.strategy.localeCompare(y.strategy));
+}
+
+/** This function gives the end of a scale from 0 that holds a value: 1, 2, 2.5 or 5 times a power of 10. It is at least `floor`. */
+export function niceCeil(value: number, floor = 0.01): number {
+  const v = Math.max(value, floor);
+  const p = 10 ** Math.floor(Math.log10(v));
+  for (const step of [1, 2, 2.5, 5]) if (v <= step * p * (1 + 1e-9)) return step * p;
+  return 10 * p;
+}
+
+/** This function gives the end of the shared scale of the chart of a gap snapshot: the largest `q3` over all inputs, made round. */
+export const gapScale = (snap: GapSnapshot): number => niceCeil(Math.max(0, ...snap.strategies.map((s) => s.all.q3)));
+
+/** This function gives the position of a gap on a scale from 0 to `max`, as a percent from the left. */
+export const gapAt = (value: number, max: number): number => (Math.max(0, Math.min(max, value)) / max) * 100;
+
+/** This function gives the text of a gap with 3 decimals. The value 0 gives `0`. */
+export const gapText = (value: number): string => (value === 0 ? "0" : value.toFixed(3));
+
+/** One row of the table of the cells of a gap snapshot */
+export interface GapTableRow {
+  cell: string;
+  inputs: number;
+  /** The cell of each strategy, in the order of the columns. A strategy without a value in the cell gives `undefined`. */
+  values: (GapCell | undefined)[];
+  /** The columns with the lowest median of the row. When all columns have the same median, the list is empty. */
+  best: number[];
+  /** The kind of bound of most records of the row, or `undefined` */
+  kind: string | undefined;
+}
+
+/** This function gives the table of the cells of a gap snapshot, with one column for each strategy of `columns`. */
+export function gapTable(snap: GapSnapshot, columns: readonly GapStrategy[]): GapTableRow[] {
+  return snap.cells.map(({ cell, inputs }) => {
+    const values = columns.map((s) => {
+      const c = s.cells.find((x) => x.cell === cell);
+      return c === undefined || c.n === 0 ? undefined : c;
+    });
+    const medians = values.flatMap((v) => (v === undefined ? [] : [v.median]));
+    const low = Math.min(...medians);
+    const best = medians.every((m) => m === low) ? [] : values.flatMap((v, i) => (v !== undefined && v.median === low ? [i] : []));
+    const kinds = new Map<string, number>();
+    for (const v of values) for (const [k, n] of Object.entries(v?.kinds ?? {})) kinds.set(k, (kinds.get(k) ?? 0) + n);
+    const kind = [...kinds].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0];
+    return { cell, inputs, values, best, kind };
+  });
+}
+
+/** This function gives the share of the scale for the shade of a cell of the table, from 0 to 1. */
+export const gapShade = (value: number, max: number): number => Math.max(0, Math.min(1, value / max));

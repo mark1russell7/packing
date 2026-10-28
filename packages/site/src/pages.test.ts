@@ -1,13 +1,15 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
-import { byDate, parseSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
+import { byDate, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
-import { divergingAt, pickHolds, rankStrategies, ratioAt, stepText } from "./results-model.ts";
+import { divergingAt, gapAt, gapRanking, gapScale, gapShade, gapTable, gapText, niceCeil, pickHolds, rankStrategies, ratioAt, stepText } from "./results-model.ts";
 
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
 const KINDS: Record<string, Snapshot["kind"]> = {
+  "gaps-pack-known-v1.json": "gaps",
+  "gaps-pack-select-v2.json": "gaps",
   "paired-k67.json": "paired",
   "releases.json": "releases",
   "select-table.json": "select",
@@ -125,5 +127,82 @@ describe("the calculations of the pages", () => {
       ["2026-10-28", ["3", "2"]],
       ["2026-10-20", ["1"]],
     ]);
+  });
+
+  it("puts the news and the releases of a day together, newest day first", () => {
+    const r = (release: string, date: string): Release => ({ release, date, title: "", breaking: false, commit: "0000000", pr: null, link: "" });
+    const n = { date: "2026-10-29", item: "k1", title: "A measure.", pr: 1, link: "" };
+    const days = newsByDate([r("2", "2026-10-28"), r("1", "2026-10-20")], [n, { ...n, date: "2026-10-28", item: "k2" }]);
+    expect(days.map(([d, g]) => [d, g.news.map((x) => x.item), g.releases.map((x) => x.release)])).toEqual([
+      ["2026-10-29", ["k1"], []],
+      ["2026-10-28", ["k2"], ["2"]],
+      ["2026-10-20", [], ["1"]],
+    ]);
+    expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k45", "k51"]);
+  });
+});
+
+describe("the distance to the best", () => {
+  const cell = (name: string, median: number, extra: Partial<GapCell> = {}): GapCell => ({ cell: name, n: 4, q1: median / 2, median, q3: median * 2, below0: 0, missing: 0, ...extra });
+  const strategy = (id: string, median: number, q3: number, cells: GapCell[]): GapStrategy => ({ strategy: id, records: 8, all: { n: 8, q1: 0, median, q3, below0: 0, missing: 0 }, cells });
+  const made: GapSnapshot = {
+    schema: "packing-site-snapshot/1",
+    kind: "gaps",
+    corpus: "c",
+    origin: [{ release: "0.0.1", commit: "abc1234", date: "2026-01-01", run: 1, source: "made up" }],
+    measure: "pack.gap",
+    inputs: 8,
+    cells: [
+      { cell: "a.fixed", inputs: 4 },
+      { cell: "a.freeArea", inputs: 4 },
+    ],
+    strategies: [
+      strategy("rows", 0.2, 0.31, [cell("a.fixed", 0.3, { kinds: { "placed.free": 4 } }), cell("a.freeArea", 0.1, { kinds: { "hull.area": 4 } })]),
+      strategy("skyline", 0.1, 0.2, [cell("a.fixed", 0.1, { kinds: { "placed.free": 4 } }), cell("a.freeArea", 0.1, { n: 0, missing: 4 })]),
+      strategy("maxrects-bl", 0.1, 0.15, [cell("a.fixed", 0.1, { kinds: { "placed.free": 4 } }), cell("a.freeArea", 0.1, { kinds: { "hull.area": 4 } })]),
+    ],
+  };
+
+  it("ranks the strategies by the median over all inputs, then by q3", () => {
+    expect(gapRanking(made).map((s) => s.strategy)).toEqual(["maxrects-bl", "skyline", "rows"]);
+  });
+
+  it("gives a round scale and the positions on it", () => {
+    expect(niceCeil(0.31)).toBe(0.5);
+    expect(niceCeil(0.238)).toBe(0.25);
+    expect(niceCeil(0.2)).toBe(0.2);
+    expect(niceCeil(0)).toBe(0.01);
+    expect(niceCeil(3)).toBe(5);
+    expect(gapScale(made)).toBe(0.5);
+    expect(gapAt(0.25, 0.5)).toBe(50);
+    expect(gapAt(-1, 0.5)).toBe(0);
+    expect(gapAt(2, 0.5)).toBe(100);
+    expect(gapShade(0.1, 0.5)).toBeCloseTo(0.2);
+    expect(gapText(0)).toBe("0");
+    expect(gapText(0.11449)).toBe("0.114");
+  });
+
+  it("gives a row for each cell, with the best columns, the empty cells and the main kind of bound", () => {
+    const columns = gapRanking(made);
+    const rows = gapTable(made, columns);
+    expect(rows.map((r) => r.cell)).toEqual(["a.fixed", "a.freeArea"]);
+    expect(rows[0]!.best).toEqual([0, 1]);
+    expect(rows[0]!.kind).toBe("placed.free");
+    expect(rows[1]!.values[1]).toBeUndefined();
+    expect(rows[1]!.best).toEqual([]);
+    expect(rows[1]!.kind).toBe("hull.area");
+  });
+
+  it("reads the snapshots of k45 and k51", () => {
+    const known = parseSnapshot(read("gaps-pack-known-v1.json"), "gaps");
+    expect(known.measure).toBe("pack.gapToOpt");
+    expect(known.inputs).toBe(288);
+    expect(known.origin[0]!.run).toBe(40768140939);
+    expect(known.strategies.every((s) => s.all.below0 === 0 && s.all.n === 288)).toBe(true);
+    expect(gapRanking(known)[0]!.strategy).toBe("portfolio-k2");
+    const bound = parseSnapshot(read("gaps-pack-select-v2.json"), "gaps");
+    expect(bound.measure).toBe("pack.gap");
+    expect(bound.origin[0]!.run).toBe(40766464710);
+    expect(bound.strategies.every((s) => s.all.below0 === 0)).toBe(true);
   });
 });

@@ -6,6 +6,6 @@ Each row compares one strategy with `rows` on the same inputs and seeds. The bar
 - **Better** or **Worse** shows only when two tests agree. One test gives each family of boards the same weight. The other test gives each input the same weight.
 - **No verdict** means that the difference is smaller than the tie size, or that the two tests do not agree.
 - **Not measured** means that CI did not start the strategy on this corpus. The strategy `push` needs a live server, so the offline runs skip it.
-- The time of each strategy comes from its own CI job. These times are not a paired test. The paired test is in the next section.
+- The time of each strategy comes from its own CI job. These times are not a paired test. The section on speed has the paired test.
 
 Click a row to see each measure, the families of boards and the groups.

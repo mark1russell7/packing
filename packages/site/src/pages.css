@@ -566,6 +566,102 @@
   }
 }
 
+/* The distance to the best: a dot of the median with a band of the quartiles, and a shaded table of the cells */
+.gchart {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grow,
+.gaxis {
+  display: grid;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr) 4.2rem;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+}
+
+.gstrat {
+  overflow-wrap: anywhere;
+}
+
+.gbar {
+  position: relative;
+  height: 16px;
+  background: var(--well);
+  border-radius: 4px;
+}
+
+.gbar .iqr {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+.gbar .med {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+}
+
+.gval {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.gtable th[scope="row"] {
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+}
+
+.gtable th[scope="row"] small {
+  color: var(--muted);
+}
+
+.gtable .gcell {
+  text-align: right;
+  background: color-mix(in oklab, var(--bad) calc(var(--shade, 0%) * 0.45), transparent);
+}
+
+.gtable .gcell.best {
+  font-weight: 700;
+  color: var(--good);
+}
+
+.gtable .gcell.none {
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .grow,
+  .gaxis {
+    grid-template-columns: minmax(0, 1fr) 3.6rem;
+  }
+
+  .gstrat {
+    grid-column: 1 / -1;
+  }
+
+  .gaxis > span:first-child,
+  .gaxis > span:last-child {
+    display: none;
+  }
+}
+
 /* The leaves of the select table */
 .leaves {
   list-style: none;
@@ -719,6 +815,16 @@
 .ver {
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-weight: 600;
+}
+
+/* An entry of the news that is not a release: a roadmap item */
+.news li.item::before {
+  background: var(--late);
+  border-radius: 3px;
+}
+
+.news li.item .ver {
+  color: var(--muted);
 }
 
 .ntitle {

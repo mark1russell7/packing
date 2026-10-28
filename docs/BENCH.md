@@ -668,7 +668,12 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `paired-k67.json` | `node bench/snapshot.ts paired <folder of 40741632077> --run 40741632077 --commit dd0eead --release 0.2.17 --arm-a v0.2.16 --arm-b k67-prune` | The paired time test of k67. |
 | `select-table.json` | `node bench/snapshot.ts select --train <folder of 40675490363>=40675490363 --train <folder of 40685309195>=40685309195 --test <folder of 40699801165>=40699801165 --test <folder of 40708970161>=40708970161` | The leaves of `SELECT_TABLE`, with the wins of each training and test run. |
 | `releases.json` | `node bench/snapshot.ts releases` | The releases of `CHANGELOG.md`, with the date, the commit and the pull request of each tag. |
+| `gaps-pack-select-v2.json` | `node bench/snapshot.ts gaps <folder of 40766464710> --run 40766464710 --measure pack.gap --release 0.2.17` | `pack.gap` of 6 strategies on `pack-select-v2`, by cell, with the kinds of the bounds (k51). |
+| `gaps-pack-known-v1.json` | `node bench/snapshot.ts gaps <folder of 40768140939> --run 40768140939 --measure pack.gapToOpt --release 0.2.17` | `pack.gapToOpt` of 6 strategies on `pack-known-v1`, by cell (k45). |
 
 - A strategy snapshot gives the result of `verdict()` of `@mark1russell7/layout-contract` for each measure, by family, at the level 0.05. The tie of each measure is its `minEffect`.
 - The command `select` stops with an error when the training wins differ from `SELECT_LEAF_WINS`. Thus a change of the table also changes the pinned counts and their test.
+- A gap snapshot gives the count, the quartiles and the values below 0 of the measure. It gives them for all inputs and for each cell.
+- The cell of a gap snapshot is the family up to its container size, for example `perfect-cut.guillotine.fixed`. A record without a finite value counts as missing.
+- The commits of the two gap runs come after the tag `v0.2.17`. Thus `--release 0.2.17` gives the release of their packers.
 - After a new release, start the command `releases` again. After a new bench run, start the command of its corpus again.

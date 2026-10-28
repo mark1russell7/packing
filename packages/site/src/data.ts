@@ -129,8 +129,45 @@ export interface ReleasesSnapshot {
   releases: Release[];
 }
 
+/** The statistics of a gap measure: the count, the quartiles and the count of the values below 0 */
+export interface GapStats {
+  n: number;
+  q1: number;
+  median: number;
+  q3: number;
+  below0: number;
+}
+
+/** One cell of one strategy in a gap snapshot */
+export interface GapCell extends GapStats {
+  cell: string;
+  missing: number;
+  /** The count of the records of each kind of bound. Only `pack.gap` has kinds. */
+  kinds?: Record<string, number>;
+}
+
+/** One strategy of a gap snapshot */
+export interface GapStrategy {
+  strategy: string;
+  records: number;
+  all: GapStats & { missing: number };
+  cells: GapCell[];
+}
+
+/** The gap snapshot of one corpus: the distance of each result from a bound or from the known best value */
+export interface GapSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "gaps";
+  corpus: string;
+  origin: Origin[];
+  measure: "pack.gap" | "pack.gapToOpt";
+  inputs: number;
+  cells: { cell: string; inputs: number }[];
+  strategies: GapStrategy[];
+}
+
 /** Each kind of snapshot */
-export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot;
+export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot | GapSnapshot;
 
 /** This function tells if a value is a plain object. */
 const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -160,7 +197,7 @@ export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K)
   if (value["kind"] !== kind) throw new Error(`The snapshot has the kind ${String(value["kind"])}, not ${kind}.`);
   const origin = value["origin"];
   if (!Array.isArray(origin) || origin.length === 0 || !origin.every(isOrigin)) throw new Error("Each origin of a snapshot has a release, a commit, a date, a run and a source.");
-  const list = kind === "strategies" ? value["strategies"] : kind === "paired" ? value["classes"] : kind === "select" ? value["leaves"] : value["releases"];
+  const list = kind === "strategies" || kind === "gaps" ? value["strategies"] : kind === "paired" ? value["classes"] : kind === "select" ? value["leaves"] : value["releases"];
   if (!Array.isArray(list) || list.length === 0) throw new Error(`The snapshot of the kind ${kind} has no entries.`);
   return value as unknown as Extract<Snapshot, { kind: K }>;
 }
@@ -176,12 +213,69 @@ export function byDate(releases: readonly Release[]): [string, Release[]][] {
   return [...groups].sort(([a], [b]) => b.localeCompare(a));
 }
 
+/** One entry of the news that is not a release: a roadmap item that adds a measure or a part of the site */
+export interface NewsEntry {
+  date: string;
+  /** The id of the roadmap item, for example `k51` */
+  item: string;
+  title: string;
+  pr: number;
+  link: string;
+}
+
+/** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
+export const NEWS: readonly NewsEntry[] = [
+  {
+    date: "2026-10-28",
+    item: "k45",
+    title: "The corpus `pack-known-v1` has 288 inputs with a known best value. The results page shows `pack.gapToOpt` of 6 strategies on it.",
+    pr: 101,
+    link: "https://github.com/mark1russell7/packing/pull/101",
+  },
+  {
+    date: "2026-10-28",
+    item: "k51",
+    title: "A bound for each cell. The results page shows `pack.gap`, the distance of each result from its bound, on `pack-select-v2`.",
+    pr: 99,
+    link: "https://github.com/mark1russell7/packing/pull/99",
+  },
+];
+
+/** This function groups the releases and the news by date, with the newest date first. The order in a date stays. */
+export function newsByDate(releases: readonly Release[], news: readonly NewsEntry[]): [string, { news: NewsEntry[]; releases: Release[] }][] {
+  const groups = new Map<string, { news: NewsEntry[]; releases: Release[] }>();
+  const day = (date: string): { news: NewsEntry[]; releases: Release[] } => {
+    let g = groups.get(date);
+    if (g === undefined) {
+      g = { news: [], releases: [] };
+      groups.set(date, g);
+    }
+    return g;
+  };
+  for (const n of news) day(n.date).news.push(n);
+  for (const r of releases) day(r.date).releases.push(r);
+  return [...groups].sort(([a], [b]) => b.localeCompare(a));
+}
+
 /** The names of the corpora of the strategy snapshots, for the site */
 export const CORPUS_LABELS: Record<string, { label: string; note: string }> = {
   "pack-screen-v1": { label: "Screen", note: "Fixed containers of 6 shapes, 4 boards of a user interface and the edge cases. Each board has 5 seeds." },
   "pack-free-v1": { label: "Free size", note: "Free-size containers of 6 shapes, with a target aspect or a free area. Each board has 5 seeds." },
   "pack-select-v1": { label: "Test 1", note: "The boards of the two other corpora, with the fresh seeds 21 to 25. No fit used these seeds." },
   "pack-select-v2": { label: "Test 2", note: "The boards of the two other corpora, with the fresh seeds 31 to 35. No fit used these seeds." },
+  "pack-known-v1": { label: "Known best", note: "Perfect cuts, guillotine and free, and consecutive squares. Each input has a known best value. Each board has 12 seeds." },
+};
+
+/** The names and the notes of the gap measures */
+export const GAP_LABELS: Record<GapSnapshot["measure"], { label: string; note: string }> = {
+  "pack.gap": {
+    label: "Gap to a bound",
+    note: "The distance of each result from a bound of its cell. No packer gets past the bound, so 0 is the best possible.",
+  },
+  "pack.gapToOpt": {
+    label: "Gap to the known best",
+    note: "The distance of each result from the known best value of its input. 0 is the best value. Less is better.",
+  },
 };
 
 /** The names and the notes of the measures of the strategy snapshots */

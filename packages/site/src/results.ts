@@ -1,4 +1,4 @@
-// The results page: each strategy against `rows`, the paired speed test of k67 and the select table.
+// The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
 // The page reads only the snapshot files of `packages/site/data/`.
 
 import { marked } from "marked";
@@ -11,10 +11,30 @@ import test1Json from "../data/strategies-pack-select-v1.json?raw";
 import test2Json from "../data/strategies-pack-select-v2.json?raw";
 import pairedJson from "../data/paired-k67.json?raw";
 import selectJson from "../data/select-table.json?raw";
+import gapsText from "../content/results-gaps.md?raw";
+import gapsKnownJson from "../data/gaps-pack-known-v1.json?raw";
+import gapsSelectJson from "../data/gaps-pack-select-v2.json?raw";
 import { mountChrome } from "./chrome.ts";
-import { CORPUS_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type StrategySnapshot, type StrategySummary } from "./data.ts";
+import { CORPUS_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
-import { divergingAt, labelCounts, parseVerdictHash, pickHolds, rankStrategies, ratioAt, scaleOf, stepText, verdictHash, verdictOf } from "./results-model.ts";
+import {
+  divergingAt,
+  gapAt,
+  gapRanking,
+  gapScale,
+  gapShade,
+  gapTable,
+  gapText,
+  labelCounts,
+  parseVerdictHash,
+  pickHolds,
+  rankStrategies,
+  ratioAt,
+  scaleOf,
+  stepText,
+  verdictHash,
+  verdictOf,
+} from "./results-model.ts";
 import "./style.css";
 import "./pages.css";
 
@@ -27,6 +47,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const snapshots: StrategySnapshot[] = [test2Json, test1Json, screenJson, freeJson].map((t) => parseSnapshot(t, "strategies"));
 const paired = parseSnapshot(pairedJson, "paired");
 const select = parseSnapshot(selectJson, "select");
+const gapSnaps = [gapsKnownJson, gapsSelectJson].map((t) => parseSnapshot(t, "gaps"));
 
 mountChrome($("links"), "results");
 
@@ -216,6 +237,79 @@ function mountSelect(): void {
     .join("");
 }
 
+// ---- The distance to the best ----
+
+let gapCurrent = 0;
+
+/** This function gives the text of the release, the commit and the date of the data of a snapshot. */
+const dataLine = (origin: readonly Origin[]): string =>
+  origin.map((o) => `release <code>${esc(o.release)}</code>, commit <code>${esc(o.commit)}</code>, ${esc(o.date)}`).join(" and ");
+
+function drawGaps(): void {
+  const snap = gapSnaps[gapCurrent]!;
+  const meta = GAP_LABELS[snap.measure];
+  const corpus = CORPUS_LABELS[snap.corpus];
+  for (const b of $("gap-corpora").querySelectorAll<HTMLButtonElement>("button")) b.setAttribute("aria-checked", String(Number(b.dataset["i"]) === gapCurrent));
+  $("gap-note").innerHTML = `<b>${esc(meta.label)}</b> <code>${esc(snap.measure)}</code>: ${esc(meta.note)} The data: ${dataLine(snap.origin)}. ${inline(corpus?.note ?? "")} <code>${esc(snap.corpus)}</code>: ${snap.inputs} inputs in ${snap.cells.length} cells.`;
+  $("gap-origin").innerHTML = originHtml(snap.origin);
+  const ranked = gapRanking(snap);
+  const max = gapScale(snap);
+  const below = snap.strategies.reduce((s, x) => s + x.all.below0, 0);
+  const best = ranked[0]!;
+  $("gap-tiles").innerHTML = `
+    <div class="tile hero"><span>The lowest median, all inputs</span><b>${esc(gapText(best.all.median))}</b><small><code>${esc(best.strategy)}</code>, ${best.all.n} records</small></div>
+    <div class="tile"><span>Strategies</span><b>${ranked.length}</b><small>in the same CI run</small></div>
+    <div class="tile ${below === 0 ? "better" : "worse"}"><span>Values below 0</span><b>${below}</b><small>${below === 0 ? "no bound is above a result" : "a bug of a bound or of a packer"}</small></div>`;
+  $("gap-chart").innerHTML =
+    ranked
+      .map((s) => {
+        const a = s.all;
+        const lo = gapAt(a.q1, max);
+        const hi = gapAt(a.q3, max);
+        const title = `${s.strategy}: median ${gapText(a.median)}, quartiles ${gapText(a.q1)} to ${gapText(a.q3)}, ${a.n} records, ${a.missing} without a value`;
+        return `<li class="grow" title="${esc(title)}">
+          <span class="gstrat"><code>${esc(s.strategy)}</code></span>
+          <span class="gbar" aria-hidden="true"><span class="iqr" style="left:${lo}%;width:${Math.max(0.6, hi - lo)}%"></span><span class="med" style="left:${gapAt(a.median, max)}%"></span></span>
+          <span class="gval">${esc(gapText(a.median))}</span>
+        </li>`;
+      })
+      .join("") +
+    `<li class="gaxis" aria-hidden="true"><span></span><span class="ticks">${[0, max / 2, max].map((t) => `<i style="left:${gapAt(t, max)}%">${esc(gapText(t))}</i>`).join("")}</span><span></span></li>`;
+  const rows = gapTable(snap, ranked);
+  const bound = snap.measure === "pack.gap";
+  const head = ranked.map((s) => `<th scope="col" class="num">${esc(s.strategy)}</th>`).join("");
+  const body = rows
+    .map((r) => {
+      const cells = r.values
+        .map((v, i) => {
+          if (v === undefined) return `<td class="num gcell none">no value</td>`;
+          const title = `${ranked[i]!.strategy} on ${r.cell}: median ${gapText(v.median)}, quartiles ${gapText(v.q1)} to ${gapText(v.q3)}, ${v.n} records, ${v.missing} without a value`;
+          const isBest = r.best.includes(i);
+          return `<td class="num gcell${isBest ? " best" : ""}" style="--shade:${Math.round(gapShade(v.median, max) * 100)}%" title="${esc(title)}">${isBest ? `<span aria-hidden="true">▲ </span>` : ""}${esc(gapText(v.median))}</td>`;
+        })
+        .join("");
+      const kind = bound ? `<td><code>${esc(r.kind ?? "none")}</code></td>` : "";
+      return `<tr><th scope="row"><code>${esc(r.cell)}</code> <small>${r.inputs}</small></th>${kind}${cells}</tr>`;
+    })
+    .join("");
+  $("gap-table").innerHTML = `<thead><tr><th scope="col">Cell, inputs</th>${bound ? `<th scope="col">Bound</th>` : ""}${head}</tr></thead><tbody>${body}</tbody>`;
+}
+
+function mountGaps(): void {
+  $("gaps-text").innerHTML = marked.parse(gapsText, { async: false });
+  $("gap-corpora").innerHTML = gapSnaps
+    .map((s, i) => `<button type="button" role="radio" data-i="${i}" aria-checked="${i === gapCurrent}">${esc(CORPUS_LABELS[s.corpus]?.label ?? s.corpus)}</button>`)
+    .join("");
+  $("gap-corpora").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-i]");
+    if (b === null) return;
+    gapCurrent = Number(b.dataset["i"]);
+    drawGaps();
+  });
+  drawGaps();
+}
+
 mountStrategies();
+mountGaps();
 mountSpeed();
 mountSelect();

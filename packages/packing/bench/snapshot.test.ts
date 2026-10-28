@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { SELECT_TABLE } from "@mark1russell7/packing";
 import {
   familyOfInput,
+  gapCellOf,
+  gapSnapshot,
+  gapStats,
   groupOfFamily,
   leafWins,
   pairedSnapshot,
@@ -129,5 +132,62 @@ describe("snapshot", () => {
       { release: "0.2.0", date: "2026-01-02", title: "A new layout.", breaking: true, commit: "bbbbbbb", pr: 9, link: "https://github.com/mark1russell7/packing/pull/9" },
       { release: "0.1.1", date: "2026-01-01", title: "`packShelf` packs into shelves.", breaking: false, commit: "aaaaaaa", pr: null, link: "https://github.com/mark1russell7/packing/commit/aaaaaaa" },
     ]);
+  });
+});
+
+describe("the gap snapshot", () => {
+  const gap = (strategy: string, input: string, measures: Record<string, number>, extra: Partial<SnapshotRecord> = {}): SnapshotRecord => ({
+    strategy,
+    input,
+    seed: Number(input.slice(input.lastIndexOf("/s") + 2)),
+    measures,
+    ...extra,
+  });
+
+  it("gives the cell of a family up to its container size", () => {
+    expect(gapCellOf("perfect-cut.guillotine.fixed.n10", "fixed")).toBe("perfect-cut.guillotine.fixed");
+    expect(gapCellOf("rect-grid.freeArea.holes.none.uniform.n100", "freeArea")).toBe("rect-grid.freeArea");
+    expect(gapCellOf("edge-cases.empty", "fixed")).toBe("edge-cases.empty");
+    expect(gapCellOf("consecutive-squares.freeHeight.n30")).toBe("consecutive-squares.freeHeight");
+  });
+
+  it("gives the count, the quartiles and the values below 0", () => {
+    expect(gapStats([0.4, 0.1, 0.2, 0.3, -0.1])).toEqual({ n: 5, q1: 0.1, median: 0.2, q3: 0.3, below0: 1 });
+    expect(gapStats([])).toEqual({ n: 0, q1: 0, median: 0, q3: 0, below0: 0 });
+  });
+
+  it("summarizes pack.gap by strategy and cell, with the kinds of the bounds and the missing values", () => {
+    const records = [
+      gap("rows", "c/g.fixed.n10/s1", { "pack.gap": 0.2, "pack.bound.kind": 7 }),
+      gap("rows", "c/g.fixed.n10/s2", { "pack.gap": 0.4, "pack.bound.kind": 7 }),
+      gap("rows", "c/g.freeArea.n10/s1", { "pack.gap": 0.1, "pack.bound.kind": 4 }),
+      gap("rows", "c/g.freeArea.n10/s2", { "pack.bound": 5, "pack.bound.kind": 4 }),
+      gap("skyline", "c/g.fixed.n10/s1", { "pack.gap": 0, "pack.bound.kind": 7 }),
+      gap("skyline", "c/g.freeArea.n10/s1", { "pack.gap": 0.3, "pack.bound.kind": 0 }, { skipped: "made up" }),
+    ];
+    const snap = gapSnapshot(records, { corpus: "c", origin, measure: "pack.gap" });
+    expect(snap.kind).toBe("gaps");
+    expect(snap.inputs).toBe(4);
+    expect(snap.cells).toEqual([
+      { cell: "g.fixed", inputs: 2 },
+      { cell: "g.freeArea", inputs: 2 },
+    ]);
+    const rows = snap.strategies.find((s) => s.strategy === "rows")!;
+    expect(rows.all).toEqual({ n: 3, q1: 0.15, median: 0.2, q3: 0.3, below0: 0, missing: 1 });
+    expect(rows.cells).toEqual([
+      { cell: "g.fixed", n: 2, q1: 0.25, median: 0.3, q3: 0.35, below0: 0, missing: 0, kinds: { "placed.free": 2 } },
+      { cell: "g.freeArea", n: 1, q1: 0.1, median: 0.1, q3: 0.1, below0: 0, missing: 1, kinds: { "hull.area": 1 } },
+    ]);
+    const sky = snap.strategies.find((s) => s.strategy === "skyline")!;
+    expect(sky.cells.map((c) => [c.cell, c.n, c.missing])).toEqual([
+      ["g.fixed", 1, 0],
+      ["g.freeArea", 0, 1],
+    ]);
+  });
+
+  it("summarizes pack.gapToOpt without kinds, and drops a value that is not finite", () => {
+    const records = [gap("rows", "c/k.fixed.n10/s1", { "pack.gapToOpt": 0.1 }), gap("rows", "c/k.fixed.n10/s2", { "pack.gapToOpt": Infinity })];
+    const snap = gapSnapshot(records, { corpus: "c", origin, measure: "pack.gapToOpt", cellOf: () => "one" });
+    expect(snap.strategies[0]!.cells).toEqual([{ cell: "one", n: 1, q1: 0.1, median: 0.1, q3: 0.1, below0: 0, missing: 1 }]);
   });
 });

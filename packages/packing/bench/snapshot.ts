@@ -5,6 +5,7 @@
 //   node bench/snapshot.ts paired <run folder> --run <id> --commit <sha> --release <version> --arm-a <ref> --arm-b <ref> [--out <file>]
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
+//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--out <file>]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
@@ -14,8 +15,10 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  BOUND_KINDS,
   corpus,
   MEASURE_SPECS,
+  quantile,
   SELECT_MEMBERS,
   SELECT_TABLE,
   selectFeatures,
@@ -522,6 +525,145 @@ export function releaseEntries(changelog: string, tags: readonly ReleaseTag[]): 
   return out;
 }
 
+/** The measures of the gap snapshot: the gap to a lower bound (k51) and the gap to the known best value (k45) */
+export const GAP_MEASURES = Object.freeze(["pack.gap", "pack.gapToOpt"] as const);
+
+/** A measure of the gap snapshot */
+export type GapMeasure = (typeof GAP_MEASURES)[number];
+
+/** The statistics of the values of a gap measure: the count, the quartiles and the count of the values below 0 */
+export interface GapStats {
+  n: number;
+  q1: number;
+  median: number;
+  q3: number;
+  /** The count of the values below 0. A value below 0 shows a bug of the bound or of the packer. */
+  below0: number;
+}
+
+/** One cell of one strategy in a gap snapshot */
+export interface GapCell extends GapStats {
+  cell: string;
+  /** The count of the records of the cell without a value of the measure */
+  missing: number;
+  /** The count of the records of each kind of bound of `BOUND_KINDS`. Only `pack.gap` has kinds. */
+  kinds?: Record<string, number>;
+}
+
+/** The summary of one strategy in a gap snapshot */
+export interface GapStrategy {
+  strategy: string;
+  records: number;
+  /** The statistics of all the records of the strategy with a value of the measure */
+  all: GapStats & { missing: number };
+  cells: GapCell[];
+}
+
+/** The gap snapshot of one corpus: the distance of each result from a bound or from the known best value */
+export interface GapSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "gaps";
+  corpus: string;
+  origin: SnapshotOrigin[];
+  measure: GapMeasure;
+  inputs: number;
+  /** The cells of the corpus, in the order of the manifest, with the count of their inputs */
+  cells: { cell: string; inputs: number }[];
+  strategies: GapStrategy[];
+}
+
+/** The options of `gapSnapshot` */
+export interface GapSnapshotOptions {
+  corpus: string;
+  origin: SnapshotOrigin[];
+  measure: GapMeasure;
+  /** The cell of each input id. The default is `gapCellOf` of the family, without a container size. */
+  cellOf?: (input: string) => string;
+}
+
+/**
+ * This function gives the cell of a family for the gap snapshot: the parts of the family up to its container size, for
+ * example `perfect-cut.guillotine.fixed`. A family without the container size gives its group of `groupOfFamily`.
+ */
+export function gapCellOf(family: string, containerSize?: string): string {
+  const parts = family.split(".");
+  const at = containerSize === undefined ? -1 : parts.indexOf(containerSize);
+  return at >= 1 ? parts.slice(0, at + 1).join(".") : groupOfFamily(family);
+}
+
+/** This function gives the statistics of a list of gap values. An empty list gives a count of 0 and quartiles of 0. */
+export function gapStats(values: readonly number[]): GapStats {
+  if (values.length === 0) return { n: 0, q1: 0, median: 0, q3: 0, below0: 0 };
+  return {
+    n: values.length,
+    q1: sig(quantile(values, 0.25)),
+    median: sig(quantile(values, 0.5)),
+    q3: sig(quantile(values, 0.75)),
+    below0: values.filter((v) => v < 0).length,
+  };
+}
+
+/**
+ * This function gives the gap snapshot of the records of one corpus. Each strategy gets the statistics of the measure
+ * over all its records and in each cell. A record without a finite value of the measure counts as missing.
+ */
+export function gapSnapshot(records: readonly SnapshotRecord[], options: GapSnapshotOptions): GapSnapshot {
+  const cellOf = options.cellOf ?? ((input: string) => gapCellOf(familyOfInput(input)));
+  const valueOf = (r: SnapshotRecord): number | undefined => {
+    const v = r.skipped === undefined ? r.measures[options.measure] : undefined;
+    return v !== undefined && Number.isFinite(v) ? v : undefined;
+  };
+  const cellOrder: string[] = [];
+  const cellInputs = new Map<string, Set<string>>();
+  const byStrategy = new Map<string, SnapshotRecord[]>();
+  for (const r of records) {
+    const cell = cellOf(r.input);
+    let inputs = cellInputs.get(cell);
+    if (inputs === undefined) {
+      inputs = new Set();
+      cellInputs.set(cell, inputs);
+      cellOrder.push(cell);
+    }
+    inputs.add(`${r.input}#${r.seed}`);
+    const list = byStrategy.get(r.strategy);
+    if (list === undefined) byStrategy.set(r.strategy, [r]);
+    else list.push(r);
+  }
+  const strategies = [...byStrategy.keys()].sort().map((strategy): GapStrategy => {
+    const own = byStrategy.get(strategy)!;
+    const values = own.map(valueOf).filter((v): v is number => v !== undefined);
+    const cells = cellOrder.flatMap((cell): GapCell[] => {
+      const rs = own.filter((r) => cellOf(r.input) === cell);
+      if (rs.length === 0) return [];
+      const vs = rs.map(valueOf).filter((v): v is number => v !== undefined);
+      const out: GapCell = { cell, ...gapStats(vs), missing: rs.length - vs.length };
+      if (options.measure === "pack.gap") {
+        const kinds: Record<string, number> = {};
+        for (const r of rs) {
+          const code = r.measures["pack.bound.kind"];
+          if (code === undefined || valueOf(r) === undefined) continue;
+          const kind = BOUND_KINDS[code] ?? "unknown";
+          kinds[kind] = (kinds[kind] ?? 0) + 1;
+        }
+        out.kinds = kinds;
+      }
+      return [out];
+    });
+    return { strategy, records: own.length, all: { ...gapStats(values), missing: own.length - values.length }, cells };
+  });
+  const inputs = new Set(records.map((r) => `${r.input}#${r.seed}`)).size;
+  return {
+    schema: SNAPSHOT_SCHEMA,
+    kind: "gaps",
+    corpus: options.corpus,
+    origin: options.origin,
+    measure: options.measure,
+    inputs,
+    cells: cellOrder.map((cell) => ({ cell, inputs: cellInputs.get(cell)!.size })),
+    strategies,
+  };
+}
+
 // ---- The command line ----
 
 /** This function gives the value of an option of the command line, or `undefined`. */
@@ -566,11 +708,16 @@ function writeSnapshot(file: string | URL, value: unknown): void {
 }
 
 /** This function reads the folder of one artifact of `bench.yml`. */
-function readRun(folder: string): { records: SnapshotRecord[]; run: { corpus: string; commit: string; skipped?: unknown[] }; specs: CorpusSpec[] } {
+function readRun(folder: string): {
+  records: SnapshotRecord[];
+  run: { corpus: string; commit: string; skipped?: unknown[] };
+  specs: CorpusSpec[];
+  inputs: { id: string; cell?: { containerSize?: string } }[];
+} {
   const records = readJsonLines<SnapshotRecord>(readFileSync(join(folder, "records.jsonl"), "utf8"));
   const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string };
-  const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as { specs: CorpusSpec[] };
-  return { records, run, specs: manifest.specs };
+  const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as { specs: CorpusSpec[]; inputs?: { id: string; cell?: { containerSize?: string } }[] };
+  return { records, run, specs: manifest.specs, inputs: manifest.inputs ?? [] };
 }
 
 /** This function gives the leaf of `SELECT_TABLE` for each input of a corpus. It throws when a record has another input hash. */
@@ -602,6 +749,22 @@ export function snapshotMain(argv: readonly string[]): void {
     const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`);
     const snap = strategySnapshot(data.records, { corpus: data.run.corpus, origin: [origin], baseline: optionOf(argv, "--baseline") ?? "rows" });
     writeSnapshot(out ?? new URL(`strategies-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
+    return;
+  }
+  if (kind === "gaps" && folder !== undefined) {
+    const run = Number(optionOf(argv, "--run"));
+    const measure = optionOf(argv, "--measure");
+    if (!Number.isInteger(run) || !GAP_MEASURES.includes(measure as GapMeasure)) throw new Error(`The snapshot gaps needs --run <id> and --measure ${GAP_MEASURES.join("|")}.`);
+    const data = readRun(folder);
+    const sizes = new Map(data.inputs.map((i) => [i.id, i.cell?.containerSize]));
+    const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"));
+    const snap = gapSnapshot(data.records, {
+      corpus: data.run.corpus,
+      origin: [origin],
+      measure: measure as GapMeasure,
+      cellOf: (input) => gapCellOf(familyOfInput(input), sizes.get(input)),
+    });
+    writeSnapshot(out ?? new URL(`gaps-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
     return;
   }
   if (kind === "paired" && folder !== undefined) {
@@ -656,7 +819,7 @@ export function snapshotMain(argv: readonly string[]): void {
     writeSnapshot(out ?? new URL("releases.json", SNAPSHOT_DIR), { schema: SNAPSHOT_SCHEMA, kind: "releases", origin: [origin], releases } satisfies ReleasesSnapshot);
     return;
   }
-  throw new Error("Start a snapshot with: node bench/snapshot.ts strategies|paired|select|releases ... (see the head of bench/snapshot.ts)");
+  throw new Error("Start a snapshot with: node bench/snapshot.ts strategies|paired|select|releases|gaps ... (see the head of bench/snapshot.ts)");
 }
 
 if (process.argv[1]?.endsWith("snapshot.ts") === true) snapshotMain(process.argv.slice(2));
