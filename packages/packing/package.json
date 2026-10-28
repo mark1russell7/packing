@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@mark1russell7/cue": "^1.0.2",
-    "@mark1russell7/layout-contract": "github:mark1russell7/layout-contract#710ec519027dbc122d111cc5e76a1c18877f4237&path:packages/layout-contract",
+    "@mark1russell7/layout-contract": "github:mark1russell7/layout-contract#d15b2405f0f57fa1c094b4caedb26357f7554e99&path:packages/layout-contract",
     "@types/node": "^26.6.4",
     "tsdown": "^0.23.1",
     "typescript": "^7.0.2",

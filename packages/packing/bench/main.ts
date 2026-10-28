@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, arch, platform } from "node:os";
 import { join, resolve } from "node:path";
 import {
+  isMeasured,
   mergeRuns,
   parseCorpus,
   parsePredictions,
@@ -108,7 +109,8 @@ function main(): number {
       });
       const out = resolve(opt("--out") ?? join("bench-out", name));
       write(out, result.run, result.records, result.manifest);
-      process.stdout.write(`${result.records.length} records, ${result.run.skipped.length} skipped pairs and ${result.run.errors.length} errors in ${out}\n`);
+      const skips = result.records.filter((r) => !isMeasured(r)).length;
+      process.stdout.write(`${result.records.length} records, ${skips} of them skipped, and ${result.run.errors.length} errors in ${out}\n`);
       return result.run.errors.length > 0 ? 1 : 0;
     }
     case "merge": {
@@ -126,7 +128,8 @@ function main(): number {
       }
       const run = mergeRuns(runs);
       write(resolve(out), run, records, manifest);
-      process.stdout.write(`${records.length} records of ${runs.length} jobs in ${resolve(out)}\n`);
+      const skips = records.filter((r) => !isMeasured(r)).length;
+      process.stdout.write(`${records.length} records of ${runs.length} jobs, ${skips} of them skipped, in ${resolve(out)}\n`);
       return run.errors.length > 0 ? 1 : 0;
     }
     default:

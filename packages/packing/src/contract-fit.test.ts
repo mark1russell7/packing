@@ -4,6 +4,7 @@
 import * as C from "@mark1russell7/layout-contract";
 import * as P from "@mark1russell7/packing";
 import { describe, expect, expectTypeOf, it } from "vitest";
+import type * as B from "../bench/run.ts";
 
 /** The type with no `readonly` at each level: the arrays, the tuples and the fields. */
 type Mutable<T> = T extends object ? { -readonly [K in keyof T]: Mutable<T[K]> } : T;
@@ -143,6 +144,19 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<P.Supports>().toExtend<C.Supports>();
     expectTypeOf<P.Strategy["supports"]>().toExtend<C.Supports>();
     expectTypeOf<Alias<P.Supports>>().toEqualTypeOf<P.Supports>();
+  });
+
+  it("a record of the benchmark runner, measured or skipped, fits the record of the contract with no difference of fields", () => {
+    expectTypeOf<B.MeasuredRecord>().toExtend<C.LayoutRecord>();
+    expectTypeOf<B.SkippedRecord>().toExtend<C.LayoutRecord>();
+    expectTypeOf<B.BenchRecord>().toExtend<C.LayoutRecord>();
+    expectTypeOf<Exclude<keyof C.LayoutRecord, keyof B.MeasuredRecord>>().toEqualTypeOf<never>();
+    expectTypeOf<Exclude<keyof B.MeasuredRecord, keyof C.LayoutRecord>>().toEqualTypeOf<never>();
+    expectTypeOf<Exclude<keyof B.SkippedRecord, keyof C.LayoutRecord>>().toEqualTypeOf<never>();
+    expectTypeOf<B.SkippedRecord["skipped"]>().toEqualTypeOf<NonNullable<C.LayoutRecord["skipped"]>>();
+    expectTypeOf<B.BenchEnv>().toExtend<C.RunEnv>();
+    expectTypeOf<C.RunEnv>().toExtend<B.BenchEnv>();
+    expectTypeOf<RequiredKeys<C.RunEnv>>().toEqualTypeOf<keyof B.BenchEnv>();
   });
 
   it("gap 12 is closed: checkHard and packHard both read the input, the output and an optional tolerance", () => {

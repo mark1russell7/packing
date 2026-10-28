@@ -51,7 +51,7 @@ pnpm --filter @mark1russell7/packing bench run --corpus smoke-v1 --prediction <i
 
 For each strategy and each input of the corpus, the runner does these steps:
 
-1. It examines the cell of the input in the manifest. It skips the pair when the strategy does not support a value of the cell.
+1. It examines the cell of the input in the manifest. It writes a skipped record when the strategy does not support a value of the cell.
 2. It packs the input 2 times with the seed of the input. Thus it gets `deterministic` with `isDeterministic`.
 3. It packs the input `warmup` times, and then `repeats` times with a clock. The median of the times is `ms`.
 4. It examines the output of the first packing with `checkHard`, and it gets the measures with `measure`.
@@ -59,7 +59,7 @@ For each strategy and each input of the corpus, the runner does these steps:
 
 The runner does not stop at an error of a strategy. It writes the error in `run.json` and in the summary, and it exits with the code 1.
 
-A strategy of the mode `incremental` gets no record on an offline corpus. Each generator of the package makes offline inputs, so the runner skips `push` on each input.
+A strategy of the mode `incremental` gets only skipped records on an offline corpus. Each generator of the package makes offline inputs, so the runner skips `push` on each input.
 
 ## The corpora
 
@@ -104,7 +104,7 @@ Each job of the matrix keeps the artifact `bench-<corpus>-<strategy>`. The job `
 
 | File | Content |
 |---|---|
-| `records.jsonl` | One `layout-record/1` line for each pair that the job packed. |
+| `records.jsonl` | One `layout-record/1` line for each pair of the job: a measured record or a skipped record. The lines keep the order of the strategies, and then the order of the inputs. |
 | `run.json` | The facts of the run: the corpus, the prediction, the commit, the counts of runs, the computer, the skipped pairs and the errors. |
 | `corpus.json` | The manifest of the corpus, with the id, the hash and the cell of each input. |
 | `summary.md` | The summary. The page of the run on GitHub also shows it. |
@@ -119,23 +119,26 @@ A record has each field of `layout-record/1` in `docs/FORMAT.md`. These values a
 - `commit` holds the first 7 characters of the commit.
 - `measures` holds the measures of `measure`. The value `pack.search.ms` is the median of the timed runs.
 
-A record also has 3 fields that `docs/FORMAT.md` does not have yet. A reader of the format ignores them.
+A record also has these optional fields of `docs/FORMAT.md`:
 
 | Field | Content |
 |---|---|
 | `msRuns` | The time of each timed run, in milliseconds. Their median is `ms`. |
-| `placementsHash` | The first 16 hex characters of the SHA-256 of the placements, sorted by id. Two runs with the same hash have the same placements. |
+| `outputHash` | The first 16 hex characters of the SHA-256 of the placements, sorted by id. Two runs with the same hash have the same placements. |
 | `env` | The computer: the version of Node.js, the operating system, the processor and the name of the runner. |
+| `skipped` | The reason when the runner did not pack the pair, for example `unsupported mode: offline`. Only a skipped record has it. |
+
+A skipped record is the record of a pair that the strategy does not support. It has `skipped`, and `measures` and `hard` are empty objects. Its `ms` is 0, and it has no `msRuns` and no `outputHash`. The medians, the tables and the predictions of the summary ignore the skipped records.
 
 ## Read the summary
 
 The summary `summary.md` has these sections:
 
-1. The head: the prediction, the commit, the computer and the counts of runs.
-2. `Strategies`: one row for each strategy. The row has the counts of records, skipped pairs, errors, hard breaks and records that are not deterministic. Then it has the median of each guard measure, the median of `pack.fill` and `pack.whitespace`, and the times.
+1. The head: the prediction, the commit, the computer, the counts of runs and the counts of the measured and the skipped records.
+2. `Strategies`: one row for each strategy. The row has the counts of measured records, skipped records, errors, hard breaks and records that are not deterministic. Then it has the median of each guard measure, the median of `pack.fill` and `pack.whitespace`, and the times.
 3. One section for each strategy, with one row for each family of inputs.
-4. `Skipped cells`: each value of a cell that a strategy does not support, with the count of its inputs.
-5. `Hard breaks and determinism`: each record with a hard break or with `deterministic` set to `false`. A good run has none.
+4. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
+5. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
 6. `Stability`: the count of records with the stability measures.
 7. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
 

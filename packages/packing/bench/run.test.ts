@@ -1,18 +1,23 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { strategies } from "@mark1russell7/packing";
 import {
   checkPrediction,
+  isMeasured,
   mergeRuns,
+  outputHash,
   parseCorpus,
   parsePredictions,
   recordLines,
   runBench,
+  skipReason,
   strategyIds,
   summaryMarkdown,
   type BenchEnv,
   type BenchRecord,
+  type SkippedRecord,
 } from "./run.ts";
 
 // The runner of the benchmark on the tiny corpus smoke-v1, with one timed run. The test reads no time: CI gives the times.
@@ -23,16 +28,19 @@ const smoke = parseCorpus(corpusFile("smoke-v1"), "smoke-v1");
 const run = () => runBench({ corpus: smoke, prediction: "p-test", repeats: 1, warmup: 0, env: ENV, commit: "abcdef0" });
 const first = run();
 const second = run();
+const measured = first.records.filter(isMeasured);
+const skips = first.records.filter((r): r is SkippedRecord => !isMeasured(r));
 
-/** The fields of `layout-record/1` in `docs/FORMAT.md`. */
-const FORMAT_FIELDS = ["schema", "stage", "step", "strategy", "options", "corpus", "input", "inputHash", "set", "seed", "nodes", "edges", "measures", "hard", "tolerance", "deterministic", "prediction", "ms", "commit"];
+/** The fields of `layout-record/1` in `docs/FORMAT.md` that each record has. */
+const FORMAT_FIELDS = ["schema", "stage", "step", "strategy", "options", "corpus", "input", "inputHash", "set", "seed", "nodes", "edges", "measures", "hard", "tolerance", "deterministic", "prediction", "ms", "commit", "env"];
 
 /** A record without its times. */
 const timeless = (r: BenchRecord): unknown => {
-  const { ms: _ms, msRuns: _runs, ...rest } = r;
-  const measures = { ...r.measures };
-  delete measures["pack.search.ms"];
-  return { ...rest, measures };
+  const copy: Record<string, unknown> = { ...r, measures: { ...r.measures } };
+  delete copy["ms"];
+  delete copy["msRuns"];
+  delete (copy["measures"] as Record<string, number>)["pack.search.ms"];
+  return copy;
 };
 
 describe("the benchmark runner", () => {
@@ -40,8 +48,8 @@ describe("the benchmark runner", () => {
     const lines = recordLines(first.records).split("\n");
     expect(lines.at(-1)).toBe("");
     const parsed = lines.slice(0, -1).map((line) => JSON.parse(line) as BenchRecord);
-    expect(parsed).toHaveLength(first.records.length);
-    expect(parsed.length).toBeGreaterThan(0);
+    expect(parsed).toEqual(first.records);
+    expect(measured.length).toBeGreaterThan(0);
     for (const r of parsed) {
       for (const field of FORMAT_FIELDS) expect(r, field).toHaveProperty(field);
       expect(r.schema).toBe("layout-record/1");
@@ -51,63 +59,99 @@ describe("the benchmark runner", () => {
       expect(r.prediction).toBe("p-test");
       expect(r.commit).toBe("abcdef0");
       expect(r.tolerance).toEqual({ overlap: 0.001 });
-      expect(r.msRuns).toHaveLength(1);
-      expect(r.placementsHash).toMatch(/^[0-9a-f]{16}$/);
+      expect(r.env).toEqual(ENV);
       const entry = first.manifest.inputs.find((e) => e.id === r.input);
       expect(entry?.hash).toBe(r.inputHash);
+    }
+  });
+
+  it("gives each measured record its times, its outputHash and its measures", () => {
+    for (const r of measured) {
+      expect(r).not.toHaveProperty("skipped");
+      expect(r).not.toHaveProperty("placementsHash");
+      expect(r.msRuns).toHaveLength(1);
+      expect(r.outputHash).toMatch(/^[0-9a-f]{16}$/);
+      expect(r.outputHash).toBe(outputHash(first.outputs.get(r.strategy)!.get(r.input)!));
       for (const value of Object.values(r.measures)) expect(Number.isFinite(value)).toBe(true);
       expect(Object.keys(r.measures)).toEqual(expect.arrayContaining(["pack.area", "pack.fill", "pack.overflow", "pack.aspectError", "pack.order.inversions"]));
     }
   });
 
-  it("gives 0 hard breaks, determinism and no error for each supported pair", () => {
+  it("gives the same outputHash for the same placements in a different order", () => {
+    const output = [...first.outputs.get("shelf")!.values()].find((o) => o.placements.length > 1)!;
+    expect(outputHash({ ...output, placements: output.placements.toReversed() })).toBe(outputHash(output));
+  });
+
+  it("gives a skipped record with the reason, no measures, no hard counts and no times", () => {
+    expect(skips.length).toBeGreaterThan(0);
+    for (const r of skips) {
+      expect(r.skipped).toMatch(/^unsupported \S+: \S+$/);
+      expect(r.measures).toEqual({});
+      expect(r.hard).toEqual({});
+      expect(r.ms).toBe(0);
+      expect(r.deterministic).toBe(true);
+      expect(r).not.toHaveProperty("msRuns");
+      expect(r).not.toHaveProperty("outputHash");
+      expect(first.outputs.get(r.strategy)?.has(r.input)).toBe(false);
+    }
+    expect(skips.map((r) => ({ strategy: r.strategy, input: r.input }))).toEqual(first.run.skipped.map((k) => ({ strategy: k.strategy, input: k.input })));
+    expect(skips.map((r) => r.skipped)).toEqual(first.run.skipped.map((k) => skipReason(k.dimension, k.value)));
+  });
+
+  it("gives records that fit the record of the contract", () => {
+    const shared: readonly LayoutRecord[] = first.records;
+    expect(shared).toHaveLength(first.records.length);
+  });
+
+  it("gives 0 hard breaks, determinism and no error for each measured pair", () => {
     expect(first.run.errors).toEqual([]);
-    for (const r of first.records) {
+    for (const r of measured) {
       expect(r.hard, `${r.strategy} ${r.input}`).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
       expect(r.deterministic, `${r.strategy} ${r.input}`).toBe(true);
     }
   });
 
-  it("gives the same placements and measures in two runs", () => {
+  it("gives the same records, placements and measures in two runs", () => {
     expect(second.records.map(timeless)).toEqual(first.records.map(timeless));
     for (const [id, outputs] of first.outputs) {
       for (const [input, output] of outputs) expect(second.outputs.get(id)?.get(input)?.placements, `${id} ${input}`).toEqual(output.placements);
     }
   });
 
-  it("skips each unsupported pair, and gives each other pair one record", () => {
+  it("gives each pair one record, in the order of the strategies and then of the inputs", () => {
     const inputs = first.manifest.inputs.map((e) => e.id);
-    for (const s of strategies) {
-      for (const input of inputs) {
-        const records = first.records.filter((r) => r.strategy === s.id && r.input === input).length;
-        const skips = first.run.skipped.filter((k) => k.strategy === s.id && k.input === input).length;
-        expect(records + skips, `${s.id} ${input}`).toBe(1);
-      }
-    }
+    expect(first.records.map((r) => `${r.strategy} ${r.input}`)).toEqual(strategies.flatMap((s) => inputs.map((input) => `${s.id} ${input}`)));
     // The corpus is offline, and push supports only the mode incremental
-    expect(first.records.filter((r) => r.strategy === "push")).toEqual([]);
-    expect(first.run.skipped.filter((k) => k.strategy === "push")).toHaveLength(inputs.length);
-    expect(first.run.skipped.some((k) => k.strategy === "push" && k.dimension === "mode" && k.value === "offline")).toBe(true);
+    expect(measured.filter((r) => r.strategy === "push")).toEqual([]);
+    expect(skips.filter((r) => r.strategy === "push")).toHaveLength(inputs.length);
+    expect(skips.some((r) => r.strategy === "push" && r.skipped === "unsupported mode: offline")).toBe(true);
     // No strategy supports a circle container yet
     const circle = inputs.find((id) => id.includes(".circle."))!;
-    expect(first.records.filter((r) => r.input === circle)).toEqual([]);
+    expect(measured.filter((r) => r.input === circle)).toEqual([]);
     // rows does not go around obstacles
-    expect(first.run.skipped.some((k) => k.strategy === "rows" && k.dimension === "obstacleMove")).toBe(true);
+    expect(skips.some((r) => r.strategy === "rows" && r.skipped.startsWith("unsupported obstacleMove:"))).toBe(true);
   });
 
   it("gives the search measures of a free size from the trace", () => {
-    const free = first.records.find((r) => r.strategy === "shelf" && r.input.includes(".freeAspect."))!;
+    const free = measured.find((r) => r.strategy === "shelf" && r.input.includes(".freeAspect."))!;
     expect(free.measures["pack.search.widths"]).toBeGreaterThan(0);
   });
 
-  it("writes a summary with each strategy, the skipped cells and the prediction", () => {
+  it("writes a summary with each strategy, the counts of the skipped records and the prediction", () => {
     const md = summaryMarkdown(first.run, first.records, []);
-    for (const s of strategies) expect(md).toContain(`| ${s.id} |`);
+    for (const s of strategies) {
+      const own = first.records.filter((r) => r.strategy === s.id);
+      expect(md).toContain(`| ${s.id} | ${own.filter(isMeasured).length} | ${own.filter((r) => !isMeasured(r)).length} | 0 |`);
+    }
+    expect(md).toContain(`Records: ${first.records.length}. Measured records: ${measured.length}. Skipped records: ${skips.length}.`);
     expect(md).toContain("## Skipped cells");
-    expect(md).toContain("`mode` = `offline`");
-    expect(md).toContain("Each record has 0 hard breaks");
+    const offline = skips.filter((r) => r.strategy === "push" && r.skipped === "unsupported mode: offline").length;
+    expect(offline).toBeGreaterThan(0);
+    expect(md).toContain(`| push | \`unsupported mode: offline\` | ${offline} |`);
+    expect(md).toContain("Each measured record has 0 hard breaks");
     expect(md).toContain("has no line with the id `p-test`");
     expect(md).toContain("No input of the corpus has a base");
+    expect(md).not.toContain("## `push` by family");
   });
 
   it("checks a prediction against the records", () => {
@@ -120,12 +164,27 @@ describe("the benchmark runner", () => {
     expect(() => parsePredictions('{"strategy":"shelf"}')).toThrow(/no id/);
   });
 
+  it("gives the same prediction median with and without the skipped records", () => {
+    for (const measure of ["ms", "pack.fill", "pack.overflow", "pack.aspectError"]) {
+      const p = { id: "p-test", set: "smoke-v1", measure, expected: 0 };
+      const all = checkPrediction(p, first.records);
+      expect(all.measured, measure).toBeDefined();
+      expect(all, measure).toEqual(checkPrediction(p, measured));
+      // More skipped records, each with the ms 0, do not move the median
+      expect(checkPrediction(p, [...first.records, ...skips, ...skips, ...skips]), measure).toEqual(all);
+    }
+    expect(checkPrediction({ id: "p-test", strategy: "push", measure: "ms", expected: 0 }, first.records)).toEqual({});
+  });
+
   it("merges the runs of the jobs of the matrix", () => {
     const one = runBench({ corpus: smoke, prediction: "p-test", strategies: ["shelf"], repeats: 1, warmup: 0, env: ENV });
     const two = runBench({ corpus: smoke, prediction: "p-test", strategies: ["rows", "push"], repeats: 1, warmup: 0, env: ENV });
     const merged = mergeRuns([one.run, two.run]);
     expect(merged.strategies).toEqual(["shelf", "rows", "push"]);
     expect(merged.skipped).toHaveLength(one.run.skipped.length + two.run.skipped.length);
+    const records = [...one.records, ...two.records];
+    expect(merged.skipped).toHaveLength(records.filter((r) => !isMeasured(r)).length);
+    expect(summaryMarkdown(merged, records)).toContain(`Skipped records: ${merged.skipped.length}.`);
     const other = runBench({ corpus: smoke, prediction: "p-other", strategies: ["rows"], repeats: 1, warmup: 0, env: ENV });
     expect(() => mergeRuns([one.run, other.run])).toThrow(/one prediction/);
   });
