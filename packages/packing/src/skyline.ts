@@ -156,6 +156,9 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
 /**
  * This function packs rectangles with a skyline in a free space. Each cell has a free range: the skyline is its start,
  * and `limit` is its end. A cell with less room than the lowest rectangle left goes to its next free range.
+ *
+ * A rectangle that needs more cells than the outer rectangle has goes at the left edge. Its y is the first y where each
+ * cell is free over its height. Then each cell starts after the rectangle, as in the plain skyline.
  */
 function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrder, space: FreeSpace): Rect<T> {
   const width = Math.floor(outer.size.x);
@@ -198,9 +201,29 @@ function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrde
       x = 0;
       y = 0;
       for (let i = 0; i < width; i++) if (Number.isFinite(skyline[i]!) && skyline[i]! > y) y = skyline[i]!;
+      // The rectangle covers each cell, thus it goes to the first y where each cell is free over its height
+      for (let moved = true; moved; ) {
+        moved = false;
+        for (let i = 0; i < width; i++) {
+          if (!Number.isFinite(skyline[i]!)) continue;
+          const [s, e] = rangeOf(i, y);
+          const next = s > y ? s : e < y + rh ? rangeOf(i, e)[0] : y;
+          if (next > y && Number.isFinite(next)) {
+            y = next;
+            moved = true;
+          }
+        }
+      }
       rect.position.set(x + ox, y + oy);
       rect.wasPacked = true;
-      outer.size.y = Math.max(outer.size.y, y + rh);
+      const top = y + rh;
+      // Each cell starts after the rectangle. A cell with a range that ends before the top of the rectangle goes to its next range.
+      for (let i = 0; i < width; i++) {
+        if (!Number.isFinite(skyline[i]!)) continue;
+        if (top <= limit[i]!) skyline[i] = top;
+        else [skyline[i], limit[i]] = rangeOf(i, top);
+      }
+      outer.size.y = Math.max(outer.size.y, top);
       continue;
     }
     let found = findWindow(skyline, width, rw, limit, rh);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { boundsOf, rectInRegion, regionHitsRect } from "@mark1russell7/layout-contract";
 import {
+  cellOf,
   checkHard,
   freeSpace,
   lowestWindow,
@@ -8,6 +9,8 @@ import {
   mulberry32,
   packWith,
   rectGrid,
+  strategies,
+  supportsCell,
   toPackInput,
   type Item,
   type PackInput,
@@ -129,6 +132,52 @@ describe("the container layer: each strategy in each container shape", () => {
         expect(output.overflow, `${id} ${containerShape}`).toEqual([]);
       }
     }
+  });
+});
+
+// Roadmap item k63: in a free size, `packFree` tries the width of the widest box. When that width is not a whole number,
+// the skyline has fewer cells than the box needs. Before 0.2.10, the skyline in a shaped space put each such box at the
+// same y, thus identical boxes overlapped.
+describe("identical boxes in a free curved or polygon container (k63)", () => {
+  const SPACINGS = [
+    { margin: 0, gap: 0 },
+    { margin: 0, gap: 10 },
+    { margin: 10, gap: 0 },
+    { margin: 5, gap: 5 },
+  ];
+  /** This function gives the inputs of one cell: each count, seed and spacing. */
+  const inputsOf = (containerSize: "freeArea" | "freeAspect", containerShape: "circle" | "ellipse" | "polygon"): PackInput[] => {
+    const inputs: PackInput[] = [];
+    for (const count of [10, 100]) {
+      for (const seed of [1, 2, 3]) {
+        const file = toPackInput(rectGrid.generate(seed, { containerSize, containerShape, obstacles: "none", sizes: "identical", count }));
+        for (const { margin, gap } of SPACINGS) inputs.push({ ...file, items: file.items.map((item) => (margin === 0 ? item : { ...item, margin })), gap });
+      }
+    }
+    return inputs;
+  };
+  const clean = { "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 };
+
+  for (const containerSize of ["freeArea", "freeAspect"] as const) {
+    for (const containerShape of ["circle", "ellipse", "polygon"] as const) {
+      it(`keeps the hard rules for each strategy in a ${containerShape} container with the size ${containerSize}`, () => {
+        for (const [n, input] of inputsOf(containerSize, containerShape).entries()) {
+          for (const s of strategies) {
+            if (!supportsCell(s.supports, cellOf(input))) continue;
+            expect(checkHard(input, packWith(s.id, input, undefined, n)), `${s.id} ${n}`).toEqual(clean);
+          }
+        }
+      });
+    }
+  }
+
+  it("stacks the boxes of the input of the report, when the width of the box is not a whole number", () => {
+    const file = toPackInput(rectGrid.generate(1, { containerSize: "freeArea", containerShape: "circle", obstacles: "none", sizes: "identical", count: 10 }));
+    const input: PackInput = { ...file, items: file.items.map((item) => ({ ...item, margin: 10 })), gap: 0 };
+    const output = packWith("skyline", input);
+    expect(checkHard(input, output)["no-overlap"]).toBe(0);
+    expect(output.overflow).toEqual([]);
+    expect(new Set(output.placements.map((p) => p.y)).size).toBe(output.placements.length);
   });
 });
 
