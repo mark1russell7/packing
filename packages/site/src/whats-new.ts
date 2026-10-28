@@ -1,10 +1,10 @@
-// The page of the news: each release of the changelog, by date. The page reads only `data/releases.json`.
+// The page of the news: each release of the changelog and each entry of `NEWS`, by date. The releases come from `data/releases.json`.
 
 import { marked } from "marked";
 import newsText from "../content/whats-new.md?raw";
 import releasesJson from "../data/releases.json?raw";
 import { mountChrome } from "./chrome.ts";
-import { byDate, parseSnapshot } from "./data.ts";
+import { byDate, NEWS, newsByDate, parseSnapshot } from "./data.ts";
 import { esc, inline, originHtml } from "./format.ts";
 import "./style.css";
 import "./pages.css";
@@ -34,11 +34,25 @@ $("news-tiles").innerHTML = `
   <div class="tile"><span>Releases</span><b>${snap.releases.length}</b><small>on ${groups.length} days</small></div>
   <div class="tile ${breaking === 0 ? "better" : "mixed"}"><span>With breaking changes</span><b>${breaking}</b><small>the others keep the API</small></div>`;
 
-$("news-list").innerHTML = groups
+/** This function gives the count text of a day: its releases and its other news. */
+function countText(releases: number, news: number): string {
+  const parts = [releases === 0 ? "" : `${releases} ${releases === 1 ? "release" : "releases"}`, news === 0 ? "" : `${news} ${news === 1 ? "measure" : "measures"}`];
+  return parts.filter((p) => p !== "").join(", ");
+}
+
+$("news-list").innerHTML = newsByDate(snap.releases, NEWS)
   .map(
-    ([date, list]) => `<section class="day" aria-label="${esc(dateText(date))}">
-      <h3><time datetime="${esc(date)}">${esc(dateText(date))}</time> <small>${list.length} ${list.length === 1 ? "release" : "releases"}</small></h3>
-      <ol class="news">${list
+    ([date, day]) => `<section class="day" aria-label="${esc(dateText(date))}">
+      <h3><time datetime="${esc(date)}">${esc(dateText(date))}</time> <small>${esc(countText(day.releases.length, day.news.length))}</small></h3>
+      <ol class="news">${day.news
+        .map(
+          (n) => `<li class="item">
+            <span class="ver">${esc(n.item)}</span>
+            <span class="ntitle">${inline(n.title)}</span>
+            <a class="nlink" href="${esc(n.link)}">PR #${n.pr}</a>
+          </li>`,
+        )
+        .join("")}${day.releases
         .map(
           (r) => `<li>
             <span class="ver">${esc(r.release)}</span>
