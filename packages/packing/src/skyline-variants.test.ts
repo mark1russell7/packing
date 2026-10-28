@@ -84,6 +84,29 @@ describe("the skyline variants of k22", () => {
     expect(checkHard(input, waste)["no-overlap"]).toBe(0);
   });
 
+  it("puts a box on the window with the least waste with the rule mw, also when the window is higher", () => {
+    // After a, b and c, the skyline is [5, 5, 5, 5, 5, 5, 5, 3, 3, 0]. For d (3 by 4), the window at x 0 has the
+    // waste 0 and the top 5. The window at x 7 has the waste 3 and the top 3. Thus mw takes x 0 and bl takes x 7.
+    const items = [
+      { id: "a", w: 4, h: 5 },
+      { id: "b", w: 5, h: 3 },
+      { id: "c", w: 3, h: 2 },
+      { id: "d", w: 3, h: 4 },
+    ];
+    const input: PackInput = { container: { w: 10, fixed: "width" }, items };
+    const bl = packWith("skyline", input, { sortOrder: "input" });
+    const mw = packWith("skyline", input, { sortOrder: "input", rule: "mw" });
+    const at = (o: typeof bl, id: string): { x: number; y: number } => {
+      const p = o.placements.find((q) => q.id === id)!;
+      return { x: p.x, y: p.y };
+    };
+    expect(["a", "b", "c", "d"].map((id) => at(bl, id))).toEqual([{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 3 }, { x: 7, y: 3 }]);
+    expect(["a", "b", "c", "d"].map((id) => at(mw, id))).toEqual([{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 3 }, { x: 0, y: 5 }]);
+    expect(bl.size.h).toBe(7);
+    expect(mw.size.h).toBe(9);
+    expect(mw.trace!.at(-1)!.measures!["move.minWaste"]).toBe(1);
+  });
+
   it("turns a turnable item that fits only when it turns", () => {
     const input: PackInput = { container: { w: 20, fixed: "width" }, items: [{ id: "tall", w: 30, h: 10, turnable: true }, { id: "b", w: 10, h: 10 }] };
     const output = packWith("skyline", input, { rotate: true });
