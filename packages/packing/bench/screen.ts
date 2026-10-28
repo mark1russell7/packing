@@ -5,7 +5,7 @@
 import { compareMeasure } from "@mark1russell7/layout-contract";
 import { MEASURE_SPECS, quantile, round3, type MeasureId, type PackOutput } from "@mark1russell7/packing";
 import { basesOf } from "./entries.ts";
-import { portfolioMarkdown, portfolioOf, type BenchPortfolio } from "./portfolio.ts";
+import { portfolioMarkdown, portfolioOf, type BenchPortfolio, type PortfolioOptions } from "./portfolio.ts";
 
 /** The id of the characteristic move of each entry. The trace of the entry has the count of the move with this id. */
 export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
@@ -22,6 +22,8 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "maxrects-baf": "move.baf",
   "maxrects-bl": "move.split",
   "maxrects-cp": "move.cp",
+  "portfolio-k2": "move.pick",
+  "portfolio-k3": "move.pick",
 });
 
 /** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */
@@ -563,9 +565,9 @@ export function screenMarkdown(screen: Partial<BenchScreen>, strategies: readonl
 
 /**
  * This function gives the screen of the records of a run. The records of a matrix come from all its jobs, thus the
- * screen of a merge sees each strategy. `shapes` gives the container shape of each input id.
+ * screen of a merge sees each strategy. `shapes` gives the container shape of each input id. `portfolio` goes to the portfolio report.
  */
-export function screenOf(strategies: readonly string[], records: readonly ScreenRecord[], shapes: ReadonlyMap<string, string>): BenchScreen {
+export function screenOf(strategies: readonly string[], records: readonly ScreenRecord[], shapes: ReadonlyMap<string, string>, portfolio: PortfolioOptions = {}): BenchScreen {
   const shapeOf = (input: string): string => shapes.get(input) ?? UNKNOWN_SHAPE;
   const ids = [...new Set(strategies)];
   const measured = records.filter(isMeasured);
@@ -601,6 +603,6 @@ export function screenOf(strategies: readonly string[], records: readonly Screen
     if (ranking.entries.length > 0) screen.ranking[k] = ranking;
   }
   // The portfolio report of k20 reads the same records, by cell: all the shapes, then each shape
-  screen.portfolio = portfolioOf(ids, own, shapeOf, allShapes);
+  screen.portfolio = portfolioOf(ids, own, shapeOf, allShapes, portfolio);
   return screen;
 }

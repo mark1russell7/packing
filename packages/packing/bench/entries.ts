@@ -37,14 +37,33 @@ export const MAXRECTS_VARIANTS: readonly BenchEntry[] = Object.freeze([
   { id: "maxrects-cp", strategy: "maxrects", options: { rule: "cp" }, base: "maxrects-bl" },
 ]);
 
+/**
+ * The composite entries of roadmap item k20, part 2: the strategy `portfolio` with a set of 2 or 3 members for each cell.
+ * Their base is `maxrects-bl`, the best single entry of `pack-screen-v1`. Their activation move is `move.pick`.
+ * They are not in the pool of the oracle, the greedy sets, the sole wins and the losers.
+ */
+export const PORTFOLIO_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "portfolio-k2", strategy: "portfolio", options: { k: 2 }, base: "maxrects-bl" },
+  { id: "portfolio-k3", strategy: "portfolio", options: { k: 3 }, base: "maxrects-bl" },
+]);
+
+/** The ids of the composite entries. Each one packs an input with other entries. */
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set(PORTFOLIO_ENTRIES.map((e) => e.id));
+
+/** This function tells if an entry id is a composite entry. */
+export function isComposite(id: string): boolean {
+  return COMPOSITE_IDS.has(id);
+}
+
 /** The strategies of the registry with no entry of their own. The variants of each rule replace them. */
 const VARIANTS_ONLY: ReadonlySet<string> = new Set(["maxrects"]);
 
-/** The entries of the benchmark: each strategy of the registry, then the variants. */
+/** The entries of the benchmark: each strategy of the registry, then the variants, then the composite entries. */
 export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...strategies.filter((s) => !VARIANTS_ONLY.has(s.id)).map((s) => ({ id: s.id, strategy: s.id, options: {} })),
   ...SHELF_VARIANTS,
   ...MAXRECTS_VARIANTS,
+  ...PORTFOLIO_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

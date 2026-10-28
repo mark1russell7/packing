@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.7
+
+The per-cell portfolio of roadmap item k20, part 2. This release has no breaking changes.
+
+### New
+
+- The strategy `portfolio` packs an input with the set of its cell. It is opt-in. `composites` lists it, and `strategies` does not.
+- `portfolioCell(input)` gives the cell: the container shape, the band of the item count and the band of the size spread.
+- `spreadOf`, `spreadBand` and `SPREAD_THRESHOLDS` (0.02 and 0.27) give the band of the size spread. `cellKey` gives the key of a cell.
+- `PORTFOLIO_SETS` is the table of the sets of 1, 2 and 3 members of each cell. The run 40652567756 of `pack-screen-v1` gave it.
+- `portfolioMembers(input, k)` and `portfolioSetOf` look up the cell, then the shape, then the fixed default. A cell with fewer than 12 inputs is thin.
+- `portfolioDefaultMembers` and `PORTFOLIO_FRAME_MS` (50 ms) give the default member count of a cell. The count is a constant of the table.
+- Without options, the strategy `portfolio` runs the default count. The option `k` runs each member of the set of `k`.
+- The options `maxMembers` and `budgetMs` go to the contract. `budgetMs` has no default, so the default output does not read the clock.
+- `packPortfolio` also takes a function `(input) => members`.
+- The bench has the composite entries `portfolio-k2` and `portfolio-k3`. They are not in the pool of the portfolio report.
+- The portfolio report gives the mean regrets against the oracle, the keep rate, and the scores at `default`, 50 ms, 200 ms and 1000 ms.
+- `bench/choose-sets.ts` writes `src/portfolio-sets.ts` from the records of a run.
+- The corpus `pack-holdout-v1` has the specs of `pack-screen-v1` with the new seeds 6 and 7: 522 inputs.
+- A corpus file can set the held-out split in the field `heldOut`. `pack-holdout-v1` has `all`.
+
+### The outputs
+
+- The placements of each existing strategy and entry do not change. The fixture `bench/fixtures/rect-hashes.json` still pins them.
+
 ## 0.2.6
 
 The portfolio report and `packPortfolio` of roadmap item k20, part 1. This release has no breaking changes.

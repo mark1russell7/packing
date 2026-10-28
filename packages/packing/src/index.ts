@@ -79,8 +79,29 @@ export {
   type PushStrategyOptions,
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { packWith, strategies, strategy } from "./registry.ts";
+export { composites, packWith, strategies, strategy } from "./registry.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
+export {
+  cellKey,
+  PORTFOLIO_FRAME_MS,
+  portfolioCell,
+  portfolioDefaultMembers,
+  portfolioMembers,
+  portfolioSetOf,
+  spreadBand,
+  spreadOf,
+  SPREAD_THRESHOLDS,
+  THIN_INPUTS,
+  type PortfolioCell,
+  type PortfolioCellSets,
+  type PortfolioSetSource,
+  type PortfolioSets,
+  type PortfolioSize,
+  type PortfolioTrainScore,
+  type SpreadBand,
+} from "./portfolio-cell.ts";
+export { PORTFOLIO_SETS } from "./portfolio-sets.ts";
+export { portfolioStrategy, type PortfolioStrategyOptions } from "./portfolio-strategy.ts";
 export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export {

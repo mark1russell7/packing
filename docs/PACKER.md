@@ -161,16 +161,65 @@ const { output, winner, trace } = p.pick(input);
 - The output of the winner gets one more trace stage, `portfolio`. Its measure `move.pick` is 1 when the winner is not member 0.
 - The options `budgetMs`, `maxMembers` and `now` are the limits of `portfolio` of the contract. The option `seed` goes to each member.
 - The bench gives the portfolio report from the records (`docs/BENCH.md`, "Portfolio"). The report tells which sets to try.
+- Since 0.2.7, `members` can also be a function `(input) => members`. The contract checks the list of each input.
+- `packPortfolio` has no default `budgetMs`. A default that reads the clock gives two layouts for one input on two computers.
+
+### The per-cell portfolio
+
+Since 0.2.7, the strategy `portfolio` packs each input with the set of its cell. It is opt-in. No default uses it.
+
+```ts
+const output = packWith("portfolio", input); // the default member count of the cell
+const three = packWith("portfolio", input, { k: 3 }); // each of the 3 members of the cell
+```
+
+The cell of an input is `portfolioCell(input)`. The function reads the input only.
+
+| Part | Value |
+|---|---|
+| `shape` | The `containerShape` of `cellOf` |
+| `count` | `countCell` of the item count: `1` (3 or fewer), `10` (31 or fewer), `100` (316 or fewer), `1k` (3162 or fewer) or `10k` |
+| `spread` | The band of `spreadOf`: the standard deviation of the natural log of `sqrt(w * h)` of each item |
+
+The bands of the spread are `SPREAD_THRESHOLDS`:
+
+- `identical`: below 0.02. An input with fewer than 2 items with an area has the spread 0.
+- `uniform`: from 0.02 to below 0.27.
+- `heavyTail`: 0.27 or more.
+
+On the seeds 1 to 7 of the generators of `pack-screen-v1`, the sizes `uniform` give 0.26 at most, and the sizes `heavyTail` give 0.28 at least.
+
+- The tiles of `dashboard` (0.31 to 0.37) and the words of `word-cloud` (0.35 to 0.41) are in the band `heavyTail`.
+- The cards of `cards` and the case `touchObstacles` are in the band `uniform`. The case `oversize` is in the band `heavyTail`.
+- `gallery`, `empty`, `one` and `exactTiling` are in the band `identical`.
+
+The table `PORTFOLIO_SETS` gives the sets. `bench/choose-sets.ts` writes it from the records of one run (`docs/BENCH.md`, "The per-cell portfolio").
+
+- `portfolioMembers(input, k)` gives the set of `k` members of the cell of the input. A thin cell or an unknown cell uses the set of its shape.
+- A shape with no sets uses the fixed default: the sets of all the inputs.
+- `portfolioDefaultMembers(input)` gives the default member count of the cell: the largest prefix of the set of 3 with a median summed time of `PORTFOLIO_FRAME_MS` or less.
+- The default count comes from the CI times of the records. The count is a constant of the table, so the default output is a function of the input only.
+
+The options of the strategy `portfolio`:
+
+| Option | Default | Effect |
+|---|---|---|
+| `k` | none | 2 or 3. With `k`, each of the `k` members of the cell runs. |
+| `maxMembers` | `defaultMembers` of the cell | The largest count of the members that run. Without `k`, the members come from the set of 3. |
+| `budgetMs` | none | An opt-in time limit of the contract. The first member always runs. A cut member makes the output depend on the clock. |
 
 ## The registry
 
 ```ts
-const strategies: Strategy[]; // each strategy of the package
+const strategies: Strategy[]; // each single strategy of the package
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```
 
 The benchmark starts each strategy of the registry on each input of the corpus. A new strategy goes in the registry, so it gets the same benchmark as the others. No result is removed.
+
+A composite strategy packs an input with other strategies. It is not in `strategies`, but `strategy(id)` and `packWith` find it.
 
 ## The adapters of 0.1
 

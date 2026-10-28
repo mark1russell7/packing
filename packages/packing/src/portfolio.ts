@@ -57,18 +57,25 @@ export function hardBreaks(input: PackInput, output: PackOutput): number {
  * Its `pick(input)` packs the input with each member and gives the output of the winner, its id and the trace.
  *
  * - A member is a strategy id, or a `PortfolioEntry` with options. The members run in the given order.
+ * - `members` is a list, or a function of the input that gives the list. The strategy `portfolio` uses the function form.
  * - The key is the hard breaks, then `pack.overflow.excessArea`, then `pack.fill`. `PORTFOLIO_LEVELS` gives the specs.
  * - The hash of the key is `outputHash`. `selectBest` of the contract picks the winner.
  * - The output of the winner gets the trace stage `portfolio` with `move.pick` of `pickMoves`.
  * - The function throws a `RangeError` for an unknown strategy, an empty list and two members with the same id.
+ *   With the function form, `pick` throws this error for the list of an input.
  */
-export function packPortfolio(members: readonly (string | PortfolioEntry)[], options: PackPortfolioOptions = {}): Portfolio<PackInput, PackOutput> {
+export function packPortfolio(
+  members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]),
+  options: PackPortfolioOptions = {},
+): Portfolio<PackInput, PackOutput> {
   const seed = options.seed ?? 0;
-  const list: Member<PackInput, PackOutput>[] = members.map((m) => {
-    const e = typeof m === "string" ? { id: m, strategy: m } : m;
-    strategy(e.strategy);
-    return { id: e.id, run: (input: PackInput): PackOutput => packWith(e.strategy, input, e.options, seed) };
-  });
+  const toMembers = (given: readonly (string | PortfolioEntry)[]): Member<PackInput, PackOutput>[] =>
+    given.map((m) => {
+      const e = typeof m === "string" ? { id: m, strategy: m } : m;
+      strategy(e.strategy);
+      return { id: e.id, run: (input: PackInput): PackOutput => packWith(e.strategy, input, e.options, seed) };
+    });
+  const list = typeof members === "function" ? (input: PackInput): Member<PackInput, PackOutput>[] => toMembers(members(input)) : toMembers(members);
   // Each level reads the measures of one output, so the measures of an output are computed one time
   const cache = new WeakMap<PackOutput, LayoutMeasures>();
   const measured = (input: PackInput, output: PackOutput): LayoutMeasures => {

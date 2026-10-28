@@ -1,13 +1,20 @@
 import { maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
+import { portfolioStrategy } from "./portfolio-strategy.ts";
 import { createContext, type Strategy } from "./strategy.ts";
 
-/** Each strategy of the package. The benchmark starts each one on each input of the corpus. */
+/** Each single strategy of the package. The benchmark starts each one on each input of the corpus. */
 export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects] as Strategy[]);
 
-/** This function gives the strategy with an id. It throws a `RangeError` for an id that the registry does not have. */
+/**
+ * The composite strategies of the registry: each one packs an input with other strategies. They are not in `strategies`.
+ * Since 0.2.7, the list has `portfolio` of roadmap item k20.
+ */
+export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy] as Strategy[]);
+
+/** This function gives the strategy with an id, also a composite strategy. It throws a `RangeError` for an id that the registry does not have. */
 export function strategy(id: string): Strategy {
-  const found = strategies.find((s) => s.id === id);
+  const found = strategies.find((s) => s.id === id) ?? composites.find((s) => s.id === id);
   if (found === undefined) throw new RangeError(`The registry has no strategy "${id}".`);
   return found;
 }
