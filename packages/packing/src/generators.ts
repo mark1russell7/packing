@@ -2,7 +2,7 @@
 // container, then the obstacles, then the boxes. Each step has its own random numbers: `mulberry32` of
 // `fnv1a32("<seed>:<step>")`. Thus a packing input and a routing input with the same seed get the same obstacles.
 
-import type { Container, Item, Obstacle, Region } from "./contract.ts";
+import type { Item, LayoutContainer, Obstacle, Region } from "./contract.ts";
 import {
   countCell,
   fnv1a32,
@@ -10,7 +10,7 @@ import {
   round3,
   type CorpusCell,
   type GeneratorParams,
-  type LayoutInput,
+  type GeneratedInput,
   type ObstacleLayout,
   type SizeDistribution,
 } from "./layout-input.ts";
@@ -36,11 +36,11 @@ export interface CorpusGenerator<P extends GeneratorParams = GeneratorParams> {
   /** This method gives the cell of each input of the parameters. The cell does not depend on the seed. */
   cell(params?: Partial<P>): CorpusCell;
   /** This method gives the input file of a seed. The `id` is `<set>/<family>/s<seed>`. */
-  generate(seed: number, params?: Partial<P>, set?: string): LayoutInput;
+  generate(seed: number, params?: Partial<P>, set?: string): GeneratedInput;
 }
 
 /** The parts of a file that a generator makes. */
-type Parts = Pick<LayoutInput, "container" | "boxes"> & { obstacles: Obstacle[] };
+type Parts = Pick<GeneratedInput, "container" | "boxes"> & { obstacles: Obstacle[] };
 
 /** The data of a generator, before `defineGenerator` adds the common steps. */
 interface GeneratorSpec<P extends GeneratorParams> {
@@ -153,12 +153,12 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
     values: spec.values,
     withDefaults,
     cell: (params?: Partial<P>): CorpusCell => spec.cell(withDefaults(params)),
-    generate(seed: number, params?: Partial<P>, set: string = spec.set): LayoutInput {
+    generate(seed: number, params?: Partial<P>, set: string = spec.set): GeneratedInput {
       if (!Number.isInteger(seed) || seed < 0) throw new RangeError(`The seed is a whole number from 0. It is ${seed}.`);
       const full = withDefaults(params);
       const family = spec.family(full);
       const { container, obstacles, boxes } = spec.build(seed, full);
-      const file: Omit<LayoutInput, "hash"> = roundNumbers({
+      const file: Omit<GeneratedInput, "hash"> = roundNumbers({
         schema: "layout-input/1" as const,
         id: `${set}/${family}/s${seed}`,
         set,
@@ -195,7 +195,7 @@ export const rectScattered: CorpusGenerator<RectScatteredParams> = defineGenerat
     let r = stepRandom(seed, "container");
     const w = int(r, 600, 1000);
     const h = int(r, 400, 800);
-    const container: Container = { w, h, fixed: "size" };
+    const container: LayoutContainer = { w, h, fixed: "size" };
 
     r = stepRandom(seed, "obstacles");
     const n = int(r, 3, 8);
@@ -232,8 +232,8 @@ const OBSTACLE_LAYOUTS = ["none", "center", "scattered", "wall", "corridors", "t
 const SIZE_DISTRIBUTIONS = ["identical", "nearIdentical", "uniform", "heavyTail", "bimodal", "extremeAspect"] as const;
 
 /** This function gives the container of a size value for the nominal rectangle `w` by `h`, with an optional shape. */
-function containerOf(size: DimensionValue<"containerSize">, w: number, h: number, shape?: Region): Container {
-  const containers: Record<DimensionValue<"containerSize">, Container> = {
+function containerOf(size: DimensionValue<"containerSize">, w: number, h: number, shape?: Region): LayoutContainer {
+  const containers: Record<DimensionValue<"containerSize">, LayoutContainer> = {
     fixed: { w, h, fixed: "size" },
     freeHeight: { w, fixed: "width" },
     freeWidth: { h, fixed: "height" },
@@ -241,8 +241,7 @@ function containerOf(size: DimensionValue<"containerSize">, w: number, h: number
     freeArea: { fixed: "none", aspectWeight: 0 },
   };
   const container = containers[size];
-  if (shape !== undefined) container.shape = shape;
-  return container;
+  return shape === undefined ? container : { ...container, shape };
 }
 
 /** This function gives the 4 corners of a rectangle, clockwise from the top left. */
@@ -625,7 +624,7 @@ export const edgeCases: CorpusGenerator<EdgeCaseParams> = defineGenerator<EdgeCa
       w = int(r, 600, 1000);
       h = int(r, 400, 800);
     }
-    const container: Container = { w, h, fixed: "size" };
+    const container: LayoutContainer = { w, h, fixed: "size" };
 
     r = stepRandom(seed, "obstacles");
     const obstacles: Obstacle[] = [];

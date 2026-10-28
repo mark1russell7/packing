@@ -1,11 +1,12 @@
 // The algebra of measures (roadmap item k8). `docs/MEASURES.md` defines each measure. This file computes them.
 
+import type { MeasureSpec as ContractMeasureSpec, Direction } from "@mark1russell7/layout-contract";
 import { RECORD_EPS, type PackInput, type PackOutput } from "./contract.ts";
 import { aspectError } from "./free.ts";
 import { round3 } from "./layout-input.ts";
 
-/** The direction of a measure: `lower` when a lower value is better, `higher` when a higher value is better. */
-export type Direction = "lower" | "higher";
+/** The direction of a measure comes from the contract: `lower` when a lower value is better, `higher` when a higher value is better. */
+export type { Direction } from "@mark1russell7/layout-contract";
 
 /** The family of a measure. Each family has a section in `docs/MEASURES.md`. */
 export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
@@ -13,21 +14,17 @@ export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "ove
 /** The id of a measure of the packer. The ids are those of `docs/FORMAT.md`, and `highways` uses the same ids. */
 export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
 
-/** The facts of one measure: its family, its unit, its direction and its range. */
-export interface MeasureSpec {
-  id: MeasureId;
-  family: MeasureFamily;
-  unit: string;
-  direction: Direction;
-  /** The lowest value. */
-  min: number;
-  /** The highest value. The value `Infinity` tells that the measure has no upper limit. */
-  max: number;
+/**
+ * The facts of one measure: its family, its unit, its direction and its range.
+ * It is `MeasureSpec` of the contract for a packer measure id, with a family.
+ */
+export interface MeasureSpec extends ContractMeasureSpec<MeasureId> {
+  readonly family: MeasureFamily;
   /**
    * The floor is the best value of a guard measure. The floor rule of `docs/PROMOTION.md` of `highways` reads it. Each
    * guard of the packer has the floor 0. A measure without a floor has no floor rule.
    */
-  floor?: number;
+  readonly floor?: number;
   /**
    * The tolerance is the absolute tolerance at the floor. A candidate within the tolerance ties with a default at the floor.
    *
@@ -36,7 +33,7 @@ export interface MeasureSpec {
    * - `pack.stability.mean` has 0.005 container widths, and `pack.stability.q95` has 0.01. The default often moves no item.
    * - `pack.stability.moved` has 0.02: 2% of the items that stay. On a small change, the default often moves no item.
    */
-  tol?: number;
+  readonly tol?: number;
 }
 
 /** The measures of one layout, by id. `measure` gives them. The values are not rounded. */
@@ -175,7 +172,7 @@ export function readsBefore(a: Pick<Box, "x" | "y" | "h">, b: Pick<Box, "x" | "y
 /** This function sums one measure over the stages of a trace. A trace without the measure gives 0. */
 function traceSum(output: PackOutput, id: string): number {
   let sum = 0;
-  for (const stage of output.trace) sum += stage.measures[id] ?? 0;
+  for (const stage of output.trace ?? []) sum += stage.measures?.[id] ?? 0;
   return sum;
 }
 

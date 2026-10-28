@@ -25,8 +25,7 @@ const EXPECTED = [
 
 /** The hash of a file with the SHA-256 of node:crypto, as a check of the SHA-256 of the package */
 const nodeHash = (file: LayoutInput): string => {
-  const rest: Partial<LayoutInput> = { ...file };
-  delete rest.hash;
+  const { hash: _hash, ...rest } = file;
   return createHash("sha256").update(canonicalJson(rest)).digest("hex").slice(0, 16);
 };
 

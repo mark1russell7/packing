@@ -2,6 +2,7 @@
 // Each item grows by its margin and by half the gap on each side. Each obstacle grows by half the gap. Thus two items
 // are `mA + gap + mB` apart. The area of the frame is the container less the inset, grown by half the gap on each side.
 
+import { boundsOf } from "@mark1russell7/layout-contract";
 import { EPS, marginOf, type Item, type Obstacle, type PackInput, type PackOutput, type Placement, type Region, type StageTrace } from "./contract.ts";
 import { Rect } from "./rect.ts";
 
@@ -12,24 +13,8 @@ export function now(): number {
   return clock ? clock.now() : Date.now();
 }
 
-/** This function gives the bounding box of a region. */
-export function boundsOf(region: Region): { x: number; y: number; w: number; h: number } {
-  switch (region.kind) {
-    case "rect":
-      return { x: region.x, y: region.y, w: region.w, h: region.h };
-    case "circle":
-      return { x: region.cx - region.r, y: region.cy - region.r, w: 2 * region.r, h: 2 * region.r };
-    case "ellipse":
-      return { x: region.cx - region.rx, y: region.cy - region.ry, w: 2 * region.rx, h: 2 * region.ry };
-    case "polygon": {
-      const xs = region.points.map((p) => p[0]);
-      const ys = region.points.map((p) => p[1]);
-      const x = Math.min(...xs);
-      const y = Math.min(...ys);
-      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-    }
-  }
-}
+/** The bounding box of a region comes from the contract. */
+export { boundsOf } from "@mark1russell7/layout-contract";
 
 /** The rectangle of a container: its origin and its size. A free side has the size `Infinity`. */
 export interface Bounds {
@@ -147,7 +132,7 @@ export function rectsOf(frame: Frame): Rect<number>[] {
  * This function reads the output from the rectangles of a frame after a packing of 0.1. A locked item keeps its
  * position exactly. Each other item that the packer did not place goes to the overflow.
  */
-export function readFrame(input: PackInput, frame: Frame, trace: StageTrace[], moved: PackOutput["moved"] = []): PackOutput {
+export function readFrame(input: PackInput, frame: Frame, trace: readonly StageTrace[], moved: PackOutput["moved"] = []): PackOutput {
   const placements: Placement[] = [];
   const overflow: string[] = [...frame.tooLarge];
   for (const e of frame.entries) {
@@ -197,44 +182,48 @@ export function transposeRegion(region: Region): Region {
     case "ellipse":
       return { kind: "ellipse", cx: region.cy, cy: region.cx, rx: region.ry, ry: region.rx };
     case "polygon": {
-      const swap = (ring: [number, number][]): [number, number][] => ring.map(([x, y]) => [y, x]);
-      const turned: Region = { kind: "polygon", points: swap(region.points) };
-      if (region.holes) turned.holes = region.holes.map(swap);
-      return turned;
+      const swap = (ring: readonly (readonly [number, number])[]): [number, number][] => ring.map(([x, y]) => [y, x]);
+      return region.holes === undefined
+        ? { kind: "polygon", points: swap(region.points) }
+        : { kind: "polygon", points: swap(region.points), holes: region.holes.map(swap) };
     }
   }
 }
 
 /** This function gives an item with the axes changed. The ports go, because the adapters of 0.1 do not read them. */
 function transposeItem(item: Item): Item {
-  const { ports: _ports, ...rest } = item;
-  const turned: Item = { ...rest, w: item.h, h: item.w };
-  delete turned.x;
-  delete turned.y;
-  if (item.y !== undefined) turned.x = item.y;
-  if (item.x !== undefined) turned.y = item.x;
-  if (item.shape) turned.shape = transposeRegion(item.shape);
-  if (item.margin !== undefined && typeof item.margin !== "number") {
-    const m = item.margin;
-    turned.margin = { top: m.left, right: m.bottom, bottom: m.right, left: m.top };
-  }
-  return turned;
+  const { ports: _ports, x, y, shape, margin, ...rest } = item;
+  return {
+    ...rest,
+    w: item.h,
+    h: item.w,
+    ...(y === undefined ? {} : { x: y }),
+    ...(x === undefined ? {} : { y: x }),
+    ...(shape === undefined ? {} : { shape: transposeRegion(shape) }),
+    ...(margin === undefined
+      ? {}
+      : { margin: typeof margin === "number" ? margin : { top: margin.left, right: margin.bottom, bottom: margin.right, left: margin.top } }),
+  };
 }
 
 /** This function gives an input with the axes changed. A fixed height becomes a fixed width. */
 export function transposeInput(input: PackInput): PackInput {
   const c = input.container;
-  const container: PackInput["container"] = { fixed: c.fixed === "height" ? "width" : c.fixed === "width" ? "height" : c.fixed };
-  if (c.h !== undefined) container.w = c.h;
-  if (c.w !== undefined) container.h = c.w;
-  if (c.aspect !== undefined) container.aspect = 1 / c.aspect;
-  if (c.aspectWeight !== undefined) container.aspectWeight = c.aspectWeight;
-  if (c.shape !== undefined) container.shape = transposeRegion(c.shape);
-  if (c.inset !== undefined) container.inset = c.inset;
-  const turned: PackInput = { container, items: input.items.map(transposeItem) };
-  if (input.obstacles) turned.obstacles = input.obstacles.map((o) => ({ ...o, region: transposeRegion(o.region) }));
-  if (input.gap !== undefined) turned.gap = input.gap;
-  return turned;
+  const container: PackInput["container"] = {
+    fixed: c.fixed === "height" ? "width" : c.fixed === "width" ? "height" : c.fixed,
+    ...(c.h === undefined ? {} : { w: c.h }),
+    ...(c.w === undefined ? {} : { h: c.w }),
+    ...(c.aspect === undefined ? {} : { aspect: 1 / c.aspect }),
+    ...(c.aspectWeight === undefined ? {} : { aspectWeight: c.aspectWeight }),
+    ...(c.shape === undefined ? {} : { shape: transposeRegion(c.shape) }),
+    ...(c.inset === undefined ? {} : { inset: c.inset }),
+  };
+  return {
+    container,
+    items: input.items.map(transposeItem),
+    ...(input.obstacles === undefined ? {} : { obstacles: input.obstacles.map((o) => ({ ...o, region: transposeRegion(o.region) })) }),
+    ...(input.gap === undefined ? {} : { gap: input.gap }),
+  };
 }
 
 /** This function gives an output with the axes changed. */
@@ -244,7 +233,7 @@ export function transposeOutput(output: PackOutput): PackOutput {
     overflow: [...output.overflow],
     size: { w: output.size.h, h: output.size.w },
     moved: output.moved.map((m) => ({ id: m.id, x: m.y, y: m.x })),
-    trace: output.trace,
+    ...(output.trace === undefined ? {} : { trace: output.trace }),
   };
 }
 
@@ -256,7 +245,5 @@ export function viaAxes(input: PackInput, previous: PackOutput | undefined, run:
   const start = now();
   const turned = transposeInput(input);
   const inner = run(turned, previous === undefined ? undefined : transposeOutput(previous));
-  const output = transposeOutput(inner);
-  output.trace = [{ id: "axes", ms: now() - start, measures: {} }, ...inner.trace];
-  return output;
+  return { ...transposeOutput(inner), trace: [{ id: "axes", ms: now() - start, measures: {} }, ...(inner.trace ?? [])] };
 }

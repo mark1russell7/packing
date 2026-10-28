@@ -1,7 +1,7 @@
 // The manifest of a corpus: `layout-corpus/1` of `docs/FORMAT.md`.
 
 import { generator } from "./generators.ts";
-import type { CorpusCell, GeneratorParams, LayoutInput } from "./layout-input.ts";
+import type { CorpusCell, GeneratedInput, GeneratorParams } from "./layout-input.ts";
 
 /** One spec of a corpus: a generator, its parameters and its seeds. */
 export interface CorpusSpec {
@@ -34,7 +34,7 @@ export interface CorpusManifest {
 /** A corpus: the manifest and the input files, in the order of the specs and the seeds. */
 export interface Corpus {
   manifest: CorpusManifest;
-  inputs: LayoutInput[];
+  inputs: GeneratedInput[];
 }
 
 /**
@@ -43,7 +43,7 @@ export interface Corpus {
  */
 export function corpus(name: string, specs: readonly CorpusSpec[]): Corpus {
   const manifest: CorpusManifest = { schema: "layout-corpus/1", corpus: name, specs: [], inputs: [] };
-  const inputs: LayoutInput[] = [];
+  const inputs: GeneratedInput[] = [];
   const ids = new Set<string>();
   for (const spec of specs) {
     const gen = generator(spec.generator);

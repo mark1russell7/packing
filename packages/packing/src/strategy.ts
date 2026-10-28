@@ -1,4 +1,4 @@
-import type { Container, PackInput, PackOutput, Region } from "./contract.ts";
+import type { LayoutContainer, PackInput, PackOutput, Region } from "./contract.ts";
 
 /**
  * For each dimension of the taxonomy, the values that a strategy supports. `docs/research/TAXONOMY.md` gives the values.
@@ -108,7 +108,7 @@ export function createContext(seed = 0, more: Omit<PackContext, "seed" | "rng"> 
 }
 
 /** This function tells if a polygon ring is convex. A ring with fewer than 3 points is convex. */
-function isConvex(points: readonly [number, number][]): boolean {
+function isConvex(points: readonly (readonly [number, number])[]): boolean {
   let sign = 0;
   const n = points.length;
   for (let i = 0; i < n; i++) {
@@ -163,7 +163,7 @@ export function cellOf(input: PackInput): Cell {
   const { container, items } = input;
   const obstacles = input.obstacles ?? [];
 
-  const sizes: Record<Container["fixed"], DimensionValue<"containerSize">> = {
+  const sizes: Record<LayoutContainer["fixed"], DimensionValue<"containerSize">> = {
     size: "fixed",
     width: "freeHeight",
     height: "freeWidth",

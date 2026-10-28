@@ -57,8 +57,7 @@ function packFixedWidth(id: "rows" | "skyline" | "shelf", input: PackInput, opti
   const rects = rectsOf(frame);
   if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder });
   const output = readFrame(input, frame, []);
-  output.trace.push({ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length } });
-  return output;
+  return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length } }] };
 }
 
 /** This function makes the strategy of one function of `pack`. */
@@ -141,11 +140,13 @@ export const logSweep: SizeSearch = {
     const ms = now() - start;
     const runs = result.tried.length + 1;
     const output = readFrame(input, frame, []);
-    output.trace.push(
-      { id: "log-sweep", ms, measures: { "pack.search.widths": result.tried.length, "pack.search.ms": ms } },
-      { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length } },
-    );
-    return output;
+    return {
+      ...output,
+      trace: [
+        { id: "log-sweep", ms, measures: { "pack.search.widths": result.tried.length, "pack.search.ms": ms } },
+        { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length } },
+      ],
+    };
   },
 };
 
@@ -191,7 +192,7 @@ function pushFixedWidth(input: PackInput, options: PushStrategyOptions, previous
 
   // An obstacle that the cascade pushed out of the container or onto a locked item goes back to its start
   const { bounds } = frame;
-  const moved: PackOutput["moved"] = [];
+  const moved: { id: string; x: number; y: number }[] = [];
   for (const e of obstacles) {
     const startAt = starts.get(e)!;
     const x = e.rect.position.x + e.dx + frame.ox;
@@ -224,11 +225,13 @@ function pushFixedWidth(input: PackInput, options: PushStrategyOptions, previous
     packSkyline([...pending.map((e) => e.rect), ...kept], outerOf(frame), { sortOrder: options.sortOrder });
   }
   const output = readFrame(input, frame, [], moved);
-  output.trace.push(
-    { id: "push", ms: pushMs, measures: { "pack.push.moved": moved.length } },
-    { id: "skyline", ms: now() - skylineStart, measures: { "pack.push.replaced": pending.length, "pack.overflow": output.overflow.length } },
-  );
-  return output;
+  return {
+    ...output,
+    trace: [
+      { id: "push", ms: pushMs, measures: { "pack.push.moved": moved.length } },
+      { id: "skyline", ms: now() - skylineStart, measures: { "pack.push.replaced": pending.length, "pack.overflow": output.overflow.length } },
+    ],
+  };
 }
 
 /**

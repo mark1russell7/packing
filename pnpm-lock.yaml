@@ -204,13 +204,14 @@ importers:
         version: 7.0.2
 
   packages/packing:
+    dependencies:
+      '@mark1russell7/layout-contract':
+        specifier: ^0.2.1
+        version: 0.2.1
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
         version: 1.0.2
-      '@mark1russell7/layout-contract':
-        specifier: github:mark1russell7/layout-contract#d15b2405f0f57fa1c094b4caedb26357f7554e99&path:packages/layout-contract
-        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/d15b2405f0f57fa1c094b4caedb26357f7554e99#path:packages/layout-contract
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.5
@@ -465,9 +466,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/d15b2405f0f57fa1c094b4caedb26357f7554e99#path:packages/layout-contract':
-    resolution: {gitHosted: true, integrity: sha512-foojN7EcBZ7AAMwXa5XSizp+p6XzMaZ6OJh6BoPps27OgquyjC+Qy0nwwfWHNZerF9wT09YnjtZJEgeOAct/YA==, path: packages/layout-contract, tarball: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/d15b2405f0f57fa1c094b4caedb26357f7554e99}
-    version: 0.2.1
+  '@mark1russell7/layout-contract@0.2.1':
+    resolution: {integrity: sha512-onnnEgm+Z4TZX7Qcycyb/ZNPBtmZaHzWwQp4XH52jGynFnf1V4ywFwYZdMawcoDnWp9RGnsjwQP3OMG2MZaGUQ==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/ste-lint@0.1.1':
@@ -1630,7 +1630,7 @@ snapshots:
 
   '@mark1russell7/cue@1.0.2': {}
 
-  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/d15b2405f0f57fa1c094b4caedb26357f7554e99#path:packages/layout-contract': {}
+  '@mark1russell7/layout-contract@0.2.1': {}
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:

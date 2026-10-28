@@ -4,11 +4,10 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 120 names
+## . (build/index.d.ts): 124 names
 
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
-type Container: build/index.d.ts#Container
 type Corpus: build/index.d.ts#Corpus
 type CorpusCell: build/index.d.ts#CorpusCell
 type CorpusEntry: build/index.d.ts#CorpusEntry
@@ -16,57 +15,61 @@ type CorpusGenerator: build/index.d.ts#CorpusGenerator
 type CorpusManifest: build/index.d.ts#CorpusManifest
 type CorpusSpec: build/index.d.ts#CorpusSpec
 type CountScale: build/index.d.ts#CountScale
-DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
+DEFAULT_TOLERANCE: @mark1russell7/layout-contract#DEFAULT_TOLERANCE (external)
 type Dimension: build/index.d.ts#Dimension
 type DimensionValue: build/index.d.ts#DimensionValue
-type Direction: build/index.d.ts#Direction
-EPS: build/index.d.ts#EPS
-type Edge: build/index.d.ts#Edge
+type Direction: @mark1russell7/layout-contract#Direction (external)
+EPS: @mark1russell7/layout-contract#EPS (external)
 type EdgeCase: build/index.d.ts#EdgeCase
 type EdgeCaseParams: build/index.d.ts#EdgeCaseParams
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
+type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
-type HardBreaks: build/index.d.ts#HardBreaks
-type Item: build/index.d.ts#Item
-type LayoutInput: build/index.d.ts#LayoutInput
+type Item: @mark1russell7/layout-contract#Item (external)
+type LayoutContainer: @mark1russell7/layout-contract#LayoutContainer (external)
+type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
+type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
 type LayoutMeasures: build/index.d.ts#LayoutMeasures
 type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
 MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
-type Margin: build/index.d.ts#Margin
+type Margin: @mark1russell7/layout-contract#Margin (external)
 type MeasureFamily: build/index.d.ts#MeasureFamily
 type MeasureId: build/index.d.ts#MeasureId
 type MeasureOptions: build/index.d.ts#MeasureOptions
 type MeasureSpec: build/index.d.ts#MeasureSpec
 type MetricsOptions: build/index.d.ts#MetricsOptions
-type Obstacle: build/index.d.ts#Obstacle
+type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
 type PackContext: build/index.d.ts#PackContext
-type PackInput: build/index.d.ts#PackInput
+type PackHard: @mark1russell7/layout-contract#PackHard (external)
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
 type PackLayoutOptions: build/index.d.ts#PackLayoutOptions
 type PackOptions: build/index.d.ts#PackOptions
-type PackOutput: build/index.d.ts#PackOutput
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
 type PackingMetrics: build/index.d.ts#PackingMetrics
-type Placement: build/index.d.ts#Placement
-type Port: build/index.d.ts#Port
+type Placement: @mark1russell7/layout-contract#Placement (external)
+type Port: @mark1russell7/layout-contract#Port (external)
 type PushOptions: build/index.d.ts#PushOptions
 type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
-RECORD_EPS: build/index.d.ts#RECORD_EPS
+RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
 Rect: build/index.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
-type Region: build/index.d.ts#Region
+type Region: @mark1russell7/layout-contract#Region (external)
 SORT_ORDERS: build/index.d.ts#SORT_ORDERS
 type ShelfOptions: build/index.d.ts#ShelfOptions
+type Side: @mark1russell7/layout-contract#Side (external)
+type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/index.d.ts#SizeSearch
 type SortOrder: build/index.d.ts#SortOrder
-type StageTrace: build/index.d.ts#StageTrace
+type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/index.d.ts#Strategy
 type Supports: build/index.d.ts#Supports
-type Tolerance: build/index.d.ts#Tolerance
+type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/index.d.ts#UnsupportedCell
 Vector: build/index.d.ts#Vector
@@ -76,6 +79,7 @@ canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
 cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
+checkInput: @mark1russell7/layout-contract#checkInput (external)
 compareRects: build/index.d.ts#compareRects
 corpus: build/index.d.ts#corpus
 countCell: build/index.d.ts#countCell
@@ -121,9 +125,9 @@ tailShare: build/index.d.ts#tailShare
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
 turnItem: build/index.d.ts#turnItem
-turnPoint: build/index.d.ts#turnPoint
-turnPort: build/index.d.ts#turnPort
-turnRegion: build/index.d.ts#turnRegion
+turnPoint: @mark1russell7/layout-contract#turnPoint (external)
+turnPort: @mark1russell7/layout-contract#turnPort (external)
+turnRegion: @mark1russell7/layout-contract#turnRegion (external)
 unsupportedOf: build/index.d.ts#unsupportedOf
 wordCloud: build/index.d.ts#wordCloud
 
@@ -147,21 +151,10 @@ interface ChangeMeasures {
   "pack.stability.q95": number;
 }
 
-### build/index.d.ts#Container
-interface Container {
-  w?: number;
-  h?: number;
-  fixed: "size" | "width" | "height" | "none";
-  aspect?: number;
-  aspectWeight?: number;
-  shape?: Region;
-  inset?: number;
-}
-
 ### build/index.d.ts#Corpus
 interface Corpus {
   manifest: CorpusManifest;
-  inputs: LayoutInput[];
+  inputs: GeneratedInput[];
 }
 
 ### build/index.d.ts#CorpusCell
@@ -188,7 +181,7 @@ interface CorpusGenerator<P extends GeneratorParams = GeneratorParams> {
   readonly values: { readonly [K in keyof P]?: readonly P[K][]; };
   withDefaults(params?: Partial<P>): P;
   cell(params?: Partial<P>): CorpusCell;
-  generate(seed: number, params?: Partial<P>, set?: string): LayoutInput;
+  generate(seed: number, params?: Partial<P>, set?: string): GeneratedInput;
 }
 
 ### build/index.d.ts#CorpusManifest
@@ -215,30 +208,11 @@ interface CorpusSpec {
 ### build/index.d.ts#CountScale
 type CountScale = "1" | "10" | "100" | "1k" | "10k";
 
-### build/index.d.ts#DEFAULT_TOLERANCE
-export declare const DEFAULT_TOLERANCE: Readonly<Tolerance>;
-
 ### build/index.d.ts#Dimension
 type Dimension = keyof Supports;
 
 ### build/index.d.ts#DimensionValue
 type DimensionValue<D extends Dimension = Dimension> = Supports[D][number];
-
-### build/index.d.ts#Direction
-type Direction = "lower" | "higher";
-
-### build/index.d.ts#EPS
-export declare const EPS = 1e-6;
-
-### build/index.d.ts#Edge
-interface Edge {
-  id: string;
-  source: string;
-  target: string;
-  sourcePort?: string;
-  targetPort?: string;
-  data?: Readonly<Record<string, unknown>>;
-}
 
 ### build/index.d.ts#EdgeCase
 type EdgeCase = "empty" | "one" | "oversize" | "exactTiling" | "touchObstacles";
@@ -275,61 +249,24 @@ interface FreeWidthTry {
   objective: number;
 }
 
+### build/index.d.ts#GeneratedInput
+interface GeneratedInput extends LayoutInput$1 {
+  readonly set: string;
+  readonly family: string;
+  readonly seed: number;
+  readonly source: string;
+  readonly generator: GeneratorStamp | null;
+  readonly container: LayoutContainer$1;
+  readonly edges: readonly LayoutEdge$1[];
+  readonly hash: string;
+}
+
 ### build/index.d.ts#GeneratorParams
 type GeneratorParams = Record<string, string | number>;
 
 ### build/index.d.ts#GeneratorStamp
-interface GeneratorStamp {
-  name: string;
-  version: number;
-  params: GeneratorParams;
-  seed: number;
-}
-
-### build/index.d.ts#HardBreaks
-interface HardBreaks {
-  "no-overlap": number;
-  "in-container": number;
-  "locked-kept": number;
-  complete: number;
-}
-
-### build/index.d.ts#Item
-interface Item {
-  id: string;
-  w: number;
-  h: number;
-  rank?: number;
-  group?: string;
-  parent?: string;
-  shape?: Region;
-  locked?: boolean;
-  x?: number;
-  y?: number;
-  turnable?: boolean;
-  margin?: number | Margin;
-  ports?: Port[];
-  data?: Readonly<Record<string, unknown>>;
-}
-
-### build/index.d.ts#LayoutInput
-interface LayoutInput {
-  schema: "layout-input/1";
-  id: string;
-  set: string;
-  family: string;
-  seed: number;
-  source: string;
-  generator: GeneratorStamp | null;
-  container: Container;
-  obstacles?: Obstacle[];
-  gap?: number;
-  boxes: Item[];
-  edges: Edge[];
-  base?: string;
-  change?: string;
-  step?: number;
-  hash: string;
+interface GeneratorStamp extends LayoutGenerator {
+  readonly params: Readonly<GeneratorParams>;
 }
 
 ### build/index.d.ts#LayoutMeasures
@@ -356,14 +293,6 @@ interface LayoutStrategyOptions {
 ### build/index.d.ts#MEASURE_SPECS
 export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
 
-### build/index.d.ts#Margin
-interface Margin {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
-
 ### build/index.d.ts#MeasureFamily
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
 
@@ -376,29 +305,15 @@ interface MeasureOptions {
 }
 
 ### build/index.d.ts#MeasureSpec
-interface MeasureSpec {
-  id: MeasureId;
-  family: MeasureFamily;
-  unit: string;
-  direction: Direction;
-  min: number;
-  max: number;
-  floor?: number;
-  tol?: number;
+interface MeasureSpec extends MeasureSpec$1<MeasureId> {
+  readonly family: MeasureFamily;
+  readonly floor?: number;
+  readonly tol?: number;
 }
 
 ### build/index.d.ts#MetricsOptions
 interface MetricsOptions {
   rowTolerance?: number;
-}
-
-### build/index.d.ts#Obstacle
-interface Obstacle {
-  id: string;
-  region: Region;
-  move?: {
-    cost: number;
-  };
 }
 
 ### build/index.d.ts#ObstacleLayout
@@ -415,14 +330,6 @@ interface PackContext {
   previous?: PackOutput;
 }
 
-### build/index.d.ts#PackInput
-interface PackInput {
-  container: Container;
-  items: Item[];
-  obstacles?: Obstacle[];
-  gap?: number;
-}
-
 ### build/index.d.ts#PackLayoutOptions
 interface PackLayoutOptions extends PackOptions {
   strategy?: "rows" | "skyline" | "shelf";
@@ -431,22 +338,6 @@ interface PackLayoutOptions extends PackOptions {
 ### build/index.d.ts#PackOptions
 interface PackOptions {
   sortOrder?: SortOrder;
-}
-
-### build/index.d.ts#PackOutput
-interface PackOutput {
-  placements: Placement[];
-  overflow: string[];
-  size: {
-    w: number;
-    h: number;
-  };
-  moved: {
-    id: string;
-    x: number;
-    y: number;
-  }[];
-  trace: StageTrace[];
 }
 
 ### build/index.d.ts#PackingMetrics
@@ -463,22 +354,6 @@ interface PackingMetrics {
   widestOverMedian: number;
 }
 
-### build/index.d.ts#Placement
-interface Placement {
-  id: string;
-  x: number;
-  y: number;
-  turn?: 0 | 90;
-}
-
-### build/index.d.ts#Port
-interface Port {
-  id: string;
-  side: "top" | "right" | "bottom" | "left";
-  x?: number;
-  y?: number;
-}
-
 ### build/index.d.ts#PushOptions
 interface PushOptions {
   gap?: number;
@@ -490,9 +365,6 @@ interface PushStrategyOptions {
   sortOrder: SortOrder;
   maxShovesPerItem: number;
 }
-
-### build/index.d.ts#RECORD_EPS
-export declare const RECORD_EPS = .001;
 
 ### build/index.d.ts#Rect
 export declare class Rect<T = unknown> {
@@ -529,30 +401,6 @@ type RectScatteredParams = {
   count: number;
 };
 
-### build/index.d.ts#Region
-type Region = {
-  kind: "rect";
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-} | {
-  kind: "polygon";
-  points: [number, number][];
-  holes?: [number, number][][];
-} | {
-  kind: "circle";
-  cx: number;
-  cy: number;
-  r: number;
-} | {
-  kind: "ellipse";
-  cx: number;
-  cy: number;
-  rx: number;
-  ry: number;
-};
-
 ### build/index.d.ts#SORT_ORDERS
 export declare const SORT_ORDERS: readonly SortOrder[];
 
@@ -572,13 +420,6 @@ interface SizeSearch {
 
 ### build/index.d.ts#SortOrder
 type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
-
-### build/index.d.ts#StageTrace
-interface StageTrace {
-  id: string;
-  ms: number;
-  measures: Record<string, number>;
-}
 
 ### build/index.d.ts#Strategy
 interface Strategy<O = unknown> {
@@ -602,12 +443,6 @@ type Supports = {
   groups: ("none" | "flat" | "nested")[];
   mode: ("offline" | "online" | "incremental")[];
 };
-
-### build/index.d.ts#Tolerance
-interface Tolerance {
-  overlap: number;
-  through: number;
-}
 
 ### build/index.d.ts#UiParams
 type UiParams = {
@@ -657,7 +492,7 @@ export declare const cards: CorpusGenerator<UiParams>;
 export declare function cellOf(input: PackInput): Cell;
 
 ### build/index.d.ts#checkHard
-export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">): HardBreaks;
+export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">): PackHard$1;
 
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
@@ -693,7 +528,7 @@ export declare function generator(name: string): CorpusGenerator;
 export declare const generators: readonly CorpusGenerator[];
 
 ### build/index.d.ts#hashInput
-export declare function hashInput(file: Omit<LayoutInput, "hash"> | LayoutInput): string;
+export declare function hashInput(file: LayoutInput$1): string;
 
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
@@ -708,7 +543,7 @@ export declare function lowestWindow(skyline: ArrayLike<number>, width: number, 
 };
 
 ### build/index.d.ts#marginOf
-export declare function marginOf(item: Pick<Item, "margin">): Margin;
+export declare function marginOf(item: Pick<Item$1, "margin">): Sides$1;
 
 ### build/index.d.ts#measure
 export declare function measure(input: PackInput, output: PackOutput, options?: MeasureOptions): LayoutMeasures;
@@ -746,7 +581,7 @@ export declare function packWith(id: string, input: PackInput, options?: unknown
 export declare function packingMetrics(rects: readonly Rect[], options?: MetricsOptions): PackingMetrics;
 
 ### build/index.d.ts#pairedRatio
-export declare function pairedRatio(candidate: number, current: number, direction: Direction): number;
+export declare function pairedRatio(candidate: number, current: number, direction: Direction$1): number;
 
 ### build/index.d.ts#push
 export declare const push: Strategy<PushStrategyOptions>;
@@ -791,22 +626,13 @@ export declare function supportsCell(supports: Supports, cell: Partial<Record<Di
 export declare function tailShare(ratios: readonly number[], limit: number): number;
 
 ### build/index.d.ts#toPackInput
-export declare function toPackInput(file: Pick<LayoutInput, "container" | "boxes" | "obstacles" | "gap">): PackInput;
+export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "boxes" | "obstacles" | "gap">): PackInput;
 
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
 
 ### build/index.d.ts#turnItem
-export declare function turnItem(item: Item): Item;
-
-### build/index.d.ts#turnPoint
-export declare function turnPoint(px: number, py: number, h: number): [number, number];
-
-### build/index.d.ts#turnPort
-export declare function turnPort(port: Port, h: number): Port;
-
-### build/index.d.ts#turnRegion
-export declare function turnRegion(region: Region, h: number): Region;
+export declare function turnItem(item: Item$1): Item$1;
 
 ### build/index.d.ts#unsupportedOf
 export declare function unsupportedOf(supports: Supports, cell: Partial<Record<Dimension, string>>): {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { checkHard, type PackInput, type PackOutput } from "@mark1russell7/packing";
+import { checkHard, type PackInput, type PackOutput, type Region } from "@mark1russell7/packing";
 
-const out = (placements: PackOutput["placements"], overflow: string[] = [], moved: PackOutput["moved"] = []): PackOutput => ({
+const out = (placements: PackOutput["placements"], overflow: readonly string[] = [], moved: PackOutput["moved"] = []): PackOutput => ({
   placements,
   overflow,
   size: { w: 100, h: 100 },
@@ -117,10 +117,13 @@ describe("checkHard", () => {
   it("counts a locked item with no placement only in locked-kept, also when it is not in the overflow", () => {
     const result = checkHard(input, out([{ id: "a", x: 2, y: 2 }, { id: "b", x: 14, y: 0 }], ["c"]));
     expect(result).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 1, complete: 0 });
-    // A locked item with no x or no y is not locked for the rules. With no placement, it breaks complete.
+    // A locked item with no x or no y is a bad input. The rules skip it, also with no placement.
     const noPosition: PackInput = { ...input, items: input.items.map((i) => (i.id === "pin" ? { id: "pin", w: 10, h: 10, locked: true } : i)) };
     const missing = checkHard(noPosition, out([{ id: "a", x: 2, y: 2 }, { id: "b", x: 14, y: 0 }], ["c"]));
-    expect(missing).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 1 });
+    expect(missing).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+    // With a placement on the item b, the item gives no overlap.
+    const onB = checkHard(noPosition, out([{ id: "a", x: 2, y: 2 }, { id: "b", x: 14, y: 0 }, { id: "pin", x: 14, y: 0 }], ["c"]));
+    expect(onB).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
   });
 
   it("keeps a locked item with no placement at its input position for no-overlap and in-container", () => {
@@ -136,6 +139,74 @@ describe("checkHard", () => {
     // The input position of the locked item overlaps the obstacle o, also when the item is in the overflow.
     const onObstacle: PackInput = { ...input, items: [{ id: "pin", w: 10, h: 10, locked: true, x: 85, y: 5 }] };
     expect(checkHard(onObstacle, out([], ["pin"]))).toEqual({ "no-overlap": 1, "in-container": 0, "locked-kept": 1, complete: 0 });
+  });
+
+  describe("reads the exact shape of an obstacle", () => {
+    /** The count of no-overlap for an item of 10 by 10 at x, y, with a margin, and one obstacle. */
+    const hits = (region: Region, x: number, y: number, margin = 0): number =>
+      checkHard(
+        { container: { w: 200, h: 200, fixed: "size" }, items: [{ id: "s", w: 10, h: 10, margin }], obstacles: [{ id: "o", region }] },
+        out([{ id: "s", x, y }]),
+      )["no-overlap"];
+
+    it("a circle: an item in the bounding box of the circle, but out of the circle, is not an overlap", () => {
+      const circle: Region = { kind: "circle", cx: 100, cy: 100, r: 30 };
+      // The corner of the bounding box is at 70, 70. The item from 68, 68 to 78, 78 is in the box, but out of the circle.
+      expect(hits(circle, 68, 68)).toBe(0);
+      expect(hits(circle, 95, 95)).toBe(1);
+      // The item touches the top of the circle at 100, 70. A touch is not an overlap.
+      expect(hits(circle, 95, 60)).toBe(0);
+      expect(hits(circle, 95, 61)).toBe(1);
+      // A margin of 10 takes the corner item into the circle.
+      expect(hits(circle, 68, 68, 10)).toBe(1);
+    });
+
+    it("an ellipse: an item in the bounding box of the ellipse, but out of the ellipse, is not an overlap", () => {
+      const ellipse: Region = { kind: "ellipse", cx: 100, cy: 100, rx: 60, ry: 40 };
+      expect(hits(ellipse, 40, 60)).toBe(0);
+      expect(hits(ellipse, 150, 130)).toBe(0);
+      expect(hits(ellipse, 95, 95)).toBe(1);
+      expect(hits(ellipse, 45, 95)).toBe(1);
+    });
+
+    it("a polygon: an item in the bounding box of a concave polygon, but out of the polygon, is not an overlap", () => {
+      // An L shape: the corner from 120, 120 to 160, 160 is out of the polygon.
+      const ell: Region = { kind: "polygon", points: [[80, 80], [160, 80], [160, 120], [120, 120], [120, 160], [80, 160]] };
+      expect(hits(ell, 140, 140)).toBe(0);
+      expect(hits(ell, 90, 90)).toBe(1);
+      expect(hits(ell, 115, 140)).toBe(1);
+      // A triangle: the corner of its bounding box is out of the triangle.
+      const triangle: Region = { kind: "polygon", points: [[100, 100], [160, 100], [100, 160]] };
+      expect(hits(triangle, 145, 145)).toBe(0);
+      expect(hits(triangle, 105, 105)).toBe(1);
+    });
+
+    it("a polygon with a hole: an item in the hole is not an overlap, an item on the ring is", () => {
+      const ring: Region = {
+        kind: "polygon",
+        points: [[60, 60], [140, 60], [140, 140], [60, 140]],
+        holes: [[[80, 80], [120, 80], [120, 120], [80, 120]]],
+      };
+      expect(hits(ring, 90, 90)).toBe(0);
+      expect(hits(ring, 65, 65)).toBe(1);
+      // An item over the edge of the hole goes into the ring.
+      expect(hits(ring, 75, 90)).toBe(1);
+      // A margin of 6 takes the item in the hole to the ring.
+      expect(hits(ring, 85, 85, 6)).toBe(1);
+      expect(hits(ring, 90, 90, 6)).toBe(0);
+    });
+
+    it("a moved circle: the test uses the new place of the circle", () => {
+      const input: PackInput = {
+        container: { w: 200, h: 200, fixed: "size" },
+        items: [{ id: "s", w: 10, h: 10 }],
+        obstacles: [{ id: "o", region: { kind: "circle", cx: 100, cy: 100, r: 40 }, move: { cost: 1 } }],
+      };
+      // The bounding box of the circle moves to 0, 0, thus the center goes to 40, 40.
+      expect(checkHard(input, out([{ id: "s", x: 25, y: 25 }], [], [{ id: "o", x: 0, y: 0 }]))["no-overlap"]).toBe(1);
+      expect(checkHard(input, out([{ id: "s", x: 0, y: 0 }], [], [{ id: "o", x: 0, y: 0 }]))["no-overlap"]).toBe(0);
+      expect(checkHard(input, out([{ id: "s", x: 95, y: 95 }], [], [{ id: "o", x: 0, y: 0 }]))["no-overlap"]).toBe(0);
+    });
   });
 
   it("reads a turned item and a moved obstacle", () => {

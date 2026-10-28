@@ -10,21 +10,17 @@ import type { Rect } from "./rect.ts";
  */
 export function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>): PackInput {
   const fixed = outer.fixedSize ? "size" : outer.fixedWidth ? "width" : "none";
-  const container: PackInput["container"] = { fixed };
-  if (fixed !== "none") container.w = outer.size.x;
-  if (fixed === "size") container.h = outer.size.y;
-  if (outer.position.x !== 0 || outer.position.y !== 0) {
-    container.shape = { kind: "rect", x: outer.position.x, y: outer.position.y, w: outer.size.x, h: outer.size.y };
-  }
-  const items = rects.map((r, i): Item => {
-    const item: Item = { id: String(i), w: r.size.x, h: r.size.y };
-    if (r.locked) {
-      item.locked = true;
-      item.x = r.position.x;
-      item.y = r.position.y;
-    }
-    return item;
-  });
+  const container: PackInput["container"] = {
+    fixed,
+    ...(fixed === "none" ? {} : { w: outer.size.x }),
+    ...(fixed === "size" ? { h: outer.size.y } : {}),
+    ...(outer.position.x !== 0 || outer.position.y !== 0
+      ? { shape: { kind: "rect", x: outer.position.x, y: outer.position.y, w: outer.size.x, h: outer.size.y } as const }
+      : {}),
+  };
+  const items = rects.map(
+    (r, i): Item => ({ id: String(i), w: r.size.x, h: r.size.y, ...(r.locked ? { locked: true, x: r.position.x, y: r.position.y } : {}) }),
+  );
   return { container, items };
 }
 

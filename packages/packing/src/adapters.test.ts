@@ -10,14 +10,17 @@ import {
   Rect,
   strategy,
   toRects,
-  type Container,
+  type LayoutContainer,
   type Item,
   type Obstacle,
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
 
-type Fixed = Container["fixed"];
+type Fixed = LayoutContainer["fixed"];
+
+/** A type with no `readonly` on its fields, for a test input that the test builds in steps. */
+type Draft<T> = { -readonly [K in keyof T]: T[K] };
 
 interface Shape {
   fixed: Fixed;
@@ -50,19 +53,19 @@ function randomInput(seed: number, shape: Shape): PackInput {
       const w = int(r, 10, 80);
       const h = int(r, 10, 80);
       const box = [origin.x + int(r, 0, W - w), origin.y + int(r, 0, H - h), w, h];
-      const obstacle: Obstacle = { id: `o${i}`, region: { kind: "rect", x: box[0]!, y: box[1]!, w, h } };
+      const obstacle: Draft<Obstacle> = { id: `o${i}`, region: { kind: "rect", x: box[0]!, y: box[1]!, w, h } };
       if (shape.movable && r() < 0.5) obstacle.move = { cost: 0 };
       obstacles.push(obstacle);
       taken.push(box);
     }
   }
 
-  const items: Item[] = [];
+  const items: Draft<Item>[] = [];
   const count = int(r, 1, 40);
   const ranks = Array.from({ length: count }, (_, i) => i).toSorted(() => 0);
   if (r() < 0.5) ranks.reverse();
   for (let i = 0; i < count; i++) {
-    const item: Item = { id: `b${i}`, w: int(r, 4, 70), h: int(r, 4, 50) };
+    const item: Draft<Item> = { id: `b${i}`, w: int(r, 4, 70), h: int(r, 4, 50) };
     const kind = int(r, 0, 2);
     if (kind === 1) item.margin = int(r, 0, 4);
     if (kind === 2) item.margin = { top: int(r, 0, 4), right: int(r, 0, 4), bottom: int(r, 0, 4), left: int(r, 0, 4) };
@@ -92,7 +95,7 @@ function randomInput(seed: number, shape: Shape): PackInput {
     }
   }
 
-  const container: Container = { fixed: shape.fixed, inset };
+  const container: Draft<LayoutContainer> = { fixed: shape.fixed, inset };
   if (shape.fixed === "size" || shape.fixed === "width") container.w = W;
   if (shape.fixed === "size" || shape.fixed === "height") container.h = H;
   if (shape.fixed === "none") {
@@ -100,7 +103,7 @@ function randomInput(seed: number, shape: Shape): PackInput {
     if (r() < 0.3) container.aspectWeight = 0;
   }
   if (origin.x !== 0 || origin.y !== 0) container.shape = { kind: "rect", x: origin.x, y: origin.y, w: W, h: H };
-  const input: PackInput = { container, items, gap };
+  const input: Draft<PackInput> = { container, items, gap };
   if (obstacles.length > 0) input.obstacles = obstacles;
   return input;
 }
@@ -108,7 +111,7 @@ function randomInput(seed: number, shape: Shape): PackInput {
 /** This helper gives an output without the times of its stages. */
 const withoutTimes = (output: PackOutput) => ({
   ...output,
-  trace: output.trace.map((t) => ({ id: t.id, measures: Object.entries(t.measures).filter(([name]) => !name.endsWith(".ms")) })),
+  trace: (output.trace ?? []).map((t) => ({ id: t.id, measures: Object.entries(t.measures ?? {}).filter(([name]) => !name.endsWith(".ms")) })),
 });
 
 /**
@@ -176,7 +179,7 @@ describe.each(Object.keys(SHAPES))("the strategy %s", (id) => {
         if (shape.fixed !== "size") expect(output.overflow, label).toEqual([]);
         if (shape.fixed === "width") expect(output.size.w, label).toBe(input.container.w);
         if (shape.fixed === "height") expect(output.size.h, label).toBe(input.container.h);
-        for (const t of output.trace) expect(t.ms, label).toBeGreaterThanOrEqual(0);
+        for (const t of output.trace!) expect(t.ms, label).toBeGreaterThanOrEqual(0);
       }
     });
   }
@@ -205,7 +208,7 @@ describe("the adapters", () => {
       { id: "b", x: 7 + 20 + 2 + 4 + 3, y: 5 },
     ]);
     expect(output.size).toEqual({ w: 100, h: 7 + 10 + 2 + 5 });
-    expect(output.trace.map((t) => t.id)).toEqual(["shelf"]);
+    expect(output.trace!.map((t) => t.id)).toEqual(["shelf"]);
   });
 
   it("put the items in rank order for the sort order input", () => {
@@ -225,15 +228,15 @@ describe("the adapters", () => {
     const input: PackInput = { container: { h: 30, fixed: "height" }, items: [10, 10, 10, 10].map((s, i) => ({ id: `i${i}`, w: s * 2, h: s })) };
     const output = packWith("shelf", input, { sortOrder: "input" });
     expect(output.size).toEqual({ w: 40, h: 30 });
-    expect(output.trace.map((t) => t.id)).toEqual(["axes", "shelf"]);
+    expect(output.trace!.map((t) => t.id)).toEqual(["axes", "shelf"]);
     expect(checkHard(input, output)).toEqual(ZERO);
   });
 
   it("search the size for fixed none with the size search log-sweep", () => {
     const input: PackInput = { container: { fixed: "none", aspect: 2 }, items: Array.from({ length: 30 }, (_, i) => ({ id: `i${i}`, w: 10 + (i % 7), h: 8 + (i % 5) })) };
     const output = packWith("skyline", input);
-    expect(output.trace.map((t) => t.id)).toEqual(["log-sweep", "skyline"]);
-    expect(output.trace[0]!.measures["pack.search.widths"]).toBeGreaterThan(1);
+    expect(output.trace!.map((t) => t.id)).toEqual(["log-sweep", "skyline"]);
+    expect(output.trace![0]!.measures!["pack.search.widths"]).toBeGreaterThan(1);
     expect(output.size.w / output.size.h).toBeGreaterThan(1.2);
     expect(checkHard(input, output)).toEqual(ZERO);
   });

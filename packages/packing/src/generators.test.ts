@@ -13,7 +13,7 @@ import {
   toPackInput,
   type CorpusGenerator,
   type GeneratorParams,
-  type LayoutInput,
+  type GeneratedInput,
   type ObstacleLayout,
   type SizeDistribution,
   type Region,
@@ -104,7 +104,7 @@ const HASHES: Record<string, string> = {
 };
 
 /** The bounds of the nominal container of a file: the bounding box of its shape, or the rectangle w by h */
-function bounds(file: LayoutInput): { x: number; y: number; w: number; h: number } {
+function bounds(file: GeneratedInput): { x: number; y: number; w: number; h: number } {
   const s = file.container.shape;
   if (s === undefined) return { x: 0, y: 0, w: file.container.w ?? Infinity, h: file.container.h ?? Infinity };
   switch (s.kind) {
@@ -161,7 +161,7 @@ const contact = (a: R, b: R): number => {
 };
 
 /** The obstacles of a file with a fixed container that are not fully in the shape, or that have no area */
-function outside(file: LayoutInput): string[] {
+function outside(file: GeneratedInput): string[] {
   const shape: Region = file.container.shape ?? { kind: "rect", ...bounds(file) };
   const bad: string[] = [];
   for (const o of file.obstacles ?? []) {

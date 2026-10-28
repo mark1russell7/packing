@@ -46,7 +46,7 @@ describe("the turn helper", () => {
     const turned = turnItem(item);
     expect([turned.w, turned.h]).toEqual([10, 40]);
     for (const p of turned.ports!) {
-      const onSide = { top: p.y === 0, right: p.x === turned.w, bottom: p.y === turned.h, left: p.x === 0 }[p.side];
+      const onSide = { top: p.y === 0, right: p.x === turned.w, bottom: p.y === turned.h, left: p.x === 0 }[p.side!];
       expect(onSide, p.id).toBe(true);
     }
   });
