@@ -307,7 +307,7 @@ describe("MEASURE_SPECS", () => {
       expect(s.id).toBe(id);
       expect(s.min).toBeLessThan(s.max);
     }
-    expect(Object.keys(MEASURE_SPECS)).toHaveLength(23);
+    expect(Object.keys(MEASURE_SPECS)).toHaveLength(24);
   });
 
   it("has the floor and the tolerance of each guard of the floor rule, and no floor for the other measures", () => {
