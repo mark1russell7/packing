@@ -126,17 +126,21 @@ describe("profileMarkdown", () => {
       repeats: 3,
       warmup: 1,
       intervalUs: 200,
+      flags: ["--no-turbo-inlining"],
       times: [
+        { input: "a|b\\c", items: 10, candidate: 1, current: 1, ratio: 0.3 },
         { input: "a", items: 1000, candidate: 40, current: 10, ratio: 4, recordRatio: 5 },
         { input: "b", items: 1000, candidate: 20, current: 2, ratio: 6 },
       ],
       table: profileTable(profile),
     });
     expect(md).toContain("The garbage collector has **25%** of the time.");
-    expect(md).toContain("| median of the inputs | 30 | 6 | 5 |");
+    expect(md).toContain("| median of the inputs | 20 | 2 | 4 |");
     expect(md).toContain("| median at 1000 items (2 inputs) | 30 | 6 | 5 |");
     expect(md).toContain("| a | 1000 | 40 | 10 | 4 | 5 |");
+    expect(md).toContain("| a\\|b\\\\c | 10 | 1 | 1 | 0.3 |  |");
     expect(md).toContain("| 1 | score | src/maxrects.ts:306 | 3 | 37.5 |");
     expect(md).toContain("The top 3 functions by total time");
+    expect(md).toContain("The flags of Node.js: `--no-turbo-inlining`.");
   });
 });

@@ -263,12 +263,14 @@ export interface ProfileReport {
   repeats: number;
   warmup: number;
   intervalUs: number;
+  /** The flags of Node.js and V8 of the process, for example `--no-turbo-inlining` */
+  flags: string[];
   times: InputTimes[];
   table: ProfileTable;
 }
 
 /** This function escapes the text of a cell of a Markdown table. */
-const cell = (text: string): string => text.replace(/\|/g, "\\|").replace(/`/g, "'");
+const cell = (text: string): string => text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/`/g, "'");
 
 /** This function gives the median of a list. An empty list gives 0. */
 const median = (values: readonly number[]): number => (values.length === 0 ? 0 : quantile(values, 0.5));
@@ -277,9 +279,10 @@ const median = (values: readonly number[]): number => (values.length === 0 ? 0 :
 export function profileMarkdown(r: ProfileReport): string {
   const t = r.table;
   const out: string[] = [];
-  out.push(`## The CPU profile of \`${r.strategy}\` on \`${r.corpus}\``, "");
+  out.push(`## The CPU profile of \`${r.strategy}\` on \`${r.corpus}\`${r.flags.length === 0 ? "" : ` with \`${r.flags.join(" ")}\``}`, "");
   out.push(
     `The profile has ${t.samples} samples over ${t.totalMs} ms, with a sample each ${r.intervalUs} us. It packs each of ${r.times.length} inputs ${r.repeats} times.`,
+    r.flags.length === 0 ? "The process has no flags of Node.js." : `The flags of Node.js: \`${r.flags.join(" ")}\`. Other flags give other times.`,
     `The garbage collector has **${t.gcPercent}%** of the time.`,
     "",
   );
@@ -431,7 +434,7 @@ export async function profileMain(argv: readonly string[]): Promise<ProfileRepor
   const { profile } = (await session.post("Profiler.stop")) as unknown as { profile: CpuProfile };
   session.disconnect();
 
-  const report: ProfileReport = { corpus: name, strategy: id, current, repeats, warmup, intervalUs, times, table: profileTable(profile, TOP, readSource()) };
+  const report: ProfileReport = { corpus: name, strategy: id, current, repeats, warmup, intervalUs, flags: [...process.execArgv], times, table: profileTable(profile, TOP, readSource()) };
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "profile.cpuprofile"), JSON.stringify(profile));
   writeFileSync(join(out, "profile.json"), `${JSON.stringify(report, null, 2)}\n`);
