@@ -1,0 +1,267 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "coverage",
+ "origin": [
+  {
+   "release": "0.2.17",
+   "commit": "443bbca",
+   "date": "2026-10-28",
+   "run": 40783923164,
+   "source": "bench.yml, the artifact bench-pack-select-v2, and bench/coverage.ts"
+  }
+ ],
+ "latest": {
+  "date": "2026-10-28",
+  "run": 40783923164,
+  "corpus": "pack-select-v2",
+  "records": 10125,
+  "inputs": 2025,
+  "strategies": [
+   "maxrects-bl",
+   "skyline",
+   "skyline-bl-waste",
+   "skyline-mw",
+   "skyline-mw-waste"
+  ],
+  "model": {
+   "kind": "regression-tree",
+   "maxDepth": 12,
+   "minLeaf": 3,
+   "folds": 5,
+   "seed": 1,
+   "by": "input"
+  },
+  "measures": [
+   {
+    "id": "pack.fill",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 10125,
+    "mae": 0.0481,
+    "baselineMae": 0.1645,
+    "skill": 0.7076,
+    "share": 0.2864,
+    "shareOfMeasured": 0.2864,
+    "cells": {
+     "space": 2025,
+     "withRecords": 2025,
+     "covered": 580
+    },
+    "explained": {
+     "strategy": 0.0971,
+     "input": 0.6506,
+     "joint": 0.8882
+    },
+    "noise": 0.1118,
+    "indices": [
+     {
+      "feature": "obstacles",
+      "group": "input",
+      "index": 0.3447
+     },
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.3197
+     },
+     {
+      "feature": "family",
+      "group": "input",
+      "index": 0.3017
+     },
+     {
+      "feature": "obstacleMove",
+      "group": "input",
+      "index": 0.2739
+     },
+     {
+      "feature": "sizes",
+      "group": "input",
+      "index": 0.1961
+     },
+     {
+      "feature": "order",
+      "group": "input",
+      "index": 0.1097
+     }
+    ]
+   },
+   {
+    "id": "pack.gap",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 10002,
+    "mae": 0.1604,
+    "baselineMae": 0.2736,
+    "skill": 0.4137,
+    "share": 0.5151,
+    "shareOfMeasured": 0.5163,
+    "cells": {
+     "space": 2025,
+     "withRecords": 2020,
+     "covered": 1043
+    },
+    "explained": {
+     "strategy": 0.0004,
+     "input": 0.9355,
+     "joint": 0.9386
+    },
+    "noise": 0.0614,
+    "indices": [
+     {
+      "feature": "obstacles",
+      "group": "input",
+      "index": 0.041
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.0087
+     },
+     {
+      "feature": "containerShape",
+      "group": "input",
+      "index": 0.0071
+     },
+     {
+      "feature": "sizes",
+      "group": "input",
+      "index": 0.0035
+     },
+     {
+      "feature": "obstacleMove",
+      "group": "input",
+      "index": 0.0029
+     },
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.0016
+     }
+    ]
+   },
+   {
+    "id": "pack.overflow.excessArea",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 10125,
+    "mae": 0.0305,
+    "baselineMae": 0.0532,
+    "skill": 0.4267,
+    "share": 0.7615,
+    "shareOfMeasured": 0.7615,
+    "cells": {
+     "space": 2025,
+     "withRecords": 2025,
+     "covered": 1542
+    },
+    "explained": {
+     "strategy": 0.0027,
+     "input": 0.7713,
+     "joint": 0.7893
+    },
+    "noise": 0.2107,
+    "indices": [
+     {
+      "feature": "obstacles",
+      "group": "input",
+      "index": 0.183
+     },
+     {
+      "feature": "sizes",
+      "group": "input",
+      "index": 0.0946
+     },
+     {
+      "feature": "obstacleMove",
+      "group": "input",
+      "index": 0.0793
+     },
+     {
+      "feature": "family",
+      "group": "input",
+      "index": 0.0663
+     },
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.0626
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.039
+     }
+    ]
+   },
+   {
+    "id": "ms",
+    "scale": "log",
+    "tolerance": 0.15,
+    "n": 10125,
+    "mae": 0.083,
+    "baselineMae": 0.7687,
+    "skill": 0.892,
+    "share": 0.8849,
+    "shareOfMeasured": 0.8849,
+    "cells": {
+     "space": 2025,
+     "withRecords": 2025,
+     "covered": 1792
+    },
+    "explained": {
+     "strategy": 0.1509,
+     "input": 0.7781,
+     "joint": 0.9878
+    },
+    "noise": 0.0122,
+    "indices": [
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.2841
+     },
+     {
+      "feature": "family",
+      "group": "input",
+      "index": 0.2626
+     },
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.2192
+     },
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.1492
+     },
+     {
+      "feature": "placement.skyline.wasteMap",
+      "group": "strategy",
+      "index": 0.148
+     },
+     {
+      "feature": "placement.maxrects.fixedBands",
+      "group": "strategy",
+      "index": 0.1479
+     }
+    ]
+   }
+  ]
+ },
+ "trend": [
+  {
+   "date": "2026-10-28",
+   "run": 40783923164,
+   "corpus": "pack-select-v2",
+   "commit": "443bbca",
+   "shares": {
+    "pack.fill": 0.2864,
+    "pack.gap": 0.5151,
+    "pack.overflow.excessArea": 0.7615,
+    "ms": 0.8849
+   }
+  }
+ ]
+}
