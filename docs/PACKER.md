@@ -146,6 +146,22 @@ interface Selector {
 
 The selector picks only from the strategies whose `supports` holds the cell of the input (roadmap item k20). The benchmark measures each selector against the best strategy of each input.
 
+### The portfolio
+
+Since 0.2.6, `packPortfolio(members, options?)` is the first selector of k20. It is opt-in. No default uses it.
+
+```ts
+const p = packPortfolio(["skyline", { id: "shelf-best", strategy: "shelf", options: { fit: "best" } }]);
+const { output, winner, trace } = p.pick(input);
+```
+
+- The function packs the input with each member, in the given order. Then `selectBest` of the contract picks the winner.
+- The levels are `PORTFOLIO_LEVELS`: the hard breaks with `exactContainer` (`hardBreaks`), then `pack.overflow.excessArea`, then `pack.fill`.
+- The hash of each member output is `outputHash`. It is the hash of the bench records, not the grid hash of the contract.
+- The output of the winner gets one more trace stage, `portfolio`. Its measure `move.pick` is 1 when the winner is not member 0.
+- The options `budgetMs`, `maxMembers` and `now` are the limits of `portfolio` of the contract. The option `seed` goes to each member.
+- The bench gives the portfolio report from the records (`docs/BENCH.md`, "Portfolio"). The report tells which sets to try.
+
 ## The registry
 
 ```ts

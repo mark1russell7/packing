@@ -57,7 +57,7 @@ describe("the types of packing and of the contract", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.4");
+    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.6");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
   });
 

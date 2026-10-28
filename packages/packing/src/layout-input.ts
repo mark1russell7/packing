@@ -1,7 +1,7 @@
 // The input file `layout-input/1` of `docs/FORMAT.md`: its types, its numbers, its canonical form and its hash.
 
 import type { LayoutContainer, LayoutEdge, LayoutGenerator, LayoutInput } from "@mark1russell7/layout-contract";
-import type { PackInput } from "./contract.ts";
+import type { PackInput, PackOutput } from "./contract.ts";
 import { sha256Hex, utf8 } from "./sha256.ts";
 import type { Cell } from "./strategy.ts";
 
@@ -88,6 +88,16 @@ export function canonicalJson(value: unknown): string {
 export function hashInput(file: LayoutInput): string {
   const { hash: _hash, ...rest } = file;
   return sha256Hex(canonicalJson(rest)).slice(0, 16);
+}
+
+/**
+ * This function gives the `outputHash` of an output. It is the first 16 hex characters of the SHA-256 of the canonical form of
+ * its placements, sorted by id. The canonical form rounds each number with `round3`. Thus the order of the list does not count.
+ * The records of the benchmark and the key of `packPortfolio` use it. It is not `outputHash` of the contract, which uses a grid.
+ */
+export function outputHash(output: Pick<PackOutput, "placements">): string {
+  const sorted = output.placements.toSorted((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return sha256Hex(canonicalJson(sorted)).slice(0, 16);
 }
 
 /** This function gives the scale of a count: the nearest of 1, 10, 100, 1000 and 10000 on a log scale. The count 0 gives `1`. */
