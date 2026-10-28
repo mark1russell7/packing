@@ -86,7 +86,8 @@ describe("the benchmark runner", () => {
     }
     // The corpus is offline, and push supports only the mode incremental
     expect(first.records.filter((r) => r.strategy === "push")).toEqual([]);
-    expect(first.run.skipped.filter((k) => k.strategy === "push").every((k) => k.dimension === "mode" && k.value === "offline")).toBe(true);
+    expect(first.run.skipped.filter((k) => k.strategy === "push")).toHaveLength(inputs.length);
+    expect(first.run.skipped.some((k) => k.strategy === "push" && k.dimension === "mode" && k.value === "offline")).toBe(true);
     // No strategy supports a circle container yet
     const circle = inputs.find((id) => id.includes(".circle."))!;
     expect(first.records.filter((r) => r.input === circle)).toEqual([]);
