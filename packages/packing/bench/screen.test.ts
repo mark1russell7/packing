@@ -265,7 +265,9 @@ describe("the screen on smoke-v1", () => {
   it("gives each measured record its move count and 0 boxes out of the true outline", () => {
     for (const r of full.records.filter(isMeasured)) {
       // On a container of fixed size, aspect-fit gives the output of the wrapped strategy, with no stage of its own
-      const passed = entry(r.strategy).strategy === "aspect-fit" && r.measures[MOVE_OF[r.strategy]!] === undefined;
+      // On a rect input, bbox gives the output of its member. It has no move of its own, so MOVE_OF has no bbox entry.
+      if (entry(r.strategy).strategy === "bbox") expect(MOVE_OF[r.strategy]).toBeUndefined();
+      const passed = (entry(r.strategy).strategy === "aspect-fit" && r.measures[MOVE_OF[r.strategy]!] === undefined) || entry(r.strategy).strategy === "bbox";
       if (!passed) expect(r.measures[MOVE_OF[r.strategy]!], `${r.strategy} ${r.input}`).toBeTypeOf("number");
       expect(r.measures[OUTSIDE_EXACT], `${r.strategy} ${r.input}`).toBe(0);
       expect(r.measures["pack.overflow.forced"]!).toBeLessThanOrEqual(r.measures["pack.overflow"]!);
