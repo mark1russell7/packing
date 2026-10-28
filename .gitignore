@@ -102,3 +102,6 @@ temp/
 *.tmp
 *.bak
 *.orig
+
+# Local output of the benchmark runner (docs/BENCH.md)
+bench-out/

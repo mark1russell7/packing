@@ -7,10 +7,12 @@
     "isolatedDeclarations": false,
     "types": [
       "node"
-    ]
+    ],
+    "rootDir": "."
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "bench/**/*"
   ],
   "exclude": []
 }

@@ -55,6 +55,7 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "bench": "node bench/main.ts",
     "build": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",

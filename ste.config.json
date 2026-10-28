@@ -10,7 +10,9 @@
     "packages/*/README.md",
     "packages/site/content/**/*.md",
     "packages/*/src/**/*.{ts,tsx}",
-    "packages/*/*.config.{ts,mts}"
+    "packages/*/bench/**/*.ts",
+    "packages/*/*.config.{ts,mts}",
+    "docs/BENCH.md"
   ],
   "ignore": [
     "**/node_modules/**",
