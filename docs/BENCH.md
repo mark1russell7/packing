@@ -92,11 +92,18 @@ The file `packages/packing/bench/predictions.jsonl` keeps the predictions of thi
 |---|---|
 | `id` | The id of the prediction. The input `prediction` of the workflow names it. Necessary. |
 | `strategy`, `set`, `input` | The records of the prediction. Without a field, the prediction is about each value of that field. |
-| `measure` | The id of a measure, or `ms` for the time. |
+| `measure` | The id of a measure, `ms` for the time, or `pack.coverage` for the coverage of the run. |
+| `cell` | Only for `pack.coverage`: `{ "containerShape": "circle" }` uses the coverage of one container shape. |
 | `expected`, `op` | The expected value and the comparison. Without `op`, a measure where lower is better gets `<=`, and the others get `>=`. |
 | `reason` | The reason for the prediction. |
 
 Without `input`, the summary compares the median of the measure over the records with the expected value.
+
+The measure `pack.coverage` does not come from the records. It comes from the field `coverage` of `run.json`. Its default `op` is `>=`. Without `strategy`, the prediction adds the counts of all the strategies.
+
+```json
+{ "schema": "layout-prediction/1", "id": "p-2026-10-28-circle", "strategy": "skyline", "measure": "pack.coverage", "cell": { "containerShape": "circle" }, "expected": 1, "reason": "The container layer packs each circle container." }
+```
 
 ## The artifacts
 
@@ -105,7 +112,7 @@ Each job of the matrix keeps the artifact `bench-<corpus>-<strategy>`. The job `
 | File | Content |
 |---|---|
 | `records.jsonl` | One `layout-record/1` line for each pair of the job: a measured record or a skipped record. The lines keep the order of the strategies, and then the order of the inputs. |
-| `run.json` | The facts of the run: the corpus, the prediction, the commit, the counts of runs, the computer, the skipped pairs and the errors. |
+| `run.json` | The facts of the run: the corpus, the prediction, the commit, the counts of runs, the computer, the skipped pairs, the errors and the coverage. |
 | `corpus.json` | The manifest of the corpus, with the id, the hash and the cell of each input. |
 | `summary.md` | The summary. The page of the run on GitHub also shows it. |
 
@@ -128,6 +135,15 @@ A record also has these optional fields of `docs/FORMAT.md`:
 | `env` | The computer: the version of Node.js, the operating system, the processor and the name of the runner. |
 | `skipped` | The reason when the runner did not pack the pair, for example `unsupported mode: offline`. Only a skipped record has it. |
 
+### The coverage
+
+The field `coverage` of `run.json` tells which part of the corpus each strategy packed. A record has no field for it.
+
+- For each strategy, `measured` counts the inputs with a measured record, and `inputs` counts all the inputs.
+- The value `coverage` is `measured / inputs`, with 3 decimals.
+- The field `shapes` has the same 3 values for each `containerShape` of the cells of `corpus.json`.
+- The job `merge` adds the counts of the jobs. A `run.json` from before 0.2.1 has no coverage.
+
 A skipped record is the record of a pair that the strategy does not support. It has `skipped`, and `measures` and `hard` are empty objects. Its `ms` is 0, and it has no `msRuns` and no `outputHash`. The medians, the tables and the predictions of the summary ignore the skipped records.
 
 ## Read the summary
@@ -137,10 +153,11 @@ The summary `summary.md` has these sections:
 1. The head: the prediction, the commit, the computer, the counts of runs and the counts of the measured and the skipped records.
 2. `Strategies`: one row for each strategy. The row has the counts of measured records, skipped records, errors, hard breaks and records that are not deterministic. Then it has the median of each guard measure, the median of `pack.fill` and `pack.whitespace`, and the times.
 3. One section for each strategy, with one row for each family of inputs.
-4. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
-5. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
-6. `Stability`: the count of records with the stability measures.
-7. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
+4. `Coverage`: one row for each strategy, with the measured inputs of all the inputs and of each container shape.
+5. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
+6. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
+7. `Stability`: the count of records with the stability measures.
+8. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
 
 The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspectError`, `pack.order.inversions`, `pack.overflow` and the 3 stability measures. Lower is better for each guard. The floor is 0.
 

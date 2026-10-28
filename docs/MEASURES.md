@@ -130,6 +130,19 @@ The rows: the boxes go in the order of their top. A box joins the last row when 
 - The promotion rule names this measure "unplaced items". It is a guard only in the cells with a fixed size: `containerSize` set to `fixed`.
 - An item with no position that is not in the overflow is a break of the hard rule `complete`. It is not part of `pack.overflow`.
 
+## Coverage
+
+| Id | Unit | Direction | Range |
+|---|---|---|---|
+| `pack.coverage` | ratio | higher | 0 to 1 |
+
+**`pack.coverage`** is the part of the inputs of a corpus that a strategy packed: the measured inputs divided by all the inputs.
+
+- It is a measure of a benchmark, not of one layout. `measure` does not give it, and `MEASURE_SPECS` does not have it.
+- The field `coverage` of `run.json` keeps it for each strategy, and for each container shape. `docs/BENCH.md` tells the fields.
+- An input that the strategy skips, or that throws an error, is not a measured input.
+- A prediction of `pack.coverage` uses `>=` by default. Its optional field `cell` names one container shape.
+
 ## Stability
 
 | Id | Unit | Direction | Range |

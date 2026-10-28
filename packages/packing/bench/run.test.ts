@@ -186,6 +186,41 @@ describe("the benchmark runner", () => {
     expect(summaryMarkdown(merged, records)).toContain(`Skipped records: ${merged.skipped.length}.`);
     const other = runBench({ corpus: smoke, prediction: "p-other", strategies: ["rows"], repeats: 1, warmup: 0, env: ENV });
     expect(() => mergeRuns([one.run, other.run])).toThrow(/one prediction/);
+    expect(merged.coverage).toEqual({ ...one.run.coverage, ...two.run.coverage });
+    // Two jobs of one strategy add their counts
+    const twice = mergeRuns([one.run, one.run]).coverage!["shelf"]!;
+    expect([twice.measured, twice.inputs, twice.coverage]).toEqual([2 * one.run.coverage!["shelf"]!.measured, 2 * one.run.coverage!["shelf"]!.inputs, one.run.coverage!["shelf"]!.coverage]);
+    const { coverage: _, ...old } = one.run;
+    expect(mergeRuns([old]).coverage).toBeUndefined();
+  });
+
+  it("gives the coverage of each strategy, and of each container shape of the manifest", () => {
+    const cov = first.run.coverage!;
+    expect(Object.keys(cov)).toEqual(first.run.strategies);
+    const inputs = first.manifest.inputs.length;
+    for (const id of first.run.strategies) {
+      const own = measured.filter((r) => r.strategy === id).length;
+      expect(cov[id]).toMatchObject({ measured: own, inputs, coverage: Math.round((own / inputs) * 1000) / 1000 });
+      const shapes = Object.values(cov[id]!.shapes);
+      expect(shapes.reduce((sum, c) => sum + c.inputs, 0)).toBe(inputs);
+      expect(shapes.reduce((sum, c) => sum + c.measured, 0)).toBe(own);
+    }
+    // rows, shelf and skyline pack each input of the smoke corpus, and push packs only the rectangle containers
+    for (const id of ["rows", "shelf", "skyline"]) expect(cov[id]!.coverage, id).toBe(1);
+    expect(cov["push"]!.shapes["circle"]!.measured).toBe(0);
+    expect(summaryMarkdown(first.run, first.records)).toContain("## Coverage");
+    expect(summaryMarkdown(first.run, first.records)).toMatch(new RegExp(`\\| rows \\| ${inputs}/${inputs} \\(1\\) \\|`));
+  });
+
+  it("checks a prediction of the measure pack.coverage against the coverage of the run", () => {
+    const p = { id: "p-test", strategy: "skyline", measure: "pack.coverage", expected: 1 };
+    expect(checkPrediction(p, first.records, first.run)).toEqual({ measured: 1, met: true });
+    // Without the run, the prediction has no value
+    expect(checkPrediction(p, first.records)).toEqual({});
+    const push = first.run.coverage!["push"]!.shapes["circle"]!;
+    expect(checkPrediction({ ...p, strategy: "push", cell: { containerShape: "circle" } }, first.records, first.run)).toEqual({ measured: push.coverage, met: false });
+    expect(checkPrediction({ ...p, strategy: "push", cell: { containerShape: "circle" }, op: "==", expected: 0 }, first.records, first.run)).toEqual({ measured: 0, met: true });
+    expect(checkPrediction({ id: "p-test", measure: "pack.coverage", expected: 1, cell: { containerShape: "nonexistent" } }, first.records, first.run)).toEqual({});
   });
 
   it("refuses a bad corpus file, a bad strategy and a bad count of runs", () => {

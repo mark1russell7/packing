@@ -162,13 +162,50 @@ The code of 0.1.3 builds these adapters. This document gives the contract, and t
 
 | Function of 0.1 | Strategy id | Its `supports` |
 |---|---|---|
-| `packRows` | `rows` | `fixed`, `freeHeight`. Obstacles: none. Its `obstacleMove` is an empty list, so an input with an obstacle or a locked item is outside its cells. |
-| `packSkyline` | `skyline` | `fixed`, `freeHeight`. Obstacles: `fixed`. |
-| `packShelf` | `shelf` | `fixed`, `freeHeight`. Obstacles: `fixed`. Order: `free`, `hard`. |
+| `packRows` | `rows` | `fixed`, `freeHeight`. Obstacles: `fixed` since 0.2.1. Each container shape since 0.2.1. |
+| `packSkyline` | `skyline` | `fixed`, `freeHeight`. Obstacles: `fixed`. Each container shape since 0.2.1. |
+| `packShelf` | `shelf` | `fixed`, `freeHeight`. Obstacles: `fixed`. Order: `free`, `hard`. Each container shape since 0.2.1. |
 | `pushCascade` | `push` | `fixed`, `freeHeight`. Obstacles: `free`. Mode: `incremental`. |
 | `packFree` | the size search `log-sweep` | It wraps `rows`, `skyline` and `shelf`. `push` moves the items from their start positions, so a size search does not fit it. |
 
 `fromRects(rects, outer)` makes a `PackInput` from the `Rect` objects of 0.1, and `toRects(output, rects, outer)` writes the output back.
+
+## The container layer
+
+Since 0.2.1 (roadmap item k37), one layer gives the free space of each container shape. The module is `src/space.ts`. `rows`, `shelf` and `skyline` use it, so they pack a circle, an ellipse, a polygon and a polygon with holes.
+
+`freeSpace(input)` gives a `FreeSpace` in the coordinates of the frame. A rectangle of the frame is an item with its margin and half the gap on each side.
+
+| Member | Gives |
+|---|---|
+| `w`, `h` | The size of the frame. Without a fixed size, a free side is `Infinity`. |
+| `plain` | `true` for a rectangle container with only rectangle obstacles. The strategies then use the code of 0.1. |
+| `band(y0, y1)` | The free spans of x for a rectangle from `y0` to `y1`, sorted, with no overlap. |
+| `column(x0, x1, from?)` | The first free span of y from `from` for a rectangle from `x0` to `x1`, or `undefined`. |
+| `fits(rect)` | `true` when a `SpaceRect` is in the outline and crosses no hole, obstacle or locked item. |
+| `fitX(x, w, y0, y1)` | The first x from `x` where a rectangle of width `w` fits in the band, or `Infinity`. |
+| `nextY(y0, y1, w)` | The next top edge after `y0` where the free spans of a band of that height can change, or `Infinity`. |
+
+The rules of the layer:
+
+- A circle and an ellipse use a closed form. A band gets the shortest chord of the outline, made smaller by `EPS` (`1e-6`). `nextY` solves the first band with a chord of width `w`.
+- A polygon clips its edges to the band, and merges the x ranges. A gap between two ranges is free when `regionHitsRect` of the polygon is true. This test uses the even-odd rule, so the holes of the polygon stay out.
+- The inset makes the outline smaller. The query box is the frame rectangle, grown by the inset minus half the gap.
+- A rectangle obstacle and a locked item are exact holes, with the floats of the frame. Another obstacle blocks the x range of its region in the band, grown by half the gap and by `EPS`.
+- With a free side, the layer uses the bounding box of the shape, and it keeps the holes of the polygon.
+
+The strategies with a space that is not plain:
+
+- `shelf` and `rows` use `packRowsInSpace`. A rectangle goes to the first x from the cursor where `fitX` and the locked rectangles agree. An empty row steps down to `nextY`. When no step finds a place, the rectangle stays in the overflow, and the row keeps its top edge.
+- In this path, `rows` does not fill the gaps of a row again.
+- `skyline` gets the start and the limit of each cell from `column`. `lowestWindow` with a limit finds the lowest window where the rectangle fits under the limit of each cell.
+- `push` supports only the rectangle container.
+
+The hard rules and the outline:
+
+- `checkHard` of `packing` and `packHard` of the contract test the container as its bounding box. They do not test the true outline or the holes of the container. They test the obstacles exactly with `regionHitsRect`.
+- Thus the tests of the layer (`src/space.test.ts`) test each box against the true outline, and against each hole.
+- The rule `in-container` of `checkHard` stays as it is, because `packHard` has the same test. An exact test of the outline is a change of the contract.
 
 ## The decisions
 
