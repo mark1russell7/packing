@@ -10,10 +10,12 @@
     "types": [
       "vite/client",
       "node"
-    ]
+    ],
+    "rootDir": "."
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "scripts/**/*"
   ],
   "exclude": []
 }
