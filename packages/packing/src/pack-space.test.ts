@@ -216,4 +216,18 @@ describe("packSpace and the options of the strategies", () => {
     // Without the switch params, the outputs do not change
     expect(outputHash(packConfig(input, cell({})))).toBe(outputHash(packWith("portfolio", input)));
   });
+
+  it("gives the options of restarts with its params, and budgetMs only with limitTime", () => {
+    const bl = named["maxrects-bl"]!;
+    const restarts = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "restarts", params, members: [bl] } } });
+    // The default member of restarts is maxrects-bl
+    const want = (options: Record<string, unknown>): string => outputHash(packWith("restarts", input, options, 3));
+    expect(outputHash(packConfig(input, named["restarts"]!, 3))).toBe(want({}));
+    expect(outputHash(packConfig(input, restarts({ iterations: 4, perturb: "shuffle", strength: 0.5, key: "area" }), 3))).toBe(
+      want({ iterations: 4, perturb: "shuffle", strength: 0.5, key: ["pack.area", "pack.overflow.excessArea", "pack.fill"] }),
+    );
+    expect(outputHash(packConfig(input, restarts({ limitTime: true, budgetMs: 2000 }), 3))).toBe(want({ limitTime: true, budgetMs: 2000 }));
+    // Without the switch param, the param budgetMs has no effect
+    expect(outputHash(packConfig(input, restarts({ budgetMs: 1 }), 3))).toBe(want({}));
+  });
 });

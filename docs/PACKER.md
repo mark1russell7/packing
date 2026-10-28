@@ -287,11 +287,39 @@ const leaf = selectLeaf(selectFeatures(input)); // { leaf, pick }
 - The output gets the trace stage `select` (`SELECT_STAGE`) as its last stage. Its measures are `move.select`, `select.member`, `select.pick.<id>`, `select.leaf` and the 4 feature values.
 - The measure `move.select` is 1 when the pick is not member 0. A flag feature is 1 for `true`, and `select.spread` has 3 decimals.
 
+### The random restarts
+
+Roadmap item k78 adds the composite strategy `restarts` (catalog row `search-random-restart`, Yang 2013). It packs with one member in some random orders and keeps the best output. It is opt-in. No default uses it.
+
+```ts
+const output = packWith("restarts", input); // 16 restarts of maxrects-bl, the change swap
+const rows = packWith("restarts", input, { member: "rows", iterations: 32, perturb: "shuffle-blocks" }, 7);
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `member` | `maxrects` with the rule `bl` | A strategy id, or a `PortfolioEntry` with options. The strategy has the option `sortOrder`. |
+| `iterations` | 16 | The count of the restarts, restart 0 included. A whole number of 1 or more. |
+| `perturb` | `swap` | The change of the order: `swap`, `shuffle-blocks` or `shuffle` (`RESTART_PERTURBS`). |
+| `strength` | 0.1 | The share of the positions that move, from 0 to 1. |
+| `key` | the key of `PORTFOLIO_LEVELS` | The measure ids of the key after the hard breaks, as for `packPortfolio`. |
+| `limitTime`, `budgetMs` | `false`, none | With `limitTime`, the time limit `budgetMs` cuts the later restarts. Restart 0 always starts. |
+
+- Restart 0 is the member with its options. Thus the result is not worse than the member on the key. A tie keeps the earlier restart.
+- The order of the member is the rank order of the items, then a stable sort by its `sortOrder`. The sizes have the margins and the gap.
+- Each later restart changes that order, and packs a copy of the input with the items in the new order and no rank. The member gets the sort order `input`. The ids stay.
+- `swap` makes `ceil(strength * n / 2)` random swaps of two adjacent items, at least 1.
+- `shuffle-blocks` shuffles each block of near-equal keys. The keys of a block differ from its first key by `strength` of that key or less.
+- `shuffle` gives a full random order. It does not read `strength`.
+- Restart `i` gets the random numbers `stepRandom(seed, "restarts:<i>")` of the contract. The same seed gives the same output and the same trace measures.
+- The output gets the trace stage `restarts` (`RESTARTS_STAGE`). Its measures are `move.restartPick`, `restarts.run` (the index of the pick) and `restarts.runs`.
+- The cost of one call is `iterations` packs of the member, and the key of each output.
+
 ## The registry
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
-const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit" and "select"
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select" and "restarts"
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```

@@ -95,6 +95,16 @@ const output = packWith("aspect-fit", input, { strategy: "maxrects", options: { 
 - The pick uses `ASPECT_FIT_LEVELS`: the hard breaks, then `pack.overflow.excessArea`, then `pack.aspectError`, then `pack.area`.
 - The target is `targetAspect`, else `aspect` of the container, else 1. `docs/PACKER.md` tells the widths.
 
+The strategy `restarts` packs with one member in some random orders, and keeps the best output. It is opt-in, and no default uses it.
+
+```ts
+const output = packWith("restarts", input, { member: "rows", iterations: 16, perturb: "swap" }, 7);
+```
+
+- Restart 0 is the member in its own order. Thus the result is not worse than the member on the key of `PORTFOLIO_LEVELS`.
+- Each later restart changes the order with `swap`, `shuffle-blocks` or `shuffle`. The option `strength` sets the share of the positions that move.
+- The same seed gives the same output. The cost is `iterations` packs of the member. `docs/PACKER.md` tells each option.
+
 Both functions also work alone, in an outer rectangle with a width that you set. They do not change the width.
 
 A `locked` rectangle keeps its position. `packSkyline` and `packShelf` put the other rectangles around it. `packRows` only keeps its position.
@@ -183,7 +193,7 @@ const output = packConfig(input, packSpace.named!["maxrects-cp"]!, 0);
 ```
 
 - The space has 5 stages: `order`, `size-search`, `placement`, `local-search` and `combine`. Each option gives its params with their ranges.
-- The stage `combine` has the meta options `portfolio`, `cell-portfolio`, `select` and `aspect-fit`. Each meta config has members.
+- The stage `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit` and `restarts`. Each meta config has members.
 - `named` has each id of the registry and each entry of the benchmark. The output of a named config is equal to the output of its strategy.
 - `packConfig(input, config, seed)` checks the config with `checkConfig` and packs it with the strategies of the registry.
 - Each option supports only the shape kind `rect`. `packConfig` throws `UnsupportedShape` for a `polygon`, `circle` or `free` item.

@@ -77,8 +77,25 @@ export const ASPECT_FIT_ENTRIES: readonly BenchEntry[] = Object.freeze([
  */
 export const SELECT_ENTRIES: readonly BenchEntry[] = Object.freeze([{ id: "select-rows-bl", strategy: "select", options: {}, base: "rows" }]);
 
+/**
+ * The composite entries of roadmap item k78. They are not in the pool of the oracle. Each one has 16 restarts, so it costs 16 packs of its member.
+ *
+ * - `restarts-<entry>-k16`: the strategy `restarts` around an entry, with the change `swap`. Its base is that entry. Its move is `move.restartPick`.
+ * - `restarts-maxrects-bl-shuffle-k16`: the same around `maxrects-bl`, with the change `shuffle`.
+ */
+export const RESTARTS_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "restarts-maxrects-bl-k16", strategy: "restarts", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16 }, base: "maxrects-bl" },
+  { id: "restarts-rows-k16", strategy: "restarts", options: { member: "rows", iterations: 16 }, base: "rows" },
+  {
+    id: "restarts-maxrects-bl-shuffle-k16",
+    strategy: "restarts",
+    options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, perturb: "shuffle" },
+    base: "maxrects-bl",
+  },
+]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -96,6 +113,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...PORTFOLIO_ENTRIES,
   ...ASPECT_FIT_ENTRIES,
   ...SELECT_ENTRIES,
+  ...RESTARTS_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

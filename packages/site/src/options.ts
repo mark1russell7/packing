@@ -1,7 +1,7 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { composites, MAXRECTS_RULES, SHELF_FITS, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
+import { composites, MAXRECTS_RULES, RESTART_PERTURBS, SHELF_FITS, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
 /** This constant lists each strategy of the registry: the single strategies, then the composite strategies. */
@@ -21,6 +21,7 @@ export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
   sortOrder: SORT_ORDERS,
   rule: MAXRECTS_RULES,
   fit: SHELF_FITS,
+  perturb: RESTART_PERTURBS,
 };
 
 /** The limits of each option with a number value, by the name of the option. */
@@ -28,6 +29,9 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   samples: { min: 4, max: 200, step: 1 },
   maxShovesPerItem: { min: 0, max: 64, step: 1 },
   targetAspect: { min: 0.1, max: 10, step: 0.01 },
+  iterations: { min: 1, max: 256, step: 1 },
+  strength: { min: 0, max: 1, step: 0.01 },
+  budgetMs: { min: 0, max: 2000, step: 1 },
 };
 
 /** The entries that a composite strategy can take as a member: the entries that are not composite entries. */
@@ -81,6 +85,11 @@ function extraControls(id: string): OptionControl[] {
       ];
     case "select":
       return [{ key: "members", kind: "members", values: members, value: ["rows", "maxrects-bl"], count: 2, fromDefaults: false }];
+    case "restarts":
+      return [
+        { key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false },
+        { key: "budgetMs", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetMs"]!, fromDefaults: false },
+      ];
     default:
       return [];
   }
@@ -110,6 +119,7 @@ const memberOf = (id: string): { id: string; strategy: string; options: Readonly
 /**
  * This function gives the options of `packWith` from the values of the controls. An empty value gives no option. A
  * portfolio with members takes no `k`. The strategy of `aspect-fit` is a named entry with its options.
+ * The member of `restarts` is a named entry.
  */
 export function packOptions(id: string, values: OptionValues): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -121,8 +131,11 @@ export function packOptions(id: string, values: OptionValues): Record<string, un
     else if (c.kind === "select") out[c.key] = c.key === "k" ? Number(v) : v;
     else if (c.kind === "entry") {
       const m = memberOf(String(v));
-      out["strategy"] = m.strategy;
-      out["options"] = m.options;
+      if (c.key === "member") out["member"] = m;
+      else {
+        out["strategy"] = m.strategy;
+        out["options"] = m.options;
+      }
     } else if (Array.isArray(v) && v.length > 0) out[c.key] = v.map(memberOf);
   }
   if (out["members"] !== undefined) delete out["k"];

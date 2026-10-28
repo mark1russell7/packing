@@ -29,6 +29,7 @@ import { PORTFOLIO_FRAME_MS } from "./portfolio-cell.ts";
 import { PORTFOLIO_SETS } from "./portfolio-sets.ts";
 import type { PortfolioStrategyOptions } from "./portfolio-strategy.ts";
 import { packWith, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+import { RESTART_PERTURBS, type RestartsStrategyOptions } from "./restarts.ts";
 import type { SelectStrategyOptions } from "./select.ts";
 import { SHELF_FITS } from "./shelf.ts";
 import { UnsupportedShape } from "./strategy.ts";
@@ -58,6 +59,19 @@ const PORTFOLIO_PARAMS: readonly SpaceParam[] = [
   { name: "aspectFit", kind: "bool", default: false },
   { ...TARGET_PARAMS[0]!, when: { param: "aspectFit", in: [true] } },
   TARGET_PARAMS[1]!,
+];
+
+/**
+ * The params of the random restarts of roadmap item k78: the count of the restarts, the change of the order, its strength, the
+ * key of the pick and the time limit. The option `budgetMs` has a switch param `limitTime`, with the default `false`.
+ */
+const RESTARTS_PARAMS: readonly SpaceParam[] = [
+  PORTFOLIO_PARAMS[0]!,
+  { name: "iterations", kind: "int", min: 1, max: 256, scale: "log", default: 16 },
+  { name: "perturb", kind: "enum", values: [...RESTART_PERTURBS], default: "swap" },
+  { name: "strength", kind: "real", min: 0, max: 1, default: 0.1 },
+  { name: "limitTime", kind: "bool", default: false },
+  { name: "budgetMs", kind: "real", min: 1, max: 2000, scale: "log", default: PORTFOLIO_FRAME_MS, when: { param: "limitTime", in: [true] } },
 ];
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
@@ -148,6 +162,7 @@ const STAGES: readonly SpaceStage[] = [
       },
       { id: "select", params: [{ name: "table", kind: "enum", values: ["k66"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
       { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "restarts", params: RESTARTS_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
 ];
@@ -173,7 +188,7 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
  *
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` only.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select` and `aspect-fit`.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit` and `restarts`. The option `restarts` has 1 member.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
@@ -202,6 +217,10 @@ export const packSpace: StrategySpace = Object.freeze({
     portfolio: metaConfig("cell-portfolio", pool),
     "aspect-fit": metaConfig("aspect-fit", [single("maxrects")]),
     select: metaConfig("select", [single("rows"), single("maxrects-bl")]),
+    "restarts-maxrects-bl-k16": metaConfig("restarts", [single("maxrects-bl")], { iterations: 16 }),
+    "restarts-rows-k16": metaConfig("restarts", [single("rows")], { iterations: 16 }),
+    "restarts-maxrects-bl-shuffle-k16": metaConfig("restarts", [single("maxrects-bl")], { iterations: 16, perturb: "shuffle" }),
+    restarts: metaConfig("restarts", [single("maxrects-bl")]),
   },
 } satisfies StrategySpace);
 
@@ -251,6 +270,15 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     targetAspect: "combine.aspect-fit.targetAspect",
   } satisfies Places<AspectFitStrategyOptions>,
   select: { members: "combine.select.members", table: "combine.select.table" } satisfies Places<SelectStrategyOptions>,
+  restarts: {
+    member: "combine.restarts.members",
+    iterations: "combine.restarts.iterations",
+    perturb: "combine.restarts.perturb",
+    strength: "combine.restarts.strength",
+    key: "combine.restarts.key",
+    limitTime: "combine.restarts.limitTime",
+    budgetMs: "combine.restarts.budgetMs",
+  } satisfies Places<RestartsStrategyOptions>,
   pack: {
     sortOrder: "order",
     space: null,
@@ -338,7 +366,8 @@ function wrapped(id: string, options: Record<string, unknown>, params: Readonly<
  * - The function checks the config with `checkConfig`. A config with a break causes a `RangeError` with the details of each break.
  * - The function checks the shape kinds of the items with `checkShapes` and `checkConfig`. A break causes `UnsupportedShape`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
- * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select` or `aspect-fit`.
+ * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
+ * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select`, `aspect-fit` or `restarts`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  */
@@ -372,6 +401,11 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
     }
     case "select":
       return packWith("select", input, { members: members.map(entryOf) }, seed);
+    case "restarts": {
+      const time = params["limitTime"] === true ? { limitTime: true, budgetMs: params["budgetMs"] } : {};
+      const options = { member: entryOf(members[0]!), iterations: params["iterations"], perturb: params["perturb"], strength: params["strength"] };
+      return packWith("restarts", input, { ...options, ...key, ...time }, seed);
+    }
     default: {
       const run = runOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);
