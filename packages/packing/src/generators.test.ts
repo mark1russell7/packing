@@ -1,4 +1,4 @@
-import { createFamilyRegistry } from "@mark1russell7/layout-contract";
+import { createFamilyRegistry, familyKind } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   cellOf,
@@ -454,7 +454,8 @@ describe("the corpus families through the registry", () => {
   const cases = CASES.filter((c) => c.gen !== rectScattered);
 
   it("has one family for each generator other than rect-scattered, in the order of the generators", () => {
-    expect(corpusFamilies.map((f) => `${f.name}@${f.version}`)).toEqual(generators.filter((g) => g !== rectScattered).map((g) => `${g.name}@${g.version}`));
+    const kinds = (list: readonly { name: string; version: number }[]): string[] => list.map((x) => familyKind(x.name, x.version));
+    expect(kinds(corpusFamilies)).toEqual(kinds(generators.filter((g) => g !== rectScattered)));
     expect(registry.families()).toEqual(corpusFamilies);
   });
 

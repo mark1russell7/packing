@@ -2,7 +2,17 @@
 // container, then the obstacles, then the boxes. Each step has its own random numbers: `mulberry32` of
 // `fnv1a32("<seed>:<step>")`. Thus a packing input and a routing input with the same seed get the same obstacles.
 
-import { sharedDimension, type CorpusDimension, type CorpusFamily, type CrossEngine, type DimensionValues, type GenerateContext } from "@mark1russell7/layout-contract";
+import {
+  createFamilyRegistry,
+  RECT_SCATTERED,
+  sharedDimension,
+  type CorpusDimension,
+  type CorpusFamily,
+  type CrossEngine,
+  type DimensionValues,
+  type GenerateContext,
+  type LayoutInput,
+} from "@mark1russell7/layout-contract";
 import type { Item, LayoutContainer, Obstacle, Region } from "./contract.ts";
 import {
   countCell,
@@ -182,44 +192,26 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The shared generator `rect-scattered` (version 1). `docs/FORMAT.md` gives it step by step. Do not change its output.
+// `RECT_SCATTERED` of `layout-contract` is its one copy (roadmap item k73). This generator takes its parts from it.
 
 /** The parameters of `rect-scattered`. */
 export type RectScatteredParams = { count: number };
 
+/** The registry with only `RECT_SCATTERED` of the contract. The generator `rectScattered` uses it. */
+const SHARED = createFamilyRegistry<LayoutInput>([RECT_SCATTERED]);
+
 /** The shared generator `rect-scattered` of `docs/FORMAT.md`, version 1: rectangle obstacles at random places in a fixed rectangle. */
 export const rectScattered: CorpusGenerator<RectScatteredParams> = defineGenerator<RectScatteredParams>({
-  name: "rect-scattered",
-  version: 1,
+  name: RECT_SCATTERED.name,
+  version: RECT_SCATTERED.version,
   set: "xcheck-v1",
   defaults: { count: 40 },
   values: {},
   family: () => "rect-scattered",
   cell: (p) => cellWith("fixed", "rect", "scattered", "uniform", p.count),
   build(seed, { count }) {
-    let r = stepRandom(seed, "container");
-    const w = int(r, 600, 1000);
-    const h = int(r, 400, 800);
-    const container: LayoutContainer = { w, h, fixed: "size" };
-
-    r = stepRandom(seed, "obstacles");
-    const n = int(r, 3, 8);
-    const obstacles: Obstacle[] = [];
-    for (let i = 0; i < n; i++) {
-      const ow = int(r, 40, 160);
-      const oh = int(r, 40, 160);
-      const x = int(r, 0, w - ow);
-      const y = int(r, 0, h - oh);
-      obstacles.push({ id: `o${i}`, region: { kind: "rect", x, y, w: ow, h: oh } });
-    }
-
-    r = stepRandom(seed, "boxes");
-    const boxes: Item[] = [];
-    for (let i = 0; i < count; i++) {
-      const bw = int(r, 20, 120);
-      const bh = int(r, 20, 80);
-      boxes.push({ id: `b${i}`, w: bw, h: bh });
-    }
-    return { container, obstacles, boxes };
+    const file = SHARED.generate(RECT_SCATTERED.name, seed, { count }, { version: RECT_SCATTERED.version });
+    return { container: file.container!, obstacles: [...(file.obstacles ?? [])], boxes: file.boxes };
   },
 });
 
