@@ -526,6 +526,7 @@ gh workflow run profile.yml -f corpus=pack-screen-v1 -f strategy=maxrects-bl -f 
 | `strategy` | `maxrects-bl` | The entry to profile. |
 | `times_run` | `40683546461` | The id of a `promotion.yml` run. Its artifact `promotion-time-<strategy>` gives the time records. |
 | `slowest` | `20` | The count of the inputs with the highest time ratio against `rows`. |
+| `rank` | `ratio` | The order of the slowest inputs: `ratio` against `rows`, or `ms`, the time of the strategy. Use `ms` when `rows` is as slow as the strategy. |
 
 The job starts `bench/profile.ts`:
 

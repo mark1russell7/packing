@@ -22,6 +22,10 @@ on:
         description: The count of the inputs with the highest time ratio
         required: false
         default: "20"
+      rank:
+        description: The order of the slowest inputs, ratio (to rows) or ms (the time of the strategy)
+        required: false
+        default: ratio
 
 permissions:
   contents: read
@@ -38,6 +42,7 @@ jobs:
       STRATEGY: ${{ inputs.strategy || 'maxrects-bl' }}
       TIMES_RUN: ${{ inputs.times_run || '40683546461' }}
       SLOWEST: ${{ inputs.slowest || '20' }}
+      RANK: ${{ inputs.rank || 'ratio' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,6 +61,7 @@ jobs:
           [[ "$STRATEGY" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "strategy must be a-z, 0-9 and hyphen, not '$STRATEGY'"; exit 1; }
           [[ "$TIMES_RUN" =~ ^[1-9][0-9]*$ ]] || { echo "times_run must be a run id, not '$TIMES_RUN'"; exit 1; }
           [[ "$SLOWEST" =~ ^[1-9][0-9]*$ ]] || { echo "slowest must be a number of 1 or more, not '$SLOWEST'"; exit 1; }
+          [[ "$RANK" == ratio || "$RANK" == ms ]] || { echo "rank must be ratio or ms, not '$RANK'"; exit 1; }
           node packages/packing/bench/main.ts list --strategies "$STRATEGY,rows"
       - name: Download the time records
         env:
@@ -66,13 +72,13 @@ jobs:
         working-directory: packages/packing
         run: |
           node bench/profile.ts --corpus "$CORPUS" --strategy "$STRATEGY" --default rows \
-            --slowest "$SLOWEST" --times "$RUNNER_TEMP/time" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile"
+            --slowest "$SLOWEST" --rank "$RANK" --times "$RUNNER_TEMP/time" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile"
       # V8 gives the samples of an inlined function to its caller. Without inlining, each function keeps its own samples.
       - name: Profile the slowest inputs without inlining
         working-directory: packages/packing
         run: |
           node --no-turbo-inlining --no-maglev-inlining bench/profile.ts --corpus "$CORPUS" --strategy "$STRATEGY" --default rows \
-            --slowest "$SLOWEST" --times "$RUNNER_TEMP/time" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile/no-inlining"
+            --slowest "$SLOWEST" --rank "$RANK" --times "$RUNNER_TEMP/time" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile/no-inlining"
       - name: Write the tables to the job summary
         if: ${{ !cancelled() }}
         run: |
