@@ -94,8 +94,17 @@ export const RESTARTS_ENTRIES: readonly BenchEntry[] = Object.freeze([
   },
 ]);
 
+/**
+ * The composite entries of roadmap item k91. They are not in the pool of the oracle. Each one packs the bounding box of each shape with its member.
+ * On an input with only `rect` items, each one gives the output of its base.
+ */
+export const BBOX_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "bbox-maxrects-bl", strategy: "bbox", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } } }, base: "maxrects-bl" },
+  { id: "bbox-skyline", strategy: "bbox", options: { member: "skyline" }, base: "skyline" },
+]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -114,6 +123,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...ASPECT_FIT_ENTRIES,
   ...SELECT_ENTRIES,
   ...RESTARTS_ENTRIES,
+  ...BBOX_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

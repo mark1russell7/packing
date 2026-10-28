@@ -550,6 +550,7 @@ Nesting packs polygons. Most methods use the no-fit polygon (NFP): the region wh
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
+| `bbox-shapes` | Shapes by their bounding boxes | Pack the bounding box of each polygon or circle with a rectangle strategy, then put each shape in its box. It is the baseline of each shape. | this project, near Yang 2023 | density | the cost of the member | no overlap, because each shape is in its box | implemented | k91 |
 | `nfp-orbit` | No-fit polygon by orbiting | Slide piece B around piece A along the edges that touch. The path of the reference point of B is the NFP. More start points cover holes and concave parts. | Burke 2007 | geometry | polynomial in `m k` | — | planned | new item |
 | `nfp-minkowski` | No-fit polygon by Minkowski sums | Make the NFP as the Minkowski sum of A and the reflection of B, from the edges sorted by slope. Handle holes and degenerate cases. | Bennell 2008b | geometry | `O(m k log(m k))` for convex parts | — | planned | new item |
 | `nfp-decompose` | No-fit polygon by convex parts | Cut each polygon into convex parts. Take the Minkowski sum of each pair of parts, then the union of the sums. | Agarwal 2002 | geometry | parts squared x union | — | planned | new item |

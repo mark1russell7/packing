@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { ASPECT_FIT_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
@@ -258,13 +258,16 @@ describe("the screen on smoke-v1", () => {
       ...Object.fromEntries(ASPECT_FIT_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(SELECT_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(RESTARTS_ENTRIES.map((e) => [e.id, e.base])),
+      ...Object.fromEntries(BBOX_ENTRIES.map((e) => [e.id, e.base])),
     });
   });
 
   it("gives each measured record its move count and 0 boxes out of the true outline", () => {
     for (const r of full.records.filter(isMeasured)) {
       // On a container of fixed size, aspect-fit gives the output of the wrapped strategy, with no stage of its own
-      const passed = entry(r.strategy).strategy === "aspect-fit" && r.measures[MOVE_OF[r.strategy]!] === undefined;
+      // On a rect input, bbox gives the output of its member. It has no move of its own, so MOVE_OF has no bbox entry.
+      if (entry(r.strategy).strategy === "bbox") expect(MOVE_OF[r.strategy]).toBeUndefined();
+      const passed = (entry(r.strategy).strategy === "aspect-fit" && r.measures[MOVE_OF[r.strategy]!] === undefined) || entry(r.strategy).strategy === "bbox";
       if (!passed) expect(r.measures[MOVE_OF[r.strategy]!], `${r.strategy} ${r.input}`).toBeTypeOf("number");
       expect(r.measures[OUTSIDE_EXACT], `${r.strategy} ${r.input}`).toBe(0);
       expect(r.measures["pack.overflow.forced"]!).toBeLessThanOrEqual(r.measures["pack.overflow"]!);

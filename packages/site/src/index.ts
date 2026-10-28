@@ -75,6 +75,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   "aspect-fit": "Aspect fit",
   select: "Select",
   restarts: "Restarts",
+  bbox: "Bounding boxes",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
 
@@ -96,6 +97,7 @@ const OPTION_LABELS: Record<string, string> = {
   strength: "Strength",
   limitTime: "Time limit",
   budgetMs: "Limit (ms)",
+  turn: "Turn shapes",
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 

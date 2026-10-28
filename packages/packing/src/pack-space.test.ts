@@ -42,8 +42,8 @@ describe("packSpace", () => {
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
     // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 705 base configs
-    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(27511368280511100n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(1006177108212n);
+    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(27511368280512510n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(1006177108482n);
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -85,7 +85,7 @@ describe("packSpace", () => {
   });
 });
 
-// Roadmap item k75: the shape kinds of the items. Each option of packSpace supports only rect.
+// Roadmap item k75: the shape kinds of the items. Each option of packSpace supports only rect, but bbox of k91.
 describe("packSpace and the shape kinds", () => {
   const items = [
     { id: "a", w: 10, h: 10 },
@@ -95,8 +95,11 @@ describe("packSpace and the shape kinds", () => {
   const circle: PackInput = { container: { fixed: "none" }, items: [...items, { id: "c", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] };
   const polygon: PackInput = { container: { fixed: "none" }, items: [...items, { id: "p", w: 10, h: 10, shape: { kind: "polygon", points: [[0, 0], [10, 0], [5, 10]] } }] };
 
-  it("declares the shape kind rect on each option of each stage", () => {
-    for (const s of packSpace.stages) for (const o of s.options) expect(o.supports, `${s.name}.${o.id}`).toEqual({ shape: ["rect"] });
+  it("declares the shape kind rect on each option of each stage, but bbox", () => {
+    for (const s of packSpace.stages) for (const o of s.options) if (o.id !== "bbox") expect(o.supports, `${s.name}.${o.id}`).toEqual({ shape: ["rect"] });
+    // Roadmap item k91: the option bbox supports each kind, and its members support only rect
+    const bbox = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "bbox")!;
+    expect(bbox.supports).toEqual({ shape: [...SHAPE_KIND_IDS] });
   });
 
   it("counts no config for a circle and the same configs for a rect", () => {

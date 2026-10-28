@@ -1,5 +1,6 @@
 import { maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { aspectFit } from "./aspect-fit.ts";
+import { bboxStrategy } from "./bbox.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { portfolioStrategy } from "./portfolio-strategy.ts";
 import { restartsStrategy } from "./restarts.ts";
@@ -54,9 +55,9 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
 /**
  * The composite strategies of the registry: each one packs an input with other strategies. They are not in `strategies`.
  * Since 0.2.7, the list has `portfolio` of roadmap item k20. Roadmap item k62 adds `aspect-fit`, and roadmap item k66 adds `select`.
- * Roadmap item k78 adds `restarts`.
+ * Roadmap item k78 adds `restarts`, and roadmap item k91 adds `bbox`.
  */
-export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy] as Strategy[]);
+export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy] as Strategy[]);
 
 /** This function gives the strategy with an id, also a composite strategy. It throws a `RangeError` for an id that the registry does not have. */
 export function strategy(id: string): Strategy {

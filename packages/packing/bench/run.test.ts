@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { composites, strategies } from "@mark1russell7/packing";
-import { ASPECT_FIT_ENTRIES, ENTRIES, entry, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, ENTRIES, entry, MAXRECTS_VARIANTS, BBOX_ENTRIES, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
 import {
   boundsMarkdown,
   checkPrediction,
@@ -146,7 +146,7 @@ describe("the benchmark runner", () => {
     expect(skips.some((r) => r.strategy === "push" && r.skipped === "unsupported mode: offline")).toBe(true);
     // rows, skyline, shelf and maxrects pack a circle container and the obstacles
     const circle = inputs.find((id) => id.includes(".circle."))!;
-    expect(measured.filter((r) => r.input === circle).map((r) => r.strategy)).toEqual(["rows", "skyline", "shelf", ...SHELF_VARIANTS.map((v) => v.id), ...MAXRECTS_VARIANTS.map((v) => v.id), ...PORTFOLIO_ENTRIES.map((e) => e.id), ...ASPECT_FIT_ENTRIES.map((e) => e.id), ...SELECT_ENTRIES.map((e) => e.id), ...RESTARTS_ENTRIES.map((e) => e.id)]);
+    expect(measured.filter((r) => r.input === circle).map((r) => r.strategy)).toEqual(["rows", "skyline", "shelf", ...SHELF_VARIANTS.map((v) => v.id), ...MAXRECTS_VARIANTS.map((v) => v.id), ...PORTFOLIO_ENTRIES.map((e) => e.id), ...ASPECT_FIT_ENTRIES.map((e) => e.id), ...SELECT_ENTRIES.map((e) => e.id), ...RESTARTS_ENTRIES.map((e) => e.id), ...BBOX_ENTRIES.map((e) => e.id)]);
     expect(skips.filter((r) => r.strategy !== "push")).toEqual([]);
   });
 

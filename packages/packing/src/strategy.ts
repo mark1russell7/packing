@@ -1,4 +1,4 @@
-import type { ClaimBreak } from "@mark1russell7/layout-contract";
+import { itemShapeOf as contractItemShape, type ClaimBreak } from "@mark1russell7/layout-contract";
 import type { LayoutContainer, PackInput, PackOutput, Region } from "./contract.ts";
 
 /**
@@ -10,7 +10,8 @@ export type Supports = {
   containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
   /** The movement of the obstacles. An empty list supports only an input with no obstacle and no locked item. */
   obstacleMove: ("fixed" | "costly" | "free")[];
-  itemShape: ("rect" | "circle" | "convex" | "polygon" | "mixed")[];
+  /** The shape kinds of the items: a `ShapeKind` of the contract, or `mixed` for more kinds. */
+  itemShape: ("rect" | "polygon" | "circle" | "free" | "mixed")[];
   rotation: ("none" | "quarter" | "any")[];
   order: ("free" | "soft" | "hard")[];
   groups: ("none" | "flat" | "nested")[];
@@ -153,20 +154,6 @@ function shapeOf(region: Region): DimensionValue<"containerShape"> {
   }
 }
 
-/** This function gives the value of `itemShape` of one item shape. An ellipse is convex. */
-function itemShapeOf(region: Region | undefined): DimensionValue<"itemShape"> {
-  if (region === undefined) return "rect";
-  switch (region.kind) {
-    case "rect":
-    case "circle":
-      return region.kind;
-    case "ellipse":
-      return "convex";
-    case "polygon":
-      return !region.holes?.length && isConvex(region.points) ? "convex" : "polygon";
-  }
-}
-
 /**
  * This function gives the cell of an input: the values of the packer dimensions that the input tells.
  *
@@ -175,6 +162,7 @@ function itemShapeOf(region: Region | undefined): DimensionValue<"itemShape"> {
  * - `obstacleMove` is the hardest value of the obstacles and the locked items: `costly`, then `free`, then `fixed`.
  * - `order` is `soft` when an item has a rank, and `free` if not. The input does not tell a hard order.
  * - `groups` is `nested` when an item has a parent, `flat` when an item has a group, and `none` if not.
+ * - `itemShape` is `itemShapeOf` of the contract: one `ShapeKind`, or `mixed`. An ellipse item is `free`.
  */
 export function cellOf(input: PackInput): Cell {
   const { container, items } = input;
@@ -197,8 +185,7 @@ export function cellOf(input: PackInput): Cell {
     if (move === "costly" || obstacleMove === undefined || (move === "free" && obstacleMove === "fixed")) obstacleMove = move;
   }
 
-  const shapes = new Set(items.map((i) => itemShapeOf(i.shape)));
-  const itemShape = shapes.size > 1 ? "mixed" : ([...shapes][0] ?? "rect");
+  const itemShape = contractItemShape({ boxes: items });
 
   const cell: Cell = {
     containerSize,

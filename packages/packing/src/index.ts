@@ -85,6 +85,7 @@ export { aspectFitStrategy, composites, DEFAULT_STRATEGY, packDefault, packWith,
 export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
 export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb, type RestartsStrategyOptions } from "./restarts.ts";
+export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export {
   cellKey,
   PORTFOLIO_FRAME_MS,

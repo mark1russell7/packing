@@ -90,6 +90,8 @@ function extraControls(id: string): OptionControl[] {
         { key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false },
         { key: "budgetMs", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetMs"]!, fromDefaults: false },
       ];
+    case "bbox":
+      return [{ key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false }];
     default:
       return [];
   }
@@ -119,7 +121,7 @@ const memberOf = (id: string): { id: string; strategy: string; options: Readonly
 /**
  * This function gives the options of `packWith` from the values of the controls. An empty value gives no option. A
  * portfolio with members takes no `k`. The strategy of `aspect-fit` is a named entry with its options.
- * The member of `restarts` is a named entry.
+ * The member of `restarts` and `bbox` is a named entry.
  */
 export function packOptions(id: string, values: OptionValues): Record<string, unknown> {
   const out: Record<string, unknown> = {};

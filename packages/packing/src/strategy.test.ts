@@ -68,7 +68,7 @@ describe("cellOf", () => {
     ).toBe("holes");
     const nested = cellOf({ container: { fixed: "none" }, items: [{ id: "a", w: 1, h: 1, parent: "p", shape: { kind: "polygon", points: square.points.map(([x, y]) => [x, y]) } }] });
     expect(nested.groups).toBe("nested");
-    expect(nested.itemShape).toBe("convex");
+    expect(nested.itemShape).toBe("polygon");
   });
 });
 
