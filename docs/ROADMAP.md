@@ -43,7 +43,7 @@ Status: done, done, waiting, next, done.
 | k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | done | k33 |
 | k35 | The problem taxonomy: the dimensions of the problem and their values | theory | done |  |
 | k36 | The catalog for each cell: nesting, circles, polygons, obstacles and holes | theory | later | k35, k6 |
-| k37 | Containers of each shape: a convex polygon, any polygon, a circle or an ellipse, a region with holes | strategies | later | k7, k35 |
+| k37 | Containers of each shape: a convex polygon, any polygon, a circle or an ellipse, a region with holes | strategies | done | k7, k35 |
 | k38 | Obstacles that move at a cost | strategies | later | k7, k35 |
 | k39 | Items of other shapes: circles and polygons (nesting) | strategies | later | k7, k36 |
 | k40 | The site: a picker for the container shape and the obstacles | site | later | k34, k37 |
