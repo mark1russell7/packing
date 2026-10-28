@@ -17,7 +17,7 @@ Status: done, done, waiting, next, done.
 | k8 | An algebra of measures | theory | done | k6, k7 |
 | k9 | The strategy zoo: each family of the catalog behind the interface | strategies | later | k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k10 |
 | k10 | An exact baseline for small inputs: branch and bound, and a constraint solver | strategies | later | k7 |
-| k11 | Benchmarks in CI, with a prediction before each run | measure | active | k8, k9 |
+| k11 | Benchmarks in CI, with a prediction before each run | measure | done | k8, k9 |
 | k12 | Stability: the movement when one item changes | measure | later | k8 |
 | k13 | Speed and its scaling | measure | later | k11 |
 | k14 | A live site with interactive examples (v1: a demo of the current strategies) | site | active | k1 |
