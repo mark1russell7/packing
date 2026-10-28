@@ -116,7 +116,7 @@ For each strategy and each input of the corpus, the runner does these steps:
 5. It adds the count of the move of the strategy from the trace, and `pack.outsideExact`. The section "The screen guards" tells these measures.
 6. It writes one `layout-record/1` line with the measures rounded by `roundMeasures`.
 
-The flag `--interleave` changes only the order of the timed runs. For each input, the runner does the warm-up runs of each strategy. Then, for each repeat, it does one timed run of each strategy. The records, their order and their format do not change. `run.json` gets `"interleave": true`. The job `time` of the section "The win test" uses this flag.
+The flag `--interleave` changes only the order of the timed passes. For each input, the runner does the warm-up passes of each strategy. Then, for each repeat, it does one timed pass of each strategy. The records, their order and their format do not change. `run.json` gets `"interleave": true`. The job `time` of the section "The win test" uses this flag.
 
 The runner does not stop at an error of a strategy. It writes the error in `run.json` and in the summary, and it exits with the code 1.
 
@@ -394,7 +394,7 @@ node bench/promote.ts <folder> --candidate maxrects-bl --default rows --win pack
 - `--time-floor-ms <n>` sets the time floor. The default is `TIME_FLOOR_MS`, 5 ms: `timeFloorMs` of the shared rule. `--time-floor-ms 0` gives the rule without a floor.
 - The tool writes `promotion.json` and `promotion.md` in the `--out` folder. A verdict `fail` is not an error of the process.
 
-The shared rule says: CI times the candidate and the default on the same machine, in alternate runs. The jobs of `bench.yml` cannot do this, because each strategy runs on its own runner.
+The shared rule says: CI times the candidate and the default on the same machine, in alternation. The jobs of `bench.yml` cannot do this, because each strategy has its own runner.
 
 The workflow `Promotion` (`.github/workflows/promotion.yml`) has two jobs:
 
@@ -405,7 +405,7 @@ The workflow `Promotion` (`.github/workflows/promotion.yml`) has two jobs:
 gh workflow run promotion.yml -f run=<id> -f corpus=pack-holdout-v1 -f candidate=maxrects-bl -f repeats=5
 ```
 
-The workflow keeps the artifact `promotion-<candidate>`, and the page of its run shows `promotion.md`. A pull request runs the job `time` on the small corpus `smoke-v1`, and the guards on the records of run 40662373078.
+The workflow keeps the artifact `promotion-<candidate>`, and the page of its run shows `promotion.md`. A pull request starts the job `time` on the small corpus `smoke-v1`, and the guards on the records of run 40662373078.
 
 ### Read the verdict
 

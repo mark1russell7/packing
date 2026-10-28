@@ -171,7 +171,7 @@ export interface BenchRun extends Partial<BenchScreen> {
   coverage?: Record<string, BenchCoverage>;
   /** The held-out split of the corpus. A `run.json` before 0.2.7 does not have it: its split is the seed 3. */
   heldOut?: HeldOut;
-  /** The value `true` when the timed runs of each input alternate between the entries. A run without `interleave` does not have it. */
+  /** The value `true` when the timed passes of each input alternate between the entries. A run without `interleave` does not have it. */
   interleave?: true;
 }
 
@@ -206,8 +206,8 @@ export interface BenchOptions {
   /** The clock in milliseconds. The default is `performance.now`. */
   clock?: () => number;
   /**
-   * The value `true` alternates the timed runs of each input between the entries: for each repeat, one timed run of each entry.
-   * Then the time ratio of two entries compares runs on the same computer at nearly the same moment. The default is `false`.
+   * The value `true` alternates the timed passes of each input between the entries: for each repeat, one timed pass of each entry.
+   * Then the time ratio of two entries compares passes on the same computer at nearly the same moment. The default is `false`.
    */
   interleave?: boolean;
 }
@@ -299,20 +299,20 @@ export function median(values: readonly number[]): number {
   return values.length === 0 ? 0 : quantile(values, 0.5);
 }
 
-/** One timed run in the interleaved mode: the index of the entry and the index of the repeat. */
+/** One timed pass in the interleaved mode: the index of the entry and the index of the repeat. */
 export interface TimedRun {
   entry: number;
   repeat: number;
 }
 
-/** This function gives the order of the timed runs of one input in the interleaved mode: for each repeat, one run of each entry. */
+/** This function gives the order of the timed passes of one input in the interleaved mode: for each repeat, one pass of each entry. */
 export function interleavedOrder(entries: number, repeats: number): TimedRun[] {
   const out: TimedRun[] = [];
   for (let repeat = 0; repeat < repeats; repeat++) for (let entry = 0; entry < entries; entry++) out.push({ entry, repeat });
   return out;
 }
 
-/** The times of the timed runs of one pair, in the order of the runs: the time of the whole pack and the time of the search. */
+/** The times of the timed passes of one pair, in their order. Each pass gives the time of the whole pack and the time of the search. */
 interface PairTimes {
   msRuns: number[];
   searchMs: number[];
@@ -323,7 +323,7 @@ function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | un
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
 }
 
-/** This function times `repeats` runs of one pair, one after the other. */
+/** This function times `repeats` passes of one pair, one after the other. */
 function timeRuns(pack: () => PackOutput, repeats: number, clock: () => number): PairTimes {
   const out: PairTimes = { msRuns: [], searchMs: [] };
   for (let r = 0; r < repeats; r++) {
@@ -338,7 +338,7 @@ function timeRuns(pack: () => PackOutput, repeats: number, clock: () => number):
 /**
  * This function gives the times of each pair in the interleaved mode, by entry id and by input id.
  *
- * - For each input, it does the warm-up runs of each entry, then the timed runs in the order of `interleavedOrder`.
+ * - For each input, it does the warm-up passes of each entry, then the timed passes in the order of `interleavedOrder`.
  * - An entry that does not support the cell of the input, or that throws, gets no times for that input.
  * - The main loop of `runBench` then packs the pair again. It gives the skip or the error of the pair, as without the mode.
  */
@@ -397,7 +397,7 @@ function finite(values: Record<string, number>): Record<string, number> {
  * - A strategy that does not support the cell of the manifest gets a skipped record and a skip in the run.
  * - The records keep the order of the strategies, and then the order of the inputs.
  * - The runner packs each pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock.
- * - With `interleave`, the timed runs of each input alternate between the entries. The records and their order do not change.
+ * - With `interleave`, the timed passes of each input alternate between the entries. The records and their order do not change.
  * - An input with a `base` in the corpus gets the stability measures of `measureChange` against the run on its base.
  * - An error other than `UnsupportedCell` goes into `errors`, and the runner goes on.
  */
@@ -468,7 +468,7 @@ export function runBench(options: BenchOptions): BenchResult {
         const first = packWith(e.strategy, input, given, file.seed);
         const second = packWith(e.strategy, input, given, file.seed);
         const pack = (): PackOutput => packWith(e.strategy, input, given, file.seed);
-        // The interleaved mode did the warm-up runs and the timed runs before this loop
+        // The interleaved mode did the warm-up passes and the timed passes before this loop
         let times = interleaved?.get(id)?.get(file.id);
         if (times === undefined) {
           for (let w = 0; w < warmup; w++) pack();
@@ -667,7 +667,7 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
     `- Commit: \`${run.commit ?? "unknown"}\``,
     `- Computer: ${run.env.runner}, ${run.env.os} ${run.env.arch}, ${run.env.cpus} x ${run.env.cpu}, Node.js ${run.env.node}`,
     `- Runs of each pair: 2 for determinism, ${run.warmup} warm-up, ${run.repeats} timed. \`ms\` is the median of the timed runs.`,
-    ...(run.interleave === true ? ["- The timed runs of each input alternate between the strategies: for each repeat, one timed run of each strategy."] : []),
+    ...(run.interleave === true ? ["- The timed passes of each input alternate between the strategies: for each repeat, one timed pass of each strategy."] : []),
     `- Records: ${records.length}. Measured records: ${measured.length}. Skipped records: ${skips.length}. Errors: ${run.errors.length}.`,
     "",
     "## Strategies",

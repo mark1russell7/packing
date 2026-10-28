@@ -106,7 +106,7 @@ function main(): number {
         strategies: strategyIds(opt("--strategies")),
         repeats: count("--repeats", DEFAULT_REPEATS),
         warmup: count("--warmup", DEFAULT_WARMUP),
-        // The flag --interleave alternates the timed runs of each input between the strategies
+        // The flag --interleave alternates the timed passes of each input between the strategies
         interleave: rest.includes("--interleave"),
         env: env(),
         ...(sha !== undefined ? { commit: sha } : {}),

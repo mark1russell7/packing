@@ -295,7 +295,7 @@ describe("the interleaved timing mode", () => {
   const plain = bench(false);
   const mixed = bench(true);
 
-  /** This function gives the timed runs of some records in the order of the clock: the strategy, the input and the repeat. */
+  /** This function gives the timed passes of some records in the order of the clock: the strategy, the input and the repeat. */
   const runOrder = (records: readonly BenchRecord[]): string[] =>
     records
       .filter(isMeasured)

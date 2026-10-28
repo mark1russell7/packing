@@ -256,8 +256,8 @@ export interface TimePair {
 /** The times of one input of the time source. A time is absent when its record has no time. */
 export interface TimeInput {
   input: string;
-  candidate?: number;
-  current?: number;
+  candidate: number | undefined;
+  current: number | undefined;
 }
 
 /** The time test of some inputs. */
@@ -485,7 +485,7 @@ export interface WinTestOptions {
   cells?: ReadonlyMap<string, InputCell>;
   parameters?: Partial<PromotionParameters>;
   /**
-   * The records of the time test, for example the records of one runner with interleaved timed runs. The time test then
+   * The records of the time test, for example the records of one runner with interleaved timed passes. The time test then
    * reads only their `ms`, by input id and strategy id. The default is `records`.
    */
   times?: readonly PromotionRecord[];
@@ -778,7 +778,7 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
     win: win as MeasureId[],
     cells,
     parameters: { timeFloorMs },
-    ...(times === undefined ? {} : { times: times.records, timesFolder, timeCells: times.cells }),
+    ...(times === undefined || timesFolder === undefined ? {} : { times: times.records, timesFolder, timeCells: times.cells }),
   });
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "promotion.json"), promotionJson(verdict));
