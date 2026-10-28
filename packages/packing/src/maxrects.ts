@@ -90,9 +90,14 @@ function inside(a: Box, b: Box): boolean {
 function cut(free: Box[], b: Box, minW: number, minH: number): { free: Box[]; hits: number } {
   const kept: Box[] = [];
   const parts: Box[] = [];
+  // The side of the box at each part: 0 left, 1 right, 2 top, 3 bottom
+  const sides: number[] = [];
   let hits = 0;
-  const add = (x0: number, y0: number, x1: number, y1: number): void => {
-    if (x1 - x0 >= minW && y1 - y0 >= minH) parts.push({ x0, y0, x1, y1 });
+  const add = (side: number, x0: number, y0: number, x1: number, y1: number): void => {
+    if (x1 - x0 >= minW && y1 - y0 >= minH) {
+      parts.push({ x0, y0, x1, y1 });
+      sides.push(side);
+    }
   };
   for (const f of free) {
     if (b.x0 >= f.x1 || b.x1 <= f.x0 || b.y0 >= f.y1 || b.y1 <= f.y0) {
@@ -100,26 +105,65 @@ function cut(free: Box[], b: Box, minW: number, minH: number): { free: Box[]; hi
       continue;
     }
     hits++;
-    if (b.x0 > f.x0) add(f.x0, f.y0, b.x0, f.y1);
-    if (b.x1 < f.x1) add(b.x1, f.y0, f.x1, f.y1);
-    if (b.y0 > f.y0) add(f.x0, f.y0, f.x1, b.y0);
-    if (b.y1 < f.y1) add(f.x0, b.y1, f.x1, f.y1);
+    if (b.x0 > f.x0) add(0, f.x0, f.y0, b.x0, f.y1);
+    if (b.x1 < f.x1) add(1, b.x1, f.y0, f.x1, f.y1);
+    if (b.y0 > f.y0) add(2, f.x0, f.y0, f.x1, b.y0);
+    if (b.y1 < f.y1) add(3, f.x0, b.y1, f.x1, f.y1);
   }
+  if (parts.length === 0) return { free: kept, hits };
   // Each part is in the free rectangle that it comes from. Thus a kept rectangle is never in a part.
-  const count = kept.length;
+  // A part spans the box on one axis and touches the box on the other axis. Thus a part of one side is not in a part of
+  // another side. A kept rectangle with the part in it has an edge on the same side of the box.
+  const near: Box[][] = [[], [], [], []];
+  for (const k of kept) {
+    if (k.x1 === b.x0) near[0]!.push(k);
+    if (k.x0 === b.x1) near[1]!.push(k);
+    if (k.y1 === b.y0) near[2]!.push(k);
+    if (k.y0 === b.y1) near[3]!.push(k);
+  }
+  // In the order of `byExtent`, a part comes after each part that holds it. Of two equal parts, the first part stays.
+  // Thus a part goes when a part that stays before it holds it.
+  const order = parts.map((_, i) => i).sort((i, j) => byExtent(parts[i]!, parts[j]!) || i - j);
+  const gone = new Uint8Array(parts.length);
+  const stay: Box[][] = [[], [], [], []];
+  for (const i of order) {
+    const p = parts[i]!;
+    const own = stay[sides[i]!]!;
+    let drop = false;
+    for (const q of own) {
+      if (inside(p, q)) {
+        drop = true;
+        break;
+      }
+    }
+    if (drop) gone[i] = 1;
+    else own.push(p);
+  }
   for (let i = 0; i < parts.length; i++) {
+    if (gone[i] === 1) continue;
     const p = parts[i]!;
     let drop = false;
-    for (let j = 0; j < parts.length && !drop; j++) {
-      if (j === i) continue;
-      const q = parts[j]!;
-      // Of two equal parts, the first part stays
-      if (inside(p, q) && (j < i || !inside(q, p))) drop = true;
+    for (const k of near[sides[i]!]!) {
+      if (inside(p, k)) {
+        drop = true;
+        break;
+      }
     }
-    for (let k = 0; k < count && !drop; k++) if (inside(p, kept[k]!)) drop = true;
     if (!drop) kept.push(p);
   }
   return { free: kept, hits };
+}
+
+/**
+ * This function orders two boxes. The smaller `x0` comes first, then the smaller `y0`, then the larger `x1`, then the
+ * larger `y1`. Thus a box comes before each other box in it.
+ */
+function byExtent(a: Box, b: Box): number {
+  if (a.x0 !== b.x0) return a.x0 < b.x0 ? -1 : 1;
+  if (a.y0 !== b.y0) return a.y0 < b.y0 ? -1 : 1;
+  if (a.x1 !== b.x1) return a.x1 > b.x1 ? -1 : 1;
+  if (a.y1 !== b.y1) return a.y1 > b.y1 ? -1 : 1;
+  return 0;
 }
 
 /** The edges of the boxes on one axis: for each coordinate, the flat list of the ranges on the other axis. */
@@ -315,10 +359,16 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
               s2 = f.y0 + bh;
               break;
           }
-          const c: Choice = { index: i, turn: t === 1, x: f.x0, y: f.y0, w: bw, h: bh, s1, s2 };
-          if (best === undefined || s1 < best.s1 || (s1 === best.s1 && (s2 < best.s2 || (s2 === best.s2 && (c.y < best.y || (c.y === best.y && c.x < best.x)))))) best = c;
-          const ly = f.y0 + bh;
-          if (low === undefined || ly < low.s1 || (ly === low.s1 && f.x0 < low.s2)) low = { ...c, s1: ly, s2: f.x0 };
+          const x = f.x0;
+          const y = f.y0;
+          // A choice object comes only for a better place
+          if (best === undefined || s1 < best.s1 || (s1 === best.s1 && (s2 < best.s2 || (s2 === best.s2 && (y < best.y || (y === best.y && x < best.x)))))) {
+            best = { index: i, turn: t === 1, x, y, w: bw, h: bh, s1, s2 };
+          }
+          // Only the move count of a rule other than `bl` reads the place of `bl`
+          if (rule === "bl") continue;
+          const ly = y + bh;
+          if (low === undefined || ly < low.s1 || (ly === low.s1 && x < low.s2)) low = { index: i, turn: t === 1, x, y, w: bw, h: bh, s1: ly, s2: x };
         }
       }
       if (best === undefined || !check || space.fits({ x: best.x + ox, y: best.y + oy, w: best.w, h: best.h })) break;
