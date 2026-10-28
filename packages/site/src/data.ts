@@ -1,0 +1,193 @@
+// The snapshot files of the site, in `packages/site/data/`. The script `packages/packing/bench/snapshot.ts` writes them
+// from the records of CI runs. The pages read only these files, at build time.
+
+/** The schema of each snapshot file */
+export const SNAPSHOT_SCHEMA = "packing-site-snapshot/1";
+
+/** The origin of the data of a snapshot */
+export interface Origin {
+  release: string;
+  commit: string;
+  date: string;
+  /** The id of the CI run, or `null` for data from the repository only */
+  run: number | null;
+  source: string;
+}
+
+/** A mean with its interval */
+export interface Interval {
+  mean: number;
+  lo: number;
+  hi: number;
+}
+
+/** The labels of a verdict over families, and the label of a strategy without a pair */
+export type Label = "better" | "worse" | "depends on the mix" | "no verdict" | "not measured";
+
+/** The verdict of one measure of one strategy against the baseline */
+export interface MeasureVerdict {
+  measure: string;
+  direction: "higher" | "lower";
+  label: Label;
+  summary: string;
+  n: number;
+  families: number;
+  stratified?: Interval;
+  pooled?: Interval;
+  p?: number;
+  signs?: { wins: number; losses: number; ties: number };
+  means?: { a: number; b: number };
+}
+
+/** One strategy of a strategy snapshot */
+export interface StrategySummary {
+  strategy: string;
+  records: number;
+  skipped: number;
+  msMedian: number | null;
+  hardBreaks: number;
+  verdicts: MeasureVerdict[];
+  groups: { group: string; wins: number; losses: number; ties: number }[];
+}
+
+/** The strategy snapshot of one corpus */
+export interface StrategySnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "strategies";
+  corpus: string;
+  origin: Origin[];
+  baseline: string;
+  level: number;
+  inputs: number;
+  families: number;
+  measures: { id: string; direction: "higher" | "lower"; tie: number | { rel: number } }[];
+  strategies: StrategySummary[];
+}
+
+/** A group of a paired time test */
+export interface PairedGroup {
+  inputs: number;
+  medianRatio: number;
+  medianMsA: number;
+  medianMsB: number;
+}
+
+/** The snapshot of a paired time test */
+export interface PairedSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "paired";
+  corpus: string;
+  strategy: string;
+  prediction: string;
+  repeats: number;
+  origin: Origin[];
+  arms: { a: string; b: string };
+  inputs: number;
+  errors: number;
+  hashesEqual: number;
+  slow: PairedGroup & { maxMsA: number; maxMsB: number };
+  other: PairedGroup;
+  classes: (PairedGroup & { name: string })[];
+}
+
+/** One leaf of the select snapshot */
+export interface SelectLeaf {
+  leaf: number;
+  pick: number;
+  member: string;
+  path: { feature: string; test: string; yes: boolean }[];
+  train: { wins: number; of: number };
+  test: { corpus: string; wins: number; of: number }[];
+}
+
+/** The snapshot of the select table */
+export interface SelectSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "select";
+  origin: Origin[];
+  members: string[];
+  winRatio: number;
+  leaves: SelectLeaf[];
+}
+
+/** One release of the list of the releases */
+export interface Release {
+  release: string;
+  date: string;
+  title: string;
+  breaking: boolean;
+  commit: string;
+  pr: number | null;
+  link: string;
+}
+
+/** The snapshot of the releases */
+export interface ReleasesSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "releases";
+  origin: Origin[];
+  releases: Release[];
+}
+
+/** Each kind of snapshot */
+export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot;
+
+/** This function tells if a value is a plain object. */
+const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
+
+/** This function tells if a value is a valid origin. */
+function isOrigin(v: unknown): v is Origin {
+  return (
+    isObject(v) &&
+    typeof v["release"] === "string" &&
+    /^\d+\.\d+\.\d+$/.test(v["release"]) &&
+    typeof v["commit"] === "string" &&
+    /^[0-9a-f]{7}$/.test(v["commit"]) &&
+    typeof v["date"] === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(v["date"]) &&
+    (v["run"] === null || Number.isInteger(v["run"])) &&
+    typeof v["source"] === "string"
+  );
+}
+
+/**
+ * This function parses the text of a snapshot file of one kind. It throws an `Error` for a text of another kind.
+ * It also throws when an origin has no release, commit, date, run or source.
+ */
+export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K): Extract<Snapshot, { kind: K }> {
+  const value: unknown = JSON.parse(text);
+  if (!isObject(value) || value["schema"] !== SNAPSHOT_SCHEMA) throw new Error(`A snapshot has the schema ${SNAPSHOT_SCHEMA}.`);
+  if (value["kind"] !== kind) throw new Error(`The snapshot has the kind ${String(value["kind"])}, not ${kind}.`);
+  const origin = value["origin"];
+  if (!Array.isArray(origin) || origin.length === 0 || !origin.every(isOrigin)) throw new Error("Each origin of a snapshot has a release, a commit, a date, a run and a source.");
+  const list = kind === "strategies" ? value["strategies"] : kind === "paired" ? value["classes"] : kind === "select" ? value["leaves"] : value["releases"];
+  if (!Array.isArray(list) || list.length === 0) throw new Error(`The snapshot of the kind ${kind} has no entries.`);
+  return value as unknown as Extract<Snapshot, { kind: K }>;
+}
+
+/** This function groups the releases by date, with the newest date first. The order in a date stays. */
+export function byDate(releases: readonly Release[]): [string, Release[]][] {
+  const groups = new Map<string, Release[]>();
+  for (const r of releases) {
+    const list = groups.get(r.date);
+    if (list === undefined) groups.set(r.date, [r]);
+    else list.push(r);
+  }
+  return [...groups].sort(([a], [b]) => b.localeCompare(a));
+}
+
+/** The names of the corpora of the strategy snapshots, for the site */
+export const CORPUS_LABELS: Record<string, { label: string; note: string }> = {
+  "pack-screen-v1": { label: "Screen", note: "Fixed containers of 6 shapes, 4 boards of a user interface and the edge cases. Each board has 5 seeds." },
+  "pack-free-v1": { label: "Free size", note: "Free-size containers of 6 shapes, with a target aspect or a free area. Each board has 5 seeds." },
+  "pack-select-v1": { label: "Test 1", note: "The boards of the two other corpora, with the fresh seeds 21 to 25. No fit used these seeds." },
+  "pack-select-v2": { label: "Test 2", note: "The boards of the two other corpora, with the fresh seeds 31 to 35. No fit used these seeds." },
+};
+
+/** The names and the notes of the measures of the strategy snapshots */
+export const MEASURE_LABELS: Record<string, { label: string; note: string; share: boolean }> = {
+  "pack.fill": { label: "Fill", note: "The share of the hull that the boxes cover. More is better.", share: true },
+  "pack.order.inversions": { label: "Order", note: "The share of box pairs out of their rank order. Less is better.", share: true },
+  "pack.aspectError": { label: "Aspect", note: "The distance of the hull aspect from the target aspect, on a log scale. Less is better.", share: false },
+  "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container that a better packer can place. Less is better.", share: true },
+};

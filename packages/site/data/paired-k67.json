@@ -1,0 +1,152 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "paired",
+ "corpus": "pack-select-v2",
+ "strategy": "rows",
+ "prediction": "packing-k67-paired",
+ "repeats": 5,
+ "origin": [
+  {
+   "release": "0.2.17",
+   "commit": "dd0eead",
+   "date": "2026-10-28",
+   "run": 40741632077,
+   "source": "paired.yml, the artifact paired-pack-select-v2-rows"
+  }
+ ],
+ "arms": {
+  "a": "v0.2.16",
+  "b": "k67-prune"
+ },
+ "inputs": 2025,
+ "errors": 0,
+ "hashesEqual": 2025,
+ "slow": {
+  "inputs": 60,
+  "medianRatio": 0.05,
+  "medianMsA": 56.899,
+  "medianMsB": 2.771,
+  "maxMsA": 106.832,
+  "maxMsB": 3.859
+ },
+ "other": {
+  "inputs": 1965,
+  "medianRatio": 0.999,
+  "medianMsA": 0.214,
+  "medianMsB": 0.211
+ },
+ "classes": [
+  {
+   "name": "cards.freeHeight n100",
+   "inputs": 5,
+   "medianRatio": 0.059,
+   "medianMsA": 1.355,
+   "medianMsB": 0.08
+  },
+  {
+   "name": "dashboard.freeHeight n100",
+   "inputs": 5,
+   "medianRatio": 0.301,
+   "medianMsA": 0.572,
+   "medianMsB": 0.211
+  },
+  {
+   "name": "edge-cases.empty n?",
+   "inputs": 5,
+   "medianRatio": 1.022,
+   "medianMsA": 0.006,
+   "medianMsB": 0.006
+  },
+  {
+   "name": "edge-cases.exactTiling n12",
+   "inputs": 5,
+   "medianRatio": 0.99,
+   "medianMsA": 0.024,
+   "medianMsB": 0.025
+  },
+  {
+   "name": "edge-cases.one n?",
+   "inputs": 5,
+   "medianRatio": 1.099,
+   "medianMsA": 0.008,
+   "medianMsB": 0.009
+  },
+  {
+   "name": "edge-cases.oversize n12",
+   "inputs": 5,
+   "medianRatio": 1.066,
+   "medianMsA": 0.039,
+   "medianMsB": 0.041
+  },
+  {
+   "name": "edge-cases.touchObstacles n12",
+   "inputs": 5,
+   "medianRatio": 0.894,
+   "medianMsA": 0.062,
+   "medianMsB": 0.054
+  },
+  {
+   "name": "gallery.freeHeight n100",
+   "inputs": 5,
+   "medianRatio": 0.127,
+   "medianMsA": 1.578,
+   "medianMsB": 0.119
+  },
+  {
+   "name": "rect-grid.fixed n10",
+   "inputs": 420,
+   "medianRatio": 1.003,
+   "medianMsA": 0.024,
+   "medianMsB": 0.025
+  },
+  {
+   "name": "rect-grid.fixed n100",
+   "inputs": 420,
+   "medianRatio": 0.995,
+   "medianMsA": 0.095,
+   "medianMsB": 0.094
+  },
+  {
+   "name": "rect-grid.fixed n1000",
+   "inputs": 420,
+   "medianRatio": 0.999,
+   "medianMsA": 0.764,
+   "medianMsB": 0.752
+  },
+  {
+   "name": "rect-grid.freeArea n10",
+   "inputs": 180,
+   "medianRatio": 0.985,
+   "medianMsA": 0.208,
+   "medianMsB": 0.205
+  },
+  {
+   "name": "rect-grid.freeArea n100",
+   "inputs": 150,
+   "medianRatio": 1.007,
+   "medianMsA": 1.869,
+   "medianMsB": 1.876
+  },
+  {
+   "name": "rect-grid.freeAspect n10",
+   "inputs": 180,
+   "medianRatio": 0.999,
+   "medianMsA": 0.215,
+   "medianMsB": 0.217
+  },
+  {
+   "name": "rect-grid.freeAspect n100",
+   "inputs": 150,
+   "medianRatio": 1.007,
+   "medianMsA": 1.887,
+   "medianMsB": 1.889
+  },
+  {
+   "name": "word-cloud.freeHeight n100",
+   "inputs": 5,
+   "medianRatio": 0.515,
+   "medianMsA": 0.15,
+   "medianMsB": 0.081
+  }
+ ]
+}

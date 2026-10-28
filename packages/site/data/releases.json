@@ -1,0 +1,249 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "releases",
+ "origin": [
+  {
+   "release": "0.2.17",
+   "commit": "3a73155",
+   "date": "2026-10-28",
+   "run": null,
+   "source": "packages/packing/CHANGELOG.md and the release tags"
+  }
+ ],
+ "releases": [
+  {
+   "release": "0.2.17",
+   "date": "2026-10-28",
+   "title": "A faster row packing, the end of roadmap item k67.",
+   "breaking": false,
+   "commit": "3a73155",
+   "pr": 84,
+   "link": "https://github.com/mark1russell7/packing/pull/84"
+  },
+  {
+   "release": "0.2.16",
+   "date": "2026-10-28",
+   "title": "A faster row packing, roadmap item k67.",
+   "breaking": false,
+   "commit": "da3275d",
+   "pr": 83,
+   "link": "https://github.com/mark1russell7/packing/pull/83"
+  },
+  {
+   "release": "0.2.15",
+   "date": "2026-10-28",
+   "title": "A default strategy for an input, roadmap item k66.",
+   "breaking": false,
+   "commit": "d608343",
+   "pr": 78,
+   "link": "https://github.com/mark1russell7/packing/pull/78"
+  },
+  {
+   "release": "0.2.14",
+   "date": "2026-10-28",
+   "title": "A new opt-in strategy, `select`, roadmap item k66.",
+   "breaking": false,
+   "commit": "6c74e25",
+   "pr": 76,
+   "link": "https://github.com/mark1russell7/packing/pull/76"
+  },
+  {
+   "release": "0.2.13",
+   "date": "2026-10-28",
+   "title": "A speedup of the strategies `maxrects-*` and `portfolio`, roadmap item k64.",
+   "breaking": false,
+   "commit": "9dc68f4",
+   "pr": 74,
+   "link": "https://github.com/mark1russell7/packing/pull/74"
+  },
+  {
+   "release": "0.2.12",
+   "date": "2026-10-28",
+   "title": "A new opt-in strategy wrapper, `aspectFit`, roadmap item k62.",
+   "breaking": false,
+   "commit": "060fa87",
+   "pr": 72,
+   "link": "https://github.com/mark1russell7/packing/pull/72"
+  },
+  {
+   "release": "0.2.11",
+   "date": "2026-10-28",
+   "title": "A speedup of the strategies `maxrects-*` and `portfolio`, roadmap item k64.",
+   "breaking": false,
+   "commit": "7d8e4af",
+   "pr": 71,
+   "link": "https://github.com/mark1russell7/packing/pull/71"
+  },
+  {
+   "release": "0.2.10",
+   "date": "2026-10-28",
+   "title": "A fix of a hard-rule break of the strategy `skyline`, roadmap item k63.",
+   "breaking": false,
+   "commit": "bc684d0",
+   "pr": 67,
+   "link": "https://github.com/mark1russell7/packing/pull/67"
+  },
+  {
+   "release": "0.2.9",
+   "date": "2026-10-28",
+   "title": "A dependency update with one behavior change of the opt-in strategy `portfolio`.",
+   "breaking": false,
+   "commit": "0ebd180",
+   "pr": 62,
+   "link": "https://github.com/mark1russell7/packing/pull/62"
+  },
+  {
+   "release": "0.2.8",
+   "date": "2026-10-28",
+   "title": "A fix of the opt-in portfolio.",
+   "breaking": false,
+   "commit": "be17a1a",
+   "pr": 59,
+   "link": "https://github.com/mark1russell7/packing/pull/59"
+  },
+  {
+   "release": "0.2.7",
+   "date": "2026-10-28",
+   "title": "The per-cell portfolio of roadmap item k20, part 2.",
+   "breaking": false,
+   "commit": "6a6a457",
+   "pr": 55,
+   "link": "https://github.com/mark1russell7/packing/pull/55"
+  },
+  {
+   "release": "0.2.6",
+   "date": "2026-10-28",
+   "title": "The portfolio report and `packPortfolio` of roadmap item k20, part 1.",
+   "breaking": false,
+   "commit": "d2037fe",
+   "pr": 52,
+   "link": "https://github.com/mark1russell7/packing/pull/52"
+  },
+  {
+   "release": "0.2.5",
+   "date": "2026-10-28",
+   "title": "The MaxRects family of roadmap item k24.",
+   "breaking": false,
+   "commit": "3a61163",
+   "pr": 49,
+   "link": "https://github.com/mark1russell7/packing/pull/49"
+  },
+  {
+   "release": "0.2.4",
+   "date": "2026-10-28",
+   "title": "The shelf family of roadmap item k21, and one name for the area bound.",
+   "breaking": false,
+   "commit": "1ff0486",
+   "pr": 46,
+   "link": "https://github.com/mark1russell7/packing/pull/46"
+  },
+  {
+   "release": "0.2.3",
+   "date": "2026-10-28",
+   "title": "New overflow measures by area (roadmap item k60), and the move counts and screen guards of k59.",
+   "breaking": false,
+   "commit": "1226d57",
+   "pr": 42,
+   "link": "https://github.com/mark1russell7/packing/pull/42"
+  },
+  {
+   "release": "0.2.2",
+   "date": "2026-10-27",
+   "title": "New overflow measures with a forced bound, a minimum effect for each measure and an exact container test (roadmap item k59).",
+   "breaking": false,
+   "commit": "2eac2dc",
+   "pr": 37,
+   "link": "https://github.com/mark1russell7/packing/pull/37"
+  },
+  {
+   "release": "0.2.1",
+   "date": "2026-10-27",
+   "title": "One container layer gives the free space of each container shape (roadmap item k37).",
+   "breaking": false,
+   "commit": "d40c302",
+   "pr": 31,
+   "link": "https://github.com/mark1russell7/packing/pull/31"
+  },
+  {
+   "release": "0.2.0",
+   "date": "2026-10-27",
+   "title": "`packing` imports its data types from `@mark1russell7/layout-contract` `^0.2.1`.",
+   "breaking": true,
+   "commit": "4e96b4c",
+   "pr": 29,
+   "link": "https://github.com/mark1russell7/packing/pull/29"
+  },
+  {
+   "release": "0.1.7",
+   "date": "2026-10-27",
+   "title": "The optional fields `floor` and `tol` of `MeasureSpec`.",
+   "breaking": false,
+   "commit": "d181cb3",
+   "pr": 24,
+   "link": "https://github.com/mark1russell7/packing/pull/24"
+  },
+  {
+   "release": "0.1.6",
+   "date": "2026-10-27",
+   "title": "In the rule `in-container`, `checkHard` makes each fixed side smaller by `container.inset` (decision 3).",
+   "breaking": false,
+   "commit": "e420730",
+   "pr": 23,
+   "link": "https://github.com/mark1russell7/packing/pull/23"
+  },
+  {
+   "release": "0.1.5",
+   "date": "2026-10-27",
+   "title": "`docs/MEASURES.md` defines each measure of the packer, with its range, unit, direction and edge cases (roadmap item k8).",
+   "breaking": false,
+   "commit": "9427793",
+   "pr": 20,
+   "link": "https://github.com/mark1russell7/packing/pull/20"
+  },
+  {
+   "release": "0.1.4",
+   "date": "2026-10-27",
+   "title": "The seeded generators of the corpus (roadmap item k19).",
+   "breaking": false,
+   "commit": "1b3bd4f",
+   "pr": 17,
+   "link": "https://github.com/mark1russell7/packing/pull/17"
+  },
+  {
+   "release": "0.1.3",
+   "date": "2026-10-27",
+   "title": "The Packer interface of `docs/PACKER.md` (roadmap item k7).",
+   "breaking": false,
+   "commit": "191c619",
+   "pr": 15,
+   "link": "https://github.com/mark1russell7/packing/pull/15"
+  },
+  {
+   "release": "0.1.2",
+   "date": "2026-10-27",
+   "title": "`packFree` packs with a free width.",
+   "breaking": false,
+   "commit": "8029d3c",
+   "pr": 7,
+   "link": "https://github.com/mark1russell7/packing/pull/7"
+  },
+  {
+   "release": "0.1.1",
+   "date": "2026-10-27",
+   "title": "`packShelf` packs into shelves, left to right in the sort order, and goes around each `locked` rectangle.",
+   "breaking": false,
+   "commit": "010b89f",
+   "pr": 6,
+   "link": "https://github.com/mark1russell7/packing/pull/6"
+  },
+  {
+   "release": "0.1.0",
+   "date": "2026-10-27",
+   "title": "The first release as `@mark1russell7/packing`.",
+   "breaking": false,
+   "commit": "2f451b1",
+   "pr": 2,
+   "link": "https://github.com/mark1russell7/packing/pull/2"
+  }
+ ]
+}

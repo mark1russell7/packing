@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>packing: measured results</title>
+    <meta name="description" content="Each packing strategy against rows on the benchmark corpora of CI, a paired speed test, and the table of select. The data comes from committed snapshots." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23202a44'/%3E%3Crect x='5' y='5' width='13' height='9' rx='1' fill='%235b8def'/%3E%3Crect x='20' y='5' width='7' height='14' rx='1' fill='%23e9a23b'/%3E%3Crect x='5' y='16' width='13' height='11' rx='1' fill='%23a77fe0'/%3E%3Crect x='20' y='21' width='7' height='6' rx='1' fill='%2348b59a'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip" href="#strategies">Skip to the results</a>
+    <header class="top">
+      <div class="brand">
+        <h1 class="wordmark"><span class="mark" aria-hidden="true"></span>packing</h1>
+        <div class="lead"><p>Measured results from CI. Each number on this page comes from a committed snapshot of a CI run.</p></div>
+      </div>
+      <nav class="links" id="links" aria-label="Links"></nav>
+    </header>
+
+    <main class="page">
+      <nav class="toc" aria-label="Sections">
+        <a href="#strategies">Strategies</a>
+        <a href="#speed">Speed</a>
+        <a href="#select">Select</a>
+      </nav>
+
+      <section class="panel" id="strategies" aria-labelledby="strategies-h">
+        <div class="prose" id="strategies-text"></div>
+        <div class="controls">
+          <span class="label" id="corpus-label">Corpus</span>
+          <div class="seg" role="radiogroup" aria-labelledby="corpus-label" id="corpora"></div>
+        </div>
+        <p class="hint" id="corpus-note"></p>
+        <div class="tiles" id="headline"></div>
+        <ul class="slist" id="strategy-list" aria-label="The strategies, best fill first"></ul>
+        <details class="notes">
+          <summary>The measures</summary>
+          <ul id="measure-notes"></ul>
+        </details>
+        <div id="strategies-origin"></div>
+      </section>
+
+      <section class="panel" id="speed">
+        <div class="prose" id="speed-text"></div>
+        <div class="tiles" id="speed-tiles"></div>
+        <h3>Median ratio of each group of inputs</h3>
+        <p class="hint">A log scale. The line marks the ratio 1, the same speed. Green is faster, red is slower.</p>
+        <ul class="rchart" id="speed-chart" aria-label="The median time ratio of each group of inputs"></ul>
+        <p class="hint" id="speed-arms"></p>
+        <div id="speed-origin"></div>
+      </section>
+
+      <section class="panel" id="select">
+        <div class="prose" id="select-text"></div>
+        <ol class="leaves" id="leaves"></ol>
+        <div id="select-origin"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>Made-up data only. MIT license. <a href="https://github.com/mark1russell7/packing">github.com/mark1russell7/packing</a></p>
+    </footer>
+
+    <script type="module" src="/src/results.ts"></script>
+  </body>
+</html>

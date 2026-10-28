@@ -640,3 +640,23 @@ A `run.json` from before k59 has no screen guards. Sections 6 to 9 then show one
 The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspectError`, `pack.order.inversions`, `pack.overflow` and the 3 stability measures. Lower is better for each guard. The floor is 0.
 
 The column `ms sum` is the sum of the medians. The time of a job is longer, because each pair also has the runs for determinism and the warm-up runs.
+
+## The snapshots of the site
+
+The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
+
+The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A run folder holds the files of one artifact: `records.jsonl`, `run.json` and `corpus.json`. Download it with `gh run download <id>` into a folder outside git.
+
+| File | Command, from `packages/packing` | The data |
+|---|---|---|
+| `strategies-pack-screen-v1.json` | `node bench/snapshot.ts strategies <folder of 40675490363> --run 40675490363` | Each strategy against `rows`, by family, on `pack-screen-v1`. |
+| `strategies-pack-free-v1.json` | `node bench/snapshot.ts strategies <folder of 40685309195> --run 40685309195` | The same on `pack-free-v1`. |
+| `strategies-pack-select-v1.json` | `node bench/snapshot.ts strategies <folder of 40699801165> --run 40699801165` | The same on `pack-select-v1`. |
+| `strategies-pack-select-v2.json` | `node bench/snapshot.ts strategies <folder of 40708970161> --run 40708970161` | The same on `pack-select-v2`. |
+| `paired-k67.json` | `node bench/snapshot.ts paired <folder of 40741632077> --run 40741632077 --commit dd0eead --release 0.2.17 --arm-a v0.2.16 --arm-b k67-prune` | The paired time test of k67. |
+| `select-table.json` | `node bench/snapshot.ts select --train <folder of 40675490363>=40675490363 --train <folder of 40685309195>=40685309195 --test <folder of 40699801165>=40699801165 --test <folder of 40708970161>=40708970161` | The leaves of `SELECT_TABLE`, with the wins of each training and test run. |
+| `releases.json` | `node bench/snapshot.ts releases` | The releases of `CHANGELOG.md`, with the date, the commit and the pull request of each tag. |
+
+- A strategy snapshot gives the result of `verdict()` of `@mark1russell7/layout-contract` for each measure, by family, at the level 0.05. The tie of each measure is its `minEffect`.
+- The command `select` stops with an error when the training wins differ from `SELECT_LEAF_WINS`. Thus a change of the table also changes the pinned counts and their test.
+- After a new release, start the command `releases` again. After a new bench run, start the command of its corpus again.
