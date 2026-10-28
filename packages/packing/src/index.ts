@@ -29,13 +29,14 @@ export {
   DEFAULT_TOLERANCE,
   EPS,
   RECORD_EPS,
+  checkInput,
   marginOf,
   turnItem,
   turnPoint,
   turnPort,
   turnRegion,
-  type Container,
   type Item,
+  type LayoutContainer,
   type Margin,
   type Obstacle,
   type PackInput,
@@ -43,6 +44,8 @@ export {
   type Placement,
   type Port,
   type Region,
+  type Side,
+  type Sides,
   type StageTrace,
   type Tolerance,
 } from "./contract.ts";
@@ -65,7 +68,7 @@ export {
 export { logSweep, push, rows, shelf, skyline, type LayoutStrategyOptions, type PushStrategyOptions } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
 export { packWith, strategies, strategy } from "./registry.ts";
-export { checkHard, type HardBreaks } from "./check.ts";
+export { checkHard, type PackHard } from "./check.ts";
 export {
   canonicalJson,
   countCell,
@@ -75,9 +78,10 @@ export {
   toPackInput,
   type CorpusCell,
   type CountScale,
-  type Edge,
+  type GeneratedInput,
   type GeneratorParams,
   type GeneratorStamp,
+  type LayoutEdge,
   type LayoutInput,
   type ObstacleLayout,
   type SizeDistribution,

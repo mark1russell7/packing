@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.2.0
+
+`packing` imports its data types from `@mark1russell7/layout-contract` `^0.2.1`. Each gap of the type fit in `docs/PACKER.md` is closed (roadmap item k57). This release has breaking changes.
+
+### The renames
+
+| The old name | The new name |
+|---|---|
+| `Container` | `LayoutContainer` |
+| `Edge` | `LayoutEdge` |
+| `HardBreaks` | `PackHard` |
+| `Margin` (the four sides) | `Sides` |
+
+- `Margin` is now `number | Sides`, the type of the contract. Change each `Margin` that has four sides to `Sides`.
+- `marginOf` returns `Sides`. The value does not change.
+
+### The other breaking changes
+
+| The change | The change that a caller makes |
+|---|---|
+| Each field and each array of the shared types is `readonly`. | Make a new object with a spread. Do not change an input or an output. |
+| `PackOutput.trace`, `StageTrace.ms` and `StageTrace.measures` are optional. | Read them with `?? []` or `?.`. |
+| `Port.side` is optional. | Read a port with no side as a port that the router puts on a side. |
+| `LayoutInput` is the type of the contract. Each field is optional, except `schema`, `id` and `boxes`. | Use `GeneratedInput` for the output of a generator. |
+| `change` is `add`, `remove`, `resize`, `reorder` or `packed`, not any string. | Use one of these five values. |
+| The generators and `corpus().inputs` give `GeneratedInput`. | Change the type `LayoutInput` to `GeneratedInput` where the code reads a field of a generator. |
+| `GeneratorStamp.params` and the fields of `MeasureSpec` are `readonly`. | Make a copy before a change. |
+| `hashInput` reads a `LayoutInput` of the contract. | No change, except for a type that is not a `LayoutInput`. |
+| `checkHard` reads a circle, an ellipse and a polygon with holes exactly, as `packHard` does. An item in the bounding box of a circle, but out of the circle, is not an overlap. | Expect lower `no-overlap` counts with these obstacles. Update the stored counts. |
+| `checkHard` skips a locked item with no position. It gives no break for it. | Use `checkInput` to find this bad input. |
+| `@mark1russell7/layout-contract` is a dependency at run time. | No change. The package manager installs it. |
+
+### New
+
+- New exports: `checkInput`, `Side`, `Sides`, `GeneratedInput`, `LayoutContainer`, `LayoutEdge` and `PackHard`.
+- `toPackInput` reads a file with no container as `{ fixed: "none" }`.
+- The test `src/contract-fit.test.ts` shows that each shared type is the type of the contract. It pins each difference that stays, with its reason.
+
 ## 0.1.7
 
 - New: the optional fields `floor` and `tol` of `MeasureSpec`. `MEASURE_SPECS` is the source of the floor and the tolerance of each guard of the floor rule.

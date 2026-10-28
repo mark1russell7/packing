@@ -22,8 +22,8 @@ import {
   unsupportedOf,
   type CorpusManifest,
   type CorpusSpec,
-  type HardBreaks,
   type MeasureId,
+  type PackHard,
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
@@ -82,7 +82,7 @@ export interface MeasuredRecord extends BenchRecordHead {
   /** The measures of `measure`, rounded with `roundMeasures`. A measure without a finite value is not in the record. */
   measures: Record<string, number>;
   /** The counts of `checkHard`, as an object type. An object type fits the index signature of the contract, and an interface does not. */
-  hard: { [K in keyof HardBreaks]: HardBreaks[K] };
+  hard: { [K in keyof PackHard]: PackHard[K] };
   /** The time of each timed run, in milliseconds, in the order of the runs. The median of this list is `ms`. */
   msRuns: number[];
   /** The first 16 hex characters of the SHA-256 of the canonical placements, sorted by id. */
@@ -238,7 +238,7 @@ export function median(values: readonly number[]): number {
 /** This function sums one measure over the stages of a trace. */
 function traceSum(output: PackOutput, id: string): number {
   let sum = 0;
-  for (const stage of output.trace) sum += stage.measures[id] ?? 0;
+  for (const stage of output.trace ?? []) sum += stage.measures?.[id] ?? 0;
   return sum;
 }
 

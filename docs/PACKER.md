@@ -18,96 +18,25 @@ This document is the draft of the interface of each strategy of `packing` (roadm
 
 ## The data
 
-```ts
-/** A region. The forms and the rules are those of docs/FORMAT.md. */
-type Region =
-  | { kind: "rect"; x: number; y: number; w: number; h: number }
-  | { kind: "polygon"; points: [number, number][]; holes?: [number, number][][] }
-  | { kind: "circle"; cx: number; cy: number; r: number }
-  | { kind: "ellipse"; cx: number; cy: number; rx: number; ry: number };
+Since 0.2.0, `packing` imports the data types from `@mark1russell7/layout-contract` and exports them with the same names. Each field and each array is `readonly`.
 
-interface Container {
-  /** The width. Without it, the packer searches the width. */
-  w?: number;
-  /** The height. Without it, the packer searches the height. */
-  h?: number;
-  /** "size": w and h stay. "width": w stays. "height": h stays. "none": the packer searches both. */
-  fixed: "size" | "width" | "height" | "none";
-  /** The target aspect (width divided by height) for fixed "none". The default is 1. */
-  aspect?: number;
-  /** The weight of the aspect error in the objective. 0 gives the least area. The default is 1. */
-  aspectWeight?: number;
-  /** The shape. Without it, the container is the rectangle from 0, 0 to w, h. */
-  shape?: Region;
-  /** The space between the border and the items with their margins. The default is 0. */
-  inset?: number;
-}
+| Type | The contract name | The content |
+|---|---|---|
+| `Region` | `Region` | A rectangle, a polygon with optional holes, a circle or an ellipse. `docs/FORMAT.md` gives the rules. |
+| `LayoutContainer` | `LayoutContainer` | `w`, `h`, `fixed` (`size`, `width`, `height` or `none`), `aspect`, `aspectWeight`, `shape` and `inset`. |
+| `Obstacle` | `Obstacle` | An `id`, a `region` and an optional `move: { cost }`. |
+| `Item` | `Item`, the same type as `LayoutBox` | `id`, `w`, `h`, and the optional `x`, `y`, `locked`, `rank`, `parent`, `group`, `shape`, `ports`, `margin`, `turnable` and `data`. |
+| `Port` | `Port` | An `id`, an optional `side`, and an optional `x` and `y` on the border of the item. |
+| `Sides` | `Sides` | One value for each side: `top`, `right`, `bottom` and `left`. |
+| `Margin` | `Margin` | A number, or `Sides`. |
+| `PackInput` | `PackInput` | A `container`, the `items`, and the optional `obstacles` and `gap`. |
+| `Placement` | `Placement` | An `id`, `x`, `y` and an optional `turn` of 0 or 90. |
+| `PackOutput` | `PackOutput` | The `placements`, the `overflow`, the `size`, the `moved` obstacles and an optional `trace`. |
+| `StageTrace` | `StageTrace` | An `id`, and an optional `ms` and `measures`. Each strategy of `packing` writes both. |
+| `PackHard` | `PackHard` | The count of each hard rule: `no-overlap`, `in-container`, `locked-kept` and `complete`. |
+| `LayoutInput`, `LayoutEdge` | `LayoutInput`, `LayoutEdge` | The file `layout-input/1` and its edges. |
 
-interface Obstacle {
-  id: string;
-  region: Region;
-  /** Without it, the obstacle stays. With it, the packer can move the obstacle for cost times the distance. */
-  move?: { cost: number };
-}
-
-interface Item {
-  id: string;
-  w: number;
-  h: number;
-  /** The reading order. Without it, the order of the array is the rank. */
-  rank?: number;
-  group?: string;
-  parent?: string;
-  /** A shape relative to the origin of the item. Without it, the item is the rectangle w by h. */
-  shape?: Region;
-  /** A locked item keeps x and y. The packer reads it as an obstacle. */
-  locked?: boolean;
-  x?: number;
-  y?: number;
-  /** true when the packer can turn the item by 90 degrees. The default is false. */
-  turnable?: boolean;
-  /** A ring around the item that no other item and no route enters. The default is 0. */
-  margin?: number | { top: number; right: number; bottom: number; left: number };
-  /** The ports. The packer keeps them, and turns them with the item. */
-  ports?: Port[];
-}
-
-interface Port {
-  id: string;
-  side: "top" | "right" | "bottom" | "left";
-  /** A point on the border of the item, relative to its top-left corner. Without it, the router chooses the point. */
-  x?: number;
-  y?: number;
-}
-
-interface PackInput {
-  container: Container;
-  items: Item[];
-  obstacles?: Obstacle[];
-  /** The free space between two items with their margins. Routes use this space. */
-  gap?: number;
-}
-
-interface Placement {
-  id: string;
-  x: number;
-  y: number;
-  /** 0 or 90, only for an item with turnable set to true. */
-  turn?: 0 | 90;
-}
-
-interface PackOutput {
-  placements: Placement[];
-  /** The ids of the items that the packer did not place. */
-  overflow: string[];
-  /** The size of the container after the pack. For a free size, the size that the search found. */
-  size: { w: number; h: number };
-  /** The new positions of the obstacles that moved. */
-  moved: { id: string; x: number; y: number }[];
-  /** The facts of each stage, for the site and the records. */
-  trace: StageTrace[];
-}
-```
+`GeneratedInput` is a `LayoutInput` with each field that a generator of `packing` writes. The generators and `corpus` give it.
 
 The output does not change the input. The functions of 0.1 change the `Rect` objects that they get. The adapter of the 0.1 API copies the output into those objects.
 
@@ -172,7 +101,7 @@ interface SizeSearch {
 /** The split of the free space around the obstacles and the holes (k41, k42). */
 interface Split {
   id: string; // "maximal-rects", "slabs", "obstacle-cuts", "cells", "one-region"
-  split(container: Container, obstacles: Obstacle[], gap: number): Part[];
+  split(container: LayoutContainer, obstacles: readonly Obstacle[], gap: number): Part[];
 }
 interface Part { id: string; region: Region; }
 
@@ -271,14 +200,15 @@ The layout-stack session, `highways` and `packing` settled these questions on 20
 - `Item.margin` is a ring around the item. It is a part of the item. The packer packs the item with its margin. The router keeps each route out of the ring.
 - A port stub crosses the ring at a right angle. This crossing is not a break.
 - `gap` is the free space between two items with their margins. Routes use it.
-- `Container.inset` is the space between the border and the items with their margins.
+- `LayoutContainer.inset` is the space between the border and the items with their margins.
 - Thus two items are `mA + gap + mB` apart.
 - A gap with `k` routes at a spacing `s` needs `gap >= (k - 1) * s` when the margins give the clearance.
 - The joint corpus keeps the inputs with a gap of 0 and no margin as a labelled stress cell. On these inputs, the router rule `through` is expected to fail. Each other joint input has a margin and a gap larger than 0.
 
 ### 4. The ports
 
-- The ports are a part of the item, with the form of `boxes[].ports` of `layout-input/1`. A port has an `id`, a `side`, and an optional `x` and `y` on the border of the item.
+- The ports are a part of the item, with the form of `boxes[].ports` of `layout-input/1`. A port has an `id`, an optional `side`, and an optional `x` and `y` on the border of the item.
+- A port without a side is a port of the routing cell `ports` set to `free`. The router picks its side.
 - The packer keeps the ports, and turns them with the item (decision 1).
 - The strategies of the first version ignore the ports. A port-aware strategy (`new-port-aware` of the catalog) reads them.
 
@@ -295,39 +225,51 @@ The package `@mark1russell7/layout-contract` holds what the packer, the router a
 
 | In the contract | In `packing` |
 |---|---|
-| `Region`, `Item` with `Port` and `margin`, `Container`, `Obstacle` | The packer part of `Strategy`: `pack` and `PackContext` |
+| `Region`, `Item` with `Port` and `margin`, `LayoutContainer`, `Obstacle` | The packer part of `Strategy`: `pack` and `PackContext` |
 | `PackInput`, `PackOutput`, `Placement` | The stages: `SizeSearch`, `Split`, `Assign`, `Pass`, `pipeline` |
 | The turn helper, `EPS`, `RECORD_EPS` | The selector and `cellOf` |
 | The converters and the validators | The registry and the adapters of 0.1 |
 | The common fields of a strategy, with `supports` as a record of each dimension and its values | The dimensions of the packer, with their names in `docs/FORMAT.md` |
 | The registry of the measure names | |
 
-- The release of `packing` refuses a `github:` dependency. Thus `packing` keeps its own copy of the types until the contract is on npm.
-- A test of `packing` makes sure that its types fit the types of the contract.
+- Since 0.2.0, `packing` has the contract `^0.2.1` from npm as a dependency, and it imports the types.
+- A test of `packing` makes sure that its types are the types of the contract.
 - The adapters of 0.1 stay until the contract is final.
 
 ## The type fit with `@mark1russell7/layout-contract`
 
-The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract 0.2.1 at commit `d15b240` (roadmap item k57). The commit `d15b240` is the pull request 9 of `layout-contract`.
+The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract 0.2.1 from npm (roadmap item k57).
 
-- The contract is a dev dependency. The release refuses a `github:` specifier only in `dependencies`, `peerDependencies` and `optionalDependencies`.
-- `Placement`, `Tolerance` and the counts of the hard rules fit in both directions. `Port` of `packing` fits the contract.
-- Each input type and output type of `packing` fits the contract type.
-- `EPS`, `RECORD_EPS` and `DEFAULT_TOLERANCE` are the same. The turn of a point, a region, an item and each port is the same.
+- Since 0.2.0, the contract is a dependency of `packing` at run time: `"@mark1russell7/layout-contract": "^0.2.1"`.
+- `packing` imports each shared type from the contract. Thus each shared type is the same type in both packages.
+- `EPS`, `RECORD_EPS`, `DEFAULT_TOLERANCE`, `checkInput`, `turnPoint`, `turnPort` and `turnRegion` are the values of the contract. `turnItem` is `turnBox` of the contract.
 - `toPackInput` gives the same packer input. `packHard` and `checkHard` give the same counts on the packed outputs of the generators, with and without an inset.
-- `packHard` and `checkHard` give the same counts for a rectangle obstacle, also after a move in `output.moved`.
-- `Strategy` fits `StrategyInfo`, and each entry of `MEASURE_SPECS` fits `MeasureSpec`. `Direction` is the same.
+- `packHard` and `checkHard` give the same counts for each form of obstacle, also after a move in `output.moved`.
+- `Strategy` fits `StrategyInfo`, and `MeasureSpec` of `packing` is `MeasureSpec` of the contract with a family.
 - A record of the benchmark runner fits `LayoutRecord`, with and without `skipped`. The two types have the same fields. `BenchEnv` and `RunEnv` fit in both directions.
 
-The gaps are below. The test has a check for each gap from 1 to 14. When a gap closes, its check fails. Then change the check and this list. A closed gap keeps its line and its number, and its check shows the fit.
+The gaps are below. Each gap from 0 to 14 is closed. A closed gap keeps its line and its number, and the test has a check that shows the fit.
+
+The test pins each difference that stays, with its reason:
+
+- The class `Rect` of 0.1 is not the plain `Rect` of the contract. The adapters of 0.1 use the class. A rename needs a decision of the owner.
+- `GeneratedInput`, `GeneratorStamp` and `CorpusCell` are narrower than `LayoutInput`, `LayoutGenerator` and `LayoutCell`. A generator writes each of these fields. Each one fits the contract type.
+- `MeasureSpec` of `packing` has a necessary `family`. Each measure of the packer has a family of `docs/MEASURES.md`.
+- `checkHard` reads a packer input, and `packHard` reads a file (gap 12).
 
 0. The install. `packing`: the specifier `github:mark1russell7/layout-contract#d15b240` installs the root of the repository. The contract: the package is in `packages/layout-contract`. Thus `packing` adds `&path:packages/layout-contract`. No decision applies. The npm release closes this gap.
+   - **Closed in `packing` 0.2.0:** the dependency is `^0.2.1` from npm, at run time.
 1. The arrays. `packing`: mutable arrays, for example `Item[]`, `Port[]` and the rings of a polygon. The contract: readonly arrays and fields. The decisions favor the contract, because a packer does not change its input.
+   - **Closed in `packing` 0.2.0:** each array and each field of the shared types is `readonly`.
 2. The trace. `packing`: `PackOutput.trace`, `StageTrace.ms` and `StageTrace.measures` are necessary. The contract: they are optional. No decision applies. The output of `packing` fits the contract.
+   - **Closed in `packing` 0.2.0:** the three fields are optional. Each strategy of `packing` still writes them.
 3. The names. `packing`: `Margin` (the four sides), `Container`, `Edge`, `HardBreaks` and the class `Rect` of 0.1. The contract: `Sides`, `Margin` (a number or `Sides`), `LayoutContainer`, `LayoutEdge`, `PackHard` and a plain `Rect`. Decision 5 favors the contract. The class `Rect` of 0.1 needs a decision. `packing` closes gaps 1 and 3 in its 0.2.0, when it imports the contract.
+   - **Closed in `packing` 0.2.0:** `packing` exports `Sides`, `Margin`, `LayoutContainer`, `LayoutEdge` and `PackHard` of the contract. `Container`, `Edge` and `HardBreaks` are not in the API.
+   - Pinned: the class `Rect` of 0.1 stays. A rename needs a decision of the owner.
 4. The file. `packing`: `LayoutInput.change` is a string, and the file has `generator` and `step`. The contract: `change` is `add`, `remove`, `resize` or `reorder`, with no `generator` and no `step`. `docs/FORMAT.md` favors `packing`: it has `"change": "packed"`, `generator` and `step`.
    - **Closed in `layout-contract` 0.2.0:** `change` has `packed`. The file has `generator`, `step` and `cell`, and `GeneratorStamp` and `CorpusCell` fit them.
    - Open: `change` of `packing` is any string, thus `LayoutInput` of `packing` does not fit.
+   - **Closed in `packing` 0.2.0:** `LayoutInput` is the type of the contract. `change` is `add`, `remove`, `resize`, `reorder` or `packed`. A generator gives a `GeneratedInput`.
 5. The edge data. `packing`: `Edge` has no `data`. The contract: `LayoutEdge.data` is an optional record. No decision applies. The router reads the edges, thus its twin document in `highways` decides.
    - In 0.2.0, `LayoutBox.data` is also an optional record. `Item` of `packing` has no `data`. Each contract box fits `Item` without `readonly`, when each port has a side.
    - **Closed in `packing` 0.1.7:** `Item` and `Edge` have the optional `data` of the contract, with the same type. The turn and `toPackInput` keep it.
@@ -337,6 +279,7 @@ The gaps are below. The test has a check for each gap from 1 to 14. When a gap c
 8. The obstacles in `no-overlap`. `packing`: `checkHard` counts each item that overlaps an obstacle. The contract: `packHard` counts only the pairs of boxes. The decisions favor `packing`: in both packages, no item enters an obstacle.
    - **Closed in `layout-contract` 0.2.0:** `packHard` counts each placed box with its margin over an obstacle, at the place of `output.moved`.
    - Open: `checkHard` reads an obstacle as its bounding box. `packHard` reads a circle, an ellipse and a polygon with holes exactly. `packing` adopts the exact test in its 0.2.0.
+   - **Closed in `packing` 0.2.0:** `checkHard` uses `regionHitsRect` of the contract. An item in the bounding box of a circle, but out of the circle, is not an overlap.
 9. The inset in `in-container`. `packing`: `checkHard` does not read `container.inset`. The contract: `packHard` makes the container smaller by the inset. Decision 3 favors the contract. **Closed in `packing` 0.1.6:** `checkHard` also makes each fixed side smaller by the inset.
 10. A shaped item. `packing`: `checkHard` reads an item as `w` by `h`. The contract: `packHard` reads the bounding box of `shape`. Decision 5 favors the contract, because an item can be a circle or a polygon. **Closed in `packing` 0.1.6:** `checkHard` also reads the bounding box of `shape`, after the turn.
 11. An item with no placement. `packing`: a locked item with no placement breaks `locked-kept`, and an item that is not in the overflow breaks `complete`. The contract: `applyPack` keeps the position of the input, thus neither rule counts the item. `docs/FORMAT.md` favors `packing` for `complete`. No decision covers `locked-kept`.
@@ -350,9 +293,11 @@ The gaps are below. The test has a check for each gap from 1 to 14. When a gap c
     - **Closed in `layout-contract` 0.2.0:** `packHard` compares the move of a locked box with `RECORD_EPS`. The tolerance argument does not change it.
     - **Closed in `layout-contract` 0.2.0:** `packHard` does not count a locked box with no position. `checkInput` gives the problem "a locked box has no position".
     - Open, on a bad input only: a locked item with no position and no placement. `checkHard` reads it as not locked and counts it in `complete`. `packHard` skips it.
+    - **Closed in `packing` 0.2.0:** `checkHard` skips a locked item with no position, as `packHard` does. `checkInput` of the contract finds it, and `packing` exports `checkInput`.
 12. The arguments of the hard rules. `packing`: `checkHard(input, output, { overlap })` reads the packer input and the output. The contract: `packHard(before, after, overflow, overlap)` reads two files, with `after` from `applyPack`. No decision applies.
     - **Closed in `layout-contract` 0.2.0:** `packHard(input, output, tolerance)` applies the output itself. The contract removed the old form. The input of `packHard` is a file, and its tolerance is a number.
 13. The parts that are not in the contract. The table above puts these parts in the contract: the converters `toPackInput` and `toLayoutRecord`, the common fields of a strategy and the measure names. The contract 0.1.0 has `toPackInput` and `applyPack`, but not the other parts. Decision 5 and the table favor the plan.
     - **Closed in `layout-contract` 0.2.0:** the contract has `toLayoutRecord`, `StrategyInfo`, `MeasureSpec`, `Direction` and `JOINT_MEASURES`. `applyPack` goes from an output back to a file. The `pack.*` specs stay in `packing` as the source, with the type `MeasureSpec`.
 14. The side of a port, new in 0.2.0. `packing`: `Port.side` is necessary. The contract: `Port.side` is optional, and the router picks the side. Thus a contract port without a side does not fit `packing`. `packing` closes this gap in its 0.2.0, when it imports the contract.
     - A port without a side is a port of the routing cell `ports` set to `free`. The router picks its side. Thus `packing` makes `side` optional in its 0.2.0.
+    - **Closed in `packing` 0.2.0:** `Port` is the type of the contract, with an optional `side`.

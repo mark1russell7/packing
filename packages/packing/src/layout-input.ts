@@ -1,52 +1,39 @@
 // The input file `layout-input/1` of `docs/FORMAT.md`: its types, its numbers, its canonical form and its hash.
 
-import type { Container, Item, Obstacle, PackInput } from "./contract.ts";
+import type { LayoutContainer, LayoutEdge, LayoutGenerator, LayoutInput } from "@mark1russell7/layout-contract";
+import type { PackInput } from "./contract.ts";
 import { sha256Hex, utf8 } from "./sha256.ts";
 import type { Cell } from "./strategy.ts";
 
-/** An edge between two boxes. The router reads it, and the packer ignores it. */
-export interface Edge {
-  id: string;
-  source: string;
-  target: string;
-  sourcePort?: string;
-  targetPort?: string;
-  /** The free data of the edge. The packer does not read it. */
-  data?: Readonly<Record<string, unknown>>;
-}
+export type { LayoutEdge, LayoutInput } from "@mark1russell7/layout-contract";
 
 /** The parameters of a generator: a name and a string or a number for each parameter. */
 export type GeneratorParams = Record<string, string | number>;
 
-/** The stamp of a generated input: the generator, its version, the full parameters and the seed. */
-export interface GeneratorStamp {
-  name: string;
-  version: number;
-  params: GeneratorParams;
-  seed: number;
+/**
+ * The stamp of a generated input: the generator, its version, the full parameters and the seed.
+ * It is `LayoutGenerator` of the contract with a string or a number for each parameter.
+ */
+export interface GeneratorStamp extends LayoutGenerator {
+  readonly params: Readonly<GeneratorParams>;
 }
 
-/** One input file `layout-input/1`. `docs/FORMAT.md` gives each field. */
-export interface LayoutInput {
-  schema: "layout-input/1";
-  id: string;
-  set: string;
-  family: string;
-  seed: number;
+/**
+ * A generated input file `layout-input/1`. It is a `LayoutInput` with each field that a generator writes.
+ * `docs/FORMAT.md` gives each field.
+ */
+export interface GeneratedInput extends LayoutInput {
+  readonly set: string;
+  readonly family: string;
+  readonly seed: number;
   /** The origin: `made-up`, `published:<set>` or `known-best:<construction>`. */
-  source: string;
+  readonly source: string;
   /** The generator of a generated input. A hand-made or published input has `null`. */
-  generator: GeneratorStamp | null;
-  container: Container;
-  obstacles?: Obstacle[];
-  gap?: number;
-  boxes: Item[];
-  edges: Edge[];
-  base?: string;
-  change?: string;
-  step?: number;
+  readonly generator: GeneratorStamp | null;
+  readonly container: LayoutContainer;
+  readonly edges: readonly LayoutEdge[];
   /** The first 16 hex characters of the SHA-256 of the canonical form of the other fields. */
-  hash: string;
+  readonly hash: string;
 }
 
 /** The layout of the obstacles (`docs/research/TAXONOMY.md`, dimension 3). */
@@ -98,9 +85,8 @@ export function canonicalJson(value: unknown): string {
 }
 
 /** This function gives the hash of an input file: the first 16 hex characters of the SHA-256 of its canonical form without `hash`. */
-export function hashInput(file: Omit<LayoutInput, "hash"> | LayoutInput): string {
-  const rest: Partial<LayoutInput> = { ...file };
-  delete rest.hash;
+export function hashInput(file: LayoutInput): string {
+  const { hash: _hash, ...rest } = file;
   return sha256Hex(canonicalJson(rest)).slice(0, 16);
 }
 
@@ -113,10 +99,15 @@ export function countCell(count: number): CountScale {
   return "10k";
 }
 
-/** This function gives the packing input of a file. The boxes become the items, and the edges go. */
+/**
+ * This function gives the packing input of a file. The boxes become the items, and the edges go.
+ * A file without a container gets `{ fixed: "none" }`, so the packer picks the size. It is `toPackInput` of the contract.
+ */
 export function toPackInput(file: Pick<LayoutInput, "container" | "boxes" | "obstacles" | "gap">): PackInput {
-  const input: PackInput = { container: file.container, items: file.boxes };
-  if (file.obstacles !== undefined) input.obstacles = file.obstacles;
-  if (file.gap !== undefined) input.gap = file.gap;
-  return input;
+  return {
+    container: file.container ?? { fixed: "none" },
+    items: file.boxes,
+    ...(file.obstacles === undefined ? {} : { obstacles: file.obstacles }),
+    ...(file.gap === undefined ? {} : { gap: file.gap }),
+  };
 }

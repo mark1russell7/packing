@@ -44,12 +44,12 @@ The corpus is a folder of input files and an index. Each input is one JSON file.
 | `boxes[].rank` | The reading order that the caller wants. Without it, the order of the array is the rank. |
 | `boxes[].parent`, `boxes[].group` | The nesting and the grouping. |
 | `boxes[].shape` | A region relative to the origin of the box, for items of other shapes. Without it, the box is the rectangle `w` by `h`. |
-| `boxes[].ports` | The ports of a box, each with a `side`: `top`, `right`, `bottom` or `left`. An optional `x` and `y` put the port on the border of the box. An edge names a port in `sourcePort` or `targetPort`. |
+| `boxes[].ports` | The ports of a box, each with an optional `side`: `top`, `right`, `bottom` or `left`. The router picks the side of a port with no side. An optional `x` and `y` put the port on the border of the box. An edge names a port in `sourcePort` or `targetPort`. |
 | `boxes[].margin` | A ring around the box: a number, or `top`, `right`, `bottom` and `left`. No other box and no route enters it. The default is 0. A route from a port of the box crosses its ring at a right angle. |
 | `boxes[].turnable` | The packer can turn the box by 90 degrees. The record has the turned box and ports. |
 | `boxes[].data`, `edges[].data` | The free data of a box or an edge: an object. The packer does not read it. Optional. |
 | `container.inset` | The space between the border and the boxes with their margins. |
-| `base`, `change` | A variant names its base input and its change: `add`, `remove`, `resize` or `reorder`. The stability measures compare the run on the variant with the run on its base. |
+| `base`, `change` | A variant names its base input and its change: `add`, `remove`, `resize`, `reorder` or `packed`. The stability measures compare the run on the variant with the run on its base. |
 
 ### Regions
 
@@ -263,7 +263,7 @@ Each measure moves when the placement changes. The router measures (`route.*`) a
 
 | Rule | Break |
 |---|---|
-| `no-overlap` | The insides of two boxes with their margins overlap by more than `tolerance.overlap`. Two boxes with a common edge do not overlap. |
+| `no-overlap` | The insides of two boxes with their margins overlap by more than `tolerance.overlap`. Two boxes with a common edge do not overlap. A box and an obstacle overlap only when the box touches the true shape of the obstacle: a circle, an ellipse, or a polygon with its holes. |
 | `in-container` | A box goes out of a fixed container. |
-| `locked-kept` | A locked box moved, or it has no position. A locked box with no position stays at its input position for the other rules. |
+| `locked-kept` | A locked box moved. A locked box with no input position is a bad input, and the rules skip it. `checkInput` finds it. |
 | `complete` | A box that is not locked has no position and is not in `pack.overflow`. |

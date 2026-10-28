@@ -105,7 +105,7 @@ checkHard(input, output); // { "no-overlap": 0, "in-container": 0, "locked-kept"
 - `fixed` is `size`, `width`, `height` or `none`. A fixed height turns the axes. The value `none` uses the size search `logSweep`, which wraps `packFree`.
 - Each strategy declares its cells in `supports`. `cellOf(input)` gives the cell of an input. A strategy throws `UnsupportedCell` for an input outside its cells.
 - The strategies of this version do not turn items, read groups or pack shapes. A turnable item, a group or a shape gives `UnsupportedCell`.
-- `checkHard` counts the breaks of the hard rules: `no-overlap`, `in-container`, `locked-kept` and `complete`.
+- `checkHard` counts the breaks of the hard rules: `no-overlap`, `in-container`, `locked-kept` and `complete`. It reads the true shape of each obstacle, as `packHard` of `@mark1russell7/layout-contract` does.
 - `fromRects` and `toRects` connect the interface to the `Rect` objects.
 
 `docs/PACKER.md` in the repository gives the interface in full.
