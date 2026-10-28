@@ -6,6 +6,7 @@ import {
   checkHard,
   corpusFamilies,
   rectScattered,
+  worstGenerators,
   edgeCases,
   gallery,
   generator,
@@ -44,8 +45,8 @@ const CASES: Case[] = (() => {
     cases.push({ gen, params });
   };
   for (const gen of generators) {
-    // The class generators of k106 have their own pinned hashes in `classes.test.ts`
-    if (gen === rectGridV2 || classGenerators.includes(gen)) continue;
+    // The class generators of k106 have their own pinned hashes in `classes.test.ts`, and the generators of k107 in `worst.test.ts`
+    if (gen === rectGridV2 || classGenerators.includes(gen) || worstGenerators.includes(gen)) continue;
     add(gen, {});
     for (const [key, values] of Object.entries(gen.values)) for (const value of values ?? []) add(gen, { [key]: value });
     if (gen.name === "rect-grid") for (const count of COUNTS) add(gen, { count });
