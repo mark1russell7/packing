@@ -25,7 +25,8 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { ENTRIES, entry } from "./entries.ts";
+import { COMPOSITE_IDS, ENTRIES, entry } from "./entries.ts";
+import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
 
 // Since 0.2.6, `outputHash` is in the package, so `packPortfolio` can use it. The runner gives it again for its tests.
@@ -37,6 +38,11 @@ export interface BenchCorpus {
   /** The name of the corpus. Each input gets it as its set. */
   corpus: string;
   specs: CorpusSpec[];
+  /**
+   * The held-out split of the portfolio report: a seed, or `all`. The default is the seed 3. A test corpus, for example
+   * `pack-holdout-v1` has `all`: each input is held out, and the report scores the sets of `PORTFOLIO_SETS`.
+   */
+  heldOut?: HeldOut;
 }
 
 /** The facts of the computer of a run. The times of two runs compare only on the same kind of computer. */
@@ -163,6 +169,8 @@ export interface BenchRun extends Partial<BenchScreen> {
   errors: BenchError[];
   /** The coverage of each strategy. A `run.json` of a runner before 0.2.1 does not have it. */
   coverage?: Record<string, BenchCoverage>;
+  /** The held-out split of the corpus. A `run.json` before 0.2.7 does not have it: its split is the seed 3. */
+  heldOut?: HeldOut;
 }
 
 /** A prediction of `bench/predictions.jsonl`. `docs/BENCH.md` gives the fields. */
@@ -232,7 +240,28 @@ export function parseCorpus(text: string, name?: string): BenchCorpus {
       throw new Error("Each spec of a corpus file has a generator and a list of seeds.");
     }
   }
-  return { schema: "layout-corpus/1", corpus: corpusName, specs: specs as CorpusSpec[] };
+  const heldOut = value["heldOut"];
+  if (heldOut !== undefined && heldOut !== "all" && !(Number.isInteger(heldOut) && (heldOut as number) >= 0)) {
+    throw new Error("The field heldOut of a corpus file is a seed or the text all.");
+  }
+  const out: BenchCorpus = { schema: "layout-corpus/1", corpus: corpusName, specs: specs as CorpusSpec[] };
+  if (heldOut !== undefined) out.heldOut = heldOut as HeldOut;
+  return out;
+}
+
+/** This function gives the members of each composite entry of `ids` on each input of a manifest. A manifest without specs gives none. */
+function membersOfManifest(ids: readonly string[], manifest: unknown): CompositeMembers | undefined {
+  if (!ids.some((id) => COMPOSITE_IDS.has(id)) || !isObject(manifest) || typeof manifest["corpus"] !== "string" || !Array.isArray(manifest["specs"])) return undefined;
+  const { inputs } = corpus(manifest["corpus"], manifest["specs"] as CorpusSpec[]);
+  return compositeMembersOf(
+    ids,
+    inputs.map((file) => ({ id: file.id, input: toPackInput(file) })),
+  );
+}
+
+/** This function gives the options of the portfolio report from a held-out split and the members of the composite entries. */
+function portfolioOptions(heldOut: HeldOut | undefined, members: CompositeMembers | undefined): PortfolioOptions {
+  return { ...(heldOut === undefined ? {} : { heldOut }), ...(members === undefined ? {} : { members }) };
 }
 
 /** This function reads a JSON Lines file of predictions. An empty line is not a prediction. A line without an `id` throws an `Error`. */
@@ -415,7 +444,14 @@ export function runBench(options: BenchOptions): BenchResult {
     coverage,
   };
   if (options.commit !== undefined) run.commit = options.commit;
-  Object.assign(run, screenOf(ids, records, shapesOf(manifest)));
+  if (options.corpus.heldOut !== undefined) run.heldOut = options.corpus.heldOut;
+  const members = ids.some((id) => COMPOSITE_IDS.has(id))
+    ? compositeMembersOf(
+        ids,
+        inputs.map((file) => ({ id: file.id, input: toPackInput(file) })),
+      )
+    : undefined;
+  Object.assign(run, screenOf(ids, records, shapesOf(manifest), portfolioOptions(run.heldOut, members)));
   return { run, records, manifest, outputs };
 }
 
@@ -439,6 +475,7 @@ export function mergeRuns(runs: readonly BenchRun[], records?: readonly BenchRec
     if (r.corpus !== first.corpus || r.prediction !== first.prediction || r.commit !== first.commit) {
       throw new Error("The runs of a merge have one corpus, one prediction and one commit.");
     }
+    if (r.heldOut !== first.heldOut) throw new Error("The runs of a merge have one held-out split.");
   }
   const merged: BenchRun = {
     ...first,
@@ -464,7 +501,10 @@ export function mergeRuns(runs: readonly BenchRun[], records?: readonly BenchRec
     );
   } else delete merged.coverage;
   for (const field of SCREEN_FIELDS) delete merged[field];
-  if (records !== undefined) Object.assign(merged, screenOf(merged.strategies, records, shapesOf(manifest)));
+  if (records !== undefined) {
+    const portfolio = portfolioOptions(merged.heldOut, membersOfManifest(merged.strategies, manifest));
+    Object.assign(merged, screenOf(merged.strategies, records, shapesOf(manifest), portfolio));
+  }
   return merged;
 }
 

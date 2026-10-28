@@ -1,7 +1,24 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ALL_CELL, cellPortfolioOf, hardOf, HELD_OUT_SEED, portfolioMarkdown, portfolioOf, seedOf } from "./portfolio.ts";
+import { PORTFOLIO_FRAME_MS, PORTFOLIO_SETS } from "@mark1russell7/packing";
+import { COMPOSITE_IDS } from "./entries.ts";
+import {
+  ALL_CELL,
+  cellPortfolioOf,
+  defaultCountOf,
+  factsOf,
+  hardOf,
+  HELD_OUT_SEED,
+  portfolioMarkdown,
+  portfolioOf,
+  prefixMedianMs,
+  prefixWinner,
+  scoreOf,
+  scoreText,
+  seedOf,
+  type Candidate,
+} from "./portfolio.ts";
 import { mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
 import type { ScreenRecord } from "./screen.ts";
 
@@ -85,16 +102,29 @@ describe("the portfolio report: the sets", () => {
 
   it("chooses the best single entry on the training seeds, and scores it on the held-out seed", () => {
     expect(c.best!.members).toEqual(["A"]);
-    expect(c.best!.train).toEqual({ inputs: 4, wins: 2, winShare: 0.5, fillRegret: 0.175, ms: 4 });
-    expect(c.best!.heldOut).toEqual({ inputs: 2, wins: 1, winShare: 0.5, fillRegret: 0.15, ms: 2 });
+    expect(c.best!.train).toMatchObject({ inputs: 4, wins: 2, winShare: 0.5, hardRegret: 0, excessAreaRegret: 0, fillRegret: 0.175, ms: 4, msMean: 1, keepRate: 0.5 });
+    expect(c.best!.heldOut).toMatchObject({ inputs: 2, wins: 1, winShare: 0.5, fillRegret: 0.15, ms: 2 });
   });
 
-  it("adds one entry at a time: the most wins, then the lowest fill regret", () => {
+  it("adds one entry at a time: the lowest mean regret, then the win share", () => {
     expect(c.sets.map((s) => s.members)).toEqual([
       ["A", "B"],
       ["A", "B", "C"],
     ]);
-    expect(c.sets[0]!.heldOut).toEqual({ inputs: 2, wins: 2, winShare: 1, fillRegret: 0, ms: 6 });
+    const all = { winShare: 1, excessAreaRegret: 0, fillRegret: 0 };
+    expect(c.sets[0]!.defaultMembers).toBe(2);
+    expect(c.sets[0]!.heldOut).toEqual({
+      inputs: 2,
+      wins: 2,
+      winShare: 1,
+      hardRegret: 0,
+      excessAreaRegret: 0,
+      fillRegret: 0,
+      ms: 6,
+      msMean: 3,
+      keepRate: 0.333,
+      limits: { default: all, "50": all, "200": all, "1000": all },
+    });
     expect(c.sets[1]!.train).toMatchObject({ wins: 4, winShare: 1, fillRegret: 0 });
     expect(c.sets[1]!.heldOut.ms).toBe(14);
     expect(c.oracle.heldOut).toEqual({ inputs: 2, fill: 0.9, ms: 14 });
@@ -106,12 +136,13 @@ describe("the portfolio report: the sets", () => {
     expect(c.pool).toEqual(["C", "B", "A"]);
   });
 
-  it("gives no set without a training input, and no k = 3 set with 2 entries", () => {
+  it("gives no set without a training input, and no larger set when no entry improves the best single entry", () => {
     const held = cellPortfolioOf(["A", "B"], [rec("A", "x/s3", 0, 0.5), rec("B", "x/s3", 0, 0.6)]);
     expect(held.best).toBeUndefined();
     expect(held.sets).toEqual([]);
     const two = cellPortfolioOf(["A", "B"], [rec("A", "x/s1", 0, 0.5), rec("B", "x/s1", 0, 0.6)]);
-    expect(two.sets.map((s) => s.members)).toEqual([["B", "A"]]);
+    expect(two.best?.members).toEqual(["B"]);
+    expect(two.sets).toEqual([]);
   });
 
   it("gives the cell all and each container shape, and writes the tables", () => {
@@ -123,10 +154,86 @@ describe("the portfolio report: the sets", () => {
     expect(Object.keys(report)).toEqual([ALL_CELL, "rect", "circle"]);
     expect(report["circle"]!.inputs).toBe(1);
     const text = portfolioMarkdown(report).join("\n");
-    expect(text).toContain("| all | oracle | all 3 | 2 | 2 | 1 | 0 | 14 |");
-    expect(text).toContain("| all | k = 2 | `A`, `B` | 2 | 2 | 1 | 0 | 6 |");
+    expect(text).toContain("| all | oracle | all 3 | 2 | 0 | 0 | 0 | 2 | 1 | 7 | - |");
+    expect(text).toContain("| all | k = 2 | `A`, `B` | 2 | 0 | 0 | 0 | 2 | 1 | 3 | 0.333 |");
+    expect(text).toContain("| all | k = 2 | 2 | 1 / 0 / 0 | 1 / 0 / 0 | 1 / 0 / 0 | 1 / 0 / 0 |");
     expect(text).toContain("| circle | best single | - | 1 |");
     expect(portfolioMarkdown(undefined)).toEqual(["## Portfolio", "", "The run has no portfolio report. A `run.json` before k20 does not have it."]);
+  });
+});
+
+describe("the portfolio report: the limits", () => {
+  const c = (id: string, ms: number, fill: number): Candidate => ({ id, values: { hard: 0, "pack.overflow.excessArea": 0, "pack.fill": fill }, hard: 0, excess: 0, fill, ms });
+
+  it("runs the first member always, and a later member only while the summed time is under the limit", () => {
+    const members = [c("A", 60, 0.5), c("B", 10, 0.9)];
+    expect(prefixWinner(members, 50)!.id).toBe("A");
+    expect(prefixWinner(members, 61)!.id).toBe("B");
+    expect(prefixWinner([undefined, c("B", 1, 0.2)], 0)).toBeUndefined();
+  });
+
+  it("gives the default count: the largest prefix with a median of the frame budget or less, and 1 at least", () => {
+    expect(PORTFOLIO_FRAME_MS).toBe(50);
+    expect(defaultCountOf([10, 40, 90])).toBe(2);
+    expect(defaultCountOf([70, 90])).toBe(1);
+    expect(defaultCountOf([1, 2, 3])).toBe(3);
+  });
+
+  it("gives the median summed time of each prefix, with 0 ms for a missing record", () => {
+    const facts = factsOf(["A", "B"], [rec("A", "x/s1", 0, 0.5, { ms: 10 }), rec("B", "x/s1", 0, 0.6, { ms: 30 }), rec("A", "y/s1", 0, 0.5, { ms: 20 })]);
+    expect(prefixMedianMs(["A", "B"], [...facts.values()])).toEqual([15, 30]);
+  });
+
+  it("scores the limit default on the first defaultMembers members only", () => {
+    const facts = [...factsOf(["A", "B"], [rec("A", "x/s1", 0, 0.5), rec("B", "x/s1", 0, 0.9)]).values()];
+    const s = scoreText(scoreOf(["A", "B"], facts, 1));
+    expect(s.winShare).toBe(1);
+    expect(s.limits!["default"]).toEqual({ winShare: 0, excessAreaRegret: 0, fillRegret: 0.4 });
+    expect(s.limits!["50"]).toEqual({ winShare: 1, excessAreaRegret: 0, fillRegret: 0 });
+  });
+});
+
+describe("the portfolio report: the composite entries", () => {
+  const records: ScreenRecord[] = [rec("A", "x/s1", 0, 0.5), rec("B", "x/s1", 0, 0.9), rec("portfolio-k2", "x/s1", 0, 0.95), rec("A", "y/s3", 0, 0.8), rec("B", "y/s3", 0, 0.4), rec("portfolio-k2", "y/s3", 0, 0.8)];
+  const members = new Map([
+    [
+      "portfolio-k2",
+      new Map([
+        ["x/s1", { members: ["A", "B"], defaultMembers: 1 }],
+        ["y/s3", { members: ["A", "B"], defaultMembers: 2 }],
+      ]),
+    ],
+  ]);
+  const report = portfolioOf(["A", "B", "portfolio-k2"], records, () => "rect", ["rect"], { members });
+  const cell = report[ALL_CELL]!;
+
+  it("leaves the composite entries out of the oracle, the pool, the greedy sets, the sole wins and the losers", () => {
+    expect(COMPOSITE_IDS).toEqual(new Set(["portfolio-k2", "portfolio-k3"]));
+    expect(cell.pool).toEqual(["A", "B"]);
+    expect(Object.keys(cell.soleWins)).toEqual(["A", "B"]);
+    expect(cell.losers).not.toContain("portfolio-k2");
+    for (const s of [cell.best!, ...cell.sets]) expect(s.members).not.toContain("portfolio-k2");
+    // The oracle of x/s1 is B with 0.9. The composite entry does not raise it.
+    expect(cell.oracle.train.fill).toBe(0.9);
+  });
+
+  it("scores each composite entry against the oracle, from its own record and the members of each input", () => {
+    const e = cell.entries["portfolio-k2"]!;
+    expect(e.train).toMatchObject({ inputs: 1, wins: 1, winShare: 1, fillRegret: -0.05 });
+    expect(e.heldOut).toMatchObject({ inputs: 1, wins: 1, fillRegret: 0 });
+    // On x/s1, the default runs A only: its fill 0.5 against the oracle 0.9
+    expect(e.train.limits!["default"]).toEqual({ winShare: 0, excessAreaRegret: 0, fillRegret: 0.4 });
+    expect(e.train.limits!["50"]).toEqual({ winShare: 1, excessAreaRegret: 0, fillRegret: 0 });
+  });
+
+  it("scores the sets of the table on each input for the split all", () => {
+    const table = { ...PORTFOLIO_SETS, all: { inputs: 2, thin: false, sets: { "1": ["A"], "2": ["A", "B"], "3": ["A", "B"] }, defaultMembers: 1 as const } };
+    const all = portfolioOf(["A", "B"], records, () => "rect", ["rect"], { heldOut: "all", table })[ALL_CELL]!;
+    expect([all.heldOut, all.sets_from, all.trainInputs, all.heldOutInputs]).toEqual(["all", "table", 0, 2]);
+    expect(all.best!.members).toEqual(["A"]);
+    expect(all.sets[0]!.defaultMembers).toBe(1);
+    expect(all.sets[0]!.heldOut).toMatchObject({ inputs: 2, wins: 2, fillRegret: 0 });
+    expect(all.sets[0]!.heldOut.limits!["default"]).toEqual({ winShare: 0.5, excessAreaRegret: 0, fillRegret: 0.2 });
   });
 });
 

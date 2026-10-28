@@ -70,6 +70,18 @@ const { output, winner } = packPortfolio(["skyline", "shelf"]).pick(input);
 - The trace of the output gets the stage `portfolio` with the measure `move.pick`.
 - `outputHash` gives the hash of the placements of an output, as the bench records have it.
 
+Since 0.2.7, the strategy `portfolio` packs an input with the set of its cell. It is opt-in, and no default uses it.
+
+```ts
+const output = packWith("portfolio", input); // the default member count of the cell
+const cell = portfolioCell(input); // { shape: "rect", count: "100", spread: "uniform" }
+```
+
+- `portfolioCell` gives the container shape, the band of the item count and the band of the size spread.
+- `PORTFOLIO_SETS` gives the sets of 1, 2 and 3 members of each cell. The bench records of one run gave them.
+- Without options, the default member count of the cell runs. The output is a function of the input only.
+- The option `k` (2 or 3) runs each member of the set of `k`. The option `budgetMs` is an opt-in time limit.
+
 Both functions also work alone, in an outer rectangle with a width that you set. They do not change the width.
 
 A `locked` rectangle keeps its position. `packSkyline` and `packShelf` put the other rectangles around it. `packRows` only keeps its position.

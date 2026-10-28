@@ -49,6 +49,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `maxrects-baf` | `maxrects` | `rule: "baf"` | `maxrects-bl` |
 | `maxrects-bl` | `maxrects` | `rule: "bl"` | none |
 | `maxrects-cp` | `maxrects` | `rule: "cp"` | `maxrects-bl` |
+| `portfolio-k2` | `portfolio` | `k: 2` | `maxrects-bl` |
+| `portfolio-k3` | `portfolio` | `k: 3` | `maxrects-bl` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
@@ -56,6 +58,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The base of a rule is `maxrects-bl`, because the move of each other rule is a place that `bl` does not choose.
 - The base of a variant is the same strategy without the options of the variant. The activation compares the outputs of a variant and its base.
 - An entry of the registry gets no options from the runner. A variant gets the defaults of its strategy, with its options over them.
+- The 2 composite entries of roadmap item k20, part 2 pack each input with the set of 2 or 3 members of its cell. Their move is `move.pick`.
+- A composite entry is not in the pool of the portfolio report: not in the oracle, the greedy sets, the sole wins and the losers. The ranking has it.
 
 ## The jobs
 
@@ -124,6 +128,13 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 |---|---|---|
 | `smoke-v1` | 13 | The unit tests of the runner, and a quick check of the workflow. It has at most 100 boxes in each input. |
 | `pack-screen-v1` | 1305 | The first screen of the packer. Write its prediction before its first benchmark. |
+| `pack-holdout-v1` | 522 | The test corpus of the per-cell portfolio: the specs of `pack-screen-v1` with the new seeds 6 and 7. Write its prediction first. |
+
+A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
+
+- `pack-holdout-v1` has `heldOut: "all"`. Each of its inputs is held out, and the report chooses no set.
+- With `all`, the report scores the sets of `PORTFOLIO_SETS`, which come from the records of `pack-screen-v1`.
+- `run.json` keeps the split in the field `heldOut`. A merge refuses runs with two different splits.
 
 The corpus `pack-screen-v1` has these specs, each with the seeds 1 to 5:
 
@@ -216,7 +227,7 @@ Roadmap item k59 adds these guards to each run. Roadmap item k60 adds the rankin
 | `outputGroups` | The output groups. Each group has its `strategies` and the count of its common `inputs`. |
 | `cellGroups` | For each container shape: its `groups`, and its `pairs`, each with `a`, `b`, `inputs`, `equal` and `share`. |
 | `activation` | For each strategy: `move`, `records`, `fired`, `count`, `label` and `reason`. The field `shapes` has the same values for each container shape. |
-| `portfolio` | For `all` and each container shape: the input counts, the `pool`, the `oracle`, the `best` single entry, the greedy `sets`, the `soleWins` and the `losers`. |
+| `portfolio` | For `all` and each container shape: the split `heldOut`, the input counts, the `pool`, the `oracle`, `sets_from`, the `best` single entry, the `sets`, the composite `entries`, the `soleWins` and the `losers`. |
 
 The container shape of an input comes from its cell in `corpus.json`. An input that is not in the manifest gets the shape `unknown`.
 
@@ -326,16 +337,46 @@ At each level, `selectBest` keeps each candidate that ties the best value. Then 
 
 The report has one cell for all the shapes (`all`) and one cell for each container shape. Each cell has these parts:
 
-- The oracle: the best entry of each input by `selectBest` over all the entries. Each tie goes to the first entry of the run.
-- A set wins an input when its own winner is in the last kept list of the oracle. The fill regret is the fill of the oracle less the fill of the winner.
-- The time of a set is the sum of the `ms` of its members.
-- The report chooses each set on the seeds other than 3. It scores each set on the held-out seed 3.
-- The best single entry has the most wins on the training seeds, then the lowest mean fill regret.
-- The greedy sets of 2 and 3 entries add one entry at a time to the best single entry, with the same order.
+- The oracle: the best single entry of each input by `selectBest` over all the single entries. Each tie goes to the first entry of the run.
+- A set wins an input when its own winner is in the last kept list of the oracle.
+- The main measure is the mean regret against the oracle. The excess area regret is the `pack.overflow.excessArea` of the winner less that of the oracle.
+- The fill regret is the fill of the oracle less the fill of the winner. A set with no record on an input counts the fill 0 and the excess area 1.
+- The time of a set is the sum of the `ms` of its members. The keep rate is the win share divided by the mean time of an input.
+- The report chooses each set on the seeds other than the held-out seed (3 by default). It scores each set on the held-out seed.
+- The choice adds one entry at a time. At each step, `selectBest` on `CHOICE_LEVELS` picks the set, with a tie to the first entry of the run.
+- `CHOICE_LEVELS` are the mean hard regret, the mean excess area regret and the mean fill regret, each with the minimum effect of its measure. Then the win share, then the mean time.
 - A sole win is an input of any seed where exactly one entry is in the last kept list of the oracle.
 - A loser is an entry with no sole win. The report gives the losers, and they stay in the pool.
 
+Each set also has a score at each limit: `default`, 50 ms, 200 ms and 1000 ms. A limit score is the win share, the excess area regret and the fill regret.
+
+- The limit `default` runs the first `defaultMembers` members. The default count is the largest prefix with a median summed time of `PORTFOLIO_FRAME_MS` (50 ms) or less.
+- A time limit uses the prefix rule of the contract: the first member always runs. A later member runs only while the summed time is under the limit.
+- The limit scores read the `ms` of the member records. They do not start a packer again.
+
+The composite entries `portfolio-k2` and `portfolio-k3` get rows of their own. Each row reads the records of the entry.
+
+- A composite entry wins an input when it stays in the last kept list of `selectBest` over the single entries and itself.
+- Its regrets are against the oracle of the single entries. Thus a regret below 0 is possible.
+- Its limit scores use the members of each input, from `portfolioMembers`, and the member records.
+
 The corpus `smoke-v1` has the seeds 1 and 2 only. Thus its sets have no held-out score, and the summary shows `-`.
+
+### The per-cell portfolio
+
+`packages/packing/bench/choose-sets.ts` writes the table `src/portfolio-sets.ts` from the records of one run. It does not start a packer.
+
+```sh
+node bench/choose-sets.ts <folder> --run <id>
+```
+
+- The folder holds `records.jsonl`, `corpus.json` and `run.json` of the run. `gh run download <id> -n bench-<corpus>` gives them.
+- The table of 0.2.7 comes from the run 40652567756 of `pack-screen-v1`, commit `f6a489b`. The choice uses all its 1305 inputs.
+- The cell of an input is `portfolioCell`: the container shape, the band of the count and the band of the size spread. `docs/PACKER.md` tells the bands.
+- Each cell, each container shape and the group `all` get greedy sets of 1, 2 and 3 members, with the rule of the report.
+- A cell with fewer than 12 inputs (`THIN_INPUTS`) is thin. It has no sets, and it uses the sets of its shape.
+- Each group also gets the median summed time of each prefix of its set of 3, and its `defaultMembers`.
+- The corpus `pack-holdout-v1` tests the table on new seeds. Its split is `all`.
 
 ## Read the summary
 
@@ -350,7 +391,7 @@ The summary `summary.md` has these sections:
 7. `Overflow`: for each strategy and container shape, the records with overflow and the sum of `pack.outsideExact`. It also gives the means and the medians of the overflow measures.
 8. `Distinct outputs`: the output groups, and the cell groups and the pairs of each container shape.
 9. `Activation`: for each strategy and container shape, the count of its move and its label.
-10. `Portfolio`: for `all` and each container shape, the oracle, the best single entry and the greedy sets. Then the sole wins and the losers.
+10. `Portfolio`: for `all` and each container shape, the held-out scores of the oracle, the best single entry, the sets and the composite entries. Then the scores at each limit, the training scores, the sole wins and the losers.
 11. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
 12. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
 13. `Stability`: the count of records with the stability measures.

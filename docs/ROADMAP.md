@@ -26,7 +26,7 @@ Status: done, done, waiting, next, done.
 | k17 | `packShelf`: rows in the input order around obstacles | strategies | done | k1 |
 | k18 | The shared corpus and record format with highways (`layout-input/1`, `layout-record/1`) | measure | done |  |
 | k19 | The corpus from first principles: a seeded generator for each dimension of the taxonomy | measure | done | k18, k35 |
-| k20 | A selector: measure the choice of a strategy for each input. Part 1 is the portfolio report and `packPortfolio` ([#52](https://github.com/mark1russell7/packing/pull/52)). | measure | active | k9, k11 |
+| k20 | A selector: measure the choice of a strategy for each input. Part 1 is the portfolio report and `packPortfolio` ([#52](https://github.com/mark1russell7/packing/pull/52)). Part 2 is the per-cell portfolio and `pack-holdout-v1` (https://github.com/mark1russell7/packing/pull/55). | measure | active | k9, k11 |
 | k21 | Shelf family: next fit, first fit and best fit by decreasing height, and the input order | strategies | done | k6, k7 |
 | k22 | Skyline variants: bottom-left, minimum waste, with a waste map | strategies | later | k6, k7 |
 | k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | later | k6, k7 |
