@@ -1,0 +1,2283 @@
+{
+ "sets": [
+  {
+   "corpus": "smoke-v1",
+   "specs": [
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "obstacles": "scattered",
+      "count": 10
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeAspect",
+      "count": 10
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "count": 10
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "cards",
+     "version": 1,
+     "params": {
+      "count": 100
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "edge-cases",
+     "version": 1,
+     "params": {
+      "case": "empty"
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "edge-cases",
+     "version": 1,
+     "params": {
+      "case": "one"
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "edge-cases",
+     "version": 1,
+     "params": {
+      "case": "oversize",
+      "count": 6
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "edge-cases",
+     "version": 1,
+     "params": {
+      "case": "exactTiling",
+      "count": 12
+     },
+     "seeds": [
+      1
+     ]
+    },
+    {
+     "generator": "edge-cases",
+     "version": 1,
+     "params": {
+      "case": "touchObstacles",
+      "count": 6
+     },
+     "seeds": [
+      1
+     ]
+    }
+   ]
+  },
+  {
+   "corpus": "rect-fixture-v1",
+   "specs": [
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "center",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "scattered",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "wall",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "corridors",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "touching",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "heavyTail",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "containerShape": "rect",
+      "obstacles": "edge",
+      "sizes": "heavyTail",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeAspect",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "rect-grid",
+     "version": 1,
+     "params": {
+      "containerSize": "freeAspect",
+      "containerShape": "rect",
+      "obstacles": "none",
+      "sizes": "uniform",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "fixed",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "freeHeight",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "freeWidth",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "freeAspect",
+      "count": 10
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "generator": "gallery",
+     "version": 1,
+     "params": {
+      "containerSize": "freeAspect",
+      "count": 100
+     },
+     "seeds": [
+      1,
+      2,
+      3
+     ]
+    }
+   ]
+  }
+ ],
+ "hashes": {
+  "rows": {
+   "smoke-v1/rect-grid.fixed.rect.none.uniform.n10/s1": "d01a3e45f5a106c7",
+   "smoke-v1/rect-grid.fixed.rect.none.uniform.n10/s2": "e5db9095005f35ec",
+   "smoke-v1/rect-grid.freeAspect.rect.none.uniform.n10/s1": "cb4b10efe465294f",
+   "smoke-v1/rect-grid.fixed.rect.none.heavyTail.n100/s1": "981826a2ecd138f8",
+   "smoke-v1/gallery.freeHeight.n10/s1": "8164a16e84fc146a",
+   "smoke-v1/cards.freeHeight.n100/s1": "ae26ab884300e54e",
+   "smoke-v1/edge-cases.empty/s1": "4f53cda18c2baa0c",
+   "smoke-v1/edge-cases.one/s1": "d5390dff3ac0222a",
+   "smoke-v1/edge-cases.oversize.n6/s1": "3c35f00355e6355c",
+   "smoke-v1/edge-cases.exactTiling.n12/s1": "cbdcdbe106aa4d7d",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s1": "d01a3e45f5a106c7",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s2": "e5db9095005f35ec",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s3": "eb2469b24212f048",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s1": "ba03b1312154e5cf",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s2": "77e4a99ec0890ae9",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s3": "13c03e1d3b563332",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s1": "872c2c35b805c5c8",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s2": "0d0b27f129ed327b",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s3": "ad1e79d740219c4f",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s1": "981826a2ecd138f8",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s2": "ab9c35c03288b765",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s3": "333156959c2fb969",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s1": "d01a3e45f5a106c7",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s2": "e5db9095005f35ec",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s3": "eb2469b24212f048",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s1": "ba03b1312154e5cf",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s2": "77e4a99ec0890ae9",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s3": "13c03e1d3b563332",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s1": "872c2c35b805c5c8",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s2": "0d0b27f129ed327b",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s3": "ad1e79d740219c4f",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s1": "8ff9620dd7eb1669",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s2": "3f4f2d7d900b7435",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s3": "0cf4abae475d2346",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s1": "755eba4cae9483c7",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s2": "e00ad636b75d61b7",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s3": "9be6ed875ffc8051",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s1": "15b1059cd04523f7",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s2": "3c1cf1cb5fe60e82",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s3": "c00b499da6dacd04",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s1": "7d26cb6d1d734fbf",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s2": "a6e86421176bf230",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s3": "aacc665c2f045324",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s1": "321a4143ebbaf9e2",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s2": "b75ba1a63f5d018f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s3": "63fd956deeb2c459",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s1": "cb4b10efe465294f",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s2": "125ee873cc8f33be",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s3": "a224df95017c75b0",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s1": "be60a9a84bc5da8b",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s2": "1728a581186819ff",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s3": "154191329a89870d",
+   "rect-fixture-v1/gallery.fixed.n10/s1": "8164a16e84fc146a",
+   "rect-fixture-v1/gallery.fixed.n10/s2": "a6abcfbd5ed9f2af",
+   "rect-fixture-v1/gallery.fixed.n10/s3": "b1de6e99f6308c12",
+   "rect-fixture-v1/gallery.fixed.n100/s1": "ef42f4a28123f035",
+   "rect-fixture-v1/gallery.fixed.n100/s2": "172696eac206e6ae",
+   "rect-fixture-v1/gallery.fixed.n100/s3": "06b921727e1e0645",
+   "rect-fixture-v1/gallery.freeHeight.n10/s1": "8164a16e84fc146a",
+   "rect-fixture-v1/gallery.freeHeight.n10/s2": "a6abcfbd5ed9f2af",
+   "rect-fixture-v1/gallery.freeHeight.n10/s3": "b1de6e99f6308c12",
+   "rect-fixture-v1/gallery.freeHeight.n100/s1": "ea24457cc17e227a",
+   "rect-fixture-v1/gallery.freeHeight.n100/s2": "d61e25a024ffd6f5",
+   "rect-fixture-v1/gallery.freeHeight.n100/s3": "86a3e2ac3af6f190",
+   "rect-fixture-v1/gallery.freeWidth.n10/s1": "e97d7a6e62b814b0",
+   "rect-fixture-v1/gallery.freeWidth.n10/s2": "4797e9d361795f29",
+   "rect-fixture-v1/gallery.freeWidth.n10/s3": "56d87157002af9af",
+   "rect-fixture-v1/gallery.freeWidth.n100/s1": "850ee1326e6acdfe",
+   "rect-fixture-v1/gallery.freeWidth.n100/s2": "910e22b5eee52743",
+   "rect-fixture-v1/gallery.freeWidth.n100/s3": "60e3e7189313331b",
+   "rect-fixture-v1/gallery.freeAspect.n10/s1": "8af3293a72aad65e",
+   "rect-fixture-v1/gallery.freeAspect.n10/s2": "606bdd05113ebad8",
+   "rect-fixture-v1/gallery.freeAspect.n10/s3": "cfd8ca8c3a82ca2b",
+   "rect-fixture-v1/gallery.freeAspect.n100/s1": "a5653446d95054c2",
+   "rect-fixture-v1/gallery.freeAspect.n100/s2": "4185b55d658b6850",
+   "rect-fixture-v1/gallery.freeAspect.n100/s3": "64503cc8410663e9"
+  },
+  "shelf": {
+   "smoke-v1/rect-grid.fixed.rect.none.uniform.n10/s1": "2e72241600ea8fc3",
+   "smoke-v1/rect-grid.fixed.rect.none.uniform.n10/s2": "e9ef539d6871a4ec",
+   "smoke-v1/rect-grid.fixed.rect.scattered.uniform.n10/s1": "ccc81d93453d6576",
+   "smoke-v1/rect-grid.freeAspect.rect.none.uniform.n10/s1": "cb4b10efe465294f",
+   "smoke-v1/rect-grid.fixed.rect.none.heavyTail.n100/s1": "b23a6856e51dc357",
+   "smoke-v1/gallery.freeHeight.n10/s1": "8164a16e84fc146a",
+   "smoke-v1/cards.freeHeight.n100/s1": "ae26ab884300e54e",
+   "smoke-v1/edge-cases.empty/s1": "4f53cda18c2baa0c",
+   "smoke-v1/edge-cases.one/s1": "d5390dff3ac0222a",
+   "smoke-v1/edge-cases.oversize.n6/s1": "fe5795ed1c9ba622",
+   "smoke-v1/edge-cases.exactTiling.n12/s1": "cbdcdbe106aa4d7d",
+   "smoke-v1/edge-cases.touchObstacles.n6/s1": "8739c2b118d8f2c0",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s1": "2e72241600ea8fc3",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s2": "e9ef539d6871a4ec",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s3": "eb2469b24212f048",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s2": "6a503861b4c41fb8",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s3": "148926f40250e62a",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s1": "43cfacada45b9dd2",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s2": "dde6223a048540e1",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s3": "ad1e79d740219c4f",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s1": "b23a6856e51dc357",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s2": "7a9ba7c9695c0ed3",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s3": "0f1e91c18522b281",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n10/s1": "cba1a4fcd4cf28cb",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n10/s2": "71c503124c416690",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n10/s3": "e5756272c4a83225",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n100/s2": "edfb79d7e9c11d62",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n100/s3": "bc7c04f8c2332981",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n10/s1": "acdaa7f48f412ad9",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n10/s2": "722143335da80144",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n10/s3": "b8978624a4e0a813",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n100/s1": "b1e882041aba38e8",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n100/s2": "9b2fb3e6c45400a1",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n100/s3": "627ec744744b5d99",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n10/s1": "ccc81d93453d6576",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n10/s2": "ce2542dd44e201e7",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n10/s3": "b8d72d3c8cb65647",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n100/s2": "ac54e14419d06e24",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n100/s3": "47a3bba9db3e4176",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n10/s1": "95ad63df5159b6c6",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n10/s2": "2ea0c891150fef55",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n10/s3": "bd0a756c2677cfba",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n100/s1": "f03a8facebc6c607",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n100/s2": "559b843e3ef9a8fb",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n100/s3": "1421f8e60a2990e3",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n10/s1": "0c78d76d76244f33",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n10/s2": "482f232637d86227",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n10/s3": "eb2469b24212f048",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n100/s1": "080b80f7fb171111",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n100/s2": "6a503861b4c41fb8",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n100/s3": "148926f40250e62a",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n10/s1": "e3ff0cd837ad8b21",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n10/s2": "5dc9b12a8fd338de",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n10/s3": "2a87ec96ae166f4a",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n100/s1": "73359d095ddfa997",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n100/s2": "4d083da09c6ac80d",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n100/s3": "5ffcd41c4529461f",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n10/s1": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n10/s2": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n10/s3": "c2e7bebd010ab2ab",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n100/s1": "2f54285d00ed1ecf",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n100/s2": "12d0c97eaf6e18bd",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n100/s3": "552fd4f5ed31df5b",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n10/s1": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n10/s2": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n10/s3": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n100/s1": "9ef7fe4fa6b9d864",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n100/s2": "ba0db6025f9dcd56",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n100/s3": "b8c3be6eda465ab0",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n10/s1": "bc5d27a3009f0aea",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n10/s2": "d1728085e17b57de",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n10/s3": "9814b87cd3f45d09",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n100/s1": "4ee1dc699c905f2c",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n100/s2": "7dd78a087b753a01",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n100/s3": "aef176ba0b72f611",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n10/s1": "b1422be73a5982f4",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n10/s2": "afd8997ce0da158e",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n10/s3": "d9d866d997ba70d8",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n100/s1": "37646bae210c676e",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n100/s2": "7f0b9907a954f5b4",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n100/s3": "29664b550815cfed",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n10/s1": "2e72241600ea8fc3",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n10/s2": "b8a11fe617e08fc0",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n10/s3": "fb7312827565c6da",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n100/s2": "93c00336a0577641",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n100/s3": "ee326d6f2f542e37",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n10/s1": "43cfacada45b9dd2",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n10/s2": "488f97ab171dec7a",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n10/s3": "99f6a83f5396fd53",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n100/s1": "3d41e88bd0215f39",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n100/s2": "8a1e8899cea98cb8",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n100/s3": "763e023fced10fa2",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s1": "2e72241600ea8fc3",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s2": "e9ef539d6871a4ec",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s3": "eb2469b24212f048",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s2": "6a503861b4c41fb8",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s3": "148926f40250e62a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s1": "43cfacada45b9dd2",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s2": "dde6223a048540e1",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s3": "ad1e79d740219c4f",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s1": "fbfce8dba2815da8",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s2": "19713b1fdfb88935",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s3": "811df8a4df735fa9",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n10/s1": "cba1a4fcd4cf28cb",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n10/s2": "71c503124c416690",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n10/s3": "e5756272c4a83225",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n100/s2": "edfb79d7e9c11d62",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n100/s3": "bc7c04f8c2332981",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n10/s1": "acdaa7f48f412ad9",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n10/s2": "c3d5ada80f1a1fa5",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n10/s3": "b8978624a4e0a813",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n100/s1": "0da18ebae7e57a8f",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n100/s2": "7c6f1be4a122d21b",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n100/s3": "a4dd684e264a1868",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n10/s1": "ccc81d93453d6576",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n10/s2": "ce2542dd44e201e7",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n10/s3": "e188bc83622dfd05",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n100/s2": "ac54e14419d06e24",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n100/s3": "47a3bba9db3e4176",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n10/s1": "95ad63df5159b6c6",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n10/s2": "ba00c7fe6fa4626f",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n10/s3": "60719a21fcf513b3",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n100/s1": "84f9d4d3f05dd4e9",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n100/s2": "02c3e88addb34f61",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n100/s3": "a95bda8de9d46a49",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n10/s1": "0c78d76d76244f33",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n10/s2": "482f232637d86227",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n10/s3": "eb2469b24212f048",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n100/s1": "080b80f7fb171111",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n100/s2": "6a503861b4c41fb8",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n100/s3": "148926f40250e62a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n10/s1": "e3ff0cd837ad8b21",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n10/s2": "1338c7c55f5e79cd",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n10/s3": "2a87ec96ae166f4a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n100/s1": "d7a09f1f2f5a384a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n100/s2": "a7e5786b9d91102a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n100/s3": "558a9e2e1c76b656",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n10/s1": "79f3dc56f0c2e12e",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n10/s2": "453d8bb00b76c3d1",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n10/s3": "1d2cf8c416033a19",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n100/s1": "2f54285d00ed1ecf",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n100/s2": "12d0c97eaf6e18bd",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n100/s3": "552fd4f5ed31df5b",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n10/s1": "3399dcbfd25fca2e",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n10/s2": "acd3533156e9773e",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n10/s3": "f3515c6b08d6ee3a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n100/s1": "2627376b0ee395f4",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n100/s2": "13451fc16769e5fc",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n100/s3": "75502c8328790020",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n10/s1": "bc5d27a3009f0aea",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n10/s2": "d1728085e17b57de",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n10/s3": "9814b87cd3f45d09",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n100/s1": "4ee1dc699c905f2c",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n100/s2": "7dd78a087b753a01",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n100/s3": "aef176ba0b72f611",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n10/s1": "b1422be73a5982f4",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n10/s2": "4b36e81a756fba1e",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n10/s3": "d9d866d997ba70d8",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n100/s1": "5b2e2d3166c0bfdc",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n100/s2": "2258e03bec173dc4",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n100/s3": "501cd91bac7b8433",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n10/s1": "2e72241600ea8fc3",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n10/s2": "b8a11fe617e08fc0",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n10/s3": "fb7312827565c6da",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n100/s1": "cd800b7602b5924a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n100/s2": "93c00336a0577641",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n100/s3": "ee326d6f2f542e37",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n10/s1": "43cfacada45b9dd2",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n10/s2": "3519aa05d9e6fc25",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n10/s3": "99f6a83f5396fd53",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n100/s1": "53a194d32c71db77",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n100/s2": "5e1b93cb96b72ad6",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n100/s3": "970fbee1c8fa4722",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s1": "9d3e4f3c97f90b5e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s2": "6a49d4522b7b6786",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s3": "9be6ed875ffc8051",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s1": "1bddab2a12924a53",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s2": "aaf16df7ca9a2810",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s3": "60197a2516f2aef1",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s1": "7f3aa8309fa453da",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s2": "f8337b17e9987217",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s3": "5d47b06e418c6473",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s1": "c68e9810803d3e71",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s2": "f7191dd3aa5c8b36",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s3": "c481f7260f18554a",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n10/s1": "6e837941111ebb83",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n10/s2": "8fe56a28db3d9c15",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n10/s3": "3eb51aee4ca97017",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n100/s1": "64de8cddf2e1bbf9",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n100/s2": "fc9a5627a553654f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n100/s3": "046d9d087403d87b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n10/s1": "e0f808687ebedc08",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n10/s2": "8e4c22692b5c3782",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n10/s3": "e8249ebe2f38788e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n100/s1": "2bbdfe087a1d057d",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n100/s2": "b0938481e84e08d6",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n100/s3": "066d8aaf40aec869",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n10/s1": "9d3e4f3c97f90b5e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n10/s2": "953c2bb961f0341c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n10/s3": "45763a156ba9e6c3",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n100/s1": "6d75c993977a9f9b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n100/s2": "a862f6875f033660",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n100/s3": "eed43c0b1f9a2ea9",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n10/s1": "6b6a2a028b177a3a",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n10/s2": "2c6e6aaa0bd190dd",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n10/s3": "dfc5cec3845124de",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n100/s1": "63e144eaecc3c8fd",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n100/s2": "5ca2fddcfd63d717",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n100/s3": "e9e7f5db87716de5",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n10/s1": "9d3e4f3c97f90b5e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n10/s2": "131b5e31c4aac1eb",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n10/s3": "2b6bd6e781b0bdba",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n100/s1": "1bddab2a12924a53",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n100/s2": "678f2e5a4e3c392c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n100/s3": "2e59b2c63be082c0",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n10/s1": "d3e4a91f77e6a523",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n10/s2": "b3987e45df37c67f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n10/s3": "8ddaa4ac0713af2d",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n100/s1": "b6b38ce7914665c9",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n100/s2": "8355e810084b5fc4",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n100/s3": "8fcd1dffa2f8fde1",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n10/s1": "253448644eae9605",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n10/s2": "601fcea140a8292b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n10/s3": "80a2bff6b776e112",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n100/s1": "0772bf1e307c5eab",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n100/s2": "27c0e4853614be65",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n100/s3": "6471b6c2a96dd318",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n10/s1": "976a1b77ba02a1a8",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n10/s2": "a2c5963371f416b3",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n10/s3": "22b6e83ff965bcb7",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n100/s1": "83519541e40c5678",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n100/s2": "54de937fe091688b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n100/s3": "a41f91624b4cd801",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n10/s1": "3740c07e1e166044",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n10/s2": "9fb9f9d88b4c5dec",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n10/s3": "260ef4c7b0f8a712",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n100/s1": "268b5f771125505d",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n100/s2": "dc6e98bbb64c8ce9",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n100/s3": "adc03a0a65f255eb",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n10/s1": "4a88ebbaed83f99f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n10/s2": "4e597fcdfb2a5a3e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n10/s3": "0eaf149d6201dba1",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n100/s1": "a2f20214658d638f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n100/s2": "e2c986e740da23f8",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n100/s3": "cc0c7d6d9b16513b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n10/s1": "9d3e4f3c97f90b5e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n10/s2": "1ee85c05a9ab7fd6",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n10/s3": "c3395b7a55b072d5",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n100/s1": "1bddab2a12924a53",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n100/s2": "cb345bdf1d501164",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n100/s3": "faea817fe8723f11",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n10/s1": "42f3eda0d6f824cd",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n10/s2": "632c64fc791e2a12",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n10/s3": "05427d1f38c20e85",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n100/s1": "e2608113363be18b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n100/s2": "f186451573dd18ca",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n100/s3": "0b669a2c5ccc4467",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s1": "cb4b10efe465294f",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s2": "125ee873cc8f33be",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s3": "a224df95017c75b0",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s1": "ff7c043b21e7581d",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s2": "e96de8ebd3cc0041",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s3": "08f4a3720f4c224c",
+   "rect-fixture-v1/gallery.fixed.n10/s1": "8164a16e84fc146a",
+   "rect-fixture-v1/gallery.fixed.n10/s2": "a6abcfbd5ed9f2af",
+   "rect-fixture-v1/gallery.fixed.n10/s3": "b1de6e99f6308c12",
+   "rect-fixture-v1/gallery.fixed.n100/s1": "ef42f4a28123f035",
+   "rect-fixture-v1/gallery.fixed.n100/s2": "172696eac206e6ae",
+   "rect-fixture-v1/gallery.fixed.n100/s3": "06b921727e1e0645",
+   "rect-fixture-v1/gallery.freeHeight.n10/s1": "8164a16e84fc146a",
+   "rect-fixture-v1/gallery.freeHeight.n10/s2": "a6abcfbd5ed9f2af",
+   "rect-fixture-v1/gallery.freeHeight.n10/s3": "b1de6e99f6308c12",
+   "rect-fixture-v1/gallery.freeHeight.n100/s1": "ea24457cc17e227a",
+   "rect-fixture-v1/gallery.freeHeight.n100/s2": "d61e25a024ffd6f5",
+   "rect-fixture-v1/gallery.freeHeight.n100/s3": "86a3e2ac3af6f190",
+   "rect-fixture-v1/gallery.freeWidth.n10/s1": "e97d7a6e62b814b0",
+   "rect-fixture-v1/gallery.freeWidth.n10/s2": "4797e9d361795f29",
+   "rect-fixture-v1/gallery.freeWidth.n10/s3": "56d87157002af9af",
+   "rect-fixture-v1/gallery.freeWidth.n100/s1": "850ee1326e6acdfe",
+   "rect-fixture-v1/gallery.freeWidth.n100/s2": "910e22b5eee52743",
+   "rect-fixture-v1/gallery.freeWidth.n100/s3": "60e3e7189313331b",
+   "rect-fixture-v1/gallery.freeAspect.n10/s1": "8af3293a72aad65e",
+   "rect-fixture-v1/gallery.freeAspect.n10/s2": "606bdd05113ebad8",
+   "rect-fixture-v1/gallery.freeAspect.n10/s3": "cfd8ca8c3a82ca2b",
+   "rect-fixture-v1/gallery.freeAspect.n100/s1": "a5653446d95054c2",
+   "rect-fixture-v1/gallery.freeAspect.n100/s2": "4185b55d658b6850",
+   "rect-fixture-v1/gallery.freeAspect.n100/s3": "64503cc8410663e9"
+  },
+  "skyline": {
+   "smoke-v1/rect-grid.fixed.rect.none.uniform.n10/s1": "b3e7690f0b85709e",
+   "smoke-v1/rect-grid.fixed.rect.none.uniform.n10/s2": "78de16b535292267",
+   "smoke-v1/rect-grid.fixed.rect.scattered.uniform.n10/s1": "b03704ed64f1dd91",
+   "smoke-v1/rect-grid.freeAspect.rect.none.uniform.n10/s1": "62b984be8affb5db",
+   "smoke-v1/rect-grid.fixed.rect.none.heavyTail.n100/s1": "6d35cdbc1852010b",
+   "smoke-v1/gallery.freeHeight.n10/s1": "8164a16e84fc146a",
+   "smoke-v1/cards.freeHeight.n100/s1": "7952c71465a4bde9",
+   "smoke-v1/edge-cases.empty/s1": "4f53cda18c2baa0c",
+   "smoke-v1/edge-cases.one/s1": "d5390dff3ac0222a",
+   "smoke-v1/edge-cases.oversize.n6/s1": "fe5795ed1c9ba622",
+   "smoke-v1/edge-cases.exactTiling.n12/s1": "cbdcdbe106aa4d7d",
+   "smoke-v1/edge-cases.touchObstacles.n6/s1": "932f0d89345e3853",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s1": "b3e7690f0b85709e",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s2": "78de16b535292267",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n10/s3": "6080f2e422af85bb",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s1": "676a3b328625c888",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s2": "52cd14687677d790",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.uniform.n100/s3": "3554c91373455c5d",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s1": "9077ab38d7e182d1",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s2": "580911fd0e830980",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n10/s3": "fef3380d3fbfc081",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s1": "6d35cdbc1852010b",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s2": "33f1e0a4e4fbfd88",
+   "rect-fixture-v1/rect-grid.fixed.rect.none.heavyTail.n100/s3": "d2779ea620f72ca3",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n10/s1": "4b74b159ec552dc2",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n10/s2": "178ba9ce6f1dec09",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n10/s3": "597768a48a977c39",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n100/s1": "cc16783765d44095",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n100/s2": "37a458ba76cae458",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.uniform.n100/s3": "4b6f570ed249d6e0",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n10/s1": "998cff111f188973",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n10/s2": "a3ff404a6ca811d8",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n10/s3": "1de3fabf6a3e3b22",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n100/s1": "2c238f41344e9ceb",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n100/s2": "ea91406d4f2410ca",
+   "rect-fixture-v1/rect-grid.fixed.rect.center.heavyTail.n100/s3": "58ddb1d020986ab2",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n10/s1": "b03704ed64f1dd91",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n10/s2": "e0d8dbc6fac9a480",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n10/s3": "ffec5711dad6a16a",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n100/s1": "125c1cd0c64d1518",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n100/s2": "7e3c800aafb28c77",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.uniform.n100/s3": "60f2e07bcc51cc0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n10/s1": "e3898ad2bf956451",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n10/s2": "b9c80c92ac2ca921",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n10/s3": "261a111f513cd6e6",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n100/s1": "87c0c17507c21ae7",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n100/s2": "1d63abf174602205",
+   "rect-fixture-v1/rect-grid.fixed.rect.scattered.heavyTail.n100/s3": "6827cbb89e20b6c3",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n10/s1": "1baa79bdfb97236d",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n10/s2": "54984a87613bd528",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n10/s3": "f0ade55ff348101f",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n100/s1": "a3eb29b4b1ce98cc",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n100/s2": "f417c9f0f0e038f9",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.uniform.n100/s3": "f63407c0f482cc0b",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n10/s1": "994fce5781841cd4",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n10/s2": "f7e822709d1dece6",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n10/s3": "f348d61e10922eb9",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n100/s1": "fdc82c7613453fb1",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n100/s2": "7b1e10c135eed139",
+   "rect-fixture-v1/rect-grid.fixed.rect.wall.heavyTail.n100/s3": "3fe6b2aeb6e91ab6",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n10/s1": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n10/s2": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n10/s3": "c2e7bebd010ab2ab",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n100/s1": "863bb2243deabf6e",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n100/s2": "562ae663e5b32737",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.uniform.n100/s3": "07499349f1d2bff8",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n10/s1": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n10/s2": "4f53cda18c2baa0c",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n10/s3": "60373bca1947528f",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n100/s1": "de61a1aedcb7c3ff",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n100/s2": "1fa8b081e180f794",
+   "rect-fixture-v1/rect-grid.fixed.rect.corridors.heavyTail.n100/s3": "b15289983873b63c",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n10/s1": "daaff82e3cbb821d",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n10/s2": "025993c7cff31404",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n10/s3": "9a35529b56fbffd2",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n100/s1": "d94a86a55de58506",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n100/s2": "d308e0645df7a52e",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.uniform.n100/s3": "d97adc451696fa68",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n10/s1": "0b5eccf4c47ff3c0",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n10/s2": "66372dd8b3eb9215",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n10/s3": "dc7e44415cfa9e91",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n100/s1": "e1a10b8aa1d868a0",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n100/s2": "b0114deea10525c0",
+   "rect-fixture-v1/rect-grid.fixed.rect.touching.heavyTail.n100/s3": "a79f845c3e6c5908",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n10/s1": "e0e3b6b8c3a13b07",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n10/s2": "c9e1cfd61b3b6713",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n10/s3": "97030b78750f735f",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n100/s1": "c1c7be02bb4ec8ff",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n100/s2": "cb5393bc80941102",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.uniform.n100/s3": "e3914d31f14e2f82",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n10/s1": "8a7e2f20ae709b33",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n10/s2": "a4d953dd838ae86a",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n10/s3": "d60acf9db9d01300",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n100/s1": "73f379984d0c0d1c",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n100/s2": "6c64c16e7742767a",
+   "rect-fixture-v1/rect-grid.fixed.rect.edge.heavyTail.n100/s3": "c4de5eb6cdc765c0",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s1": "b3e7690f0b85709e",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s2": "78de16b535292267",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n10/s3": "6080f2e422af85bb",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s1": "676a3b328625c888",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s2": "52cd14687677d790",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.uniform.n100/s3": "3554c91373455c5d",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s1": "9077ab38d7e182d1",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s2": "580911fd0e830980",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n10/s3": "fef3380d3fbfc081",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s1": "f90a4f3f2239fa68",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s2": "64e5f3ba89d666db",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.none.heavyTail.n100/s3": "a205441f288ccb03",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n10/s1": "4b74b159ec552dc2",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n10/s2": "178ba9ce6f1dec09",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n10/s3": "597768a48a977c39",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n100/s1": "cc16783765d44095",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n100/s2": "37a458ba76cae458",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.uniform.n100/s3": "4b6f570ed249d6e0",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n10/s1": "998cff111f188973",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n10/s2": "5533041da9e7e3ad",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n10/s3": "1de3fabf6a3e3b22",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n100/s1": "864f1c00c69db551",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n100/s2": "5d7c814a6c498f9d",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.center.heavyTail.n100/s3": "fea9a6e9a7ef5ba5",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n10/s1": "b03704ed64f1dd91",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n10/s2": "527593334d63b9db",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n10/s3": "ffec5711dad6a16a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n100/s1": "125c1cd0c64d1518",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n100/s2": "7e3c800aafb28c77",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.uniform.n100/s3": "60f2e07bcc51cc0c",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n10/s1": "e3898ad2bf956451",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n10/s2": "08b2fca42bbd1ceb",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n10/s3": "14f631704436f6ee",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n100/s1": "75b4bc1e31af6594",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n100/s2": "85dcfebcb81d6507",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.scattered.heavyTail.n100/s3": "e5e8d4d7f83c248c",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n10/s1": "1baa79bdfb97236d",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n10/s2": "54984a87613bd528",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n10/s3": "f0ade55ff348101f",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n100/s1": "a3eb29b4b1ce98cc",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n100/s2": "f417c9f0f0e038f9",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.uniform.n100/s3": "f63407c0f482cc0b",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n10/s1": "994fce5781841cd4",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n10/s2": "f029a0697a47dfc9",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n10/s3": "dc5d53065e5f0fe8",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n100/s1": "681f9e7e6612d98b",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n100/s2": "9a866a06172ebf13",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.wall.heavyTail.n100/s3": "fc01711e7cbeebf9",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n10/s1": "b17789d282a8fff2",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n10/s2": "4f97f48deee3f40e",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n10/s3": "8dd9f13e8663c67d",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n100/s1": "ab9744b71e40e1a7",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n100/s2": "d4c933f8bb01ce27",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.uniform.n100/s3": "297596fc008825fd",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n10/s1": "434feda2adf1818f",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n10/s2": "4c1189b0a6fc62bd",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n10/s3": "a4e39b78baad1297",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n100/s1": "a7f41cb76ce2f7ff",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n100/s2": "482350fb6ff72123",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.corridors.heavyTail.n100/s3": "42bbb3add1bc047d",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n10/s1": "daaff82e3cbb821d",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n10/s2": "025993c7cff31404",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n10/s3": "9a35529b56fbffd2",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n100/s1": "d94a86a55de58506",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n100/s2": "d308e0645df7a52e",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.uniform.n100/s3": "d97adc451696fa68",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n10/s1": "0b5eccf4c47ff3c0",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n10/s2": "2408f98a50ec7687",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n10/s3": "dc7e44415cfa9e91",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n100/s1": "77ac1745bf2b7f4d",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n100/s2": "05c7dedaf0e131df",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.touching.heavyTail.n100/s3": "71946d69a00f3abc",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n10/s1": "e0e3b6b8c3a13b07",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n10/s2": "c9e1cfd61b3b6713",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n10/s3": "97030b78750f735f",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n100/s1": "c1c7be02bb4ec8ff",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n100/s2": "cb5393bc80941102",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.uniform.n100/s3": "e3914d31f14e2f82",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n10/s1": "8a7e2f20ae709b33",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n10/s2": "a4d953dd838ae86a",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n10/s3": "d60acf9db9d01300",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n100/s1": "bbcd69c587fb67fc",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n100/s2": "0c3240d22ca43bbf",
+   "rect-fixture-v1/rect-grid.freeHeight.rect.edge.heavyTail.n100/s3": "b9dea78ad8cf57f7",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s1": "9adfb36f27ef94ae",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s2": "530ed56b40e0b3f8",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n10/s3": "f16b69993b332c38",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s1": "c46ce320f09bb4e5",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s2": "87d90cd79f4ccd1e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.uniform.n100/s3": "c06987f1164925c2",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s1": "85416c1eee0ba11b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s2": "ef641a12bf6b17a0",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n10/s3": "e510cfbd521db3ce",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s1": "45ca84c0ecac58d3",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s2": "171e854d20c22fbb",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.none.heavyTail.n100/s3": "8ccfc3b9a4c557b9",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n10/s1": "c7b0fcabe9829172",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n10/s2": "d9ee0d97f85a9f5e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n10/s3": "fa98464f4e5f71eb",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n100/s1": "ba640ad5e12821aa",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n100/s2": "545446791f6a403b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.uniform.n100/s3": "40a67de845d56d9f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n10/s1": "09d845884c2d6c9d",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n10/s2": "295d8db02d4a9b1e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n10/s3": "ed1f21f37a6de97c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n100/s1": "6012eaeba19f357e",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n100/s2": "e03d4736da98b8b6",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.center.heavyTail.n100/s3": "eb304c8b090b9abf",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n10/s1": "6473bb5fec325a58",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n10/s2": "e5268f13662abba4",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n10/s3": "eb824e1339b3df11",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n100/s1": "b0172af92335362b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n100/s2": "52b036cc0d8eb71d",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.uniform.n100/s3": "06d615f8001438af",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n10/s1": "8ae1073e09dde2b3",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n10/s2": "a22f7bc4a0550ba2",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n10/s3": "faccdfdf417bb7b8",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n100/s1": "c8b065a4e2656b1c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n100/s2": "f1291eaf01a063ab",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.scattered.heavyTail.n100/s3": "8732a39e2c5e2de5",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n10/s1": "ecc9b310fa7f2572",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n10/s2": "1d0bae1b2404eb07",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n10/s3": "35ff4c424169dc87",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n100/s1": "5f59206cc4288e11",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n100/s2": "1d9bc596da7428bc",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.uniform.n100/s3": "04ca2bef55dbf489",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n10/s1": "48b981b1e7680787",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n10/s2": "88a64a3ee48baab6",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n10/s3": "77275e757c0f9ef0",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n100/s1": "e3b148305cf83c00",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n100/s2": "30a0187f57f12855",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.wall.heavyTail.n100/s3": "64f1b7829492c260",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n10/s1": "7bae14cdc25f74a3",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n10/s2": "582473fbfcac7280",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n10/s3": "b06be9de963c71f7",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n100/s1": "0ba12f4237658e9d",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n100/s2": "2d33fbe0f0948b09",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.uniform.n100/s3": "0080dca89acc93e9",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n10/s1": "e3aca812feb687b3",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n10/s2": "00eb3abcfd81559c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n10/s3": "a372a3d14852d2cf",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n100/s1": "93873b370b67a18d",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n100/s2": "8c64becbecdb5d16",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.corridors.heavyTail.n100/s3": "42070ded75fe28da",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n10/s1": "602897c7e0c77a2f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n10/s2": "70e8ff543f38b486",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n10/s3": "c87c1eb3ccfb357c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n100/s1": "25522389fd6541cb",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n100/s2": "417a52bab5057dfa",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.uniform.n100/s3": "9d21ab95c2ff842c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n10/s1": "cfa2b145eda4011b",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n10/s2": "e1ab529378fc56fb",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n10/s3": "615a77ee6d459141",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n100/s1": "353fb2c62a5a3dfb",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n100/s2": "75bc5f362fc02a0f",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.touching.heavyTail.n100/s3": "8f0e88e8e215277c",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n10/s1": "410b009b4a23271a",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n10/s2": "88aef4e928c309bc",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n10/s3": "21a1b60d67ed47ae",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n100/s1": "b5af64ff535503b8",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n100/s2": "c2a44055f7f22bda",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.uniform.n100/s3": "701008b7d8fbf898",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n10/s1": "b26394363bbfab70",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n10/s2": "af4cd83a4fd4e962",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n10/s3": "6657406e2d387a57",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n100/s1": "3b279725b0e998e0",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n100/s2": "24db0119f49bbbf0",
+   "rect-fixture-v1/rect-grid.freeWidth.rect.edge.heavyTail.n100/s3": "51cdb0e7087756cc",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s1": "62b984be8affb5db",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s2": "508a9bfdc1f1f2a7",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n10/s3": "ce54bc9ab7c5d356",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s1": "aa790f13f3a82a81",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s2": "e4542be6d0e243f7",
+   "rect-fixture-v1/rect-grid.freeAspect.rect.none.uniform.n100/s3": "8e699ee5d23c6b14",
+   "rect-fixture-v1/gallery.fixed.n10/s1": "8164a16e84fc146a",
+   "rect-fixture-v1/gallery.fixed.n10/s2": "a6abcfbd5ed9f2af",
+   "rect-fixture-v1/gallery.fixed.n10/s3": "b1de6e99f6308c12",
+   "rect-fixture-v1/gallery.fixed.n100/s1": "ef42f4a28123f035",
+   "rect-fixture-v1/gallery.fixed.n100/s2": "172696eac206e6ae",
+   "rect-fixture-v1/gallery.fixed.n100/s3": "06b921727e1e0645",
+   "rect-fixture-v1/gallery.freeHeight.n10/s1": "8164a16e84fc146a",
+   "rect-fixture-v1/gallery.freeHeight.n10/s2": "a6abcfbd5ed9f2af",
+   "rect-fixture-v1/gallery.freeHeight.n10/s3": "b1de6e99f6308c12",
+   "rect-fixture-v1/gallery.freeHeight.n100/s1": "ea24457cc17e227a",
+   "rect-fixture-v1/gallery.freeHeight.n100/s2": "d61e25a024ffd6f5",
+   "rect-fixture-v1/gallery.freeHeight.n100/s3": "86a3e2ac3af6f190",
+   "rect-fixture-v1/gallery.freeWidth.n10/s1": "0c9efec31c1f3c85",
+   "rect-fixture-v1/gallery.freeWidth.n10/s2": "d367042e43571c5c",
+   "rect-fixture-v1/gallery.freeWidth.n10/s3": "3d8921a004f29429",
+   "rect-fixture-v1/gallery.freeWidth.n100/s1": "9a38f5f36f3d6deb",
+   "rect-fixture-v1/gallery.freeWidth.n100/s2": "0877b3561b00ec5c",
+   "rect-fixture-v1/gallery.freeWidth.n100/s3": "01a0f203653ef29c",
+   "rect-fixture-v1/gallery.freeAspect.n10/s1": "8af3293a72aad65e",
+   "rect-fixture-v1/gallery.freeAspect.n10/s2": "606bdd05113ebad8",
+   "rect-fixture-v1/gallery.freeAspect.n10/s3": "cfd8ca8c3a82ca2b",
+   "rect-fixture-v1/gallery.freeAspect.n100/s1": "a5653446d95054c2",
+   "rect-fixture-v1/gallery.freeAspect.n100/s2": "4185b55d658b6850",
+   "rect-fixture-v1/gallery.freeAspect.n100/s3": "64503cc8410663e9"
+  }
+ }
+}
