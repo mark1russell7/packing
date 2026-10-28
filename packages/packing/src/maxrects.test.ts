@@ -41,12 +41,15 @@ function checkFree(input: PackInput, rule: MaxRectsRule, label: string): void {
   }
 }
 
+// A test of each rule and shape packs 28 inputs. The coverage run of CI is slow, thus each test has a longer timeout.
+const PROPERTY_TIMEOUT = 30_000;
+
 describe("maxrects: the hard rules in each container shape", () => {
   for (const containerShape of SHAPES) {
-    it(`packs each rule into a ${containerShape} container with a fixed size and a free height, for each obstacle layout`, () => {
-      let placed = 0;
-      let items = 0;
-      for (const rule of MAXRECTS_RULES) {
+    for (const rule of MAXRECTS_RULES) {
+      it(`packs the rule ${rule} into a ${containerShape} container with a fixed size and a free height, for each obstacle layout`, () => {
+        let placed = 0;
+        let items = 0;
         for (const containerSize of ["fixed", "freeHeight"] as const) {
           for (const obstacles of LAYOUTS) {
             for (const [seed, count] of [[1, 10], [2, 100]] as const) {
@@ -61,9 +64,9 @@ describe("maxrects: the hard rules in each container shape", () => {
             }
           }
         }
-      }
-      expect(placed / items).toBeGreaterThan(0.5);
-    });
+        expect(placed / items).toBeGreaterThan(0.5);
+      }, PROPERTY_TIMEOUT);
+    }
 
     it(`packs each rule into a ${containerShape} container with a free width, aspect and area`, () => {
       for (const rule of MAXRECTS_RULES) {
@@ -75,7 +78,7 @@ describe("maxrects: the hard rules in each container shape", () => {
           }
         }
       }
-    });
+    }, PROPERTY_TIMEOUT);
   }
 
   it("puts more items than shelf into a round container", () => {
