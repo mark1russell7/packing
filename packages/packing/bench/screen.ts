@@ -16,6 +16,11 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "shelf-first": "move.firstFit",
   "shelf-best": "move.bestFit",
   "shelf-first-input": "move.firstFit",
+  "maxrects-bssf": "move.bssf",
+  "maxrects-blsf": "move.blsf",
+  "maxrects-baf": "move.baf",
+  "maxrects-bl": "move.split",
+  "maxrects-cp": "move.cp",
 });
 
 /** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */
@@ -158,6 +163,11 @@ export interface RankEntry {
   tieGroup?: number;
   /** Step 2: the median of `pack.fill` over the common clean inputs of the cell. Higher is better. */
   fill?: number;
+  /**
+   * The fill tie group of step 2, from 1. Neighbour entries of a tie group of step 1 share it when their `fill` values
+   * are within the minimum effect of `pack.fill`. An entry with no tie of its fill has no fill tie group.
+   */
+  fillTie?: number;
   /** A diagnostic: the median of `pack.fill` over the records of the entry with no overflow. It is not paired. */
   diagnosticCleanFill?: number;
 }
@@ -252,6 +262,7 @@ const medianOf = (values: readonly number[]): number | undefined => (values.leng
  * - Step 1 orders the entries by the median `pack.overflow.excessArea`. Lower is better.
  * - The entries within the minimum effect of the best entry make tie group 1. The rest make the next groups in the same way.
  * - Step 2 orders each tie group by the median `pack.fill` over the common clean inputs. Higher is better.
+ * - Neighbour entries of step 2 with a fill within the minimum effect of `pack.fill` share a fill tie group.
  * - A common clean input has a record with `pack.overflow` 0 for each measured strategy of the cell.
  */
 export function rankingOf(strategies: readonly string[], records: readonly ScreenRecord[], groups: readonly OutputGroup[] = []): CellRanking {
@@ -310,6 +321,17 @@ export function rankingOf(strategies: readonly string[], records: readonly Scree
       a.name.localeCompare(b.name),
   );
   for (const [i, e] of ordered.entries()) e.rank = i + 1;
+  // The fill ties: a chain of neighbours of one tie group, each within the minimum effect of the fill of the next entry
+  const fillSpec = MEASURE_SPECS["pack.fill"];
+  let fillTie = 0;
+  for (let i = 0; i + 1 < ordered.length; i++) {
+    const a = ordered[i]!;
+    const b = ordered[i + 1]!;
+    if (a.tieGroup === undefined || a.tieGroup !== b.tieGroup || a.fill === undefined || b.fill === undefined) continue;
+    if (compareMeasure(b.fill, a.fill, fillSpec) !== "tie") continue;
+    if (a.fillTie === undefined) a.fillTie = ++fillTie;
+    b.fillTie = a.fillTie;
+  }
   // The flag uses the share before the rounding
   const thin = inputs.size === 0 || clean.length / inputs.size < THIN_SHARE;
   return { inputs: inputs.size, commonClean: { inputs: clean.length, share: commonShare }, thin, entries: ordered };
@@ -430,14 +452,15 @@ export function screenMarkdown(screen: Partial<BenchScreen>, strategies: readonl
       "Step 2 ranks each tie group by the median `pack.fill` on the common clean inputs. On these inputs, each measured strategy has `pack.overflow` 0.",
       `A cell is \`thin\` when the common clean inputs are less than ${THIN_SHARE} of its inputs. Its fill rank is then weak.`,
       "A cell group with equal outputs is one entry. The last fill column is a diagnostic: each strategy uses its own clean records, so it is not paired.",
+      `The column \`fill tie\` gives the fill tie group: neighbour entries within ${String(MEASURE_SPECS["pack.fill"].minEffect)} of fill. Their order is a tie.`,
       "",
-      "| container shape | common clean inputs | share | thin | rank | entry | excessArea (median) | tie group | fill, common clean (median) | records | fill, own clean (diagnostic) |",
-      "|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|",
+      "| container shape | common clean inputs | share | thin | rank | entry | excessArea (median) | tie group | fill, common clean (median) | fill tie | records | fill, own clean (diagnostic) |",
+      "|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|",
     );
     for (const [shape, c] of Object.entries(ranking) as [string, CellRanking][]) {
       for (const e of c.entries) {
         lines.push(
-          `| ${shape} | ${c.commonClean.inputs}/${c.inputs} | ${c.commonClean.share} | ${c.thin ? "thin" : "no"} | ${e.rank} | ${e.name} | ${num(e.excessArea)} | ${e.tieGroup ?? "-"} | ${num(e.fill)} | ${e.records} | ${num(e.diagnosticCleanFill)} |`,
+          `| ${shape} | ${c.commonClean.inputs}/${c.inputs} | ${c.commonClean.share} | ${c.thin ? "thin" : "no"} | ${e.rank} | ${e.name} | ${num(e.excessArea)} | ${e.tieGroup ?? "-"} | ${num(e.fill)} | ${e.fillTie === undefined ? "-" : `tie ${e.fillTie}`} | ${e.records} | ${num(e.diagnosticCleanFill)} |`,
         );
       }
     }

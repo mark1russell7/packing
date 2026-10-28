@@ -5,8 +5,8 @@ import { round3 } from "@mark1russell7/packing";
 import { isMeasured, type BenchRecord, type BenchRun } from "./run.ts";
 import { OUTSIDE_EXACT } from "./screen.ts";
 
-/** The entries that pack each input of `smoke-v1`: 3 strategies and the 4 variants of the shelf family. The check needs the coverage 1 for each of them. */
-export const FULL_COVERAGE: readonly string[] = ["rows", "shelf", "skyline", "shelf-next", "shelf-first", "shelf-best", "shelf-first-input"];
+/** The entries that pack each input of `smoke-v1`: 3 strategies, the 4 variants of the shelf family and the 5 rules of `maxrects`. The check needs the coverage 1 for each of them. */
+export const FULL_COVERAGE: readonly string[] = ["rows", "shelf", "skyline", "shelf-next", "shelf-first", "shelf-best", "shelf-first-input", "maxrects-bssf", "maxrects-blsf", "maxrects-baf", "maxrects-bl", "maxrects-cp"];
 
 /** The float noise of an area share. A forced overflow area above the overflow area by more than this value is a failure. */
 export const AREA_NOISE = 1e-9;

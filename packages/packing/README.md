@@ -46,6 +46,20 @@ pack(rects, outer, { strategy: "shelf", fit: "best" });
 - `fit: "best"`: each rectangle goes on the shelf with the least height left over above it.
 - With a `fit`, the shelves open only in the free spans of each container shape. `docs/PACKER.md` tells the rules.
 
+Since 0.2.5, `packMaxRects` and the strategy `maxrects` pack with a list of maximal free rectangles. `MAXRECTS_RULES` lists the rules of the option `rule`.
+
+```ts
+pack(rects, outer, { strategy: "maxrects", rule: "cp" });
+```
+
+- `rule: "bssf"` (the default): the free rectangle with the smallest leftover short side. Its move is `move.bssf`.
+- `rule: "blsf"`: the free rectangle with the smallest leftover long side. Its move is `move.blsf`.
+- `rule: "baf"`: the free rectangle with the smallest leftover area. Its move is `move.baf`.
+- `rule: "bl"`: the highest place, then the leftmost place. Its move is `move.split`, a box that cuts 2 free rectangles or more.
+- `rule: "cp"`: the place that touches the most length of edges. Its move is `move.cp`.
+- The move of each rule other than `bl` counts a box when the rule chooses a place that `bl` does not choose.
+- A shape that is not a rectangle gets bands. The option `bandHeight` sets their largest height. The default is the height divided by `MAXRECTS_BANDS`.
+
 Both functions also work alone, in an outer rectangle with a width that you set. They do not change the width.
 
 A `locked` rectangle keeps its position. `packSkyline` and `packShelf` put the other rectangles around it. `packRows` only keeps its position.
@@ -112,10 +126,11 @@ output.size; // the size of the container
 checkHard(input, output); // { "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 }
 ```
 
-- The registry `strategies` has `rows`, `skyline`, `shelf` and `push`. `strategy(id)` gives one, and `packWith(id, input, options, seed)` packs with it.
+- The registry `strategies` has `rows`, `skyline`, `shelf`, `push` and `maxrects`. `strategy(id)` gives one, and `packWith(id, input, options, seed)` packs with it.
 - `fixed` is `size`, `width`, `height` or `none`. A fixed height turns the axes. The value `none` uses the size search `logSweep`, which wraps `packFree`.
 - Each strategy declares its cells in `supports`. `cellOf(input)` gives the cell of an input. A strategy throws `UnsupportedCell` for an input outside its cells.
-- The strategies of this version do not turn items, read groups or pack shapes. A turnable item, a group or a shape gives `UnsupportedCell`.
+- Only `maxrects` accepts a turnable item, and it turns items only with `rotate: true`. The other strategies give `UnsupportedCell` for a turnable item.
+- No strategy reads groups or packs shapes. A group or a shape gives `UnsupportedCell`.
 - `checkHard` counts the breaks of the hard rules: `no-overlap`, `in-container`, `locked-kept` and `complete`. It reads the true shape of each obstacle, as `packHard` of `@mark1russell7/layout-contract` does.
 - `fromRects` and `toRects` connect the interface to the `Rect` objects.
 

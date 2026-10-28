@@ -1,11 +1,12 @@
 // The adapters of 0.1 (docs/PACKER.md): each function of 0.1 runs behind the Packer interface as a strategy.
 
 import { EPS, type PackInput, type PackOutput } from "./contract.ts";
-import { boundsOf, buildFrame, now, outerOf, readFrame, rectsOf, viaAxes, type Entry } from "./frame.ts";
+import { boundsOf, buildFrame, frameTurn, now, outerOf, readFrame, rectsOf, viaAxes, type Entry, type Frame, type FrameTurns } from "./frame.ts";
 import { packFree } from "./free.ts";
+import type { MaxRectsRule } from "./maxrects.ts";
 import { clearMoves, moveCount, MOVES } from "./moves.ts";
 import type { SortOrder } from "./order.ts";
-import { pack } from "./pack.ts";
+import { pack, type PackLayoutOptions } from "./pack.ts";
 import { pushCascade } from "./push.ts";
 import { Rect } from "./rect.ts";
 import type { ShelfFit } from "./shelf.ts";
@@ -25,6 +26,28 @@ export interface LayoutStrategyOptions {
    */
   fit?: ShelfFit;
 }
+
+/** The options of the strategy `maxrects`. The strategy does not read `fit`. */
+export interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
+  /** The rule to choose a free rectangle: `bssf` (the default), `blsf`, `baf`, `bl` or `cp`. `MAXRECTS_RULES` tells each rule. */
+  rule: MaxRectsRule;
+  /** The value `true` lets each turnable item that is not locked turn by 90 degrees. The default is `false`. */
+  rotate: boolean;
+  /**
+   * The largest height of a band of the approximation of a container that is not a plain rectangle. `MaxRectsOptions`
+   * tells the default.
+   */
+  bandHeight?: number;
+}
+
+/** The id of a strategy of `pack`. */
+type LayoutId = "rows" | "skyline" | "shelf" | "maxrects";
+
+/** The options of a strategy of `pack`: the options of `maxrects` are optional for the other strategies. */
+type AnyLayoutOptions = LayoutStrategyOptions & Partial<Pick<MaxRectsStrategyOptions, "rule" | "rotate" | "bandHeight">>;
+
+/** The options of `pack` that a strategy adds to the sort order and the space. */
+type PackExtras = Pick<PackLayoutOptions, "fit" | "rule" | "bandHeight" | "turnable" | "turned">;
 
 /** The options of the strategy `push`. */
 export interface PushStrategyOptions {
@@ -61,50 +84,73 @@ function supportsOf(cells: { [D in keyof Supports]: readonly Supports[D][number]
   };
 }
 
-/** This function gives the fit of the options of a strategy: only `shelf` reads it. */
-function fitOf(id: "rows" | "skyline" | "shelf", options: Partial<LayoutStrategyOptions>): { fit?: ShelfFit } {
-  return id === "shelf" && options.fit !== undefined ? { fit: options.fit } : {};
+/**
+ * This function gives the options of `pack` that a strategy adds: the fit of `shelf`, or the rule, the bands and the turns
+ * of `maxrects`. A turnable item turns only with `rotate`, and a locked item does not turn.
+ */
+function extrasOf(id: LayoutId, options: AnyLayoutOptions, frame: Frame): PackExtras {
+  if (id === "shelf") return options.fit !== undefined ? { fit: options.fit } : {};
+  if (id !== "maxrects") return {};
+  const out: PackExtras = { rule: options.rule ?? "bssf", ...(options.bandHeight === undefined ? {} : { bandHeight: options.bandHeight }) };
+  if (options.rotate !== true) return out;
+  const turnable = new Set(frame.entries.filter((e) => e.item?.turnable === true && !e.rect.locked).map((e) => e.rect));
+  return { ...out, turnable, turned: new Set() };
 }
 
-/** This function gives the move counts of the trace of a strategy: its own move, and the moves of a shelf fit. */
-function movesOf(id: "rows" | "skyline" | "shelf", fit: { fit?: ShelfFit }): Record<string, number> {
+/**
+ * This function gives the move counts of the trace of a strategy: its own move, and the moves of a shelf fit. The trace of
+ * `maxrects` has the move of its rule and `move.split`. The rule `bl` has only `move.split`.
+ */
+function movesOf(id: LayoutId, extras: PackExtras): Record<string, number> {
+  if (id === "maxrects") {
+    const rule = extras.rule ?? "bssf";
+    const out: Record<string, number> = rule === "bl" ? {} : { [MOVES[rule]]: moveCount(MOVES[rule]) };
+    out[MOVES.split] = moveCount(MOVES.split);
+    return out;
+  }
   const out: Record<string, number> = { [MOVES[id]]: moveCount(MOVES[id]) };
-  if (fit.fit !== undefined) for (const move of [MOVES.firstFit, MOVES.bestFit]) out[move] = moveCount(move);
+  if (extras.fit !== undefined) for (const move of [MOVES.firstFit, MOVES.bestFit]) out[move] = moveCount(move);
   return out;
 }
 
+/** This function gives the turns of a packing for `readFrame`, or `undefined` when no rectangle can turn. */
+function turnsOf(extras: PackExtras, transposed: boolean): FrameTurns | undefined {
+  return extras.turned === undefined ? undefined : { rects: extras.turned, turn: frameTurn(transposed) };
+}
+
 /** This function packs an input with a fixed size or a fixed width with one strategy of `pack`. */
-function packFixedWidth(id: "rows" | "skyline" | "shelf", input: PackInput, options: LayoutStrategyOptions): PackOutput {
+function packFixedWidth(id: LayoutId, input: PackInput, options: AnyLayoutOptions, transposed = false): PackOutput {
   const start = now();
-  const frame = buildFrame(input);
+  const frame = buildFrame(input, false, id === "maxrects" && options.rotate === true);
   const rects = rectsOf(frame);
-  const fit = fitOf(id, options);
+  const extras = extrasOf(id, options, frame);
   clearMoves();
-  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, space: spaceOf(input, frame), ...fit });
-  const output = readFrame(input, frame, []);
-  return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length, ...movesOf(id, fit) } }] };
+  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, space: spaceOf(input, frame), ...extras });
+  const output = readFrame(input, frame, [], [], turnsOf(extras, transposed));
+  return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length, ...movesOf(id, extras) } }] };
 }
 
 /** This function makes the strategy of one function of `pack`. */
-function layoutStrategy(
-  id: "rows" | "skyline" | "shelf",
+function layoutStrategy<O extends AnyLayoutOptions>(
+  id: LayoutId,
   family: string,
   catalog: string[],
-  cells: Pick<Supports, "obstacleMove" | "order">,
-): Strategy<LayoutStrategyOptions> {
-  const self: Strategy<LayoutStrategyOptions> = {
+  cells: Pick<Supports, "obstacleMove" | "order"> & Partial<Pick<Supports, "rotation">>,
+  defaults: O,
+): Strategy<O> {
+  const self: Strategy<O> = {
     id,
     family,
     catalog,
     supports: supportsOf({ ...LAYOUT_CELLS, ...cells }),
-    defaults: { sortOrder: "height-desc", samples: 48 },
+    defaults: { ...defaults },
     deterministic: true,
     pack(input, options, context) {
       assertSupported(self.supports, input);
       const o = { ...self.defaults, ...options };
       switch (input.container.fixed) {
         case "height":
-          return viaAxes(input, context.previous, (turned) => packFixedWidth(id, turned, o));
+          return viaAxes(input, context.previous, (turned) => packFixedWidth(id, turned, o, true));
         case "none":
           return logSweep.search(input, self, context, o);
         default:
@@ -115,6 +161,9 @@ function layoutStrategy(
   return self;
 }
 
+/** The defaults of `rows`, `skyline` and `shelf`. */
+const LAYOUT_DEFAULTS: LayoutStrategyOptions = { sortOrder: "height-desc", samples: 48 };
+
 /**
  * The strategy `rows` uses `packRows`: a guillotine row packing with a recursive gap fill. With obstacles, locked items or a
  * container shape, the rows go around the holes of the free space and lose the gap fill. Turnable items, groups and item
@@ -123,7 +172,7 @@ function layoutStrategy(
 export const rows: Strategy<LayoutStrategyOptions> = layoutStrategy("rows", "shelf", ["rows-gap-fill", "rows-input"], {
   obstacleMove: ["fixed"],
   order: ["free", "soft", "hard"],
-});
+}, LAYOUT_DEFAULTS);
 
 /**
  * The strategy `skyline` uses `packSkyline`: each item goes to the lowest place where it fits. It packs around the
@@ -132,7 +181,7 @@ export const rows: Strategy<LayoutStrategyOptions> = layoutStrategy("rows", "she
 export const skyline: Strategy<LayoutStrategyOptions> = layoutStrategy("skyline", "skyline", ["skyline-bl"], {
   obstacleMove: ["fixed"],
   order: ["free", "soft"],
-});
+}, LAYOUT_DEFAULTS);
 
 /**
  * The strategy `shelf` uses `packShelf`: rows filled left to right, around the locked items and the fixed obstacles.
@@ -142,22 +191,38 @@ export const skyline: Strategy<LayoutStrategyOptions> = layoutStrategy("skyline"
 export const shelf: Strategy<LayoutStrategyOptions> = layoutStrategy("shelf", "shelf", ["shelf-nf", "shelf-nfdh"], {
   obstacleMove: ["fixed"],
   order: ["free", "soft", "hard"],
-});
+}, LAYOUT_DEFAULTS);
+
+/**
+ * The strategy `maxrects` uses `packMaxRects`: the MaxRects packer of roadmap item k24. It keeps the list of the maximal
+ * free rectangles, and the option `rule` chooses the free rectangle for each item. The default rule is `bssf`.
+ *
+ * - The free rectangles go around the locked items and the fixed obstacles. A plain rectangle container gives exact free
+ *   rectangles. Another shape gives an inner approximation with horizontal bands.
+ * - With `rotate`, each turnable item that is not locked can turn by 90 degrees. Groups and item shapes throw `UnsupportedCell`.
+ */
+export const maxrects: Strategy<MaxRectsStrategyOptions> = layoutStrategy(
+  "maxrects",
+  "maxrects",
+  ["maxrects-bssf", "maxrects-blsf", "maxrects-baf", "maxrects-bl", "maxrects-cp", "maxrects-locked"],
+  { obstacleMove: ["fixed"], order: ["free", "soft"], rotation: ["none", "quarter"] },
+  { ...LAYOUT_DEFAULTS, rule: "bssf", rotate: false },
+);
 
 /**
  * The size search `log-sweep` uses `packFree` of 0.1.2: widths on a log scale, then the widths near the best width. It
- * wraps `rows`, `skyline` and `shelf`. The objective is the area of the frame times `1 + aspectWeight * aspectError`.
+ * wraps `rows`, `skyline`, `shelf` and `maxrects`. The objective is the area of the frame times `1 + aspectWeight * aspectError`.
  */
 export const logSweep: SizeSearch = {
   id: "log-sweep",
   search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput {
     if (input.container.fixed !== "none") return inner.pack(input, options ?? inner.defaults, context);
     const id = inner.id;
-    if (id !== "rows" && id !== "skyline" && id !== "shelf") throw new UnsupportedCell("containerSize", cellOf(input).containerSize);
-    const o = { ...(inner.defaults as LayoutStrategyOptions), ...(options as Partial<LayoutStrategyOptions> | undefined) };
+    if (id !== "rows" && id !== "skyline" && id !== "shelf" && id !== "maxrects") throw new UnsupportedCell("containerSize", cellOf(input).containerSize);
+    const o = { ...(inner.defaults as AnyLayoutOptions), ...(options as Partial<AnyLayoutOptions> | undefined) };
     const start = now();
-    const frame = buildFrame(input);
-    const fit = fitOf(id, o);
+    const frame = buildFrame(input, false, id === "maxrects" && o.rotate === true);
+    const extras = extrasOf(id, o, frame);
     const result = packFree(rectsOf(frame), new Rect<number>(), {
       strategy: id,
       sortOrder: o.sortOrder,
@@ -165,16 +230,16 @@ export const logSweep: SizeSearch = {
       samples: o.samples,
       aspect: input.container.aspect ?? 1,
       aspectWeight: input.container.aspectWeight ?? 1,
-      ...fit,
+      ...extras,
     });
     const ms = now() - start;
     const runs = result.tried.length + 1;
-    const output = readFrame(input, frame, []);
+    const output = readFrame(input, frame, [], [], turnsOf(extras, false));
     return {
       ...output,
       trace: [
         { id: "log-sweep", ms, measures: { "pack.search.widths": result.tried.length, "pack.search.ms": ms } },
-        { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length, ...movesOf(id, fit) } },
+        { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length, ...movesOf(id, extras) } },
       ],
     };
   },

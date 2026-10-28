@@ -59,7 +59,7 @@ const goodRecords = (): BenchRecord[] => [
   ...INPUTS.map((i) => skippedRecord("push", i)),
 ];
 /** The entries with the gate of the coverage 1: 3 strategies and the 4 variants of the shelf family */
-const GATED = ["rows", "shelf", "skyline", "shelf-next", "shelf-first", "shelf-best", "shelf-first-input"];
+const GATED = ["rows", "shelf", "skyline", "shelf-next", "shelf-first", "shelf-best", "shelf-first-input", "maxrects-bssf", "maxrects-blsf", "maxrects-baf", "maxrects-bl", "maxrects-cp"];
 
 const goodRun = (): BenchRun => ({
   schema: "packing-bench-run/1",

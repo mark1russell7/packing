@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { strategies } from "@mark1russell7/packing";
-import { ENTRIES, entry, SHELF_VARIANTS } from "./entries.ts";
+import { ENTRIES, entry, MAXRECTS_VARIANTS, SHELF_VARIANTS } from "./entries.ts";
 import {
   checkPrediction,
   isMeasured,
@@ -126,9 +126,9 @@ describe("the benchmark runner", () => {
     expect(measured.filter((r) => r.strategy === "push")).toEqual([]);
     expect(skips.filter((r) => r.strategy === "push")).toHaveLength(inputs.length);
     expect(skips.some((r) => r.strategy === "push" && r.skipped === "unsupported mode: offline")).toBe(true);
-    // rows, skyline and shelf pack a circle container and the obstacles
+    // rows, skyline, shelf and maxrects pack a circle container and the obstacles
     const circle = inputs.find((id) => id.includes(".circle."))!;
-    expect(measured.filter((r) => r.input === circle).map((r) => r.strategy)).toEqual(["rows", "skyline", "shelf", ...SHELF_VARIANTS.map((v) => v.id)]);
+    expect(measured.filter((r) => r.input === circle).map((r) => r.strategy)).toEqual(["rows", "skyline", "shelf", ...SHELF_VARIANTS.map((v) => v.id), ...MAXRECTS_VARIANTS.map((v) => v.id)]);
     expect(skips.filter((r) => r.strategy !== "push")).toEqual([]);
   });
 
@@ -248,7 +248,8 @@ describe("the benchmark runner", () => {
     expect(() => parseCorpus('{"schema":"layout-input/1"}')).toThrow(/layout-corpus\/1/);
     expect(() => parseCorpus(corpusFile("smoke-v1"), "other")).toThrow(/has the name/);
     expect(strategyIds("all")).toEqual(ENTRIES.map((e) => e.id));
-    expect(strategyIds("all").slice(0, strategies.length)).toEqual(strategies.map((s) => s.id));
+    const registered = strategies.map((s) => s.id).filter((id) => id !== "maxrects");
+    expect(strategyIds("all").slice(0, registered.length)).toEqual(registered);
     expect(strategyIds("shelf-best,shelf")).toEqual(["shelf-best", "shelf"]);
     expect(strategyIds(" shelf, rows ,shelf")).toEqual(["shelf", "rows"]);
     expect(() => strategyIds("nope")).toThrow(RangeError);

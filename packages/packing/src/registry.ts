@@ -1,9 +1,9 @@
-import { push, rows, shelf, skyline } from "./adapters.ts";
+import { maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { createContext, type Strategy } from "./strategy.ts";
 
 /** Each strategy of the package. The benchmark starts each one on each input of the corpus. */
-export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push] as Strategy[]);
+export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects] as Strategy[]);
 
 /** This function gives the strategy with an id. It throws a `RangeError` for an id that the registry does not have. */
 export function strategy(id: string): Strategy {

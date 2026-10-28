@@ -346,7 +346,7 @@ export function spaceOf(input: PackInput, frame: Frame): FreeSpace {
   const across = transposeLayer(layer);
 
   const band = (y0: number, y1: number): FreeSpan[] => spansOf(layer, y0, y1).map(([start, end]) => ({ start, end }));
-  return {
+  const space: FreeSpace = {
     w: frame.w,
     h: frame.h,
     plain,
@@ -368,6 +368,41 @@ export function spaceOf(input: PackInput, frame: Frame): FreeSpace {
       return nextOf(layer, y0, y1, w);
     },
   };
+  const bare: Layer = { ...layer, holes: [] };
+  let bottom = 0;
+  for (const b of blockers) bottom = Math.max(bottom, b.c1 + Math.max(0, b.g));
+  PARTS.set(space, {
+    kind: layer.kind,
+    d,
+    holes: holes.map((r) => ({ x: r.a0, y: r.c0, w: r.a1 - r.a0, h: r.c1 - r.c0 })),
+    bottom: Number.isFinite(frame.h) ? frame.h : bottom,
+    bare: (y0, y1) => spansOf(bare, y0, y1).map(([start, end]) => ({ start, end })),
+  });
+  return space;
+}
+
+/**
+ * The parts of a free space of `spaceOf`. The packer `maxrects` reads them to make its first free rectangles. The
+ * package root does not export them.
+ */
+export interface SpaceParts {
+  /** The kind of the outline: `plain`, `box`, `round` or `rings`. */
+  readonly kind: "plain" | "box" | "round" | "rings";
+  /** The growth of a query for the outline: the inset less half the gap. */
+  readonly d: number;
+  /** The rectangle holes: the locked items and the rectangle obstacles, in the coordinates of the frame. */
+  readonly holes: readonly SpaceRect[];
+  /** The height to cut into bands. A fixed height gives the height. A free height gives the lowest edge of the blockers. */
+  readonly bottom: number;
+  /** This method gives the free x-spans of the outline and the blockers from `y0` to `y1`, without the rectangle holes. */
+  bare(y0: number, y1: number): FreeSpan[];
+}
+
+const PARTS = new WeakMap<FreeSpace, SpaceParts>();
+
+/** This function gives the parts of a free space of `spaceOf`, or `undefined` for another free space. */
+export function spaceParts(space: FreeSpace): SpaceParts | undefined {
+  return PARTS.get(space);
 }
 
 /**

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.5
+
+The MaxRects family of roadmap item k24. This release has no breaking changes.
+
+### New
+
+- The strategy `maxrects` and the function `packMaxRects` pack with a list of maximal free rectangles. `pack` takes `strategy: "maxrects"`.
+- The option `rule` is `bssf` (the default), `blsf`, `baf`, `bl` or `cp`. `MAXRECTS_RULES` and the type `MaxRectsRule` list them.
+- Each rule has its move: `move.bssf`, `move.blsf`, `move.baf` and `move.cp` count a place that the rule `bl` does not choose.
+- The move of `bl` is `move.split`: a box that cuts 2 free rectangles or more. Each rule also counts it.
+- A plain rectangle gets exact free rectangles. Another container shape gets an inner approximation with bands.
+- The option `bandHeight` sets the largest height of a band. The default is the height divided by `MAXRECTS_BANDS` (128).
+- The locked items and the obstacles are walls. With a fixed size, a box with no place goes to the overflow.
+- The option `rotate` of the strategy `maxrects` turns a box with `turnable` a quarter turn when the turn gives a better score.
+- The bench has the entries `maxrects-bssf`, `maxrects-blsf`, `maxrects-baf`, `maxrects-bl` and `maxrects-cp`. Their base is `maxrects-bl`.
+- The smoke check needs the coverage 1 for each of these entries.
+- The ranking of the bench gives a fill tie group to the neighbour entries with a fill within 0.005. The summary marks each tie.
+
+### The outputs
+
+- The placements of each other strategy do not change. The fixture `bench/fixtures/rect-hashes.json` still pins them.
+
 ## 0.2.4
 
 The shelf family of roadmap item k21, and one name for the area bound. This release has no breaking changes.

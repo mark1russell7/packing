@@ -44,8 +44,16 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `shelf-first` | `shelf` | `fit: "first"`, `sortOrder: "height-desc"` | `shelf` |
 | `shelf-best` | `shelf` | `fit: "best"`, `sortOrder: "height-desc"` | `shelf` |
 | `shelf-first-input` | `shelf` | `fit: "first"`, `sortOrder: "input"` | `shelf` |
+| `maxrects-bssf` | `maxrects` | `rule: "bssf"` | `maxrects-bl` |
+| `maxrects-blsf` | `maxrects` | `rule: "blsf"` | `maxrects-bl` |
+| `maxrects-baf` | `maxrects` | `rule: "baf"` | `maxrects-bl` |
+| `maxrects-bl` | `maxrects` | `rule: "bl"` | none |
+| `maxrects-cp` | `maxrects` | `rule: "cp"` | `maxrects-bl` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
+- The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
+- The strategy `maxrects` has no entry of its own, because its defaults are the entry `maxrects-bssf`.
+- The base of a rule is `maxrects-bl`, because the move of each other rule is a place that `bl` does not choose.
 - The base of a variant is the same strategy without the options of the variant. The activation compares the outputs of a variant and its base.
 - An entry of the registry gets no options from the runner. A variant gets the defaults of its strategy, with its options over them.
 
@@ -219,6 +227,13 @@ The ranking compares the strategies in each container shape in two steps. A stra
 2. The entries within the minimum effect of the best entry make tie group 1. The minimum effect is 0.005, from `MEASURE_SPECS` and `compareMeasure` of the contract.
 3. The other entries make tie groups 2, 3 and more, by the same rule. Each group starts at its best remaining entry.
 4. Step 2 orders each tie group by the median `pack.fill` on the common clean inputs. Higher is better.
+5. Neighbour entries of one tie group share a fill tie group when their fills are within the minimum effect of `pack.fill`.
+
+The minimum effect of `pack.fill` is 0.005, from `MEASURE_SPECS` and `compareMeasure` of the contract. A fill tie group is a chain:
+
+- Each entry of the chain is within 0.005 of the next entry. Thus the first and the last entry can be more than 0.005 apart.
+- The order in a fill tie group is a tie. The fill does not separate these entries.
+- An entry with no fill tie has no field `fillTie`. The summary shows `-` for it, and `tie <n>` for an entry of group `n`.
 
 A common clean input of a shape has a measured record with `pack.overflow` 0 for each measured strategy of the shape. Thus the fill of step 2 is a paired comparison.
 
@@ -237,6 +252,7 @@ Each entry has these fields:
 | `excessArea` | Step 1: the median `pack.overflow.excessArea`. |
 | `tieGroup` | The tie group of step 1, from 1. |
 | `fill` | Step 2: the median `pack.fill` on the common clean inputs. |
+| `fillTie` | The fill tie group of step 2, from 1. Only an entry with a fill tie has it. |
 | `diagnosticCleanFill` | A diagnostic: the median `pack.fill` of the records of the entry with no overflow. It is not paired. |
 
 ### Fill without overflow
@@ -277,6 +293,13 @@ Each strategy counts its characteristic move, and its trace holds the count. The
 | `shelf-best` | `move.bestFit` | A box goes on a shelf that is not the first shelf where it fits, because that shelf has less height left over. |
 | `skyline` | `move.lowerWindow` | The skyline puts a box in a lower window, not in the leftmost window where it fits. |
 | `push` | `move.cascade` | A push cascade moves a box. |
+| `maxrects-bssf` | `move.bssf` | The rule `bssf` puts a box in a place that the rule `bl` does not choose. |
+| `maxrects-blsf` | `move.blsf` | The rule `blsf` puts a box in a place that the rule `bl` does not choose. |
+| `maxrects-baf` | `move.baf` | The rule `baf` puts a box in a place that the rule `bl` does not choose. |
+| `maxrects-bl` | `move.split` | A box cuts 2 free rectangles or more. |
+| `maxrects-cp` | `move.cp` | The rule `cp` puts a box in a place that the rule `bl` does not choose. |
+
+The trace of each `maxrects` entry also has `move.split`. The activation reads only the move of the entry.
 
 A strategy is `exercised` when its count is above 0 on 1 input or more. Else it is `not-exercised`, and `reason` tells why. The activation also has one cell for each container shape.
 
