@@ -2,6 +2,7 @@
 // container, then the obstacles, then the boxes. Each step has its own random numbers: `mulberry32` of
 // `fnv1a32("<seed>:<step>")`. Thus a packing input and a routing input with the same seed get the same obstacles.
 
+import { sharedDimension, type CorpusDimension, type CorpusFamily, type CrossEngine, type DimensionValues, type GenerateContext } from "@mark1russell7/layout-contract";
 import type { Item, LayoutContainer, Obstacle, Region } from "./contract.ts";
 import {
   countCell,
@@ -912,3 +913,170 @@ export function generator(name: string, version?: number): CorpusGenerator {
   if (found === undefined) throw new RangeError(`The generator "${name}" has the versions ${named.map((g) => g.version).join(", ")}, not ${version}.`);
   return found;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The corpus families: each generator as a `CorpusFamily` of the shared registry of `layout-contract` (`docs/CORPUS.md`).
+
+/** The largest count of the dimension `count` of a family. */
+const MAX_FAMILY_COUNT = 10_000;
+
+/**
+ * The knobs of each family: `margin`, `gap` and `shape`. A knob at its default adds no field to the input, so the hash
+ * does not change. The generators make rectangle items only, so a sweep of `shape` gives `rect` only.
+ */
+const KNOBS: readonly CorpusDimension[] = Object.freeze([
+  sharedDimension("margin"),
+  sharedDimension("gap"),
+  sharedDimension("shape", { levels: ["rect"], meaning: "The shape kind of each item. The generators of packing make rectangle items only." }),
+]);
+
+/** The seeding of the 3 steps of a generator. */
+const SEEDING = "stepRandom(seed, container) gives the container and its shape. stepRandom(seed, obstacles) gives the obstacles. stepRandom(seed, boxes) gives the boxes.";
+
+/** This function gives the dimension `count` of a generator, with the default of the generator, from 0 to 10000 on a log scale. */
+const countDimension = (value: number, patch: Partial<CorpusDimension> = {}): CorpusDimension =>
+  sharedDimension("count", { max: MAX_FAMILY_COUNT, default: value, ...patch });
+
+/** This function gives an `enum` dimension of the shared table with the values of a generator and its default. */
+const enumDimension = (name: string, values: readonly string[], value: string): CorpusDimension =>
+  sharedDimension(name, { values: Object.freeze([...values]), default: value });
+
+/** This function gives the number of a dimension. It throws a `RangeError` for a value that is not a finite number. */
+const numberOf = (dims: DimensionValues, name: string): number => {
+  const v = dims[name];
+  if (typeof v !== "number" || !Number.isFinite(v)) throw new RangeError(`The dimension "${name}" is a number, not ${String(v)}.`);
+  return v;
+};
+
+/**
+ * This function gives an input with the knobs over it. A margin above 0 goes on each box, and a gap above 0 goes on the
+ * input. Each value above 0 adds a part to the family: `.m<margin>` and `.g<gap>`. Then the id and the hash change.
+ * The function throws a `RangeError` for a shape other than `rect`.
+ */
+function withKnobs(file: GeneratedInput, dims: DimensionValues): GeneratedInput {
+  if (dims["shape"] !== "rect") throw new RangeError(`The generators of packing make rectangle items only, not the shape "${String(dims["shape"])}".`);
+  const margin = round3(numberOf(dims, "margin"));
+  const gap = round3(numberOf(dims, "gap"));
+  if (margin === 0 && gap === 0) return file;
+  const { hash: _hash, ...rest } = file;
+  const family = `${rest.family}${margin === 0 ? "" : `.m${margin}`}${gap === 0 ? "" : `.g${gap}`}`;
+  const body: Omit<GeneratedInput, "hash"> = {
+    ...rest,
+    id: `${rest.set}/${family}/s${rest.seed}`,
+    family,
+    boxes: margin === 0 ? rest.boxes : rest.boxes.map((b) => ({ ...b, margin })),
+    ...(gap === 0 ? {} : { gap }),
+  };
+  return { ...body, hash: hashInput(body) };
+}
+
+/** The data of a family, after its generator. */
+interface FamilySpec {
+  meaning: string;
+  /** The dimensions of the parameters of the generator, in the order of its defaults. */
+  dimensions: readonly CorpusDimension[];
+  crossEngine: CrossEngine;
+  seeding?: string;
+}
+
+/**
+ * This function makes the family of a generator. Its dimensions are the parameters of the generator, then the knobs.
+ * `generate` gives the input of the generator with the set of the context, then the knobs over it.
+ */
+function familyOf<P extends GeneratorParams>(gen: CorpusGenerator<P>, spec: FamilySpec): CorpusFamily<GeneratedInput> {
+  const keys = Object.keys(gen.defaults);
+  const names = spec.dimensions.map((d) => d.name);
+  if (keys.join() !== names.join()) throw new RangeError(`The family "${gen.name}" has the dimensions ${names.join(", ")}, not the parameters ${keys.join(", ")}.`);
+  return Object.freeze({
+    name: gen.name,
+    version: gen.version,
+    owner: "packing",
+    meaning: spec.meaning,
+    dimensions: Object.freeze([...spec.dimensions, ...KNOBS]),
+    seeding: spec.seeding ?? SEEDING,
+    crossEngine: spec.crossEngine,
+    generate(seed: number, dims: DimensionValues, context: GenerateContext): GeneratedInput {
+      const params = Object.fromEntries(keys.map((k) => [k, dims[k]])) as Partial<P>;
+      return withKnobs(gen.generate(seed, params, context.set), dims);
+    },
+  });
+}
+
+/** The dimensions of `rect-grid` version 1. */
+const GRID_DIMENSIONS: readonly CorpusDimension[] = [
+  enumDimension("containerSize", CONTAINER_SIZES, "fixed"),
+  enumDimension("containerShape", CONTAINER_SHAPES, "rect"),
+  enumDimension("obstacles", OBSTACLE_LAYOUTS, "none"),
+  enumDimension("sizes", SIZE_DISTRIBUTIONS, "uniform"),
+  countDimension(100),
+];
+
+/** The family `rect-grid`, version 1. It is `libm-dependent`, because the sizes `heavyTail` use `**`. */
+export const rectGridFamily: CorpusFamily<GeneratedInput> = familyOf(rectGrid, {
+  meaning: "Rectangle boxes for each container size, container shape, obstacle layout, size distribution and count.",
+  dimensions: GRID_DIMENSIONS,
+  crossEngine: "libm-dependent",
+});
+
+/** The family `rect-grid`, version 2: version 1 with the dimension `order`. Only version 2 has `order`. */
+export const rectGridV2Family: CorpusFamily<GeneratedInput> = familyOf(rectGridV2, {
+  meaning: "The inputs of rect-grid version 1, with no order or with a rank on each box.",
+  dimensions: [...GRID_DIMENSIONS.slice(0, 4), enumDimension("order", GRID_ORDERS, "free"), GRID_DIMENSIONS[4]!],
+  crossEngine: "libm-dependent",
+  seeding: `${SEEDING} stepRandom(seed, order) gives the ranks of the order soft.`,
+});
+
+/** This function gives the dimensions of a family of a user interface: `containerSize` and `count`. */
+const uiDimensions = (count: number): CorpusDimension[] => [enumDimension("containerSize", CONTAINER_SIZES, "freeHeight"), countDimension(count)];
+
+/** The family `gallery`, version 1. */
+export const galleryFamily: CorpusFamily<GeneratedInput> = familyOf(gallery, {
+  meaning: "Thumbnails with one size and one aspect, as in a photo gallery.",
+  dimensions: uiDimensions(100),
+  crossEngine: "exact",
+});
+
+/** The family `dashboard`, version 1. */
+export const dashboardFamily: CorpusFamily<GeneratedInput> = familyOf(dashboard, {
+  meaning: "Dashboard tiles in 6 standard sizes of grid units.",
+  dimensions: uiDimensions(10),
+  crossEngine: "exact",
+});
+
+/** The family `cards`, version 1. */
+export const cardsFamily: CorpusFamily<GeneratedInput> = familyOf(cards, {
+  meaning: "Cards with one width and a different height each.",
+  dimensions: uiDimensions(100),
+  crossEngine: "exact",
+});
+
+/** The family `word-cloud`, version 1. */
+export const wordCloudFamily: CorpusFamily<GeneratedInput> = familyOf(wordCloud, {
+  meaning: "Boxes of text in 6 font sizes: many small words and few large words.",
+  dimensions: uiDimensions(100),
+  crossEngine: "exact",
+});
+
+/** The family `edge-cases`, version 1. The cases `empty` and `one` ignore `count`, so `count` has a `when`. */
+export const edgeCasesFamily: CorpusFamily<GeneratedInput> = familyOf(edgeCases, {
+  meaning: "The inputs at the limits: no box, one box, an oversize box, an exact tiling and boxes that touch obstacles.",
+  dimensions: [
+    { name: "case", kind: "enum", values: EDGE_CASES, default: "oversize", meaning: "The case at the limits.", engines: ["packing"] },
+    countDimension(12, { when: { param: "case", in: ["oversize", "exactTiling", "touchObstacles"] } }),
+  ],
+  crossEngine: "exact",
+});
+
+/**
+ * Each corpus family of the package, for `createFamilyRegistry` of `layout-contract`. An import registers nothing.
+ * The family `rect-scattered` is not in the list: `RECT_SCATTERED` of `layout-contract` is its shared copy.
+ */
+export const corpusFamilies: readonly CorpusFamily<GeneratedInput>[] = Object.freeze([
+  rectGridFamily,
+  rectGridV2Family,
+  galleryFamily,
+  dashboardFamily,
+  cardsFamily,
+  wordCloudFamily,
+  edgeCasesFamily,
+]);

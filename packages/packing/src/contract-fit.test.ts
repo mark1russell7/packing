@@ -140,11 +140,12 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<Alias<P.Supports>>().toEqualTypeOf<P.Supports>();
   });
 
-  it("a record of the benchmark runner, measured or skipped, fits the record of the contract with no difference of fields", () => {
+  it("a record of the benchmark runner, measured or skipped, fits the record of the contract with one difference of fields: shapes", () => {
     expectTypeOf<B.MeasuredRecord>().toExtend<C.LayoutRecord>();
     expectTypeOf<B.SkippedRecord>().toExtend<C.LayoutRecord>();
     expectTypeOf<B.BenchRecord>().toExtend<C.LayoutRecord>();
-    expectTypeOf<Exclude<keyof C.LayoutRecord, keyof B.MeasuredRecord>>().toEqualTypeOf<never>();
+    // Open gap of L46: the record of the contract has the optional field `shapes`, and the runner does not write it yet.
+    expectTypeOf<Exclude<keyof C.LayoutRecord, keyof B.MeasuredRecord>>().toEqualTypeOf<"shapes">();
     expectTypeOf<Exclude<keyof B.MeasuredRecord, keyof C.LayoutRecord>>().toEqualTypeOf<never>();
     expectTypeOf<Exclude<keyof B.SkippedRecord, keyof C.LayoutRecord>>().toEqualTypeOf<never>();
     expectTypeOf<B.SkippedRecord["skipped"]>().toEqualTypeOf<NonNullable<C.LayoutRecord["skipped"]>>();

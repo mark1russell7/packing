@@ -1,7 +1,10 @@
+import { createFamilyRegistry } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   cellOf,
   checkHard,
+  corpusFamilies,
+  rectScattered,
   edgeCases,
   gallery,
   generator,
@@ -442,6 +445,29 @@ describe("the coverage of the generators", () => {
     expect([...seen["containerShape"]!].sort()).toEqual(["circle", "convex", "ellipse", "holes", "polygon", "rect"]);
     expect([...seen["containerSize"]!].sort()).toEqual(["fixed", "freeArea", "freeAspect", "freeHeight", "freeWidth"]);
     expect([...seen["order"]!].sort()).toEqual(["free", "soft"]);
+  });
+});
+
+// Roadmap item k73: each family of `corpusFamilies` through the registry of layout-contract gives the corpus-v1 hashes of today.
+describe("the corpus families through the registry", () => {
+  const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
+  const cases = CASES.filter((c) => c.gen !== rectScattered);
+
+  it("has one family for each generator other than rect-scattered, in the order of the generators", () => {
+    expect(corpusFamilies.map((f) => `${f.name}@${f.version}`)).toEqual(generators.filter((g) => g !== rectScattered).map((g) => `${g.name}@${g.version}`));
+    expect(registry.families()).toEqual(corpusFamilies);
+  });
+
+  it.each(cases.map((c) => [label(c), c] as const))("gives the pinned corpus-v1 hash and the same bytes as the generator: %s", (_, c) => {
+    const file = registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: "corpus-v1" });
+    expect(file.hash, file.id).toBe(HASHES[file.id]);
+    expect(JSON.stringify(file)).toBe(JSON.stringify(c.gen.generate(1, c.params)));
+    expect(registry.generate(c.gen.name, 1, c.params, { version: c.gen.version }).hash).toBe(file.hash);
+  });
+
+  it("covers each pinned corpus-v1 hash", () => {
+    const ids = cases.map((c) => registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: "corpus-v1" }).id);
+    expect(ids.toSorted()).toEqual(Object.keys(HASHES).filter((id) => id.startsWith("corpus-v1/")).toSorted());
   });
 });
 
