@@ -118,7 +118,7 @@ function makeCase(seed: number, kind: OuterKind): Case {
 function copyCase(c: Case): Case {
   const rects = c.rects.map((r) => {
     const copy = new Rect<number>();
-    copy.id = r.id;
+    if (r.id !== undefined) copy.id = r.id;
     copy.size.setTo(r.size);
     copy.position.setTo(r.position);
     copy.locked = r.locked;

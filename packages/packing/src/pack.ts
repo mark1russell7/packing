@@ -57,7 +57,7 @@ let lowest: { list: unknown[]; height: Float64Array; width: Float64Array } | und
  * itself, and it skips each placed rectangle. Thus it does the same steps as with a filter of the list.
  *
  * The rectangles that it places are the entries of `placedLog` after `start`. A translation of one rectangle does not
- * change another rectangle, thus the order of the log gives the same positions as the order of the list.
+ * change another rectangle. Thus the order of the log gives the same positions as the order of the list.
  */
 function packInto<T>(byOrder: Rect<T>[], region: Rect<T>, offset: Vector, order: SortOrder): void {
   const start = placedLog.length;
@@ -78,9 +78,11 @@ function packInto<T>(byOrder: Rect<T>[], region: Rect<T>, offset: Vector, order:
  * before each check of the height of `outer`.
  *
  * In a region with a fixed size, the loop stops when each rectangle from the index to the end is too wide or too tall.
- * The proof: the loop skips such a rectangle. A row break before it starts a gap fill in a region that is not wider
- * than the current region and not taller than the current row. Thus the gap fill places none of these rectangles, and
- * the rest of the loop places nothing. `lowest` holds the bounds only when no size is less than 0.
+ * The proof: the loop skips such a rectangle. A row break before it starts a gap fill. The region of that gap fill is
+ * not wider than the current region and not taller than the current row. Thus the gap fill places none of these rectangles.
+ * The rest of the loop places nothing.
+ *
+ * `lowest` holds the bounds only when no size is less than 0.
  */
 function packRow<T>(byOrder: Rect<T>[], outer: Rect<T>, order: SortOrder, checks?: number[]): boolean {
   const row: Rect<T>[] = [];
@@ -219,12 +221,13 @@ function packRowsOnce<T>(byOrder: Rect<T>[], outer: Rect<T>, order: SortOrder): 
 }
 
 /**
- * This function gives the height of the last try of the old loop, and the number of tries, from the checks of one try
- * with no height limit.
+ * This function reads the checks of one try with no height limit. It gives the height of the last try of the old loop,
+ * and the number of tries.
  *
  * The proof: the height limit changes only the result of the checks. Thus a try with the limit `L` does the same steps
- * as the try with no limit, up to its first check `y + h > L`. That try stops there, and the next limit is `L + h`. A
- * check that passed with `L` passes again with a larger limit. Thus the first check that stops a try moves only forward
+ * as the try with no limit, up to its first check `y + h > L`. That try stops there, and the next limit is `L + h`.
+ *
+ * A check that passed with `L` passes again with a larger limit. Thus the first check that stops a try moves only forward
  * in the list. The last try has the positions of the try with no limit, because no check stops it. The old loop
  * reset each rectangle that is not locked before a new try. Thus the first try has the same start only when no such
  * rectangle is placed at the start.
