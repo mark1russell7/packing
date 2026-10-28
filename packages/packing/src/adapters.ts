@@ -8,6 +8,7 @@ import { pack } from "./pack.ts";
 import { pushCascade } from "./push.ts";
 import { Rect } from "./rect.ts";
 import { packSkyline } from "./skyline.ts";
+import { spaceOf } from "./space.ts";
 import { assertSupported, cellOf, UnsupportedCell, type PackContext, type SizeSearch, type Strategy, type Supports } from "./strategy.ts";
 
 /** The options of the strategies `rows`, `skyline` and `shelf`. */
@@ -26,10 +27,13 @@ export interface PushStrategyOptions {
   maxShovesPerItem: number;
 }
 
-/** The cells of `rows`, `skyline` and `shelf`, without the movement of the obstacles. */
+/**
+ * The cells of `rows`, `skyline` and `shelf`, without the movement of the obstacles. The container layer of `src/space.ts`
+ * gives them each container shape.
+ */
 const LAYOUT_CELLS = {
   containerSize: ["fixed", "freeHeight", "freeWidth", "freeAspect", "freeArea"],
-  containerShape: ["rect"],
+  containerShape: ["rect", "convex", "polygon", "circle", "ellipse", "holes"],
   itemShape: ["rect"],
   rotation: ["none"],
   groups: ["none"],
@@ -55,7 +59,7 @@ function packFixedWidth(id: "rows" | "skyline" | "shelf", input: PackInput, opti
   const start = now();
   const frame = buildFrame(input);
   const rects = rectsOf(frame);
-  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder });
+  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, space: spaceOf(input, frame) });
   const output = readFrame(input, frame, []);
   return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length } }] };
 }
@@ -91,17 +95,18 @@ function layoutStrategy(
 }
 
 /**
- * The strategy `rows` uses `packRows`: a guillotine row packing with a recursive gap fill. It supports no obstacle and
- * no locked item, because `packRows` does not go around them. Turnable items, groups and shapes throw `UnsupportedCell`.
+ * The strategy `rows` uses `packRows`: a guillotine row packing with a recursive gap fill. With obstacles, locked items or a
+ * container shape, the rows go around the holes of the free space and lose the gap fill. Turnable items, groups and item
+ * shapes throw `UnsupportedCell`.
  */
 export const rows: Strategy<LayoutStrategyOptions> = layoutStrategy("rows", "shelf", ["rows-gap-fill", "rows-input"], {
-  obstacleMove: [],
+  obstacleMove: ["fixed"],
   order: ["free", "soft", "hard"],
 });
 
 /**
  * The strategy `skyline` uses `packSkyline`: each item goes to the lowest place where it fits. It packs around the
- * locked items and the fixed obstacles. Turnable items, groups and shapes throw `UnsupportedCell`.
+ * locked items and the fixed obstacles, in each container shape. Turnable items, groups and item shapes throw `UnsupportedCell`.
  */
 export const skyline: Strategy<LayoutStrategyOptions> = layoutStrategy("skyline", "skyline", ["skyline-bl"], {
   obstacleMove: ["fixed"],
@@ -110,7 +115,7 @@ export const skyline: Strategy<LayoutStrategyOptions> = layoutStrategy("skyline"
 
 /**
  * The strategy `shelf` uses `packShelf`: rows filled left to right, around the locked items and the fixed obstacles.
- * With the sort order `input`, the rows keep the rank order. Turnable items, groups and shapes throw `UnsupportedCell`.
+ * With the sort order `input`, the rows keep the rank order. Turnable items, groups and item shapes throw `UnsupportedCell`.
  */
 export const shelf: Strategy<LayoutStrategyOptions> = layoutStrategy("shelf", "shelf", ["shelf-nf", "shelf-nfdh"], {
   obstacleMove: ["fixed"],
@@ -133,6 +138,7 @@ export const logSweep: SizeSearch = {
     const result = packFree(rectsOf(frame), new Rect<number>(), {
       strategy: id,
       sortOrder: o.sortOrder,
+      space: spaceOf(input, frame),
       samples: o.samples,
       aspect: input.container.aspect ?? 1,
       aspectWeight: input.container.aspectWeight ?? 1,

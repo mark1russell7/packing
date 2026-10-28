@@ -125,11 +125,10 @@ describe("the benchmark runner", () => {
     expect(measured.filter((r) => r.strategy === "push")).toEqual([]);
     expect(skips.filter((r) => r.strategy === "push")).toHaveLength(inputs.length);
     expect(skips.some((r) => r.strategy === "push" && r.skipped === "unsupported mode: offline")).toBe(true);
-    // No strategy supports a circle container yet
+    // rows, skyline and shelf pack a circle container and the obstacles
     const circle = inputs.find((id) => id.includes(".circle."))!;
-    expect(measured.filter((r) => r.input === circle)).toEqual([]);
-    // rows does not go around obstacles
-    expect(skips.some((r) => r.strategy === "rows" && r.skipped.startsWith("unsupported obstacleMove:"))).toBe(true);
+    expect(measured.filter((r) => r.input === circle).map((r) => r.strategy)).toEqual(["rows", "skyline", "shelf"]);
+    expect(skips.filter((r) => r.strategy !== "push")).toEqual([]);
   });
 
   it("gives the search measures of a free size from the trace", () => {

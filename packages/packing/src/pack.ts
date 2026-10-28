@@ -1,13 +1,19 @@
 import { compareRects, type SortOrder } from "./order.ts";
 import { Rect } from "./rect.ts";
-import { packShelf } from "./shelf.ts";
+import { packRowsInSpace, packShelf } from "./shelf.ts";
 import { packSkyline } from "./skyline.ts";
+import type { FreeSpace } from "./space.ts";
 import { Vector } from "./vector.ts";
 
 /** The options of `pack` and `packRows` */
 export interface PackOptions {
   /** The order of the rectangles before the packing. The default is `height-desc`. */
   sortOrder?: SortOrder;
+  /**
+   * The free space of the container: `freeSpace` of the input. With a space that is not plain, each strategy packs into
+   * the outline of the container and around its holes. The rows of `packRows` also go around the locked rectangles.
+   */
+  space?: FreeSpace;
 }
 
 /** The options of `pack` */
@@ -85,9 +91,14 @@ function packRow<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrder): boolean
  * This function packs rectangles into an outer rectangle of a given width with a guillotine row packing. It does
  * not change the width. Without `fixedSize`, the height grows until all rectangles fit. A `locked` rectangle keeps
  * its position, but the rows do not go around it. `pack` sets the width first and then uses this function.
+ *
+ * With `options.space`, the rows go around the locked rectangles and the holes of the space, inside its outline. A space
+ * that is plain, with no locked rectangle, gives the rows of 0.1.
  */
 export function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options: PackOptions = {}): Rect<T> {
   const order = options.sortOrder ?? "height-desc";
+  const space = options.space;
+  if (space !== undefined && (!space.plain || rects.some((r) => r.locked))) return packRowsInSpace(rects, outer, order, space);
   for (const r of rects) if (r.locked) r.wasPacked = true;
   while (!packRow(rects, outer, order));
   return outer;

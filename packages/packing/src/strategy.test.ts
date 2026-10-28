@@ -77,13 +77,14 @@ describe("supportsCell and UnsupportedCell", () => {
     const shelf = strategy("shelf");
     expect(supportsCell(shelf.supports, { containerSize: "fixed", obstacleMove: "fixed" })).toBe(true);
     expect(supportsCell(shelf.supports, { obstacleMove: "free" })).toBe(false);
-    expect(supportsCell(strategy("rows").supports, { obstacleMove: "fixed" })).toBe(false);
+    expect(supportsCell(strategy("rows").supports, { obstacleMove: "fixed" })).toBe(true);
+    expect(supportsCell(strategy("rows").supports, { obstacleMove: "free" })).toBe(false);
     expect(supportsCell(strategy("rows").supports, {})).toBe(true);
   });
 
-  it("is thrown by each strategy for a circle container, with the dimension and the value", () => {
+  it("is thrown by push for a circle container, with the dimension and the value", () => {
     const input: PackInput = { container: { fixed: "size", shape: { kind: "circle", cx: 50, cy: 50, r: 50 } }, items };
-    for (const s of strategies) {
+    for (const s of strategies.filter((s) => s.id === "push")) {
       let error: unknown;
       try {
         s.pack(input, s.defaults, createContext(1));
@@ -103,10 +104,10 @@ describe("supportsCell and UnsupportedCell", () => {
       ["skyline", { container, items: [{ id: "a", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] }, "itemShape", "circle"],
       ["shelf", { container, items: [{ id: "a", w: 10, h: 10, turnable: true }] }, "rotation", "quarter"],
       ["push", { container, items: [{ id: "a", w: 10, h: 10, group: "g" }] }, "groups", "flat"],
-      ["skyline", { container, items, obstacles: [{ id: "o", region: { kind: "circle", cx: 5, cy: 5, r: 5 } }] }, "containerShape", "holes"],
+      ["push", { container, items, obstacles: [{ id: "o", region: { kind: "circle", cx: 5, cy: 5, r: 5 } }] }, "containerShape", "holes"],
       ["shelf", { container, items, obstacles: [{ id: "o", region: { kind: "rect", x: 0, y: 0, w: 5, h: 5 }, move: { cost: 0 } }] }, "obstacleMove", "free"],
       ["push", { container, items, obstacles: [{ id: "o", region: { kind: "rect", x: 0, y: 0, w: 5, h: 5 }, move: { cost: 1 } }] }, "obstacleMove", "costly"],
-      ["rows", { container, items: [{ id: "a", w: 10, h: 10, locked: true, x: 0, y: 0 }] }, "obstacleMove", "fixed"],
+      ["rows", { container, items, obstacles: [{ id: "o", region: { kind: "rect", x: 0, y: 0, w: 5, h: 5 }, move: { cost: 0 } }] }, "obstacleMove", "free"],
       ["push", { container: { fixed: "none" }, items }, "containerSize", "freeAspect"],
     ];
     for (const [id, input, dimension, value] of cases) {
