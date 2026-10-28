@@ -24,6 +24,12 @@ describe("slowestInputs", () => {
     expect(out[1]).toEqual({ input: "a", candidate: 40, current: 10, ratio: 4 });
   });
 
+  it("orders the inputs by the time of the candidate with the rank ms", () => {
+    // a: 40 ms, b: 30 ms, c: 6 ms
+    expect(slowestInputs(records, "cand", "rows", 10, 5, 1.5, "ms").map((s) => s.input)).toEqual(["a", "b", "c"]);
+    expect(slowestInputs(records, "cand", "rows", 1, 5, 1.5, "ms")[0]).toEqual({ input: "a", candidate: 40, current: 10, ratio: 4 });
+  });
+
   it("keeps only n inputs, and leaves out skipped records and inputs without a default time", () => {
     expect(slowestInputs(records, "cand", "rows", 1).map((s) => s.input)).toEqual(["b"]);
     expect(slowestInputs(records, "cand", "rows", 10).some((s) => s.input === "d" || s.input === "e")).toBe(false);
