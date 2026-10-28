@@ -14,6 +14,8 @@ import {
   GUARD_SET_V1,
   GUARD_SETS,
   NO_VALUE,
+  ORDER_FREE_GUARDS,
+  ORDER_FREE_VIEW,
   PROMOTION_PARAMETERS,
   testsOf,
   medianTest,
@@ -340,6 +342,8 @@ describe("the command line of the win test", () => {
     expect(json.guardSet).toBe("v2");
     expect(json.coverage.length).toBe(GUARD_DECLARATIONS.length);
     expect(json.compare.v1.pass).toBe(v.compare!.v1.pass);
+    expect((json as unknown as { views: Record<string, { decides: boolean }> }).views[ORDER_FREE_VIEW]!.decides).toBe(false);
+    expect(readFileSync(join(root, "compare", "promotion.md"), "utf8")).toContain("## The view: order not required");
     expect(readFileSync(join(root, "compare", "promotion.md"), "utf8")).toContain("The guard set: `v2`.");
     expect(() => promoteMain(args("bad", "--guards", "v3"))).toThrow("--guards needs v1 or v2");
   });
@@ -521,5 +525,29 @@ describe("the guard sets on a fixture", () => {
     expect(md).toContain("The coverage of the guard set `v1`:");
     expect(md).toContain("| `pack.aspectError` | `cell.containerSize = freeAspect` | 6 | 24 | 24: the container declares no aspect |");
     expect(promotionMarkdown(winTest(fixture.records, options))).not.toContain("## The guard sets v1 and v2");
+  });
+
+  it("gives the view orderNotRequired with compareGuards: v2 without pack.order.inversions, labeled as a view that decides nothing", () => {
+    expect(ORDER_FREE_GUARDS.map((g) => g.measure)).toEqual(GUARD_DECLARATIONS.map((g) => g.measure).filter((m) => m !== "pack.order.inversions"));
+    expect(winTest(fixture.records, options).views).toBeUndefined();
+    // The candidate puts 100 more pairs out of order on each input that declares an order
+    const ordered = new Set(Object.entries(fixture.cells).flatMap(([id, c]) => (c.order === "soft" || c.order === "hard" ? [id] : [])));
+    const records = fixture.records.map((r) => (r.strategy === fixture.candidate && ordered.has(r.input) ? { ...r, measures: { ...r.measures, "pack.order.inversions": 100 + (r.measures["pack.order.inversions"] ?? 0) } } : r));
+    const v = winTest(records, { ...options, compareGuards: true });
+    const view = v.views![ORDER_FREE_VIEW];
+    expect([v.pass, v.compare!.v2.pass, view.pass]).toEqual([false, false, true]);
+    expect(view).toMatchObject({ from: "v2", without: ["pack.order.inversions"], decides: false });
+    expect(view.tests.guards.map((g) => g.measure)).not.toContain("pack.order.inversions");
+    expect(view.coverage.map((c) => c.measure)).toEqual(ORDER_FREE_GUARDS.map((g) => g.measure));
+    // The other guards, the gain and the time are those of v2
+    expect(view.tests.gain.measures.map((g) => [g.measure, g.median.value, g.pass])).toEqual(v.tests.gain.measures.map((g) => [g.measure, g.median.value, g.pass]));
+    expect(view.tests.time.pass).toBe(v.tests.time.pass);
+    const brief = (gs: readonly { measure: string; inputs: number; pass: boolean }[]): unknown[] => gs.map((g) => [g.measure, g.inputs, g.pass]);
+    expect(brief(view.tests.guards)).toEqual(brief(v.tests.guards.filter((g) => g.measure !== "pack.order.inversions")));
+    const md = promotionMarkdown(v);
+    expect(md).toContain("## The view: order not required");
+    expect(md).toContain("This view is exploratory, and it decides nothing.");
+    expect(md).toContain("| **verdict** | 30 | - | - | **fail** | 30 | - | - | **pass** |");
+    expect(JSON.parse(promotionJson(v)).views.orderNotRequired.decides).toBe(false);
   });
 });

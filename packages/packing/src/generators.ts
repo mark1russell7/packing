@@ -473,18 +473,55 @@ export const rectGrid: CorpusGenerator<RectGridParams> = defineGenerator<RectGri
   values: { containerSize: CONTAINER_SIZES, containerShape: CONTAINER_SHAPES, obstacles: OBSTACLE_LAYOUTS, sizes: SIZE_DISTRIBUTIONS },
   family: (p) => `rect-grid.${p.containerSize}.${p.containerShape}.${p.obstacles}.${p.sizes}.n${p.count}`,
   cell: (p) => cellWith(p.containerSize, p.containerShape, p.obstacles, p.sizes, p.count),
+  build: gridOf,
+});
+
+/** This function builds an input of `rect-grid`: the container, then the obstacles, then the boxes. */
+function gridOf(seed: number, p: RectGridParams): Parts {
+  let r = stepRandom(seed, "container");
+  const w = int(r, 600, 1000);
+  const h = int(r, 400, 800);
+  const { region, frame } = shapeOf(r, p.containerShape, w, h);
+  const container = containerOf(p.containerSize, w, h, region);
+
+  r = stepRandom(seed, "obstacles");
+  const obstacles = obstaclesOf(r, p.obstacles, frame);
+
+  r = stepRandom(seed, "boxes");
+  return { container, obstacles, boxes: boxesOf(r, p.sizes, p.count, frame) };
+}
+
+/** The values of the parameter `order` of `rect-grid` version 2. The input format declares no hard order. */
+const GRID_ORDERS = ["free", "soft"] as const;
+
+/** The parameters of `rect-grid` version 2: the parameters of version 1 and the reading order of the boxes. */
+export type RectGridV2Params = RectGridParams & {
+  order: (typeof GRID_ORDERS)[number];
+};
+
+/**
+ * The generator `rect-grid`, version 2: the inputs of version 1 with the parameter `order`. With `soft`, each box gets a
+ * rank, a random permutation of the box indexes. With `free`, the boxes have no rank.
+ */
+export const rectGridV2: CorpusGenerator<RectGridV2Params> = defineGenerator<RectGridV2Params>({
+  name: "rect-grid",
+  version: 2,
+  set: "corpus-v1",
+  defaults: { containerSize: "fixed", containerShape: "rect", obstacles: "none", sizes: "uniform", order: "free", count: 100 },
+  values: { containerSize: CONTAINER_SIZES, containerShape: CONTAINER_SHAPES, obstacles: OBSTACLE_LAYOUTS, sizes: SIZE_DISTRIBUTIONS, order: GRID_ORDERS },
+  family: (p) => `rect-grid.${p.containerSize}.${p.containerShape}.${p.obstacles}.${p.sizes}.${p.order}.n${p.count}`,
+  cell: (p) => ({ ...cellWith(p.containerSize, p.containerShape, p.obstacles, p.sizes, p.count), order: p.order }),
   build(seed, p) {
-    let r = stepRandom(seed, "container");
-    const w = int(r, 600, 1000);
-    const h = int(r, 400, 800);
-    const { region, frame } = shapeOf(r, p.containerShape, w, h);
-    const container = containerOf(p.containerSize, w, h, region);
-
-    r = stepRandom(seed, "obstacles");
-    const obstacles = obstaclesOf(r, p.obstacles, frame);
-
-    r = stepRandom(seed, "boxes");
-    return { container, obstacles, boxes: boxesOf(r, p.sizes, p.count, frame) };
+    const built = gridOf(seed, p);
+    if (p.order === "free") return built;
+    // A shuffle of Fisher and Yates gives the ranks
+    const r = stepRandom(seed, "order");
+    const ranks = built.boxes.map((_, i) => i);
+    for (let i = ranks.length - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [ranks[i], ranks[j]] = [ranks[j]!, ranks[i]!];
+    }
+    return { ...built, boxes: built.boxes.map((b, i) => ({ ...b, rank: ranks[i]! })) };
   },
 });
 
@@ -673,11 +710,17 @@ export const edgeCases: CorpusGenerator<EdgeCaseParams> = defineGenerator<EdgeCa
 // ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, gallery, dashboard, cards, wordCloud, edgeCases] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases] as CorpusGenerator[]);
 
-/** This function gives the generator with a name. It throws a `RangeError` for a name that the package does not have. */
-export function generator(name: string): CorpusGenerator {
-  const found = generators.find((g) => g.name === name);
-  if (found === undefined) throw new RangeError(`The package has no generator "${name}".`);
+/**
+ * This function gives the generator with a name and a version. Without a version, it gives the first generator of the name
+ * in `generators`: version 1 of `rect-grid`. It throws a `RangeError` for a name or a version that the package does not have.
+ */
+export function generator(name: string, version?: number): CorpusGenerator {
+  const named = generators.filter((g) => g.name === name);
+  if (named.length === 0) throw new RangeError(`The package has no generator "${name}".`);
+  if (version === undefined) return named[0]!;
+  const found = named.find((g) => g.version === version);
+  if (found === undefined) throw new RangeError(`The generator "${name}" has the versions ${named.map((g) => g.version).join(", ")}, not ${version}.`);
   return found;
 }

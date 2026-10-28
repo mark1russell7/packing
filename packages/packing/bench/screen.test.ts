@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
@@ -242,21 +242,28 @@ describe("the ranking of a cell", () => {
 describe("the screen on smoke-v1", () => {
   it("gives each entry its move in its trace, and each variant also the moves of the fits", () => {
     const input = toPackInput(rectGrid.generate(2, { count: 30 }));
+    // The strategy aspect-fit gives its stage only for a container of free size
+    const free = toPackInput(rectGrid.generate(2, { count: 30, containerSize: "freeAspect" }));
     for (const [id, move] of Object.entries(MOVE_OF)) {
       const e = entry(id);
-      const counts = moveCounts(packWith(e.strategy, input, Object.keys(e.options).length === 0 ? undefined : e.options));
+      const on = e.strategy === "aspect-fit" ? free : input;
+      const counts = moveCounts(packWith(e.strategy, on, Object.keys(e.options).length === 0 ? undefined : e.options));
       expect(Object.keys(counts), id).toContain(move);
       // A composite entry also gives the moves of the member that wins, so only its own move is fixed.
       if (isComposite(id)) continue;
       const own = e.strategy === "maxrects" ? (move === "move.split" ? [move] : [move, "move.split"]) : e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"];
       expect(Object.keys(counts), id).toEqual(own);
     }
-    expect(BASE_OF).toEqual({ ...Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])), ...Object.fromEntries(MAXRECTS_VARIANTS.filter((v) => v.id !== "maxrects-bl").map((v) => [v.id, "maxrects-bl"])), ...Object.fromEntries(PORTFOLIO_ENTRIES.map((e) => [e.id, "maxrects-bl"])) });
+    expect(BASE_OF).toEqual({ ...Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])), ...Object.fromEntries(MAXRECTS_VARIANTS.filter((v) => v.id !== "maxrects-bl").map((v) => [v.id, "maxrects-bl"])), ...Object.fromEntries(PORTFOLIO_ENTRIES.map((e) => [e.id, "maxrects-bl"])),
+      ...Object.fromEntries(ASPECT_FIT_ENTRIES.map((e) => [e.id, e.base])),
+    });
   });
 
   it("gives each measured record its move count and 0 boxes out of the true outline", () => {
     for (const r of full.records.filter(isMeasured)) {
-      expect(r.measures[MOVE_OF[r.strategy]!], `${r.strategy} ${r.input}`).toBeTypeOf("number");
+      // On a container of fixed size, aspect-fit gives the output of the wrapped strategy, with no stage of its own
+      const passed = entry(r.strategy).strategy === "aspect-fit" && r.measures[MOVE_OF[r.strategy]!] === undefined;
+      if (!passed) expect(r.measures[MOVE_OF[r.strategy]!], `${r.strategy} ${r.input}`).toBeTypeOf("number");
       expect(r.measures[OUTSIDE_EXACT], `${r.strategy} ${r.input}`).toBe(0);
       expect(r.measures["pack.overflow.forced"]!).toBeLessThanOrEqual(r.measures["pack.overflow"]!);
     }

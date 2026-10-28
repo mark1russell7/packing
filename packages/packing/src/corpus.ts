@@ -7,7 +7,7 @@ import type { CorpusCell, GeneratedInput, GeneratorParams } from "./layout-input
 export interface CorpusSpec {
   /** The name of the generator. */
   generator: string;
-  /** The version of the generator. Without it, the spec uses the version of the package. A different version is an error. */
+  /** The version of the generator. Without it, the spec uses the first version of the name. A version that the package does not have is an error. */
   version?: number;
   /** The parameters over the defaults of the generator. */
   params?: GeneratorParams;
@@ -46,10 +46,7 @@ export function corpus(name: string, specs: readonly CorpusSpec[]): Corpus {
   const inputs: GeneratedInput[] = [];
   const ids = new Set<string>();
   for (const spec of specs) {
-    const gen = generator(spec.generator);
-    if (spec.version !== undefined && spec.version !== gen.version) {
-      throw new RangeError(`The generator "${gen.name}" has the version ${gen.version}, not ${spec.version}.`);
-    }
+    const gen = generator(spec.generator, spec.version);
     const params = gen.withDefaults(spec.params);
     const cell = gen.cell(params);
     manifest.specs.push({ generator: gen.name, version: gen.version, params, seeds: [...spec.seeds] });

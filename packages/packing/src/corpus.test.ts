@@ -107,7 +107,12 @@ describe("corpus", () => {
 
   it("refuses an unknown generator, a different version and a repeated id", () => {
     expect(() => corpus("c", [{ generator: "nope", seeds: [1] }])).toThrow(RangeError);
-    expect(() => corpus("c", [{ generator: "rect-grid", version: 2, seeds: [1] }])).toThrow(RangeError);
+    expect(() => corpus("c", [{ generator: "rect-grid", version: 3, seeds: [1] }])).toThrow(RangeError);
+    // Version 2 of rect-grid is a version of the package. Without a version, a spec gets version 1.
+    const two = corpus("c", [{ generator: "rect-grid", version: 2, params: { order: "soft", count: 5 }, seeds: [1] }, { generator: "rect-grid", params: { count: 5 }, seeds: [1] }]);
+    expect(two.manifest.specs.map((s) => s.version)).toEqual([2, 1]);
+    expect(two.manifest.inputs.map((i) => i.cell.order)).toEqual(["soft", "free"]);
+    expect(() => corpus("c", [{ generator: "rect-grid", params: { order: "soft" }, seeds: [1] }])).toThrow(RangeError);
     expect(() => corpus("c", [{ generator: "cards", seeds: [1, 1] }])).toThrow(RangeError);
   });
 });

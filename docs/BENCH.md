@@ -51,6 +51,10 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `maxrects-cp` | `maxrects` | `rule: "cp"` | `maxrects-bl` |
 | `portfolio-k2` | `portfolio` | `k: 2` | `maxrects-bl` |
 | `portfolio-k3` | `portfolio` | `k: 3` | `maxrects-bl` |
+| `aspect-fit-maxrects-bl` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bl" }` | `maxrects-bl` |
+| `aspect-fit-maxrects-bssf` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bssf" }` | `maxrects-bssf` |
+| `aspect-fit-portfolio-k2` | `aspect-fit` | `strategy: "portfolio"`, `options: { k: 2 }` | `portfolio-k2` |
+| `portfolio-area-rows-bl` | `portfolio` | `members: ["rows", maxrects-bl]`, `key: AREA_KEY` | `maxrects-bl` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
@@ -60,6 +64,9 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - An entry of the registry gets no options from the runner. A variant gets the defaults of its strategy, with its options over them.
 - The 2 composite entries of roadmap item k20, part 2 pack each input with the set of 2 or 3 members of its cell. Their move is `move.pick`.
 - A composite entry is not in the pool of the portfolio report: not in the oracle, the greedy sets, the sole wins and the losers. The ranking has it.
+- The 4 composite entries of roadmap item k62 are `ASPECT_FIT_ENTRIES`. An entry `aspect-fit-<entry>` wraps that entry with `aspectFit`. `docs/PACKER.md` ("The aspect fit") tells it.
+- On a container of fixed size, an entry `aspect-fit-<entry>` gives the output of its base. On a free size, its move is `move.aspectPick`.
+- The entry `portfolio-area-rows-bl` has the 2 members `rows` and `maxrects-bl`. Its key `AREA_KEY` puts `pack.area` before `pack.overflow.excessArea` and `pack.fill`. Its move is `move.pick`.
 
 ## The jobs
 
@@ -131,6 +138,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `smoke-v1` | 13 | The unit tests of the runner, and a quick check of the workflow. It has at most 100 boxes in each input. |
 | `pack-screen-v1` | 1305 | The first screen of the packer. Write its prediction before its first benchmark. |
 | `pack-holdout-v1` | 522 | The test corpus of the per-cell portfolio: the specs of `pack-screen-v1` with the new seeds 6 and 7. Write its prediction first. |
+| `pack-free-v1` | 720 | The corpus of free sizes of roadmap item k62: `freeAspect` and `freeArea` with each shape. Write its prediction first. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -143,6 +151,14 @@ The corpus `pack-screen-v1` has these specs, each with the seeds 1 to 5:
 - `rect-grid` with each `containerShape` and each layout of `obstacles`, the sizes `uniform` and `heavyTail`, and the counts 10, 100 and 1000.
 - `gallery`, `dashboard`, `cards` and `word-cloud`, each with the count 100.
 - `edge-cases` with each case: `empty`, `one`, `oversize`, `exactTiling` and `touchObstacles`.
+
+The corpus `pack-free-v1` has the specs of `rect-grid` version 2, each with the seeds 11 to 15:
+
+- the `containerSize` `freeAspect` and `freeArea`, with each `containerShape`: `rect`, `convex`, `polygon`, `circle`, `ellipse` and `holes`
+- the sizes `identical`, `uniform` and `heavyTail`
+- the `order` `free` and `soft`, and the counts 10 and 100.
+
+Version 2 of `rect-grid` adds the parameter `order`. With `soft`, each item gets a `rank` from a permutation of the seed. Version 1 does not change.
 
 The name `screen-v1` is the screen set of the router `highways`. Thus the packer uses the name `pack-screen-v1`, and a joint reader of the records sees no conflict.
 
@@ -203,6 +219,23 @@ A record also has these optional fields of `docs/FORMAT.md`:
 | `outputHash` | The first 16 hex characters of the SHA-256 of the placements, sorted by id and rounded to 3 decimals. The value -0 becomes 0. Thus the same hash tells the same placements to 3 decimals, not exactly the same placements. |
 | `env` | The computer: the version of Node.js, the operating system, the processor and the name of the runner. |
 | `skipped` | The reason when the runner did not pack the pair, for example `unsupported mode: offline`. Only a skipped record has it. |
+
+### The declared properties
+
+A corpus file can have the claim `claims.declared`: the count of its inputs for each declared property. `bench/claims.ts` gives the ids and the counts.
+
+| Id | The input declares it when |
+|---|---|
+| `order` | the cell `order` is `soft` or `hard`. An item has a `rank`. |
+| `aspect` | the container has `aspect` |
+| `free-size` | the cell `containerSize` is not `fixed` |
+| `shaped` | the container has a shape that is not a rectangle |
+
+- The claim has `minCount`, the list `thin` and `counts`. Each id is in `counts`, with the count of the generated inputs.
+- An id with a count below `minCount` is in `thin`. Thus a thin property is a known fact of the corpus, not a surprise.
+- A run makes the inputs and then examines the claim. A false claim stops the run before the first packing, with an error that names each problem.
+- `run.json` keeps the counts in the field `declared`, and `summary.md` gives them in the table "Declared properties".
+- The counts are facts of the corpus, not measures. `pack-screen-v1` has the thin properties `order` and `aspect`.
 
 ### The coverage
 
@@ -436,6 +469,8 @@ A guard of a property applies only to the inputs that declare the property. `GUA
 - `v1` gives the verdict of the tool before the declared guards. A test keeps this verdict on the fixture `bench/fixtures/promote-guards-v1.json`.
 - `promotion.json` and `promotion.md` name the guard set (`guardSet`). For each guard, they give the covered inputs and the left-out inputs with the reason (`coverage`).
 - With `--compare-guards`, `promotion.json` has the verdict of each set in `compare`. A rescore reports the `v1` and `v2` verdicts together.
+- With `--compare-guards`, `promotion.json` also has the view `views.orderNotRequired`: the verdict of `v2` without `pack.order.inversions` on each input.
+- The view is exploratory, and it decides nothing. Its field `decides` is `false`, and `promotion.md` labels it. It is a report, not a caller profile of `docs/PROMOTION.md`.
 
 ### Read the verdict
 

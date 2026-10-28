@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.12
+
+A new opt-in strategy wrapper, `aspectFit`, roadmap item k62. This release has no breaking changes. The default `pack()` and every existing output do not change.
+
+### Added
+
+- `aspectFit(strategy, { targetAspect })` and the composite strategy `aspect-fit`: for a container of free size, a portfolio of widths around the target aspect (`ASPECT_FIT_FACTORS`), picked by `ASPECT_FIT_LEVELS` (hard, `pack.overflow.excessArea`, `pack.aspectError`, `pack.area`). A container of fixed size gives the output of the wrapped strategy. The trace stage is `aspect-fit` (`ASPECT_FIT_STAGE`) with `move.aspectPick`.
+- `packPortfolio` and the strategy `portfolio`: the option `key` (the measure ids after the hard breaks). The strategy `portfolio`: the option `members`.
+- The generator `rect-grid` version 2 (`rectGridV2`) with the parameter `order` (`free`, `soft`). Version 1 does not change. `generator(name, version?)`.
+- Bench: the corpus `pack-free-v1`, the claim `claims.declared` of a corpus file, the 4 entries of `ASPECT_FIT_ENTRIES`, and the view `orderNotRequired` of `--compare-guards`.
+
 ## 0.2.11
 
 A speedup of the strategies `maxrects-*` and `portfolio`, roadmap item k64. This release has no breaking changes. Each output stays byte-equal.

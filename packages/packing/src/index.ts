@@ -79,7 +79,8 @@ export {
   type PushStrategyOptions,
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { composites, packWith, strategies, strategy } from "./registry.ts";
+export { aspectFitStrategy, composites, packWith, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
 export {
   cellKey,
@@ -130,12 +131,14 @@ export {
   generator,
   generators,
   rectGrid,
+  rectGridV2,
   rectScattered,
   wordCloud,
   type CorpusGenerator,
   type EdgeCase,
   type EdgeCaseParams,
   type RectGridParams,
+  type RectGridV2Params,
   type RectScatteredParams,
   type UiParams,
 } from "./generators.ts";

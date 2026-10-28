@@ -8,6 +8,7 @@ import {
   generators,
   packWith,
   rectGrid,
+  rectGridV2,
   strategies,
   supportsCell,
   toPackInput,
@@ -39,10 +40,16 @@ const CASES: Case[] = (() => {
     cases.push({ gen, params });
   };
   for (const gen of generators) {
+    if (gen === rectGridV2) continue;
     add(gen, {});
     for (const [key, values] of Object.entries(gen.values)) for (const value of values ?? []) add(gen, { [key]: value });
     if (gen.name === "rect-grid") for (const count of COUNTS) add(gen, { count });
   }
+  // Version 2 of rect-grid: the defaults, the order soft, and the order soft in each free size and each shape
+  add(rectGridV2, {});
+  add(rectGridV2, { order: "soft" });
+  for (const containerSize of ["freeAspect", "freeArea"]) add(rectGridV2, { containerSize, order: "soft", sizes: "identical", count: 10 });
+  for (const containerShape of rectGridV2.values.containerShape!) add(rectGridV2, { containerShape, containerSize: "freeAspect", order: "soft", count: 10 });
   return cases;
 })();
 
@@ -101,6 +108,17 @@ const HASHES: Record<string, string> = {
   "corpus-v1/edge-cases.one/s1": "b3844af7d6f07ed3",
   "corpus-v1/edge-cases.exactTiling.n12/s1": "4e46948ad0f96d4a",
   "corpus-v1/edge-cases.touchObstacles.n12/s1": "49f37977c6c61726",
+  // rect-grid version 2
+  "corpus-v1/rect-grid.fixed.rect.none.uniform.free.n100/s1": "4914dc1654c9f226",
+  "corpus-v1/rect-grid.fixed.rect.none.uniform.soft.n100/s1": "d1b91a6e10fee29a",
+  "corpus-v1/rect-grid.freeAspect.rect.none.identical.soft.n10/s1": "1d67684f2432f63e",
+  "corpus-v1/rect-grid.freeArea.rect.none.identical.soft.n10/s1": "ca0200e408e210ef",
+  "corpus-v1/rect-grid.freeAspect.rect.none.uniform.soft.n10/s1": "60987fc67c0635a6",
+  "corpus-v1/rect-grid.freeAspect.convex.none.uniform.soft.n10/s1": "ad08c24aae038fc5",
+  "corpus-v1/rect-grid.freeAspect.polygon.none.uniform.soft.n10/s1": "9b04073c247134a7",
+  "corpus-v1/rect-grid.freeAspect.circle.none.uniform.soft.n10/s1": "eed2b98e0eb0ab59",
+  "corpus-v1/rect-grid.freeAspect.ellipse.none.uniform.soft.n10/s1": "9bd7fb68895a202a",
+  "corpus-v1/rect-grid.freeAspect.holes.none.uniform.soft.n10/s1": "81cd15b4065164b9",
 };
 
 /** The bounds of the nominal container of a file: the bounding box of its shape, or the rectangle w by h */
@@ -179,8 +197,27 @@ function outside(file: GeneratedInput): string[] {
 
 describe("the generators", () => {
   it("are found by name", () => {
-    for (const gen of generators) expect(generator(gen.name)).toBe(gen);
+    for (const gen of generators) expect(generator(gen.name, gen.version)).toBe(gen);
+    // Without a version, the name gives the first version
+    for (const gen of generators.filter((g) => g !== rectGridV2)) expect(generator(gen.name)).toBe(gen);
+    expect(generator("rect-grid")).toBe(rectGrid);
     expect(() => generator("nope")).toThrow(RangeError);
+    expect(() => generator("rect-grid", 3)).toThrow(RangeError);
+  });
+
+  it("give rect-grid version 2 the ranks of a permutation for the order soft, and no rank for the order free", () => {
+    for (const seed of [1, 2, 3]) {
+      const soft = rectGridV2.generate(seed, { order: "soft", count: 40 });
+      expect(soft.boxes.map((b) => b.rank).toSorted((a, b) => a! - b!)).toEqual(soft.boxes.map((_, i) => i));
+      // The ranks are not the order of the boxes
+      expect(soft.boxes.some((b, i) => b.rank !== i)).toBe(true);
+      const free = rectGridV2.generate(seed, { count: 40 });
+      expect(free.boxes.every((b) => b.rank === undefined)).toBe(true);
+      // Without ranks, the boxes, the container and the obstacles are those of version 1
+      const v1 = rectGrid.generate(seed, { count: 40 });
+      expect([free.boxes, free.container, free.obstacles]).toEqual([v1.boxes, v1.container, v1.obstacles]);
+      expect(soft.boxes.map(({ rank: _rank, ...b }) => b)).toEqual(v1.boxes);
+    }
   });
 
   it.each(CASES.map((c) => [label(c), c] as const))("give the same bytes for the same seed: %s", (_, c) => {
@@ -396,6 +433,7 @@ describe("the coverage of the generators", () => {
     expect([...seen["obstacles"]!].sort()).toEqual(["center", "corridors", "edge", "none", "scattered", "touching", "wall"]);
     expect([...seen["containerShape"]!].sort()).toEqual(["circle", "convex", "ellipse", "holes", "polygon", "rect"]);
     expect([...seen["containerSize"]!].sort()).toEqual(["fixed", "freeArea", "freeAspect", "freeHeight", "freeWidth"]);
+    expect([...seen["order"]!].sort()).toEqual(["free", "soft"]);
   });
 });
 
