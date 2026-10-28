@@ -1,3 +1,4 @@
+import { countMove, MOVES } from "./moves.ts";
 import { compareRects, type SortOrder } from "./order.ts";
 import type { Rect } from "./rect.ts";
 import type { FreeSpace } from "./space.ts";
@@ -11,6 +12,19 @@ import type { FreeSpace } from "./space.ts";
  * `limit[x, x + rw)`. A second deque keeps that smallest value. No valid window gives the height `Infinity`.
  */
 export function lowestWindow(skyline: ArrayLike<number>, width: number, rw: number, limit?: ArrayLike<number>, rh = 0): { x: number; y: number } {
+  const { x, y } = findWindow(skyline, width, rw, limit, rh);
+  return { x, y };
+}
+
+/** The lowest window of `findWindow`, and `first`: the x of the leftmost valid window, or `-1` */
+interface Window {
+  x: number;
+  y: number;
+  first: number;
+}
+
+/** This function is `lowestWindow`, and it also gives the x of the leftmost valid window. */
+function findWindow(skyline: ArrayLike<number>, width: number, rw: number, limit?: ArrayLike<number>, rh = 0): Window {
   if (limit !== undefined) return lowestLimitedWindow(skyline, limit, width, rw, rh);
   const deque = new Int32Array(width);
   let head = 0;
@@ -29,11 +43,16 @@ export function lowestWindow(skyline: ArrayLike<number>, width: number, rw: numb
       }
     }
   }
-  return { x: bestX, y: bestY };
+  return { x: bestX, y: bestY, first: width >= rw ? 0 : -1 };
+}
+
+/** This function counts the move of the skyline: a window that is lower than the leftmost valid window. */
+function countWindow(w: Window): void {
+  if (Number.isFinite(w.y) && w.first >= 0 && w.x !== w.first) countMove(MOVES.skyline);
 }
 
 /** This function is `lowestWindow` with a limit for each cell. */
-function lowestLimitedWindow(skyline: ArrayLike<number>, limit: ArrayLike<number>, width: number, rw: number, rh: number): { x: number; y: number } {
+function lowestLimitedWindow(skyline: ArrayLike<number>, limit: ArrayLike<number>, width: number, rw: number, rh: number): Window {
   const high = new Int32Array(width);
   const low = new Int32Array(width);
   let hh = 0;
@@ -42,6 +61,7 @@ function lowestLimitedWindow(skyline: ArrayLike<number>, limit: ArrayLike<number
   let lt = 0;
   let bestX = 0;
   let bestY = Infinity;
+  let first = -1;
   for (let i = 0; i < width; i++) {
     while (ht > hh && skyline[high[ht - 1]!]! <= skyline[i]!) ht--;
     high[ht++] = i;
@@ -51,13 +71,15 @@ function lowestLimitedWindow(skyline: ArrayLike<number>, limit: ArrayLike<number
     if (low[lh]! <= i - rw) lh++;
     if (i >= rw - 1) {
       const max = skyline[high[hh]!]!;
-      if (max < bestY && max + rh <= limit[low[lh]!]!) {
+      const valid = max + rh <= limit[low[lh]!]!;
+      if (valid && first < 0) first = i - rw + 1;
+      if (max < bestY && valid) {
         bestY = max;
         bestX = i - rw + 1;
       }
     }
   }
-  return { x: bestX, y: bestY };
+  return { x: bestX, y: bestY, first };
 }
 
 /** The options of `packSkyline` */
@@ -116,8 +138,10 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
       y = 0;
       for (let i = 0; i < width; i++) if (skyline[i]! > y) y = skyline[i]!;
     } else {
-      ({ x, y } = lowestWindow(skyline, width, rw));
+      const found = findWindow(skyline, width, rw);
+      ({ x, y } = found);
       if (outer.fixedSize && y + rh > outer.size.y) continue;
+      countWindow(found);
     }
 
     rect.position.set(x + outer.position.x, y + outer.position.y);
@@ -179,7 +203,8 @@ function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrde
       outer.size.y = Math.max(outer.size.y, y + rh);
       continue;
     }
-    ({ x, y } = lowestWindow(skyline, width, rw, limit, rh));
+    let found = findWindow(skyline, width, rw, limit, rh);
+    ({ x, y } = found);
     let sky: Float64Array = skyline;
     let lim: Float64Array = limit;
     if (!Number.isFinite(y)) {
@@ -189,10 +214,12 @@ function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrde
       for (let i = 0; i < width; i++) {
         while (Number.isFinite(lim[i]!) && lim[i]! - sky[i]! < rh && lim[i]! < end) [sky[i], lim[i]] = rangeOf(i, lim[i]!);
       }
-      ({ x, y } = lowestWindow(sky, width, rw, lim, rh));
+      found = findWindow(sky, width, rw, lim, rh);
+      ({ x, y } = found);
       if (!Number.isFinite(y)) continue;
     }
 
+    countWindow(found);
     rect.position.set(x + ox, y + oy);
     rect.wasPacked = true;
     const top = y + rh;

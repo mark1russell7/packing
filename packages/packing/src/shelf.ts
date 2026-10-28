@@ -1,3 +1,4 @@
+import { countMove, MOVES } from "./moves.ts";
 import { compareRects, type SortOrder } from "./order.ts";
 import type { Rect } from "./rect.ts";
 import { firstFit, type FreeSpace, type FreeSpan } from "./space.ts";
@@ -111,6 +112,8 @@ export function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options: ShelfOpt
 
     if (outer.fixedSize && rowTop + h > outer.size.y) continue;
 
+    // The move of a shelf: the rectangle joins an open shelf that a taller rectangle made
+    if (!rowEmpty && rowTop + h < rowBottom) countMove(MOVES.shelf);
     rect.position.set(x + outer.position.x, rowTop + outer.position.y);
     rect.wasPacked = true;
     rowEmpty = false;

@@ -1,3 +1,4 @@
+import { clearMoves } from "./moves.ts";
 import { pack, type PackLayoutOptions } from "./pack.ts";
 import { Rect } from "./rect.ts";
 
@@ -85,6 +86,8 @@ export function packFree<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), optio
 
   const tried: FreeWidthTry[] = [];
   const run = (width: number): FreeWidthTry => {
+    // The counts of the moves come from the last run: the run with the best width
+    clearMoves();
     Rect.resetPacked(rects);
     const box = new Rect<T>();
     box.position.setTo(outer.position);

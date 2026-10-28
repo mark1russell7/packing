@@ -1,3 +1,4 @@
+import { clearMoves, countMove, MOVES } from "./moves.ts";
 import { compareRects, type SortOrder } from "./order.ts";
 import { Rect } from "./rect.ts";
 import { packRowsInSpace, packShelf } from "./shelf.ts";
@@ -25,10 +26,20 @@ export interface PackLayoutOptions extends PackOptions {
   strategy?: "rows" | "skyline" | "shelf";
 }
 
+/** The depth of the calls of `packInto`. Only the outer gap fill counts its rectangles as moves. */
+let fillDepth = 0;
+
 function packInto<T>(rects: Rect<T>[], region: Rect<T>, offset: Vector, order: SortOrder): void {
   const unpacked = Rect.unpacked(rects);
-  pack(unpacked, region, { sortOrder: order });
-  for (const r of Rect.packed(unpacked)) r.translateBy(offset);
+  fillDepth++;
+  try {
+    pack(unpacked, region, { sortOrder: order });
+  } finally {
+    fillDepth--;
+  }
+  const placed = Rect.packed(unpacked);
+  if (fillDepth === 0) countMove(MOVES.rows, placed.length);
+  for (const r of placed) r.translateBy(offset);
 }
 
 function packRow<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrder): boolean {
@@ -100,7 +111,8 @@ export function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options: PackOptio
   const space = options.space;
   if (space !== undefined && (!space.plain || rects.some((r) => r.locked))) return packRowsInSpace(rects, outer, order, space);
   for (const r of rects) if (r.locked) r.wasPacked = true;
-  while (!packRow(rects, outer, order));
+  // A row that does not fit grows the height and starts again, thus the gap fills of the try before do not count
+  while (!packRow(rects, outer, order)) if (fillDepth === 0) clearMoves(MOVES.rows);
   return outer;
 }
 
