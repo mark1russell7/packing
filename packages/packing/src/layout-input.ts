@@ -34,6 +34,23 @@ export interface GeneratedInput extends LayoutInput {
   readonly edges: readonly LayoutEdge[];
   /** The first 16 hex characters of the SHA-256 of the canonical form of the other fields. */
   readonly hash: string;
+  /** The known best value of an input of `known-best:<construction>`. The other inputs do not have this field. */
+  readonly known?: KnownBest;
+}
+
+/**
+ * The known best value of an input (roadmap item k45). The measure `pack.gapToOpt` compares a layout with it.
+ *
+ * - With `kind` set to `optimum`, a layout reaches the value. With `bound`, no layout is better, but the best layout can be worse.
+ * - `area` is the best area of the hull. For a fixed container, it is the area of the container.
+ * - `height` is the best height for the fixed width of a container with a free height.
+ */
+export interface KnownBest {
+  readonly kind: "optimum" | "bound";
+  readonly area: number;
+  readonly height?: number;
+  /** The source of the value: the construction of the generator, or a source of `docs/research/CATALOG.md`. */
+  readonly source: string;
 }
 
 /** The layout of the obstacles (`docs/research/TAXONOMY.md`, dimension 3). */

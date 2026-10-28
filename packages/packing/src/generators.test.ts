@@ -119,6 +119,12 @@ const HASHES: Record<string, string> = {
   "corpus-v1/rect-grid.freeAspect.circle.none.uniform.soft.n10/s1": "eed2b98e0eb0ab59",
   "corpus-v1/rect-grid.freeAspect.ellipse.none.uniform.soft.n10/s1": "9bd7fb68895a202a",
   "corpus-v1/rect-grid.freeAspect.holes.none.uniform.soft.n10/s1": "81cd15b4065164b9",
+  "known-v1/perfect-cut.guillotine.fixed.n30/s1": "50ea0e3fa3baa3ed",
+  "known-v1/perfect-cut.free.fixed.n30/s1": "c15601dc91a6a5e9",
+  "known-v1/perfect-cut.guillotine.freeHeight.n30/s1": "766e2be303a3d6cf",
+  "known-v1/perfect-cut.guillotine.freeArea.n30/s1": "65ae42fea426e75a",
+  "known-v1/consecutive-squares.freeHeight.n30/s1": "8167ebe5640cfeee",
+  "known-v1/consecutive-squares.freeArea.n30/s1": "192d49ab7bceb945",
 };
 
 /** The bounds of the nominal container of a file: the bounding box of its shape, or the rectangle w by h */
@@ -243,7 +249,8 @@ describe("the generators", () => {
     const file = c.gen.generate(1, c.params);
     const params = c.gen.withDefaults(c.params);
     expect(file.schema).toBe("layout-input/1");
-    expect(file.source).toBe("made-up");
+    // Only an input with a known best value has the source known-best
+    expect(file.source).toBe(file.known === undefined ? "made-up" : `known-best:${c.gen.name}`);
     expect(file.generator).toEqual({ name: c.gen.name, version: c.gen.version, params, seed: 1 });
     expect(file.hash).toMatch(/^[0-9a-f]{16}$/);
     expect(file.edges).toEqual([]);
@@ -258,7 +265,8 @@ describe("the generators", () => {
     for (const b of file.boxes) for (const v of [b.w, b.h]) expect(Math.round(v * 1000) / 1000).toBe(v);
 
     // Each obstacle is in the container. A free container has the obstacles of its fixed twin.
-    const fixed = "containerSize" in params ? c.gen.generate(1, { ...c.params, containerSize: "fixed" }) : file;
+    const hasFixed = (c.gen.values as Record<string, readonly unknown[] | undefined>)["containerSize"]?.includes("fixed") === true;
+    const fixed = "containerSize" in params && hasFixed ? c.gen.generate(1, { ...c.params, containerSize: "fixed" }) : file;
     expect(file.obstacles).toEqual(fixed.obstacles);
     const box = bounds(fixed);
     expect(outside(fixed)).toEqual([]);
