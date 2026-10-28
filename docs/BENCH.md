@@ -232,7 +232,7 @@ A record also has these optional fields of `docs/FORMAT.md`:
 
 ### The declared properties
 
-A corpus file can have the claim `claims.declared`: the count of its inputs for each declared property. `bench/claims.ts` gives the ids and the counts.
+A corpus file can have the claim `claims.declared`: the count of its inputs for each declared property. `bench/claims.ts` gives the ids. `checkDeclared` of `layout-contract` checks the claim.
 
 | Id | The input declares it when |
 |---|---|
@@ -584,10 +584,10 @@ A split file gives the training and held-out seeds of a corpus. It is beside the
   "splits": { "default": { "folds": [{ "train": [11, 12, 14, 15], "heldOut": [13] }] } } }
 ```
 
-- The file is `bench/splits/<corpus id>.<corpus hash>.json`. `corpusHashOf` of `bench/split.ts` gives the hash.
+- The file is `bench/splits/<corpus id>.<corpus hash>.json`. `corpusHashOf` of `@mark1russell7/layout-contract` gives the hash.
 - The hash is the first 16 hex characters of the SHA-256 of `canonicalJson` of the corpus id and the `[id, hash]` of each input.
 - A change of one input changes the hash. Then the tool finds no split file, and it names the split files of the corpus.
-- `loadSplit` refuses a file with a bad schema, corpus or `corpusHash`, a split with no fold, or an unknown split name.
+- `loadSplit` of `bench/split.ts` reads the file. `splitFolds` of `layout-contract` refuses a file with a bad schema, corpus or `corpusHash`, a split with no fold, or an unknown split name.
 - In each fold, `train` and `heldOut` are not empty and have no common seed. Each seed is a seed of the corpus.
 
 | File | Splits |

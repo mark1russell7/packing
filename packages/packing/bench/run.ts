@@ -25,7 +25,8 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { assertClaim, declaredCounts, DECLARED_IDS, parseClaim, type DeclaredClaim } from "./claims.ts";
+import { declaredClaimOf, type DeclaredClaim } from "@mark1russell7/layout-contract";
+import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
 import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
 import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
@@ -258,7 +259,7 @@ export function parseCorpus(text: string, name?: string): BenchCorpus {
   }
   const out: BenchCorpus = { schema: "layout-corpus/1", corpus: corpusName, specs: specs as CorpusSpec[] };
   if (heldOut !== undefined) out.heldOut = heldOut as HeldOut;
-  const declared = parseClaim(value);
+  const declared = declaredClaimOf(value);
   if (declared !== undefined) out.declared = declared;
   return out;
 }
@@ -268,9 +269,9 @@ export function parseCorpus(text: string, name?: string): BenchCorpus {
  * corpus has a claim `declared` that the inputs do not make true. `inputs` are the generated inputs of the corpus.
  */
 export function checkDeclared(c: BenchCorpus, inputs: Iterable<PackInput> = corpus(c.corpus, c.specs).inputs.map(toPackInput)): Record<string, number> {
-  const counts = declaredCounts(inputs);
-  if (c.declared !== undefined) assertClaim(c.corpus, c.declared, counts);
-  return counts;
+  const list = [...inputs];
+  if (c.declared !== undefined) assertClaim(c.corpus, c.declared, list);
+  return declaredCounts(list);
 }
 
 /** This function gives the members of each composite entry of `ids` on each input of a manifest. A manifest without specs gives none. */

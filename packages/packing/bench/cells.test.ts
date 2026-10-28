@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { corpusHashOf } from "@mark1russell7/layout-contract";
 import { cellKeyOf, cellsMain, cellsMarkdown, cellsReportOf, decisionOf, fillRatio, oracleOf, subsetsOf, WIN_RATIO, type CellRecord, type CorpusCell } from "./cells.ts";
-import { corpusHashOf } from "./split.ts";
 
 // The cells report of k66 on made-up records only. The test reads no time of this computer.
 
@@ -182,8 +182,8 @@ describe("the command line", () => {
     const splits = join(dir, "splits");
     mkdirSync(splits);
     const folds = SEEDS.map((s) => ({ train: SEEDS.filter((t) => t !== s), heldOut: [s] }));
-    const file = { schema: "corpus-split/1", corpus: "t", corpusHash: corpusHashOf(manifest), splits: { loso: { folds } } };
-    writeFileSync(join(splits, `t.${corpusHashOf(manifest)}.json`), JSON.stringify(file));
+    const file = { schema: "corpus-split/1", corpus: "t", corpusHash: corpusHashOf(manifest.corpus, manifest.inputs), splits: { loso: { folds } } };
+    writeFileSync(join(splits, `t.${corpusHashOf(manifest.corpus, manifest.inputs)}.json`), JSON.stringify(file));
     const out = join(dir, "split-out");
     const r = cellsMain([bench, "--candidate", "bl", "--default", "rows", "--out", out, "--split", "loso", "--splits", splits]);
     expect([r.heldOut, r.selector.inputs]).toEqual(["loso", 20]);
