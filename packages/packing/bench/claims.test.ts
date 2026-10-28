@@ -94,6 +94,15 @@ describe("the corpus files", () => {
     expect(select.declared!.thin).toEqual([]);
   }, 120_000);
 
+  it("makes the claim of pack-select-v2 true: the specs of pack-select-v1 with the fresh seeds 31 to 35", () => {
+    const second = parseCorpus(corpusFile("pack-select-v2"), "pack-select-v2");
+    const first = parseCorpus(corpusFile("pack-select-v1"), "pack-select-v1");
+    expect(second.specs).toEqual(first.specs.map((s) => ({ ...s, seeds: [31, 32, 33, 34, 35] })));
+    expect(second.heldOut).toBe("all");
+    expect(second.declared).toEqual(first.declared);
+    expect(checkDeclared(second)).toEqual({ order: 360, aspect: 360, "free-size": 740, shaped: 1650 });
+  }, 120_000);
+
   it("stops a run before the first packing when the claim is not true, and prints the counts of a true claim", () => {
     const specs = [{ generator: "rect-grid", version: 1, params: { count: 5, containerShape: "circle" }, seeds: [1, 2] }];
     const wrong = { schema: "layout-corpus/1" as const, corpus: "claim-v1", specs, declared: { minCount: 1, thin: [], counts: { order: 0, aspect: 0, "free-size": 0, shaped: 1 } } };
