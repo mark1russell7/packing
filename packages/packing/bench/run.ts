@@ -426,7 +426,7 @@ export function recordLines(records: readonly BenchRecord[]): string {
 }
 
 /** The fields of `BenchScreen` in a run */
-const SCREEN_FIELDS = ["fill", "overflow", "outputGroups", "cellGroups", "activation"] as const;
+const SCREEN_FIELDS = ["fill", "overflow", "outputGroups", "cellGroups", "activation", "ranking"] as const;
 
 /**
  * This function joins the runs of the jobs of one corpus and one prediction into one run. It throws an `Error` for different runs.

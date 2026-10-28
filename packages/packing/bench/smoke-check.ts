@@ -8,6 +8,9 @@ import { OUTSIDE_EXACT } from "./screen.ts";
 /** The strategies that pack each input of `smoke-v1`. The check needs the coverage 1 for each of them. */
 export const FULL_COVERAGE: readonly string[] = ["rows", "shelf", "skyline"];
 
+/** The float noise of an area share. A forced overflow area above the overflow area by more than this value is a failure. */
+export const AREA_NOISE = 1e-9;
+
 /** One row of the coverage table: the coverage of one strategy in `run.json`. */
 export interface SmokeRow {
   strategy: string;
@@ -38,6 +41,7 @@ export function parseRecords(text: string): BenchRecord[] {
  * - The run has an error, or it has no records.
  * - A measured record has a hard break, or it is not deterministic.
  * - A measured record has a forced overflow above its overflow, or a box out of the true outline (`pack.outsideExact` above 0).
+ * - A measured record has a `pack.overflow.forcedAreaMin` above its `pack.overflow.area` by more than `AREA_NOISE`.
  * - A strategy has no coverage in the run, or its coverage does not agree with its records.
  * - A strategy of `full` has a coverage below 1, or the run does not have that strategy.
  */
@@ -53,6 +57,11 @@ export function smokeCheck(run: BenchRun, records: readonly BenchRecord[], full:
     const overflow = r.measures["pack.overflow"];
     if (forced !== undefined && overflow !== undefined && forced > overflow) {
       failures.push(`The record of ${r.strategy} on ${r.input} has a forced overflow of ${forced}, above its overflow of ${overflow}.`);
+    }
+    const forcedArea = r.measures["pack.overflow.forcedAreaMin"];
+    const area = r.measures["pack.overflow.area"];
+    if (forcedArea !== undefined && area !== undefined && forcedArea > area + AREA_NOISE) {
+      failures.push(`The record of ${r.strategy} on ${r.input} has a forced overflow area of ${forcedArea}, above its overflow area of ${area}.`);
     }
     const outside = r.measures[OUTSIDE_EXACT];
     if (outside !== undefined && outside > 0) failures.push(`The record of ${r.strategy} on ${r.input} has ${outside} boxes out of the true outline of the container.`);
@@ -89,7 +98,7 @@ export function smokeMarkdown(result: SmokeResult): string {
   if (result.failures.length === 0) {
     lines.push(
       "The check passed. The run has no errors and no hard breaks, each record is deterministic, and the coverage agrees with the records.",
-      "No forced overflow is above its overflow, and no box is out of the true outline.",
+      "No forced overflow is above its overflow, by count or by area, and no box is out of the true outline.",
     );
   } else {
     lines.push(`The check found ${result.failures.length} failures:`, "", ...result.failures.map((f) => `- ${f.replaceAll("|", "\\|")}`));
