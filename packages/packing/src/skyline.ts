@@ -128,7 +128,7 @@ interface Scan {
 
 /**
  * This function finds the best window of each rule for a box of `rw` cells and the height `rh`. A window is valid when
- * its height plus `rh` is not more than `cap` and not more than the smallest value of `limit` in the window.
+ * its height plus `rh` is not more than `cap`. It is also not more than the smallest value of `limit` in the window.
  */
 function scanWindows(skyline: ArrayLike<number>, width: number, rw: number, rh: number, cap: number, limit?: ArrayLike<number>): Scan {
   const high = new Int32Array(width);
