@@ -101,7 +101,7 @@ function turnOf(item: Item): Turn {
   return { rw: item.w, rh: item.h, bw: rule.w, bh: rule.h, pw, ph, margin: marginOf(item) };
 }
 
-/** This function gives the turn of a strip of a fixed height as the turn of a strip of a fixed width: the axes change places. */
+/** This function gives a turn of a strip with a fixed height as a turn of a strip with a fixed width. The axes change places. */
 function transpose(t: Turn): Turn {
   const m = t.margin;
   return { rw: t.rh, rh: t.rw, bw: t.bh, bh: t.bw, pw: t.ph, ph: t.pw, margin: { top: m.left, left: m.top, bottom: m.right, right: m.bottom } };
@@ -140,6 +140,7 @@ function strongest(parts: Partial<Record<BoundKind, number>>, sense: "lower" | "
  * The proof: two pieces wider than `width / 2` are not side by side. Thus the wide pieces stack, and the sum of their heights is a bound.
  * For a value `a` up to `width / 2`, a piece wider than `width - a` has no piece of a width from `a` to `width / 2` beside it.
  * Beside a wide piece `j` of the width `w`, those pieces fill at most `width - w`.
+ *
  * Thus `H >= sum(h of the wide pieces) + (A3 - sum((width - w) * h over the wide pieces up to width - a)) / width`.
  * `A3` is the area of the pieces of a width from `a` to `width / 2`. The best `a` is the width of a narrow piece.
  * With `integral`, the heights are whole numbers, so the optimum is a whole number, and the second term rounds up.

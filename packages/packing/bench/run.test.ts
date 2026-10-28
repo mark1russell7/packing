@@ -5,6 +5,7 @@ import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { composites, strategies } from "@mark1russell7/packing";
 import { ASPECT_FIT_ENTRIES, ENTRIES, entry, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
 import {
+  boundsMarkdown,
   checkPrediction,
   interleavedOrder,
   isMeasured,
@@ -49,6 +50,19 @@ const timeless = (r: BenchRecord): unknown => {
 };
 
 describe("the benchmark runner", () => {
+  it("records a bound and a gap of 0 or more for each measured record with a bound", () => {
+    const bounded = measured.filter((r) => r.measures["pack.gap"] !== undefined);
+    expect(bounded.length).toBeGreaterThan(measured.length / 2);
+    for (const r of bounded) {
+      expect(r.measures["pack.bound"], `${r.strategy} ${r.input}`).toBeGreaterThanOrEqual(0);
+      expect(r.measures["pack.gap"], `${r.strategy} ${r.input}`).toBeGreaterThanOrEqual(0);
+    }
+    const table = boundsMarkdown(first.run.strategies, measured);
+    expect(table[0]).toBe("| strategy | objective | records | gap median | gap q0.95 | winning bounds |");
+    expect(table.some((line) => line.startsWith("| rows | strip |"))).toBe(true);
+    expect(boundsMarkdown(["rows"], [])).toEqual(["No measured record has the measure `pack.gap`."]);
+  });
+
   it("writes one parsable layout-record/1 line for each record", () => {
     const lines = recordLines(first.records).split("\n");
     expect(lines.at(-1)).toBe("");

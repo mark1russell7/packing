@@ -202,6 +202,56 @@ The free area `F` is an upper bound. Thus `forced` is a lower bound for each pac
 - The area of `pack.overflow.forcedArea` and of its alias `pack.overflow.forcedAreaMin` is the area of the long items of step 1, plus the part of the area of the rest above `F`.
 - The area bound does not use the items that step 2 drops. Their area is often more than the part above `F`.
 
+## Bounds
+
+Since roadmap item k51, the bench records the bound of the objective of each cell, and the distance of the result to it. `boundMeasures` of `src/bounds.ts` gives these measures. The function `measure` does not give them, so the default records and `outputHash` stay the same.
+
+| Id | Unit | Direction | Range |
+|---|---|---|---|
+| `pack.bound` | the unit of the objective | none | 0 or more |
+| `pack.bound.kind` | a code | none | 0 to 7 |
+| `pack.gap` | ratio | lower | 0 or more |
+
+**`pack.bound`** is a fact of the input, not of the packer. No packer gets a better result. Its unit is the unit of the objective of the cell:
+
+| Cell | Objective | Sense of the bound |
+|---|---|---|
+| `freeHeight` | the height of the hull | lower |
+| `freeWidth` | the width of the hull | lower |
+| `freeArea` and `freeAspect` | the area `w * h` of the hull | lower |
+| `fixed` | the placed share of the item area, from 0 to 1 | upper |
+
+**`pack.bound.kind`** is the index of the strongest bound in `BOUND_KINDS`. A record holds only numbers, thus the kind is a code and not a string.
+
+| Code | Kind | Cell | Proof |
+|---|---|---|---|
+| 0 | `strip.area` | a strip | The pieces do not overlap and stay in the strip. Thus `H >= sum(w * h) / W`. |
+| 1 | `strip.tallest` | a strip | The hull holds each item. Thus `H` is at least the tallest item in its lowest turn. |
+| 2 | `strip.mmv` | a strip | Two pieces wider than `W / 2` stack. The bound L2 of Martello, Monaci and Vigo adds the narrow area that the wide pieces cannot hold. |
+| 3 | `strip.margin` | a strip | The pieces with their margins do not overlap. They go out of the hull by at most the largest top and bottom margins. |
+| 4 | `hull.area` | no fixed side | The pieces do not overlap in the hull. Thus its area is at least the sum of their areas. |
+| 5 | `hull.extent` | no fixed side | The hull holds the widest and the tallest item. A `turnable` item puts its long side on one axis. |
+| 6 | `hull.margin` | no fixed side | The pieces with their margins stay in the hull grown by the largest margins. |
+| 7 | `placed.free` | a fixed size | The placed area is at most the free area `F` of the forced overflow. |
+
+**`pack.gap`** is the distance of the result to the bound. The value 0 tells that the result is the best possible.
+
+- For a lower bound, `pack.gap` is `result / bound - 1`. For the upper bound of a fixed size, it is `bound / result - 1`.
+- A strip and a free container give no `pack.gap` when the output leaves out an item of the bound. Then the result does not compare.
+- A gap with no finite value is not in the record. The bound of a fixed size gives that when the output places no item area.
+- The smoke check fails on a `pack.gap` below 0, because then the bound is wrong.
+
+The rules of the bounds:
+
+- A piece is the rectangle of an item, cut to the box of its shape. The hard rules use that box too.
+- The tolerance: each piece becomes smaller by `tolerance.overlap / 2` on each side. Then the pieces have no common point, and the hull loses `tolerance.overlap`.
+- The bounds round up only with no tolerance and whole sizes. The bench uses a tolerance, so its strip bounds do not round.
+- `strip.mmv` does not use an item with 2 turns that fit. Fewer items do not need more height.
+- An item that is wider than a fixed width, in each turn, is not in the strip bounds. It counts as overflow.
+- The bounds ignore the gap and the obstacles of a free container. No hard rule needs the gap, and fewer limits do not make the optimum worse.
+- A shaped container counts as its bounding box, as in the hard rules. A margin below 0 gives no bound.
+- The aspect term of `freeAspect` is 0 or more. Thus the bound of the area holds, but it is weaker than for `freeArea`.
+
 ## Coverage
 
 | Id | Unit | Direction | Range |
@@ -396,6 +446,7 @@ Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `Measu
 | `pack.deterministic` | 0 | A boolean as 0 or 1. |
 | `pack.search.widths` | 0 | A count. |
 | `pack.search.ms` | none | A time. The times of CI change from run to run, and the time test of PROMOTION has its own rule. |
+| `pack.gap` | 0.005 | A ratio to a bound. A change of 0.5% counts. |
 
 - A measure with no `minEffect` uses `RECORD_EPS` in `compareMeasure`.
 - The test `src/overflow.test.ts` pins this table, and it compares values with `compareMeasure` of the contract.
