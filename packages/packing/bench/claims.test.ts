@@ -1,14 +1,20 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { checkDeclared as checkClaim, declaredClaimOf, type DeclaredClaim } from "@mark1russell7/layout-contract";
 import { corpus, rectGrid, rectGridV2, toPackInput } from "@mark1russell7/packing";
-import { assertClaim, claimProblems, declaredCounts, declares, DECLARED_IDS, parseClaim, type DeclaredClaim } from "./claims.ts";
+import { assertClaim, declaredCounts, declares, DECLARED_IDS } from "./claims.ts";
 import { checkDeclared, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
 
 // The declared properties of roadmap item k62, on made-up inputs and on the corpus files. The test reads no time.
 
 const corpusFile = (name: string): string => readFileSync(join(import.meta.dirname, "corpora", `${name}.json`), "utf8");
 const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test", cpu: "test", cpus: 1 };
+
+// A made-up input is the list of the ids that it declares. `inputsOf` gives inputs with the counts of `counts`.
+const inputsOf = (counts: Readonly<Record<string, number>>): string[][] => Object.entries(counts).flatMap(([id, n]) => Array.from({ length: n }, () => [id]));
+const problemsOf = (claim: DeclaredClaim, counts: Readonly<Record<string, number>>): string[] =>
+  checkClaim(inputsOf(counts), (i) => i, claim, DECLARED_IDS).map((b) => b.detail);
 
 describe("declares", () => {
   it("gives no property for a plain input, and each property in order for an input that declares all", () => {
@@ -32,32 +38,41 @@ describe("the claim claims.declared", () => {
   const claim: DeclaredClaim = { minCount: 10, thin: ["order", "shaped"], counts };
 
   it("reads a claim, and gives undefined for a manifest without one", () => {
-    expect(parseClaim({ claims: { declared: claim } })).toEqual(claim);
-    expect(parseClaim({})).toBeUndefined();
-    expect(parseClaim({ claims: {} })).toBeUndefined();
-    expect(() => parseClaim({ claims: 1 })).toThrow(/claims/);
-    expect(() => parseClaim({ claims: { declared: [] } })).toThrow(/claims.declared/);
-    expect(() => parseClaim({ claims: { declared: { ...claim, minCount: 1.5 } } })).toThrow(/minCount/);
-    expect(() => parseClaim({ claims: { declared: { ...claim, thin: [1] } } })).toThrow(/thin/);
-    expect(() => parseClaim({ claims: { declared: { ...claim, counts: { order: -1 } } } })).toThrow(/counts/);
+    expect(declaredClaimOf({ claims: { declared: claim } })).toEqual(claim);
+    expect(declaredClaimOf({})).toBeUndefined();
+    expect(declaredClaimOf({ claims: {} })).toBeUndefined();
+    expect(() => declaredClaimOf({ claims: 1 })).toThrow(/claims/);
+    expect(() => declaredClaimOf({ claims: { declared: [] } })).toThrow(/claims.declared/);
+    expect(() => declaredClaimOf({ claims: { declared: { ...claim, minCount: 1.5 } } })).toThrow(/minCount/);
+    expect(() => declaredClaimOf({ claims: { declared: { ...claim, thin: [1] } } })).toThrow(/thin/);
+    expect(() => declaredClaimOf({ claims: { declared: { ...claim, counts: { order: -1 } } } })).toThrow(/counts/);
   });
 
   it("is true when each count is the computed count and each thin property is in thin", () => {
-    expect(claimProblems(claim, counts)).toEqual([]);
-    expect(() => assertClaim("c", claim, counts)).not.toThrow();
+    expect(problemsOf(claim, counts)).toEqual([]);
     // A property in thin with a count of minCount or more is not a problem
-    expect(claimProblems({ ...claim, thin: ["order", "shaped", "aspect"] }, counts)).toEqual([]);
+    expect(problemsOf({ ...claim, thin: ["order", "shaped", "aspect"] }, counts)).toEqual([]);
   });
 
   it("gives each problem: a wrong count, a missing id, an unknown id and a thin property out of thin", () => {
-    expect(claimProblems(claim, { ...counts, aspect: 11 })).toEqual(['the property "aspect" has the count 12, but the inputs give 11']);
+    expect(problemsOf(claim, { ...counts, aspect: 11 })).toEqual(['the property "aspect" has the count 12, but the inputs give 11']);
     const { shaped: _shaped, ...rest } = counts;
-    expect(claimProblems({ ...claim, counts: { ...rest, nope: 1 } }, counts)).toEqual(['the property "shaped" has no count', '"nope" is not a declared property']);
-    expect(claimProblems({ ...claim, thin: ["order", "nope"] }, counts)).toEqual([
+    expect(problemsOf({ ...claim, counts: { ...rest, nope: 1 } }, counts)).toEqual(['the property "shaped" has no count', '"nope" is not a declared property']);
+    expect(problemsOf({ ...claim, thin: ["order", "nope"] }, counts)).toEqual([
       'the property "shaped" has 3 inputs, below minCount 10, and it is not in thin',
       '"nope" of thin is not a declared property',
     ]);
-    expect(() => assertClaim("c", claim, { ...counts, order: 1 })).toThrow(/The claims.declared of the corpus "c" is not true: the property "order"/);
+    // The hook gives an id that is not a declared property
+    expect(checkClaim([...inputsOf(counts), ["nope"]], (i) => i, claim, DECLARED_IDS).map((b) => b.detail)).toEqual(['1 inputs declare "nope", which is not a declared property']);
+  });
+
+  it("throws with each problem of a claim on the inputs of packing, and accepts a true claim", () => {
+    const inputs = [1, 2].map((seed) => toPackInput(rectGrid.generate(seed, { count: 5, containerShape: "circle" })));
+    const right: DeclaredClaim = { minCount: 1, thin: ["order", "aspect", "free-size"], counts: { order: 0, aspect: 0, "free-size": 0, shaped: 2 } };
+    expect(() => assertClaim("c", right, inputs)).not.toThrow();
+    expect(() => assertClaim("c", { ...right, counts: { ...right.counts, shaped: 1 } }, inputs)).toThrow(
+      /The claims.declared of the corpus "c" is not true: the property "shaped" has the count 1, but the inputs give 2/,
+    );
   });
 });
 

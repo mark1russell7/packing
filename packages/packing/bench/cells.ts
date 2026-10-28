@@ -9,11 +9,12 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { SplitCorpus, SplitFold } from "@mark1russell7/layout-contract";
 import { medianRatio, pairedRatio } from "@mark1russell7/packing";
 import { readRecords } from "./choose-sets.ts";
 import { HELD_OUT_SEED, hardOf, seedOf, type HeldOut } from "./portfolio.ts";
 import { cellsOf, hardTest, numText, pairsOf, PROMOTION_PARAMETERS, timeOf, timeTest, type InputCell, type PromotionRecord, type TimeResult } from "./promote.ts";
-import { loadSplit, type SplitFold, type SplitManifest } from "./split.ts";
+import { loadSplit } from "./split.ts";
 
 /** A win: the fill ratio of an input is this value or more, and the candidate adds no hard break. */
 export const WIN_RATIO = 1.05;
@@ -634,9 +635,9 @@ const optionOf = (argv: readonly string[], name: string): string | undefined => 
 };
 
 /** This function reads `records.jsonl` and `corpus.json` of a folder. */
-function readFolder(folder: string): { records: CellRecord[]; manifest: SplitManifest & { heldOut?: HeldOut } } {
+function readFolder(folder: string): { records: CellRecord[]; manifest: SplitCorpus & { heldOut?: HeldOut } } {
   const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8")) as CellRecord[];
-  const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as SplitManifest & { heldOut?: HeldOut };
+  const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as SplitCorpus & { heldOut?: HeldOut };
   return { records, manifest };
 }
 
