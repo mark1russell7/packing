@@ -7,6 +7,7 @@ import {
   MAXRECTS_RULES,
   RESTART_PERTURBS,
   SHELF_FITS,
+  SKYLINE_RULES,
   SORT_ORDERS,
   type AspectFitStrategyOptions,
   type BboxStrategyOptions,
@@ -18,6 +19,7 @@ import {
   type PushStrategyOptions,
   type RestartsStrategyOptions,
   type SelectStrategyOptions,
+  type SkylineStrategyOptions,
   type Strategy,
 } from "@mark1russell7/packing";
 import { CORPUS_LABELS, MEASURE_LABELS, type Label, type StrategySnapshot } from "./data.ts";
@@ -225,7 +227,8 @@ type AnyOptions = LayoutStrategyOptions &
   AspectFitStrategyOptions &
   SelectStrategyOptions &
   RestartsStrategyOptions &
-  BboxStrategyOptions;
+  BboxStrategyOptions &
+  Omit<SkylineStrategyOptions, "rule">;
 
 /** The type and the note of an option */
 export interface OptionInfo {
@@ -260,6 +263,12 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   strength: { type: "number", note: "The share of the positions that move, from 0 to 1." },
   limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
   turn: { type: "boolean", note: "The value `true` lets `bbox` turn each turnable item to the lower box." },
+  wasteMap: { type: "boolean", note: "The value `true` keeps the free areas below the skyline, and each box tries them first." },
+};
+
+/** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
+export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<string, OptionInfo>>>> = {
+  skyline: { rule: { type: oneOf(SKYLINE_RULES), note: "The rule to choose a place on the skyline: bottom-left or minimum waste." } },
 };
 
 /** The options of each strategy that have no default. The types of the package make sure that each name is an option of the strategy. */
@@ -285,7 +294,7 @@ export interface CardOption {
 /** This function gives the options of a strategy: each option of its defaults, then each option of `OPTIONAL_OPTIONS`. */
 export function optionsOf(s: Strategy): CardOption[] {
   const defaults = (s.defaults ?? {}) as Record<string, unknown>;
-  const info = (name: string): OptionInfo | undefined => (OPTION_INFO as Record<string, OptionInfo>)[name];
+  const info = (name: string): OptionInfo | undefined => STRATEGY_OPTION_INFO[s.id]?.[name] ?? (OPTION_INFO as Record<string, OptionInfo>)[name];
   const out: CardOption[] = Object.entries(defaults).map(([name, v]) => ({
     name,
     type: info(name)?.type ?? typeof v,

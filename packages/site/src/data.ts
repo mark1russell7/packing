@@ -227,6 +227,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-28",
+    item: "k22",
+    title: "The strategy `skyline` gets the rule `mw` (minimum waste), a waste map and `rotate`. The default rule `bl` gives the same outputs as before.",
+    pr: 119,
+    link: "https://github.com/mark1russell7/packing/pull/119",
+  },
+  {
+    date: "2026-10-28",
     item: "k91",
     title: "The strategy `bbox` packs circles and polygons by their bounding boxes with one member. It is the first strategy for each shape kind.",
     pr: 118,
