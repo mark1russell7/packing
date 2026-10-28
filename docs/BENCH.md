@@ -46,7 +46,7 @@ A job of the matrix fails when a strategy throws an error on an input. The other
 The workflow `Bench smoke` (`.github/workflows/bench-smoke.yml`) runs on each pull request and on each push to `main`. It has one job with these steps:
 
 1. It installs the dependencies with `pnpm install --frozen-lockfile`.
-2. It gets the strategies with `main.ts list`. Then it runs the corpus `smoke-v1` once for each strategy, with `--repeats 1` and `--warmup 0`.
+2. It gets the strategies with `main.ts list`. Then it packs the corpus `smoke-v1` once for each strategy, with `--repeats 1` and `--warmup 0`.
 3. It joins the folders of the strategies with `main.ts merge`.
 4. It examines the merged folder with `main.ts check`, and it writes the coverage table into the summary of the job.
 
