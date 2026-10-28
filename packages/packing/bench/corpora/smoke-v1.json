@@ -1,0 +1,18 @@
+{
+  "schema": "layout-corpus/1",
+  "corpus": "smoke-v1",
+  "specs": [
+    {"generator": "rect-grid", "version": 1, "params": {"count": 10}, "seeds": [1, 2]},
+    {"generator": "rect-grid", "version": 1, "params": {"obstacles": "scattered", "count": 10}, "seeds": [1]},
+    {"generator": "rect-grid", "version": 1, "params": {"containerShape": "circle", "count": 10}, "seeds": [1]},
+    {"generator": "rect-grid", "version": 1, "params": {"containerSize": "freeAspect", "count": 10}, "seeds": [1]},
+    {"generator": "rect-grid", "version": 1, "params": {"sizes": "heavyTail", "count": 100}, "seeds": [1]},
+    {"generator": "gallery", "version": 1, "params": {"count": 10}, "seeds": [1]},
+    {"generator": "cards", "version": 1, "params": {"count": 100}, "seeds": [1]},
+    {"generator": "edge-cases", "version": 1, "params": {"case": "empty"}, "seeds": [1]},
+    {"generator": "edge-cases", "version": 1, "params": {"case": "one"}, "seeds": [1]},
+    {"generator": "edge-cases", "version": 1, "params": {"case": "oversize", "count": 6}, "seeds": [1]},
+    {"generator": "edge-cases", "version": 1, "params": {"case": "exactTiling", "count": 12}, "seeds": [1]},
+    {"generator": "edge-cases", "version": 1, "params": {"case": "touchObstacles", "count": 6}, "seeds": [1]}
+  ]
+}
