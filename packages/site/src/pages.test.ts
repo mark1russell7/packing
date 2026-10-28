@@ -211,8 +211,8 @@ describe("the distance to the best", () => {
 describe("the space coverage of k105", () => {
   const snap = parseSnapshot(read("coverage.json"), "coverage") as CoverageSnapshot;
 
-  it("has the k22 run as its first point, and a share from 0 to 1 for each measure", () => {
-    expect(snap.trend[0]).toMatchObject({ date: "2026-10-28", run: 40783923164, corpus: "pack-select-v2" });
+  it("has the k22 run and the first CI coverage run as points, and a share from 0 to 1 for each measure", () => {
+    expect(snap.trend.map((p) => p.run).sort()).toEqual([40783923164, 40789799391]);
     expect(snap.latest.measures.map((m) => m.id)).toEqual(["pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
     for (const m of snap.latest.measures) {
       expect(m.share).toBeGreaterThanOrEqual(0);
@@ -226,7 +226,7 @@ describe("the space coverage of k105", () => {
     }
     expect(snap.latest.model.by).toBe("spec");
     expect(Object.keys(snap.trend[0]!.sharesByInput!)).toEqual(Object.keys(snap.trend[0]!.shares));
-    expect(snap.origin[0]).toMatchObject({ release: "0.2.17", commit: "443bbca" });
+    expect(snap.origin[0]).toMatchObject({ release: "0.2.17", commit: "a73bdd2" });
   });
 
   it("gives the texts and the widths of the errors", () => {
