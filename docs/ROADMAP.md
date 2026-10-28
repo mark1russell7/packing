@@ -79,11 +79,11 @@ Status: done, done, waiting, next, done.
 | k70 | Fit `SELECT_TABLE` again on two measures, the fill and the joint floor of `layout-contract`, with `verdict()`. The fit decides leaf 6: free size, a heavy tail and a shape that is not a rectangle. | strategies | next | k66 |
 | k71 | A render check of the site in CI: headless Chromium opens each page at a phone width and a desktop width. It fails on a console error, a failed request or an empty `main`, and keeps the screenshots. Shipped in #94: 12 of 12 views pass. | site | done | k32 |
 | k72 | A compare page: one input, each named strategy side by side, with its output and its measures. The demo offers each strategy of the registry and its options. A test fails when a list of the site differs from the code. | site | done | k32 |
-| k73 | The inputs of the site come from the corpus generator: each family, with sliders for the seed, the count, the size spread, the aspect, the container and the obstacles. Compare and the demo take each generated input. | site | active | k72 |
+| k73 | The inputs of the site come from the corpus generator: each family, with sliders for the seed, the count, the size spread, the aspect, the container and the obstacles. Compare and the demo take each generated input. | site | done | k72 |
 | k74 | An analysis card for each strategy: its source, its complexity, its guarantee, its measured scaling exponent, and its response to each dimension and parameter (sweeps and Sobol indices). Part 1 (the cards from the code and the catalog) is active. Part 2 (the sweeps) waits for `packSpace`. | measure | active | k13, k68 |
 | k75 | The shape of the items and of the container as a dimension of `packSpace` and of the contracts: rectangle, polygon, circle or free form. Only rectangles have strategies today. | core | done | k68 |
 | k76 | A survey of each published method of packing, as ideas. Each method gets a row of the queue with its gain, its uncertainty and its cost. | theory | done | |
-| k77 | A space between two given items, or one channel, set once. The input names the pair and its gap, and the placement keeps that gap. Today the gap comes from the margins of both boxes, so it doubles. The routing bench of `layout-contract` (L13) asks for it. | core | next | k65 |
+| k77 | A space between two given items, or one channel, set once. The input names the pair and its gap, and the placement keeps that gap. Today the gap comes from the margins of both boxes, so it doubles. The routing bench of `layout-contract` (L13) asks for it. | core | done | k65 |
 | k78 | Random restarts around each strategy (idea R1 of the survey) | strategies | next | k6, k7 |
 | k79 | Goal-driven ruin and recreate (idea R5 of the survey) | strategies | later | k6, k7 |
 | k80 | Overlap minimization for rectangles (idea R6 of the survey) | strategies | later | k6, k7 |
@@ -145,33 +145,31 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | 18 | k13 | 3 | 3 | 2 | 4.5 |
 | 19 | k92 | 3 | 3 | 2 | 4.5 |
 | 20 | k10 | 4 | 4 | 4 | 4.0 |
-| 21 | k77 | 4 | 3 | 3 | 4.0 |
-| 22 | k81 | 4 | 3 | 3 | 4.0 |
-| 23 | k82 | 3 | 4 | 3 | 4.0 |
-| 24 | k83 | 3 | 4 | 3 | 4.0 |
-| 25 | k93 | 4 | 2 | 2 | 4.0 |
-| 26 | k94 | 4 | 3 | 3 | 4.0 |
-| 27 | k95 | 4 | 3 | 3 | 4.0 |
-| 28 | k96 | 5 | 4 | 5 | 4.0 |
-| 29 | k97 | 3 | 4 | 3 | 4.0 |
-| 30 | k110 | 4 | 2 | 2 | 4.0 |
-| 31 | k84 | 3 | 5 | 4 | 3.8 |
-| 32 | k74 | 4 | 3 | 4 | 3.0 |
-| 33 | k52 | 3 | 2 | 2 | 3.0 |
-| 34 | k85 | 3 | 3 | 3 | 3.0 |
-| 35 | k86 | 3 | 5 | 5 | 3.0 |
-| 36 | k87 | 3 | 3 | 3 | 3.0 |
-| 37 | k98 | 3 | 2 | 2 | 3.0 |
-| 38 | k73 | 4 | 2 | 3 | 2.7 |
-| 39 | k109 | 4 | 2 | 3 | 2.7 |
-| 40 | k99 | 3 | 4 | 5 | 2.4 |
-| 41 | k100 | 3 | 3 | 4 | 2.3 |
-| 42 | k88 | 2 | 2 | 2 | 2.0 |
-| 43 | k101 | 4 | 2 | 4 | 2.0 |
-| 44 | k102 | 3 | 2 | 3 | 2.0 |
-| 45 | k103 | 2 | 2 | 2 | 2.0 |
-| 46 | k89 | 2 | 4 | 5 | 1.6 |
-| 47 | k104 | 2 | 3 | 5 | 1.2 |
+| 21 | k81 | 4 | 3 | 3 | 4.0 |
+| 22 | k82 | 3 | 4 | 3 | 4.0 |
+| 23 | k83 | 3 | 4 | 3 | 4.0 |
+| 24 | k93 | 4 | 2 | 2 | 4.0 |
+| 25 | k94 | 4 | 3 | 3 | 4.0 |
+| 26 | k95 | 4 | 3 | 3 | 4.0 |
+| 27 | k96 | 5 | 4 | 5 | 4.0 |
+| 28 | k97 | 3 | 4 | 3 | 4.0 |
+| 29 | k110 | 4 | 2 | 2 | 4.0 |
+| 30 | k84 | 3 | 5 | 4 | 3.8 |
+| 31 | k74 | 4 | 3 | 4 | 3.0 |
+| 32 | k52 | 3 | 2 | 2 | 3.0 |
+| 33 | k85 | 3 | 3 | 3 | 3.0 |
+| 34 | k86 | 3 | 5 | 5 | 3.0 |
+| 35 | k87 | 3 | 3 | 3 | 3.0 |
+| 36 | k98 | 3 | 2 | 2 | 3.0 |
+| 37 | k109 | 4 | 2 | 3 | 2.7 |
+| 38 | k99 | 3 | 4 | 5 | 2.4 |
+| 39 | k100 | 3 | 3 | 4 | 2.3 |
+| 40 | k88 | 2 | 2 | 2 | 2.0 |
+| 41 | k101 | 4 | 2 | 4 | 2.0 |
+| 42 | k102 | 3 | 2 | 3 | 2.0 |
+| 43 | k103 | 2 | 2 | 2 | 2.0 |
+| 44 | k89 | 2 | 4 | 5 | 1.6 |
+| 45 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
