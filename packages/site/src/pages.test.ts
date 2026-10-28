@@ -138,7 +138,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-28", ["k2"], ["2"]],
       ["2026-10-20", [], ["1"]],
     ]);
-    expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k106", "k45", "k51", "k78"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k106","k45","k51","k78","k91"]);
   });
 });
 

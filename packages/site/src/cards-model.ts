@@ -9,6 +9,7 @@ import {
   SHELF_FITS,
   SORT_ORDERS,
   type AspectFitStrategyOptions,
+  type BboxStrategyOptions,
   type Dimension,
   type DimensionValue,
   type LayoutStrategyOptions,
@@ -77,6 +78,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     rule: "Pack with the member in its own order, then in random changes of that order. Keep the output with the best key.",
     cost: "one pack of the member for each restart: 16 packs by default",
   },
+  bbox: { stage: "placement" },
 };
 
 // ---- The catalog ----
@@ -222,7 +224,8 @@ type AnyOptions = LayoutStrategyOptions &
   PortfolioStrategyOptions &
   AspectFitStrategyOptions &
   SelectStrategyOptions &
-  RestartsStrategyOptions;
+  RestartsStrategyOptions &
+  BboxStrategyOptions;
 
 /** The type and the note of an option */
 export interface OptionInfo {
@@ -256,6 +259,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   perturb: { type: oneOf(RESTART_PERTURBS), note: "The change of the order of each run after run 0." },
   strength: { type: "number", note: "The share of the positions that move, from 0 to 1." },
   limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
+  turn: { type: "boolean", note: "The value `true` lets `bbox` turn each turnable item to the lower box." },
 };
 
 /** The options of each strategy that have no default. The types of the package make sure that each name is an option of the strategy. */
@@ -266,6 +270,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   "aspect-fit": ["strategy", "options", "targetAspect"] satisfies (keyof AspectFitStrategyOptions)[],
   select: ["members", "table"] satisfies (keyof SelectStrategyOptions)[],
   restarts: ["member", "budgetMs", "key"] satisfies (keyof RestartsStrategyOptions)[],
+  bbox: ["member"] satisfies (keyof BboxStrategyOptions)[],
 };
 
 /** One option of a card */
