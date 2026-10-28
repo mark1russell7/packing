@@ -21,10 +21,28 @@ function inner(box: Box, tolerance: number): Rect {
   return { x: box.l + tolerance, y: box.t + tolerance, w: box.r - box.l - 2 * tolerance, h: box.b - box.t - 2 * tolerance };
 }
 
+/** This function gives a box that is larger by `d` on each side. */
+const grown = (box: Box, d: number): Box => ({ l: box.l - d, t: box.t - d, r: box.r + d, b: box.b + d });
+
+/** This function gives the key of a pair of item ids, with the same key for each order. */
+const pairKey = (a: string, b: string): string => JSON.stringify(a < b ? [a, b] : [b, a]);
+
+/** This function gives the gap of each pair of `pairGaps` by `pairKey`, or `undefined` without `pairGaps`. The first entry of a pair wins, as in the contract. */
+function pairGapsOf(input: PackInput): Map<string, number> | undefined {
+  if (input.pairGaps === undefined || input.pairGaps.length === 0) return undefined;
+  const out = new Map<string, number>();
+  for (const p of input.pairGaps) {
+    const key = pairKey(p.a, p.b);
+    if (p.a !== p.b && !out.has(key)) out.set(key, p.gap);
+  }
+  return out;
+}
+
 /**
  * This function counts the breaks of the 4 hard rules of the packer for an output.
  *
  * - `no-overlap`: each pair of items with their margins, and each pair of an item and an obstacle, that overlap by more than `tolerance.overlap`.
+ *   A pair of `pairGaps` uses its gap in place of the two margins, as in `packHard`: one item grows by the gap.
  * - `in-container`: each item with its margin that goes out of a fixed side by more than `tolerance.overlap`. The inset of
  *   the container makes each fixed side smaller (decision 3 of `docs/PACKER.md`).
  * - `locked-kept`: each locked item that moved by more than `RECORD_EPS`, or that has no placement.
@@ -55,6 +73,8 @@ export function checkHard(
   let complete = 0;
 
   const boxes: Box[] = [];
+  const ids: string[] = [];
+  const raws: Box[] = [];
   for (const item of input.items) {
     if (item.locked === true && (item.x === undefined || item.y === undefined)) continue;
     const lockedAt = item.locked === true ? { x: item.x!, y: item.y! } : undefined;
@@ -76,7 +96,10 @@ export function checkHard(
     const l = p.x + area.x;
     const t = p.y + area.y;
     boxes.push({ l: l - m.left, t: t - m.top, r: l + area.w + m.right, b: t + area.h + m.bottom });
+    ids.push(item.id);
+    raws.push({ l, t, r: l + area.w, b: t + area.h });
   }
+  const pairs = pairGapsOf(input);
 
   const moved = new Map(output.moved.map((m) => [m.id, m]));
   const obstacles: Region[] = (input.obstacles ?? []).map((o) => {
@@ -88,7 +111,10 @@ export function checkHard(
 
   let overlaps = 0;
   for (const [i, a] of boxes.entries()) {
-    for (let j = i + 1; j < boxes.length; j++) if (overlap(a, boxes[j]!, tol)) overlaps += 1;
+    for (let j = i + 1; j < boxes.length; j++) {
+      const g = pairs?.get(pairKey(ids[i]!, ids[j]!));
+      if (g === undefined ? overlap(a, boxes[j]!, tol) : overlap(grown(raws[i]!, g), raws[j]!, tol)) overlaps += 1;
+    }
     if (obstacles.length === 0) continue;
     const rect = inner(a, tol);
     for (const region of obstacles) if (regionHitsRect(region, rect)) overlaps += 1;

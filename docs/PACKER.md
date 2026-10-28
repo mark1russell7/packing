@@ -29,7 +29,8 @@ Since 0.2.0, `packing` imports the data types from `@mark1russell7/layout-contra
 | `Port` | `Port` | An `id`, an optional `side`, and an optional `x` and `y` on the border of the item. |
 | `Sides` | `Sides` | One value for each side: `top`, `right`, `bottom` and `left`. |
 | `Margin` | `Margin` | A number, or `Sides`. |
-| `PackInput` | `PackInput` | A `container`, the `items`, and the optional `obstacles` and `gap`. |
+| `PackInput` | `PackInput` | A `container`, the `items`, and the optional `obstacles`, `gap` and `pairGaps`. |
+| `PairGap` | `PairGap` | The ids `a` and `b` of two items, their `gap`, and an optional `lanes`. Decision 3 gives the rule. |
 | `Placement` | `Placement` | An `id`, `x`, `y` and an optional `turn` of 0 or 90. |
 | `PackOutput` | `PackOutput` | The `placements`, the `overflow`, the `size`, the `moved` obstacles and an optional `trace`. |
 | `StageTrace` | `StageTrace` | An `id`, and an optional `ms` and `measures`. Each strategy of `packing` writes both. |
@@ -490,6 +491,28 @@ The layout-stack session, `highways` and `packing` settled these questions on 20
 - Thus two items are `mA + gap + mB` apart.
 - A gap with `k` routes at a spacing `s` needs `gap >= (k - 1) * s` when the margins give the clearance.
 - The joint corpus keeps the inputs with a gap of 0 and no margin as a labelled stress cell. On these inputs, the router rule `through` is expected to fail. Each other joint input has a margin and a gap larger than 0.
+
+#### The pair gaps (roadmap item k77)
+
+`PackInput.pairGaps` sets one distance for some pairs of items. It comes from `layout-contract` 0.2.14.
+
+- An entry `{ a, b, gap, lanes? }` names two items. The order of `a` and `b` has no meaning. `lanes` is information only.
+- For a listed pair, the pair gap replaces the two margins and the global `gap`. The other pairs do not change.
+- The rule `no-overlap` of `packHard` grows one item of the pair by the pair gap. The pair breaks the rule only when it is nearer than the pair gap. `checkHard` uses the same rule.
+- `hashInput` puts the file through `canonicalInput` of the contract. That function puts `a` before `b`, and sorts the list by `a` and then by `b`. Thus the hash is equal to `documentHash` of the contract. The order of the list does not change the hash.
+- A file without `pairGaps` keeps its hash. An input without `pairGaps`, or with an empty list, keeps its output.
+
+Each strategy keeps the pair gaps through the frame of the adapters of 0.1 (`buildFrame`):
+
+- Two rectangles of the frame do not overlap. Thus two items are apart by their smallest margins, the global gap and their two pads.
+- Each item of a listed pair gets a pad on each side. The pad is half of the part of the pair gap that is more than that distance.
+- An item of more than one pair gets the largest pad. A pair gap that is not more than that distance gives no pad.
+- `rows`, `skyline`, `shelf`, `maxrects` and `push` use this frame. Thus each strategy keeps each pair gap. The composite strategies give the input with its `pairGaps` to their members.
+
+The rule is safe, but it is not tight:
+
+- A pair gap that is smaller than the margins does not let the two items come nearer. The packer keeps the margins.
+- A pad also keeps the other neighbours of the item farther away, and it can make an item too large for a fixed container. Then the item goes to the overflow.
 
 ### 4. The ports
 

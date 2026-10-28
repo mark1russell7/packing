@@ -1,6 +1,6 @@
 // The input file `layout-input/1` of `docs/FORMAT.md`: its types, its numbers, its canonical form and its hash.
 
-import type { LayoutContainer, LayoutEdge, LayoutGenerator, LayoutInput } from "@mark1russell7/layout-contract";
+import { canonicalInput, type LayoutContainer, type LayoutEdge, type LayoutGenerator, type LayoutInput } from "@mark1russell7/layout-contract";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { sha256Hex, utf8 } from "./sha256.ts";
 import type { Cell } from "./strategy.ts";
@@ -101,9 +101,13 @@ export function canonicalJson(value: unknown): string {
   return JSON.stringify(typeof value === "number" ? round3(value) : value);
 }
 
-/** This function gives the hash of an input file: the first 16 hex characters of the SHA-256 of its canonical form without `hash`. */
+/**
+ * This function gives the hash of an input file: the first 16 hex characters of the SHA-256 of its canonical form without `hash`.
+ * The file goes through `canonicalInput` of the contract first. Thus the order of `pairGaps` does not change the hash.
+ * A file without `pairGaps` keeps its hash. The value is equal to `documentHash` of the contract.
+ */
 export function hashInput(file: LayoutInput): string {
-  const { hash: _hash, ...rest } = file;
+  const { hash: _hash, ...rest } = canonicalInput(file);
   return sha256Hex(canonicalJson(rest)).slice(0, 16);
 }
 
@@ -130,11 +134,12 @@ export function countCell(count: number): CountScale {
  * This function gives the packing input of a file. The boxes become the items, and the edges go.
  * A file without a container gets `{ fixed: "none" }`, so the packer picks the size. It is `toPackInput` of the contract.
  */
-export function toPackInput(file: Pick<LayoutInput, "container" | "boxes" | "obstacles" | "gap">): PackInput {
+export function toPackInput(file: Pick<LayoutInput, "container" | "boxes" | "obstacles" | "gap" | "pairGaps">): PackInput {
   return {
     container: file.container ?? { fixed: "none" },
     items: file.boxes,
     ...(file.obstacles === undefined ? {} : { obstacles: file.obstacles }),
     ...(file.gap === undefined ? {} : { gap: file.gap }),
+    ...(file.pairGaps === undefined ? {} : { pairGaps: file.pairGaps }),
   };
 }

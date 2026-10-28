@@ -1209,7 +1209,7 @@ export declare function supportsCell(supports: Supports, cell: Partial<Record<Di
 export declare function tailShare(ratios: readonly number[], limit: number): number;
 
 ### build/index.d.ts#toPackInput
-export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "boxes" | "obstacles" | "gap">): PackInput;
+export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "boxes" | "obstacles" | "gap" | "pairGaps">): PackInput;
 
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
