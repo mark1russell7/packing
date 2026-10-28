@@ -226,9 +226,23 @@ A caller can need less than all the guards. For example, a free canvas does not 
 
 This section is local to `packing`.
 
-- The guard measures of the step `pack` are `pack.area`, `pack.fill`, `pack.aspectError` and `pack.order.inversions`. `pack.overflow` is a guard in the fixed cells.
-- The stability measures are guards on change pairs: `pack.stability.mean`, `pack.stability.q95` and `pack.stability.moved`.
+The table gives the properties of an input, the field that declares each property, and its guards. `GUARD_DECLARATIONS` of `packages/packing/bench/promote.ts` holds this table, and its tests read it.
+
+| Property | The input field that declares it | Guard |
+|---|---|---|
+| Order | The cell `order` is `soft` or `hard`. | `pack.order.inversions` |
+| Aspect | The container has `aspect`. In the generated corpora, only the cell `containerSize` `freeAspect` sets it. | `pack.aspectError` |
+| Free size | The cell `containerSize` is not `fixed`. | `pack.area` on all these inputs |
+| Fixed size | The cell `containerSize` is `fixed`. | `pack.overflow`, and `pack.area` on the inputs where both records have the same `pack.overflow` |
+| Change pair | Both records have the stability measure. | `pack.stability.mean`, `pack.stability.q95` and `pack.stability.moved` |
+
+- `pack.order.inversions` counts the pairs of boxes out of their rank order. An input with the order `free` has no rank order to keep.
+- `pack.aspectError` compares the hull with `container.aspect ?? 1`. A container without `aspect` does not ask for an aspect.
+- `pack.area` is the area of the hull. In a fixed container, the hull grows with the count of placed boxes, and `pack.overflow` guards that count. On the inputs with the same placed count, `pack.area` still finds a packer that spreads the boxes out.
+- The core guards apply to each input: the hard rules, the time test and `pack.fill`. `pack.overflow` applies to each fixed cell, and the stability test to each change pair.
 - The hard counts of each record and `pack.deterministic` give the hard-rule test.
 - The field `ms` of each record gives the time test. A job of `promotion.yml` times the candidate and the default on one runner.
+- The named profiles: only `all`. No caller option of `packing` changes the guards.
+- The guard set `v2` follows this table. The guard set `v1` is the set before the declared guards, with `pack.area`, `pack.fill`, `pack.aspectError` and `pack.order.inversions` on each input. The option `--guards v1` gives it.
 - `MEASURE_SPECS` of `@mark1russell7/packing` gives the floor, the tolerance and the `minEffect` of each `pack.*` measure. `docs/MEASURES.md` gives their reasons.
 - `packages/packing/bench/promote.ts` applies the win test to the records of a run. `docs/BENCH.md` tells how to start it.
