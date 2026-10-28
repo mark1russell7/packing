@@ -1,0 +1,87 @@
+# The paired time test (docs/BENCH.md, "A paired time test"). The job checks out two refs of the repository as the arms A and B,
+# and packs one corpus with both arms in one process, with the timed passes of each input in ABBA order.
+# Thus a drift of the runner cancels in the ratio B / A. Only a person starts a run, after a commit adds its prediction.
+name: Paired
+
+on:
+  workflow_dispatch:
+    inputs:
+      arm_a:
+        description: The ref of the arm A, the base. A tag, a branch or a commit.
+        type: string
+        required: true
+      arm_b:
+        description: The ref of the arm B, the change. A tag, a branch or a commit.
+        type: string
+        required: true
+      corpus:
+        description: "The corpus: a file of packages/packing/bench/corpora, without .json."
+        type: string
+        default: pack-select-v2
+      strategy:
+        description: The id of the strategy that both arms pack with
+        type: string
+        default: rows
+      prediction:
+        description: The id of the prediction of the run. A commit adds the prediction before the run.
+        type: string
+        required: true
+      repeats:
+        description: The timed passes of each arm on each input. The time is the median.
+        type: string
+        default: "5"
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CORPUS: ${{ inputs.corpus }}
+      STRATEGY: ${{ inputs.strategy }}
+      PREDICTION: ${{ inputs.prediction }}
+      REPEATS: ${{ inputs.repeats }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.arm_a }}
+          path: arm-a
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.arm_b }}
+          path: arm-b
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - name: Install the tool and the two arms
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir arm-a install --frozen-lockfile
+          pnpm --dir arm-b install --frozen-lockfile
+      - name: Run the paired test
+        run: |
+          [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
+          [[ "$STRATEGY" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "strategy must be a-z, 0-9 and hyphen, not '$STRATEGY'"; exit 1; }
+          [[ "$PREDICTION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "prediction must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$PREDICTION'"; exit 1; }
+          [[ "$REPEATS" =~ ^[1-9][0-9]*$ ]] || { echo "repeats must be a number of 1 or more, not '$REPEATS'"; exit 1; }
+          echo "The arm A: $(git -C arm-a rev-parse --short HEAD), the arm B: $(git -C arm-b rev-parse --short HEAD)"
+          out="$RUNNER_TEMP/paired"
+          status=0
+          node packages/packing/bench/paired.ts --corpus "$CORPUS" --strategy "$STRATEGY" --arm-a arm-a --arm-b arm-b \
+            --prediction "$PREDICTION" --repeats "$REPEATS" --out "$out" || status=$?
+          [ -f "$out/summary.md" ] && cat "$out/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: paired-${{ inputs.corpus }}-${{ inputs.strategy }}
+          path: ${{ runner.temp }}/paired
+          if-no-files-found: error

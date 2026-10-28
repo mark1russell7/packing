@@ -549,6 +549,27 @@ A run on a local computer gives no valid times. Use it only to examine the scrip
 node bench/profile.ts --corpus smoke-v1 --strategy maxrects-bl --inputs <id>,<id> --out bench-out/profile
 ```
 
+## A paired time test
+
+Two bench runs often go on two runners with different CPUs, and their times do not compare. The workflow `Paired` (`.github/workflows/paired.yml`) times two refs of the repository in one job. Start it with the GitHub CLI:
+
+```sh
+gh workflow run paired.yml -f arm_a=v0.2.16 -f arm_b=<branch> -f corpus=pack-select-v2 -f strategy=rows -f prediction=<id>
+```
+
+| Input | Default | What it sets |
+|---|---|---|
+| `arm_a` | | The ref of the arm A, the base: a tag, a branch or a commit. |
+| `arm_b` | | The ref of the arm B, the change. |
+| `corpus` | `pack-select-v2` | The corpus. The tool of the default branch makes its inputs. |
+| `strategy` | `rows` | The strategy that both arms pack with. |
+| `prediction` | | The id of the prediction of the run. |
+| `repeats` | `5` | The timed passes of each arm on each input. |
+
+The job starts `bench/paired.ts`. The script loads `packWith` of both arms in one process. For each input, it packs once with each arm and does 2 warm-up passes of each arm. Then it does the timed passes in the order ABBA. The ratio is the median time of B divided by the median time of A.
+
+The artifact `paired-<corpus>-<strategy>` has `records.jsonl`, `summary.json` and `summary.md`. Each record has the two times, the ratio and the placement hash of each arm. The summary gives the median ratio of the free-size rect inputs with 100 items and of the other inputs. It also gives the median ratio of each class of the other inputs.
+
 ## The cells of a candidate
 
 `packages/packing/bench/cells.ts` finds the cells where a candidate fills more than the default (roadmap item k66). It reads the records of one run. It does not start a packer.
