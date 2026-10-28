@@ -79,7 +79,7 @@ export {
   type PushStrategyOptions,
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { aspectFitStrategy, composites, packWith, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+export { aspectFitStrategy, composites, DEFAULT_STRATEGY, packDefault, packWith, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
 export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
 export {

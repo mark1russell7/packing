@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.15
+
+A default strategy for an input, roadmap item k66. This release has no breaking changes. `pack()` and every existing output do not change.
+
+### Added
+
+- `DEFAULT_STRATEGY` (`"select"`) and `packDefault(input, seed)`: they pack an input with `select`. `select` passed the v2 win test against `rows` on two fresh-seed corpora, `pack-select-v1` and `pack-select-v2`.
+- Bench: the second test corpus `pack-select-v2` (2025 inputs, fresh seeds 31 to 35).
+
 ## 0.2.14
 
 A new opt-in strategy, `select`, roadmap item k66. This release has no breaking changes. The default `pack()` and every existing output do not change.

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   checkSelectTable,
   composites,
+  DEFAULT_STRATEGY,
+  packDefault,
   packWith,
   SELECT_MAX_DEPTH,
   SELECT_MEMBERS,
@@ -131,5 +133,15 @@ describe("the strategy select", () => {
     expect(() => checkSelectTable(deep, 2)).toThrow(/more than 3 tests/);
     expect(() => checkSelectTable({ feature: "spread", below: Number.NaN, yes: leaf(0), no: leaf(0) }, 1)).toThrow(/number below/);
     expect(() => packWith("select", input(3, "uniform", FIXED), { members: ["nope", "rows"] })).toThrow(RangeError);
+  });
+});
+
+describe("the default strategy of an input", () => {
+  it("is select: packDefault gives the output of packWith with DEFAULT_STRATEGY", () => {
+    expect(DEFAULT_STRATEGY).toBe("select");
+    for (const x of [input(30, "heavy", FIXED), input(10, "uniform", CIRCLE)]) {
+      expect(placed(packDefault(x))).toEqual(placed(packWith("select", x)));
+      expect(placed(packDefault(x, 4))).toEqual(placed(packWith("select", x, undefined, 4)));
+    }
   });
 });
