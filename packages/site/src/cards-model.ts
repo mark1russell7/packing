@@ -5,6 +5,7 @@
 import {
   ASPECT_FIT_FACTORS,
   MAXRECTS_RULES,
+  RESTART_PERTURBS,
   SHELF_FITS,
   SORT_ORDERS,
   type AspectFitStrategyOptions,
@@ -14,6 +15,7 @@ import {
   type MaxRectsStrategyOptions,
   type PortfolioStrategyOptions,
   type PushStrategyOptions,
+  type RestartsStrategyOptions,
   type SelectStrategyOptions,
   type Strategy,
 } from "@mark1russell7/packing";
@@ -69,6 +71,11 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     stage: "combine",
     rule: "Measure the count, the spread and the shape of the input. A decision table picks one member, and that member packs.",
     cost: "`O(n)` for the features, then one pack of the member",
+  },
+  restarts: {
+    stage: "order",
+    rule: "Pack with the member in its own order, then in random changes of that order. Keep the output with the best key.",
+    cost: "one pack of the member for each restart: 16 packs by default",
   },
 };
 
@@ -209,7 +216,13 @@ export function cellHtml(text: string, catalogUrl: string): string {
 // ---- The options ----
 
 /** The union of the options of each strategy of the registry */
-type AnyOptions = LayoutStrategyOptions & MaxRectsStrategyOptions & PushStrategyOptions & PortfolioStrategyOptions & AspectFitStrategyOptions & SelectStrategyOptions;
+type AnyOptions = LayoutStrategyOptions &
+  MaxRectsStrategyOptions &
+  PushStrategyOptions &
+  PortfolioStrategyOptions &
+  AspectFitStrategyOptions &
+  SelectStrategyOptions &
+  RestartsStrategyOptions;
 
 /** The type and the note of an option */
 export interface OptionInfo {
@@ -238,6 +251,11 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   options: { type: "object", note: "The options of the wrapped strategy over its defaults." },
   targetAspect: { type: "number", note: "The target aspect. The default is the aspect of the container, else 1." },
   table: { type: "SelectNode", note: "The decision table. Each pick is an index of `members`." },
+  member: { type: "string | PortfolioEntry", note: "The member of the restarts: a strategy with the option `sortOrder`. The default is `maxrects-bl`." },
+  iterations: { type: "number", note: "The count of the restarts, restart 0 included. Restart 0 is the member in its own order." },
+  perturb: { type: oneOf(RESTART_PERTURBS), note: "The change of the order of each run after run 0." },
+  strength: { type: "number", note: "The share of the positions that move, from 0 to 1." },
+  limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
 };
 
 /** The options of each strategy that have no default. The types of the package make sure that each name is an option of the strategy. */
@@ -247,6 +265,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   portfolio: ["k", "maxMembers", "budgetMs", "members", "key"] satisfies (keyof PortfolioStrategyOptions)[],
   "aspect-fit": ["strategy", "options", "targetAspect"] satisfies (keyof AspectFitStrategyOptions)[],
   select: ["members", "table"] satisfies (keyof SelectStrategyOptions)[],
+  restarts: ["member", "budgetMs", "key"] satisfies (keyof RestartsStrategyOptions)[],
 };
 
 /** One option of a card */

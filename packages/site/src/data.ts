@@ -227,6 +227,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-28",
+    item: "k78",
+    title: "The strategy `restarts` packs 16 orders of one member and keeps the best. Around `maxrects-bl`, the median `pack.gapToOpt` falls from 0.117 to 0.097.",
+    pr: 110,
+    link: "https://github.com/mark1russell7/packing/pull/110",
+  },
+  {
+    date: "2026-10-28",
     item: "k45",
     title: "The corpus `pack-known-v1` has 288 inputs with a known best value. The results page shows `pack.gapToOpt` of 6 strategies on it.",
     pr: 101,

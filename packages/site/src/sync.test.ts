@@ -60,13 +60,18 @@ describe("the demo", () => {
     }
   });
 
-  it("picks the members of portfolio, select and aspect-fit from the named entries", () => {
+  it("picks the members of portfolio, select, aspect-fit and restarts from the named entries", () => {
     expect(MEMBER_ENTRIES.map((e) => e.id)).toEqual(ENTRIES.filter((e) => !isComposite(e.id)).map((e) => e.id));
     const ids = ENTRIES.map((e) => e.id);
-    for (const id of ["portfolio", "select", "aspect-fit"]) {
+    for (const id of ["portfolio", "select", "aspect-fit", "restarts"]) {
       const pickers = optionControls(id).filter((c) => c.kind === "entry" || c.kind === "members");
       expect(pickers.length, id).toBe(1);
       for (const c of pickers) if (c.kind === "entry" || c.kind === "members") for (const v of c.values) expect(ids).toContain(v);
     }
+  });
+
+  it("gives restarts its member as a named entry with its options", () => {
+    const options = packOptions("restarts", { ...startValues("restarts"), member: "rows", budgetMs: 50 });
+    expect(options).toEqual({ iterations: 16, perturb: "swap", strength: 0.1, limitTime: false, member: { id: "rows", strategy: "rows", options: {} }, budgetMs: 50 });
   });
 });

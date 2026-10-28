@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 233 names
+## . (build/index.d.ts): 238 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -99,11 +99,15 @@ type PortfolioTrainScore: build/index.d.ts#PortfolioTrainScore
 type PushOptions: build/index.d.ts#PushOptions
 type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
+RESTARTS_STAGE: build/index.d.ts#RESTARTS_STAGE
+RESTART_PERTURBS: build/index.d.ts#RESTART_PERTURBS
 Rect: build/index.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
 type RectGridV2Params: build/index.d.ts#RectGridV2Params
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
+type RestartPerturb: build/index.d.ts#RestartPerturb
+type RestartsStrategyOptions: build/index.d.ts#RestartsStrategyOptions
 SELECT_MAX_DEPTH: build/index.d.ts#SELECT_MAX_DEPTH
 SELECT_MEMBERS: build/index.d.ts#SELECT_MEMBERS
 SELECT_STAGE: build/index.d.ts#SELECT_STAGE
@@ -216,6 +220,7 @@ rectGridFamily: build/index.d.ts#rectGridFamily
 rectGridV2: build/index.d.ts#rectGridV2
 rectGridV2Family: build/index.d.ts#rectGridV2Family
 rectScattered: build/index.d.ts#rectScattered
+restartsStrategy: build/index.d.ts#restartsStrategy
 round3: build/index.d.ts#round3
 roundMeasures: build/index.d.ts#roundMeasures
 rows: build/index.d.ts#rows
@@ -716,6 +721,12 @@ interface PushStrategyOptions {
   maxShovesPerItem: number;
 }
 
+### build/index.d.ts#RESTARTS_STAGE
+export declare const RESTARTS_STAGE = "restarts";
+
+### build/index.d.ts#RESTART_PERTURBS
+export declare const RESTART_PERTURBS: readonly RestartPerturb[];
+
 ### build/index.d.ts#Rect
 export declare class Rect<T = unknown> {
   id?: T;
@@ -755,6 +766,20 @@ type RectGridV2Params = RectGridParams & {
 type RectScatteredParams = {
   count: number;
 };
+
+### build/index.d.ts#RestartPerturb
+type RestartPerturb = "swap" | "shuffle-blocks" | "shuffle";
+
+### build/index.d.ts#RestartsStrategyOptions
+interface RestartsStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  perturb?: RestartPerturb;
+  strength?: number;
+  key?: readonly string[];
+  limitTime?: boolean;
+  budgetMs?: number;
+}
 
 ### build/index.d.ts#SELECT_MAX_DEPTH
 export declare const SELECT_MAX_DEPTH = 3;
@@ -1162,6 +1187,9 @@ export declare const rectGridV2Family: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#rectScattered
 export declare const rectScattered: CorpusGenerator<RectScatteredParams>;
+
+### build/index.d.ts#restartsStrategy
+export declare const restartsStrategy: Strategy<RestartsStrategyOptions>;
 
 ### build/index.d.ts#round3
 export declare function round3(x: number): number;
