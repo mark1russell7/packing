@@ -150,6 +150,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-select-v1` | 2025 | The test corpus of the feature select of roadmap item k66: the specs of `pack-screen-v1` and `pack-free-v1` with fresh seeds. Write its prediction first. |
 | `pack-select-v2` | 2025 | The second test corpus of the feature select: the specs of `pack-select-v1` with the fresh seeds 31 to 35. Write its prediction first. |
 | `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
+| `pack-classes-v1` | 500 | The classes I to X of the literature of roadmap item k106, by their rules. Write its prediction first. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -181,6 +182,40 @@ The corpus `pack-known-v1` has 24 specs, each with the seeds 1 to 12:
 - `consecutive-squares` with the sizes `freeHeight` and `freeArea`, and the counts 10, 30 and 100. Each input has a known lower bound.
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 216 and `shaped` 0. The thin properties are `order`, `aspect` and `shaped`.
 - The builder `bench/known.ts` writes the file. `node bench/known.ts --check` and a test compare the file with the builder.
+
+The corpus `pack-classes-v1` has 100 specs, each with the seeds 1 to 5. It has no published instance file. The generators make each input by the rules of its class.
+
+- `berkey-wang` makes the classes I to VI of Berkey 1987. `martello-vigo` makes the classes VII to X of Martello 1998. Lodi, Martello and Vigo (1999 and 2002) give the 10 classes.
+- Each class has the containers `fixed` (one bin of the class) and `freeHeight` (a strip of the width of the bin), and the counts 20, 40, 60, 80 and 100.
+- It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 250 and `shaped` 0.
+- The builder `bench/classes.ts` writes the file. `node bench/classes.ts --check` and a test compare the file with the builder.
+
+The rules of the classes. Each side is a whole number, uniform in its range, with both ends included.
+
+| Class | Bin `W` x `H` | Item width | Item height |
+|---|---|---|---|
+| I | 10 x 10 | 1 to 10 | 1 to 10 |
+| II | 30 x 30 | 1 to 10 | 1 to 10 |
+| III | 40 x 40 | 1 to 35 | 1 to 35 |
+| IV | 100 x 100 | 1 to 35 | 1 to 35 |
+| V | 100 x 100 | 1 to 100 | 1 to 100 |
+| VI | 300 x 300 | 1 to 100 | 1 to 100 |
+| VII to X | 100 x 100 | the item type | the item type |
+
+The 4 item types of the classes VII to X. Each class has one main type with the probability 0.7. Each other type has the probability 0.1.
+
+| Type | Width | Height | Main type of |
+|---|---|---|---|
+| 1, wide | 67 to 100 | 1 to 50 | VII |
+| 2, high | 1 to 50 | 67 to 100 | VIII |
+| 3, large | 50 to 100 | 50 to 100 | IX |
+| 4, small | 1 to 50 | 1 to 50 | X |
+
+The bounds of the classes come from `pack.bound` of k51, with no new kind:
+
+- A strip gets `strip.area`, the item area divided by `W`, and the stronger `strip.mmv` and `strip.tallest`.
+- One fixed bin gets `placed.free`. The placed share is at most `W * H` over the item area: the bin count bound L1 in a form for one bin.
+- `binCountBound` gives L1 as a count of bins: the item area divided by `W * H`, rounded up.
 
 Version 2 of `rect-grid` adds the parameter `order`. With `soft`, each item gets a `rank` from a permutation of the seed. Version 1 does not change.
 
