@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 151 names
+## . (build/index.d.ts): 172 names
 
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
@@ -52,7 +52,9 @@ type MemberTrace: @mark1russell7/layout-contract#MemberTrace (external)
 type MetricsOptions: build/index.d.ts#MetricsOptions
 type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
+PORTFOLIO_FRAME_MS: build/index.d.ts#PORTFOLIO_FRAME_MS
 PORTFOLIO_LEVELS: build/index.d.ts#PORTFOLIO_LEVELS
+PORTFOLIO_SETS: build/index.d.ts#PORTFOLIO_SETS
 PORTFOLIO_STAGE: build/index.d.ts#PORTFOLIO_STAGE
 type PackContext: build/index.d.ts#PackContext
 type PackHard: @mark1russell7/layout-contract#PackHard (external)
@@ -65,9 +67,16 @@ type PackingMetrics: build/index.d.ts#PackingMetrics
 type Placement: @mark1russell7/layout-contract#Placement (external)
 type Port: @mark1russell7/layout-contract#Port (external)
 type Portfolio: @mark1russell7/layout-contract#Portfolio (external)
+type PortfolioCell: build/index.d.ts#PortfolioCell
+type PortfolioCellSets: build/index.d.ts#PortfolioCellSets
 type PortfolioEntry: build/index.d.ts#PortfolioEntry
 type PortfolioPick: @mark1russell7/layout-contract#PortfolioPick (external)
+type PortfolioSetSource: build/index.d.ts#PortfolioSetSource
+type PortfolioSets: build/index.d.ts#PortfolioSets
+type PortfolioSize: build/index.d.ts#PortfolioSize
+type PortfolioStrategyOptions: build/index.d.ts#PortfolioStrategyOptions
 type PortfolioTrace: @mark1russell7/layout-contract#PortfolioTrace (external)
+type PortfolioTrainScore: build/index.d.ts#PortfolioTrainScore
 type PushOptions: build/index.d.ts#PushOptions
 type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
@@ -77,6 +86,7 @@ type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
 SHELF_FITS: build/index.d.ts#SHELF_FITS
 SORT_ORDERS: build/index.d.ts#SORT_ORDERS
+SPREAD_THRESHOLDS: build/index.d.ts#SPREAD_THRESHOLDS
 type SelectLevel: @mark1russell7/layout-contract#SelectLevel (external)
 type ShelfFit: build/index.d.ts#ShelfFit
 type ShelfOptions: build/index.d.ts#ShelfOptions
@@ -87,9 +97,11 @@ type SizeSearch: build/index.d.ts#SizeSearch
 type SkylineOptions: build/index.d.ts#SkylineOptions
 type SortOrder: build/index.d.ts#SortOrder
 type SpaceRect: build/index.d.ts#SpaceRect
+type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/index.d.ts#Strategy
 type Supports: build/index.d.ts#Supports
+THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/index.d.ts#UnsupportedCell
@@ -98,10 +110,12 @@ aspectError: build/index.d.ts#aspectError
 assertSupported: build/index.d.ts#assertSupported
 canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
+cellKey: build/index.d.ts#cellKey
 cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 compareRects: build/index.d.ts#compareRects
+composites: build/index.d.ts#composites
 corpus: build/index.d.ts#corpus
 countCell: build/index.d.ts#countCell
 createContext: build/index.d.ts#createContext
@@ -135,6 +149,11 @@ packSkyline: build/index.d.ts#packSkyline
 packWith: build/index.d.ts#packWith
 packingMetrics: build/index.d.ts#packingMetrics
 pairedRatio: build/index.d.ts#pairedRatio
+portfolioCell: build/index.d.ts#portfolioCell
+portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
+portfolioMembers: build/index.d.ts#portfolioMembers
+portfolioSetOf: build/index.d.ts#portfolioSetOf
+portfolioStrategy: build/index.d.ts#portfolioStrategy
 push: build/index.d.ts#push
 pushCascade: build/index.d.ts#pushCascade
 quantile: build/index.d.ts#quantile
@@ -145,6 +164,8 @@ roundMeasures: build/index.d.ts#roundMeasures
 rows: build/index.d.ts#rows
 shelf: build/index.d.ts#shelf
 skyline: build/index.d.ts#skyline
+spreadBand: build/index.d.ts#spreadBand
+spreadOf: build/index.d.ts#spreadOf
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 supportsCell: build/index.d.ts#supportsCell
@@ -398,8 +419,14 @@ interface MetricsOptions {
 ### build/index.d.ts#ObstacleLayout
 type ObstacleLayout = "none" | "center" | "scattered" | "wall" | "corridors" | "touching" | "edge";
 
+### build/index.d.ts#PORTFOLIO_FRAME_MS
+export declare const PORTFOLIO_FRAME_MS = 50;
+
 ### build/index.d.ts#PORTFOLIO_LEVELS
 export declare const PORTFOLIO_LEVELS: readonly SelectLevel$1[];
+
+### build/index.d.ts#PORTFOLIO_SETS
+export declare const PORTFOLIO_SETS: PortfolioSets;
 
 ### build/index.d.ts#PORTFOLIO_STAGE
 export declare const PORTFOLIO_STAGE = "portfolio";
@@ -454,11 +481,67 @@ interface PackingMetrics {
   widestOverMedian: number;
 }
 
+### build/index.d.ts#PortfolioCell
+interface PortfolioCell {
+  shape: DimensionValue<"containerShape">;
+  count: CountScale;
+  spread: SpreadBand;
+}
+
+### build/index.d.ts#PortfolioCellSets
+interface PortfolioCellSets {
+  inputs: number;
+  thin: boolean;
+  sets?: Readonly<Record<`${PortfolioSize}`, readonly string[]>>;
+  train?: Readonly<Record<`${PortfolioSize}`, PortfolioTrainScore>>;
+  prefixMedianMs?: Readonly<Record<`${PortfolioSize}`, number>>;
+  defaultMembers?: PortfolioSize;
+}
+
 ### build/index.d.ts#PortfolioEntry
 interface PortfolioEntry {
   id: string;
   strategy: string;
   options?: unknown;
+}
+
+### build/index.d.ts#PortfolioSetSource
+type PortfolioSetSource = "cell" | "shape" | "default";
+
+### build/index.d.ts#PortfolioSets
+interface PortfolioSets {
+  source: Readonly<{
+    corpus: string;
+    run: string;
+    commit: string;
+    inputs: number;
+    frameMs: number;
+  }>;
+  entries: Readonly<Record<string, PortfolioEntry>>;
+  all: PortfolioCellSets;
+  shapes: Readonly<Record<string, PortfolioCellSets>>;
+  cells: Readonly<Record<string, PortfolioCellSets>>;
+}
+
+### build/index.d.ts#PortfolioSize
+type PortfolioSize = 1 | 2 | 3;
+
+### build/index.d.ts#PortfolioStrategyOptions
+interface PortfolioStrategyOptions {
+  k?: 2 | 3;
+  maxMembers?: number;
+  budgetMs?: number;
+}
+
+### build/index.d.ts#PortfolioTrainScore
+interface PortfolioTrainScore {
+  inputs: number;
+  hardRegret: number;
+  excessAreaRegret: number;
+  fillRegret: number;
+  wins: number;
+  winShare: number;
+  msMean: number;
 }
 
 ### build/index.d.ts#PushOptions
@@ -514,6 +597,12 @@ export declare const SHELF_FITS: readonly ShelfFit[];
 ### build/index.d.ts#SORT_ORDERS
 export declare const SORT_ORDERS: readonly SortOrder[];
 
+### build/index.d.ts#SPREAD_THRESHOLDS
+export declare const SPREAD_THRESHOLDS: Readonly<{
+  identical: number;
+  uniform: number;
+}>;
+
 ### build/index.d.ts#ShelfFit
 type ShelfFit = "next" | "first" | "best";
 
@@ -550,6 +639,9 @@ interface SpaceRect {
   readonly h: number;
 }
 
+### build/index.d.ts#SpreadBand
+type SpreadBand = "identical" | "uniform" | "heavyTail";
+
 ### build/index.d.ts#Strategy
 interface Strategy<O = unknown> {
   id: string;
@@ -572,6 +664,9 @@ type Supports = {
   groups: ("none" | "flat" | "nested")[];
   mode: ("offline" | "online" | "incremental")[];
 };
+
+### build/index.d.ts#THIN_INPUTS
+export declare const THIN_INPUTS = 12;
 
 ### build/index.d.ts#UiParams
 type UiParams = {
@@ -617,6 +712,9 @@ export declare function canonicalJson(value: unknown): string;
 ### build/index.d.ts#cards
 export declare const cards: CorpusGenerator<UiParams>;
 
+### build/index.d.ts#cellKey
+export declare function cellKey(cell: PortfolioCell): string;
+
 ### build/index.d.ts#cellOf
 export declare function cellOf(input: PackInput): Cell;
 
@@ -625,6 +723,9 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
+
+### build/index.d.ts#composites
+export declare const composites: readonly Strategy[];
 
 ### build/index.d.ts#corpus
 export declare function corpus(name: string, specs: readonly CorpusSpec[]): Corpus;
@@ -708,7 +809,7 @@ export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?:
 export declare function packMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options?: MaxRectsOptions): Rect<T>;
 
 ### build/index.d.ts#packPortfolio
-export declare function packPortfolio(members: readonly (string | PortfolioEntry)[], options?: PackPortfolioOptions): Portfolio$1<PackInput, PackOutput>;
+export declare function packPortfolio(members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]), options?: PackPortfolioOptions): Portfolio$1<PackInput, PackOutput>;
 
 ### build/index.d.ts#packRows
 export declare function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options?: PackOptions): Rect<T>;
@@ -727,6 +828,25 @@ export declare function packingMetrics(rects: readonly Rect[], options?: Metrics
 
 ### build/index.d.ts#pairedRatio
 export declare function pairedRatio(candidate: number, current: number, direction: Direction$1): number;
+
+### build/index.d.ts#portfolioCell
+export declare function portfolioCell(input: PackInput): PortfolioCell;
+
+### build/index.d.ts#portfolioDefaultMembers
+export declare function portfolioDefaultMembers(input: PackInput, k?: number, table?: PortfolioSets): number;
+
+### build/index.d.ts#portfolioMembers
+export declare function portfolioMembers(input: PackInput, k: number, table?: PortfolioSets): PortfolioEntry[];
+
+### build/index.d.ts#portfolioSetOf
+export declare function portfolioSetOf(input: PackInput, table?: PortfolioSets): {
+  key: string;
+  source: PortfolioSetSource;
+  sets: PortfolioCellSets;
+};
+
+### build/index.d.ts#portfolioStrategy
+export declare const portfolioStrategy: Strategy<PortfolioStrategyOptions>;
 
 ### build/index.d.ts#push
 export declare const push: Strategy<PushStrategyOptions>;
@@ -757,6 +877,12 @@ export declare const shelf: Strategy<LayoutStrategyOptions>;
 
 ### build/index.d.ts#skyline
 export declare const skyline: Strategy<LayoutStrategyOptions>;
+
+### build/index.d.ts#spreadBand
+export declare function spreadBand(spread: number): SpreadBand;
+
+### build/index.d.ts#spreadOf
+export declare function spreadOf(input: PackInput): number;
 
 ### build/index.d.ts#strategies
 export declare const strategies: readonly Strategy[];

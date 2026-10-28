@@ -54,7 +54,7 @@ describe("the cell key of the per-cell portfolio", () => {
       const wrong: string[] = [];
       for (const [i, input] of inputs.entries()) {
         const cell = portfolioCell(toPackInput(input));
-        if (cell.spread !== expectedBand(input.generator)) wrong.push(`${input.id}: ${cell.spread}`);
+        if (cell.spread !== expectedBand(input.generator!)) wrong.push(`${input.id}: ${cell.spread}`);
         expect(cell.shape).toBe(manifest.inputs[i]!.cell.containerShape);
         expect(cell.count).toBe(manifest.inputs[i]!.cell.count);
       }

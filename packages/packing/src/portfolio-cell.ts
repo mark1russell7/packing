@@ -35,7 +35,8 @@ export const THIN_INPUTS = 12;
 
 /**
  * The frame budget of the default member count, in milliseconds. The default count of a cell is the largest prefix of its
- * set of 3 whose median summed member time on the CI records is this value or less. The count is never less than 1.
+ * set of 3 that fits this budget. The prefix fits when its median summed member time on the CI records is this value or less.
+ * The count is 1 or more at all times.
  * The default output thus does not depend on the clock: a time limit is only the opt-in option `budgetMs`.
  */
 export const PORTFOLIO_FRAME_MS = 50;
@@ -114,7 +115,7 @@ export interface PortfolioCellSets {
 
 /** The table of the per-cell portfolio. `bench/choose-sets.ts` generates it from the records of one run. */
 export interface PortfolioSets {
-  /** The run of the records: the corpus, the commit of the code, the id of the run of `bench.yml` and the frame budget of the default counts */
+  /** The run of the records: the corpus, the commit of the code and the id of the run of `bench.yml`. It also has the frame budget of the default counts. */
   source: Readonly<{ corpus: string; run: string; commit: string; inputs: number; frameMs: number }>;
   /** The member of each id: a strategy of the registry with some options */
   entries: Readonly<Record<string, PortfolioEntry>>;
@@ -141,8 +142,8 @@ export function portfolioSetOf(input: PackInput, table: PortfolioSets = PORTFOLI
 }
 
 /**
- * This function gives the `k` members of an input for `packPortfolio`: the set of its cell, or the set of its shape for a
- * thin cell or an unknown cell, or the set of all the inputs. The function throws a `RangeError` for a `k` other than 1, 2 or 3.
+ * This function gives the `k` members of an input for `packPortfolio`. The members are the set of the cell of the input.
+ * A thin cell or an unknown cell takes the set of its shape, or the set of all the inputs. The function throws a `RangeError` for a `k` other than 1, 2 or 3.
  */
 export function portfolioMembers(input: PackInput, k: number, table: PortfolioSets = PORTFOLIO_SETS): PortfolioEntry[] {
   if (k !== 1 && k !== 2 && k !== 3) throw new RangeError(`The size of a portfolio set is 1, 2 or 3, not ${k}.`);

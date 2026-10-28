@@ -39,7 +39,7 @@ export interface BenchCorpus {
   corpus: string;
   specs: CorpusSpec[];
   /**
-   * The held-out split of the portfolio report: a seed, or `all`. The default is the seed 3. A test corpus such as
+   * The held-out split of the portfolio report: a seed, or `all`. The default is the seed 3. A test corpus, for example
    * `pack-holdout-v1` has `all`: each input is held out, and the report scores the sets of `PORTFOLIO_SETS`.
    */
   heldOut?: HeldOut;
