@@ -55,20 +55,22 @@ export function setsOf(pool: readonly string[], inputs: readonly InputFacts[], t
   const chosen = chooseSets(pool, inputs, LARGEST_SET);
   const sets: Record<string, string[]> = {};
   const train: Record<string, PortfolioTrainScore> = {};
-  for (const c of chosen) {
-    sets[String(c.members.length)] = c.members;
-    train[String(c.members.length)] = trainOf(c.score);
+  // The greedy sets grow one member at a time. When the choice stops early, each larger size takes the largest set.
+  for (let size = 1; size <= LARGEST_SET; size++) {
+    const c = chosen[Math.min(size, chosen.length) - 1]!;
+    sets[String(size)] = c.members;
+    train[String(size)] = trainOf(c.score);
   }
-  // The greedy sets grow one member at a time, so the set of 3 holds each prefix
   const largest = chosen.at(-1)!.members;
-  const medians = prefixMedianMs(largest, inputs);
+  const found = prefixMedianMs(largest, inputs);
+  const medians = Array.from({ length: LARGEST_SET }, (_, p) => found[Math.min(p, found.length - 1)]!);
   return {
     inputs: inputs.length,
     thin: false,
     sets: sets as PortfolioCellSets["sets"] & object,
     train: train as PortfolioCellSets["train"] & object,
     prefixMedianMs: Object.fromEntries(medians.map((ms, p) => [String(p + 1), round3(ms)])) as PortfolioCellSets["prefixMedianMs"] & object,
-    defaultMembers: defaultCountOf(medians, frameMs) as PortfolioSize,
+    defaultMembers: Math.min(defaultCountOf(medians, frameMs), largest.length) as PortfolioSize,
   };
 }
 
@@ -81,7 +83,8 @@ export function setsOf(pool: readonly string[], inputs: readonly InputFacts[], t
  */
 export function chooseTable(records: readonly ScreenRecord[], manifest: CorpusManifest, source: { run: string; commit: string }): PortfolioSets {
   const { inputs } = corpus(manifest.corpus, manifest.specs);
-  const used = new Set(records.map((r) => r.strategy));
+  // An entry with no measured record (push skips each input offline) is not in the pool
+  const used = new Set(records.filter((r) => r.skipped === undefined).map((r) => r.strategy));
   const pool = ENTRIES.filter((e) => !COMPOSITE_IDS.has(e.id) && used.has(e.id)).map((e) => e.id);
   const facts = factsOf(pool, records);
   const rows: ChoiceInput[] = [];

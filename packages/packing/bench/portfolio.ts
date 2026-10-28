@@ -374,16 +374,20 @@ const choiceValues = (s: RawScore): Record<string, number> => {
 /**
  * This function chooses greedy sets on some inputs: it adds one entry of the pool at a time, up to `largest` entries.
  * At each step, `selectBest` on `CHOICE_LEVELS` picks the set. A tie goes to the first entry of the pool. No input gives no set.
+ * The current set is the first candidate after the first step. The choice stops when the current set wins, because then
+ * no entry of the pool improves the set.
  */
 export function chooseSets(pool: readonly string[], inputs: readonly InputFacts[], largest: number): { members: string[]; score: RawScore }[] {
   const out: { members: string[]; score: RawScore }[] = [];
   const chosen: string[] = [];
   while (inputs.length > 0 && chosen.length < Math.min(largest, pool.length)) {
     const tries = pool.filter((id) => !chosen.includes(id)).map((id) => ({ id, score: scoreOf([...chosen, id], inputs) }));
-    const { winner } = selectBest(
-      tries.map((t) => ({ id: t.id, values: choiceValues(t.score) })),
-      CHOICE_LEVELS,
-    );
+    const current = out.at(-1);
+    const candidates = tries.map((t) => ({ id: t.id, values: choiceValues(t.score) }));
+    // The current set is first, so it wins each tie: an entry that adds only time does not go in
+    if (current !== undefined) candidates.unshift({ id: "", values: choiceValues(current.score) });
+    const { winner } = selectBest(candidates, CHOICE_LEVELS);
+    if (winner === "") break;
     chosen.push(winner);
     out.push({ members: [...chosen], score: tries.find((t) => t.id === winner)!.score });
   }
