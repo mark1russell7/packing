@@ -2,11 +2,12 @@
 // A new strategy, entry or option that a page does not offer fails this test.
 
 import { readFileSync } from "node:fs";
-import { composites, strategies, strategy } from "@mark1russell7/packing";
+import { composites, corpusFamilies, strategies, strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
-import { COMPARE_ENTRIES, COMPARE_GENERATORS, paramControls } from "./compare-model.ts";
+import { COMPARE_ENTRIES, COMPARE_FAMILIES } from "./compare-model.ts";
+import { dimensionControls, familyKey } from "./corpus-input.ts";
 import { STRATEGIES } from "./model.ts";
 import { DEMO_IDS, MEMBER_ENTRIES, optionControls, packOptions, startValues } from "./options.ts";
 
@@ -16,9 +17,9 @@ describe("the compare page", () => {
     expect(COMPARE_ENTRIES.map((e) => e.id)).toEqual(ENTRIES.map((e) => e.id));
   });
 
-  it("offers each generator of the package, with a control for each parameter", () => {
-    expect(COMPARE_GENERATORS.length).toBeGreaterThan(0);
-    for (const g of COMPARE_GENERATORS) expect(paramControls(g).map((c) => c.key)).toEqual(Object.keys(g.defaults));
+  it("offers rect-scattered and each corpus family of the package, with a control for each dimension", () => {
+    expect(COMPARE_FAMILIES.map((f) => f.name)).toEqual(["rect-scattered", ...corpusFamilies.map((f) => f.name)]);
+    for (const f of COMPARE_FAMILIES) expect(dimensionControls(familyKey(f)).map((c) => c.name)).toEqual(f.dimensions.map((d) => d.name));
   });
 
   it("is an input of the build and a link of the header", () => {

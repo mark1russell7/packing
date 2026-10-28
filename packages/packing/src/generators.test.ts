@@ -1,7 +1,10 @@
+import { createFamilyRegistry, familyKind } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   cellOf,
   checkHard,
+  corpusFamilies,
+  rectScattered,
   edgeCases,
   gallery,
   generator,
@@ -442,6 +445,33 @@ describe("the coverage of the generators", () => {
     expect([...seen["containerShape"]!].sort()).toEqual(["circle", "convex", "ellipse", "holes", "polygon", "rect"]);
     expect([...seen["containerSize"]!].sort()).toEqual(["fixed", "freeArea", "freeAspect", "freeHeight", "freeWidth"]);
     expect([...seen["order"]!].sort()).toEqual(["free", "soft"]);
+  });
+});
+
+// Roadmap item k73: each family of `corpusFamilies` through the registry of layout-contract gives the corpus-v1 hashes of today.
+describe("the corpus families through the registry", () => {
+  const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
+  const cases = CASES.filter((c) => c.gen !== rectScattered);
+
+  it("has one family for each generator other than rect-scattered, in the order of the generators", () => {
+    const kinds = (list: readonly { name: string; version: number }[]): string[] => list.map((x) => familyKind(x.name, x.version));
+    expect(kinds(corpusFamilies)).toEqual(kinds(generators.filter((g) => g !== rectScattered)));
+    expect(registry.families()).toEqual(corpusFamilies);
+  });
+
+  // The set of a generator of known-best inputs is known-v1. The set of each other generator is corpus-v1.
+  const setOf = (c: Case): string => c.gen.generate(1, c.params).set;
+
+  it.each(cases.map((c) => [label(c), c] as const))("gives the pinned hash of its set and the same bytes as the generator: %s", (_, c) => {
+    const file = registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: setOf(c) });
+    expect(file.hash, file.id).toBe(HASHES[file.id]);
+    expect(JSON.stringify(file)).toBe(JSON.stringify(c.gen.generate(1, c.params)));
+    expect(registry.generate(c.gen.name, 1, c.params, { version: c.gen.version }).hash).toBe(file.hash);
+  });
+
+  it("covers each pinned corpus-v1 and known-v1 hash", () => {
+    const ids = cases.map((c) => registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: setOf(c) }).id);
+    expect(ids.toSorted()).toEqual(Object.keys(HASHES).filter((id) => id.startsWith("corpus-v1/") || id.startsWith("known-v1/")).toSorted());
   });
 });
 

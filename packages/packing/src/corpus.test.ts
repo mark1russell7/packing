@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
+import { createFamilyRegistry, RECT_SCATTERED } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   canonicalJson,
   cellOf,
   checkHard,
   corpus,
+  corpusFamilies,
   fnv1a32,
   packWith,
   rectScattered,
@@ -78,6 +80,22 @@ describe("the shared generator rect-scattered v1", () => {
       packed++;
     }
     expect(packed).toBe(5);
+  });
+});
+
+// Roadmap item k73: RECT_SCATTERED of layout-contract, the shared copy of rect-scattered, gives the xcheck-v1 hashes of today.
+describe("rect-scattered through the registry", () => {
+  const registry = createFamilyRegistry<LayoutInput>([RECT_SCATTERED, ...corpusFamilies]);
+
+  it.each(EXPECTED)("gives the pinned xcheck-v1 hash and the bytes of rectScattered for seed $seed", (e) => {
+    const file = registry.generate("rect-scattered", e.seed);
+    expect(file.hash).toBe(e.hash);
+    expect(registry.generate("rect-scattered", e.seed, {}, { set: "xcheck-v1" })).toEqual(file);
+    expect(JSON.stringify(file)).toBe(JSON.stringify(rectScattered.generate(e.seed)));
+  });
+
+  it.each([0, 1, 12, 300])("gives the bytes of rectScattered for the count %i", (count) => {
+    for (const seed of [4, 5]) expect(JSON.stringify(registry.generate("rect-scattered", seed, { count }, { set: "c" }))).toBe(JSON.stringify(rectScattered.generate(seed, { count }, "c")));
   });
 });
 

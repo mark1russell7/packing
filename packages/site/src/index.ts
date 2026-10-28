@@ -10,14 +10,33 @@ import {
   PRESETS,
   presetOf,
   runPacking,
+  sceneOf,
   searchChart,
   WIDTH_MODES,
   type FreeTarget,
   type Item,
   type Run,
+  type Scene,
   type Setting,
   type WidthMode,
 } from "./model.ts";
+import {
+  controlsHtml,
+  controlValue as dimensionValue,
+  DEFAULT_FAMILY,
+  dimensionControls,
+  dimensionText,
+  familyKey,
+  familyOf,
+  familyOptionsHtml,
+  generateInput,
+  readDimensions,
+  sliderValue,
+  withDimension,
+  writeDimensions,
+  type DimensionValues,
+} from "./corpus-input.ts";
+import { regionSvg } from "./region.ts";
 import { DEMO_STRATEGIES, isCompositeId, isDemoId, optionControls, startValues, type OptionControl, type OptionValues } from "./options.ts";
 import { mountChrome } from "./chrome.ts";
 import "./style.css";
@@ -73,7 +92,19 @@ const OPTION_LABELS: Record<string, string> = {
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 
+/** The source of the items: the demo presets, or a corpus family of the registry of the site. */
+type Source = "preset" | "family";
+
 interface State {
+  source: Source;
+  /** The key of the corpus family, for example `rect-grid@2`. */
+  family: string;
+  /** The values of the dimensions of the family that differ from their defaults. */
+  dims: DimensionValues;
+  /** The scene of the generated input. Only the source `family` has it. */
+  scene: Scene | undefined;
+  /** The text of the error of the generated input. */
+  genError: string | undefined;
   preset: string;
   count: number;
   seed: number;
@@ -91,6 +122,11 @@ const DEFAULTS = { preset: "cards", count: 24, seed: 7, width: 640 } as const;
 // The state of the page. The hash of the URL keeps the settings, but not the edits of the items.
 const state: State = {
   ...DEFAULTS,
+  source: "preset",
+  family: DEFAULT_FAMILY,
+  dims: {},
+  scene: undefined,
+  genError: undefined,
   compare: false,
   settings: [
     { strategy: "rows", options: startValues("rows"), mode: "fixed" },
@@ -113,6 +149,9 @@ function readHash(): void {
     const v = Number.parseInt(p.get(key) ?? "", 10);
     return Number.isFinite(v) ? clamp(v, min, max) : fallback;
   };
+  state.source = p.get("src") === "family" ? "family" : "preset";
+  state.family = familyKey(familyOf(p.get("g") ?? DEFAULT_FAMILY));
+  state.dims = readDimensions(state.family, (k) => p.get(k));
   state.preset = presetOf(p.get("p") ?? DEFAULTS.preset).id;
   state.count = int("n", DEFAULTS.count, 1, 80);
   state.seed = int("s", DEFAULTS.seed, 0, 999999);
@@ -186,11 +225,29 @@ function writeHash(): void {
     const changed = changedOptions(s);
     if (Object.keys(changed).length > 0) p.set(name, JSON.stringify(changed));
   }
+  // The source `preset` adds no key, so the links of the demo presets stay the same.
+  if (state.source === "family") {
+    p.set("src", "family");
+    p.set("g", state.family);
+    writeDimensions(p, state.dims);
+  }
   history.replaceState(null, "", `#${p.toString()}`);
 }
 
+/** This function makes the items of the source: the items of a preset, or the boxes and the scene of a generated input. */
 function regenerate(): void {
-  state.items = makeItems(state.preset, state.count, state.seed);
+  state.scene = undefined;
+  state.genError = undefined;
+  if (state.source === "family") {
+    try {
+      const made = sceneOf(generateInput(state.family, state.dims, state.seed).input);
+      state.items = made.items;
+      state.scene = made.scene;
+    } catch (e) {
+      state.items = [];
+      state.genError = e instanceof Error ? e.message : String(e);
+    }
+  } else state.items = makeItems(state.preset, state.count, state.seed);
   state.nextKey = state.items.length;
   state.selected = undefined;
 }
@@ -215,6 +272,68 @@ presetsEl.addEventListener("click", (e) => {
   regenerate();
   update();
 });
+
+// ---- The source of the items: the demo presets or a corpus family ----
+
+const sourcesEl = $("sources");
+sourcesEl.addEventListener("click", (e) => {
+  const b = (e.target as Element).closest<HTMLElement>("[data-source]");
+  const s = b?.dataset["source"];
+  if (s !== "preset" && s !== "family") return;
+  state.source = s;
+  regenerate();
+  update();
+});
+
+const familyEl = $<HTMLSelectElement>("family");
+const dimsEl = $("dims");
+familyEl.addEventListener("change", () => {
+  state.family = familyKey(familyOf(familyEl.value));
+  state.dims = {};
+  regenerate();
+  update();
+});
+dimsEl.addEventListener("change", (e) => {
+  const v = dimensionValue(state.family, e.target as HTMLInputElement | HTMLSelectElement);
+  if (v === undefined) return;
+  state.dims = withDimension(state.family, state.dims, v.name, v.value);
+  regenerate();
+  update();
+});
+// A slider shows its value while it moves. The page makes the input again when the slider stops.
+dimsEl.addEventListener("input", (e) => {
+  const el = e.target as HTMLInputElement;
+  const name = el.dataset["dim"];
+  if (el.type !== "range" || name === undefined) return;
+  const d = familyOf(state.family).dimensions.find((x) => x.name === name);
+  const out = dimsEl.querySelector<HTMLOutputElement>(`output[data-out="${CSS.escape(name)}"]`);
+  if (d !== undefined && out !== null) out.textContent = dimensionText(sliderValue(d, Number(el.value)));
+});
+
+/** This function draws the controls of the source: the family picker and one control for each dimension. */
+function drawSource(): void {
+  const family = state.source === "family";
+  for (const b of sourcesEl.querySelectorAll<HTMLElement>("[data-source]")) b.setAttribute("aria-checked", String(b.dataset["source"] === state.source));
+  $("gen").hidden = !family;
+  $("preset-field").hidden = family;
+  $("count-field").hidden = family;
+  $("width-field").hidden = family;
+  const hint = $("source-hint");
+  if (!family) {
+    hint.textContent = "";
+    return;
+  }
+  familyEl.innerHTML = familyOptionsHtml(state.family);
+  familyEl.value = state.family;
+  familyEl.title = familyOf(state.family).meaning;
+  dimsEl.innerHTML = controlsHtml(dimensionControls(state.family, state.dims), "demo");
+  const c = state.scene?.container;
+  const size = c === undefined ? "" : c.fixed === "size" ? `a fixed size ${c.w} × ${c.h}` : c.fixed === "width" ? `a fixed width ${c.w}` : c.fixed === "height" ? `a fixed height ${c.h}` : "a free size";
+  hint.textContent =
+    state.genError === undefined
+      ? `${state.items.length} boxes, ${size}, ${state.scene?.obstacles?.length ?? 0} obstacles. The generate function of the shared family registry makes this input.`
+      : `This input is not valid: ${state.genError}`;
+}
 
 const countEl = $<HTMLInputElement>("count");
 countEl.addEventListener("input", () => {
@@ -409,7 +528,10 @@ function drawPanel(panel: Panel, run: Run): void {
   const s = panel.scale;
   const count = run.placed.length;
   const parts: string[] = [];
-  parts.push(`<rect class="well" x="0" y="0" width="${run.width}" height="${vbH}" />`);
+  // A scene gives the shape of the container and the obstacles. Without a scene, the well is a rectangle.
+  const shape = run.mode === "fixed" ? run.frame?.shape : undefined;
+  parts.push(shape === undefined ? `<rect class="well" x="0" y="0" width="${run.width}" height="${vbH}" />` : regionSvg(shape, "well"));
+  for (const o of run.frame?.obstacles ?? []) parts.push(`<g transform="translate(${o.dx} ${o.dy})">${regionSvg(o.region, "obstacle")}</g>`);
   if (run.right > run.width) parts.push(`<line class="edge" x1="${run.width}" y1="0" x2="${run.width}" y2="${vbH}" vector-effect="non-scaling-stroke" />`);
   let selected = "";
   for (const p of run.placed) {
@@ -843,7 +965,7 @@ function render(): void {
   let base: Run | undefined;
   for (const [i, panel] of active.entries()) {
     const setting = state.settings[i]!;
-    const run = runPacking(state.items, state.width, setting, undefined, state.target);
+    const run = runPacking(state.items, state.width, setting, undefined, state.target, 0, state.scene);
     panel.run = run;
     panel.root.querySelector(".tag")!.classList.toggle("on", state.compare);
     panel.strategy.value = setting.strategy;
@@ -860,6 +982,7 @@ function render(): void {
 }
 
 function update(): void {
+  drawSource();
   for (const b of presetsEl.querySelectorAll<HTMLElement>("[data-preset]")) b.setAttribute("aria-checked", String(b.dataset["preset"] === state.preset));
   $("preset-hint").textContent = presetOf(state.preset).hint;
   countEl.value = String(state.count);

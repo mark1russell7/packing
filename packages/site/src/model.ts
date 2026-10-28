@@ -7,13 +7,17 @@ import {
   SORT_ORDERS,
   UnsupportedCell,
   type FreeWidthTry,
+  type Item as PackItem,
   type LayoutMeasures,
+  type Obstacle,
   type PackInput,
   type PackingMetrics,
   type PackOutput,
+  type Region,
   type SortOrder,
 } from "@mark1russell7/packing";
 import { DEMO_IDS, packOptions, type OptionValues } from "./options.ts";
+import { regionBounds } from "./region.ts";
 
 /** An item of the demo. `key` identifies it. Its place in the list is its input rank. */
 export interface Item {
@@ -125,6 +129,8 @@ export interface Run {
   error?: string;
   /** The value `true` when the error is `UnsupportedCell`. */
   unsupported?: boolean;
+  /** The shape of the container and the obstacles of a scene, at the places of the packing. Only a scene gives it. */
+  frame?: { shape?: Region; obstacles: { region: Region; dx: number; dy: number }[] };
 }
 
 /** This function gives a random generator with a seed (mulberry32). The same seed gives the same numbers. */
@@ -206,12 +212,43 @@ export function makeItem(presetId: string, seed: number, key: number): Item {
   return { key, ...presetOf(presetId).size(rng) };
 }
 
-/** This function gives the packing input of the items: a fixed width, or a free size with the target. The id of an item is its key. */
-export function inputOf(items: readonly Item[], width: number, mode: WidthMode | undefined, target: FreeTarget = DEFAULT_TARGET): PackInput {
-  return {
-    container: mode === "free" ? { fixed: "none", aspect: target.aspect, aspectWeight: target.weight } : { fixed: "width", w: width },
-    items: items.map((item) => ({ id: String(item.key), w: item.w, h: item.h })),
+/**
+ * The scene of a generated input: its container, its obstacles, its gap and the other fields of each box, by the key of
+ * the item. The demo packs the items of the page in this scene.
+ */
+export interface Scene {
+  container: PackInput["container"];
+  obstacles?: readonly Obstacle[];
+  gap?: number;
+  /** The fields of each box other than its id and its size, by the key of the item. */
+  extra: ReadonlyMap<number, Omit<PackItem, "id" | "w" | "h">>;
+}
+
+/** This function gives the items of a generated input and its scene. The key of each item is its place in the input. */
+export function sceneOf(input: PackInput): { items: Item[]; scene: Scene } {
+  const items = input.items.map((b, key) => ({ key, w: b.w, h: b.h }));
+  const extra = new Map(input.items.map((b, key) => {
+    const { id: _id, w: _w, h: _h, ...rest } = b;
+    return [key, rest] as const;
+  }));
+  const scene: Scene = { container: input.container, extra };
+  if (input.obstacles !== undefined) scene.obstacles = input.obstacles;
+  if (input.gap !== undefined) scene.gap = input.gap;
+  return { items, scene };
+}
+
+/**
+ * This function gives the packing input of the items: a fixed width, or a free size with the target. The id of an item
+ * is its key. A scene gives a `fixed` width its container, and each width mode its obstacles, its gap and its box fields.
+ */
+export function inputOf(items: readonly Item[], width: number, mode: WidthMode | undefined, target: FreeTarget = DEFAULT_TARGET, scene?: Scene): PackInput {
+  const free = { fixed: "none", aspect: target.aspect, aspectWeight: target.weight } as const;
+  const base: PackInput = {
+    container: mode === "free" ? free : (scene?.container ?? { fixed: "width", w: width }),
+    items: items.map((item) => ({ ...scene?.extra.get(item.key), id: String(item.key), w: item.w, h: item.h })),
   };
+  if (scene === undefined) return base;
+  return { ...base, ...(scene.obstacles === undefined ? {} : { obstacles: scene.obstacles }), ...(scene.gap === undefined ? {} : { gap: scene.gap }) };
 }
 
 /** This function gives the text of an error of a strategy. */
@@ -259,8 +296,9 @@ export function runPacking(
   now: () => number = () => performance.now(),
   target: FreeTarget = DEFAULT_TARGET,
   seed = 0,
+  scene?: Scene,
 ): Run {
-  const input = inputOf(items, width, setting.mode, target);
+  const input = inputOf(items, width, setting.mode, target, scene);
   const options = packOptions(setting.strategy, setting.options ?? {});
   let output: PackOutput | undefined;
   let failure: { error: string; unsupported: boolean } | undefined;
@@ -285,15 +323,27 @@ export function runPacking(
     return r;
   });
   const free = setting.mode === "free";
+  const fixedWidth = scene === undefined ? width : (input.container.w ?? output?.size.w ?? width);
   const run: Run = {
     mode: free ? "free" : "fixed",
     placed,
-    width: free ? (output?.size.w ?? 0) : width,
-    height: Math.max(output?.size.h ?? 0, Rect.maxBottom(rects)),
+    width: free ? (output?.size.w ?? 0) : fixedWidth,
+    height: Math.max(output?.size.h ?? 0, input.container.h ?? 0, Rect.maxBottom(rects)),
     right: Rect.maxRight(rects),
     metrics: packingMetrics(rects),
     ms,
   };
+  if (scene !== undefined) {
+    const moved = new Map(output?.moved.map((m) => [m.id, m]));
+    run.frame = {
+      ...(input.container.shape === undefined ? {} : { shape: input.container.shape }),
+      obstacles: (input.obstacles ?? []).map((o) => {
+        const at = moved.get(o.id);
+        const b = regionBounds(o.region);
+        return { region: o.region, dx: at === undefined ? 0 : at.x - b.x, dy: at === undefined ? 0 : at.y - b.y };
+      }),
+    };
+  }
   if (output) run.measures = measure(input, output);
   if (failure) Object.assign(run, failure);
   if (free && output && SEARCH_STRATEGIES.includes(setting.strategy)) run.free = searchOf(items, options, setting.strategy, target);
