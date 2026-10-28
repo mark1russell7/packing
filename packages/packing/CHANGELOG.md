@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.1
+
+One container layer gives the free space of each container shape (roadmap item k37). `rows`, `shelf` and `skyline` now pack a circle, an ellipse, a convex polygon, a polygon and a polygon with holes. This release has no breaking changes.
+
+### New
+
+- `freeSpace(input)` gives a `FreeSpace`: `band`, `column`, `fits`, `fitX`, `nextY`, `w`, `h` and `plain`. `docs/PACKER.md` describes it.
+- New exports: `freeSpace`, `FreeSpace`, `FreeSpan`, `SpaceRect` and `SkylineOptions`.
+- `pack`, `packRows`, `packShelf` and `packSkyline` take an optional `space`. Without it, or with a plain space, the output does not change.
+- `lowestWindow` takes an optional `limit` for each cell and the height `rh` of the rectangle.
+- The strategies `rows`, `shelf` and `skyline` declare each `containerShape`. `rows` also supports `obstacleMove` `fixed`: it goes around the obstacles and the locked items.
+- The bench writes `coverage` in `run.json` for each strategy and each container shape. `summary.md` has a Coverage table. A prediction can use the measure `pack.coverage`.
+
+### The outputs
+
+- The output of each strategy on a rectangle container with rectangle obstacles does not change. The fixture `bench/fixtures/rect-hashes.json` pins the `outputHash` of 294 inputs.
+- A circle and an ellipse use a closed form, made smaller by `EPS` (`1e-6`). A polygon uses its edges and the even-odd rule, so its holes stay empty.
+- `checkHard` and `packHard` still test the container as its bounding box. The tests of the layer test the true outline.
+
 ## 0.2.0
 
 `packing` imports its data types from `@mark1russell7/layout-contract` `^0.2.1`. Each gap of the type fit in `docs/PACKER.md` is closed (roadmap item k57). This release has breaking changes.
