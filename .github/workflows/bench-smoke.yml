@@ -31,8 +31,6 @@ jobs:
         with:
           node-version: 26
           cache: pnpm
-      # Since 0.2.0, bench/main.ts imports @mark1russell7/layout-contract at run time
-      - run: pnpm install --frozen-lockfile
       # One run for each strategy, as the matrix of bench.yml does. A run with an error exits with the code 1.
       - name: Run the smoke bench for each strategy
         run: |
