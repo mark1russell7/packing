@@ -110,8 +110,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "hardRegret": 0,
         "excessAreaRegret": 0.001,
         "fillRegret": 0.02,
-        "wins": 838,
-        "winShare": 0.642,
+        "wins": 857,
+        "winShare": 0.657,
         "msMean": 4.92
       },
       "2": {
@@ -119,8 +119,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "hardRegret": 0,
         "excessAreaRegret": 0.001,
         "fillRegret": 0.011,
-        "wins": 1033,
-        "winShare": 0.792,
+        "wins": 1052,
+        "winShare": 0.806,
         "msMean": 9.582
       },
       "3": {
@@ -128,8 +128,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "hardRegret": 0,
         "excessAreaRegret": 0,
         "fillRegret": 0.006,
-        "wins": 1126,
-        "winShare": 0.863,
+        "wins": 1139,
+        "winShare": 0.873,
         "msMean": 22.228
       }
     },
@@ -164,8 +164,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0.002,
           "fillRegret": 0.015,
-          "wins": 140,
-          "winShare": 0.667,
+          "wins": 147,
+          "winShare": 0.7,
           "msMean": 10.026
         },
         "2": {
@@ -173,8 +173,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.006,
-          "wins": 162,
-          "winShare": 0.771,
+          "wins": 170,
+          "winShare": 0.81,
           "msMean": 35.829
         },
         "3": {
@@ -182,8 +182,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.003,
-          "wins": 184,
-          "winShare": 0.876,
+          "wins": 190,
+          "winShare": 0.905,
           "msMean": 46.593
         }
       },
@@ -270,8 +270,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.024,
-          "wins": 138,
-          "winShare": 0.657,
+          "wins": 144,
+          "winShare": 0.686,
           "msMean": 9.772
         },
         "2": {
@@ -279,8 +279,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.008,
-          "wins": 162,
-          "winShare": 0.771,
+          "wins": 166,
+          "winShare": 0.79,
           "msMean": 34.101
         },
         "3": {
@@ -288,8 +288,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.005,
-          "wins": 184,
-          "winShare": 0.876,
+          "wins": 185,
+          "winShare": 0.881,
           "msMean": 49.128
         }
       },
@@ -323,8 +323,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0.001,
           "fillRegret": 0.016,
-          "wins": 131,
-          "winShare": 0.624,
+          "wins": 133,
+          "winShare": 0.633,
           "msMean": 2.009
         },
         "2": {
@@ -332,8 +332,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0.001,
           "fillRegret": 0.011,
-          "wins": 163,
-          "winShare": 0.776,
+          "wins": 165,
+          "winShare": 0.786,
           "msMean": 8.29
         },
         "3": {
@@ -341,8 +341,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.005,
-          "wins": 183,
-          "winShare": 0.871,
+          "wins": 184,
+          "winShare": 0.876,
           "msMean": 13.146
         }
       },
@@ -376,8 +376,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.03,
-          "wins": 130,
-          "winShare": 0.619,
+          "wins": 131,
+          "winShare": 0.624,
           "msMean": 1.663
         },
         "2": {
@@ -385,8 +385,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.012,
-          "wins": 180,
-          "winShare": 0.857,
+          "wins": 181,
+          "winShare": 0.862,
           "msMean": 7.39
         },
         "3": {
@@ -394,8 +394,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.004,
-          "wins": 193,
-          "winShare": 0.919,
+          "wins": 194,
+          "winShare": 0.924,
           "msMean": 8.701
         }
       },
@@ -429,8 +429,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.019,
-          "wins": 165,
-          "winShare": 0.647,
+          "wins": 168,
+          "winShare": 0.659,
           "msMean": 0.808
         },
         "2": {
@@ -438,8 +438,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.007,
-          "wins": 212,
-          "winShare": 0.831,
+          "wins": 217,
+          "winShare": 0.851,
           "msMean": 2.807
         },
         "3": {
@@ -447,8 +447,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.003,
-          "wins": 225,
-          "winShare": 0.882,
+          "wins": 230,
+          "winShare": 0.902,
           "msMean": 3.514
         }
       },
@@ -484,8 +484,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0.004,
           "fillRegret": 0.073,
-          "wins": 10,
-          "winShare": 0.286,
+          "wins": 11,
+          "winShare": 0.314,
           "msMean": 0.886
         },
         "2": {
@@ -493,8 +493,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.014,
-          "wins": 20,
-          "winShare": 0.571,
+          "wins": 21,
+          "winShare": 0.6,
           "msMean": 1.82
         },
         "3": {
@@ -537,15 +537,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.025,
-          "wins": 14,
-          "winShare": 0.4,
+          "wins": 15,
+          "winShare": 0.429,
           "msMean": 1.028
         },
         "2": {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.009,
+          "fillRegret": 0.01,
           "wins": 28,
           "winShare": 0.8,
           "msMean": 1.317
@@ -576,12 +576,12 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "2": [
           "maxrects-bl",
-          "maxrects-bssf"
+          "maxrects-cp"
         ],
         "3": [
           "maxrects-bl",
-          "maxrects-bssf",
-          "maxrects-cp"
+          "maxrects-cp",
+          "maxrects-bssf"
         ]
       },
       "train": {
@@ -598,10 +598,10 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.004,
+          "fillRegret": 0.001,
           "wins": 30,
           "winShare": 0.857,
-          "msMean": 5.932
+          "msMean": 5.919
         },
         "3": {
           "inputs": 35,
@@ -615,7 +615,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
       },
       "prefixMedianMs": {
         "1": 2.837,
-        "2": 5.774,
+        "2": 5.565,
         "3": 8.149
       },
       "defaultMembers": 3
@@ -677,15 +677,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
       "thin": false,
       "sets": {
         "1": [
-          "maxrects-bssf"
+          "maxrects-cp"
         ],
         "2": [
-          "maxrects-bssf",
-          "maxrects-blsf"
+          "maxrects-cp",
+          "maxrects-bssf"
         ],
         "3": [
+          "maxrects-cp",
           "maxrects-bssf",
-          "maxrects-blsf",
           "maxrects-bl"
         ]
       },
@@ -693,35 +693,35 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "1": {
           "inputs": 35,
           "hardRegret": 0,
-          "excessAreaRegret": 0,
-          "fillRegret": 0.002,
+          "excessAreaRegret": 0.001,
+          "fillRegret": 0.003,
           "wins": 33,
           "winShare": 0.943,
-          "msMean": 6.063
+          "msMean": 6.057
         },
         "2": {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.002,
+          "fillRegret": 0.003,
           "wins": 34,
           "winShare": 0.971,
-          "msMean": 11.397
+          "msMean": 12.12
         },
         "3": {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0,
+          "fillRegret": 0.001,
           "wins": 35,
           "winShare": 1,
-          "msMean": 17.653
+          "msMean": 18.376
         }
       },
       "prefixMedianMs": {
-        "1": 5.498,
-        "2": 9.771,
-        "3": 14.704
+        "1": 4.153,
+        "2": 9.576,
+        "3": 13.853
       },
       "defaultMembers": 3
     },
@@ -734,10 +734,11 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "2": [
           "maxrects-bl",
-          "shelf-best"
+          "shelf-first"
         ],
         "3": [
           "maxrects-bl",
+          "shelf-first",
           "shelf-best"
         ]
       },
@@ -747,8 +748,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.001,
-          "wins": 31,
-          "winShare": 0.886,
+          "wins": 32,
+          "winShare": 0.914,
           "msMean": 44.25
         },
         "2": {
@@ -756,9 +757,9 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0,
-          "wins": 35,
-          "winShare": 1,
-          "msMean": 56.133
+          "wins": 34,
+          "winShare": 0.971,
+          "msMean": 49.4
         },
         "3": {
           "inputs": 35,
@@ -767,13 +768,13 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0,
           "wins": 35,
           "winShare": 1,
-          "msMean": 56.133
+          "msMean": 61.283
         }
       },
       "prefixMedianMs": {
         "1": 46.745,
-        "2": 58.961,
-        "3": 58.961
+        "2": 51.433,
+        "3": 63.649
       },
       "defaultMembers": 1
     },
@@ -786,12 +787,12 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "2": [
           "maxrects-cp",
-          "maxrects-baf"
+          "maxrects-bl"
         ],
         "3": [
           "maxrects-cp",
-          "maxrects-baf",
-          "maxrects-bl"
+          "maxrects-bl",
+          "maxrects-baf"
         ]
       },
       "train": {
@@ -807,11 +808,11 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "2": {
           "inputs": 35,
           "hardRegret": 0,
-          "excessAreaRegret": 0.001,
-          "fillRegret": 0.143,
-          "wins": 7,
-          "winShare": 0.2,
-          "msMean": 1.46
+          "excessAreaRegret": 0.006,
+          "fillRegret": 0.017,
+          "wins": 24,
+          "winShare": 0.686,
+          "msMean": 1.301
         },
         "3": {
           "inputs": 35,
@@ -825,7 +826,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
       },
       "prefixMedianMs": {
         "1": 0.513,
-        "2": 1.303,
+        "2": 1.225,
         "3": 1.931
       },
       "defaultMembers": 3
@@ -835,14 +836,14 @@ export const PORTFOLIO_SETS: PortfolioSets = {
       "thin": false,
       "sets": {
         "1": [
-          "maxrects-bl"
+          "skyline"
         ],
         "2": [
-          "maxrects-bl",
+          "skyline",
           "maxrects-cp"
         ],
         "3": [
-          "maxrects-bl",
+          "skyline",
           "maxrects-cp",
           "maxrects-bssf"
         ]
@@ -853,33 +854,33 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.012,
-          "wins": 26,
-          "winShare": 0.743,
-          "msMean": 0.786
+          "wins": 27,
+          "winShare": 0.771,
+          "msMean": 1.868
         },
         "2": {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.005,
-          "wins": 30,
-          "winShare": 0.857,
-          "msMean": 1.482
+          "fillRegret": 0.006,
+          "wins": 31,
+          "winShare": 0.886,
+          "msMean": 2.564
         },
         "3": {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.002,
-          "wins": 32,
-          "winShare": 0.914,
-          "msMean": 2.348
+          "wins": 33,
+          "winShare": 0.943,
+          "msMean": 3.43
         }
       },
       "prefixMedianMs": {
-        "1": 0.71,
-        "2": 1.316,
-        "3": 2.22
+        "1": 1.235,
+        "2": 2.194,
+        "3": 3.119
       },
       "defaultMembers": 3
     },
@@ -1165,8 +1166,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0.003,
           "fillRegret": 0.059,
-          "wins": 16,
-          "winShare": 0.457,
+          "wins": 17,
+          "winShare": 0.486,
           "msMean": 0.362
         },
         "2": {
@@ -1174,8 +1175,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.021,
-          "wins": 25,
-          "winShare": 0.714,
+          "wins": 26,
+          "winShare": 0.743,
           "msMean": 1.407
         },
         "3": {
@@ -1217,9 +1218,9 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0.001,
-          "fillRegret": 0.003,
-          "wins": 27,
-          "winShare": 0.771,
+          "fillRegret": 0.004,
+          "wins": 26,
+          "winShare": 0.743,
           "msMean": 3.074
         },
         "2": {
@@ -1271,8 +1272,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.002,
-          "wins": 30,
-          "winShare": 0.857,
+          "wins": 33,
+          "winShare": 0.943,
           "msMean": 5.351
         },
         "2": {
@@ -1310,12 +1311,12 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "2": [
           "maxrects-bssf",
-          "maxrects-baf"
+          "maxrects-blsf"
         ],
         "3": [
           "maxrects-bssf",
-          "maxrects-baf",
-          "maxrects-cp"
+          "maxrects-blsf",
+          "maxrects-bl"
         ]
       },
       "train": {
@@ -1323,9 +1324,9 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.003,
-          "wins": 30,
-          "winShare": 0.857,
+          "fillRegret": 0.002,
+          "wins": 33,
+          "winShare": 0.943,
           "msMean": 5.533
         },
         "2": {
@@ -1333,24 +1334,24 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0,
           "fillRegret": 0.002,
-          "wins": 32,
-          "winShare": 0.914,
-          "msMean": 11.173
+          "wins": 34,
+          "winShare": 0.971,
+          "msMean": 10.704
         },
         "3": {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.002,
-          "wins": 33,
-          "winShare": 0.943,
-          "msMean": 16.218
+          "fillRegret": 0,
+          "wins": 35,
+          "winShare": 1,
+          "msMean": 16.428
         }
       },
       "prefixMedianMs": {
         "1": 5.067,
-        "2": 9.708,
-        "3": 13.112
+        "2": 9.535,
+        "3": 13.728
       },
       "defaultMembers": 3
     },
@@ -1497,7 +1498,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.006,
+          "fillRegret": 0.005,
           "wins": 30,
           "winShare": 0.857,
           "msMean": 1.115
@@ -1541,7 +1542,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0.001,
-          "fillRegret": 0.002,
+          "fillRegret": 0.001,
           "wins": 30,
           "winShare": 0.857,
           "msMean": 1.13
@@ -1572,11 +1573,11 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "2": [
           "maxrects-bl",
-          "shelf-first"
+          "shelf"
         ],
         "3": [
           "maxrects-bl",
-          "shelf-first",
+          "shelf",
           "maxrects-bssf"
         ]
       },
@@ -1597,7 +1598,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0.002,
           "wins": 34,
           "winShare": 0.971,
-          "msMean": 1.948
+          "msMean": 1.147
         },
         "3": {
           "inputs": 35,
@@ -1606,13 +1607,13 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0,
           "wins": 35,
           "winShare": 1,
-          "msMean": 3.03
+          "msMean": 2.229
         }
       },
       "prefixMedianMs": {
         "1": 0.837,
-        "2": 1.942,
-        "3": 3.011
+        "2": 1.134,
+        "3": 2.261
       },
       "defaultMembers": 3
     },
@@ -1838,26 +1839,26 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "3": [
           "maxrects-bl",
           "maxrects-cp",
-          "maxrects-bssf"
+          "maxrects-blsf"
         ]
       },
       "train": {
         "1": {
           "inputs": 35,
           "hardRegret": 0,
-          "excessAreaRegret": 0.001,
+          "excessAreaRegret": 0.002,
           "fillRegret": 0.002,
-          "wins": 28,
-          "winShare": 0.8,
+          "wins": 29,
+          "winShare": 0.829,
           "msMean": 0.369
         },
         "2": {
           "inputs": 35,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.001,
-          "wins": 32,
-          "winShare": 0.914,
+          "fillRegret": 0,
+          "wins": 33,
+          "winShare": 0.943,
           "msMean": 0.785
         },
         "3": {
@@ -1867,13 +1868,13 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0,
           "wins": 34,
           "winShare": 0.971,
-          "msMean": 1.303
+          "msMean": 1.174
         }
       },
       "prefixMedianMs": {
         "1": 0.378,
         "2": 0.809,
-        "3": 1.33
+        "3": 1.182
       },
       "defaultMembers": 3
     },
@@ -2125,7 +2126,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "inputs": 40,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.016,
+          "fillRegret": 0.015,
           "wins": 33,
           "winShare": 0.825,
           "msMean": 0.114
@@ -2156,12 +2157,12 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "2": [
           "maxrects-bl",
-          "maxrects-cp"
+          "maxrects-bssf"
         ],
         "3": [
           "maxrects-bl",
-          "maxrects-cp",
-          "maxrects-bssf"
+          "maxrects-bssf",
+          "maxrects-baf"
         ]
       },
       "train": {
@@ -2170,18 +2171,18 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "hardRegret": 0,
           "excessAreaRegret": 0.002,
           "fillRegret": 0.003,
-          "wins": 30,
-          "winShare": 0.667,
+          "wins": 32,
+          "winShare": 0.711,
           "msMean": 0.097
         },
         "2": {
           "inputs": 45,
           "hardRegret": 0,
-          "excessAreaRegret": 0.001,
+          "excessAreaRegret": 0,
           "fillRegret": 0.001,
-          "wins": 38,
-          "winShare": 0.844,
-          "msMean": 0.208
+          "wins": 39,
+          "winShare": 0.867,
+          "msMean": 0.24
         },
         "3": {
           "inputs": 45,
@@ -2190,13 +2191,13 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0.001,
           "wins": 42,
           "winShare": 0.933,
-          "msMean": 0.351
+          "msMean": 0.368
         }
       },
       "prefixMedianMs": {
         "1": 0.083,
-        "2": 0.15,
-        "3": 0.349
+        "2": 0.217,
+        "3": 0.324
       },
       "defaultMembers": 3
     },
@@ -2226,7 +2227,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "inputs": 40,
           "hardRegret": 0,
           "excessAreaRegret": 0,
-          "fillRegret": 0.006,
+          "fillRegret": 0.005,
           "wins": 31,
           "winShare": 0.775,
           "msMean": 0.208
@@ -2275,8 +2276,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "1": {
           "inputs": 35,
           "hardRegret": 0,
-          "excessAreaRegret": 0,
-          "fillRegret": 0,
+          "excessAreaRegret": -0.001,
+          "fillRegret": -0.001,
           "wins": 35,
           "winShare": 1,
           "msMean": 0.679
@@ -2284,8 +2285,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "2": {
           "inputs": 35,
           "hardRegret": 0,
-          "excessAreaRegret": 0,
-          "fillRegret": 0,
+          "excessAreaRegret": -0.001,
+          "fillRegret": -0.001,
           "wins": 35,
           "winShare": 1,
           "msMean": 0.679
@@ -2293,8 +2294,8 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "3": {
           "inputs": 35,
           "hardRegret": 0,
-          "excessAreaRegret": 0,
-          "fillRegret": 0,
+          "excessAreaRegret": -0.001,
+          "fillRegret": -0.001,
           "wins": 35,
           "winShare": 1,
           "msMean": 0.679
