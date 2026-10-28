@@ -10,7 +10,7 @@ import { pack, type PackLayoutOptions } from "./pack.ts";
 import { pushCascade } from "./push.ts";
 import { Rect } from "./rect.ts";
 import type { ShelfFit } from "./shelf.ts";
-import { packSkyline } from "./skyline.ts";
+import { packSkyline, type SkylineRule } from "./skyline.ts";
 import { spaceOf } from "./space.ts";
 import { assertSupported, cellOf, UnsupportedCell, type PackContext, type SizeSearch, type Strategy, type Supports } from "./strategy.ts";
 
@@ -44,10 +44,22 @@ export interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
 type LayoutId = "rows" | "skyline" | "shelf" | "maxrects";
 
 /** The options of a strategy of `pack`: the options of `maxrects` are optional for the other strategies. */
-type AnyLayoutOptions = LayoutStrategyOptions & Partial<Pick<MaxRectsStrategyOptions, "rule" | "rotate" | "bandHeight">>;
+type AnyLayoutOptions = LayoutStrategyOptions &
+  Partial<Pick<MaxRectsStrategyOptions, "rotate" | "bandHeight">> &
+  Partial<Pick<SkylineStrategyOptions, "wasteMap">> & { rule?: MaxRectsRule | SkylineRule };
 
 /** The options of `pack` that a strategy adds to the sort order and the space. */
-type PackExtras = Pick<PackLayoutOptions, "fit" | "rule" | "bandHeight" | "turnable" | "turned">;
+type PackExtras = Pick<PackLayoutOptions, "fit" | "rule" | "bandHeight" | "skylineRule" | "wasteMap" | "turnable" | "turned">;
+
+/** The options of the strategy `skyline`. The strategy does not read `fit`. */
+export interface SkylineStrategyOptions extends LayoutStrategyOptions {
+  /** The rule to choose a place on the skyline: `bl` (the default) or `mw`. `SKYLINE_RULES` tells each rule. */
+  rule: SkylineRule;
+  /** The value `true` keeps the free areas below the skyline, and each item tries them first. The default is `false`. */
+  wasteMap: boolean;
+  /** The value `true` lets each turnable item that is not locked turn by 90 degrees. The default is `false`. */
+  rotate: boolean;
+}
 
 /** The options of the strategy `push`. */
 export interface PushStrategyOptions {
@@ -90,8 +102,14 @@ function supportsOf(cells: { [D in keyof Supports]: readonly Supports[D][number]
  */
 function extrasOf(id: LayoutId, options: AnyLayoutOptions, frame: Frame): PackExtras {
   if (id === "shelf") return options.fit !== undefined ? { fit: options.fit } : {};
-  if (id !== "maxrects") return {};
-  const out: PackExtras = { rule: options.rule ?? "bssf", ...(options.bandHeight === undefined ? {} : { bandHeight: options.bandHeight }) };
+  let out: PackExtras;
+  if (id === "skyline") {
+    out = {};
+    if (options.rule !== undefined && options.rule !== "bl") out.skylineRule = options.rule as SkylineRule;
+    if (options.wasteMap === true) out.wasteMap = true;
+  } else if (id === "maxrects") {
+    out = { rule: (options.rule as MaxRectsRule | undefined) ?? "bssf", ...(options.bandHeight === undefined ? {} : { bandHeight: options.bandHeight }) };
+  } else return {};
   if (options.rotate !== true) return out;
   const turnable = new Set(frame.entries.filter((e) => e.item?.turnable === true && !e.rect.locked).map((e) => e.rect));
   return { ...out, turnable, turned: new Set() };
@@ -108,6 +126,11 @@ function movesOf(id: LayoutId, extras: PackExtras): Record<string, number> {
     out[MOVES.split] = moveCount(MOVES.split);
     return out;
   }
+  if (id === "skyline" && (extras.skylineRule !== undefined || extras.wasteMap === true)) {
+    const out: Record<string, number> = extras.skylineRule === "mw" ? { [MOVES.minWaste]: moveCount(MOVES.minWaste) } : { [MOVES.skyline]: moveCount(MOVES.skyline) };
+    if (extras.wasteMap === true) out[MOVES.wasteFill] = moveCount(MOVES.wasteFill);
+    return out;
+  }
   const out: Record<string, number> = { [MOVES[id]]: moveCount(MOVES[id]) };
   if (extras.fit !== undefined) for (const move of [MOVES.firstFit, MOVES.bestFit]) out[move] = moveCount(move);
   return out;
@@ -121,7 +144,7 @@ function turnsOf(extras: PackExtras, transposed: boolean): FrameTurns | undefine
 /** This function packs an input with a fixed size or a fixed width with one strategy of `pack`. */
 function packFixedWidth(id: LayoutId, input: PackInput, options: AnyLayoutOptions, transposed = false): PackOutput {
   const start = now();
-  const frame = buildFrame(input, false, id === "maxrects" && options.rotate === true);
+  const frame = buildFrame(input, false, (id === "maxrects" || id === "skyline") && options.rotate === true);
   const rects = rectsOf(frame);
   const extras = extrasOf(id, options, frame);
   clearMoves();
@@ -175,13 +198,19 @@ export const rows: Strategy<LayoutStrategyOptions> = layoutStrategy("rows", "she
 }, LAYOUT_DEFAULTS);
 
 /**
- * The strategy `skyline` uses `packSkyline`: each item goes to the lowest place where it fits. It packs around the
- * locked items and the fixed obstacles, in each container shape. Turnable items, groups and item shapes throw `UnsupportedCell`.
+ * The strategy `skyline` uses `packSkyline`: the option `rule` chooses the place of each item on the skyline. The default
+ * rule `bl` puts each item in the lowest place where it fits. Roadmap item k22 adds the rule `mw` and `wasteMap`.
+ *
+ * - It packs around the locked items and the fixed obstacles, in each container shape.
+ * - With `rotate`, each turnable item that is not locked can turn by 90 degrees. Groups and item shapes throw `UnsupportedCell`.
  */
-export const skyline: Strategy<LayoutStrategyOptions> = layoutStrategy("skyline", "skyline", ["skyline-bl"], {
-  obstacleMove: ["fixed"],
-  order: ["free", "soft"],
-}, LAYOUT_DEFAULTS);
+export const skyline: Strategy<SkylineStrategyOptions> = layoutStrategy(
+  "skyline",
+  "skyline",
+  ["skyline-bl", "skyline-min-waste", "skyline-bl-waste-map", "skyline-min-waste-map"],
+  { obstacleMove: ["fixed"], order: ["free", "soft"], rotation: ["none", "quarter"] },
+  { ...LAYOUT_DEFAULTS, rule: "bl", wasteMap: false, rotate: false },
+);
 
 /**
  * The strategy `shelf` uses `packShelf`: rows filled left to right, around the locked items and the fixed obstacles.
@@ -221,7 +250,7 @@ export const logSweep: SizeSearch = {
     if (id !== "rows" && id !== "skyline" && id !== "shelf" && id !== "maxrects") throw new UnsupportedCell("containerSize", cellOf(input).containerSize);
     const o = { ...(inner.defaults as AnyLayoutOptions), ...(options as Partial<AnyLayoutOptions> | undefined) };
     const start = now();
-    const frame = buildFrame(input, false, id === "maxrects" && o.rotate === true);
+    const frame = buildFrame(input, false, (id === "maxrects" || id === "skyline") && o.rotate === true);
     const extras = extrasOf(id, o, frame);
     const result = packFree(rectsOf(frame), new Rect<number>(), {
       strategy: id,

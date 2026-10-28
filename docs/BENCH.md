@@ -49,6 +49,9 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `maxrects-baf` | `maxrects` | `rule: "baf"` | `maxrects-bl` |
 | `maxrects-bl` | `maxrects` | `rule: "bl"` | none |
 | `maxrects-cp` | `maxrects` | `rule: "cp"` | `maxrects-bl` |
+| `skyline-mw` | `skyline` | `rule: "mw"` | `skyline` |
+| `skyline-bl-waste` | `skyline` | `wasteMap: true` | `skyline` |
+| `skyline-mw-waste` | `skyline` | `rule: "mw"`, `wasteMap: true` | `skyline` |
 | `portfolio-k2` | `portfolio` | `k: 2` | `maxrects-bl` |
 | `portfolio-k3` | `portfolio` | `k: 3` | `maxrects-bl` |
 | `aspect-fit-maxrects-bl` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bl" }` | `maxrects-bl` |
@@ -62,6 +65,7 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
+- The 3 entries of roadmap item k22 are the skyline family: the rule `mw` and the waste map. `docs/PACKER.md` ("The skyline family") tells them.
 - The strategy `maxrects` has no entry of its own, because its defaults are the entry `maxrects-bssf`.
 - The base of a rule is `maxrects-bl`, because the move of each other rule is a place that `bl` does not choose.
 - The base of a variant is the same strategy without the options of the variant. The activation compares the outputs of a variant and its base.
@@ -405,6 +409,9 @@ Each strategy counts its characteristic move, and its trace holds the count. The
 | `maxrects-baf` | `move.baf` | The rule `baf` puts a box in a place that the rule `bl` does not choose. |
 | `maxrects-bl` | `move.split` | A box cuts 2 free rectangles or more. |
 | `maxrects-cp` | `move.cp` | The rule `cp` puts a box in a place that the rule `bl` does not choose. |
+| `skyline-mw` | `move.minWaste` | The rule `mw` puts a box in a place that the rule `bl` does not choose. |
+| `skyline-bl-waste` | `move.wasteFill` | The waste map puts a box in a free rectangle below the skyline. |
+| `skyline-mw-waste` | `move.wasteFill` | The waste map puts a box in a free rectangle below the skyline. |
 
 The trace of each `maxrects` entry also has `move.split`. The activation reads only the move of the entry.
 

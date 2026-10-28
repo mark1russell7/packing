@@ -1,7 +1,7 @@
 export { Vector } from "./vector.ts";
 export { Rect } from "./rect.ts";
 export { pack, packRows, type PackOptions, type PackLayoutOptions } from "./pack.ts";
-export { packSkyline, lowestWindow, type SkylineOptions } from "./skyline.ts";
+export { packSkyline, lowestWindow, SKYLINE_RULES, type SkylineOptions, type SkylineRule } from "./skyline.ts";
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
 export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule } from "./maxrects.ts";
@@ -78,6 +78,7 @@ export {
   skyline,
   type LayoutStrategyOptions,
   type MaxRectsStrategyOptions,
+  type SkylineStrategyOptions,
   type PushStrategyOptions,
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";

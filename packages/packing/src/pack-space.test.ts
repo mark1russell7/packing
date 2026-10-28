@@ -30,20 +30,20 @@ describe("packSpace", () => {
     for (const [name, config] of Object.entries(named)) expect(checkConfig(packSpace, config), name).toEqual([]);
   });
 
-  it("has 5 stages and 705 base configs with 3 levels", () => {
+  it("has 5 stages and 810 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(705n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(810n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
-  it("gives cell-portfolio one pool entry, and counts 2.75e16 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 5.52e16 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
-    // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 705 base configs
-    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(27511368280512510n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(1006177108482n);
+    // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 810 base configs
+    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(55171224249681990n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(3230760471442n);
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {

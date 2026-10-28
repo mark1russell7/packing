@@ -1,7 +1,7 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { composites, MAXRECTS_RULES, RESTART_PERTURBS, SHELF_FITS, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
+import { composites, MAXRECTS_RULES, RESTART_PERTURBS, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
 /** This constant lists each strategy of the registry: the single strategies, then the composite strategies. */
@@ -22,6 +22,11 @@ export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
   rule: MAXRECTS_RULES,
   fit: SHELF_FITS,
   perturb: RESTART_PERTURBS,
+};
+
+/** The known values of an option of one strategy, when they are not the values of `KNOWN_SETS`, by strategy id. */
+export const STRATEGY_SETS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
+  skyline: { rule: SKYLINE_RULES },
 };
 
 /** The limits of each option with a number value, by the name of the option. */
@@ -53,11 +58,11 @@ export type OptionControl =
   | { key: string; kind: "members"; values: readonly string[]; value: readonly string[]; count?: number; fromDefaults: false };
 
 /** This function gives the control of one option of the defaults of a strategy, from the type of its default value. */
-export function defaultControl(key: string, value: unknown): OptionControl {
+export function defaultControl(key: string, value: unknown, id?: string): OptionControl {
   if (typeof value === "boolean") return { key, kind: "flag", value, fromDefaults: true };
   if (typeof value === "number") return { key, kind: "number", value, ...(NUMBER_LIMITS[key] ?? { min: 0, max: 1000, step: 1 }), fromDefaults: true };
   if (typeof value === "string") {
-    const values = KNOWN_SETS[key];
+    const values = (id === undefined ? undefined : STRATEGY_SETS[id]?.[key]) ?? KNOWN_SETS[key];
     if (values === undefined || !values.includes(value)) throw new RangeError(`The demo has no list of values for the option "${key}".`);
     return { key, kind: "select", values, value, fromDefaults: true };
   }
@@ -100,7 +105,7 @@ function extraControls(id: string): OptionControl[] {
 /** This function gives the control of each option of a strategy: each option of its defaults, then the other options. */
 export function optionControls(id: string): OptionControl[] {
   const defaults = strategy(id).defaults as Record<string, unknown>;
-  return [...Object.entries(defaults).map(([key, value]) => defaultControl(key, value)), ...extraControls(id)];
+  return [...Object.entries(defaults).map(([key, value]) => defaultControl(key, value, id)), ...extraControls(id)];
 }
 
 /** The value of each control of a strategy, as the page keeps it: a string, a number, a flag or a list of entry ids. */

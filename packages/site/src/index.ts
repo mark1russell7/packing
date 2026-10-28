@@ -85,6 +85,7 @@ const OPTION_LABELS: Record<string, string> = {
   samples: "Samples",
   rule: "Rule",
   rotate: "Turn boxes",
+  wasteMap: "Waste map",
   maxShovesPerItem: "Shoves per box",
   fit: "Fit",
   k: "Member count",

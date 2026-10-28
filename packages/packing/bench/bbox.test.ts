@@ -77,8 +77,9 @@ describe("the strategy bbox on circles and convex polygons", () => {
       const r = placedRect(b)!;
       expect(r.h, b.id).toBeLessThanOrEqual(r.w + 1e-9);
     }
-    // Without turn, the member skyline does not turn, so a turnable item throws its UnsupportedCell
-    expect(() => packWith("bbox", toPackInput(input), { member: "skyline" })).toThrow(/rotation/);
+    // Without turn, the member skyline decides the turns (k22 gives skyline the option rotate), and the result stays good
+    const own = packWith("bbox", toPackInput(input), { member: "skyline" });
+    expect(packHard(input, own)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
   });
 
   it("gives the bounding-box fill and the share of the shapes in the boxes", () => {

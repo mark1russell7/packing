@@ -26,6 +26,16 @@ export const SHELF_VARIANTS: readonly BenchEntry[] = Object.freeze([
 ]);
 
 /**
+ * The variants of the skyline family of roadmap item k22. Their base is `skyline`, the rule `bl` without a waste map.
+ * The corpora have no turnable items, thus no entry turns.
+ */
+export const SKYLINE_VARIANTS: readonly BenchEntry[] = Object.freeze([
+  { id: "skyline-mw", strategy: "skyline", options: { rule: "mw" }, base: "skyline" },
+  { id: "skyline-bl-waste", strategy: "skyline", options: { wasteMap: true }, base: "skyline" },
+  { id: "skyline-mw-waste", strategy: "skyline", options: { rule: "mw", wasteMap: true }, base: "skyline" },
+]);
+
+/**
  * The entries of the MaxRects family of roadmap item k24: one entry for each rule. Their base is `maxrects-bl`, because the
  * move of each other rule is a place that is not the place of `bl`.
  */
@@ -119,6 +129,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...strategies.filter((s) => !VARIANTS_ONLY.has(s.id)).map((s) => ({ id: s.id, strategy: s.id, options: {} })),
   ...SHELF_VARIANTS,
   ...MAXRECTS_VARIANTS,
+  ...SKYLINE_VARIANTS,
   ...PORTFOLIO_ENTRIES,
   ...ASPECT_FIT_ENTRIES,
   ...SELECT_ENTRIES,

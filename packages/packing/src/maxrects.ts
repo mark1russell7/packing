@@ -50,8 +50,8 @@ export interface MaxRectsOptions {
   turned?: Set<unknown>;
 }
 
-/** A rectangle with its four edges, in the coordinates of the outer rectangle. */
-interface Box {
+/** A rectangle with its four edges, in the coordinates of the outer rectangle. The waste map of `packSkyline` also uses it. */
+export interface Box {
   x0: number;
   y0: number;
   x1: number;
@@ -85,9 +85,9 @@ function inside(a: Box, b: Box): boolean {
 /**
  * This function cuts each free rectangle that the box `b` hits into at most four parts. A part with a side less than
  * `minW` or `minH` goes, because no box fits in it. A part that is in another rectangle of the list goes.
- * The function gives the new list and the number of free rectangles that the box hit.
+ * The function gives the new list and the number of free rectangles that the box hit. The waste map of `packSkyline` also uses it.
  */
-function cut(free: Box[], b: Box, minW: number, minH: number): { free: Box[]; hits: number } {
+export function cut(free: Box[], b: Box, minW: number, minH: number): { free: Box[]; hits: number } {
   const kept: Box[] = [];
   // A part spans the box on one axis and touches the box on the other axis. Thus a part of one side is not in a part of
   // another side. A kept rectangle with the part in it has an edge on the same side of the box.

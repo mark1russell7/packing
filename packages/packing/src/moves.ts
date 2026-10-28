@@ -15,6 +15,8 @@ export const MOVES: Readonly<{
   baf: "move.baf";
   cp: "move.cp";
   split: "move.split";
+  minWaste: "move.minWaste";
+  wasteFill: "move.wasteFill";
 }> = Object.freeze({
   /** A rectangle that the gap fill of `packRow` places in a gap of a row: under a shorter neighbor, or at the row break. */
   rows: "move.gapFill",
@@ -41,6 +43,10 @@ export const MOVES: Readonly<{
   cp: "move.cp",
   /** A rectangle of `maxrects` that cuts two free rectangles or more. A shelf or a skyline has no such step. */
   split: "move.split",
+  /** A rectangle that the skyline rule `mw` puts in another place than the rule `bl` on the same skyline. */
+  minWaste: "move.minWaste",
+  /** A rectangle that the waste map of the skyline puts in a free rectangle below the skyline. */
+  wasteFill: "move.wasteFill",
 });
 
 const counts = new Map<string, number>();
