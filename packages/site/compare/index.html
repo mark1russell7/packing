@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>packing: compare each strategy</title>
+    <meta name="description" content="Pick one input, a corpus board or a set of demo items. Each named strategy of the benchmark packs it in your browser, side by side." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23202a44'/%3E%3Crect x='5' y='5' width='13' height='9' rx='1' fill='%235b8def'/%3E%3Crect x='20' y='5' width='7' height='14' rx='1' fill='%23e9a23b'/%3E%3Crect x='5' y='16' width='13' height='11' rx='1' fill='%23a77fe0'/%3E%3Crect x='20' y='21' width='7' height='6' rx='1' fill='%2348b59a'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip" href="#results">Skip to the results</a>
+    <header class="top">
+      <div class="brand">
+        <h1 class="wordmark"><span class="mark" aria-hidden="true"></span>packing</h1>
+        <div class="lead"><p>Pick one input. Each named strategy of the benchmark packs it in this browser, side by side.</p></div>
+      </div>
+      <nav class="links" id="links" aria-label="Links"></nav>
+    </header>
+
+    <main class="page">
+      <section class="panel" id="input" aria-labelledby="input-h">
+        <h2 id="input-h" class="ctitle">The input</h2>
+        <div class="controls">
+          <span class="label" id="source-label">Source</span>
+          <div class="seg" role="radiogroup" aria-labelledby="source-label" id="source">
+            <button type="button" role="radio" data-source="board">Corpus board</button>
+            <button type="button" role="radio" data-source="demo">Demo items</button>
+          </div>
+        </div>
+        <div class="controls cparams" id="params"></div>
+        <div class="controls">
+          <label class="opt" title="The seed of packWith. Only the strategies with a random step read it.">Pack seed<input type="number" id="pack-seed" min="0" max="999999" step="1" /></label>
+        </div>
+        <p class="hint" id="input-note"></p>
+      </section>
+
+      <section class="panel" id="results" aria-labelledby="results-h">
+        <h2 id="results-h" class="ctitle">Each strategy on this input</h2>
+        <div class="controls">
+          <label class="opt">Sort by<select id="sort"></select></label>
+          <span class="hint" id="progress" role="status"></span>
+        </div>
+        <div class="tiles" id="summary"></div>
+        <ol class="cgrid" id="cards" aria-label="The strategies"></ol>
+        <details class="notes">
+          <summary>The measures</summary>
+          <ul id="measure-notes"></ul>
+        </details>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>Made-up data only. MIT license. <a href="https://github.com/mark1russell7/packing">github.com/mark1russell7/packing</a></p>
+    </footer>
+
+    <script type="module" src="/src/compare.ts"></script>
+  </body>
+</html>

@@ -817,3 +817,79 @@ select {
     grid-area: about;
   }
 }
+
+/* ---- The option controls of a strategy ---- */
+.opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.opts:empty,
+.opts[hidden] {
+  display: none;
+}
+
+.opt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.opt input[type="number"] {
+  width: 7em;
+}
+
+.opt.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.opt.check input {
+  accent-color: var(--accent);
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.opt.members {
+  flex-basis: 100%;
+}
+
+.opt.members summary {
+  cursor: pointer;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.opt.members .pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
+  gap: 0 12px;
+  padding: 4px 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.opt .picked {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.opt > select + select {
+  margin-top: 4px;
+}
+
+.status.unsupported {
+  color: var(--muted);
+}

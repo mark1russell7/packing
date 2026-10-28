@@ -14,7 +14,7 @@ import selectJson from "../data/select-table.json?raw";
 import { mountChrome } from "./chrome.ts";
 import { CORPUS_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
-import { divergingAt, labelCounts, pickHolds, rankStrategies, ratioAt, scaleOf, stepText, verdictOf } from "./results-model.ts";
+import { divergingAt, labelCounts, parseVerdictHash, pickHolds, rankStrategies, ratioAt, scaleOf, stepText, verdictHash, verdictOf } from "./results-model.ts";
 import "./style.css";
 import "./pages.css";
 
@@ -109,7 +109,7 @@ function drawStrategies(): void {
     .map((s) => {
       const fill = verdictOf(s, WIN);
       const chips = snap.measures.map((m) => `<span class="cell" data-m="${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}">${chip(verdictOf(s, m.id))}</span>`).join("");
-      return `<li class="srow">
+      return `<li class="srow" id="${esc(verdictHash(snap.corpus, s.strategy).slice(1))}" data-strategy="${esc(s.strategy)}">
         <details>
           <summary>
             <span class="sname"><code>${esc(s.strategy)}</code>${s.msMedian === null ? "" : `<small>${msText(s.msMedian)}</small>`}</span>
@@ -139,6 +139,26 @@ function mountStrategies(): void {
     .map((m) => `<li><b>${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}</b> <code>${esc(m.id)}</code>: ${esc(MEASURE_LABELS[m.id]?.note ?? "")}</li>`)
     .join("");
   drawStrategies();
+  openVerdict();
+  addEventListener("hashchange", openVerdict);
+}
+
+/**
+ * This function opens the verdict of the hash `#verdict/<corpus>/<strategy>`. The compare page links to it. The
+ * function picks the corpus, opens the row of the strategy and scrolls to it.
+ */
+function openVerdict(): void {
+  const want = parseVerdictHash(location.hash);
+  if (want === undefined) return;
+  const i = snapshots.findIndex((s) => s.corpus === want.corpus);
+  if (i < 0) return;
+  current = i;
+  drawStrategies();
+  const row = document.getElementById(verdictHash(want.corpus, want.strategy).slice(1));
+  if (row === null) return;
+  row.querySelector("details")?.setAttribute("open", "");
+  row.classList.add("target");
+  row.scrollIntoView({ block: "start" });
 }
 
 // ---- The paired speed test of k67 ----

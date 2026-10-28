@@ -1,4 +1,19 @@
-import { pack, packFree, packingMetrics, Rect, SORT_ORDERS, type FreeWidthTry, type PackingMetrics, type SortOrder } from "@mark1russell7/packing";
+import {
+  measure,
+  packFree,
+  packingMetrics,
+  packWith,
+  Rect,
+  SORT_ORDERS,
+  UnsupportedCell,
+  type FreeWidthTry,
+  type LayoutMeasures,
+  type PackInput,
+  type PackingMetrics,
+  type PackOutput,
+  type SortOrder,
+} from "@mark1russell7/packing";
+import { DEMO_IDS, packOptions, type OptionValues } from "./options.ts";
 
 /** An item of the demo. `key` identifies it. Its place in the list is its input rank. */
 export interface Item {
@@ -7,11 +22,14 @@ export interface Item {
   h: number;
 }
 
-/** A strategy of `pack`. */
-export type Strategy = "rows" | "skyline";
+/** The id of a strategy of the registry. */
+export type Strategy = string;
 
-/** This constant lists each strategy of the demo. */
-export const STRATEGIES: readonly Strategy[] = ["rows", "skyline"];
+/** This constant lists each strategy of the demo: each id of the registry, also the composite strategies. */
+export const STRATEGIES: readonly Strategy[] = DEMO_IDS;
+
+/** The strategies that a free width search of `packFree` wraps. Only these show the chart of the search. */
+export const SEARCH_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects"];
 
 /** This constant lists each sort order of the package. */
 export const ORDERS: readonly SortOrder[] = SORT_ORDERS;
@@ -22,10 +40,13 @@ export type WidthMode = "fixed" | "free";
 /** This constant lists each width mode of the demo. */
 export const WIDTH_MODES: readonly WidthMode[] = ["fixed", "free"];
 
-/** The settings of one packing: a strategy, a sort order and a width mode. A missing width mode is `fixed`. */
+/**
+ * The settings of one packing: a strategy of the registry, the values of its option controls and a width mode. A missing
+ * width mode is `fixed`. A missing value of an option uses the start value of its control.
+ */
 export interface Setting {
   strategy: Strategy;
-  order: SortOrder;
+  options?: OptionValues;
   mode?: WidthMode;
 }
 
@@ -84,6 +105,8 @@ export interface Placed {
 
 /** The result of one packing. */
 export interface Run {
+  /** The width mode of the packing. */
+  mode: WidthMode;
   placed: Placed[];
   /** The width of the container. */
   width: number;
@@ -92,10 +115,16 @@ export interface Run {
   /** The largest right edge of an item. It is more than `width` when an item is wider than the container. */
   right: number;
   metrics: PackingMetrics;
-  /** The time of the call of `pack` or `packFree`, in milliseconds. */
+  /** The measures of `measure`. A strategy that does not support the input gives none. */
+  measures?: LayoutMeasures;
+  /** The time of the call of `packWith`, in milliseconds. */
   ms: number;
-  /** The width search. Only a free width has it. */
+  /** The width search. Only a free width of a strategy of `SEARCH_STRATEGIES` has it. */
   free?: FreeRun;
+  /** The text of the error when the strategy does not support the input, or when it throws. */
+  error?: string;
+  /** The value `true` when the error is `UnsupportedCell`. */
+  unsupported?: boolean;
 }
 
 /** This function gives a random generator with a seed (mulberry32). The same seed gives the same numbers. */
@@ -177,9 +206,51 @@ export function makeItem(presetId: string, seed: number, key: number): Item {
   return { key, ...presetOf(presetId).size(rng) };
 }
 
+/** This function gives the packing input of the items: a fixed width, or a free size with the target. The id of an item is its key. */
+export function inputOf(items: readonly Item[], width: number, mode: WidthMode | undefined, target: FreeTarget = DEFAULT_TARGET): PackInput {
+  return {
+    container: mode === "free" ? { fixed: "none", aspect: target.aspect, aspectWeight: target.weight } : { fixed: "width", w: width },
+    items: items.map((item) => ({ id: String(item.key), w: item.w, h: item.h })),
+  };
+}
+
+/** This function gives the text of an error of a strategy. */
+export function errorText(e: unknown): { error: string; unsupported: boolean } {
+  if (e instanceof UnsupportedCell) return { error: `Not supported for this input: the ${e.dimension} ${e.value}.`, unsupported: true };
+  return { error: e instanceof Error ? e.message : String(e), unsupported: false };
+}
+
+/** This function gives the width search of `packFree` with the options of a setting, for the chart of the search. */
+function searchOf(items: readonly Item[], options: Record<string, unknown>, strategyId: string, target: FreeTarget): FreeRun {
+  const rects = items.map((item) => {
+    const r = new Rect<number>();
+    r.size.set(item.w, item.h);
+    return r;
+  });
+  const result = packFree(rects, new Rect<number>(), {
+    strategy: strategyId as "rows",
+    sortOrder: (options["sortOrder"] as SortOrder | undefined) ?? "height-desc",
+    ...(typeof options["samples"] === "number" ? { samples: options["samples"] } : {}),
+    ...(options["fit"] === undefined ? {} : { fit: options["fit"] as "next" }),
+    ...(options["rule"] === undefined ? {} : { rule: options["rule"] as "bl" }),
+    aspect: target.aspect,
+    aspectWeight: target.weight,
+  });
+  return {
+    target: { ...target },
+    aspect: result.aspect,
+    fill: result.fill,
+    aspectError: result.aspectError,
+    objective: result.objective,
+    tried: result.tried,
+    chosen: chosenTry(result.tried),
+  };
+}
+
 /**
- * This function packs the items and measures the result. A `fixed` width uses `width`. A `free` width uses
- * `packFree` with the target, and the width of the result is the width of the content.
+ * This function packs the items with `packWith` and measures the result. A `fixed` width uses `width`. A `free` width
+ * gives the strategy a free size with the target, and the width of the result is the width of the content.
+ * A strategy that does not support the input gives a run with no placed item and the text of the error.
  */
 export function runPacking(
   items: readonly Item[],
@@ -187,56 +258,45 @@ export function runPacking(
   setting: Setting,
   now: () => number = () => performance.now(),
   target: FreeTarget = DEFAULT_TARGET,
+  seed = 0,
 ): Run {
-  const rects = items.map((item) => {
+  const input = inputOf(items, width, setting.mode, target);
+  const options = packOptions(setting.strategy, setting.options ?? {});
+  let output: PackOutput | undefined;
+  let failure: { error: string; unsupported: boolean } | undefined;
+  const start = now();
+  try {
+    output = packWith(setting.strategy, input, options, seed);
+  } catch (e) {
+    failure = errorText(e);
+  }
+  const ms = now() - start;
+
+  const at = new Map(output?.placements.map((p) => [p.id, p]));
+  const placed = items.map((item, i) => {
+    const p = at.get(String(item.key));
+    const turned = p?.turn === 90;
+    return { key: item.key, rank: i + 1, x: p?.x ?? 0, y: p?.y ?? 0, w: turned ? item.h : item.w, h: turned ? item.w : item.h, packed: p !== undefined };
+  });
+  const rects = placed.filter((p) => p.packed).map((p) => {
     const r = new Rect<number>();
-    r.id = item.key;
-    r.size.set(item.w, item.h);
+    r.position.set(p.x, p.y);
+    r.size.set(p.w, p.h);
     return r;
   });
-  const outer = new Rect<number>();
-  const options = { strategy: setting.strategy, sortOrder: setting.order };
-  let free: FreeRun | undefined;
-  let ms: number;
-  if (setting.mode === "free") {
-    const start = now();
-    const result = packFree(rects, outer, { ...options, aspect: target.aspect, aspectWeight: target.weight });
-    ms = now() - start;
-    free = {
-      target: { ...target },
-      aspect: result.aspect,
-      fill: result.fill,
-      aspectError: result.aspectError,
-      objective: result.objective,
-      tried: result.tried,
-      chosen: chosenTry(result.tried),
-    };
-  } else {
-    outer.size.set(width, 0);
-    outer.fixedWidth = true;
-    const start = now();
-    pack(rects, outer, options);
-    ms = now() - start;
-  }
-
-  const placed = rects.map((r, i) => ({
-    key: r.id ?? i,
-    rank: i + 1,
-    x: r.position.x,
-    y: r.position.y,
-    w: r.size.x,
-    h: r.size.y,
-    packed: r.wasPacked,
-  }));
+  const free = setting.mode === "free";
   const run: Run = {
+    mode: free ? "free" : "fixed",
     placed,
-    width: free ? outer.size.x : width,
-    height: Math.max(outer.size.y, Rect.maxBottom(rects)),
+    width: free ? (output?.size.w ?? 0) : width,
+    height: Math.max(output?.size.h ?? 0, Rect.maxBottom(rects)),
     right: Rect.maxRight(rects),
-    metrics: packingMetrics(Rect.packed(rects)),
+    metrics: packingMetrics(rects),
     ms,
   };
-  if (free) run.free = free;
+  if (output) run.measures = measure(input, output);
+  if (failure) Object.assign(run, failure);
+  if (free && output && SEARCH_STRATEGIES.includes(setting.strategy)) run.free = searchOf(items, options, setting.strategy, target);
   return run;
 }
 

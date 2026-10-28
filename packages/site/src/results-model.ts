@@ -14,6 +14,35 @@ export function rankStrategies(snap: StrategySnapshot, measure: string): Strateg
   return snap.strategies.filter((s) => s.strategy !== snap.baseline).sort((x, y) => key(y) - key(x) || x.strategy.localeCompare(y.strategy));
 }
 
+/** This function gives the hash of the results page that opens the verdict of a strategy on a corpus. */
+export const verdictHash = (corpus: string, strategy: string): string => `#verdict/${encodeURIComponent(corpus)}/${encodeURIComponent(strategy)}`;
+
+/** This function reads a hash of `verdictHash`. Another hash gives `undefined`. */
+export function parseVerdictHash(hash: string): { corpus: string; strategy: string } | undefined {
+  const m = /^#verdict\/([^/]+)\/([^/]+)$/.exec(hash);
+  if (m === null) return undefined;
+  try {
+    return { corpus: decodeURIComponent(m[1]!), strategy: decodeURIComponent(m[2]!) };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * This function gives a snapshot with a verdict for a strategy. The snapshot has the strategy, and its baseline is
+ * another strategy. The corpora of `prefer` come first, in their order. No such snapshot gives `undefined`.
+ */
+export function verdictSnapshot(snapshots: readonly StrategySnapshot[], strategy: string, prefer: readonly string[] = []): StrategySnapshot | undefined {
+  const rank = (s: StrategySnapshot): number => {
+    const i = prefer.indexOf(s.corpus);
+    return i < 0 ? prefer.length : i;
+  };
+  return snapshots
+    .filter((s) => s.baseline !== strategy && s.strategies.some((x) => x.strategy === strategy))
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => rank(a.s) - rank(b.s) || a.i - b.i)[0]?.s;
+}
+
 /** This function counts the strategies of each label on a measure. */
 export function labelCounts(snap: StrategySnapshot, measure: string): Record<Label, number> {
   const out: Record<Label, number> = { better: 0, worse: 0, "depends on the mix": 0, "no verdict": 0, "not measured": 0 };

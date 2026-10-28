@@ -4,8 +4,12 @@ A layout has many boxes: cards, photos, labels or rows of a list. A packer gives
 
 There is no single best layout. A dense layout can mix up the order of the boxes. A layout in the order of the boxes can leave gaps. The measures at the side of each layout show this cost.
 
+- **The strategy** is one of the 8 strategies of the registry. Each option of the strategy has a control under its name.
 - **Rows** fills the container row by row, from left to right. It also fills the space under the short boxes of a row.
 - **Skyline** puts each box at the lowest place where it fits.
+- **Shelf** and **MaxRects** fill shelves or free rectangles. **Push** shoves each box that overlaps another box, until no box overlaps.
+- **Portfolio**, **Aspect fit** and **Select** use other strategies. Pick their members from the named entries of the benchmark.
+- **The compare page** packs one input with each named entry of the benchmark, side by side.
 - **The sort order** sets the order in which the packer takes the boxes. With `input`, the packer takes them in the order of the list. The number on each box is its rank in that list.
 - **A free width** lets `packFree` find the width. It packs the boxes at many widths and keeps the width with the lowest objective.
 - **The objective** is the area of the box times (1 + weight × aspect error). The aspect error is the distance from the target aspect, on a log scale.
