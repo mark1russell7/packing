@@ -38,7 +38,7 @@ Status: done, done, waiting, next, done.
 | k29 | Methods that keep the reading order or the layout under change | strategies | later | k6, k7 |
 | k30 | Online and incremental packing | strategies | later | k6, k7 |
 | k31 | New ideas of our own | strategies | later | k6, k7 |
-| k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. | site | next | k11, k14 |
+| k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. Part 1 (#92): the pages `results/` and `whats-new/`, from the snapshots in `packages/site/data/`. | site | active | k11, k14 |
 | k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
 | k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | done | k33 |
 | k35 | The problem taxonomy: the dimensions of the problem and their values | theory | done |  |
