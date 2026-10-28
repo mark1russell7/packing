@@ -4,15 +4,17 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 254 names
+## . (build/index.d.ts): 257 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
+BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
 BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
 BOUND_KINDS: build/index.d.ts#BOUND_KINDS
+type BboxStrategyOptions: build/index.d.ts#BboxStrategyOptions
 type BerkeyWangClass: build/index.d.ts#BerkeyWangClass
 type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
 type BerkeyWangRule: build/index.d.ts#BerkeyWangRule
@@ -156,6 +158,7 @@ aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
 assertSupported: build/index.d.ts#assertSupported
+bboxStrategy: build/index.d.ts#bboxStrategy
 berkeyWang: build/index.d.ts#berkeyWang
 berkeyWangFamily: build/index.d.ts#berkeyWangFamily
 binCountBound: build/index.d.ts#binCountBound
@@ -284,11 +287,20 @@ interface AspectFitStrategyOptions {
   targetAspect?: number;
 }
 
+### build/index.d.ts#BBOX_SHAPES
+export declare const BBOX_SHAPES: readonly ShapeKind[];
+
 ### build/index.d.ts#BERKEY_WANG_RULES
 export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>>;
 
 ### build/index.d.ts#BOUND_KINDS
 export declare const BOUND_KINDS: readonly BoundKind[];
+
+### build/index.d.ts#BboxStrategyOptions
+interface BboxStrategyOptions {
+  member?: string | PortfolioEntry;
+  turn?: boolean;
+}
 
 ### build/index.d.ts#BerkeyWangClass
 type BerkeyWangClass = "I" | "II" | "III" | "IV" | "V" | "VI";
@@ -956,7 +968,7 @@ type Supports = {
   containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
   containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
   obstacleMove: ("fixed" | "costly" | "free")[];
-  itemShape: ("rect" | "circle" | "convex" | "polygon" | "mixed")[];
+  itemShape: ("rect" | "polygon" | "circle" | "free" | "mixed")[];
   rotation: ("none" | "quarter" | "any")[];
   order: ("free" | "soft" | "hard")[];
   groups: ("none" | "flat" | "nested")[];
@@ -1015,6 +1027,9 @@ export declare const aspectFitStrategy: Strategy<AspectFitStrategyOptions>;
 
 ### build/index.d.ts#assertSupported
 export declare function assertSupported(supports: Supports, input: PackInput): void;
+
+### build/index.d.ts#bboxStrategy
+export declare const bboxStrategy: Strategy<BboxStrategyOptions>;
 
 ### build/index.d.ts#berkeyWang
 export declare const berkeyWang: CorpusGenerator<BerkeyWangParams>;
