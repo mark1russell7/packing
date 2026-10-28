@@ -2,7 +2,7 @@
 // with two strategies on the same inputs: a candidate and the current default. It does not start a packer.
 // The rule is `docs/PROMOTION.md` of `highways`: the paired ratio, the floor rule, the classification, the win test and the noise guard.
 //
-// Start it with `node bench/promote.ts <folder> --candidate <id> --default <id> --win <measure> --out <folder>`.
+// Start it with `node bench/promote.ts <folder> --candidate <id> --default <id> --win <measure> --out <folder> [--times <folder>]`.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -46,10 +46,11 @@ export const TIME_TAIL_Q = 0.95;
 export const TIME_TAIL = 2.0;
 
 /**
- * The time floor in milliseconds. The denominator of a time ratio is at least `TIME_FLOOR_MS / TIME_RATIO`. The value 0
- * keeps the rule without a floor.
+ * The time floor in milliseconds: `timeFloorMs` of the shared rule (`docs/PROMOTION.md` of `highways`, highways#116, and
+ * `layout-contract` 0.2.7). The denominator of a time ratio is at least `TIME_FLOOR_MS / TIME_RATIO`. The option
+ * `--time-floor-ms 0` gives the rule without a floor.
  */
-export const TIME_FLOOR_MS = 0;
+export const TIME_FLOOR_MS = 5;
 
 /** The selector: a cell needs this count of inputs or more for a rule. */
 export const CELL_MIN = 10;
@@ -111,6 +112,10 @@ export interface PromotionRecord extends ScreenRecord {
   deterministic?: boolean;
   /** The times of the timed runs, in milliseconds. `ms` is their median. */
   msRuns?: number[];
+  /** The corpus of the record */
+  corpus?: string;
+  /** The facts of the computer of the record. The time test reads its CPU model. */
+  env?: { cpu?: string };
 }
 
 /** The cells of an input that the win test reads. The manifest `corpus.json` gives them. */
@@ -248,6 +253,13 @@ export interface TimePair {
   current: number;
 }
 
+/** The times of one input of the time source. A time is absent when its record has no time. */
+export interface TimeInput {
+  input: string;
+  candidate: number | undefined;
+  current: number | undefined;
+}
+
 /** The time test of some inputs. */
 export interface TimeResult {
   /** The inputs with a time for the candidate and for the default */
@@ -312,6 +324,45 @@ export interface InputPair {
   candidate: PromotionRecord;
   current: PromotionRecord;
 }
+
+/** The pairs of some records, and the counts of the inputs without a measured record of one strategy. */
+export interface Pairing {
+  pairs: InputPair[];
+  /** The inputs with a record of one of the two strategies */
+  seen: number;
+  noCandidate: number;
+  noCurrent: number;
+}
+
+/**
+ * This function pairs the first measured record of the candidate and of the default on each input. A skipped record is not
+ * measured. An input without a measured record of each strategy has no pair.
+ */
+export function pairsOf(records: readonly PromotionRecord[], candidate: string, current: string): Pairing {
+  const seen = new Set<string>();
+  const candidates = new Map<string, PromotionRecord>();
+  const currents = new Map<string, PromotionRecord>();
+  for (const r of records) {
+    const own = r.strategy === candidate ? candidates : r.strategy === current ? currents : undefined;
+    if (own === undefined) continue;
+    seen.add(r.input);
+    if (r.skipped === undefined && !own.has(r.input)) own.set(r.input, r);
+  }
+  const pairs: InputPair[] = [];
+  let noCandidate = 0;
+  let noCurrent = 0;
+  for (const input of seen) {
+    const a = candidates.get(input);
+    const b = currents.get(input);
+    if (a === undefined) noCandidate += 1;
+    if (b === undefined) noCurrent += 1;
+    if (a !== undefined && b !== undefined) pairs.push({ input, candidate: a, current: b });
+  }
+  return { pairs, seen: seen.size, noCandidate, noCurrent };
+}
+
+/** This function gives the times of each pair. */
+export const timeInputsOf = (pairs: readonly InputPair[]): TimeInput[] => pairs.map((p) => ({ input: p.input, candidate: timeOf(p.candidate), current: timeOf(p.current) }));
 
 /** This function gives the ratios and the classes of one measure over some inputs. An input without the measure in a record does not count. */
 export function ratiosOf(measure: MeasureId, pairs: readonly InputPair[], listIds = false): MeasureRatios {
@@ -387,6 +438,20 @@ export interface WinTests {
   pass: boolean;
 }
 
+/** The source of the times of the time test. */
+export interface TimeSource {
+  /** The value `records` when the time test reads the records of the verdict, `times` when it reads other records (`--times`). */
+  kind: "records" | "times";
+  /** The folder of the time records. It is absent when the caller does not give it. */
+  folder?: string;
+  /** The corpora of the time records */
+  corpora: string[];
+  /** The CPU models of the time records of each strategy, sorted. A record without a CPU model gives `unknown`. */
+  cpu: { candidate: string[]; current: string[] };
+  /** The value `true` when each time record of the two strategies has the same CPU model */
+  sameCpu: boolean;
+}
+
 /** The verdict of the win test. */
 export interface PromotionVerdict {
   candidate: string;
@@ -401,6 +466,8 @@ export interface PromotionVerdict {
   confirm: { inputs: number; needed: number; enough: boolean };
   /** The time field of the records */
   timeField: "ms";
+  /** The records that give the times */
+  timeSource: TimeSource;
   tests: WinTests;
   /** The value `true` when each test passes on all the inputs */
   pass: boolean;
@@ -417,6 +484,15 @@ export interface WinTestOptions {
   /** The cells of each input, by input id. An input without cells has the shape `unknown` and no fixed container. */
   cells?: ReadonlyMap<string, InputCell>;
   parameters?: Partial<PromotionParameters>;
+  /**
+   * The records of the time test, for example the records of one runner with interleaved timed passes. The time test then
+   * reads only their `ms`, by input id and strategy id. The default is `records`.
+   */
+  times?: readonly PromotionRecord[];
+  /** The folder of `times`, for the verdict */
+  timesFolder?: string;
+  /** The cells of the inputs of `times`. The default is `cells`. */
+  timeCells?: ReadonlyMap<string, InputCell>;
 }
 
 /** This function gives the hard counts of a record. The count `pack.outsideExact` replaces `in-container`, as `hardOf` tells. */
@@ -478,8 +554,16 @@ function gainOf(m: MeasureRatios, params: PromotionParameters): GainResult {
  * - The guards `GUARD_MEASURES` apply to each input. `FIXED_GUARD` applies to the inputs with a fixed container.
  * - A guard with no input fails, except `FIXED_GUARD` and the stability guards. They are left out when no input has them.
  * - The gain test passes when one win measure passes its median, its sign test and its bootstrap.
+ * - The time test uses `timeInputs`. The default is the times of `pairs`.
  */
-export function testsOf(pairs: readonly InputPair[], win: readonly MeasureId[], cells: ReadonlyMap<string, InputCell>, params: PromotionParameters, listIds = false): WinTests {
+export function testsOf(
+  pairs: readonly InputPair[],
+  win: readonly MeasureId[],
+  cells: ReadonlyMap<string, InputCell>,
+  params: PromotionParameters,
+  listIds = false,
+  timeInputs: readonly TimeInput[] = timeInputsOf(pairs),
+): WinTests {
   const guards = GUARD_MEASURES.map((m) => guardOf(ratiosOf(m, pairs, listIds), params));
   const fixed = pairs.filter((p) => cells.get(p.input)?.containerSize === FIXED_SIZE);
   const overflow = ratiosOf(FIXED_GUARD, fixed, listIds);
@@ -489,13 +573,9 @@ export function testsOf(pairs: readonly InputPair[], win: readonly MeasureId[], 
     .map((m) => guardOf(m, params));
   const gains = win.map((m) => gainOf(ratiosOf(m, pairs, listIds), params));
   const times: TimePair[] = [];
-  for (const p of pairs) {
-    const candidate = timeOf(p.candidate);
-    const current = timeOf(p.current);
-    if (candidate !== undefined && current !== undefined) times.push({ candidate, current });
-  }
+  for (const { candidate, current } of timeInputs) if (candidate !== undefined && current !== undefined) times.push({ candidate, current });
   const hard = hardTest(pairs);
-  const time = timeTest(times, params, pairs.length - times.length);
+  const time = timeTest(times, params, timeInputs.length - times.length);
   const gain = { measures: gains, pass: gains.some((g) => g.pass) };
   const pass = pairs.length > 0 && hard.pass && guards.every((g) => g.pass) && stability.every((g) => g.pass) && gain.pass && time.pass;
   return { inputs: pairs.length, hard, guards, stability, gain, time, pass };
@@ -507,35 +587,23 @@ export function testsOf(pairs: readonly InputPair[], win: readonly MeasureId[], 
  * - The test pairs the first measured record of each strategy on each input. A skipped record is not measured.
  * - An input without a measured record of each strategy is left out, and the verdict counts it.
  * - The overall `pass` uses all the inputs. Each container shape gets the same tests as information.
+ * - With `times`, the time test pairs the records of `times` in the same way, and it reads only their times.
  */
 export function winTest(records: readonly PromotionRecord[], options: WinTestOptions): PromotionVerdict {
   const params: PromotionParameters = { ...PROMOTION_PARAMETERS, ...options.parameters };
   const cells = options.cells ?? new Map<string, InputCell>();
-  const seen = new Set<string>();
-  const candidates = new Map<string, PromotionRecord>();
-  const currents = new Map<string, PromotionRecord>();
-  for (const r of records) {
-    const own = r.strategy === options.candidate ? candidates : r.strategy === options.current ? currents : undefined;
-    if (own === undefined) continue;
-    seen.add(r.input);
-    if (r.skipped === undefined && !own.has(r.input)) own.set(r.input, r);
-  }
-  const pairs: InputPair[] = [];
-  let noCandidate = 0;
-  let noCurrent = 0;
-  for (const input of seen) {
-    const candidate = candidates.get(input);
-    const current = currents.get(input);
-    if (candidate === undefined) noCandidate += 1;
-    if (current === undefined) noCurrent += 1;
-    if (candidate !== undefined && current !== undefined) pairs.push({ input, candidate, current });
-  }
-  const tests = testsOf(pairs, options.win, cells, params, true);
+  const { pairs, seen, noCandidate, noCurrent } = pairsOf(records, options.candidate, options.current);
+  const timePairs = options.times === undefined ? pairs : pairsOf(options.times, options.candidate, options.current).pairs;
+  const timeInputs = timeInputsOf(timePairs);
+  const timeCells = options.times === undefined ? cells : (options.timeCells ?? cells);
+  const tests = testsOf(pairs, options.win, cells, params, true, timeInputs);
   const shapeOf = (input: string): string => cells.get(input)?.containerShape ?? UNKNOWN_SHAPE;
+  const timeShapeOf = (input: string): string => timeCells.get(input)?.containerShape ?? UNKNOWN_SHAPE;
   const shapes: PromotionVerdict["shapes"] = {};
   for (const shape of [...new Set(pairs.map((p) => shapeOf(p.input)))].toSorted()) {
     const own = pairs.filter((p) => shapeOf(p.input) === shape);
-    shapes[shape] = { ...testsOf(own, options.win, cells, params), cellMin: own.length >= params.cellMin };
+    const ownTimes = timeInputs.filter((t) => timeShapeOf(t.input) === shape);
+    shapes[shape] = { ...testsOf(own, options.win, cells, params, false, ownTimes), cellMin: own.length >= params.cellMin };
   }
   return {
     candidate: options.candidate,
@@ -543,13 +611,40 @@ export function winTest(records: readonly PromotionRecord[], options: WinTestOpt
     win: [...options.win],
     parameters: params,
     inputs: pairs.length,
-    leftOut: { inputs: seen.size - pairs.length, candidate: noCandidate, current: noCurrent },
+    leftOut: { inputs: seen - pairs.length, candidate: noCandidate, current: noCurrent },
     confirm: { inputs: pairs.length, needed: params.confirmInputs, enough: pairs.length >= params.confirmInputs },
     timeField: "ms",
+    timeSource: timeSourceOf(timePairs, options.times === undefined ? "records" : "times", options.timesFolder),
     tests,
     pass: tests.pass,
     shapes,
   };
+}
+
+/** This function gives the sorted distinct values of a list. */
+const distinct = (values: readonly string[]): string[] => [...new Set(values)].toSorted();
+
+/** This function gives the source of the times from the pairs of the time test. */
+export function timeSourceOf(pairs: readonly InputPair[], kind: TimeSource["kind"], folder?: string): TimeSource {
+  const cpuOf = (r: PromotionRecord): string => r.env?.cpu ?? "unknown";
+  const candidate = distinct(pairs.map((p) => cpuOf(p.candidate)));
+  const current = distinct(pairs.map((p) => cpuOf(p.current)));
+  const corpora = distinct(pairs.flatMap((p) => [p.candidate.corpus, p.current.corpus]).filter((c): c is string => c !== undefined));
+  const sameCpu = distinct([...candidate, ...current]).length <= 1;
+  return { kind, ...(folder === undefined ? {} : { folder }), corpora, cpu: { candidate, current }, sameCpu };
+}
+
+/** This function writes the lines of the time source for `promotion.md`. */
+function timeSourceLines(v: PromotionVerdict): string[] {
+  const s = v.timeSource;
+  const code = (values: readonly string[]): string => (values.length === 0 ? "none" : values.map((x) => `\`${x}\``).join(", "));
+  const where = s.kind === "times" ? `the time records of \`--times\`${s.folder === undefined ? "" : ` in \`${s.folder}\``}` : "the records of the verdict";
+  const lines = [
+    `- The time source: the field \`${v.timeField}\` of ${where}. The corpus of the time records: ${code(s.corpora)}.`,
+    `- The CPU models of the time records: ${code(s.cpu.candidate)} for the candidate, ${code(s.cpu.current)} for the default.`,
+  ];
+  if (!s.sameCpu) lines.push("- **Warning:** The time records of the candidate and the default come from different CPU models. The time ratios then compare two computers.");
+  return lines;
 }
 
 /** This function writes a number for a table: 4 significant digits, `Infinity`, or `-` for no value. */
@@ -593,7 +688,8 @@ export function promotionMarkdown(v: PromotionVerdict): string {
     "",
     `- The inputs: ${v.inputs}. The test leaves out ${v.leftOut.inputs} inputs: ${v.leftOut.candidate} without a measured record of the candidate, ${v.leftOut.current} without one of the default.`,
     `- The confirmation count: ${v.confirm.inputs} inputs of ${v.confirm.needed} (\`confirmInputs\`), ${v.confirm.enough ? "enough" : "not enough"} for a confirmation run.`,
-    `- The win measures: ${v.win.map((m) => `\`${m}\``).join(", ")}. The time is the field \`${v.timeField}\` of each record.`,
+    `- The win measures: ${v.win.map((m) => `\`${m}\``).join(", ")}.`,
+    ...timeSourceLines(v),
     `- The time floor: ${p.timeFloorMs} ms. The floor raised the denominator of ${t.time.raised} inputs. ${t.time.missing} inputs have no time.`,
     `- A ratio above 1 is worse. A tail ratio is above ${numText(1 + p.tailWorse)}. The bootstrap uses ${p.bootstrapRuns} samples and the seed ${p.bootstrapSeed}.`,
     "",
@@ -648,28 +744,47 @@ const optionOf = (argv: readonly string[], name: string): string | undefined => 
   return at >= 0 ? argv[at + 1] : undefined;
 };
 
-/** This function starts the win test from the arguments of the command line. A verdict `fail` does not stop the process with an error. */
-function main(argv: readonly string[]): void {
+/** This function reads `records.jsonl` and the cells of `corpus.json` of a folder. A folder without `corpus.json` gives no cells. */
+function readFolder(folder: string): { records: PromotionRecord[]; cells: Map<string, InputCell> } {
+  const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8")) as PromotionRecord[];
+  const manifestFile = join(folder, "corpus.json");
+  const cells = existsSync(manifestFile) ? cellsOf(JSON.parse(readFileSync(manifestFile, "utf8"))) : new Map<string, InputCell>();
+  return { records, cells };
+}
+
+/**
+ * This function starts the win test from the arguments of the command line, writes the verdict files and gives the verdict.
+ * A verdict `fail` does not stop the process with an error.
+ */
+export function promoteMain(argv: readonly string[]): PromotionVerdict {
   const folder = argv[0];
   const candidate = optionOf(argv, "--candidate");
   const current = optionOf(argv, "--default");
   const out = optionOf(argv, "--out");
   if (folder === undefined || candidate === undefined || current === undefined || out === undefined) {
-    throw new Error("Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--win <measure>[,<measure>]] [--time-floor-ms <n>]");
+    throw new Error("Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--win <measure>[,<measure>]] [--time-floor-ms <n>] [--times <folder>]");
   }
   const win = (optionOf(argv, "--win") ?? "pack.fill").split(",").map((m) => m.trim());
   for (const m of win) if (!(m in MEASURE_SPECS)) throw new Error(`The win measure ${m} is not in MEASURE_SPECS.`);
   const floorText = optionOf(argv, "--time-floor-ms");
   const timeFloorMs = floorText === undefined ? TIME_FLOOR_MS : Number(floorText);
   if (!(timeFloorMs >= 0)) throw new Error("The option --time-floor-ms needs a number of 0 or more.");
-  const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8")) as PromotionRecord[];
-  const manifestFile = join(folder, "corpus.json");
-  const cells = existsSync(manifestFile) ? cellsOf(JSON.parse(readFileSync(manifestFile, "utf8"))) : new Map<string, InputCell>();
-  const verdict = winTest(records, { candidate, current, win: win as MeasureId[], cells, parameters: { timeFloorMs } });
+  const { records, cells } = readFolder(folder);
+  const timesFolder = optionOf(argv, "--times");
+  const times = timesFolder === undefined ? undefined : readFolder(timesFolder);
+  const verdict = winTest(records, {
+    candidate,
+    current,
+    win: win as MeasureId[],
+    cells,
+    parameters: { timeFloorMs },
+    ...(times === undefined || timesFolder === undefined ? {} : { times: times.records, timesFolder, timeCells: times.cells }),
+  });
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "promotion.json"), promotionJson(verdict));
   writeFileSync(join(out, "promotion.md"), promotionMarkdown(verdict));
   console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs: ${verdict.pass ? "pass" : "fail"}.`);
+  return verdict;
 }
 
-if (process.argv[1]?.endsWith("promote.ts") === true) main(process.argv.slice(2));
+if (process.argv[1]?.endsWith("promote.ts") === true) promoteMain(process.argv.slice(2));
