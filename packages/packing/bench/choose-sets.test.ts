@@ -88,21 +88,24 @@ describe("the set table", () => {
     return toPackInput(inputs[0]!);
   };
 
-  it("names the run of its records, and gives each cell that is not thin its sets of 1, 2 and 3 with their training scores", () => {
+  it("names the run of its records, and gives each cell that is not thin its sets of up to 1, 2 and 3 with their training scores", () => {
     expect(PORTFOLIO_SETS.source).toMatchObject({ corpus: "pack-screen-v1", run: "40652567756", frameMs: PORTFOLIO_FRAME_MS });
     for (const group of [PORTFOLIO_SETS.all, ...Object.values(PORTFOLIO_SETS.shapes), ...Object.values(PORTFOLIO_SETS.cells)]) {
       expect(group.thin).toBe(group.inputs < THIN_INPUTS);
       if (group.thin) continue;
       for (const k of ["1", "2", "3"] as const) {
-        expect(group.sets![k]).toHaveLength(Number(k));
+        // A set stops early when no entry improves it, so a set of size k has k members or fewer
+        expect(group.sets![k].length).toBeLessThanOrEqual(Number(k));
+        expect(group.sets![k]).toEqual(group.sets!["3"].slice(0, group.sets![k].length));
+        expect(group.sets![k]).not.toContain("push");
         expect(group.train![k].inputs).toBe(group.inputs);
         for (const id of group.sets![k]) expect(PORTFOLIO_SETS.entries[id]).toBeDefined();
       }
-      expect(group.sets!["2"]).toEqual(group.sets!["3"].slice(0, 2));
       expect(group.defaultMembers).toBeGreaterThanOrEqual(1);
+      expect(group.defaultMembers).toBeLessThanOrEqual(group.sets!["3"].length);
       const medians = group.prefixMedianMs!;
       for (let p = 2; p <= group.defaultMembers!; p++) expect(medians[`${p}` as "2"]).toBeLessThanOrEqual(PORTFOLIO_FRAME_MS);
-      if (group.defaultMembers! < 3) expect(medians[`${group.defaultMembers! + 1}` as "2"]).toBeGreaterThan(PORTFOLIO_FRAME_MS);
+      if (group.defaultMembers! < group.sets!["3"].length) expect(medians[`${group.defaultMembers! + 1}` as "2"]).toBeGreaterThan(PORTFOLIO_FRAME_MS);
     }
   });
 
