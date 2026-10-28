@@ -28,6 +28,7 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "aspect-fit-maxrects-bssf": "move.aspectPick",
   "aspect-fit-portfolio-k2": "move.aspectPick",
   "portfolio-area-rows-bl": "move.pick",
+  "select-rows-bl": "move.select",
 });
 
 /** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */

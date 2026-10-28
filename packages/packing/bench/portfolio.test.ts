@@ -209,7 +209,7 @@ describe("the portfolio report: the composite entries", () => {
   const cell = report[ALL_CELL]!;
 
   it("leaves the composite entries out of the oracle, the pool, the greedy sets, the sole wins and the losers", () => {
-    expect(COMPOSITE_IDS).toEqual(new Set(["portfolio-k2", "portfolio-k3", "aspect-fit-maxrects-bl", "aspect-fit-maxrects-bssf", "aspect-fit-portfolio-k2", "portfolio-area-rows-bl"]));
+    expect(COMPOSITE_IDS).toEqual(new Set(["portfolio-k2", "portfolio-k3", "aspect-fit-maxrects-bl", "aspect-fit-maxrects-bssf", "aspect-fit-portfolio-k2", "portfolio-area-rows-bl", "select-rows-bl"]));
     expect(cell.pool).toEqual(["A", "B"]);
     expect(Object.keys(cell.soleWins)).toEqual(["A", "B"]);
     expect(cell.losers).not.toContain("portfolio-k2");

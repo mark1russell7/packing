@@ -1,0 +1,15 @@
+{
+  "schema": "corpus-split/1",
+  "corpus": "pack-screen-v1",
+  "corpusHash": "cf53d6cf7e907de7",
+  "splits": {
+    "default": {"folds": [{"train": [1, 2, 4, 5], "heldOut": [3]}]},
+    "loso": {"folds": [
+      {"train": [2, 3, 4, 5], "heldOut": [1]},
+      {"train": [1, 3, 4, 5], "heldOut": [2]},
+      {"train": [1, 2, 4, 5], "heldOut": [3]},
+      {"train": [1, 2, 3, 5], "heldOut": [4]},
+      {"train": [1, 2, 3, 4], "heldOut": [5]}
+    ]}
+  }
+}

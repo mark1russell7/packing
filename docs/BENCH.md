@@ -55,6 +55,7 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `aspect-fit-maxrects-bssf` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bssf" }` | `maxrects-bssf` |
 | `aspect-fit-portfolio-k2` | `aspect-fit` | `strategy: "portfolio"`, `options: { k: 2 }` | `portfolio-k2` |
 | `portfolio-area-rows-bl` | `portfolio` | `members: ["rows", maxrects-bl]`, `key: AREA_KEY` | `maxrects-bl` |
+| `select-rows-bl` | `select` | the defaults: the members `rows` and `maxrects-bl`, `SELECT_TABLE` | `rows` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
@@ -67,6 +68,7 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 4 composite entries of roadmap item k62 are `ASPECT_FIT_ENTRIES`. An entry `aspect-fit-<entry>` wraps that entry with `aspectFit`. `docs/PACKER.md` ("The aspect fit") tells it.
 - On a container of fixed size, an entry `aspect-fit-<entry>` gives the output of its base. On a free size, its move is `move.aspectPick`.
 - The entry `portfolio-area-rows-bl` has the 2 members `rows` and `maxrects-bl`. Its key `AREA_KEY` puts `pack.area` before `pack.overflow.excessArea` and `pack.fill`. Its move is `move.pick`.
+- The entry `select-rows-bl` of roadmap item k66 is `SELECT_ENTRIES`. It packs with one member, from the features of the input. Its move is `move.select`. `docs/PACKER.md` ("The feature select") tells it.
 
 ## The jobs
 
@@ -139,6 +141,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-screen-v1` | 1305 | The first screen of the packer. Write its prediction before its first benchmark. |
 | `pack-holdout-v1` | 522 | The test corpus of the per-cell portfolio: the specs of `pack-screen-v1` with the new seeds 6 and 7. Write its prediction first. |
 | `pack-free-v1` | 720 | The corpus of free sizes of roadmap item k62: `freeAspect` and `freeArea` with each shape. Write its prediction first. |
+| `pack-select-v1` | 2025 | The test corpus of the feature select of roadmap item k66: the specs of `pack-screen-v1` and `pack-free-v1` with fresh seeds. Write its prediction first. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -157,6 +160,11 @@ The corpus `pack-free-v1` has the specs of `rect-grid` version 2, each with the 
 - the `containerSize` `freeAspect` and `freeArea`, with each `containerShape`: `rect`, `convex`, `polygon`, `circle`, `ellipse` and `holes`
 - the sizes `identical`, `uniform` and `heavyTail`
 - the `order` `free` and `soft`, and the counts 10 and 100.
+
+The corpus `pack-select-v1` has the 261 specs of `pack-screen-v1` and the 144 specs of `pack-free-v1`, each with the fresh seeds 21 to 25.
+
+- It has `heldOut: "all"`. The fit of `SELECT_TABLE` did not see these seeds.
+- Its `claims.declared` counts are `order` 360, `aspect` 360, `free-size` 740 and `shaped` 1650, with no thin property.
 
 Version 2 of `rect-grid` adds the parameter `order`. With `soft`, each item gets a `rank` from a permutation of the seed. Version 1 does not change.
 
@@ -558,6 +566,31 @@ node bench/cells.ts <folder> --candidate maxrects-bl --default rows --times <fol
 - The decision tables use 1, 2 and 3 of these features. Each leaf picks with the rule of the selector. The best table of each size has the highest training accuracy.
 
 The tool writes `cells.json` and `cells.md` in the `--out` folder. The corpus `pack-free-v1` has the seeds 11 to 15 and no `heldOut`. Thus it has no held-out input, and `--held-out 13` gives a split.
+
+- `--split <name>` reads the split of that name from the split file of the corpus. It replaces `--held-out`, and the tool refuses the two together.
+- Each fold fits its own picks on its training seeds. The held-out rows pool the held-out inputs of all the folds.
+- Thus `--split loso` scores each input once, with the picks of the 4 other seeds. The tables of cells and leaves show the first fold.
+- `--splits <folder>` reads the split files from another folder. The default is `packages/packing/bench/splits`.
+
+### The split files
+
+A split file gives the training and held-out seeds of a corpus. It is beside the corpus, not in it. Thus a split does not change the corpus or its hash.
+
+```json
+{ "schema": "corpus-split/1", "corpus": "pack-free-v1", "corpusHash": "af6c6985300e1fd1",
+  "splits": { "default": { "folds": [{ "train": [11, 12, 14, 15], "heldOut": [13] }] } } }
+```
+
+- The file is `bench/splits/<corpus id>.<corpus hash>.json`. `corpusHashOf` of `bench/split.ts` gives the hash.
+- The hash is the first 16 hex characters of the SHA-256 of `canonicalJson` of the corpus id and the `[id, hash]` of each input.
+- A change of one input changes the hash. Then the tool finds no split file, and it names the split files of the corpus.
+- `loadSplit` refuses a file with a bad schema, corpus or `corpusHash`, a split with no fold, or an unknown split name.
+- In each fold, `train` and `heldOut` are not empty and have no common seed. Each seed is a seed of the corpus.
+
+| File | Splits |
+|---|---|
+| `pack-screen-v1.cf53d6cf7e907de7.json` | `default`: train 1, 2, 4 and 5, held out 3. `loso`: 5 folds, each seed held out once. |
+| `pack-free-v1.af6c6985300e1fd1.json` | `default`: train 11, 12, 14 and 15, held out 13. `loso`: 5 folds, each seed held out once. |
 
 ## Read the summary
 
