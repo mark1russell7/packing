@@ -13,7 +13,7 @@ export type { Direction } from "@mark1russell7/layout-contract";
 export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
 
 /** The id of a measure of the packer. The ids are those of `docs/FORMAT.md`, and `highways` uses the same ids. */
-export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
+export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
 
 /**
  * The facts of one measure: its family, its unit, its direction and its range.
@@ -53,6 +53,8 @@ export interface LayoutMeasures {
   "pack.overflow.forced": number;
   "pack.overflow.forcedArea": number;
   "pack.overflow.excess": number;
+  "pack.overflow.forcedAreaMin": number;
+  "pack.overflow.excessArea": number;
   "pack.search.widths": number;
   "pack.search.ms": number;
 }
@@ -111,6 +113,8 @@ export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.fr
   "pack.overflow.forced": spec("pack.overflow.forced", "overflow", "count", "lower", 0, Infinity, 0),
   "pack.overflow.forcedArea": spec("pack.overflow.forcedArea", "overflow", "share", "lower", 0, 1, 0.005),
   "pack.overflow.excess": spec("pack.overflow.excess", "overflow", "count", "lower", 0, Infinity, 0),
+  "pack.overflow.forcedAreaMin": spec("pack.overflow.forcedAreaMin", "overflow", "share", "lower", 0, 1, 0.005),
+  "pack.overflow.excessArea": spec("pack.overflow.excessArea", "overflow", "share", "lower", 0, 1, 0.005),
   "pack.stability.moved": spec("pack.stability.moved", "stability", "share", "lower", 0, 1, 0.02, { floor: 0, tol: 0.02 }),
   "pack.stability.mean": spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity, 0.005, { floor: 0, tol: 0.005 }),
   "pack.stability.q95": spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 }),
@@ -205,6 +209,7 @@ function traceSum(output: PackOutput, id: string): number {
  * - The time `pack.search.ms` comes from the trace. It is not part of the determinism rule.
  * - The overflow measures count each id once. `pack.overflow.forced` is the lower bound of `overflowBound`.
  * - `pack.overflow.excess` is the overflow less the forced overflow. A container with no fixed side gives 0 for both.
+ * - `pack.overflow.forcedAreaMin` is a lower bound of the overflow area. `pack.overflow.excessArea` is the overflow area above it.
  *
  * @example
  * ```ts
@@ -257,6 +262,8 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
     if (unplaced.has(item.id)) unplacedArea += a;
   }
   const bound = overflowBound(input);
+  const overflowArea = itemArea > 0 ? unplacedArea / itemArea : 0;
+  const forcedAreaMin = itemArea > 0 ? Math.min(1, bound.area / itemArea) : 0;
 
   return {
     "pack.area": hullArea,
@@ -269,13 +276,27 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
     "pack.raggedness": hull.w > 0 ? spread / hull.w : 0,
     "pack.overflow": unplaced.size,
     "pack.overflow.rate": input.items.length > 0 ? unplaced.size / input.items.length : 0,
-    "pack.overflow.area": itemArea > 0 ? unplacedArea / itemArea : 0,
+    "pack.overflow.area": overflowArea,
     "pack.overflow.forced": bound.forced,
-    "pack.overflow.forcedArea": itemArea > 0 ? Math.min(1, bound.area / itemArea) : 0,
+    "pack.overflow.forcedArea": forcedAreaMin,
     "pack.overflow.excess": Math.max(0, unplaced.size - bound.forced),
+    "pack.overflow.forcedAreaMin": forcedAreaMin,
+    "pack.overflow.excessArea": excessAreaOf(overflowArea, forcedAreaMin),
     "pack.search.widths": traceSum(output, "pack.search.widths"),
     "pack.search.ms": traceSum(output, "pack.search.ms"),
   };
+}
+
+/** The float noise of `pack.overflow.excessArea`. A difference below 0 by this value or less becomes 0. */
+const AREA_NOISE = 1e-9;
+
+/**
+ * This function gives the overflow area above its lower bound. A value from `-AREA_NOISE` to 0 becomes 0. A value below
+ * `-AREA_NOISE` stays, because it shows a bug of the bound or of the packer.
+ */
+function excessAreaOf(overflowArea: number, forcedAreaMin: number): number {
+  const excess = overflowArea - forcedAreaMin;
+  return excess < 0 && excess >= -AREA_NOISE ? 0 : excess;
 }
 
 /**
