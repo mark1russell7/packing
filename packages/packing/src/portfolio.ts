@@ -5,7 +5,7 @@ import { pickMoves, portfolio, type Member, type Portfolio, type PortfolioKey, t
 import { checkHard } from "./check.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { outputHash } from "./layout-input.ts";
-import { MEASURE_SPECS, measure, type LayoutMeasures } from "./measures.ts";
+import { MEASURE_SPECS, measure, roundMeasures, type LayoutMeasures } from "./measures.ts";
 import { packWith, strategy } from "./registry.ts";
 
 /** A member of `packPortfolio`: a strategy of the registry with some options. The id names the member in the trace. */
@@ -59,6 +59,7 @@ export function hardBreaks(input: PackInput, output: PackOutput): number {
  * - A member is a strategy id, or a `PortfolioEntry` with options. The members run in the given order.
  * - `members` is a list, or a function of the input that gives the list. The strategy `portfolio` uses the function form.
  * - The key is the hard breaks, then `pack.overflow.excessArea`, then `pack.fill`. `PORTFOLIO_LEVELS` gives the specs.
+ * - The key reads the measures after `roundMeasures`, as a record keeps them. A replay of the records gives the same pick.
  * - The hash of the key is `outputHash`. `selectBest` of the contract picks the winner.
  * - The output of the winner gets the trace stage `portfolio` with `move.pick` of `pickMoves`.
  * - The function throws a `RangeError` for an unknown strategy, an empty list and two members with the same id.
@@ -81,7 +82,8 @@ export function packPortfolio(
   const measured = (input: PackInput, output: PackOutput): LayoutMeasures => {
     let m = cache.get(output);
     if (m === undefined) {
-      m = measure(input, output);
+      // The key reads the measures as a record keeps them, so a replay of the records gives the same pick
+      m = roundMeasures(measure(input, output));
       cache.set(output, m);
     }
     return m;
