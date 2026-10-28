@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 124 names
+## . (build/index.d.ts): 129 names
 
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
@@ -22,6 +22,8 @@ type Direction: @mark1russell7/layout-contract#Direction (external)
 EPS: @mark1russell7/layout-contract#EPS (external)
 type EdgeCase: build/index.d.ts#EdgeCase
 type EdgeCaseParams: build/index.d.ts#EdgeCaseParams
+type FreeSpace: build/index.d.ts#FreeSpace
+type FreeSpan: build/index.d.ts#FreeSpan
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
@@ -65,7 +67,9 @@ type Side: @mark1russell7/layout-contract#Side (external)
 type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/index.d.ts#SizeSearch
+type SkylineOptions: build/index.d.ts#SkylineOptions
 type SortOrder: build/index.d.ts#SortOrder
+type SpaceRect: build/index.d.ts#SpaceRect
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/index.d.ts#Strategy
 type Supports: build/index.d.ts#Supports
@@ -87,6 +91,7 @@ createContext: build/index.d.ts#createContext
 dashboard: build/index.d.ts#dashboard
 edgeCases: build/index.d.ts#edgeCases
 fnv1a32: build/index.d.ts#fnv1a32
+freeSpace: build/index.d.ts#freeSpace
 fromRects: build/index.d.ts#fromRects
 gallery: build/index.d.ts#gallery
 generator: build/index.d.ts#generator
@@ -223,6 +228,24 @@ type EdgeCaseParams = {
   count: number;
 };
 
+### build/index.d.ts#FreeSpace
+interface FreeSpace {
+  readonly w: number;
+  readonly h: number;
+  readonly plain: boolean;
+  band(y0: number, y1: number): FreeSpan[];
+  column(x0: number, x1: number, from?: number): FreeSpan | undefined;
+  fits(rect: SpaceRect): boolean;
+  fitX(x: number, w: number, y0: number, y1: number): number;
+  nextY(y0: number, y1: number, w: number): number;
+}
+
+### build/index.d.ts#FreeSpan
+interface FreeSpan {
+  readonly start: number;
+  readonly end: number;
+}
+
 ### build/index.d.ts#FreeWidthOptions
 interface FreeWidthOptions extends PackLayoutOptions {
   aspect?: number;
@@ -338,6 +361,7 @@ interface PackLayoutOptions extends PackOptions {
 ### build/index.d.ts#PackOptions
 interface PackOptions {
   sortOrder?: SortOrder;
+  space?: FreeSpace;
 }
 
 ### build/index.d.ts#PackingMetrics
@@ -407,6 +431,7 @@ export declare const SORT_ORDERS: readonly SortOrder[];
 ### build/index.d.ts#ShelfOptions
 interface ShelfOptions {
   sortOrder?: SortOrder;
+  space?: FreeSpace;
 }
 
 ### build/index.d.ts#SizeDistribution
@@ -418,8 +443,22 @@ interface SizeSearch {
   search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
 }
 
+### build/index.d.ts#SkylineOptions
+interface SkylineOptions {
+  sortOrder?: SortOrder;
+  space?: FreeSpace;
+}
+
 ### build/index.d.ts#SortOrder
 type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
+
+### build/index.d.ts#SpaceRect
+interface SpaceRect {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
 
 ### build/index.d.ts#Strategy
 interface Strategy<O = unknown> {
@@ -515,6 +554,9 @@ export declare const edgeCases: CorpusGenerator<EdgeCaseParams>;
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
 
+### build/index.d.ts#freeSpace
+export declare function freeSpace(input: PackInput): FreeSpace;
+
 ### build/index.d.ts#fromRects
 export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>): PackInput;
 
@@ -537,7 +579,7 @@ export declare function isDeterministic(first: PackOutput, second: PackOutput): 
 export declare const logSweep: SizeSearch;
 
 ### build/index.d.ts#lowestWindow
-export declare function lowestWindow(skyline: ArrayLike<number>, width: number, rw: number): {
+export declare function lowestWindow(skyline: ArrayLike<number>, width: number, rw: number, limit?: ArrayLike<number>, rh?: number): {
   x: number;
   y: number;
 };
@@ -570,9 +612,7 @@ export declare function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options?: 
 export declare function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options?: ShelfOptions): Rect<T>;
 
 ### build/index.d.ts#packSkyline
-export declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options?: {
-  sortOrder?: SortOrder;
-}): Rect<T>;
+export declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options?: SkylineOptions): Rect<T>;
 
 ### build/index.d.ts#packWith
 export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;

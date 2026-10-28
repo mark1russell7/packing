@@ -77,7 +77,7 @@ describe("the shared generator rect-scattered v1", () => {
       expect(output.placements.length, s.id).toBeGreaterThan(0);
       packed++;
     }
-    expect(packed).toBe(3);
+    expect(packed).toBe(4);
   });
 });
 

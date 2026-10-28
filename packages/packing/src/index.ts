@@ -1,7 +1,8 @@
 export { Vector } from "./vector.ts";
 export { Rect } from "./rect.ts";
 export { pack, packRows, type PackOptions, type PackLayoutOptions } from "./pack.ts";
-export { packSkyline, lowestWindow } from "./skyline.ts";
+export { packSkyline, lowestWindow, type SkylineOptions } from "./skyline.ts";
+export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 export { packShelf, type ShelfOptions } from "./shelf.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
 export { compareRects, SORT_ORDERS, type SortOrder } from "./order.ts";

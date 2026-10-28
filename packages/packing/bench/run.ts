@@ -125,6 +125,24 @@ export interface BenchError {
   message: string;
 }
 
+/** The count of the inputs that a strategy packed, of all the inputs. */
+export interface BenchCount {
+  /** The inputs with a measured record */
+  measured: number;
+  /** The inputs of the corpus */
+  inputs: number;
+  /** The value `measured / inputs`, rounded to 3 decimals. An empty corpus gives 0. */
+  coverage: number;
+}
+
+/** The coverage of one strategy: over all the inputs, and for each container shape of the manifest. */
+export interface BenchCoverage extends BenchCount {
+  shapes: Record<string, BenchCount>;
+}
+
+/** This function makes a count from the measured inputs and all the inputs. */
+const countOf = (measured: number, inputs: number): BenchCount => ({ measured, inputs, coverage: inputs === 0 ? 0 : round3(measured / inputs) });
+
 /** The facts of one run of the runner, without the records. The file `run.json` holds them. */
 export interface BenchRun {
   schema: "packing-bench-run/1";
@@ -137,6 +155,8 @@ export interface BenchRun {
   env: BenchEnv;
   skipped: BenchSkip[];
   errors: BenchError[];
+  /** The coverage of each strategy. A `run.json` of a runner before 0.2.1 does not have it. */
+  coverage?: Record<string, BenchCoverage>;
 }
 
 /** A prediction of `bench/predictions.jsonl`. `docs/BENCH.md` gives the fields. */
@@ -149,6 +169,8 @@ export interface BenchPrediction {
   measure?: string;
   expected?: number;
   op?: "<=" | ">=" | "<" | ">" | "==";
+  /** The cell of the measure `pack.coverage`. Without it, the prediction uses the coverage over all the inputs. */
+  cell?: { containerShape?: string };
   reason?: string;
 }
 
@@ -278,6 +300,7 @@ export function runBench(options: BenchOptions): BenchResult {
   const skipped: BenchSkip[] = [];
   const errors: BenchError[] = [];
   const outputs = new Map<string, Map<string, PackOutput>>();
+  const coverage: Record<string, BenchCoverage> = {};
 
   for (const id of ids) {
     const s = strategy(id);
@@ -361,6 +384,16 @@ export function runBench(options: BenchOptions): BenchResult {
         else errors.push({ strategy: id, input: file.id, message: error instanceof Error ? error.message : String(error) });
       }
     }
+    // The coverage: the measured records of this strategy, of all the inputs and of each container shape
+    const packed = new Set(records.filter((r) => r.strategy === id && isMeasured(r)).map((r) => r.input));
+    const shapes: Record<string, { measured: number; inputs: number }> = {};
+    for (const [index, file] of inputs.entries()) {
+      const shape = manifest.inputs[index]!.cell.containerShape;
+      const c = (shapes[shape] ??= { measured: 0, inputs: 0 });
+      c.inputs++;
+      if (packed.has(file.id)) c.measured++;
+    }
+    coverage[id] = { ...countOf(packed.size, inputs.length), shapes: Object.fromEntries(Object.entries(shapes).map(([k, c]) => [k, countOf(c.measured, c.inputs)])) };
   }
 
   const run: BenchRun = {
@@ -373,6 +406,7 @@ export function runBench(options: BenchOptions): BenchResult {
     env: options.env,
     skipped,
     errors,
+    coverage,
   };
   if (options.commit !== undefined) run.commit = options.commit;
   return { run, records, manifest, outputs };
@@ -398,6 +432,23 @@ export function mergeRuns(runs: readonly BenchRun[]): BenchRun {
     skipped: runs.flatMap((r) => r.skipped),
     errors: runs.flatMap((r) => r.errors),
   };
+  // The counts of one strategy in two jobs add up
+  const sums: Record<string, { all: [number, number]; shapes: Record<string, [number, number]> }> = {};
+  for (const r of runs) {
+    for (const [id, c] of Object.entries(r.coverage ?? {})) {
+      const sum = (sums[id] ??= { all: [0, 0], shapes: {} });
+      sum.all = [sum.all[0] + c.measured, sum.all[1] + c.inputs];
+      for (const [shape, n] of Object.entries(c.shapes)) {
+        const old = sum.shapes[shape] ?? [0, 0];
+        sum.shapes[shape] = [old[0] + n.measured, old[1] + n.inputs];
+      }
+    }
+  }
+  if (runs.some((r) => r.coverage !== undefined)) {
+    merged.coverage = Object.fromEntries(
+      Object.entries(sums).map(([id, sum]) => [id, { ...countOf(...sum.all), shapes: Object.fromEntries(Object.entries(sum.shapes).map(([k, n]) => [k, countOf(...n)])) }]),
+    );
+  } else delete merged.coverage;
   return merged;
 }
 
@@ -425,16 +476,37 @@ function medianOf(records: readonly BenchRecord[], id: string): number | undefin
   return values.length === 0 ? undefined : median(values);
 }
 
-/** This function checks a prediction against the measured records. The value `met` is absent when no measured record has the measure. */
-export function checkPrediction(p: BenchPrediction, records: readonly BenchRecord[]): { measured?: number; met?: boolean } {
+/** This function gives the coverage of a prediction from the coverage of a run, or `undefined` when the run has no count for it. */
+function coverageOf(p: BenchPrediction, run: BenchRun | undefined): number | undefined {
+  const all = Object.entries(run?.coverage ?? {}).filter(([id]) => p.strategy === undefined || id === p.strategy);
+  const shape = p.cell?.containerShape;
+  const counts = all.map(([, c]) => (shape === undefined ? c : c.shapes[shape])).filter((c): c is BenchCount => c !== undefined);
+  const inputs = counts.reduce((sum, c) => sum + c.inputs, 0);
+  return inputs === 0 ? undefined : round3(counts.reduce((sum, c) => sum + c.measured, 0) / inputs);
+}
+
+/**
+ * This function checks a prediction against the measured records. The value `met` is absent when no measured record has
+ * the measure. The measure `pack.coverage` comes from the coverage of `run`, and its default operator is `>=`.
+ */
+export function checkPrediction(p: BenchPrediction, records: readonly BenchRecord[], run?: BenchRun): { measured?: number; met?: boolean } {
   if (p.measure === undefined || p.expected === undefined) return {};
+  if (p.measure === "pack.coverage") {
+    const measured = coverageOf(p, run);
+    if (measured === undefined) return {};
+    return { measured, met: compare(measured, p.op ?? ">=", p.expected) };
+  }
   const match = records.filter((r) => isMeasured(r) && (p.strategy === undefined || r.strategy === p.strategy) && (p.set === undefined || r.set === p.set) && (p.input === undefined || r.input === p.input));
   const measured = medianOf(match, p.measure);
   if (measured === undefined) return {};
   const spec = MEASURE_SPECS[p.measure as MeasureId] as (typeof MEASURE_SPECS)[MeasureId] | undefined;
   const op = p.op ?? (spec?.direction === "higher" ? ">=" : "<=");
-  const met = { "<=": measured <= p.expected, ">=": measured >= p.expected, "<": measured < p.expected, ">": measured > p.expected, "==": measured === p.expected }[op];
-  return { measured, met };
+  return { measured, met: compare(measured, op, p.expected) };
+}
+
+/** This function compares a measured value with an expected value. */
+function compare(measured: number, op: NonNullable<BenchPrediction["op"]>, expected: number): boolean {
+  return { "<=": measured <= expected, ">=": measured >= expected, "<": measured < expected, ">": measured > expected, "==": measured === expected }[op];
 }
 
 /**
@@ -479,6 +551,20 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
     }
   }
 
+  lines.push("", "## Coverage", "");
+  const cov = run.coverage;
+  if (cov === undefined) lines.push("The run has no coverage.");
+  else {
+    // Each cell is the measured inputs, of all the inputs, and the coverage
+    const shapes = [...new Set(Object.values(cov).flatMap((c) => Object.keys(c.shapes)))];
+    const cellText = (c: BenchCount | undefined): string => (c === undefined ? "-" : `${c.measured}/${c.inputs} (${c.coverage})`);
+    lines.push(`| strategy | all | ${shapes.join(" | ")} |`, `|---|---:|${shapes.map(() => "---:").join("|")}|`);
+    for (const id of run.strategies) {
+      const c = cov[id];
+      if (c !== undefined) lines.push(`| ${id} | ${cellText(c)} | ${shapes.map((k) => cellText(c.shapes[k])).join(" | ")} |`);
+    }
+  }
+
   lines.push("", "## Skipped cells", "");
   if (skips.length === 0) lines.push("No pair was skipped.");
   else {
@@ -516,7 +602,7 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
   else {
     lines.push("| strategy | set | input | measure | expected | measured | met | reason |", "|---|---|---|---|---:|---:|---|---|");
     for (const p of own) {
-      const c = checkPrediction(p, records);
+      const c = checkPrediction(p, records, run);
       lines.push(
         `| ${p.strategy ?? "each"} | ${p.set ?? "each"} | ${p.input ?? "median"} | ${p.measure ?? "-"} | ${p.op ?? ""}${num(p.expected)} | ${num(c.measured)} | ${c.met === undefined ? "-" : c.met ? "yes" : "no"} | ${(p.reason ?? "").replaceAll("|", "\\|")} |`,
       );
