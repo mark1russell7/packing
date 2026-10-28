@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.11
+
+A speedup of the strategies `maxrects-*` and `portfolio`, roadmap item k64. This release has no breaking changes. Each output stays byte-equal.
+
+### Changed
+
+- `maxrects`: the cut of the free rectangles compares a new part only with the parts and the free rectangles on the same side of the box, from the largest part to the smallest. The outputs do not change. In curved containers with 1000 items, the containment checks go down by 25 times.
+- A new test fixture, `bench/fixtures/maxrects-hashes.json`, pins the output hashes of each maxrects strategy and portfolio on 1840 inputs.
+
 ## 0.2.10
 
 A fix of a hard-rule break of the strategy `skyline`, roadmap item k63. This release has no breaking changes. The default `pack()` and the outputs of rectangle containers do not change.
