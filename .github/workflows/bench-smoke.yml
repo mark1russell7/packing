@@ -1,0 +1,66 @@
+# The smoke bench of each pull request and of each push to main (docs/BENCH.md). It starts the runner of bench.yml
+# on the tiny corpus smoke-v1: list, one run for each strategy, merge and check. The check fails on an error, a hard
+# break, a record that is not deterministic, an empty records.jsonl, or a coverage below 1 of rows, shelf or skyline.
+# The times of this job are not a gate.
+name: Bench smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      # Since 0.2.0, bench/main.ts imports @mark1russell7/layout-contract at run time
+      - run: pnpm install --frozen-lockfile
+      # One run for each strategy, as the matrix of bench.yml does. A run with an error exits with the code 1.
+      - name: Run the smoke bench for each strategy
+        run: |
+          list=$(node packages/packing/bench/main.ts list --strategies all)
+          strategies=$(jq -r '.[]' <<< "$list")
+          [ -n "$strategies" ] || { echo "The runner gives no strategies"; exit 1; }
+          status=0
+          for strategy in $strategies; do
+            pnpm --filter @mark1russell7/packing bench run --corpus smoke-v1 --strategies "$strategy" \
+              --prediction smoke-check --repeats 1 --warmup 0 --out "$RUNNER_TEMP/parts/$strategy" || status=$?
+          done
+          exit "$status"
+      # The merge and the check also run after a failed run, so the summary shows the failures
+      - name: Merge the records of the strategies
+        if: ${{ !cancelled() }}
+        run: node packages/packing/bench/main.ts merge --out "$RUNNER_TEMP/merged" "$RUNNER_TEMP"/parts/*/
+      - name: Check the merged run
+        if: ${{ !cancelled() }}
+        run: |
+          status=0
+          node packages/packing/bench/main.ts check "$RUNNER_TEMP/merged" > "$RUNNER_TEMP/check.md" || status=$?
+          cat "$RUNNER_TEMP/check.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/check.md"
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: bench-smoke
+          path: ${{ runner.temp }}/merged
+          retention-days: 7
+          if-no-files-found: warn

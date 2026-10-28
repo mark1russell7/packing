@@ -1,8 +1,9 @@
-// The command line of the benchmark runner (`docs/BENCH.md`). The workflow `bench.yml` starts it in CI.
+// The command line of the benchmark runner (`docs/BENCH.md`). The workflows `bench.yml` and `bench-smoke.yml` start it in CI.
 //
 //   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--out dir] [--commit sha]
 //   node bench/main.ts list [--strategies a,b|all]
 //   node bench/main.ts merge --out <dir> <job dir>...
+//   node bench/main.ts check <dir>
 //
 // The times of a run on a local computer do not count. Only the times of CI compare.
 
@@ -26,6 +27,7 @@ import {
   type BenchRecord,
   type BenchRun,
 } from "./run.ts";
+import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
 
 const here = import.meta.dirname;
 const [command, ...rest] = process.argv.slice(2);
@@ -132,8 +134,17 @@ function main(): number {
       process.stdout.write(`${records.length} records of ${runs.length} jobs, ${skips} of them skipped, in ${resolve(out)}\n`);
       return run.errors.length > 0 ? 1 : 0;
     }
+    case "check": {
+      // The smoke check of the folder of a run. It writes the coverage table, and it exits with the code 1 on a failure.
+      const dir = rest.find((arg) => !arg.startsWith("--"));
+      if (dir === undefined) throw new Error("A check needs the folder of a run.");
+      const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8")) as BenchRun;
+      const result = smokeCheck(run, parseRecords(readFileSync(join(dir, "records.jsonl"), "utf8")));
+      process.stdout.write(smokeMarkdown(result));
+      return result.failures.length > 0 ? 1 : 0;
+    }
     default:
-      process.stderr.write("Usage: node bench/main.ts run|list|merge. docs/BENCH.md gives the options.\n");
+      process.stderr.write("Usage: node bench/main.ts run|list|merge|check. docs/BENCH.md gives the options.\n");
       return 2;
   }
 }
