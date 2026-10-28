@@ -62,6 +62,8 @@ interface GeneratorSpec<P extends GeneratorParams> {
   set: string;
   defaults: P;
   values: { readonly [K in keyof P]?: readonly P[K][] };
+  /** For each whole-number parameter with a range, its smallest and its largest value. */
+  ranges?: { readonly [K in keyof P]?: readonly [number, number] };
   family(params: P): string;
   cell(params: P): CorpusCell;
   build(seed: number, params: P): Parts;
@@ -149,6 +151,12 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
     for (const [key, allowed] of Object.entries(spec.values) as [string, readonly (string | number)[] | undefined][]) {
       if (allowed !== undefined && !allowed.includes(full[key]!)) {
         throw new RangeError(`The parameter "${key}" of the generator "${spec.name}" has no value "${String(full[key])}".`);
+      }
+    }
+    for (const [key, range] of Object.entries(spec.ranges ?? {}) as [string, readonly [number, number] | undefined][]) {
+      const v = full[key];
+      if (range !== undefined && (typeof v !== "number" || !Number.isInteger(v) || v < range[0] || v > range[1])) {
+        throw new RangeError(`The parameter "${key}" of the generator "${spec.name}" is a whole number from ${range[0]} to ${range[1]}.`);
       }
     }
     const count = full["count"];
@@ -1030,12 +1038,263 @@ export function binCountBound(input: { readonly container: LayoutContainer; read
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The inputs for the worst case (roadmap item k107): 4 adversarial families and the scaling ladder. Each adversarial
+// family has a known layout, the witness. With `fixed`, the container is the strip with the height of the witness, so
+// each item has a place. Each size is a whole number.
+//
+// Each strategy of the package sorts the items by height before it packs them, and the sort is stable. Thus the heights
+// of an adversarial family set the order in which a strategy sees the items. Equal heights keep the order of the input.
+
+/** The container sizes of a family for the worst case: the strip with the height of the witness, or the strip with a free height. */
+export type WorstContainer = "fixed" | "freeHeight";
+
+/** The values of `containerSize` of the families for the worst case. */
+const WORST_SIZES: readonly WorstContainer[] = ["fixed", "freeHeight"];
+
+/** The parameters of `tall-row`. */
+export type TallRowParams = { ratio: number; containerSize: WorstContainer; count: number };
+
+/** The parameters of `skyline-gap`. */
+export type SkylineGapParams = { ratio: number; containerSize: WorstContainer; count: number };
+
+/** The parameters of `bl-trap`. */
+export type BlTrapParams = { stages: number; containerSize: WorstContainer; count: number };
+
+/** The parameters of `half-wide`. */
+export type HalfWideParams = { excess: number; containerSize: WorstContainer; count: number };
+
+/** The width of the strip of `tall-row` and `skyline-gap`. */
+export const WORST_WIDTH = 100;
+
+/** The width of the strip of `bl-trap`: 2 times 3 times 7 times 3, so that the parts 1/2, 1/3 and 1/7 are whole numbers. */
+export const BL_TRAP_WIDTH = 126;
+
+/** The item widths of `bl-trap` for each count of stages, from the narrowest. The widths of each list add up to `BL_TRAP_WIDTH`. */
+export const BL_TRAP_WIDTHS: Readonly<Record<2 | 3, readonly number[]>> = Object.freeze({ 2: Object.freeze([43, 83]), 3: Object.freeze([19, 43, 64]) });
+
+/** The width of the strip of `half-wide`. */
+export const HALF_WIDE_WIDTH = 200;
+
+/** The width of the strip of `ladder`. */
+export const LADDER_WIDTH = 1024;
+
+/** The largest side of an item of `ladder`. */
+export const LADDER_SIDE = 256;
+
+/** This function gives the container of a worst-case family: the strip of the width `w`. A `fixed` container has the height `h` of the witness. */
+const worstContainer = (size: WorstContainer, w: number, h: number): LayoutContainer => containerOf(size, w, h);
+
+/** This function gives the items of a list of sizes, with the ids `b0`, `b1` and on. */
+const itemsOf = (sizes: readonly (readonly [number, number])[]): Item[] => sizes.map(([w, h], i) => ({ id: `b${i}`, w, h }));
+
+/**
+ * The generator `tall-row`, version 1: it breaks `rows` and `shelf`. The witness is a stack of bands across the strip of
+ * the width 100. Each band holds one tall item and a column of short items.
+ *
+ * - The short height `s` is 2 to 4. The tall height is `ratio * s`, so `ratio` is the tall height over the short height.
+ * - The tall item is 51 to 75 wide. Thus 2 tall items do not go side by side.
+ * - The column next to it has `ratio` levels of the height `s`. A random cut puts 1 or 2 short items on each level.
+ * - The input has the tall items first, then the short items from the narrowest to the widest.
+ *
+ * Why it is hard: the height sort puts the tall items first, and each one opens a row of its own. The short items keep
+ * the order of the input, because they have the same height. A short item does not fit above a narrower short item.
+ * Thus the space above the short items of a tall row stays empty.
+ */
+export const tallRow: CorpusGenerator<TallRowParams> = defineGenerator<TallRowParams>({
+  name: "tall-row",
+  version: 1,
+  set: "worst-v1",
+  defaults: { ratio: 8, containerSize: "freeHeight", count: 100 },
+  values: { containerSize: WORST_SIZES },
+  ranges: { ratio: [1, 32] },
+  family: (p) => `tall-row.r${p.ratio}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "bimodal", p.count),
+  build(seed, p) {
+    const r = stepRandom(seed, "boxes");
+    const s = int(r, 2, 4);
+    const tall = p.ratio * s;
+    const sizes: [number, number][] = [];
+    let height = 0;
+    while (sizes.length < p.count) {
+      height += tall;
+      const a = int(r, 51, 75);
+      sizes.push([a, tall]);
+      const c = WORST_WIDTH - a;
+      for (let level = 0; level < p.ratio; level++) {
+        if (r() < 0.5) {
+          const cut = int(r, 1, c - 1);
+          sizes.push([cut, s], [c - cut, s]);
+        } else sizes.push([c, s]);
+      }
+    }
+    const kept = shuffled(stepRandom(seed, "order"), sizes.slice(0, p.count));
+    const boxes = itemsOf([...kept.filter(([, h]) => h > s), ...kept.filter(([, h]) => h === s).toSorted((x, y) => x[0] - y[0])]);
+    return { container: worstContainer(p.containerSize, WORST_WIDTH, height), obstacles: [], boxes };
+  },
+});
+
+/**
+ * The generator `skyline-gap`, version 1: it breaks `skyline`. The items come in pairs on the strip of the width 100.
+ * Each pair has a narrow pillar and a wide plate. The plate is 1 unit too wide to go next to the pillar.
+ *
+ * - The pillar is `floor(100 / (ratio + 1))` wide. The plate is `101` minus that width, so `ratio` is about the plate width over the pillar width.
+ * - The plate heights are even and different. Each plate is 2 or 4 units taller than the plate of the pair before it.
+ * - The pillar height is the plate height plus 1. Thus the height sort keeps the pillar of a pair directly before its plate.
+ * - The witness stacks the plates, and puts the pillars in shelves under them, from the tallest.
+ *
+ * Why it is hard: the plate goes on the top of the pillar, because it has no place next to it. The free space next to
+ * the pillar is under the skyline, and a skyline packer does not fill a space under its skyline. Each pair adds nearly
+ * 2 heights, and the witness adds nearly 1.
+ */
+export const skylineGap: CorpusGenerator<SkylineGapParams> = defineGenerator<SkylineGapParams>({
+  name: "skyline-gap",
+  version: 1,
+  set: "worst-v1",
+  defaults: { ratio: 8, containerSize: "freeHeight", count: 100 },
+  values: { containerSize: WORST_SIZES },
+  ranges: { ratio: [1, 32] },
+  family: (p) => `skyline-gap.r${p.ratio}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "bimodal", p.count),
+  build(seed, p) {
+    const r = stepRandom(seed, "boxes");
+    const pillar = Math.max(1, Math.floor(WORST_WIDTH / (p.ratio + 1)));
+    const plate = WORST_WIDTH - pillar + 1;
+    const sizes: [number, number][] = [];
+    // Each pair gets its own plate height: a random step of 2 or 4 over the height of the pair before
+    let b = 2 * int(r, 1, 3);
+    while (sizes.length < p.count) {
+      b += 2 * int(r, 1, 2);
+      sizes.push([pillar, b + 1], [plate, b]);
+    }
+    const kept = sizes.slice(0, p.count);
+    // The witness: the plates in one stack, then the pillars in shelves of floor(100 / pillar), from the tallest
+    let height = kept.filter(([w]) => w === plate).reduce((sum, [, h]) => sum + h, 0);
+    const pillars = kept.filter(([w]) => w === pillar).map(([, h]) => h).toSorted((x, y) => y - x);
+    const perShelf = Math.floor(WORST_WIDTH / pillar);
+    for (let i = 0; i < pillars.length; i += perShelf) height += pillars[i]!;
+    const boxes = itemsOf(shuffled(stepRandom(seed, "order"), kept));
+    return { container: worstContainer(p.containerSize, WORST_WIDTH, height), obstacles: [], boxes };
+  },
+});
+
+/**
+ * The generator `bl-trap`, version 1: it breaks the bottom-left place of `maxrects-bl`. Each item has the same height
+ * `h`, 8 to 32, on the strip of the width 126. Thus the height sort keeps the order of the input.
+ *
+ * - With 3 stages, the widths are 19, 43 and 64: a bit more than 1/7, 1/3 and 1/2 of the width. With 2 stages, they are 43 and 83.
+ * - The input has the narrow items first, then the wider items. Each level of the witness has one item of each width, with no free space.
+ *
+ * Why it is hard: the bottom-left rule puts each item in the lowest level with a place, as the first fit of bin
+ * packing. The narrow items fill levels of their own, and no wider item fits in the space that they leave. With 3
+ * stages, the result has nearly 5/3 of the levels of the witness.
+ */
+export const blTrap: CorpusGenerator<BlTrapParams> = defineGenerator<BlTrapParams>({
+  name: "bl-trap",
+  version: 1,
+  set: "worst-v1",
+  defaults: { stages: 3, containerSize: "freeHeight", count: 120 },
+  values: { containerSize: WORST_SIZES },
+  ranges: { stages: [2, 3] },
+  family: (p) => `bl-trap.s${p.stages}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", p.count),
+  build(seed, p) {
+    const h = int(stepRandom(seed, "boxes"), 8, 32);
+    const widths = BL_TRAP_WIDTHS[p.stages as 2 | 3];
+    const levels = Math.ceil(p.count / widths.length);
+    const sizes = widths.flatMap((w) => Array.from({ length: levels }, (): [number, number] => [w, h]));
+    return { container: worstContainer(p.containerSize, BL_TRAP_WIDTH, levels * h), obstacles: [], boxes: itemsOf(sizes.slice(0, p.count)) };
+  },
+});
+
+/**
+ * The generator `half-wide`, version 1: it breaks the greedy sort by area. It is the bad case of first fit decreasing
+ * of Johnson 1973, as levels on the strip of the width 200. Each item has the same height `h`, 8 to 32.
+ *
+ * - For `excess` `e` (1 to 4), the widths are `100 + e`, `50 + 2e`, `50 + e` and `50 - 2e`, with 6, 6, 6 and 12 items in each group of 30.
+ * - The input is in the order of the area, from the largest. Thus a strategy sees the items as in the greedy sort by area.
+ * - The witness has 9 full levels for each group. 6 levels have `100 + e`, `50 + e` and `50 - 2e`.
+ * - The 3 other levels have 2 items of `50 + 2e` and 2 items of `50 - 2e`.
+ *
+ * Why it is hard: each item a bit over half the width takes a level. The greedy fit puts the wrong quarter item next
+ * to it. Then the other quarters fill levels of their own. The result has 11 levels for each group of 30, not 9.
+ */
+export const halfWide: CorpusGenerator<HalfWideParams> = defineGenerator<HalfWideParams>({
+  name: "half-wide",
+  version: 1,
+  set: "worst-v1",
+  defaults: { excess: 2, containerSize: "freeHeight", count: 120 },
+  values: { containerSize: WORST_SIZES },
+  ranges: { excess: [1, 4] },
+  family: (p) => `half-wide.e${p.excess}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "bimodal", p.count),
+  build(seed, p) {
+    const h = int(stepRandom(seed, "boxes"), 8, 32);
+    const e = p.excess;
+    const groups = Math.ceil(p.count / 30);
+    const kinds: [number, number][] = [[100 + e, 6], [50 + 2 * e, 6], [50 + e, 6], [50 - 2 * e, 12]];
+    const sizes = kinds.flatMap(([w, n]) => Array.from({ length: n * groups }, (): [number, number] => [w, h]));
+    return { container: worstContainer(p.containerSize, HALF_WIDE_WIDTH, 9 * groups * h), obstacles: [], boxes: itemsOf(sizes.slice(0, p.count)) };
+  },
+});
+
+/** The axes of `ladder`: the count of the items, or the ratio of the largest side to the smallest side. */
+export type LadderAxis = "count" | "ratio";
+
+/** The parameters of `ladder`. */
+export type LadderParams = { axis: LadderAxis; rung: number; count: number };
+
+/** The values of `axis` of `ladder`. */
+const LADDER_AXES: readonly LadderAxis[] = ["count", "ratio"];
+
+/** The largest rung of `ladder`. */
+export const LADDER_RUNGS = 8;
+
+/** This function gives the count and the side range of a rung of `ladder`. */
+export function ladderRung(p: Pick<LadderParams, "axis" | "rung" | "count">): { count: number; min: number; max: number } {
+  const step = 1 << p.rung;
+  if (p.axis === "count") return { count: 10 * step, min: LADDER_SIDE / 4, max: LADDER_SIDE };
+  return { count: p.count, min: LADDER_SIDE / step, max: LADDER_SIDE };
+}
+
+/**
+ * The generator `ladder`, version 1: the scaling ladder on the strip of the width 1024. Each side is uniform from the
+ * smallest side to 256, both included.
+ *
+ * - The axis `count` has `10 * 2^rung` items, 10 to 2560, with the sides 64 to 256.
+ * - The axis `ratio` has `count` items, with the sides `256 / 2^rung` to 256. The ratio of the sides goes from 1 to 256.
+ *
+ * The ladder shows how the gap and the time of a strategy grow with one axis, while the other parts stay the same.
+ */
+export const ladder: CorpusGenerator<LadderParams> = defineGenerator<LadderParams>({
+  name: "ladder",
+  version: 1,
+  set: "worst-v1",
+  defaults: { axis: "count", rung: 3, count: 100 },
+  values: { axis: LADDER_AXES },
+  ranges: { rung: [0, LADDER_RUNGS] },
+  family: (p) => (p.axis === "count" ? `ladder.count.r${p.rung}` : `ladder.ratio.r${p.rung}.n${p.count}`),
+  cell: (p) => cellWith("freeHeight", "rect", "none", p.axis === "ratio" && p.rung >= 4 ? "extremeAspect" : "uniform", ladderRung(p).count),
+  build(seed, p) {
+    const { count, min, max } = ladderRung(p);
+    const r = stepRandom(seed, "boxes");
+    const sizes = Array.from({ length: count }, (): [number, number] => {
+      const w = int(r, min, max);
+      return [w, int(r, min, max)];
+    });
+    return { container: { w: LADDER_WIDTH, fixed: "width" }, obstacles: [], boxes: itemsOf(sizes) };
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder] as CorpusGenerator[]);
 
 /** The generators of the classes of the literature (roadmap item k106). */
 export const classGenerators: readonly CorpusGenerator[] = Object.freeze([berkeyWang, martelloVigo] as CorpusGenerator[]);
+
+/** The generators of the inputs for the worst case (roadmap item k107). */
+export const worstGenerators: readonly CorpusGenerator[] = Object.freeze([tallRow, skylineGap, blTrap, halfWide, ladder] as CorpusGenerator[]);
 
 /**
  * This function gives the generator with a name and a version. Without a version, it gives the first generator of the name
@@ -1263,6 +1522,84 @@ export const martelloVigoFamily: CorpusFamily<GeneratedInput> = familyOf(martell
   seeding: CLASS_SEEDING,
 });
 
+/** The seeding of the adversarial families: one step for the sizes, and one step for the order of the input. */
+const WORST_SEEDING = "stepRandom(seed, boxes) gives the sizes. stepRandom(seed, order) gives the order of the input of tall-row and skyline-gap. The rule gives the container.";
+
+/** The counts of the levels of `count` of `tall-row` and `skyline-gap`. */
+export const WORST_COUNTS: readonly number[] = Object.freeze([50, 100, 200, 400]);
+
+/** The counts of the levels of `count` of `bl-trap` and `half-wide`: whole groups of 30 items. */
+export const LEVEL_COUNTS: readonly number[] = Object.freeze([30, 60, 120, 240, 480]);
+
+/** This function gives the dimension `containerSize` of a family for the worst case. */
+const worstSizeDimension = (): CorpusDimension => ({
+  ...enumDimension("containerSize", WORST_SIZES, "freeHeight"),
+  meaning: "The container: the strip with the height of the witness (fixed), or the strip with a free height (freeHeight).",
+});
+
+/** This function gives a whole-number dimension of a family for the worst case, with its range, its default and its levels. */
+const intDimension = (name: string, min: number, max: number, value: number, levels: readonly number[], meaning: string, scale: "linear" | "log" = "linear"): CorpusDimension =>
+  ownerDimension(name, { kind: "int", min, max, default: value, scale, levels: Object.freeze([...levels]), meaning, engines: Object.freeze(["packing"]) });
+
+/** The dimensions of `tall-row` and `skyline-gap`: `ratio`, `containerSize` and `count`. */
+const ratioDimensions = (meaning: string): CorpusDimension[] => [
+  intDimension("ratio", 1, 32, 8, [1, 2, 4, 8, 16, 32], meaning, "log"),
+  worstSizeDimension(),
+  countDimension(100, { min: 1, levels: WORST_COUNTS }),
+];
+
+/** The family of `tallRow`: one tall item in each row among short items. */
+export const tallRowFamily: CorpusFamily<GeneratedInput> = familyOf(tallRow, {
+  meaning: "One tall item in each band among short items. A row packer leaves the free part of each tall row empty.",
+  dimensions: ratioDimensions("The height of the tall item over the height of a short item, from 1 to 32."),
+  crossEngine: "exact",
+  seeding: WORST_SEEDING,
+});
+
+/** The family of `skylineGap`: pairs of a narrow pillar and a plate that cannot go next to it. */
+export const skylineGapFamily: CorpusFamily<GeneratedInput> = familyOf(skylineGap, {
+  meaning: "Pairs of a narrow pillar and a wide plate. The plate covers the pillar and leaves a gap under the skyline.",
+  dimensions: ratioDimensions("About the width of the plate over the width of the pillar, from 1 to 32."),
+  crossEngine: "exact",
+  seeding: WORST_SEEDING,
+});
+
+/** The family of `blTrap`: equal heights and the narrow items first, the trap of the first fit. */
+export const blTrapFamily: CorpusFamily<GeneratedInput> = familyOf(blTrap, {
+  meaning: "Items of one height with the narrow items first. The bottom-left rule fills levels with the narrow items only.",
+  dimensions: [
+    intDimension("stages", 2, 3, 3, [2, 3], "The count of the item widths: 2 (43 and 83) or 3 (19, 43 and 64)."),
+    worstSizeDimension(),
+    countDimension(120, { min: 1, levels: LEVEL_COUNTS }),
+  ],
+  crossEngine: "exact",
+  seeding: WORST_SEEDING,
+});
+
+/** The family of `halfWide`: the bad case of the greedy sort by area. */
+export const halfWideFamily: CorpusFamily<GeneratedInput> = familyOf(halfWide, {
+  meaning: "Items just over half the width and 3 kinds of quarter items, in the order of the area: the bad case of the greedy sort.",
+  dimensions: [
+    intDimension("excess", 1, 4, 2, [1, 2, 3, 4], "The units over half and over a quarter of the width 200, from 1 to 4."),
+    worstSizeDimension(),
+    countDimension(120, { min: 1, levels: LEVEL_COUNTS }),
+  ],
+  crossEngine: "exact",
+  seeding: WORST_SEEDING,
+});
+
+/** The family of `ladder`: the scaling ladder of the count and of the side ratio. The axis `count` ignores `count`, so `count` has a `when`. */
+export const ladderFamily: CorpusFamily<GeneratedInput> = familyOf(ladder, {
+  meaning: "The scaling ladder: the count 10 to 2560 at fixed sizes, or the side ratio 1 to 256 at a fixed count.",
+  dimensions: [
+    ownerDimension("axis", { kind: "enum", values: LADDER_AXES, default: "count", meaning: "The axis of the ladder: the count of the items, or the ratio of the sides.", engines: ["packing"] }),
+    intDimension("rung", 0, LADDER_RUNGS, 3, [0, 1, 2, 3, 4, 5, 6, 7, 8], "The rung of the ladder: the count `10 * 2^rung`, or the side ratio `2^rung`."),
+    countDimension(100, { min: 1, when: { param: "axis", in: ["ratio"] } }),
+  ],
+  crossEngine: "exact",
+  seeding: "stepRandom(seed, boxes) gives the sides of the items. The container is the strip of the width 1024.",
+});
+
 /**
  * Each corpus family of the package, for `createFamilyRegistry` of `layout-contract`. An import registers nothing.
  * The family `rect-scattered` is not in the list: `RECT_SCATTERED` of `layout-contract` is its shared copy.
@@ -1279,4 +1616,9 @@ export const corpusFamilies: readonly CorpusFamily<GeneratedInput>[] = Object.fr
   consecutiveSquaresFamily,
   berkeyWangFamily,
   martelloVigoFamily,
+  tallRowFamily,
+  skylineGapFamily,
+  blTrapFamily,
+  halfWideFamily,
+  ladderFamily,
 ]);

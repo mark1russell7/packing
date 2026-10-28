@@ -156,6 +156,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-select-v2` | 2025 | The second test corpus of the feature select: the specs of `pack-select-v1` with the fresh seeds 31 to 35. Write its prediction first. |
 | `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
+| `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -221,6 +222,38 @@ The bounds of the classes come from `pack.bound` of k51, with no new kind:
 - A strip gets `strip.area`, the item area divided by `W`, and the stronger `strip.mmv` and `strip.tallest`.
 - One fixed bin gets `placed.free`. The placed share is at most `W * H` over the item area: the bin count bound L1 in a form for one bin.
 - `binCountBound` gives L1 as a count of bins: the item area divided by `W * H`, rounded up.
+
+The corpus `pack-worst-v1` has 102 specs and 342 inputs. Each family of it makes inputs that break one rule of a strategy. All data is made up, and `stepRandom(seed, step)` gives each random number.
+
+- The adversarial families have the containers `fixed` and `freeHeight`, and the seeds 1 to 3.
+- `tall-row` and `skyline-gap` have the `ratio` 1, 2, 4, 8, 16 and 32, and the counts 100 and 400. Each has 72 inputs.
+- `bl-trap` has the `stages` 2 and 3, and the counts 60, 120 and 240. It has 36 inputs.
+- `half-wide` has the `excess` 1 to 4, and the counts 60, 120 and 240. It has 72 inputs.
+- `ladder` has each rung 0 to 8 of the axes `count` and `ratio`, with the seeds 1 to 5. It has 90 inputs. The largest input has 2560 items.
+- It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 216 and `shaped` 0.
+- The builder `bench/worst.ts` writes the file. `node bench/worst.ts --check` and a test compare the file with the builder.
+
+The rules of the adversarial families. The `fixed` container has the height of a witness: a packing that the generator knows.
+
+| Family | Width | The items | The strategy that it breaks |
+|---|---|---|---|
+| `tall-row` | 100 | Bands of one tall item, 51 to 75 wide, and `ratio` levels of short items. The tall height is `ratio` times the short height. | `rows` and `shelf` |
+| `skyline-gap` | 100 | Pairs of a pillar and a plate. The plate is 1 unit too wide to go next to the pillar, and 1 unit lower. | `skyline` |
+| `bl-trap` | 126 | Items of one height. The widths are 19, 43 and 64, or 43 and 83, with the narrow items first. | the bottom-left place of `maxrects-bl` |
+| `half-wide` | 200 | Items of one height. The widths are `100 + e`, `50 + 2e`, `50 + e` and `50 - 2e`, in the order of the area. | the greedy sort by area |
+
+Why each family is hard:
+
+- `tall-row`: the height sort puts each tall item in a row of its own. The short items have one height, so they keep the order of the input, from the narrowest. A short item does not fit above a narrower short item, so the space above the short items stays empty.
+- `skyline-gap`: the plate has no place next to the pillar, so it goes on the top of the pillar. The space next to the pillar is under the skyline. A skyline packer does not fill a space under its skyline unless its waste map is on.
+- `bl-trap`: the bottom-left rule puts each item in the lowest level with a place, as the first fit of bin packing. The narrow items fill levels of their own, and no wider item fits in the space that they leave. Each level of the witness has one item of each width.
+- `half-wide`: this family is the bad case of first fit decreasing of Johnson 1973, as levels. Each item a bit over half the width takes a level, and the greedy fit puts the wrong quarter item next to it. The witness has 9 levels for each group of 30 items, and the greedy fit has 11.
+
+The ladder is on the strip of the width 1024. Each side is a whole number, uniform in its range.
+
+- The axis `count` has `10 * 2^rung` items, 10 to 2560, with the sides 64 to 256.
+- The axis `ratio` has 100 items, with the sides `256 / 2^rung` to 256. The ratio of the largest side to the smallest side goes from 1 to 256.
+- The ladder shows how the gap and the time of a strategy grow along one axis.
 
 Version 2 of `rect-grid` adds the parameter `order`. With `soft`, each item gets a `rank` from a permutation of the seed. Version 1 does not change.
 

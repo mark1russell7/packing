@@ -234,6 +234,13 @@ export const NEWS: readonly NewsEntry[] = [
   },
   {
     date: "2026-10-28",
+    item: "k107",
+    title: "Four adversarial families break one rule each of `rows`, `skyline`, `maxrects-bl` and the sort by area. The corpus `pack-worst-v1` has 342 inputs.",
+    pr: 125,
+    link: "https://github.com/mark1russell7/packing/pull/125",
+  },
+  {
+    date: "2026-10-28",
     item: "k22",
     title: "The strategy `skyline` gets the rule `mw` (minimum waste), a waste map and `rotate`. The default rule `bl` gives the same outputs as before.",
     pr: 119,
