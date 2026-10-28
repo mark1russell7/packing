@@ -29,7 +29,7 @@ Status: done, done, waiting, next, done.
 | k20 | A selector: measure the choice of a strategy for each input. Part 1 is the portfolio report and `packPortfolio` ([#52](https://github.com/mark1russell7/packing/pull/52)). Part 2 is the per-cell portfolio and `pack-holdout-v1` ([#55](https://github.com/mark1russell7/packing/pull/55)). On new seeds, `portfolio-k2` has a fill regret of 0.009, against 0.021 for the best single strategy. | measure | done | k9, k11 |
 | k21 | Shelf family: next fit, first fit and best fit by decreasing height, and the input order | strategies | done | k6, k7 |
 | k22 | Skyline variants: bottom-left, minimum waste, with a waste map | strategies | later | k6, k7 |
-| k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | later | k6, k7 |
+| k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | next | k6, k7 |
 | k24 | MaxRects: best short side, best long side, best area, bottom-left, contact point | strategies | done | k6, k7 |
 | k25 | Bottom-left fill: Baker, Chazelle and the lowest-gap variants | strategies | later | k6, k7 |
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | later | k6, k7 |
@@ -51,13 +51,13 @@ Status: done, done, waiting, next, done.
 | k42 | The ways to split the free space: maximal empty rectangles, slabs, cuts at obstacle edges, cells, or one region with holes | strategies | later | k41, k36 |
 | k43 | The ways to give items to the parts: greedy in reading order, assignment, and a flow that keeps the reading order | strategies | later | k41 |
 | k44 | The measures of pack-around: fill of each part, slivers, order breaks across parts, stability when an obstacle moves | measure | later | k8, k41 |
-| k45 | Inputs with a known best answer: perfect cuts that are shuffled, and the consecutive squares | measure | later | k19 |
+| k45 | Inputs with a known best answer: perfect cuts that are shuffled, and the consecutive squares | measure | next | k19 |
 | k46 | The published benchmark sets for strip packing and nesting | measure | later | k19 |
-| k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | later | k19, k9 |
+| k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | next | k19, k9 |
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
 | k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
-| k51 | Lower bounds, so each result shows its distance to the best | measure | later | k6 |
+| k51 | Lower bounds, so each result shows its distance to the best | measure | next | k6 |
 | k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
 | k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
 | k54 | Compaction: a constraint graph in one direction, mixed constraints and the exact form | strategies | later | k6, k7 |
@@ -74,11 +74,15 @@ Status: done, done, waiting, next, done.
 | k65 | A corpus with a margin and a gap axis. The screen corpora have no margin and no gap, but callers use them. Its manifest declares its properties. | measure | later | k62 |
 | k66 | Where maxrects beats rows: a selector by cheap features (count, shape, spread) that runs maxrects only in its cells, so the other cells keep the time of rows. Part 2 is in: the opt-in strategy `select` with a table of 7 leaves, the split files and the test corpus `pack-select-v1`. It passed on `pack-select-v1` with the gain median at the limit, and it passed again on `pack-select-v2` (seeds 31 to 35). Since 0.2.15, `DEFAULT_STRATEGY` is `select`. Next: `pack()` with no strategy uses `select` for fixed sizes (0.3.0). | strategies | active | k61, k62 |
 | k67 | The size search `log-sweep` is slow: a free size with 100 items takes about 390 ms with `rows` and with `select`. Profile it first, then make it faster with the same outputs. Step 2 shipped in 0.2.16: `rows` sorts once (#82), and the slow inputs take about 0.11 of their time. The slowest takes 58 ms. Step 3 shipped in 0.2.17: `rows` packs each width one time (#84). The slowest takes 3.7 ms. | core | done | k33 |
+| k68 | The strategy space as data: export `packSpace` (strategy-space/1 of `layout-contract`, 5 stages) and `packConfig`. Each strategy of today is a named point with the same outputs. | strategies | next | k66 |
+| k69 | A baseline arm in the same job of `bench.yml`, so each time ratio is paired and a drift of the runner cancels. `paired.yml` (#85) does it for two refs. | measure | later | k33 |
 
 ## Rules
 
 - The repository is public. Use made-up data only.
 - Benchmarks and timing runs go in CI, not on a local computer.
 - Write each prediction before its benchmark run.
+- One item of a strategy family is always active, next to each item of speed or of the default.
+- A time ratio between two commits comes from one job: `paired.yml`, not two bench runs.
 - The strategy interface stays pure: items and sizes in, rectangles out, the same result for the same seed.
 - Each benchmark run writes one JSON record: the strategy, the input set, the seed, each measure and the time.
