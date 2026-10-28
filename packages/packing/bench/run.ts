@@ -9,6 +9,7 @@ import {
   corpus,
   DEFAULT_TOLERANCE,
   MEASURE_SPECS,
+  gapToOpt,
   isDeterministic,
   measure,
   measureChange,
@@ -505,6 +506,8 @@ export function runBench(options: BenchOptions): BenchResult {
         values[OUTSIDE_EXACT] = checkHard(input, first, DEFAULT_TOLERANCE, { exactContainer: true })["in-container"];
         // The bound of the cell and the distance of the result to it (roadmap item k51)
         Object.assign(values, boundMeasures(input, first));
+        // Only an input with a known best value (roadmap item k45) gets the distance from that value
+        if (file.known !== undefined) values["pack.gapToOpt"] = gapToOpt(input, first, file.known);
         const base = file.base === undefined ? undefined : done.get(file.base);
         if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
         done.set(file.id, { input, output: first });

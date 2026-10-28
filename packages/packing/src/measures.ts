@@ -4,7 +4,7 @@ import type { MeasureSpec as ContractMeasureSpec, Direction } from "@mark1russel
 import { RECORD_EPS, type PackInput, type PackOutput } from "./contract.ts";
 import { aspectError } from "./free.ts";
 import { overflowBound } from "./overflow.ts";
-import { round3 } from "./layout-input.ts";
+import { round3, type KnownBest } from "./layout-input.ts";
 
 /** The direction of a measure comes from the contract: `lower` when a lower value is better, `higher` when a higher value is better. */
 export type { Direction } from "@mark1russell7/layout-contract";
@@ -13,7 +13,7 @@ export type { Direction } from "@mark1russell7/layout-contract";
 export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound";
 
 /** The id of a measure of the packer. The ids are those of `docs/FORMAT.md`, and `highways` uses the same ids. */
-export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap";
+export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap" | "pack.gapToOpt";
 
 /**
  * The facts of one measure: its family, its unit, its direction and its range.
@@ -106,6 +106,7 @@ const REL = Object.freeze({ rel: 0.01 });
  * - The time has no minimum effect, because the times of CI change each time.
  * - `pack.overflow.forcedAreaMin` is a deprecated alias of `pack.overflow.forcedArea`. Its spec is the same, except the id.
  *   The alias stays until the next minor version.
+ * - `pack.gapToOpt` has 0.005: half of 1 percent of the known best value.
  */
 export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.freeze({
   "pack.area": spec("pack.area", "density", "square units", "lower", 0, Infinity, REL),
@@ -133,6 +134,7 @@ export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.fr
   "pack.search.ms": spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity, undefined),
   // The distance to the bound of the cell (roadmap item k51). `boundMeasures` of `src/bounds.ts` gives it, not `measure`.
   "pack.gap": spec("pack.gap", "bound", "ratio", "lower", 0, Infinity, 0.005),
+  "pack.gapToOpt": spec("pack.gapToOpt", "density", "ratio", "lower", 0, Infinity, 0.005),
 });
 
 /** A placed box: the rectangle of an item at its position, with its rank. */
@@ -310,6 +312,43 @@ const AREA_NOISE = 1e-9;
 function excessAreaOf(overflowArea: number, forcedArea: number): number {
   const excess = overflowArea - forcedArea;
   return excess < 0 && excess >= -AREA_NOISE ? 0 : excess;
+}
+
+/**
+ * This function gives the measure `pack.gapToOpt` of a layout: the distance from the known best value of the input. The best
+ * value is 0. `docs/MEASURES.md` defines it.
+ *
+ * - A fixed container gives the area of the unplaced items divided by `known.area`.
+ * - A container with a fixed width and a `known.height` gives the height of the layout divided by `known.height`, minus 1.
+ *   The height is the bottom of the lowest box.
+ * - The other containers give the area of the hull divided by `known.area`, minus 1.
+ * - A free container with an unplaced item gives `Infinity`. A record does not keep a value that is not finite.
+ * - With a `known.kind` of `bound`, the value is an upper bound of the distance from the optimum.
+ * - A value from `-AREA_NOISE` to 0 becomes 0. A value below that stays, because it shows a bug of the bound or of the packer.
+ *
+ * @example
+ * ```ts
+ * const file = perfectCut.generate(1, { containerSize: "freeHeight" });
+ * const input = toPackInput(file);
+ * gapToOpt(input, packWith("rows", input), file.known!); // 0 for a layout of the height of the cut
+ * ```
+ */
+export function gapToOpt(input: PackInput, output: PackOutput, known: KnownBest): number {
+  if (!(known.area > 0)) throw new RangeError("A known best value has an area above 0.");
+  const unplaced = new Set(output.overflow);
+  let unplacedArea = 0;
+  for (const item of input.items) if (unplaced.has(item.id)) unplacedArea += Math.max(0, item.w) * Math.max(0, item.h);
+  const noise = (gap: number): number => (gap < 0 && gap >= -AREA_NOISE ? 0 : gap);
+  if (input.container.fixed === "size") return noise(unplacedArea / known.area);
+  if (unplaced.size > 0) return Infinity;
+  const boxes = boxesOf(input, output);
+  if (input.container.fixed === "width" && known.height !== undefined) {
+    if (!(known.height > 0)) throw new RangeError("A known best height is above 0.");
+    const bottom = boxes.reduce((most, b) => Math.max(most, b.y + b.h), 0);
+    return noise(bottom / known.height - 1);
+  }
+  const hull = hullOf(boxes);
+  return noise((hull.w * hull.h) / known.area - 1);
 }
 
 /**

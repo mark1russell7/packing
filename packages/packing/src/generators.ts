@@ -11,6 +11,7 @@ import {
   type CorpusCell,
   type GeneratorParams,
   type GeneratedInput,
+  type KnownBest,
   type ObstacleLayout,
   type SizeDistribution,
 } from "./layout-input.ts";
@@ -39,8 +40,8 @@ export interface CorpusGenerator<P extends GeneratorParams = GeneratorParams> {
   generate(seed: number, params?: Partial<P>, set?: string): GeneratedInput;
 }
 
-/** The parts of a file that a generator makes. */
-type Parts = Pick<GeneratedInput, "container" | "boxes"> & { obstacles: Obstacle[] };
+/** The parts of a file that a generator makes. A generator of known-best inputs also gives the known best value. */
+type Parts = Pick<GeneratedInput, "container" | "boxes"> & { obstacles: Obstacle[]; known?: KnownBest };
 
 /** The data of a generator, before `defineGenerator` adds the common steps. */
 interface GeneratorSpec<P extends GeneratorParams> {
@@ -157,19 +158,21 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
       if (!Number.isInteger(seed) || seed < 0) throw new RangeError(`The seed is a whole number from 0. It is ${seed}.`);
       const full = withDefaults(params);
       const family = spec.family(full);
-      const { container, obstacles, boxes } = spec.build(seed, full);
+      const { container, obstacles, boxes, known } = spec.build(seed, full);
+      // An input without a known best value has no field known. Thus it keeps its bytes and its hash.
       const file: Omit<GeneratedInput, "hash"> = roundNumbers({
         schema: "layout-input/1" as const,
         id: `${set}/${family}/s${seed}`,
         set,
         family,
         seed,
-        source: "made-up",
+        source: known === undefined ? "made-up" : `known-best:${spec.name}`,
         generator: { name: spec.name, version: spec.version, params: full, seed },
         container,
         obstacles,
         boxes,
         edges: [],
+        ...(known === undefined ? {} : { known }),
       });
       return { ...file, hash: hashInput(file) };
     },
@@ -708,9 +711,194 @@ export const edgeCases: CorpusGenerator<EdgeCaseParams> = defineGenerator<EdgeCa
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The inputs with a known best value (roadmap item k45): `perfect-cut` and `consecutive-squares`.
+
+/** The parameters of `perfect-cut`. */
+export type PerfectCutParams = {
+  cut: "guillotine" | "free";
+  containerSize: "fixed" | "freeHeight" | "freeArea";
+  count: number;
+};
+
+/** The values of `containerSize` of `perfect-cut`. */
+const CUT_SIZES: readonly PerfectCutParams["containerSize"][] = ["fixed", "freeHeight", "freeArea"];
+/** The values of `cut` of `perfect-cut`. */
+const CUTS: readonly PerfectCutParams["cut"][] = ["guillotine", "free"];
+
+/** A piece of a cut: a rectangle at its place in the container. */
+export interface CutPiece {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** The smallest side of a piece that a pinwheel cut divides. */
+const PINWHEEL_MIN = 10;
+
+/** This function gives the index of the piece with the largest area. The first piece wins a tie. */
+function largestOf(pieces: readonly Frame[]): number {
+  let best = 0;
+  for (let i = 1; i < pieces.length; i++) if (pieces[i]!.w * pieces[i]!.h > pieces[best]!.w * pieces[best]!.h) best = i;
+  return best;
+}
+
+/** This function cuts a piece in 2 with one straight line at a whole-number position. It throws a `RangeError` when the piece has no side of 2 or more. */
+function guillotineCut(r: () => number, p: Frame): Frame[] {
+  if (p.w < 2 && p.h < 2) throw new RangeError("The pieces of perfect-cut are too small for the count.");
+  // Most cuts go across the longer side. Some go across the shorter side, so the pieces get many aspects.
+  const longer = p.w >= p.h;
+  let vertical = r() < 0.8 ? longer : !longer;
+  if (vertical && p.w < 2) vertical = false;
+  if (!vertical && p.h < 2) vertical = true;
+  const side = vertical ? p.w : p.h;
+  const at = Math.min(Math.max(span(r, side * 0.25, side * 0.75), 1), side - 1);
+  return vertical
+    ? [{ x: p.x, y: p.y, w: at, h: p.h }, { x: p.x + at, y: p.y, w: p.w - at, h: p.h }]
+    : [{ x: p.x, y: p.y, w: p.w, h: at }, { x: p.x, y: p.y + at, w: p.w, h: p.h - at }];
+}
+
+/**
+ * This function cuts a piece in 5 with a pinwheel: 4 pieces around a center piece. No straight line goes across the
+ * piece without a cut through a part. Thus the pinwheel is not a guillotine cut.
+ */
+function pinwheelCut(r: () => number, p: Frame): Frame[] {
+  const inner = (side: number): [number, number] => {
+    const a = Math.max(1, span(r, side * 0.2, side * 0.45));
+    const b = Math.min(side - 1, Math.max(a + 1, span(r, side * 0.55, side * 0.8)));
+    return [a, b];
+  };
+  const [x1, x2] = inner(p.w);
+  const [y1, y2] = inner(p.h);
+  const { x, y, w, h } = p;
+  return [
+    { x, y, w: x2, h: y1 },
+    { x: x + x2, y, w: w - x2, h: y2 },
+    { x: x + x1, y: y + y2, w: w - x1, h: h - y2 },
+    { x, y: y + y1, w: x1, h: h - y1 },
+    { x: x + x1, y: y + y1, w: x2 - x1, h: y2 - y1 },
+  ];
+}
+
+/**
+ * This function cuts the rectangle `w` by `h` into `count` pieces. It cuts the piece with the largest area at each step.
+ *
+ * - With `guillotine`, each cut is a straight line across one piece.
+ * - With `free`, the first cut is a pinwheel. A later cut is a pinwheel with the probability 0.3, when 4 or more pieces are still necessary.
+ */
+function cutsOf(r: () => number, cut: PerfectCutParams["cut"], count: number, w: number, h: number): Frame[] {
+  const pieces: Frame[] = [{ x: 0, y: 0, w, h }];
+  while (pieces.length < count) {
+    const at = largestOf(pieces);
+    const piece = pieces[at]!;
+    const pinwheel = cut === "free" && count - pieces.length >= 4 && Math.min(piece.w, piece.h) >= PINWHEEL_MIN && (pieces.length === 1 || r() < 0.3);
+    pieces.splice(at, 1, ...(pinwheel ? pinwheelCut(r, piece) : guillotineCut(r, piece)));
+  }
+  return pieces;
+}
+
+/** This function gives a copy of a list in the order of a shuffle of Fisher and Yates. */
+function shuffled<T>(r: () => number, list: readonly T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+/**
+ * This function gives the container and the pieces of an input of `perfect-cut`, at their places in the cut. The pieces
+ * are in the order of the boxes of the input, with the ids of the boxes. The pieces tile the container with no free space.
+ */
+export function perfectCutOf(seed: number, params: Partial<PerfectCutParams> = {}): { w: number; h: number; pieces: CutPiece[] } {
+  const p = perfectCut.withDefaults(params);
+  if (p.count < (p.cut === "free" ? 5 : 1)) {
+    throw new RangeError(`The cut "${p.cut}" of "perfect-cut" needs a count of ${p.cut === "free" ? 5 : 1} or more.`);
+  }
+  const r = stepRandom(seed, "container");
+  const w = int(r, 600, 1000);
+  const h = int(r, 400, 800);
+  const cuts = cutsOf(stepRandom(seed, "boxes"), p.cut, p.count, w, h);
+  const pieces = shuffled(stepRandom(seed, "order"), cuts).map((c, i) => ({ id: `b${i}`, ...c }));
+  return { w, h, pieces };
+}
+
+/**
+ * The generator `perfect-cut`, version 1: a cut of a rectangle of 600 to 1000 by 400 to 800 into `count` pieces, in a
+ * random order. The pieces fill the rectangle with no free space, so the best value is known.
+ *
+ * - With `fixed`, the container is the rectangle. The best layout places each box.
+ * - With `freeHeight`, the container has the width of the rectangle. The best height is the height of the rectangle.
+ * - With `freeArea`, the best area is the area of the rectangle.
+ * - With the cut `free`, the first cut is a pinwheel. Thus a guillotine packer cannot reach the best value with that cut.
+ */
+export const perfectCut: CorpusGenerator<PerfectCutParams> = defineGenerator<PerfectCutParams>({
+  name: "perfect-cut",
+  version: 1,
+  set: "known-v1",
+  defaults: { cut: "guillotine", containerSize: "fixed", count: 30 },
+  values: { cut: CUTS, containerSize: CUT_SIZES },
+  family: (p) => `perfect-cut.${p.cut}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", p.count),
+  build(seed, p) {
+    const { w, h, pieces } = perfectCutOf(seed, p);
+    const known: KnownBest = { kind: "optimum", area: w * h, ...(p.containerSize === "freeHeight" ? { height: h } : {}), source: `perfect-cut.${p.cut}` };
+    return { container: containerOf(p.containerSize, w, h), obstacles: [], boxes: pieces.map(({ id, w: bw, h: bh }) => ({ id, w: bw, h: bh })), known };
+  },
+});
+
+/** The parameters of `consecutive-squares`. */
+export type ConsecutiveSquaresParams = {
+  containerSize: "freeHeight" | "freeArea";
+  count: number;
+};
+
+/** The values of `containerSize` of `consecutive-squares`. */
+const SQUARE_SIZES: readonly ConsecutiveSquaresParams["containerSize"][] = ["freeHeight", "freeArea"];
+
+/**
+ * The generator `consecutive-squares`, version 1: the squares of the sides `1` to `count`, times a scale from 2 to 8, in a
+ * random order. Korf 2010 uses these squares as a benchmark of the smallest enclosing rectangle.
+ *
+ * The known value is a lower bound, not an optimum:
+ *
+ * - The bound of the area is the total area of the squares: `lb-area` of Martello 2003.
+ * - With `freeHeight`, the width is 1 to 1.5 times the square root of the total area, and not less than the largest side.
+ *   The bound of the height is the larger of the total area divided by the width and the largest side: `lb-area` and `lb-tallest`.
+ */
+export const consecutiveSquares: CorpusGenerator<ConsecutiveSquaresParams> = defineGenerator<ConsecutiveSquaresParams>({
+  name: "consecutive-squares",
+  version: 1,
+  set: "known-v1",
+  defaults: { containerSize: "freeHeight", count: 30 },
+  values: { containerSize: SQUARE_SIZES },
+  family: (p) => `consecutive-squares.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", p.count),
+  build(seed, p) {
+    if (p.count < 1) throw new RangeError(`The generator "consecutive-squares" needs a count of 1 or more.`);
+    const r = stepRandom(seed, "container");
+    const scale = int(r, 2, 8);
+    const n = p.count;
+    const area = (scale * scale * n * (n + 1) * (2 * n + 1)) / 6;
+    const largest = n * scale;
+    const w = Math.max(largest, Math.ceil(Math.sqrt(area) * between(r, 1, 1.5)));
+    const sides = shuffled(stepRandom(seed, "order"), Array.from({ length: n }, (_, k) => (k + 1) * scale));
+    const boxes: Item[] = sides.map((side, i) => ({ id: `b${i}`, w: side, h: side }));
+    const free = p.containerSize === "freeHeight";
+    const container: LayoutContainer = free ? { w, fixed: "width" } : containerOf("freeArea", w, w);
+    // The bound goes down to 3 decimals, so the rounding of the file does not make it larger
+    const height = Math.max(Math.floor((area / w) * 1000) / 1000, largest);
+    const known: KnownBest = { kind: "bound", area, ...(free ? { height } : {}), source: "Martello 2003" };
+    return { container, obstacles: [], boxes, known };
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares] as CorpusGenerator[]);
 
 /**
  * This function gives the generator with a name and a version. Without a version, it gives the first generator of the name

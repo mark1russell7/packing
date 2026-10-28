@@ -230,6 +230,7 @@ describe("the minimum effects", () => {
     "pack.search.widths": 0,
     "pack.search.ms": undefined,
     "pack.gap": 0.005,
+    "pack.gapToOpt": 0.005,
   };
 
   it("has the minimum effect of the table in docs/MEASURES.md, and the tolerance for each guard", () => {

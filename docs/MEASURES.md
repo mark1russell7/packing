@@ -20,6 +20,7 @@ The functions:
 | `measure(input, output, options?)` | The measures of one layout, by id. |
 | `measureChange(baseInput, baseOutput, changeInput, changeOutput)` | The stability measures of a change pair. The items match by id. |
 | `isDeterministic(first, second)` | The measure `pack.deterministic` of two runs. |
+| `gapToOpt(input, output, known)` | The measure `pack.gapToOpt`: the distance from the known best value of the input. |
 | `MEASURE_SPECS` | The family, the unit, the direction, the range and the minimum effect of each id. Each guard also has its `floor` and its `tol`. |
 
 ### The numbers
@@ -326,6 +327,23 @@ A change pair is the run on a base input and the run on its variant. The variant
 - The field `ms` of a record is the time of the full run. The runner measures it.
 - A time changes with the load of the computer. Thus only CI measures the times.
 
+## Distance from the best value
+
+| Id | Unit | Direction | Range |
+|---|---|---|---|
+| `pack.gapToOpt` | ratio | lower | 0 or more |
+
+**`pack.gapToOpt`** is the distance of a layout from the known best value of its input (roadmap item k45). The function `gapToOpt(input, output, known)` gives it. `known` is the field `known` of the input. `docs/FORMAT.md` tells that field.
+
+- A fixed container: the area of the unplaced items divided by `known.area`. The best value is 0.
+- A fixed width with a `known.height`: `height / known.height - 1`. The height is the bottom of the lowest box.
+- The other free sizes: `W * H / known.area - 1`, with the hull `W` by `H`.
+- A free size with an unplaced item gives `Infinity`. The record does not keep the value.
+- With `known.kind` set to `bound`, the value is an upper bound of the distance from the optimum.
+- A value from `-1e-9` to 0 becomes 0. A lower value shows a bug of the bound or of the packer.
+- The runner adds the measure only to the inputs with the field `known`. Thus the records of the other corpora do not change.
+- The measure has no `floor`, thus it is not a guard of a promotion.
+
 ## How measures combine
 
 PROMOTION is the shared promotion rule: `docs/PROMOTION.md` of `mark1russell7/highways`, from its pull request 77. It tells when a candidate becomes a default.
@@ -447,6 +465,7 @@ Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `Measu
 | `pack.search.widths` | 0 | A count. |
 | `pack.search.ms` | none | A time. The times of CI change from run to run, and the time test of PROMOTION has its own rule. |
 | `pack.gap` | 0.005 | A ratio to a bound. A change of 0.5% counts. |
+| `pack.gapToOpt` | 0.005 | Half of 1 percent of the known best value. |
 
 - A measure with no `minEffect` uses `RECORD_EPS` in `compareMeasure`.
 - The test `src/overflow.test.ts` pins this table, and it compares values with `compareMeasure` of the contract.
