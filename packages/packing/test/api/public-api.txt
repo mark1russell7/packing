@@ -4,13 +4,18 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 196 names
+## . (build/index.d.ts): 207 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
+BOUND_KINDS: build/index.d.ts#BOUND_KINDS
+type BoundKind: build/index.d.ts#BoundKind
+type BoundMeasures: build/index.d.ts#BoundMeasures
+type BoundObjective: build/index.d.ts#BoundObjective
+type BoundOptions: build/index.d.ts#BoundOptions
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
@@ -56,6 +61,7 @@ type MeasureOptions: build/index.d.ts#MeasureOptions
 type MeasureSpec: build/index.d.ts#MeasureSpec
 type MemberTrace: @mark1russell7/layout-contract#MemberTrace (external)
 type MetricsOptions: build/index.d.ts#MetricsOptions
+type ObjectiveBound: build/index.d.ts#ObjectiveBound
 type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
 PORTFOLIO_FRAME_MS: build/index.d.ts#PORTFOLIO_FRAME_MS
@@ -126,6 +132,8 @@ aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
 assertSupported: build/index.d.ts#assertSupported
+boundGap: build/index.d.ts#boundGap
+boundMeasures: build/index.d.ts#boundMeasures
 canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
 cellKey: build/index.d.ts#cellKey
@@ -156,7 +164,10 @@ maxrects: build/index.d.ts#maxrects
 measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
 medianRatio: build/index.d.ts#medianRatio
+mmvBound: build/index.d.ts#mmvBound
 mulberry32: build/index.d.ts#mulberry32
+objectiveBound: build/index.d.ts#objectiveBound
+objectiveResult: build/index.d.ts#objectiveResult
 outputHash: build/index.d.ts#outputHash
 pack: build/index.d.ts#pack
 packDefault: build/index.d.ts#packDefault
@@ -224,6 +235,27 @@ interface AspectFitStrategyOptions {
   strategy?: string;
   options?: unknown;
   targetAspect?: number;
+}
+
+### build/index.d.ts#BOUND_KINDS
+export declare const BOUND_KINDS: readonly BoundKind[];
+
+### build/index.d.ts#BoundKind
+type BoundKind = "strip.area" | "strip.tallest" | "strip.mmv" | "strip.margin" | "hull.area" | "hull.extent" | "hull.margin" | "placed.free";
+
+### build/index.d.ts#BoundMeasures
+interface BoundMeasures {
+  "pack.bound"?: number;
+  "pack.bound.kind"?: number;
+  "pack.gap"?: number;
+}
+
+### build/index.d.ts#BoundObjective
+type BoundObjective = "height" | "width" | "area" | "placed";
+
+### build/index.d.ts#BoundOptions
+interface BoundOptions {
+  readonly tolerance?: number;
 }
 
 ### build/index.d.ts#Cell
@@ -442,10 +474,10 @@ interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
 }
 
 ### build/index.d.ts#MeasureFamily
-type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
+type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound";
 
 ### build/index.d.ts#MeasureId
-type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
+type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap";
 
 ### build/index.d.ts#MeasureOptions
 interface MeasureOptions {
@@ -462,6 +494,17 @@ interface MeasureSpec extends MeasureSpec$1<MeasureId> {
 ### build/index.d.ts#MetricsOptions
 interface MetricsOptions {
   rowTolerance?: number;
+}
+
+### build/index.d.ts#ObjectiveBound
+interface ObjectiveBound {
+  readonly objective: BoundObjective;
+  readonly sense: "lower" | "upper";
+  readonly value: number;
+  readonly kind: BoundKind;
+  readonly parts: Readonly<Partial<Record<BoundKind, number>>>;
+  readonly items: readonly string[];
+  readonly overflow: number;
 }
 
 ### build/index.d.ts#ObstacleLayout
@@ -815,6 +858,12 @@ export declare const aspectFitStrategy: Strategy<AspectFitStrategyOptions>;
 ### build/index.d.ts#assertSupported
 export declare function assertSupported(supports: Supports, input: PackInput): void;
 
+### build/index.d.ts#boundGap
+export declare function boundGap(result: number, bound: number, sense: "lower" | "upper"): number;
+
+### build/index.d.ts#boundMeasures
+export declare function boundMeasures(input: PackInput, output: PackOutput, options?: BoundOptions): BoundMeasures;
+
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
 
@@ -905,8 +954,20 @@ export declare function measureChange(baseInput: PackInput, baseOutput: PackOutp
 ### build/index.d.ts#medianRatio
 export declare function medianRatio(ratios: readonly number[]): number;
 
+### build/index.d.ts#mmvBound
+export declare function mmvBound(pieces: readonly {
+  readonly w: number;
+  readonly h: number;
+}[], width: number, integral?: boolean): number;
+
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
+
+### build/index.d.ts#objectiveBound
+export declare function objectiveBound(input: PackInput, options?: BoundOptions): ObjectiveBound | null;
+
+### build/index.d.ts#objectiveResult
+export declare function objectiveResult(input: PackInput, output: PackOutput, bound: ObjectiveBound): number | undefined;
 
 ### build/index.d.ts#outputHash
 export declare function outputHash(output: Pick<PackOutput, "placements">): string;

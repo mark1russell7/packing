@@ -141,6 +141,13 @@ describe("the smoke check", () => {
     expect(smokeCheck(goodRun(), records).failures).toEqual([`The record of rows on ${INPUTS[0]} has a forced overflow area of 0.25, above its overflow area of 0.2.`]);
   });
 
+  it("fails a gap below 0, but not a gap of 0", () => {
+    const records = goodRecords();
+    records[0] = measuredRecord("rows", INPUTS[0], { measures: { "pack.bound": 10, "pack.bound.kind": 0, "pack.gap": -0.05 } });
+    records[1] = measuredRecord("rows", INPUTS[1], { measures: { "pack.bound": 10, "pack.bound.kind": 0, "pack.gap": 0 } });
+    expect(smokeCheck(goodRun(), records).failures).toEqual([`The record of rows on ${INPUTS[0]} has a gap of -0.05 below 0: its result is better than its bound.`]);
+  });
+
   it("fails a coverage below 1 of rows, shelf or skyline, but not of push", () => {
     const run = goodRun();
     run.coverage!["skyline"] = cover(1, 2);

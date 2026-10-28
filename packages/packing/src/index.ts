@@ -121,6 +121,19 @@ export {
 export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export {
+  BOUND_KINDS,
+  boundGap,
+  boundMeasures,
+  mmvBound,
+  objectiveBound,
+  objectiveResult,
+  type BoundKind,
+  type BoundMeasures,
+  type BoundObjective,
+  type BoundOptions,
+  type ObjectiveBound,
+} from "./bounds.ts";
+export {
   canonicalJson,
   countCell,
   fnv1a32,

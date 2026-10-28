@@ -103,6 +103,7 @@ The check reads `run.json` and `records.jsonl` of the folder. The code is in `pa
 - A measured record has a `pack.overflow.forced` above its `pack.overflow`. The forced overflow is a lower bound, thus this is an error of the bound.
 - A measured record has a `pack.overflow.forcedArea` above its `pack.overflow.area + 1e-9`. This is an error of the area bound, or of the packer.
 - A measured record has a `pack.outsideExact` above 0: a box is out of the true outline of the container.
+- A measured record has a `pack.gap` below 0: the bound of the cell is above the result, so the bound is wrong.
 
 The strategy `push` has only the mode `incremental`, and each input of `smoke-v1` is offline. Thus its coverage is 0. The table shows it, and the check does not fail on it.
 
@@ -123,6 +124,7 @@ For each strategy and each input of the corpus, the runner does these steps:
 3. It packs the input `warmup` times, and then `repeats` times with a clock. The median of the times is `ms`.
 4. It examines the output of the first packing with `checkHard`, and it gets the measures with `measure`.
 5. It adds the count of the move of the strategy from the trace, and `pack.outsideExact`. The section "The screen guards" tells these measures.
+   It also adds `pack.bound`, `pack.bound.kind` and `pack.gap` of `boundMeasures`. `docs/MEASURES.md` tells them in the section "Bounds".
 6. It writes one `layout-record/1` line with the measures rounded by `roundMeasures`.
 
 The flag `--interleave` changes only the order of the timed passes. For each input, the runner does the warm-up passes of each strategy. Then, for each repeat, it does one timed pass of each strategy. The records, their order and their format do not change. `run.json` gets `"interleave": true`. The job `time` of the section "The win test" uses this flag.
@@ -220,6 +222,7 @@ A record has each field of `layout-record/1` in `docs/FORMAT.md`. These values a
 - `commit` holds the first 7 characters of the commit.
 - `measures` holds the measures of `measure`. The value `pack.search.ms` is the median of the timed runs.
 - `measures` also holds the move count of the strategy, for example `move.stack`, and `pack.outsideExact`.
+- `measures` also holds the bound measures `pack.bound`, `pack.bound.kind` and `pack.gap`, when the cell has a bound.
 
 A record also has these optional fields of `docs/FORMAT.md`:
 
@@ -633,7 +636,8 @@ The summary `summary.md` has these sections:
 11. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
 12. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
 13. `Stability`: the count of records with the stability measures.
-14. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
+14. `Bounds`: for each strategy and objective, the median and the quantile 0.95 of `pack.gap`, and the count of each bound that wins.
+15. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
 
 A `run.json` from before k59 has no screen guards. Sections 6 to 9 then show one line that tells it. A `run.json` from before k60 has no ranking, and section 5 shows one line. A `run.json` from before k20 has no portfolio report, and section 10 shows one line.
 
