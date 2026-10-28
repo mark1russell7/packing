@@ -2,13 +2,18 @@
 
 ## 0.2.9
 
-A dependency update. This release has no breaking changes. The default outputs do not change.
+A dependency update with one behavior change of the opt-in strategy `portfolio`. The default outputs do not change.
 
 ### Changed
 
 - `@mark1russell7/layout-contract` is `^0.2.7`. Its `compareMeasure` compares two values on the grid of the records, in whole steps of `RECORD_EPS`.
 - Thus `packPortfolio` and the strategy `portfolio` find a tie at the `minEffect` limit without float noise. A pick changes only on such an input.
 - `PORTFOLIO_SETS` is generated again with the new compare, from the same run 40652567756. More inputs are ties, so the win shares go up. Some cells choose a different second or third member, so the strategy `portfolio` changes its output on these cells.
+
+### Behavior change
+
+- The new `PORTFOLIO_SETS` changes the output of the strategy `portfolio` on some cells. These cells choose other members, or the same members in another order. For example, `maxrects-cp` replaces `maxrects-bssf`, and `skyline` replaces `maxrects-bl`.
+- Before 1.0, a change of an exported output that callers rely on is a break. Thus a later change of the set table is a MINOR release. This release stays a PATCH, because it is on npm.
 
 ## 0.2.8
 

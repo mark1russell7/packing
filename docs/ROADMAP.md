@@ -68,6 +68,7 @@ Status: done, done, waiting, next, done.
 | k59 | Screen guards: overflow measures with a forced bound, an exact container test, fill ranked without overflow, distinct strategies, activation | measure | done | k11, k37 |
 | k60 | Overflow excess by area, and fill ranked on shared clean records | measure | done | k59 |
 | k61 | DEFAULT-CANDIDATE: `portfolio-k2` and `maxrects-bl` against the default `rows`, each by the promotion rule. The default changes only when a candidate passes. | measure | active | k58, k20 |
+| k62 | `aspectFit(strategy, { targetAspect })`: for a free-size container, a portfolio of widths around the target aspect, kept by a key with the aspect in it. It wraps any strategy. | strategies | next | k20, k61 |
 
 ## Rules
 
