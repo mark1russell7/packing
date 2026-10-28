@@ -63,6 +63,8 @@ The check reads `run.json` and `records.jsonl` of the folder. The code is in `pa
 - A measured record has a hard count above 0, or `deterministic` is `false`.
 - The coverage of a strategy in `run.json` does not agree with its records.
 - The coverage of `rows`, `shelf` or `skyline` is below 1.
+- A measured record has a `pack.overflow.forced` above its `pack.overflow`. The forced overflow is a lower bound, thus this is an error of the bound.
+- A measured record has a `pack.outsideExact` above 0: a box is out of the true outline of the container.
 
 The strategy `push` has only the mode `incremental`, and each input of `smoke-v1` is offline. Thus its coverage is 0. The table shows it, and the check does not fail on it.
 
@@ -82,7 +84,8 @@ For each strategy and each input of the corpus, the runner does these steps:
 2. It packs the input 2 times with the seed of the input. Thus it gets `deterministic` with `isDeterministic`.
 3. It packs the input `warmup` times, and then `repeats` times with a clock. The median of the times is `ms`.
 4. It examines the output of the first packing with `checkHard`, and it gets the measures with `measure`.
-5. It writes one `layout-record/1` line with the measures rounded by `roundMeasures`.
+5. It adds the count of the move of the strategy from the trace, and `pack.outsideExact`. The section "The screen guards" tells these measures.
+6. It writes one `layout-record/1` line with the measures rounded by `roundMeasures`.
 
 The runner does not stop at an error of a strategy. It writes the error in `run.json` and in the summary, and it exits with the code 1.
 
@@ -139,7 +142,7 @@ Each job of the matrix keeps the artifact `bench-<corpus>-<strategy>`. The job `
 | File | Content |
 |---|---|
 | `records.jsonl` | One `layout-record/1` line for each pair of the job: a measured record or a skipped record. The lines keep the order of the strategies, and then the order of the inputs. |
-| `run.json` | The facts of the run: the corpus, the prediction, the commit, the counts of runs, the computer, the skipped pairs, the errors and the coverage. |
+| `run.json` | The facts of the run: the corpus, the prediction, the commit, the counts of runs, the computer, the skipped pairs, the errors, the coverage and the screen guards. |
 | `corpus.json` | The manifest of the corpus, with the id, the hash and the cell of each input. |
 | `summary.md` | The summary. The page of the run on GitHub also shows it. |
 
@@ -152,13 +155,14 @@ A record has each field of `layout-record/1` in `docs/FORMAT.md`. These values a
 - `nodes` counts the boxes and the obstacles of the input, as the twin document of `highways` does.
 - `commit` holds the first 7 characters of the commit.
 - `measures` holds the measures of `measure`. The value `pack.search.ms` is the median of the timed runs.
+- `measures` also holds the move count of the strategy, for example `move.stack`, and `pack.outsideExact`.
 
 A record also has these optional fields of `docs/FORMAT.md`:
 
 | Field | Content |
 |---|---|
 | `msRuns` | The time of each timed run, in milliseconds. Their median is `ms`. |
-| `outputHash` | The first 16 hex characters of the SHA-256 of the placements, sorted by id. Two runs with the same hash have the same placements. |
+| `outputHash` | The first 16 hex characters of the SHA-256 of the placements, sorted by id and rounded to 3 decimals. The value -0 becomes 0. Thus the same hash tells the same placements to 3 decimals, not exactly the same placements. |
 | `env` | The computer: the version of Node.js, the operating system, the processor and the name of the runner. |
 | `skipped` | The reason when the runner did not pack the pair, for example `unsupported mode: offline`. Only a skipped record has it. |
 
@@ -173,6 +177,58 @@ The field `coverage` of `run.json` tells which part of the corpus each strategy 
 
 A skipped record is the record of a pair that the strategy does not support. It has `skipped`, and `measures` and `hard` are empty objects. Its `ms` is 0, and it has no `msRuns` and no `outputHash`. The medians, the tables and the predictions of the summary ignore the skipped records.
 
+## The screen guards
+
+Roadmap item k59 adds these guards to each run. The code is in `packages/packing/bench/screen.ts`. The guards come from the records, so the job `merge` makes them again from the records of all the jobs. A merge without records has no guards.
+
+### The fields of the screen in `run.json`
+
+| Field | Content |
+|---|---|
+| `fill` | For each strategy: `all` and `clean`, each with `records` and the `median` of `pack.fill`. The field `shapes` has the same values for each container shape. |
+| `overflow` | For each strategy: `records`, `overflowing`, `share`, the `means` of the overflow measures and the sum `outsideExact`. The field `shapes` has the same values for each container shape. |
+| `outputGroups` | The output groups. Each group has its `strategies` and the count of its common `inputs`. |
+| `cellGroups` | For each container shape: its `groups`, and its `pairs`, each with `a`, `b`, `inputs`, `equal` and `share`. |
+| `activation` | For each strategy: `move`, `records`, `fired`, `count`, `label` and `reason`. The field `shapes` has the same values for each container shape. |
+
+The container shape of an input comes from its cell in `corpus.json`. An input that is not in the manifest gets the shape `unknown`.
+
+### Fill without overflow
+
+A layout that leaves items out gets a high fill. Thus the field `clean` uses only the records with `pack.overflow` 0. The field `all` keeps the median of all the measured records, and the summary shows the two values with their counts. The summary ranks the strategies by `clean`.
+
+### Overflow and the true outline
+
+The table `Overflow` gives the mean of `pack.overflow`, `pack.overflow.rate`, `pack.overflow.area`, `pack.overflow.forced` and `pack.overflow.excess`. `docs/MEASURES.md` tells each one.
+
+The measure `pack.outsideExact` counts the boxes out of the true outline of the container. It is `in-container` of `checkHard` with `exactContainer` set to `true`. For a circle, an ellipse or a polygon, this test uses the shape, not only its bounding box. Lower is better, and the floor is 0. The smoke check fails when it is above 0.
+
+### Distinct outputs
+
+The runner compares the strategies by `outputHash`. The hash uses the placements rounded to 3 decimals, thus two equal hashes tell the same placements to 3 decimals.
+
+- Two strategies are equal on a set of inputs when they have 1 common measured input or more, and the same hash on each one.
+- An output group is a set of 2 strategies or more that are equal on each common input of the run.
+- A cell group is the same, but only on the inputs of one container shape.
+- A pair gives `inputs`, the common inputs of the 2 strategies, and `equal`, the inputs with the same hash. The value `share` is `equal / inputs`.
+
+Each strategy goes into the first group where it is equal to each member. A strategy that is equal to no other strategy is in no group.
+
+### Activation
+
+Each strategy counts its characteristic move, and its trace holds the count. The count does not change a placement.
+
+| Strategy | Move | The move |
+|---|---|---|
+| `rows` | `move.gapFill` | The gap fill of a row places a box: under a shorter neighbor, or at the break of the row. |
+| `shelf` | `move.stack` | A box goes on an open shelf that a taller box made. |
+| `skyline` | `move.lowerWindow` | The skyline puts a box in a lower window, not in the leftmost window where it fits. |
+| `push` | `move.cascade` | A push cascade moves a box. |
+
+A strategy is `exercised` when its count is above 0 on 1 input or more. Else it is `not-exercised`, and `reason` tells why. The activation also has one cell for each container shape.
+
+The strategies `rows` and `shelf` pack a container that is not a rectangle with the same packer. That packer does not make their moves. Thus they are `not-exercised` on such a shape, and their outputs on it are often in one cell group.
+
 ## Read the summary
 
 The summary `summary.md` has these sections:
@@ -181,10 +237,16 @@ The summary `summary.md` has these sections:
 2. `Strategies`: one row for each strategy. The row has the counts of measured records, skipped records, errors, hard breaks and records that are not deterministic. Then it has the median of each guard measure, the median of `pack.fill` and `pack.whitespace`, and the times.
 3. One section for each strategy, with one row for each family of inputs.
 4. `Coverage`: one row for each strategy, with the measured inputs of all the inputs and of each container shape.
-5. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
-6. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
-7. `Stability`: the count of records with the stability measures.
-8. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
+5. `Fill without overflow`: the rank of the strategies by the median `pack.fill` of the records with no overflow. Then the same rank for each container shape.
+6. `Overflow`: for each strategy and container shape, the records with overflow, the means of the overflow measures and the sum of `pack.outsideExact`.
+7. `Distinct outputs`: the output groups, and the cell groups and the pairs of each container shape.
+8. `Activation`: for each strategy and container shape, the count of its move and its label.
+9. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
+10. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
+11. `Stability`: the count of records with the stability measures.
+12. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
+
+A `run.json` from before k59 has no screen guards. Sections 5 to 8 then show one line that tells it.
 
 The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspectError`, `pack.order.inversions`, `pack.overflow` and the 3 stability measures. Lower is better for each guard. The floor is 0.
 

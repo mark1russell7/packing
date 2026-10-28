@@ -1,17 +1,17 @@
 // The counts of the characteristic move of each strategy (roadmap item k59, `docs/BENCH.md`, "Activation"). The
-// packers count their move here, and the adapters write the count in `trace.measures`. The counts never change a layout.
+// packers count their move here, and the adapters write the count in `trace.measures`. The counts do not change a layout.
 // The module is internal: the package root does not export it.
 
 /** The id of the characteristic move of each strategy. The trace of each strategy has its id, also with the count 0. */
-export const MOVES = Object.freeze({
-  /** A rectangle that the gap fill of `packRow` places under a shorter neighbor in the row. */
-  rows: "move.rows.gapFill",
-  /** A rectangle that `packShelf` puts on a shelf with a taller rectangle. The strip above it stays empty. */
-  shelf: "move.shelf.join",
+export const MOVES: Readonly<{ rows: "move.gapFill"; shelf: "move.stack"; skyline: "move.lowerWindow"; push: "move.cascade" }> = Object.freeze({
+  /** A rectangle that the gap fill of `packRow` places in a gap of a row: under a shorter neighbor, or at the row break. */
+  rows: "move.gapFill",
+  /** A rectangle that `packShelf` puts on an open shelf with a taller rectangle. The strip above it stays empty. */
+  shelf: "move.stack",
   /** A rectangle that the skyline puts in a lower window, not in the leftmost window where it fits. */
-  skyline: "move.skyline.lowerWindow",
+  skyline: "move.lowerWindow",
   /** A rectangle that a push cascade moves. */
-  push: "move.push.cascade",
+  push: "move.cascade",
 });
 
 const counts = new Map<string, number>();

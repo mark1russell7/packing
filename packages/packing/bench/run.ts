@@ -27,6 +27,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
+import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
 
 /** The file of a corpus in `bench/corpora`: a `layout-corpus/1` manifest with its specs and no inputs. */
 export interface BenchCorpus {
@@ -143,8 +144,11 @@ export interface BenchCoverage extends BenchCount {
 /** This function makes a count from the measured inputs and all the inputs. */
 const countOf = (measured: number, inputs: number): BenchCount => ({ measured, inputs, coverage: inputs === 0 ? 0 : round3(measured / inputs) });
 
-/** The facts of one run of the runner, without the records. The file `run.json` holds them. */
-export interface BenchRun {
+/**
+ * The facts of one run of the runner, without the records. The file `run.json` holds them. The fields of `BenchScreen`
+ * come from the records: the merge of a matrix writes them again from the records of all the jobs. A `run.json` before k59 does not have them.
+ */
+export interface BenchRun extends Partial<BenchScreen> {
   schema: "packing-bench-run/1";
   corpus: string;
   prediction: string;
@@ -360,6 +364,9 @@ export function runBench(options: BenchOptions): BenchResult {
 
         const values: Record<string, number> = { ...measure(input, first) };
         values["pack.search.ms"] = median(searchMs);
+        // The counts of the characteristic moves, and the boxes out of the true outline of the container
+        Object.assign(values, moveCounts(first));
+        values[OUTSIDE_EXACT] = checkHard(input, first, DEFAULT_TOLERANCE, { exactContainer: true })["in-container"];
         const base = file.base === undefined ? undefined : done.get(file.base);
         if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
         done.set(file.id, { input, output: first });
@@ -409,6 +416,7 @@ export function runBench(options: BenchOptions): BenchResult {
     coverage,
   };
   if (options.commit !== undefined) run.commit = options.commit;
+  Object.assign(run, screenOf(ids, records, shapesOf(manifest)));
   return { run, records, manifest, outputs };
 }
 
@@ -417,8 +425,15 @@ export function recordLines(records: readonly BenchRecord[]): string {
   return records.map((r) => `${JSON.stringify(r)}\n`).join("");
 }
 
-/** This function joins the runs of the jobs of one corpus and one prediction into one run. It throws an `Error` for different runs. */
-export function mergeRuns(runs: readonly BenchRun[]): BenchRun {
+/** The fields of `BenchScreen` in a run */
+const SCREEN_FIELDS = ["fill", "overflow", "outputGroups", "cellGroups", "activation"] as const;
+
+/**
+ * This function joins the runs of the jobs of one corpus and one prediction into one run. It throws an `Error` for different runs.
+ * With `records`, the merge gives the fields of `BenchScreen` from the records of all the jobs. `manifest` gives the container shapes.
+ * Without `records`, the merged run has no fields of `BenchScreen`, because the screen of each job sees only its strategies.
+ */
+export function mergeRuns(runs: readonly BenchRun[], records?: readonly BenchRecord[], manifest?: unknown): BenchRun {
   const first = runs[0];
   if (first === undefined) throw new Error("A merge needs one run or more.");
   for (const r of runs) {
@@ -449,6 +464,8 @@ export function mergeRuns(runs: readonly BenchRun[]): BenchRun {
       Object.entries(sums).map(([id, sum]) => [id, { ...countOf(...sum.all), shapes: Object.fromEntries(Object.entries(sum.shapes).map(([k, n]) => [k, countOf(...n)])) }]),
     );
   } else delete merged.coverage;
+  for (const field of SCREEN_FIELDS) delete merged[field];
+  if (records !== undefined) Object.assign(merged, screenOf(merged.strategies, records, shapesOf(manifest)));
   return merged;
 }
 
@@ -511,7 +528,8 @@ function compare(measured: number, op: NonNullable<BenchPrediction["op"]>, expec
 
 /**
  * This function writes the summary of a run as Markdown. The first table has one row for each strategy. A section for
- * each strategy has one row for each family. Then come the skipped cells, the breaks, the errors and the predictions.
+ * each strategy has one row for each family. Then come the coverage, the sections of the screen, the skipped cells, the
+ * breaks, the errors and the predictions.
  */
 export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], predictions: readonly BenchPrediction[] = []): string {
   const short = (id: string): string => id.replace(/^pack\./, "");
@@ -564,6 +582,8 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
       if (c !== undefined) lines.push(`| ${id} | ${cellText(c)} | ${shapes.map((k) => cellText(c.shapes[k])).join(" | ")} |`);
     }
   }
+
+  lines.push("", ...screenMarkdown(run, run.strategies));
 
   lines.push("", "## Skipped cells", "");
   if (skips.length === 0) lines.push("No pair was skipped.");

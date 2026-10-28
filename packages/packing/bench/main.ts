@@ -128,7 +128,7 @@ function main(): number {
         for (const line of readFileSync(join(dir, "records.jsonl"), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line) as BenchRecord);
         if (manifest === undefined && existsSync(join(dir, "corpus.json"))) manifest = JSON.parse(readFileSync(join(dir, "corpus.json"), "utf8"));
       }
-      const run = mergeRuns(runs);
+      const run = mergeRuns(runs, records, manifest);
       write(resolve(out), run, records, manifest);
       const skips = records.filter((r) => !isMeasured(r)).length;
       process.stdout.write(`${records.length} records of ${runs.length} jobs, ${skips} of them skipped, in ${resolve(out)}\n`);

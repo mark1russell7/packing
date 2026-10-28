@@ -121,6 +121,17 @@ describe("the smoke check", () => {
     expect(smokeMarkdown(smokeCheck(goodRun(), records))).toContain("The check found 2 failures:");
   });
 
+  it("fails a forced overflow above the overflow, and a box out of the true outline", () => {
+    const records = goodRecords();
+    records[0] = measuredRecord("rows", INPUTS[0], { measures: { "pack.overflow": 1, "pack.overflow.forced": 2, "pack.outsideExact": 0 } });
+    records[1] = measuredRecord("rows", INPUTS[1], { measures: { "pack.overflow": 2, "pack.overflow.forced": 2, "pack.outsideExact": 3 } });
+    records[2] = measuredRecord("shelf", INPUTS[0], { measures: { "pack.overflow": 2, "pack.overflow.forced": 1, "pack.outsideExact": 0 } });
+    expect(smokeCheck(goodRun(), records).failures).toEqual([
+      `The record of rows on ${INPUTS[0]} has a forced overflow of 2, above its overflow of 1.`,
+      `The record of rows on ${INPUTS[1]} has 3 boxes out of the true outline of the container.`,
+    ]);
+  });
+
   it("fails a coverage below 1 of rows, shelf or skyline, but not of push", () => {
     const run = goodRun();
     run.coverage!["skyline"] = cover(1, 2);

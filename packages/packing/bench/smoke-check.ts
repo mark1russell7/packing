@@ -3,6 +3,7 @@
 
 import { round3 } from "@mark1russell7/packing";
 import { isMeasured, type BenchRecord, type BenchRun } from "./run.ts";
+import { OUTSIDE_EXACT } from "./screen.ts";
 
 /** The strategies that pack each input of `smoke-v1`. The check needs the coverage 1 for each of them. */
 export const FULL_COVERAGE: readonly string[] = ["rows", "shelf", "skyline"];
@@ -36,6 +37,7 @@ export function parseRecords(text: string): BenchRecord[] {
  *
  * - The run has an error, or it has no records.
  * - A measured record has a hard break, or it is not deterministic.
+ * - A measured record has a forced overflow above its overflow, or a box out of the true outline (`pack.outsideExact` above 0).
  * - A strategy has no coverage in the run, or its coverage does not agree with its records.
  * - A strategy of `full` has a coverage below 1, or the run does not have that strategy.
  */
@@ -47,6 +49,13 @@ export function smokeCheck(run: BenchRun, records: readonly BenchRecord[], full:
     const breaks = Object.entries(r.hard).filter(([, n]) => n > 0);
     if (breaks.length > 0) failures.push(`The record of ${r.strategy} on ${r.input} has hard breaks: ${JSON.stringify(Object.fromEntries(breaks))}.`);
     if (!r.deterministic) failures.push(`The record of ${r.strategy} on ${r.input} is not deterministic.`);
+    const forced = r.measures["pack.overflow.forced"];
+    const overflow = r.measures["pack.overflow"];
+    if (forced !== undefined && overflow !== undefined && forced > overflow) {
+      failures.push(`The record of ${r.strategy} on ${r.input} has a forced overflow of ${forced}, above its overflow of ${overflow}.`);
+    }
+    const outside = r.measures[OUTSIDE_EXACT];
+    if (outside !== undefined && outside > 0) failures.push(`The record of ${r.strategy} on ${r.input} has ${outside} boxes out of the true outline of the container.`);
   }
 
   const rows: SmokeRow[] = [];
@@ -78,7 +87,10 @@ export function smokeMarkdown(result: SmokeResult): string {
   for (const r of result.rows) lines.push(`| ${r.strategy} | ${r.measured} | ${r.inputs} | ${r.coverage} | ${r.full ? "1" : "none"} |`);
   lines.push("");
   if (result.failures.length === 0) {
-    lines.push("The check passed. The run has no errors and no hard breaks, each record is deterministic, and the coverage agrees with the records.");
+    lines.push(
+      "The check passed. The run has no errors and no hard breaks, each record is deterministic, and the coverage agrees with the records.",
+      "No forced overflow is above its overflow, and no box is out of the true outline.",
+    );
   } else {
     lines.push(`The check found ${result.failures.length} failures:`, "", ...result.failures.map((f) => `- ${f.replaceAll("|", "\\|")}`));
   }

@@ -3,6 +3,7 @@
 import { EPS, type PackInput, type PackOutput } from "./contract.ts";
 import { boundsOf, buildFrame, now, outerOf, readFrame, rectsOf, viaAxes, type Entry } from "./frame.ts";
 import { packFree } from "./free.ts";
+import { clearMoves, moveCount, MOVES } from "./moves.ts";
 import type { SortOrder } from "./order.ts";
 import { pack } from "./pack.ts";
 import { pushCascade } from "./push.ts";
@@ -59,9 +60,10 @@ function packFixedWidth(id: "rows" | "skyline" | "shelf", input: PackInput, opti
   const start = now();
   const frame = buildFrame(input);
   const rects = rectsOf(frame);
+  clearMoves();
   if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, space: spaceOf(input, frame) });
   const output = readFrame(input, frame, []);
-  return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length } }] };
+  return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length, [MOVES[id]]: moveCount(MOVES[id]) } }] };
 }
 
 /** This function makes the strategy of one function of `pack`. */
@@ -150,7 +152,7 @@ export const logSweep: SizeSearch = {
       ...output,
       trace: [
         { id: "log-sweep", ms, measures: { "pack.search.widths": result.tried.length, "pack.search.ms": ms } },
-        { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length } },
+        { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length, [MOVES[id]]: moveCount(MOVES[id]) } },
       ],
     };
   },
@@ -191,8 +193,9 @@ function pushFixedWidth(input: PackInput, options: PushStrategyOptions, previous
   // The cascade: each item in the order of its rank pushes the others, and then it stays
   const inPlay = frame.entries.filter((e) => !pending.includes(e)).map((e) => e.rect);
   const maxShoves = options.maxShovesPerItem * Math.max(1, inPlay.length);
+  let cascaded = 0;
   for (const e of positioned) {
-    pushCascade(e.rect, inPlay, { gap: 0, maxShoves });
+    cascaded += pushCascade(e.rect, inPlay, { gap: 0, maxShoves }).length;
     e.rect.locked = true;
   }
 
@@ -234,7 +237,7 @@ function pushFixedWidth(input: PackInput, options: PushStrategyOptions, previous
   return {
     ...output,
     trace: [
-      { id: "push", ms: pushMs, measures: { "pack.push.moved": moved.length } },
+      { id: "push", ms: pushMs, measures: { "pack.push.moved": moved.length, [MOVES.push]: cascaded } },
       { id: "skyline", ms: now() - skylineStart, measures: { "pack.push.replaced": pending.length, "pack.overflow": output.overflow.length } },
     ],
   };

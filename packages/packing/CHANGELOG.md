@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- The trace of each strategy counts its characteristic move: `move.gapFill` (rows), `move.stack` (shelf), `move.lowerWindow` (skyline) and `move.cascade` (push). The counts do not change a layout.
+- The bench gives the screen guards of roadmap item k59: the fill without overflow, the overflow, the output groups, the cell groups, the activation and `pack.outsideExact`. `docs/BENCH.md` tells them.
+
 ## 0.2.2
 
 New overflow measures with a forced bound, a minimum effect for each measure and an exact container test (roadmap item k59). This release has no breaking changes.
