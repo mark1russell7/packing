@@ -1,0 +1,4 @@
+{"schema":"layout-prediction/1","id":"p-2026-10-28-screen1","strategy":"skyline","set":"pack-screen-v1","measure":"pack.fill","expected":0.7,"op":">=","reason":"The skyline fills the gaps under each step. The median input has uniform or UI sizes."}
+{"schema":"layout-prediction/1","id":"p-2026-10-28-screen1","strategy":"shelf","set":"pack-screen-v1","measure":"pack.fill","expected":0.6,"op":">=","reason":"A shelf keeps the space above the short items of a row."}
+{"schema":"layout-prediction/1","id":"p-2026-10-28-screen1","strategy":"rows","set":"pack-screen-v1","measure":"pack.fill","expected":0.55,"op":">=","reason":"The rows keep the reading order, and a row is as high as its highest item."}
+{"schema":"layout-prediction/1","id":"p-2026-10-28-screen1","strategy":"skyline","set":"pack-screen-v1","measure":"pack.overflow","expected":0,"op":"<=","reason":"Most inputs fit the fixed container. Only the heavy-tailed sizes overflow."}
