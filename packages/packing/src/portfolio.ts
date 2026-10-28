@@ -1,12 +1,13 @@
 // The portfolio of roadmap item k20, part 1 (`docs/PACKER.md`, "The portfolio"). A portfolio packs an input with each
 // member and keeps the best output by the one pick rule `selectBest` of the contract. Nothing default uses it.
 
-import { pickMoves, portfolio, type Member, type Portfolio, type PortfolioKey, type PortfolioPick, type SelectLevel } from "@mark1russell7/layout-contract";
-import { checkHard } from "./check.ts";
+import { pickMoves, portfolio, type Member, type Portfolio, type PortfolioPick, type SelectLevel } from "@mark1russell7/layout-contract";
 import type { PackInput, PackOutput } from "./contract.ts";
-import { outputHash } from "./layout-input.ts";
-import { MEASURE_SPECS, measure, roundMeasures, type LayoutMeasures } from "./measures.ts";
+import { MEASURE_SPECS } from "./measures.ts";
 import { packWith, strategy } from "./registry.ts";
+import { measureKey, measureLevel } from "./select-key.ts";
+
+export { hardBreaks } from "./select-key.ts";
 
 /** A member of `packPortfolio`: a strategy of the registry with some options. The id names the member in the trace. */
 export interface PortfolioEntry {
@@ -29,6 +30,11 @@ export interface PackPortfolioOptions {
   maxMembers?: number;
   /** The clock in milliseconds. The default is `performance.now`. */
   now?: () => number;
+  /**
+   * The measure ids of the key after the hard breaks, in order. Each id is a measure of `MEASURE_SPECS`. The default is
+   * `pack.overflow.excessArea`, then `pack.fill`, as in `PORTFOLIO_LEVELS`.
+   */
+  key?: readonly string[];
 }
 
 /** The id of the trace stage of `packPortfolio`. Its measure `move.pick` is 1 when the pick is not member 0. */
@@ -47,11 +53,6 @@ export const PORTFOLIO_LEVELS: readonly SelectLevel[] = Object.freeze([
   { id: "pack.fill", spec: MEASURE_SPECS["pack.fill"] },
 ] as SelectLevel[]);
 
-/** This function gives the count of the hard breaks of an output: the sum of `checkHard` with `exactContainer`. */
-export function hardBreaks(input: PackInput, output: PackOutput): number {
-  return Object.values(checkHard(input, output, undefined, { exactContainer: true })).reduce((sum, n) => sum + n, 0);
-}
-
 /**
  * This function makes an opt-in portfolio of strategies of the registry with `portfolio` of the contract.
  * Its `pick(input)` packs the input with each member and gives the output of the winner, its id and the trace.
@@ -59,10 +60,11 @@ export function hardBreaks(input: PackInput, output: PackOutput): number {
  * - A member is a strategy id, or a `PortfolioEntry` with options. The members run in the given order.
  * - `members` is a list, or a function of the input that gives the list. The strategy `portfolio` uses the function form.
  * - The key is the hard breaks, then `pack.overflow.excessArea`, then `pack.fill`. `PORTFOLIO_LEVELS` gives the specs.
+ *   The option `key` gives other measures after the hard breaks.
  * - The key reads the measures after `roundMeasures`, as a record keeps them. A replay of the records gives the same pick.
  * - The hash of the key is `outputHash`. `selectBest` of the contract picks the winner.
  * - The output of the winner gets the trace stage `portfolio` with `move.pick` of `pickMoves`.
- * - The function throws a `RangeError` for an unknown strategy, an empty list and two members with the same id.
+ * - The function throws a `RangeError` for an unknown strategy, an empty list, two members with the same id and an unknown measure of `key`.
  *   With the function form, `pick` throws this error for the list of an input.
  */
 export function packPortfolio(
@@ -77,26 +79,7 @@ export function packPortfolio(
       return { id: e.id, run: (input: PackInput): PackOutput => packWith(e.strategy, input, e.options, seed) };
     });
   const list = typeof members === "function" ? (input: PackInput): Member<PackInput, PackOutput>[] => toMembers(members(input)) : toMembers(members);
-  // Each level reads the measures of one output, so the measures of an output are computed one time
-  const cache = new WeakMap<PackOutput, LayoutMeasures>();
-  const measured = (input: PackInput, output: PackOutput): LayoutMeasures => {
-    let m = cache.get(output);
-    if (m === undefined) {
-      // The key reads the measures as a record keeps them, so a replay of the records gives the same pick
-      m = roundMeasures(measure(input, output));
-      cache.set(output, m);
-    }
-    return m;
-  };
-  const key: PortfolioKey<PackInput, PackOutput> = {
-    hard: hardBreaks,
-    levels: PORTFOLIO_LEVELS.slice(1).map((level) => ({
-      id: level.id,
-      spec: level.spec,
-      value: (input: PackInput, output: PackOutput): number => measured(input, output)[level.id as "pack.fill" | "pack.overflow.excessArea"],
-    })),
-    hash: outputHash,
-  };
+  const key = measureKey(options.key === undefined ? PORTFOLIO_LEVELS.slice(1) : options.key.map(measureLevel));
   const limits = {
     ...(options.budgetMs !== undefined ? { budgetMs: options.budgetMs } : {}),
     ...(options.maxMembers !== undefined ? { maxMembers: options.maxMembers } : {}),

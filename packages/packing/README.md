@@ -81,6 +81,19 @@ const cell = portfolioCell(input); // { shape: "rect", count: "100", spread: "un
 - `PORTFOLIO_SETS` gives the sets of 1, 2 and 3 members of each cell. The bench records of one run gave them.
 - Without options, the default member count of the cell runs. The output is a function of the input only.
 - The option `k` (2 or 3) runs each member of the set of `k`. The option `budgetMs` is an opt-in time limit.
+- The option `members` sets a fixed list of members. The option `key` sets the measures of the pick after the hard breaks.
+
+The function `aspectFit` wraps a strategy for a container of free size. It is opt-in, and no default uses it.
+
+```ts
+const fit = aspectFit(strategy("maxrects"), { targetAspect: 16 / 9 });
+const output = packWith("aspect-fit", input, { strategy: "maxrects", options: { rule: "bl" } });
+```
+
+- A container of fixed size gives the output of the wrapped strategy, with no change.
+- For a free size, it packs at the widths of `ASPECT_FIT_FACTORS` around the target aspect, and at the size of the wrapped strategy.
+- The pick uses `ASPECT_FIT_LEVELS`: the hard breaks, then `pack.overflow.excessArea`, then `pack.aspectError`, then `pack.area`.
+- The target is `targetAspect`, else `aspect` of the container, else 1. `docs/PACKER.md` tells the widths.
 
 Both functions also work alone, in an outer rectangle with a width that you set. They do not change the width.
 

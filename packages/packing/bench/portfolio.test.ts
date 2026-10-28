@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PORTFOLIO_FRAME_MS, PORTFOLIO_SETS } from "@mark1russell7/packing";
+import { PORTFOLIO_FRAME_MS, PORTFOLIO_SETS, portfolioMembers, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { COMPOSITE_IDS } from "./entries.ts";
 import {
   ALL_CELL,
   cellPortfolioOf,
+  compositeMembersOf,
   defaultCountOf,
   factsOf,
   hardOf,
@@ -208,7 +209,7 @@ describe("the portfolio report: the composite entries", () => {
   const cell = report[ALL_CELL]!;
 
   it("leaves the composite entries out of the oracle, the pool, the greedy sets, the sole wins and the losers", () => {
-    expect(COMPOSITE_IDS).toEqual(new Set(["portfolio-k2", "portfolio-k3"]));
+    expect(COMPOSITE_IDS).toEqual(new Set(["portfolio-k2", "portfolio-k3", "aspect-fit-maxrects-bl", "aspect-fit-maxrects-bssf", "aspect-fit-portfolio-k2", "portfolio-area-rows-bl"]));
     expect(cell.pool).toEqual(["A", "B"]);
     expect(Object.keys(cell.soleWins)).toEqual(["A", "B"]);
     expect(cell.losers).not.toContain("portfolio-k2");
@@ -253,5 +254,15 @@ describe("the portfolio report of a run", () => {
     const merged = mergeRuns([result.run], result.records, result.manifest);
     expect(merged.portfolio).toEqual(report);
     expect(mergeRuns([result.run]).portfolio).toBeUndefined();
+  });
+});
+
+describe("compositeMembersOf", () => {
+  it("gives the fixed members of an entry with members, the members of the cell for k, and no map for aspect-fit", () => {
+    const input = toPackInput(rectGrid.generate(1, { count: 10 }));
+    const got = compositeMembersOf(["portfolio-area-rows-bl", "portfolio-k2", "aspect-fit-maxrects-bl", "rows"], [{ id: "x", input }]);
+    expect([...got.keys()]).toEqual(["portfolio-area-rows-bl", "portfolio-k2"]);
+    expect(got.get("portfolio-area-rows-bl")!.get("x")).toEqual({ members: ["rows", "maxrects-bl"], defaultMembers: 2 });
+    expect(got.get("portfolio-k2")!.get("x")!.members).toEqual(portfolioMembers(input, 2).map((m) => m.id));
   });
 });

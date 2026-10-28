@@ -172,27 +172,43 @@ export function readFrame(input: PackInput, frame: Frame, trace: readonly StageT
 }
 
 /**
- * This function gives the size of the container after a packing. A fixed side keeps its size. A free side goes to the
- * far edge of the items with their margins and the inset, or of the obstacles.
+ * This function gives the far edges of a packing from the corner of the container. It reads the items with their margins,
+ * the inset and the obstacles. With `turn`, a placement with `turn: 90` reads the turned item.
  */
-function sizeOf(input: PackInput, frame: Frame, placements: Placement[], moved: PackOutput["moved"], turns?: FrameTurns): { w: number; h: number } {
+export function extentOf(
+  input: PackInput,
+  placements: readonly Placement[],
+  moved: PackOutput["moved"],
+  origin: { x: number; y: number } = containerBounds(input),
+  inset: number = input.container.inset ?? 0,
+  turn?: (item: Item) => Item,
+): { right: number; bottom: number } {
   const items = new Map(input.items.map((i) => [i.id, i]));
   let right = 0;
   let bottom = 0;
   for (const p of placements) {
     const given = items.get(p.id)!;
-    const item = p.turn === 90 && turns !== undefined ? turns.turn(given) : given;
+    const item = p.turn === 90 && turn !== undefined ? turn(given) : given;
     const m = marginOf(item);
-    right = Math.max(right, p.x + item.w + m.right + frame.inset - frame.bounds.x);
-    bottom = Math.max(bottom, p.y + item.h + m.bottom + frame.inset - frame.bounds.y);
+    right = Math.max(right, p.x + item.w + m.right + inset - origin.x);
+    bottom = Math.max(bottom, p.y + item.h + m.bottom + inset - origin.y);
   }
   const movedById = new Map(moved.map((m) => [m.id, m]));
   for (const o of input.obstacles ?? []) {
     const b = boundsOf(o.region);
     const at = movedById.get(o.id) ?? b;
-    right = Math.max(right, at.x + b.w - frame.bounds.x);
-    bottom = Math.max(bottom, at.y + b.h - frame.bounds.y);
+    right = Math.max(right, at.x + b.w - origin.x);
+    bottom = Math.max(bottom, at.y + b.h - origin.y);
   }
+  return { right, bottom };
+}
+
+/**
+ * This function gives the size of the container after a packing. A fixed side keeps its size. A free side goes to the
+ * far edge of the items with their margins and the inset, or of the obstacles.
+ */
+function sizeOf(input: PackInput, frame: Frame, placements: Placement[], moved: PackOutput["moved"], turns?: FrameTurns): { w: number; h: number } {
+  const { right, bottom } = extentOf(input, placements, moved, frame.bounds, frame.inset, turns?.turn);
   return {
     w: Number.isFinite(frame.bounds.w) ? frame.bounds.w : right,
     h: Number.isFinite(frame.bounds.h) ? frame.bounds.h : bottom,

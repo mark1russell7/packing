@@ -207,12 +207,53 @@ The options of the strategy `portfolio`:
 | `k` | none | 2 or 3. With `k`, each of the `k` members of the cell runs. |
 | `maxMembers` | `defaultMembers` of the cell | The largest count of the members that run. Without `k`, the members come from the set of 3. |
 | `budgetMs` | none | An opt-in time limit of the contract. The first member always runs. A cut member makes the output depend on the clock. |
+| `members` | none | A fixed list of members for each input, in place of the set of the cell. It refuses `k`. |
+| `key` | `pack.overflow.excessArea`, `pack.fill` | The measure ids of the pick after the hard breaks, in order. Each id is in `MEASURE_SPECS`. |
+
+The option `key` is also an option of `packPortfolio`. Without `key` and `members`, the output does not change.
+
+### The aspect fit
+
+Roadmap item k62 adds `aspectFit(strategy, { targetAspect })`. It wraps a strategy for a container of free size. It is opt-in. No default uses it.
+
+```ts
+const fit = aspectFit(strategy("maxrects"), { targetAspect: 16 / 9 });
+const output = fit.pack(input, { rule: "bl" }, createContext(1));
+const same = packWith("aspect-fit", input, { strategy: "maxrects", options: { rule: "bl" } });
+```
+
+- A container of fixed size gives the output of the wrapped strategy, with no change.
+- The target is `targetAspect`, else `aspect` of the container, else 1.
+- A free height (`fixed: "width"`) keeps its width. A free width uses the same search on the swapped axes.
+
+For a free size, the function makes a portfolio of widths around the target. It packs with the wrapped strategy at each width.
+
+1. Member 0 is the output of the wrapped strategy on the input. Thus its own search for the size is always a candidate.
+2. The ideal width is `sqrt(A * target)`. `A` is the hull area of the member 0 output.
+3. Each factor of `ASPECT_FIT_FACTORS` (0.86 to 1.16) gives a width: the factor times the ideal width, plus the inset on the 2 sides.
+4. A width is never below the widest item with its margins. Equal widths become one member. Thus there are 8 members or fewer.
+5. A member packs with `fixed: "width"` at its width. A shape that is not a rectangle becomes a strip at the same origin, with the same holes.
+6. The output of a member gets the size of its content, as a free container has.
+
+`portfolio` of the contract picks the best member by the levels of `ASPECT_FIT_LEVELS`:
+
+| Level | Why |
+|---|---|
+| `hard` | A hard break is the worst failure. The pick uses `exactContainer`. |
+| `pack.overflow.excessArea` | Overflow above its bound is the worst failure that is not hard. |
+| `pack.aspectError` | The aim of the wrapper. It compares the hull with the target. Values within 0.01 are a tie. |
+| `pack.area` | The least area among the ties of the aspect. Values within 1% are a tie. |
+
+- The measures read the input with `aspect` set to the target. Thus `pack.aspectError` uses the target of the wrapper.
+- The output gets the trace stage `aspect-fit` (`ASPECT_FIT_STAGE`). Its measure `move.aspectPick` is 1 when the pick is not member 0.
+- The id of the result is `aspect-fit(<id>)`. It keeps the family, the supports, the defaults and `deterministic` of the wrapped strategy.
+- The composite strategy `aspect-fit` of the registry takes the options `strategy`, `options` and `targetAspect`.
 
 ## The registry
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
-const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit"
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```

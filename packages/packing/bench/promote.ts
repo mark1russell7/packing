@@ -598,6 +598,8 @@ export interface PromotionVerdict {
   shapes: Record<string, WinTests & { cellMin: boolean }>;
   /** The verdict of each guard set on the same records. Only the option `compareGuards` gives it. It does not change `pass`. */
   compare?: Record<GuardSetId, GuardSetVerdict>;
+  /** The exploratory views. Only the option `compareGuards` gives them. They do not change `pass`. */
+  views?: { [ORDER_FREE_VIEW]: GuardView };
 }
 
 /** The verdict of one guard set, for the compare of the guard sets. */
@@ -605,6 +607,25 @@ export interface GuardSetVerdict {
   pass: boolean;
   coverage: GuardCoverage[];
   tests: WinTests;
+}
+
+/** The id of the exploratory view of roadmap item k62: the guard set `v2` without the guard `pack.order.inversions`. */
+export const ORDER_FREE_VIEW = "orderNotRequired";
+
+/**
+ * The guards of the view `orderNotRequired`: the guards of `v2` without `pack.order.inversions`. The view is a report for a
+ * caller that does not need the order of the items. It is not a guard set, and it decides nothing.
+ */
+export const ORDER_FREE_GUARDS: readonly GuardDeclaration[] = Object.freeze(GUARD_DECLARATIONS.filter((g) => g.measure !== "pack.order.inversions"));
+
+/** An exploratory view: the verdict of other guards on the same records. A view does not change `pass`. */
+export interface GuardView extends GuardSetVerdict {
+  /** The guard set that the view starts from */
+  from: GuardSetId;
+  /** The guards of `from` that the view leaves out for each input */
+  without: string[];
+  /** The value `false`: a view is information, and it decides nothing */
+  decides: false;
 }
 
 /** The options of the win test. */
@@ -793,6 +814,12 @@ export function winTest(records: readonly PromotionRecord[], options: WinTestOpt
     };
     compare = { v1: verdictOf("v1"), v2: verdictOf("v2") };
   }
+  let views: PromotionVerdict["views"];
+  if (options.compareGuards === true) {
+    const own = testsOf(pairs, options.win, cells, params, false, timeInputs, ORDER_FREE_GUARDS);
+    const view: GuardView = { from: "v2", without: ["pack.order.inversions"], decides: false, pass: own.pass, coverage: coverageOf(ORDER_FREE_GUARDS, pairs, cells), tests: own };
+    views = { [ORDER_FREE_VIEW]: view };
+  }
   return {
     candidate: options.candidate,
     current: options.current,
@@ -809,6 +836,7 @@ export function winTest(records: readonly PromotionRecord[], options: WinTestOpt
     pass: tests.pass,
     shapes,
     ...(compare === undefined ? {} : { compare }),
+    ...(views === undefined ? {} : { views }),
   };
 }
 
@@ -915,6 +943,25 @@ function compareLines(compare: NonNullable<PromotionVerdict["compare"]>): string
   return lines;
 }
 
+/** This function writes the view `orderNotRequired`: its verdict next to the verdict of `v2`, with the label that it decides nothing. */
+function viewLines(v2: GuardSetVerdict, view: GuardView): string[] {
+  const row = (test: string, cell: (t: GuardSetVerdict) => string): string => `| ${test} | ${cell(v2)} | ${cell(view)} |`;
+  const measures = GUARD_SETS[view.from].map((g) => g.measure);
+  return [
+    "## The view: order not required",
+    "",
+    `This view is exploratory, and it decides nothing. It gives the verdict of \`${view.from}\` without the guard ${view.without.map((m) => `\`${m}\``).join(", ")} on each input.`,
+    "It is a report for a caller that does not need the order of the items. It is not a caller profile of `docs/PROMOTION.md`.",
+    "",
+    `| test | ${view.from} inputs | ${view.from} median | ${view.from} tail share | ${view.from} result | view inputs | view median | view tail share | view result |`,
+    "|---|---:|---:|---:|---|---:|---:|---:|---|",
+    row("hard rules", (v) => `${v.tests.hard.inputs} | - | - | ${passText(v.tests.hard.pass)}`),
+    ...measures.map((m) => row(`\`${m}\``, (v) => guardCells(v.tests, m))),
+    row("**verdict**", (v) => `${v.tests.inputs} | - | - | **${passText(v.pass)}**`),
+    "",
+  ];
+}
+
 /** This function writes `promotion.md`: the tests of all the inputs, then a table of each container shape. */
 export function promotionMarkdown(v: PromotionVerdict): string {
   const t = v.tests;
@@ -943,6 +990,7 @@ export function promotionMarkdown(v: PromotionVerdict): string {
     ...coverageRows(v.coverage),
     "",
     ...(v.compare === undefined ? [] : compareLines(v.compare)),
+    ...(v.compare === undefined || v.views === undefined ? [] : viewLines(v.compare.v2, v.views[ORDER_FREE_VIEW])),
     "## The floor rule",
     "",
     "| measure | inputs | at the floor | ties | losses |",
@@ -1035,7 +1083,9 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "promotion.json"), promotionJson(verdict));
   writeFileSync(join(out, "promotion.md"), promotionMarkdown(verdict));
-  const others = verdict.compare === undefined ? "" : ` The guard set v1 gives ${passText(verdict.compare.v1.pass)}, and v2 gives ${passText(verdict.compare.v2.pass)}.`;
+  const view = verdict.views?.[ORDER_FREE_VIEW];
+  const viewText = view === undefined ? "" : ` The view ${ORDER_FREE_VIEW}, which decides nothing, gives ${passText(view.pass)}.`;
+  const others = verdict.compare === undefined ? "" : ` The guard set v1 gives ${passText(verdict.compare.v1.pass)}, and v2 gives ${passText(verdict.compare.v2.pass)}.${viewText}`;
   console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs with the guard set ${verdict.guardSet}: ${passText(verdict.pass)}.${others}`);
   return verdict;
 }

@@ -1,6 +1,7 @@
 {
   "schema": "layout-corpus/1",
   "corpus": "pack-screen-v1",
+  "claims": {"declared": {"minCount": 10, "thin": ["order", "aspect"], "counts": {"order": 0, "aspect": 0, "free-size": 20, "shaped": 1050}}},
   "specs": [
     {"generator": "rect-grid", "version": 1, "params": {"containerShape": "rect", "obstacles": "none", "sizes": "uniform", "count": 10}, "seeds": [1, 2, 3, 4, 5]},
     {"generator": "rect-grid", "version": 1, "params": {"containerShape": "rect", "obstacles": "none", "sizes": "uniform", "count": 100}, "seeds": [1, 2, 3, 4, 5]},

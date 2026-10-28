@@ -47,8 +47,30 @@ export const PORTFOLIO_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "portfolio-k3", strategy: "portfolio", options: { k: 3 }, base: "maxrects-bl" },
 ]);
 
+/** The key of the entry `portfolio-area-rows-bl`: the area first after the hard breaks, then the key of `PORTFOLIO_LEVELS`. */
+export const AREA_KEY: readonly string[] = Object.freeze(["pack.area", "pack.overflow.excessArea", "pack.fill"]);
+
+/**
+ * The composite entries of roadmap item k62. They are not in the pool of the oracle.
+ *
+ * - `aspect-fit-<entry>`: the strategy `aspect-fit` around an entry. Its base is that entry. Its move is `move.aspectPick`.
+ * - `portfolio-area-rows-bl`: the strategy `portfolio` with the members `rows` and `maxrects-bl`, and the key `AREA_KEY`.
+ *   Its move is `move.pick`.
+ */
+export const ASPECT_FIT_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "aspect-fit-maxrects-bl", strategy: "aspect-fit", options: { strategy: "maxrects", options: { rule: "bl" } }, base: "maxrects-bl" },
+  { id: "aspect-fit-maxrects-bssf", strategy: "aspect-fit", options: { strategy: "maxrects", options: { rule: "bssf" } }, base: "maxrects-bssf" },
+  { id: "aspect-fit-portfolio-k2", strategy: "aspect-fit", options: { strategy: "portfolio", options: { k: 2 } }, base: "portfolio-k2" },
+  {
+    id: "portfolio-area-rows-bl",
+    strategy: "portfolio",
+    options: { members: ["rows", { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }], key: AREA_KEY },
+    base: "maxrects-bl",
+  },
+]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set(PORTFOLIO_ENTRIES.map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -64,6 +86,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...SHELF_VARIANTS,
   ...MAXRECTS_VARIANTS,
   ...PORTFOLIO_ENTRIES,
+  ...ASPECT_FIT_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

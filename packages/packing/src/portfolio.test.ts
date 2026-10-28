@@ -5,6 +5,7 @@ import {
   canonicalJson,
   hardBreaks,
   measure,
+  MEASURE_SPECS,
   outputHash,
   packPortfolio,
   packWith,
@@ -110,6 +111,25 @@ describe("packPortfolio", () => {
     expect(() => packPortfolio(["nope"])).toThrow(RangeError);
     expect(() => packPortfolio([])).toThrow(RangeError);
     expect(() => packPortfolio(["shelf", "shelf"])).toThrow(RangeError);
+  });
+
+  it("with the option key, picks on the hard breaks, then the measures of the key in order", () => {
+    const key = ["pack.area", "pack.overflow.excessArea", "pack.fill"];
+    const p = packPortfolio(MEMBERS, { key });
+    const levels = [PORTFOLIO_LEVELS[0]!, ...key.map((id) => ({ id, spec: MEASURE_SPECS[id as "pack.area"] }))];
+    for (const input of inputs()) {
+      const outputs = MEMBERS.map((m) => packMember(m, input));
+      const candidates = MEMBERS.map((m, i) => {
+        const values = roundMeasures(measure(input, outputs[i]!));
+        return { id: typeof m === "string" ? m : m.id, values: { hard: hardBreaks(input, outputs[i]!), ...Object.fromEntries(key.map((id) => [id, values[id as "pack.area"]])) } };
+      });
+      expect(p.pick(input).winner).toBe(selectBest(candidates, levels).winner);
+    }
+    // The default key is the key of PORTFOLIO_LEVELS
+    const input = inputs()[2]!;
+    expect(bare(packPortfolio(MEMBERS, { key: ["pack.overflow.excessArea", "pack.fill"] }).run(input))).toEqual(bare(packPortfolio(MEMBERS).run(input)));
+    expect(() => packPortfolio(MEMBERS, { key: ["nope"] })).toThrow(RangeError);
+    expect(() => packPortfolio(MEMBERS, { key: ["hard"] })).toThrow(RangeError);
   });
 
   it("gives the levels in the order of the pick, with the specs of the measures", () => {

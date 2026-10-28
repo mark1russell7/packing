@@ -228,13 +228,16 @@ This section is local to `packing`.
 
 The table gives the properties of an input, the field that declares each property, and its guards. `GUARD_DECLARATIONS` of `packages/packing/bench/promote.ts` holds this table, and its tests read it.
 
-| Property | The input field that declares it | Guard |
-|---|---|---|
-| Order | The cell `order` is `soft` or `hard`. | `pack.order.inversions` |
-| Aspect | The container has `aspect`. In the generated corpora, only the cell `containerSize` `freeAspect` sets it. | `pack.aspectError` |
-| Free size | The cell `containerSize` is not `fixed`. | `pack.area` on all these inputs |
-| Fixed size | The cell `containerSize` is `fixed`. | `pack.overflow`, and `pack.area` on the inputs where both records have the same `pack.overflow` |
-| Change pair | Both records have the stability measure. | `pack.stability.mean`, `pack.stability.q95` and `pack.stability.moved` |
+| Property | Id | The input field that declares it | Guard |
+|---|---|---|---|
+| Order | `order` | The cell `order` is `soft` or `hard`. | `pack.order.inversions` |
+| Aspect | `aspect` | The container has `aspect`. In the generated corpora, only the cell `containerSize` `freeAspect` sets it. | `pack.aspectError` |
+| Free size | `free-size` | The cell `containerSize` is not `fixed`. | `pack.area` on all these inputs |
+| Fixed size | `fixed-size` | The cell `containerSize` is `fixed`. | `pack.overflow`, and `pack.area` on the inputs where both records have the same `pack.overflow` |
+| Change pair | `change-pair` | Both records have the stability measure. | `pack.stability.mean`, `pack.stability.q95` and `pack.stability.moved` |
+| Shaped | `shaped` | The container has a shape that is not a rectangle. | none of its own. The report gives each shape. |
+
+- A corpus file gives the count of its inputs for the ids `order`, `aspect`, `free-size` and `shaped` in `claims.declared`. `docs/BENCH.md` ("The declared properties") tells the check.
 
 - `pack.order.inversions` counts the pairs of boxes out of their rank order. An input with the order `free` has no rank order to keep.
 - `pack.aspectError` compares the hull with `container.aspect ?? 1`. A container without `aspect` does not ask for an aspect.

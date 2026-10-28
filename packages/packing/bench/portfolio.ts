@@ -524,13 +524,20 @@ export function portfolioOf(order: readonly string[], records: readonly ScreenRe
 
 /**
  * This function gives the members of each composite entry of `ids` on each input, by `portfolioMembers` with the `k` of the entry.
- * An id that is not a composite entry gets no map.
+ * An entry with the option `members` gets these members on each input. An id that is not a composite entry of the strategy
+ * `portfolio` gets no map.
  */
 export function compositeMembersOf(ids: readonly string[], inputs: readonly { id: string; input: PackInput }[]): Map<string, Map<string, InputMembers>> {
   const out = new Map<string, Map<string, InputMembers>>();
   for (const id of ids) {
     const e = ENTRIES.find((x) => x.id === id);
-    if (e === undefined || !COMPOSITE_IDS.has(id)) continue;
+    if (e === undefined || !COMPOSITE_IDS.has(id) || e.strategy !== "portfolio") continue;
+    const given = e.options["members"];
+    if (Array.isArray(given)) {
+      const members = given.map((m: string | { id: string }) => (typeof m === "string" ? m : m.id));
+      out.set(id, new Map(inputs.map((x) => [x.id, { members, defaultMembers: members.length }])));
+      continue;
+    }
     const k = Number(e.options["k"] ?? 3);
     out.set(id, new Map(inputs.map((x) => [x.id, { members: portfolioMembers(x.input, k).map((m) => m.id), defaultMembers: portfolioDefaultMembers(x.input, k) }])));
   }

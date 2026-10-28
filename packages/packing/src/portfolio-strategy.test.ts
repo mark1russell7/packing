@@ -40,7 +40,7 @@ function clock(step: number): () => number {
 
 describe("the strategy portfolio", () => {
   it("is a composite strategy of the registry, not a single strategy", () => {
-    expect(composites.map((s) => s.id)).toEqual(["portfolio"]);
+    expect(composites.map((s) => s.id)).toEqual(["portfolio", "aspect-fit"]);
     expect(strategies.map((s) => s.id)).not.toContain("portfolio");
     expect(strategy("portfolio")).toBe(portfolioStrategy);
     expect(portfolioStrategy.defaults).toEqual({});
@@ -82,7 +82,17 @@ describe("the strategy portfolio", () => {
     expect(bare({ ...out, trace: out.trace!.slice(0, -1) })).toEqual(bare(packWith(first.strategy, input, first.options)));
   });
 
-  it("throws a RangeError for a k other than 2 or 3", () => {
+  it("throws a RangeError for a k other than 2 or 3, and for k with members", () => {
     expect(() => packWith("portfolio", inputs()[0]!, { k: 4 })).toThrow(RangeError);
+    expect(() => packWith("portfolio", inputs()[0]!, { k: 2, members: ["rows"] })).toThrow(RangeError);
+  });
+
+  it("with members and key, gives the output of packPortfolio with these members and this key", () => {
+    const members = ["rows", { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }];
+    const key = ["pack.area", "pack.overflow.excessArea", "pack.fill"];
+    for (const input of inputs()) {
+      const want = packPortfolio(members, { id: "portfolio", seed: 2, key }).run(input);
+      expect(bare(packWith("portfolio", input, { members, key }, 2))).toEqual(bare(want));
+    }
   });
 });

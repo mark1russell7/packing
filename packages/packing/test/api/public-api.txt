@@ -4,8 +4,13 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 172 names
+## . (build/index.d.ts): 181 names
 
+ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
+ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
+ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
+type AspectFitOptions: build/index.d.ts#AspectFitOptions
+type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
@@ -82,6 +87,7 @@ type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
 Rect: build/index.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
+type RectGridV2Params: build/index.d.ts#RectGridV2Params
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
 SHELF_FITS: build/index.d.ts#SHELF_FITS
@@ -107,6 +113,8 @@ type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/index.d.ts#UnsupportedCell
 Vector: build/index.d.ts#Vector
 aspectError: build/index.d.ts#aspectError
+aspectFit: build/index.d.ts#aspectFit
+aspectFitStrategy: build/index.d.ts#aspectFitStrategy
 assertSupported: build/index.d.ts#assertSupported
 canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
@@ -158,6 +166,7 @@ push: build/index.d.ts#push
 pushCascade: build/index.d.ts#pushCascade
 quantile: build/index.d.ts#quantile
 rectGrid: build/index.d.ts#rectGrid
+rectGridV2: build/index.d.ts#rectGridV2
 rectScattered: build/index.d.ts#rectScattered
 round3: build/index.d.ts#round3
 roundMeasures: build/index.d.ts#roundMeasures
@@ -180,6 +189,27 @@ unsupportedOf: build/index.d.ts#unsupportedOf
 wordCloud: build/index.d.ts#wordCloud
 
 ## Declarations
+
+### build/index.d.ts#ASPECT_FIT_FACTORS
+export declare const ASPECT_FIT_FACTORS: readonly number[];
+
+### build/index.d.ts#ASPECT_FIT_LEVELS
+export declare const ASPECT_FIT_LEVELS: readonly SelectLevel$1[];
+
+### build/index.d.ts#ASPECT_FIT_STAGE
+export declare const ASPECT_FIT_STAGE = "aspect-fit";
+
+### build/index.d.ts#AspectFitOptions
+interface AspectFitOptions {
+  targetAspect?: number;
+}
+
+### build/index.d.ts#AspectFitStrategyOptions
+interface AspectFitStrategyOptions {
+  strategy?: string;
+  options?: unknown;
+  targetAspect?: number;
+}
 
 ### build/index.d.ts#Cell
 interface Cell {
@@ -465,6 +495,7 @@ interface PackPortfolioOptions {
   budgetMs?: number;
   maxMembers?: number;
   now?: () => number;
+  key?: readonly string[];
 }
 
 ### build/index.d.ts#PackingMetrics
@@ -531,6 +562,8 @@ interface PortfolioStrategyOptions {
   k?: 2 | 3;
   maxMembers?: number;
   budgetMs?: number;
+  members?: readonly (string | PortfolioEntry)[];
+  key?: readonly string[];
 }
 
 ### build/index.d.ts#PortfolioTrainScore
@@ -584,6 +617,11 @@ type RectGridParams = {
   obstacles: ObstacleLayout;
   sizes: SizeDistribution;
   count: number;
+};
+
+### build/index.d.ts#RectGridV2Params
+type RectGridV2Params = RectGridParams & {
+  order: (typeof GRID_ORDERS)[number];
 };
 
 ### build/index.d.ts#RectScatteredParams
@@ -703,6 +741,12 @@ export declare class Vector {
 ### build/index.d.ts#aspectError
 export declare function aspectError(width: number, height: number, target?: number): number;
 
+### build/index.d.ts#aspectFit
+export declare function aspectFit<O>(inner: Strategy<O>, options?: AspectFitOptions): Strategy<O>;
+
+### build/index.d.ts#aspectFitStrategy
+export declare const aspectFitStrategy: Strategy<AspectFitStrategyOptions>;
+
 ### build/index.d.ts#assertSupported
 export declare function assertSupported(supports: Supports, input: PackInput): void;
 
@@ -755,7 +799,7 @@ export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>):
 export declare const gallery: CorpusGenerator<UiParams>;
 
 ### build/index.d.ts#generator
-export declare function generator(name: string): CorpusGenerator;
+export declare function generator(name: string, version?: number): CorpusGenerator;
 
 ### build/index.d.ts#generators
 export declare const generators: readonly CorpusGenerator[];
@@ -859,6 +903,9 @@ export declare function quantile(values: readonly number[], q: number): number;
 
 ### build/index.d.ts#rectGrid
 export declare const rectGrid: CorpusGenerator<RectGridParams>;
+
+### build/index.d.ts#rectGridV2
+export declare const rectGridV2: CorpusGenerator<RectGridV2Params>;
 
 ### build/index.d.ts#rectScattered
 export declare const rectScattered: CorpusGenerator<RectScatteredParams>;
