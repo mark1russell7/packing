@@ -332,6 +332,38 @@ describe("MEASURE_SPECS", () => {
     }
     expect(Object.values(MEASURE_SPECS).filter((s) => s.floor !== undefined)).toHaveLength(6);
   });
+
+  it("gives the deprecated alias forcedAreaMin the spec of forcedArea, except the id", () => {
+    const { id: a, ...alias } = MEASURE_SPECS["pack.overflow.forcedAreaMin"];
+    const { id: b, ...spec } = MEASURE_SPECS["pack.overflow.forcedArea"];
+    expect([a, b]).toEqual(["pack.overflow.forcedAreaMin", "pack.overflow.forcedArea"]);
+    expect(alias).toEqual(spec);
+  });
+});
+
+describe("the alias pack.overflow.forcedAreaMin", () => {
+  const shapes = ["rect", "convex", "polygon", "circle", "ellipse", "holes"] as const;
+  const sizes = ["fixed", "freeHeight", "freeWidth", "freeAspect", "freeArea"] as const;
+  for (const containerShape of shapes) {
+    it(`is equal to pack.overflow.forcedArea on each input of a ${containerShape} container, fixed and free, and excessArea uses it`, () => {
+      let overflowing = 0;
+      for (const containerSize of sizes) {
+        for (const [seed, count] of [[1, 100], [2, 30]] as const) {
+          const input = toPackInput(rectGrid.generate(seed, { containerShape, containerSize, obstacles: seed === 1 ? "scattered" : "center", sizes: "heavyTail", count }));
+          for (const id of ["rows", "shelf"]) {
+            const m = measure(input, packWith(id, input, undefined, seed));
+            const label = `${id} ${containerSize} s${seed}`;
+            expect(m["pack.overflow.forcedAreaMin"], label).toBe(m["pack.overflow.forcedArea"]);
+            const excess = m["pack.overflow.area"] - m["pack.overflow.forcedArea"];
+            expect(m["pack.overflow.excessArea"], label).toBeCloseTo(Math.max(0, excess), 12);
+            if (m["pack.overflow.area"] > 0) overflowing++;
+          }
+        }
+      }
+      // A fixed container of 100 boxes with a heavy tail leaves some boxes out, so the test sees an overflow area
+      expect(overflowing).toBeGreaterThan(0);
+    });
+  }
 });
 
 describe("the measures of generated inputs", () => {

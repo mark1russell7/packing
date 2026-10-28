@@ -15,7 +15,6 @@ import {
   quantile,
   round3,
   roundMeasures,
-  strategies,
   strategy,
   toPackInput,
   UnsupportedCell,
@@ -27,6 +26,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
+import { ENTRIES, entry } from "./entries.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
 
 /** The file of a corpus in `bench/corpora`: a `layout-corpus/1` manifest with its specs and no inputs. */
@@ -58,7 +58,7 @@ interface BenchRecordHead {
   stage: "pack";
   step: "pack";
   strategy: string;
-  /** The full options of the strategy: its defaults, because the runner gives no options. */
+  /** The full options of the entry: the defaults of its strategy, with the options of the entry over them. */
   options: Record<string, unknown>;
   corpus: string;
   input: string;
@@ -183,7 +183,7 @@ export interface BenchOptions {
   corpus: BenchCorpus;
   /** The id of the prediction of the run. Each record names it. */
   prediction: string;
-  /** The ids of the strategies. The default is each strategy of the registry. */
+  /** The ids of the entries. The default is each entry of `bench/entries.ts`: each strategy of the registry, then the variants. */
   strategies?: readonly string[];
   /** The timed passes of each pair. The default is 5. */
   repeats?: number;
@@ -245,14 +245,14 @@ export function parsePredictions(text: string): BenchPrediction[] {
   return out;
 }
 
-/** This function gives the ids of the strategies of a list with commas. The value `all` or an empty list gives each strategy. */
+/** This function gives the ids of the entries of a list with commas. The value `all` or an empty list gives each entry. */
 export function strategyIds(list: string | undefined): string[] {
   const ids = (list ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter((s) => s !== "");
-  if (ids.length === 0 || (ids.length === 1 && ids[0] === "all")) return strategies.map((s) => s.id);
-  for (const id of ids) strategy(id);
+  if (ids.length === 0 || (ids.length === 1 && ids[0] === "all")) return ENTRIES.map((e) => e.id);
+  for (const id of ids) entry(id);
   return [...new Set(ids)];
 }
 
@@ -297,7 +297,7 @@ export function runBench(options: BenchOptions): BenchResult {
   if (!Number.isInteger(warmup) || warmup < 0) throw new RangeError("The warm-up runs are a whole number of 0 or more.");
   if (options.prediction.trim() === "") throw new RangeError("Each run names its prediction.");
   const clock = options.clock ?? (() => performance.now());
-  const ids = options.strategies === undefined ? strategies.map((s) => s.id) : [...options.strategies];
+  const ids = options.strategies === undefined ? ENTRIES.map((e) => e.id) : [...options.strategies];
   const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
 
   const records: BenchRecord[] = [];
@@ -307,11 +307,14 @@ export function runBench(options: BenchOptions): BenchResult {
   const coverage: Record<string, BenchCoverage> = {};
 
   for (const id of ids) {
-    const s = strategy(id);
+    const e = entry(id);
+    const s = strategy(e.strategy);
+    // An entry of the registry gives no options to packWith, as the runner before k21 did
+    const given = Object.keys(e.options).length === 0 ? undefined : { ...(s.defaults as Record<string, unknown>), ...e.options };
     const done = new Map<string, { input: PackInput; output: PackOutput }>();
     const kept = new Map<string, PackOutput>();
     outputs.set(id, kept);
-    const defaults = { ...(s.defaults as Record<string, unknown>) };
+    const defaults = { ...(s.defaults as Record<string, unknown>), ...e.options };
     for (const [index, file] of inputs.entries()) {
       const head = {
         schema: "layout-record/1",
@@ -350,14 +353,14 @@ export function runBench(options: BenchOptions): BenchResult {
       }
       const input = toPackInput(file);
       try {
-        const first = packWith(id, input, undefined, file.seed);
-        const second = packWith(id, input, undefined, file.seed);
-        for (let w = 0; w < warmup; w++) packWith(id, input, undefined, file.seed);
+        const first = packWith(e.strategy, input, given, file.seed);
+        const second = packWith(e.strategy, input, given, file.seed);
+        for (let w = 0; w < warmup; w++) packWith(e.strategy, input, given, file.seed);
         const msRuns: number[] = [];
         const searchMs: number[] = [];
         for (let r = 0; r < repeats; r++) {
           const start = clock();
-          const out = packWith(id, input, undefined, file.seed);
+          const out = packWith(e.strategy, input, given, file.seed);
           msRuns.push(clock() - start);
           searchMs.push(traceSum(out, "pack.search.ms"));
         }

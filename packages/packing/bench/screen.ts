@@ -4,14 +4,22 @@
 
 import { compareMeasure } from "@mark1russell7/layout-contract";
 import { MEASURE_SPECS, quantile, round3, type MeasureId, type PackOutput } from "@mark1russell7/packing";
+import { basesOf } from "./entries.ts";
 
-/** The id of the characteristic move of each strategy. The trace of the strategy has the count of the move with this id. */
+/** The id of the characteristic move of each entry. The trace of the entry has the count of the move with this id. */
 export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   rows: "move.gapFill",
   shelf: "move.stack",
   skyline: "move.lowerWindow",
   push: "move.cascade",
+  "shelf-next": "move.stack",
+  "shelf-first": "move.firstFit",
+  "shelf-best": "move.bestFit",
+  "shelf-first-input": "move.firstFit",
 });
+
+/** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */
+export const BASE_OF: Readonly<Record<string, string>> = Object.freeze(basesOf());
 
 /** The id of the measure of the runner for the boxes out of the true outline: `in-container` of `checkHard` with `exactContainer`. */
 export const OUTSIDE_EXACT = "pack.outsideExact";
@@ -23,12 +31,12 @@ export const OVERFLOW_MEASURES: readonly string[] = [
   "pack.overflow.area",
   "pack.overflow.forced",
   "pack.overflow.excess",
-  "pack.overflow.forcedAreaMin",
+  "pack.overflow.forcedArea",
   "pack.overflow.excessArea",
 ];
 
 /** The overflow measures with a median column in the summary: the measures by area of k60. */
-export const AREA_MEASURES: readonly string[] = ["pack.overflow.forcedAreaMin", "pack.overflow.excessArea"];
+export const AREA_MEASURES: readonly string[] = ["pack.overflow.forcedArea", "pack.overflow.excessArea"];
 
 /** The measure of step 1 of the ranking. Lower is better. */
 export const RANK_MEASURE: MeasureId = "pack.overflow.excessArea";
@@ -117,7 +125,11 @@ export interface ActivationCell {
   fired: number;
   /** The sum of the counts of the move */
   count: number;
-  /** The label `exercised` when the move has a count above 0 on 1 input or more */
+  /** The base of a variant: the same strategy without the options of the variant. Only a variant has a base. */
+  base?: string;
+  /** The inputs where the variant and its base both have an output, and the outputs are not equal. Only a variant has it. */
+  differs?: number;
+  /** The label `exercised` when the move has a count above 0 on 1 input or more. A variant that differs from its base also gets it. */
   label: "exercised" | "not-exercised";
   /** The reason of the label `not-exercised` */
   reason?: string;
@@ -307,14 +319,20 @@ export function rankingOf(strategies: readonly string[], records: readonly Scree
  * This function gives the activation of the move of a strategy over some measured records. The list `skipped` holds the
  * skipped records of the same strategy and inputs. They give the reason when no record is measured.
  */
-function activationOf(strategy: string, records: readonly ScreenRecord[], skipped: readonly ScreenRecord[] = []): ActivationCell {
+function activationOf(strategy: string, records: readonly ScreenRecord[], skipped: readonly ScreenRecord[] = [], base?: ReadonlyMap<string, string>): ActivationCell {
   const move = MOVE_OF[strategy];
   if (move === undefined) return { move: "-", records: records.length, fired: 0, count: 0, label: "not-exercised", reason: "The strategy has no characteristic move." };
   const counted = records.filter((r) => r.measures[move] !== undefined);
   const fired = counted.filter((r) => r.measures[move]! > 0).length;
   const count = counted.reduce((sum, r) => sum + r.measures[move]!, 0);
-  const cell = { move, records: records.length, fired, count };
-  if (fired > 0) return { ...cell, label: "exercised" };
+  const cell: Omit<ActivationCell, "label"> = { move, records: records.length, fired, count };
+  // A variant with records of its base in the run also counts the inputs where its output is not the output of the base
+  const baseId = BASE_OF[strategy];
+  if (baseId !== undefined && base !== undefined) {
+    cell.base = baseId;
+    cell.differs = records.filter((r) => r.outputHash !== undefined && base.has(r.input) && base.get(r.input) !== r.outputHash).length;
+  }
+  if (fired > 0 || (cell.differs ?? 0) > 0) return { ...cell, label: "exercised" };
   let reason: string;
   if (records.length === 0 && skipped.length > 0) {
     const why = [...new Set(skipped.map((r) => r.skipped))].join(", ");
@@ -322,6 +340,7 @@ function activationOf(strategy: string, records: readonly ScreenRecord[], skippe
   } else if (records.length === 0) reason = "No record is measured.";
   else if (counted.length === 0) reason = `No record has a count of ${move}.`;
   else reason = `The count of ${move} is 0 on each of the ${counted.length} measured inputs.`;
+  if (cell.base !== undefined && records.length > 0) reason += ` The output is the output of ${cell.base} on each common input.`;
   return { ...cell, label: "not-exercised", reason };
 }
 
@@ -452,7 +471,7 @@ export function screenMarkdown(screen: Partial<BenchScreen>, strategies: readonl
     lines.push(
       "Each measure column is a mean, and each column `(median)` is a median. `outsideExact` is a sum.",
       "`forced` is a lower bound of the overflow count, and `excess` is the overflow above it. The count bound is weak on mixed sizes.",
-      "`forcedAreaMin` is a lower bound of the overflow area, and `excessArea` is the overflow area above it. Judge a strategy by `excessArea`.",
+      "`forcedArea` is a lower bound of the overflow area, and `excessArea` is the overflow area above it. Judge a strategy by `excessArea`.",
       "",
       `| strategy | container shape | records | with overflow | share | ${OVERFLOW_MEASURES.map(short).join(" | ")} | ${AREA_MEASURES.map((m) => `${short(m)} (median)`).join(" | ")} | outsideExact |`,
       `|---|---|---:|---:|---:|${OVERFLOW_MEASURES.map(() => "---:").join("|")}|${AREA_MEASURES.map(() => "---:").join("|")}|---:|`,
@@ -491,16 +510,18 @@ export function screenMarkdown(screen: Partial<BenchScreen>, strategies: readonl
   else {
     lines.push(
       "Each strategy counts its characteristic move in its trace. A strategy is `exercised` when the count is above 0 on 1 input or more.",
+      "A variant is also `exercised` when its output is not the output of its base on 1 input or more.",
       "A strategy that is `not-exercised` stays in the screen, with its reason.",
       "",
-      "| strategy | move | container shape | records | inputs with the move | count | label | reason |",
-      "|---|---|---|---:|---:|---:|---|---|",
+      "| strategy | move | container shape | records | inputs with the move | count | inputs not equal to the base | label | reason |",
+      "|---|---|---|---:|---:|---:|---:|---|---|",
     );
     for (const id of ids) {
       const a = activation[id];
       if (a === undefined) continue;
       for (const [shape, c] of [["all", a] as const, ...Object.entries(a.shapes)]) {
-        lines.push(`| ${id} | \`${c.move}\` | ${shape} | ${c.records} | ${c.fired} | ${c.count} | ${c.label} | ${c.reason ?? ""} |`);
+        const differs = c.base === undefined ? "-" : `${c.differs ?? 0} (${c.base})`;
+        lines.push(`| ${id} | \`${c.move}\` | ${shape} | ${c.records} | ${c.fired} | ${c.count} | ${differs} | ${c.label} | ${c.reason ?? ""} |`);
       }
     }
   }
@@ -517,8 +538,13 @@ export function screenOf(strategies: readonly string[], records: readonly Screen
   const measured = records.filter(isMeasured);
   const allShapes = [...new Set([...shapes.values(), ...records.map((r) => shapeOf(r.input))])];
   const screen: BenchScreen = { fill: {}, overflow: {}, outputGroups: [], cellGroups: {}, activation: {}, ranking: {} };
+  const hashes = hashesOf(ids, measured);
   for (const id of ids) {
     const own = measured.filter((r) => r.strategy === id);
+    // The hashes of the base of a variant, when the run has the base. A job of a matrix has only its own entry.
+    const baseId = BASE_OF[id];
+    const base = baseId === undefined ? undefined : hashesOf([baseId], measured).get(baseId);
+    const baseOf = base !== undefined && base.size > 0 ? base : undefined;
     // Each shape where the strategy has a measured record
     const cells = allShapes.map((k) => [k, own.filter((r) => shapeOf(r.input) === k)] as const).filter(([, rs]) => rs.length > 0);
     const byShape = <T>(f: (rs: readonly ScreenRecord[]) => T): Record<string, T> => Object.fromEntries(cells.map(([k, rs]) => [k, f(rs)]));
@@ -529,11 +555,10 @@ export function screenOf(strategies: readonly string[], records: readonly Screen
     const activationShapes = allShapes.filter((k) => [...own, ...skips].some((r) => shapeOf(r.input) === k));
     const onShape = (rs: readonly ScreenRecord[], k: string): ScreenRecord[] => rs.filter((r) => shapeOf(r.input) === k);
     screen.activation[id] = {
-      ...activationOf(id, own, skips),
-      shapes: Object.fromEntries(activationShapes.map((k) => [k, activationOf(id, onShape(own, k), onShape(skips, k))])),
+      ...activationOf(id, own, skips, baseOf),
+      shapes: Object.fromEntries(activationShapes.map((k) => [k, activationOf(id, onShape(own, k), onShape(skips, k), baseOf)])),
     };
   }
-  const hashes = hashesOf(ids, measured);
   screen.outputGroups = cellOf(ids, hashes, () => true).groups;
   for (const k of allShapes) screen.cellGroups[k] = cellOf(ids, hashes, (input) => shapeOf(input) === k);
   // The ranking of a shape uses its cell groups, so the members of a group are one entry

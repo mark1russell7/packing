@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 130 names
+## . (build/index.d.ts): 132 names
 
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
@@ -62,7 +62,9 @@ Rect: build/index.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
+SHELF_FITS: build/index.d.ts#SHELF_FITS
 SORT_ORDERS: build/index.d.ts#SORT_ORDERS
+type ShelfFit: build/index.d.ts#ShelfFit
 type ShelfOptions: build/index.d.ts#ShelfOptions
 type Side: @mark1russell7/layout-contract#Side (external)
 type Sides: @mark1russell7/layout-contract#Sides (external)
@@ -319,6 +321,7 @@ interface LayoutMeasures {
 interface LayoutStrategyOptions {
   sortOrder: SortOrder;
   samples: number;
+  fit?: ShelfFit;
 }
 
 ### build/index.d.ts#MEASURE_SPECS
@@ -364,6 +367,7 @@ interface PackContext {
 ### build/index.d.ts#PackLayoutOptions
 interface PackLayoutOptions extends PackOptions {
   strategy?: "rows" | "skyline" | "shelf";
+  fit?: ShelfFit;
 }
 
 ### build/index.d.ts#PackOptions
@@ -433,13 +437,20 @@ type RectScatteredParams = {
   count: number;
 };
 
+### build/index.d.ts#SHELF_FITS
+export declare const SHELF_FITS: readonly ShelfFit[];
+
 ### build/index.d.ts#SORT_ORDERS
 export declare const SORT_ORDERS: readonly SortOrder[];
+
+### build/index.d.ts#ShelfFit
+type ShelfFit = "next" | "first" | "best";
 
 ### build/index.d.ts#ShelfOptions
 interface ShelfOptions {
   sortOrder?: SortOrder;
   space?: FreeSpace;
+  fit?: ShelfFit;
 }
 
 ### build/index.d.ts#SizeDistribution

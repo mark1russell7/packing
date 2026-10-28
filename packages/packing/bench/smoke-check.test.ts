@@ -55,20 +55,23 @@ const cover = (measured: number, inputs: number): BenchCoverage => ({
 
 /** A good run: rows, shelf and skyline pack each input, and push skips each input. */
 const goodRecords = (): BenchRecord[] => [
-  ...["rows", "shelf", "skyline"].flatMap((s) => INPUTS.map((i) => measuredRecord(s, i))),
+  ...GATED.flatMap((s) => INPUTS.map((i) => measuredRecord(s, i))),
   ...INPUTS.map((i) => skippedRecord("push", i)),
 ];
+/** The entries with the gate of the coverage 1: 3 strategies and the 4 variants of the shelf family */
+const GATED = ["rows", "shelf", "skyline", "shelf-next", "shelf-first", "shelf-best", "shelf-first-input"];
+
 const goodRun = (): BenchRun => ({
   schema: "packing-bench-run/1",
   corpus: "smoke-v1",
   prediction: "p-test",
   repeats: 1,
   warmup: 0,
-  strategies: ["rows", "shelf", "skyline", "push"],
+  strategies: [...GATED, "push"],
   env: ENV,
   skipped: INPUTS.map((input) => ({ strategy: "push", input, dimension: "mode", value: "offline" })),
   errors: [],
-  coverage: { rows: cover(2, 2), shelf: cover(2, 2), skyline: cover(2, 2), push: cover(0, 2) },
+  coverage: { ...Object.fromEntries(GATED.map((id) => [id, cover(2, 2)])), push: cover(0, 2) },
 });
 
 describe("the smoke check", () => {
@@ -76,12 +79,10 @@ describe("the smoke check", () => {
     const result = smokeCheck(goodRun(), goodRecords());
     expect(result.failures).toEqual([]);
     expect(result.rows).toEqual([
-      { strategy: "rows", measured: 2, inputs: 2, coverage: 1, full: true },
-      { strategy: "shelf", measured: 2, inputs: 2, coverage: 1, full: true },
-      { strategy: "skyline", measured: 2, inputs: 2, coverage: 1, full: true },
+      ...GATED.map((strategy) => ({ strategy, measured: 2, inputs: 2, coverage: 1, full: true })),
       { strategy: "push", measured: 0, inputs: 2, coverage: 0, full: false },
     ]);
-    expect(FULL_COVERAGE).toEqual(["rows", "shelf", "skyline"]);
+    expect(FULL_COVERAGE).toEqual(GATED);
     const md = smokeMarkdown(result);
     expect(md).toContain("| push | 0 | 2 | 0 | none |");
     expect(md).toContain("| rows | 2 | 2 | 1 | 1 |");
@@ -134,9 +135,9 @@ describe("the smoke check", () => {
 
   it("fails a forced overflow area above the overflow area, but not a difference of float noise", () => {
     const records = goodRecords();
-    records[0] = measuredRecord("rows", INPUTS[0], { measures: { "pack.overflow.area": 0.2, "pack.overflow.forcedAreaMin": 0.25 } });
-    records[1] = measuredRecord("rows", INPUTS[1], { measures: { "pack.overflow.area": 0.2, "pack.overflow.forcedAreaMin": 0.2 + 1e-10 } });
-    records[2] = measuredRecord("shelf", INPUTS[0], { measures: { "pack.overflow.area": 0.3, "pack.overflow.forcedAreaMin": 0.1 } });
+    records[0] = measuredRecord("rows", INPUTS[0], { measures: { "pack.overflow.area": 0.2, "pack.overflow.forcedArea": 0.25 } });
+    records[1] = measuredRecord("rows", INPUTS[1], { measures: { "pack.overflow.area": 0.2, "pack.overflow.forcedArea": 0.2 + 1e-10 } });
+    records[2] = measuredRecord("shelf", INPUTS[0], { measures: { "pack.overflow.area": 0.3, "pack.overflow.forcedArea": 0.1 } });
     expect(smokeCheck(goodRun(), records).failures).toEqual([`The record of rows on ${INPUTS[0]} has a forced overflow area of 0.25, above its overflow area of 0.2.`]);
   });
 
@@ -154,7 +155,7 @@ describe("the smoke check", () => {
   });
 
   it("fails a run without a strategy of the full coverage", () => {
-    const run = { ...goodRun(), strategies: ["rows", "skyline", "push"] };
+    const run = { ...goodRun(), strategies: [...GATED.filter((id) => id !== "shelf"), "push"] };
     const records = goodRecords().filter((r) => r.strategy !== "shelf");
     expect(smokeCheck(run, records).failures).toEqual(["The run does not have the strategy shelf."]);
   });

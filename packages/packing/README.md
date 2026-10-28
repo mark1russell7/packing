@@ -35,6 +35,17 @@ pack(rects, outer, { strategy: "skyline", sortOrder: "area-desc" });
 - `packSkyline`: each rectangle goes to the lowest place where it fits. It packs around a `locked` rectangle.
 - `packShelf`: it fills rows left to right in the sort order, and goes around each `locked` rectangle. With the sort order `input`, the rows read in your order.
 
+Since 0.2.4, `packShelf` and the strategy `shelf` have the option `fit`. `SHELF_FITS` lists its values. Without `fit`, the shelf packing does not change.
+
+```ts
+pack(rects, outer, { strategy: "shelf", fit: "best" });
+```
+
+- `fit: "next"`: each rectangle uses only the open shelf. A short rectangle can also stack above a shorter rectangle.
+- `fit: "first"`: each rectangle goes on the first shelf from the top where it fits.
+- `fit: "best"`: each rectangle goes on the shelf with the least height left over above it.
+- With a `fit`, the shelves open only in the free spans of each container shape. `docs/PACKER.md` tells the rules.
+
 Both functions also work alone, in an outer rectangle with a width that you set. They do not change the width.
 
 A `locked` rectangle keeps its position. `packSkyline` and `packShelf` put the other rectangles around it. `packRows` only keeps its position.

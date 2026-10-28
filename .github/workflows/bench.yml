@@ -1,6 +1,7 @@
 # The benchmarks of the packer (docs/BENCH.md). Only a person starts a run, after a commit adds its prediction.
-# The job plan checks the inputs and gives the matrix of the strategies. Each job of the matrix packs the corpus
-# with one strategy and keeps its records as the artifact bench-<corpus>-<strategy>. The job merge joins them
+# The job plan checks the inputs and gives the matrix of the entries (bench/entries.ts): each strategy of the registry,
+# then the variants of the shelf family. Each job of the matrix packs the corpus
+# with one entry and keeps its records as the artifact bench-<corpus>-<strategy>. The job merge joins them
 # into the artifact bench-<corpus>: the records of all strategies and one summary.
 # Only the times of these jobs count. No benchmark runs on a local computer.
 name: Bench
@@ -13,7 +14,7 @@ on:
         type: string
         default: smoke-v1
       strategies:
-        description: "The strategies, with commas, or all."
+        description: "The entries, with commas, or all. bench/entries.ts lists them."
         type: string
         default: all
       prediction:

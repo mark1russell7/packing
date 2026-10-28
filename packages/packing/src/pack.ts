@@ -1,7 +1,7 @@
 import { clearMoves, countMove, MOVES } from "./moves.ts";
 import { compareRects, type SortOrder } from "./order.ts";
 import { Rect } from "./rect.ts";
-import { packRowsInSpace, packShelf } from "./shelf.ts";
+import { packRowsInSpace, packShelf, type ShelfFit } from "./shelf.ts";
 import { packSkyline } from "./skyline.ts";
 import type { FreeSpace } from "./space.ts";
 import { Vector } from "./vector.ts";
@@ -24,6 +24,8 @@ export interface PackLayoutOptions extends PackOptions {
    * Use `shelf` with the sort order `input` to keep the order of the array around locked rectangles.
    */
   strategy?: "rows" | "skyline" | "shelf";
+  /** The rule of `shelf` to choose a shelf. Only `shelf` reads it. `ShelfOptions` tells it. Without it, `shelf` packs as in 0.2.3. */
+  fit?: ShelfFit;
 }
 
 /** The depth of the calls of `packInto`. Only the outer gap fill counts its rectangles as moves. */

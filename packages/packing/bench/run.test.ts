@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { strategies } from "@mark1russell7/packing";
+import { ENTRIES, entry, SHELF_VARIANTS } from "./entries.ts";
 import {
   checkPrediction,
   isMeasured,
@@ -120,15 +121,35 @@ describe("the benchmark runner", () => {
 
   it("gives each pair one record, in the order of the strategies and then of the inputs", () => {
     const inputs = first.manifest.inputs.map((e) => e.id);
-    expect(first.records.map((r) => `${r.strategy} ${r.input}`)).toEqual(strategies.flatMap((s) => inputs.map((input) => `${s.id} ${input}`)));
+    expect(first.records.map((r) => `${r.strategy} ${r.input}`)).toEqual(ENTRIES.flatMap((e) => inputs.map((input) => `${e.id} ${input}`)));
     // The corpus is offline, and push supports only the mode incremental
     expect(measured.filter((r) => r.strategy === "push")).toEqual([]);
     expect(skips.filter((r) => r.strategy === "push")).toHaveLength(inputs.length);
     expect(skips.some((r) => r.strategy === "push" && r.skipped === "unsupported mode: offline")).toBe(true);
     // rows, skyline and shelf pack a circle container and the obstacles
     const circle = inputs.find((id) => id.includes(".circle."))!;
-    expect(measured.filter((r) => r.input === circle).map((r) => r.strategy)).toEqual(["rows", "skyline", "shelf"]);
+    expect(measured.filter((r) => r.input === circle).map((r) => r.strategy)).toEqual(["rows", "skyline", "shelf", ...SHELF_VARIANTS.map((v) => v.id)]);
     expect(skips.filter((r) => r.strategy !== "push")).toEqual([]);
+  });
+
+  it("gives each variant of the shelf family its options in each record, over the defaults of shelf", () => {
+    expect(SHELF_VARIANTS.map((v) => [v.id, v.options])).toEqual([
+      ["shelf-next", { fit: "next", sortOrder: "height-desc" }],
+      ["shelf-first", { fit: "first", sortOrder: "height-desc" }],
+      ["shelf-best", { fit: "best", sortOrder: "height-desc" }],
+      ["shelf-first-input", { fit: "first", sortOrder: "input" }],
+    ]);
+    for (const r of first.records) {
+      const e = entry(r.strategy);
+      const defaults = strategies.find((s) => s.id === e.strategy)!.defaults as Record<string, unknown>;
+      expect(r.options, r.strategy).toEqual({ ...defaults, ...e.options });
+    }
+    for (const v of SHELF_VARIANTS) {
+      const own = measured.filter((r) => r.strategy === v.id);
+      expect(own.length, v.id).toBe(first.manifest.inputs.length);
+      for (const r of own) expect(r.measures, v.id).toHaveProperty("move.firstFit");
+    }
+    expect(() => entry("nope")).toThrow(RangeError);
   });
 
   it("gives the search measures of a free size from the trace", () => {
@@ -138,7 +159,7 @@ describe("the benchmark runner", () => {
 
   it("writes a summary with each strategy, the counts of the skipped records and the prediction", () => {
     const md = summaryMarkdown(first.run, first.records, []);
-    for (const s of strategies) {
+    for (const s of ENTRIES) {
       const own = first.records.filter((r) => r.strategy === s.id);
       expect(md).toContain(`| ${s.id} | ${own.filter(isMeasured).length} | ${own.filter((r) => !isMeasured(r)).length} | 0 |`);
     }
@@ -226,7 +247,9 @@ describe("the benchmark runner", () => {
   it("refuses a bad corpus file, a bad strategy and a bad count of runs", () => {
     expect(() => parseCorpus('{"schema":"layout-input/1"}')).toThrow(/layout-corpus\/1/);
     expect(() => parseCorpus(corpusFile("smoke-v1"), "other")).toThrow(/has the name/);
-    expect(strategyIds("all")).toEqual(strategies.map((s) => s.id));
+    expect(strategyIds("all")).toEqual(ENTRIES.map((e) => e.id));
+    expect(strategyIds("all").slice(0, strategies.length)).toEqual(strategies.map((s) => s.id));
+    expect(strategyIds("shelf-best,shelf")).toEqual(["shelf-best", "shelf"]);
     expect(strategyIds(" shelf, rows ,shelf")).toEqual(["shelf", "rows"]);
     expect(() => strategyIds("nope")).toThrow(RangeError);
     expect(() => runBench({ corpus: smoke, prediction: "p-test", repeats: 0, env: ENV })).toThrow(RangeError);

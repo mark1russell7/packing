@@ -164,7 +164,7 @@ The code of 0.1.3 builds these adapters. This document gives the contract, and t
 |---|---|---|
 | `packRows` | `rows` | `fixed`, `freeHeight`. Obstacles: `fixed` since 0.2.1. Each container shape since 0.2.1. |
 | `packSkyline` | `skyline` | `fixed`, `freeHeight`. Obstacles: `fixed`. Each container shape since 0.2.1. |
-| `packShelf` | `shelf` | `fixed`, `freeHeight`. Obstacles: `fixed`. Order: `free`, `hard`. Each container shape since 0.2.1. |
+| `packShelf` | `shelf` | `fixed`, `freeHeight`. Obstacles: `fixed`. Order: `free`, `hard`. Each container shape since 0.2.1. The option `fit` since 0.2.4. |
 | `pushCascade` | `push` | `fixed`, `freeHeight`. Obstacles: `free`. Mode: `incremental`. |
 | `packFree` | the size search `log-sweep` | It wraps `rows`, `skyline` and `shelf`. `push` moves the items from their start positions, so a size search does not fit it. |
 
@@ -197,9 +197,35 @@ The rules of the layer:
 The strategies with a space that is not plain:
 
 - `shelf` and `rows` use `packRowsInSpace`. A rectangle goes to the first x from the cursor where `fitX` and the locked rectangles agree. An empty row steps down to `nextY`. When no step finds a place, the rectangle stays in the overflow, and the row keeps its top edge.
+- `shelf` with a `fit` uses its own path in each shape. The section "The shelf family" tells it.
 - In this path, `rows` does not fill the gaps of a row again.
 - `skyline` gets the start and the limit of each cell from `column`. `lowestWindow` with a limit finds the lowest window where the rectangle fits under the limit of each cell.
 - `push` supports only the rectangle container.
+
+## The shelf family
+
+Since 0.2.4 (roadmap item k21), `shelf` has the optional option `fit`. Without `fit`, `shelf` packs as in 0.2.3, and its output does not change.
+
+| `fit` | The shelf of a box | Move | Catalog |
+|---|---|---|---|
+| `next` | Only the open shelf: the last shelf that the packing opened. | `move.stack` | `shelf-nfdh` with strips |
+| `first` | The first shelf from the top where the box fits. | `move.firstFit` | `shelf-ffdh` |
+| `best` | The place with the least height left over above the box, over all the shelves. | `move.bestFit` | `shelf-bhf` |
+
+With a `fit`, `packShelf` uses `packShelvesInSpace` in each container shape, also in a rectangle. It does not call `packRowsInSpace`.
+
+1. A new shelf opens at the bottom edge of the last shelf. The first box goes to the first x where `band`, `fitX` and the locked rectangles agree.
+2. When no x fits, the shelf steps down to `nextY` of the space, or to the next edge of a locked rectangle. Thus a shelf opens only in a free span of the shape.
+3. The first box of a shelf sets its height. A later box goes on the floor at the cursor, or into the strip above a shorter box of the shelf.
+4. A strip is the free space from the top edge of a box to the top edge of the shelf, as wide as the box. A box in a strip is the move `move.stack`.
+5. In a shelf, the box takes the place with the least height left over. A tie goes to a strip, from left to right.
+6. When no shelf has a place, the last shelf grows for a taller box on its floor, if it fits. Else a new shelf opens.
+7. A box that goes on a shelf that is not the open shelf is the move `move.firstFit`. The fit `best` also counts `move.bestFit` when its shelf is not the first shelf where the box fits.
+
+- Each place is in the free space of the band, and crosses no hole, obstacle or locked rectangle. The test `checkHard` with `exactContainer` is clean on generated inputs of each shape.
+- A box wider than a fixed width overflows. Without a fixed size, it goes on a closed shelf of its own at the left edge.
+- The sort order stays an option. The default is `height-desc`. With `input`, the boxes keep the order of the array.
+- The trace of `shelf` with a `fit` also has `move.firstFit` and `move.bestFit`. The trace of the default has only `move.stack`.
 
 The hard rules and the outline:
 

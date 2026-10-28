@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
+import { entry, SHELF_VARIANTS } from "./entries.ts";
+import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
 
@@ -44,12 +45,12 @@ describe("the screen of a run", () => {
   });
 
   it("gives the mean and the median of the overflow measures by area", () => {
-    const area = (excessArea: number, forcedAreaMin: number): Record<string, number> => ({ "pack.overflow.excessArea": excessArea, "pack.overflow.forcedAreaMin": forcedAreaMin });
+    const area = (excessArea: number, forcedArea: number): Record<string, number> => ({ "pack.overflow.excessArea": excessArea, "pack.overflow.forcedArea": forcedArea });
     const records = [rec("rows", "i1", "a", area(0, 0.1)), rec("rows", "i2", "b", area(0.1, 0.2)), rec("rows", "i3", "c", area(0.5, 0.6))];
     const o = screenOf(["rows"], records, SHAPES).overflow["rows"]!;
-    expect(o.means).toEqual({ "pack.overflow.excessArea": 0.2, "pack.overflow.forcedAreaMin": 0.3 });
-    expect(o.medians).toEqual({ "pack.overflow.excessArea": 0.1, "pack.overflow.forcedAreaMin": 0.2 });
-    expect(o.shapes["rect"]!.medians).toEqual({ "pack.overflow.excessArea": 0.05, "pack.overflow.forcedAreaMin": 0.15 });
+    expect(o.means).toEqual({ "pack.overflow.excessArea": 0.2, "pack.overflow.forcedArea": 0.3 });
+    expect(o.medians).toEqual({ "pack.overflow.excessArea": 0.1, "pack.overflow.forcedArea": 0.2 });
+    expect(o.shapes["rect"]!.medians).toEqual({ "pack.overflow.excessArea": 0.05, "pack.overflow.forcedArea": 0.15 });
   });
 
   it("groups the strategies that are equal on each input, and on each input of one container shape", () => {
@@ -92,6 +93,29 @@ describe("the screen of a run", () => {
     const skipped = screenOf(["push"], [skip], SHAPES).activation["push"]!;
     expect(skipped.reason).toBe("No record is measured. The strategy skips each of the 1 inputs: unsupported containerShape: circle.");
     expect(Object.keys(skipped.shapes)).toEqual(["circle"]);
+  });
+
+  it("labels a variant exercised when its output differs from the output of its base, also with no move", () => {
+    const records = [
+      rec("shelf", "i1", "a"),
+      rec("shelf", "i3", "b"),
+      rec("shelf-first", "i1", "a", { "move.firstFit": 0 }),
+      rec("shelf-first", "i3", "c", { "move.firstFit": 0 }),
+      rec("shelf-best", "i1", "a", { "move.bestFit": 0 }),
+    ];
+    const { activation } = screenOf(["shelf", "shelf-first", "shelf-best"], records, SHAPES);
+    expect(activation["shelf-first"]).toMatchObject({ move: "move.firstFit", fired: 0, base: "shelf", differs: 1, label: "exercised" });
+    expect(activation["shelf-first"]!.shapes["rect"]).toMatchObject({ differs: 0, label: "not-exercised" });
+    expect(activation["shelf-first"]!.shapes["rect"]!.reason).toBe("The count of move.firstFit is 0 on each of the 1 measured inputs. The output is the output of shelf on each common input.");
+    expect(activation["shelf-best"]).toMatchObject({ base: "shelf", differs: 0, label: "not-exercised" });
+    expect(activation["shelf"]).not.toHaveProperty("base");
+    // A job of a matrix without the base gives no comparison
+    const alone = screenOf(["shelf-first"], records.filter((r) => r.strategy === "shelf-first"), SHAPES).activation["shelf-first"]!;
+    expect(alone).not.toHaveProperty("differs");
+    expect(alone.label).toBe("not-exercised");
+    const md = screenMarkdown(screenOf(["shelf", "shelf-first"], records, SHAPES), ["shelf", "shelf-first"]).join("\n");
+    expect(md).toContain("| shelf-first | `move.firstFit` | all | 2 | 0 | 0 | 1 (shelf) | exercised |");
+    expect(md).toContain("| shelf | `move.stack` | all | 2 | 0 | 0 | - | not-exercised |");
   });
 
   it("reads the container shapes of a manifest, and gives an empty map for a value that is not a manifest", () => {
@@ -193,12 +217,15 @@ describe("the ranking of a cell", () => {
 });
 
 describe("the screen on smoke-v1", () => {
-  it("gives each strategy its move in its trace", () => {
+  it("gives each entry its move in its trace, and each variant also the moves of the fits", () => {
     const input = toPackInput(rectGrid.generate(2, { count: 30 }));
-    for (const [strategy, move] of Object.entries(MOVE_OF)) {
-      const counts = moveCounts(packWith(strategy, input));
-      expect(Object.keys(counts), strategy).toEqual([move]);
+    for (const [id, move] of Object.entries(MOVE_OF)) {
+      const e = entry(id);
+      const counts = moveCounts(packWith(e.strategy, input, Object.keys(e.options).length === 0 ? undefined : e.options));
+      expect(Object.keys(counts), id).toContain(move);
+      expect(Object.keys(counts), id).toEqual(e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"]);
     }
+    expect(BASE_OF).toEqual(Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])));
   });
 
   it("gives each measured record its move count and 0 boxes out of the true outline", () => {
@@ -226,7 +253,7 @@ describe("the screen on smoke-v1", () => {
     for (const section of ["Ranking", "Fill without overflow", "Overflow", "Distinct outputs", "Activation"]) expect(md).toContain(`## ${section}`);
   });
 
-  it("ranks each container shape of smoke-v1, with no unmeasured strategy, and keeps forcedAreaMin at or below the overflow area", () => {
+  it("ranks each container shape of smoke-v1, with no unmeasured strategy, and keeps forcedArea at or below the overflow area", () => {
     const ranking = full.run.ranking!;
     expect(Object.keys(ranking).length).toBeGreaterThan(0);
     for (const [shape, c] of Object.entries(ranking)) {
@@ -238,7 +265,7 @@ describe("the screen on smoke-v1", () => {
       expect(c.thin, shape).toBe(c.commonClean.inputs / c.inputs < 0.3);
     }
     for (const r of full.records.filter(isMeasured)) {
-      expect(r.measures["pack.overflow.forcedAreaMin"]!, `${r.strategy} ${r.input}`).toBeLessThanOrEqual(r.measures["pack.overflow.area"]! + 1e-9);
+      expect(r.measures["pack.overflow.forcedArea"]!, `${r.strategy} ${r.input}`).toBeLessThanOrEqual(r.measures["pack.overflow.area"]! + 1e-9);
       expect(r.measures["pack.overflow.excessArea"]!, `${r.strategy} ${r.input}`).toBeGreaterThanOrEqual(0);
     }
   });
@@ -251,6 +278,16 @@ describe("the screen on smoke-v1", () => {
     // Rows and shelf share the packer of a container that is not a rectangle, thus their moves do not occur there
     expect(full.run.activation!["rows"]!.shapes["circle"]!.label).toBe("not-exercised");
     expect(full.run.activation!["shelf"]!.shapes["circle"]!.label).toBe("not-exercised");
-    expect(full.run.cellGroups!["circle"]!.groups).toEqual([{ strategies: ["rows", "shelf"], inputs: 1 }]);
+    // A variant equal to rows and shelf on the one circle input of smoke-v1 joins their group. Such a group is valid.
+    expect(full.run.cellGroups!["circle"]!.groups[0]!.strategies.slice(0, 2)).toEqual(["rows", "shelf"]);
+  });
+
+  it("measures each variant of the shelf family on each input of smoke-v1, and labels it with its move or its base", () => {
+    for (const v of SHELF_VARIANTS) {
+      const a = full.run.activation![v.id]!;
+      expect(a.base, v.id).toBe("shelf");
+      expect(a.records, v.id).toBe(full.manifest.inputs.length);
+      expect(a.label, v.id).toBe("exercised");
+    }
   });
 });
