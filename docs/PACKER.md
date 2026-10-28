@@ -166,7 +166,8 @@ The code of 0.1.3 builds these adapters. This document gives the contract, and t
 | `packSkyline` | `skyline` | `fixed`, `freeHeight`. Obstacles: `fixed`. Each container shape since 0.2.1. |
 | `packShelf` | `shelf` | `fixed`, `freeHeight`. Obstacles: `fixed`. Order: `free`, `hard`. Each container shape since 0.2.1. The option `fit` since 0.2.4. |
 | `pushCascade` | `push` | `fixed`, `freeHeight`. Obstacles: `free`. Mode: `incremental`. |
-| `packFree` | the size search `log-sweep` | It wraps `rows`, `skyline` and `shelf`. `push` moves the items from their start positions, so a size search does not fit it. |
+| `packMaxRects` | `maxrects` | Each container size and shape. Obstacles: `fixed`. Order: `free`, `soft`. Rotation: `none`, `quarter`. New in 0.2.5. |
+| `packFree` | the size search `log-sweep` | It wraps `rows`, `skyline`, `shelf` and `maxrects`. `push` moves the items from their start positions, so a size search does not fit it. |
 
 `fromRects(rects, outer)` makes a `PackInput` from the `Rect` objects of 0.1, and `toRects(output, rects, outer)` writes the output back.
 
@@ -234,6 +235,60 @@ The hard rules and the outline:
 - With this option, a box counts in `in-container` when `rectInRegion` of the contract tells that it is not in the shape. The box grows by the inset and becomes smaller by the tolerance.
 - The default is `false`, so the counts of 0.2.1 stay. The contract changes the default to `true` at its next breaking version.
 - The tests of the layer (`src/space.test.ts`) test each box with `rectInRegion`, and with `checkHard` and the option.
+
+## The MaxRects family
+
+Since 0.2.5 (roadmap item k24), the strategy `maxrects` packs with a list of maximal free rectangles (Jylänki 2010). The module is `src/maxrects.ts`.
+
+1. The boxes go in the order `sortOrder`. The default is `height-desc`.
+2. The rule examines each free rectangle where the box fits. The box goes to the top-left corner of the rectangle with the best score.
+3. The box cuts each free rectangle that it hits into at most four parts. The parts are the free space on the four sides of the box.
+4. The list loses each part that is in another free rectangle. Thus each free rectangle stays maximal.
+5. The list also loses each part that is too small for the smallest box.
+
+The option `rule` chooses the free rectangle. The default is `bssf`. A lower score is better. A tie goes to the higher place, then to the left place.
+
+| `rule` | The score | Move | Catalog |
+|---|---|---|---|
+| `bssf` | The smaller leftover side, then the larger leftover side | `move.bssf` | `maxrects-bssf` |
+| `blsf` | The larger leftover side, then the smaller leftover side | `move.blsf` | `maxrects-blsf` |
+| `baf` | The leftover area, then the smaller leftover side | `move.baf` | `maxrects-baf` |
+| `bl` | The bottom edge of the box, then its left edge | `move.split` | `maxrects-bl` |
+| `cp` | The most contact length with the frame, the boxes and the obstacles | `move.cp` | `maxrects-cp` |
+
+The moves:
+
+- The rule `bl` gives the base place. The move of each other rule counts a box when the rule chooses a place that is not the place of `bl`.
+- Thus the move of a rule counts only the choices of that rule. The other steps are the same for each rule, so they do not count.
+- The rule `bl` has no base. Its move `move.split` counts a box that cuts 2 free rectangles or more. This cut is the step that `rows`, `skyline` and `shelf` do not have.
+- The trace of `maxrects` has `move.split` for each rule. The trace of a rule other than `bl` also has the move of the rule.
+
+The free space of each container shape:
+
+- A plain space (a rectangle container with only rectangle obstacles) gets exact free rectangles: the frame less the locked rectangles.
+- Another space gets an inner approximation. The rectangle holes of the layer stay exact. The rest of the shape gets bands.
+- The bands cut the height into equal bands. In each band, the space between the free spans of the shape is a wall.
+- Equal walls of neighbour bands merge into one wall. Thus a straight edge of a polygon gives few walls.
+- The option `bandHeight` sets the largest height of a band. The default is the height to cut divided by `MAXRECTS_BANDS` (128).
+- A fixed height cuts the full height. A free height cuts to the lowest edge of the outline and the obstacles.
+- In a space that is not plain, each place also gets the test `fits` of the space. A place that fails the test is not used again.
+- The locked items and the obstacles are walls, so no box crosses them.
+
+The size of the frame:
+
+- With a fixed size, a box that fits in no free rectangle goes to the overflow.
+- With a free height, the frame is as high as the sum of the box heights. A box with no place goes below all the others.
+- The output height is the lowest bottom edge of a box, as in `skyline`.
+- A free width uses the size search `log-sweep`, as for `rows`, `skyline` and `shelf`.
+
+The option `rotate` (default `false`) lets the packer turn a box with `turnable` a quarter turn. The packer examines the two orientations of the box, and the unturned orientation wins a tie.
+
+The tests (`src/maxrects.test.ts`) examine each rule on each container shape, with a fixed size and a free size:
+
+- `checkHard` with `exactContainer` gives 0 breaks, and each output is deterministic.
+- Each free rectangle at the end is in the outline, and it crosses no box.
+- On a plain rectangle, no box in the overflow fits in a free rectangle at the end.
+- A hand case of each rule shows a place that is not the place of `bl`.
 
 ## The decisions
 

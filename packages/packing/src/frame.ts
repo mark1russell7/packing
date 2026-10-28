@@ -3,7 +3,7 @@
 // are `mA + gap + mB` apart. The area of the frame is the container less the inset, grown by half the gap on each side.
 
 import { boundsOf } from "@mark1russell7/layout-contract";
-import { EPS, marginOf, type Item, type Obstacle, type PackInput, type PackOutput, type Placement, type Region, type StageTrace } from "./contract.ts";
+import { EPS, marginOf, turnItem, type Item, type Obstacle, type PackInput, type PackOutput, type Placement, type Region, type StageTrace } from "./contract.ts";
 import { Rect } from "./rect.ts";
 
 const clock = (globalThis as { performance?: { now(): number } }).performance;
@@ -73,9 +73,10 @@ export function byRank(items: readonly Item[]): Item[] {
 
 /**
  * This function makes the frame of an input. A locked item with a position and an obstacle without `move` are locked
- * rectangles. An obstacle with `move` is a free rectangle only when `movable` is `true`.
+ * rectangles. An obstacle with `move` is a free rectangle only when `movable` is `true`. With `turnable`, a turnable item
+ * is too large only when it is too large in the two directions.
  */
-export function buildFrame(input: PackInput, movable = false): Frame {
+export function buildFrame(input: PackInput, movable = false, turnable = false): Frame {
   const bounds = containerBounds(input);
   const inset = input.container.inset ?? 0;
   const half = (input.gap ?? 0) / 2;
@@ -95,7 +96,10 @@ export function buildFrame(input: PackInput, movable = false): Frame {
     if (item.locked === true && item.x !== undefined && item.y !== undefined) {
       rect.locked = true;
       rect.position.set(item.x - dx - ox, item.y - dy - oy);
-    } else if (rect.size.x > w + EPS || rect.size.y > h + EPS) {
+    } else if (
+      (rect.size.x > w + EPS || rect.size.y > h + EPS) &&
+      !(turnable && item.turnable === true && rect.size.y <= w + EPS && rect.size.x <= h + EPS)
+    ) {
       tooLarge.push(item.id);
       continue;
     }
@@ -128,33 +132,56 @@ export function rectsOf(frame: Frame): Rect<number>[] {
   return frame.entries.map((e) => e.rect);
 }
 
+/** The turns of a packing: the rectangles that turned, and the turn of an item in the axes of the frame. */
+export interface FrameTurns {
+  /** The rectangles of the frame that the packer turned. */
+  rects: ReadonlySet<unknown>;
+  /** This function gives an item after a turn of 90 degrees clockwise in the axes of the input, in the axes of the frame. */
+  turn: (item: Item) => Item;
+}
+
+/**
+ * This function gives the turn of an item for a frame. A frame of `viaAxes` has the axes changed. The turn of the input
+ * goes through that change, thus the item turns the other way in the frame.
+ */
+export function frameTurn(transposed: boolean): (item: Item) => Item {
+  return transposed ? (item) => transposeItem(turnItem(transposeItem(item))) : turnItem;
+}
+
 /**
  * This function reads the output from the rectangles of a frame after a packing of 0.1. A locked item keeps its
- * position exactly. Each other item that the packer did not place goes to the overflow.
+ * position exactly. Each other item that the packer did not place goes to the overflow. With `turns`, each rectangle
+ * that turned gives a placement with `turn: 90`.
  */
-export function readFrame(input: PackInput, frame: Frame, trace: readonly StageTrace[], moved: PackOutput["moved"] = []): PackOutput {
+export function readFrame(input: PackInput, frame: Frame, trace: readonly StageTrace[], moved: PackOutput["moved"] = [], turns?: FrameTurns): PackOutput {
   const placements: Placement[] = [];
   const overflow: string[] = [...frame.tooLarge];
   for (const e of frame.entries) {
     const item = e.item;
     if (item === undefined) continue;
     if (item.locked === true && item.x !== undefined && item.y !== undefined) placements.push({ id: item.id, x: item.x, y: item.y });
-    else if (e.rect.wasPacked) placements.push({ id: item.id, x: e.rect.position.x + e.dx + frame.ox, y: e.rect.position.y + e.dy + frame.oy });
+    else if (e.rect.wasPacked && turns?.rects.has(e.rect) === true) {
+      // The half gap is the offset less the margin. The margin of the turned item gives the new offset.
+      const half = e.dx - marginOf(item).left;
+      const m = marginOf(turns.turn(item));
+      placements.push({ id: item.id, x: e.rect.position.x + m.left + half + frame.ox, y: e.rect.position.y + m.top + half + frame.oy, turn: 90 });
+    } else if (e.rect.wasPacked) placements.push({ id: item.id, x: e.rect.position.x + e.dx + frame.ox, y: e.rect.position.y + e.dy + frame.oy });
     else overflow.push(item.id);
   }
-  return { placements, overflow, size: sizeOf(input, frame, placements, moved), moved, trace };
+  return { placements, overflow, size: sizeOf(input, frame, placements, moved, turns), moved, trace };
 }
 
 /**
  * This function gives the size of the container after a packing. A fixed side keeps its size. A free side goes to the
  * far edge of the items with their margins and the inset, or of the obstacles.
  */
-function sizeOf(input: PackInput, frame: Frame, placements: Placement[], moved: PackOutput["moved"]): { w: number; h: number } {
+function sizeOf(input: PackInput, frame: Frame, placements: Placement[], moved: PackOutput["moved"], turns?: FrameTurns): { w: number; h: number } {
   const items = new Map(input.items.map((i) => [i.id, i]));
   let right = 0;
   let bottom = 0;
   for (const p of placements) {
-    const item = items.get(p.id)!;
+    const given = items.get(p.id)!;
+    const item = p.turn === 90 && turns !== undefined ? turns.turn(given) : given;
     const m = marginOf(item);
     right = Math.max(right, p.x + item.w + m.right + frame.inset - frame.bounds.x);
     bottom = Math.max(bottom, p.y + item.h + m.bottom + frame.inset - frame.bounds.y);

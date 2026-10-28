@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { entry, SHELF_VARIANTS } from "./entries.ts";
+import { entry, MAXRECTS_VARIANTS, SHELF_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
@@ -191,6 +191,29 @@ describe("the ranking of a cell", () => {
       ["c", 2, 3],
       ["d", 3, 4],
     ]);
+    expect(r.entries.map((e) => e.fillTie)).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  it("gives a fill tie group to the neighbours of a tie group within the minimum effect of the fill", () => {
+    const records = [
+      rec("a", "i1", "a1", m(0, 0.8)),
+      rec("b", "i1", "b1", m(0, 0.797)),
+      rec("c", "i1", "c1", m(0, 0.793)),
+      rec("d", "i1", "d1", m(0, 0.7)),
+      rec("e", "i1", "e1", m(0, 0.698, 0.1)),
+    ];
+    const r = rankingOf(["a", "b", "c", "d", "e"], records);
+    // a, b and c make a chain: each is within 0.005 of the next. d is 0.093 below c. e is in another tie group of step 1.
+    expect(r.entries.map((e) => [e.name, e.tieGroup, e.fillTie])).toEqual([
+      ["a", 1, 1],
+      ["b", 1, 1],
+      ["c", 1, 1],
+      ["d", 1, undefined],
+      ["e", 2, undefined],
+    ]);
+    const md = screenMarkdown({ ranking: { rect: r } }, ["a", "b", "c", "d", "e"]).join("\n");
+    expect(md).toContain("| rect | 1/1 | 1 | no | 2 | b | 0 | 1 | 0.797 | tie 1 | 1 | 0.797 |");
+    expect(md).toContain("| rect | 1/1 | 1 | no | 4 | d | 0 | 1 | 0.7 | - | 1 | 0.7 |");
   });
 
   it("makes one entry of the members of a cell group, named by the group", () => {
@@ -212,7 +235,7 @@ describe("the ranking of a cell", () => {
     // The circle has only skyline: one entry
     expect(screen.ranking["circle"]!.entries.map((e) => e.name)).toEqual(["skyline"]);
     const md = screenMarkdown(screen, ["rows", "shelf", "skyline"]).join("\n");
-    expect(md).toContain("| rect | 2/2 | 1 | no | 1 | rows = shelf | 0 | 1 | 0.75 | 2 | 0.75 |");
+    expect(md).toContain("| rect | 2/2 | 1 | no | 1 | rows = shelf | 0 | 1 | 0.75 | - | 2 | 0.75 |");
   });
 });
 
@@ -223,9 +246,10 @@ describe("the screen on smoke-v1", () => {
       const e = entry(id);
       const counts = moveCounts(packWith(e.strategy, input, Object.keys(e.options).length === 0 ? undefined : e.options));
       expect(Object.keys(counts), id).toContain(move);
-      expect(Object.keys(counts), id).toEqual(e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"]);
+      const own = e.strategy === "maxrects" ? (move === "move.split" ? [move] : [move, "move.split"]) : e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"];
+      expect(Object.keys(counts), id).toEqual(own);
     }
-    expect(BASE_OF).toEqual(Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])));
+    expect(BASE_OF).toEqual({ ...Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])), ...Object.fromEntries(MAXRECTS_VARIANTS.filter((v) => v.id !== "maxrects-bl").map((v) => [v.id, "maxrects-bl"])) });
   });
 
   it("gives each measured record its move count and 0 boxes out of the true outline", () => {

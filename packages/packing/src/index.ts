@@ -4,6 +4,7 @@ export { pack, packRows, type PackOptions, type PackLayoutOptions } from "./pack
 export { packSkyline, lowestWindow, type SkylineOptions } from "./skyline.ts";
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
+export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule } from "./maxrects.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
 export { compareRects, SORT_ORDERS, type SortOrder } from "./order.ts";
 export { pushCascade, type PushOptions } from "./push.ts";
@@ -66,7 +67,17 @@ export {
   type Strategy,
   type Supports,
 } from "./strategy.ts";
-export { logSweep, push, rows, shelf, skyline, type LayoutStrategyOptions, type PushStrategyOptions } from "./adapters.ts";
+export {
+  logSweep,
+  maxrects,
+  push,
+  rows,
+  shelf,
+  skyline,
+  type LayoutStrategyOptions,
+  type MaxRectsStrategyOptions,
+  type PushStrategyOptions,
+} from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
 export { packWith, strategies, strategy } from "./registry.ts";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";

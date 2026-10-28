@@ -10,6 +10,11 @@ export const MOVES: Readonly<{
   push: "move.cascade";
   firstFit: "move.firstFit";
   bestFit: "move.bestFit";
+  bssf: "move.bssf";
+  blsf: "move.blsf";
+  baf: "move.baf";
+  cp: "move.cp";
+  split: "move.split";
 }> = Object.freeze({
   /** A rectangle that the gap fill of `packRow` places in a gap of a row: under a shorter neighbor, or at the row break. */
   rows: "move.gapFill",
@@ -26,6 +31,16 @@ export const MOVES: Readonly<{
   firstFit: "move.firstFit",
   /** A rectangle that the fit `best` puts on a shelf that is not the first shelf where it fits. */
   bestFit: "move.bestFit",
+  /** A rectangle that the rule `bssf` of `maxrects` puts in another place than the rule `bl` on the same free rectangles. */
+  bssf: "move.bssf",
+  /** A rectangle that the rule `blsf` of `maxrects` puts in another place than the rule `bl` on the same free rectangles. */
+  blsf: "move.blsf",
+  /** A rectangle that the rule `baf` of `maxrects` puts in another place than the rule `bl` on the same free rectangles. */
+  baf: "move.baf",
+  /** A rectangle that the rule `cp` of `maxrects` puts in another place than the rule `bl` on the same free rectangles. */
+  cp: "move.cp",
+  /** A rectangle of `maxrects` that cuts two free rectangles or more. A shelf or a skyline has no such step. */
+  split: "move.split",
 });
 
 const counts = new Map<string, number>();

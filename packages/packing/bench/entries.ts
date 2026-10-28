@@ -1,5 +1,7 @@
 // The entries of the benchmark (`docs/BENCH.md`, "The entries"). An entry is a strategy of the registry with some options.
 // Each strategy of the registry is an entry with its defaults. Roadmap item k21 adds the variants of the shelf family.
+// Roadmap item k24 adds an entry for each rule of `maxrects`. The strategy `maxrects` has no entry of its own, because
+// its defaults are the entry `maxrects-bssf`.
 
 import { strategies, strategy } from "@mark1russell7/packing";
 
@@ -23,10 +25,26 @@ export const SHELF_VARIANTS: readonly BenchEntry[] = Object.freeze([
   { id: "shelf-first-input", strategy: "shelf", options: { fit: "first", sortOrder: "input" }, base: "shelf" },
 ]);
 
+/**
+ * The entries of the MaxRects family of roadmap item k24: one entry for each rule. Their base is `maxrects-bl`, because the
+ * move of each other rule is a place that is not the place of `bl`.
+ */
+export const MAXRECTS_VARIANTS: readonly BenchEntry[] = Object.freeze([
+  { id: "maxrects-bssf", strategy: "maxrects", options: { rule: "bssf" }, base: "maxrects-bl" },
+  { id: "maxrects-blsf", strategy: "maxrects", options: { rule: "blsf" }, base: "maxrects-bl" },
+  { id: "maxrects-baf", strategy: "maxrects", options: { rule: "baf" }, base: "maxrects-bl" },
+  { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } },
+  { id: "maxrects-cp", strategy: "maxrects", options: { rule: "cp" }, base: "maxrects-bl" },
+]);
+
+/** The strategies of the registry with no entry of their own. The variants of each rule replace them. */
+const VARIANTS_ONLY: ReadonlySet<string> = new Set(["maxrects"]);
+
 /** The entries of the benchmark: each strategy of the registry, then the variants. */
 export const ENTRIES: readonly BenchEntry[] = Object.freeze([
-  ...strategies.map((s) => ({ id: s.id, strategy: s.id, options: {} })),
+  ...strategies.filter((s) => !VARIANTS_ONLY.has(s.id)).map((s) => ({ id: s.id, strategy: s.id, options: {} })),
   ...SHELF_VARIANTS,
+  ...MAXRECTS_VARIANTS,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

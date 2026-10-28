@@ -158,13 +158,13 @@ A MaxRects packer keeps all the maximal free rectangles. These rectangles can ov
 
 | `id` | Name | Rule | Source | Goal | Cost | Status | Item |
 |---|---|---|---|---|---|---|---|
-| `maxrects-bssf` | MaxRects Best Short Side Fit | Choose the free rectangle with the smallest leftover on the shorter side. | Jylänki 2010 | density | `O(n F)`, `F` up to `O(n^2)` | planned | k24 |
-| `maxrects-blsf` | MaxRects Best Long Side Fit | Choose the free rectangle with the smallest leftover on the longer side. | Jylänki 2010 | density | `O(n F)` | planned | k24 |
-| `maxrects-baf` | MaxRects Best Area Fit | Choose the free rectangle with the smallest area that holds the box. | Jylänki 2010 | density | `O(n F)` | planned | k24 |
-| `maxrects-bl` | MaxRects Bottom-Left | Choose the place with the lowest top edge of the box. Between equal places, take the left place. | Jylänki 2010 | density, order | `O(n F)` | planned | k24 |
-| `maxrects-cp` | MaxRects Contact Point | Choose the place where the box touches the most length of the walls and of the other boxes. | Jylänki 2010 | density | `O(n^2 F)` | planned | k24 |
+| `maxrects-bssf` | MaxRects Best Short Side Fit | Choose the free rectangle with the smallest leftover on the shorter side. | Jylänki 2010 | density | `O(n F)`, `F` up to `O(n^2)` | implemented (0.2.5): `packMaxRects` with `rule: "bssf"`, the default. | k24 |
+| `maxrects-blsf` | MaxRects Best Long Side Fit | Choose the free rectangle with the smallest leftover on the longer side. | Jylänki 2010 | density | `O(n F)` | implemented (0.2.5): `packMaxRects` with `rule: "blsf"`. | k24 |
+| `maxrects-baf` | MaxRects Best Area Fit | Choose the free rectangle with the smallest area that holds the box. | Jylänki 2010 | density | `O(n F)` | implemented (0.2.5): `packMaxRects` with `rule: "baf"`. | k24 |
+| `maxrects-bl` | MaxRects Bottom-Left | Choose the place with the lowest top edge of the box. Between equal places, take the left place. | Jylänki 2010 | density, order | `O(n F)` | implemented (0.2.5): `packMaxRects` with `rule: "bl"`. | k24 |
+| `maxrects-cp` | MaxRects Contact Point | Choose the place where the box touches the most length of the walls and of the other boxes. | Jylänki 2010 | density | `O(n^2 F)` | implemented (0.2.5): `packMaxRects` with `rule: "cp"`. The contact uses maps of the edges. | k24 |
 | `maxrects-<rule>-global` | Global MaxRects | For each step, test each box left with each free rectangle and each rule, and put the best pair. | Jylänki 2010 | density | `O(n^2 F)` | planned | k24 |
-| `maxrects-locked` | MaxRects around locked boxes | Start with the free rectangles that the locked boxes leave. Then do any MaxRects rule. | this repository | density with obstacles | `O(n F)` | planned | k24, k42 |
+| `maxrects-locked` | MaxRects around locked boxes | Start with the free rectangles that the locked boxes leave. Then do any MaxRects rule. | this repository | density with obstacles | `O(n F)` | implemented (0.2.5): each rule of `packMaxRects` starts from the free space less the locked boxes. | k24, k42 |
 | `free-space-maximal` | Maximal free spaces with pretreatment | Keep the maximal free spaces. First remove the boxes that fit nowhere else, and join the boxes that fill a full width. | El Hayek 2008 | density | `O(n F)` | planned | k24 |
 | `extreme-points` | Extreme points | Keep only the points where a box can touch two edges: the projections of the corners of each box. Put each box on the best point. | Crainic 2008 | density, speed | `O(n^2)` | planned | k24 |
 | `potpack` | Free list of `potpack` | Sort by height. Keep a list of free spaces. Put each box at the top left of the first space where it fits. Split the rest to the right and below. | Agafonkin, software | speed | `O(n F)` | planned | k24 |

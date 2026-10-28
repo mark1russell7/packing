@@ -1,3 +1,4 @@
+import { packMaxRects, type MaxRectsRule } from "./maxrects.ts";
 import { clearMoves, countMove, MOVES } from "./moves.ts";
 import { compareRects, type SortOrder } from "./order.ts";
 import { Rect } from "./rect.ts";
@@ -20,12 +21,20 @@ export interface PackOptions {
 /** The options of `pack` */
 export interface PackLayoutOptions extends PackOptions {
   /**
-   * The packing: `rows` (the default), `skyline` or `shelf`. `skyline` and `shelf` pack around locked rectangles.
-   * Use `shelf` with the sort order `input` to keep the order of the array around locked rectangles.
+   * The packing: `rows` (the default), `skyline`, `shelf` or `maxrects`. `skyline`, `shelf` and `maxrects` pack around
+   * locked rectangles. Use `shelf` with the sort order `input` to keep the order of the array around locked rectangles.
    */
-  strategy?: "rows" | "skyline" | "shelf";
+  strategy?: "rows" | "skyline" | "shelf" | "maxrects";
   /** The rule of `shelf` to choose a shelf. Only `shelf` reads it. `ShelfOptions` tells it. Without it, `shelf` packs as in 0.2.3. */
   fit?: ShelfFit;
+  /** The rule of `maxrects` to choose a free rectangle. Only `maxrects` reads it. The default is `bssf`. */
+  rule?: MaxRectsRule;
+  /** The largest height of a band of `maxrects` in a space that is not plain. Only `maxrects` reads it. `MaxRectsOptions` tells it. */
+  bandHeight?: number;
+  /** The rectangles that `maxrects` can turn by 90 degrees. Only `maxrects` reads it. */
+  turnable?: ReadonlySet<unknown>;
+  /** The rectangles that `maxrects` turned. Only `maxrects` reads it. `MaxRectsOptions` tells it. */
+  turned?: Set<unknown>;
 }
 
 /** The depth of the calls of `packInto`. Only the outer gap fill counts its rectangles as moves. */
@@ -126,7 +135,7 @@ export function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options: PackOptio
  *   This width is not less than the width of the widest rectangle. The height grows until all rectangles fit.
  * - With `fixedWidth`, the width stays. A rectangle wider than that width goes on its own row and overflows.
  * - With `fixedSize`, a rectangle that does not fit is not packed: its `wasPacked` stays `false`.
- * - `options.strategy` selects `packRows` (the default), `packSkyline` or `packShelf` after the width is set.
+ * - `options.strategy` selects `packRows` (the default), `packSkyline`, `packShelf` or `packMaxRects` after the width is set.
  */
 export function pack<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), options: PackLayoutOptions = {}): Rect<T> {
   let totalArea = 0;
@@ -150,6 +159,7 @@ export function pack<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), options: 
   if (!outer.fixedSize) outer.size.setTo(outer.fixedWidth ? new Vector(outer.size.x, ideal.y) : ideal);
   if (options.strategy === "skyline") packSkyline(rects, outer, options);
   else if (options.strategy === "shelf") packShelf(rects, outer, options);
+  else if (options.strategy === "maxrects") packMaxRects(rects, outer, options);
   else packRows(rects, outer, options);
 
   if (!outer.fixedSize) {

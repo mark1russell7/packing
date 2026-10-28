@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 132 names
+## . (build/index.d.ts): 139 names
 
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
@@ -37,8 +37,13 @@ type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
 type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
 type LayoutMeasures: build/index.d.ts#LayoutMeasures
 type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
+MAXRECTS_BANDS: build/index.d.ts#MAXRECTS_BANDS
+MAXRECTS_RULES: build/index.d.ts#MAXRECTS_RULES
 MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
 type Margin: @mark1russell7/layout-contract#Margin (external)
+type MaxRectsOptions: build/index.d.ts#MaxRectsOptions
+type MaxRectsRule: build/index.d.ts#MaxRectsRule
+type MaxRectsStrategyOptions: build/index.d.ts#MaxRectsStrategyOptions
 type MeasureFamily: build/index.d.ts#MeasureFamily
 type MeasureId: build/index.d.ts#MeasureId
 type MeasureOptions: build/index.d.ts#MeasureOptions
@@ -104,12 +109,14 @@ isDeterministic: build/index.d.ts#isDeterministic
 logSweep: build/index.d.ts#logSweep
 lowestWindow: build/index.d.ts#lowestWindow
 marginOf: build/index.d.ts#marginOf
+maxrects: build/index.d.ts#maxrects
 measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
 medianRatio: build/index.d.ts#medianRatio
 mulberry32: build/index.d.ts#mulberry32
 pack: build/index.d.ts#pack
 packFree: build/index.d.ts#packFree
+packMaxRects: build/index.d.ts#packMaxRects
 packRows: build/index.d.ts#packRows
 packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
@@ -324,8 +331,34 @@ interface LayoutStrategyOptions {
   fit?: ShelfFit;
 }
 
+### build/index.d.ts#MAXRECTS_BANDS
+export declare const MAXRECTS_BANDS = 128;
+
+### build/index.d.ts#MAXRECTS_RULES
+export declare const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp"];
+
 ### build/index.d.ts#MEASURE_SPECS
 export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
+
+### build/index.d.ts#MaxRectsOptions
+interface MaxRectsOptions {
+  sortOrder?: SortOrder;
+  space?: FreeSpace;
+  rule?: MaxRectsRule;
+  bandHeight?: number;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
+}
+
+### build/index.d.ts#MaxRectsRule
+type MaxRectsRule = (typeof MAXRECTS_RULES)[number];
+
+### build/index.d.ts#MaxRectsStrategyOptions
+interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
+  rule: MaxRectsRule;
+  rotate: boolean;
+  bandHeight?: number;
+}
 
 ### build/index.d.ts#MeasureFamily
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
@@ -366,8 +399,12 @@ interface PackContext {
 
 ### build/index.d.ts#PackLayoutOptions
 interface PackLayoutOptions extends PackOptions {
-  strategy?: "rows" | "skyline" | "shelf";
+  strategy?: "rows" | "skyline" | "shelf" | "maxrects";
   fit?: ShelfFit;
+  rule?: MaxRectsRule;
+  bandHeight?: number;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
 }
 
 ### build/index.d.ts#PackOptions
@@ -606,6 +643,9 @@ export declare function lowestWindow(skyline: ArrayLike<number>, width: number, 
 ### build/index.d.ts#marginOf
 export declare function marginOf(item: Pick<Item$1, "margin">): Sides$1;
 
+### build/index.d.ts#maxrects
+export declare const maxrects: Strategy<MaxRectsStrategyOptions>;
+
 ### build/index.d.ts#measure
 export declare function measure(input: PackInput, output: PackOutput, options?: MeasureOptions): LayoutMeasures;
 
@@ -623,6 +663,9 @@ export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: Pac
 
 ### build/index.d.ts#packFree
 export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?: FreeWidthOptions): FreeWidthResult<T>;
+
+### build/index.d.ts#packMaxRects
+export declare function packMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options?: MaxRectsOptions): Rect<T>;
 
 ### build/index.d.ts#packRows
 export declare function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options?: PackOptions): Rect<T>;
