@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- The bench gives the two-step ranking of roadmap item k60 for each container shape. `docs/BENCH.md` tells it.
+- Step 1 ranks by the median `pack.overflow.excessArea`. Step 2 ranks each tie group by the median `pack.fill` on the common clean inputs.
+- The table `Overflow` gives the means of `pack.overflow.forcedAreaMin` and `pack.overflow.excessArea`, and their medians.
+- The smoke check fails when `pack.overflow.forcedAreaMin` is above `pack.overflow.area + 1e-9` on a record.
+
 ## 0.2.3
 
 New overflow measures by area (roadmap item k60), and the move counts and screen guards of k59. This release has no breaking changes.

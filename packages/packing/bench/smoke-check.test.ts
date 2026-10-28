@@ -132,6 +132,14 @@ describe("the smoke check", () => {
     ]);
   });
 
+  it("fails a forced overflow area above the overflow area, but not a difference of float noise", () => {
+    const records = goodRecords();
+    records[0] = measuredRecord("rows", INPUTS[0], { measures: { "pack.overflow.area": 0.2, "pack.overflow.forcedAreaMin": 0.25 } });
+    records[1] = measuredRecord("rows", INPUTS[1], { measures: { "pack.overflow.area": 0.2, "pack.overflow.forcedAreaMin": 0.2 + 1e-10 } });
+    records[2] = measuredRecord("shelf", INPUTS[0], { measures: { "pack.overflow.area": 0.3, "pack.overflow.forcedAreaMin": 0.1 } });
+    expect(smokeCheck(goodRun(), records).failures).toEqual([`The record of rows on ${INPUTS[0]} has a forced overflow area of 0.25, above its overflow area of 0.2.`]);
+  });
+
   it("fails a coverage below 1 of rows, shelf or skyline, but not of push", () => {
     const run = goodRun();
     run.coverage!["skyline"] = cover(1, 2);

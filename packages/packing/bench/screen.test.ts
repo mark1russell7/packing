@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { MOVE_OF, moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
+import { MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
 
@@ -41,6 +41,15 @@ describe("the screen of a run", () => {
     expect([o.records, o.overflowing, o.share, o.outsideExact]).toEqual([2, 1, 0.5, 1]);
     expect(o.means).toEqual({ "pack.overflow": 1, "pack.overflow.forced": 0.5, "pack.overflow.excess": 0.5 });
     expect(Object.keys(o.shapes)).toEqual(["rect"]);
+  });
+
+  it("gives the mean and the median of the overflow measures by area", () => {
+    const area = (excessArea: number, forcedAreaMin: number): Record<string, number> => ({ "pack.overflow.excessArea": excessArea, "pack.overflow.forcedAreaMin": forcedAreaMin });
+    const records = [rec("rows", "i1", "a", area(0, 0.1)), rec("rows", "i2", "b", area(0.1, 0.2)), rec("rows", "i3", "c", area(0.5, 0.6))];
+    const o = screenOf(["rows"], records, SHAPES).overflow["rows"]!;
+    expect(o.means).toEqual({ "pack.overflow.excessArea": 0.2, "pack.overflow.forcedAreaMin": 0.3 });
+    expect(o.medians).toEqual({ "pack.overflow.excessArea": 0.1, "pack.overflow.forcedAreaMin": 0.2 });
+    expect(o.shapes["rect"]!.medians).toEqual({ "pack.overflow.excessArea": 0.05, "pack.overflow.forcedAreaMin": 0.15 });
   });
 
   it("groups the strategies that are equal on each input, and on each input of one container shape", () => {
@@ -93,8 +102,93 @@ describe("the screen of a run", () => {
 
   it("writes one line for each section of a run.json before k59", () => {
     const md = screenMarkdown({}, ["rows"]).join("\n");
-    for (const section of ["Fill without overflow", "Overflow", "Distinct outputs", "Activation"]) expect(md).toContain(`## ${section}`);
+    for (const section of ["Ranking", "Fill without overflow", "Overflow", "Distinct outputs", "Activation"]) expect(md).toContain(`## ${section}`);
     expect(md.match(/A `run.json` before k59/g)).toHaveLength(4);
+    expect(md.match(/A `run.json` before k60/g)).toHaveLength(1);
+  });
+});
+
+describe("the ranking of a cell", () => {
+  const m = (overflow: number, fill: number, excessArea = 0): Record<string, number> => ({ "pack.overflow": overflow, "pack.fill": fill, "pack.overflow.excessArea": excessArea });
+
+  it("ranks the fill only on the inputs where each measured strategy has no overflow", () => {
+    const records = [
+      rec("a", "i1", "a1", m(0, 0.8)),
+      rec("a", "i2", "a2", m(0, 0.6)),
+      rec("a", "i3", "a3", m(1, 0.9)),
+      rec("a", "i4", "a4", m(0, 0.7)),
+      rec("b", "i1", "b1", m(0, 0.7)),
+      rec("b", "i2", "b2", m(2, 0.9)),
+      rec("b", "i3", "b3", m(0, 0.5)),
+      rec("b", "i4", "b4", m(0, 0.6)),
+      // A strategy that skips each input is not ranked, and it does not make the common clean subset smaller
+      ...["i1", "i2", "i3", "i4"].map((i) => ({ ...rec("c", i, "-"), skipped: "unsupported mode: offline" })),
+    ];
+    const r = rankingOf(["a", "b", "c"], records);
+    expect(r.inputs).toBe(4);
+    expect(r.commonClean).toEqual({ inputs: 2, share: 0.5 });
+    expect(r.thin).toBe(false);
+    expect(r.entries.map((e) => e.name)).toEqual(["a", "b"]);
+    // The common clean inputs are i1 and i4. The diagnostic uses the own clean records of each strategy.
+    expect(r.entries[0]).toMatchObject({ rank: 1, records: 4, excessArea: 0, tieGroup: 1, fill: 0.75, diagnosticCleanFill: 0.7 });
+    expect(r.entries[1]).toMatchObject({ rank: 2, records: 4, excessArea: 0, tieGroup: 1, fill: 0.65, diagnosticCleanFill: 0.6 });
+  });
+
+  it("marks a cell thin when the common clean inputs are less than 0.3 of its inputs", () => {
+    const records = [
+      rec("a", "i1", "a1", m(0, 0.8)),
+      rec("a", "i2", "a2", m(1, 0.6)),
+      rec("a", "i3", "a3", m(1, 0.9)),
+      rec("a", "i4", "a4", m(0, 0.7)),
+      rec("b", "i1", "b1", m(0, 0.7)),
+      rec("b", "i2", "b2", m(0, 0.9)),
+      rec("b", "i3", "b3", m(0, 0.5)),
+      rec("b", "i4", "b4", m(1, 0.6)),
+    ];
+    const r = rankingOf(["a", "b"], records);
+    expect(r.commonClean).toEqual({ inputs: 1, share: 0.25 });
+    expect(r.thin).toBe(true);
+    expect(rankingOf(["a", "b"], records.filter((x) => x.input !== "i4")).thin).toBe(false);
+    expect(rankingOf(["a"], []).thin).toBe(true);
+  });
+
+  it("ties the entries within the minimum effect of the best excess area, and ranks the fill only in a tie group", () => {
+    const records = [
+      rec("a", "i1", "a1", m(0, 0.6, 0.01)),
+      rec("b", "i1", "b1", m(0, 0.7, 0.014)),
+      rec("c", "i1", "c1", m(0, 0.9, 0.016)),
+      rec("d", "i1", "d1", m(0, 0.95, 0.5)),
+    ];
+    const r = rankingOf(["a", "b", "c", "d"], records);
+    // b is within 0.005 of a, thus its higher fill ranks it first. c is 0.006 above a, thus c starts tie group 2.
+    expect(r.entries.map((e) => [e.name, e.tieGroup, e.rank])).toEqual([
+      ["b", 1, 1],
+      ["a", 1, 2],
+      ["c", 2, 3],
+      ["d", 3, 4],
+    ]);
+  });
+
+  it("makes one entry of the members of a cell group, named by the group", () => {
+    const records = [
+      rec("rows", "i1", "a", m(0, 0.8)),
+      rec("rows", "i2", "b", m(0, 0.7)),
+      rec("shelf", "i1", "a", m(0, 0.8)),
+      rec("shelf", "i2", "b", m(0, 0.7)),
+      rec("skyline", "i1", "x", m(0, 0.9, 0.1)),
+      rec("skyline", "i2", "y", m(0, 0.6, 0.1)),
+      rec("skyline", "i3", "z", m(0, 0.6, 0.1)),
+    ];
+    const screen = screenOf(["rows", "shelf", "skyline"], records, SHAPES);
+    const rect = screen.ranking["rect"]!;
+    expect(rect.entries.map((e) => ({ name: e.name, strategies: e.strategies, tieGroup: e.tieGroup }))).toEqual([
+      { name: "rows = shelf", strategies: ["rows", "shelf"], tieGroup: 1 },
+      { name: "skyline", strategies: ["skyline"], tieGroup: 2 },
+    ]);
+    // The circle has only skyline: one entry
+    expect(screen.ranking["circle"]!.entries.map((e) => e.name)).toEqual(["skyline"]);
+    const md = screenMarkdown(screen, ["rows", "shelf", "skyline"]).join("\n");
+    expect(md).toContain("| rect | 2/2 | 1 | no | 1 | rows = shelf | 0 | 1 | 0.75 | 2 | 0.75 |");
   });
 });
 
@@ -125,11 +219,28 @@ describe("the screen on smoke-v1", () => {
       records,
       full.manifest,
     );
-    for (const field of ["fill", "overflow", "outputGroups", "cellGroups", "activation"] as const) expect(merged[field], field).toEqual(full.run[field]);
+    for (const field of ["fill", "overflow", "outputGroups", "cellGroups", "activation", "ranking"] as const) expect(merged[field], field).toEqual(full.run[field]);
     // A merge without the records has no screen, because each job sees only its strategies
     expect(mergeRuns(jobs.map((j) => j.run)).outputGroups).toBeUndefined();
     const md = summaryMarkdown(merged, records);
-    for (const section of ["Fill without overflow", "Overflow", "Distinct outputs", "Activation"]) expect(md).toContain(`## ${section}`);
+    for (const section of ["Ranking", "Fill without overflow", "Overflow", "Distinct outputs", "Activation"]) expect(md).toContain(`## ${section}`);
+  });
+
+  it("ranks each container shape of smoke-v1, with no unmeasured strategy, and keeps forcedAreaMin at or below the overflow area", () => {
+    const ranking = full.run.ranking!;
+    expect(Object.keys(ranking).length).toBeGreaterThan(0);
+    for (const [shape, c] of Object.entries(ranking)) {
+      const names = c.entries.flatMap((e) => e.strategies);
+      expect(names, shape).not.toContain("push");
+      expect(new Set(names).size, shape).toBe(names.length);
+      expect(c.entries.map((e) => e.rank), shape).toEqual(c.entries.map((_, i) => i + 1));
+      expect(c.commonClean.inputs, shape).toBeLessThanOrEqual(c.inputs);
+      expect(c.thin, shape).toBe(c.commonClean.inputs / c.inputs < 0.3);
+    }
+    for (const r of full.records.filter(isMeasured)) {
+      expect(r.measures["pack.overflow.forcedAreaMin"]!, `${r.strategy} ${r.input}`).toBeLessThanOrEqual(r.measures["pack.overflow.area"]! + 1e-9);
+      expect(r.measures["pack.overflow.excessArea"]!, `${r.strategy} ${r.input}`).toBeGreaterThanOrEqual(0);
+    }
   });
 
   it("labels rows, shelf and skyline exercised on smoke-v1, and push not-exercised, because push skips each input", () => {

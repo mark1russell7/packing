@@ -64,6 +64,7 @@ The check reads `run.json` and `records.jsonl` of the folder. The code is in `pa
 - The coverage of a strategy in `run.json` does not agree with its records.
 - The coverage of `rows`, `shelf` or `skyline` is below 1.
 - A measured record has a `pack.overflow.forced` above its `pack.overflow`. The forced overflow is a lower bound, thus this is an error of the bound.
+- A measured record has a `pack.overflow.forcedAreaMin` above its `pack.overflow.area + 1e-9`. This is an error of the area bound, or of the packer.
 - A measured record has a `pack.outsideExact` above 0: a box is out of the true outline of the container.
 
 The strategy `push` has only the mode `incremental`, and each input of `smoke-v1` is offline. Thus its coverage is 0. The table shows it, and the check does not fail on it.
@@ -179,27 +180,60 @@ A skipped record is the record of a pair that the strategy does not support. It 
 
 ## The screen guards
 
-Roadmap item k59 adds these guards to each run. The code is in `packages/packing/bench/screen.ts`. The guards come from the records, so the job `merge` makes them again from the records of all the jobs. A merge without records has no guards.
+Roadmap item k59 adds these guards to each run. Roadmap item k60 adds the ranking. The code is in `packages/packing/bench/screen.ts`. The guards come from the records, so the job `merge` makes them again from the records of all the jobs. A merge without records has no guards.
 
 ### The fields of the screen in `run.json`
 
 | Field | Content |
 |---|---|
 | `fill` | For each strategy: `all` and `clean`, each with `records` and the `median` of `pack.fill`. The field `shapes` has the same values for each container shape. |
-| `overflow` | For each strategy: `records`, `overflowing`, `share`, the `means` of the overflow measures and the sum `outsideExact`. The field `shapes` has the same values for each container shape. |
+| `overflow` | For each strategy: `records`, `overflowing`, `share`, the `means` and the `medians` of the overflow measures and the sum `outsideExact`. The field `shapes` has the same values for each container shape. |
+| `ranking` | For each container shape: `inputs`, `commonClean` with `inputs` and `share`, the flag `thin`, and the `entries` in the order of the ranking. |
 | `outputGroups` | The output groups. Each group has its `strategies` and the count of its common `inputs`. |
 | `cellGroups` | For each container shape: its `groups`, and its `pairs`, each with `a`, `b`, `inputs`, `equal` and `share`. |
 | `activation` | For each strategy: `move`, `records`, `fired`, `count`, `label` and `reason`. The field `shapes` has the same values for each container shape. |
 
 The container shape of an input comes from its cell in `corpus.json`. An input that is not in the manifest gets the shape `unknown`.
 
+### Ranking
+
+The ranking compares the strategies in each container shape in two steps. A strategy with no measured record in the shape is not ranked there.
+
+1. Step 1 orders the entries by the median `pack.overflow.excessArea` of their measured records. Lower is better.
+2. The entries within the minimum effect of the best entry make tie group 1. The minimum effect is 0.005, from `MEASURE_SPECS` and `compareMeasure` of the contract.
+3. The other entries make tie groups 2, 3 and more, by the same rule. Each group starts at its best remaining entry.
+4. Step 2 orders each tie group by the median `pack.fill` on the common clean inputs. Higher is better.
+
+A common clean input of a shape has a measured record with `pack.overflow` 0 for each measured strategy of the shape. Thus the fill of step 2 is a paired comparison.
+
+- `commonClean` gives the count of these inputs and their share of the inputs of the shape.
+- A shape with a share below 0.3 is `thin`. Its fill rank uses few inputs, so it is weak.
+- The members of a cell group have equal outputs. They are one entry, with the name of the group, for example `rows = shelf`. The first member gives the values.
+
+Each entry has these fields:
+
+| Field | Content |
+|---|---|
+| `name` | The strategy, or the members of the cell group with ` = ` between them. |
+| `strategies` | The strategies of the entry. |
+| `rank` | The rank in the shape, from 1. |
+| `records` | The measured records of the entry in the shape. |
+| `excessArea` | Step 1: the median `pack.overflow.excessArea`. |
+| `tieGroup` | The tie group of step 1, from 1. |
+| `fill` | Step 2: the median `pack.fill` on the common clean inputs. |
+| `diagnosticCleanFill` | A diagnostic: the median `pack.fill` of the records of the entry with no overflow. It is not paired. |
+
 ### Fill without overflow
 
 A layout that leaves items out gets a high fill. Thus the field `clean` uses only the records with `pack.overflow` 0. The field `all` keeps the median of all the measured records, and the summary shows the two values with their counts. The summary ranks the strategies by `clean`.
 
+Since k60, this rank is a diagnostic. Each strategy has its own clean records, thus two strategies do not compare on the same inputs. The section `Ranking` gives the paired rank.
+
 ### Overflow and the true outline
 
-The table `Overflow` gives the mean of `pack.overflow`, `pack.overflow.rate`, `pack.overflow.area`, `pack.overflow.forced` and `pack.overflow.excess`. `docs/MEASURES.md` tells each one.
+The table `Overflow` gives the mean of `pack.overflow`, `pack.overflow.rate`, `pack.overflow.area`, `pack.overflow.forced`, `pack.overflow.excess`, `pack.overflow.forcedAreaMin` and `pack.overflow.excessArea`. It also gives the median of the last two. `docs/MEASURES.md` tells each one.
+
+The count bound `pack.overflow.forced` is weak on mixed sizes. Thus judge a strategy by `pack.overflow.excessArea`, the overflow area above its bound.
 
 The measure `pack.outsideExact` counts the boxes out of the true outline of the container. It is `in-container` of `checkHard` with `exactContainer` set to `true`. For a circle, an ellipse or a polygon, this test uses the shape, not only its bounding box. Lower is better, and the floor is 0. The smoke check fails when it is above 0.
 
@@ -237,16 +271,17 @@ The summary `summary.md` has these sections:
 2. `Strategies`: one row for each strategy. The row has the counts of measured records, skipped records, errors, hard breaks and records that are not deterministic. Then it has the median of each guard measure, the median of `pack.fill` and `pack.whitespace`, and the times.
 3. One section for each strategy, with one row for each family of inputs.
 4. `Coverage`: one row for each strategy, with the measured inputs of all the inputs and of each container shape.
-5. `Fill without overflow`: the rank of the strategies by the median `pack.fill` of the records with no overflow. Then the same rank for each container shape.
-6. `Overflow`: for each strategy and container shape, the records with overflow, the means of the overflow measures and the sum of `pack.outsideExact`.
-7. `Distinct outputs`: the output groups, and the cell groups and the pairs of each container shape.
-8. `Activation`: for each strategy and container shape, the count of its move and its label.
-9. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
-10. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
-11. `Stability`: the count of records with the stability measures.
-12. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
+5. `Ranking`: for each container shape, the common clean inputs, the flag `thin` and the entries of the two-step ranking.
+6. `Fill without overflow`: a diagnostic rank of the strategies by the median `pack.fill` of their own records with no overflow. Then the same rank for each container shape.
+7. `Overflow`: for each strategy and container shape, the records with overflow and the sum of `pack.outsideExact`. It also gives the means and the medians of the overflow measures.
+8. `Distinct outputs`: the output groups, and the cell groups and the pairs of each container shape.
+9. `Activation`: for each strategy and container shape, the count of its move and its label.
+10. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
+11. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
+12. `Stability`: the count of records with the stability measures.
+13. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
 
-A `run.json` from before k59 has no screen guards. Sections 5 to 8 then show one line that tells it.
+A `run.json` from before k59 has no screen guards. Sections 6 to 9 then show one line that tells it. A `run.json` from before k60 has no ranking, and section 5 shows one line.
 
 The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspectError`, `pack.order.inversions`, `pack.overflow` and the 3 stability measures. Lower is better for each guard. The floor is 0.
 
