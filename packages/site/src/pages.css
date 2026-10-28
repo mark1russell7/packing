@@ -160,6 +160,9 @@
   border-radius: 999px;
   border: 1px solid var(--rule);
   color: var(--muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chip b {
@@ -252,7 +255,7 @@
 
 .cells {
   display: grid;
-  grid-template-columns: repeat(4, 7.6rem);
+  grid-template-columns: repeat(4, 9.6rem);
   gap: 4px;
 }
 
