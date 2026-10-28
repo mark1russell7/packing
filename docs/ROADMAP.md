@@ -79,6 +79,36 @@ Status: done, done, waiting, next, done.
 | k70 | Fit `SELECT_TABLE` again on two measures, the fill and the joint floor of `layout-contract`, with `verdict()`. The fit decides leaf 6: free size, a heavy tail and a shape that is not a rectangle. | strategies | next | k66 |
 | k71 | A render check of the site in CI: headless Chromium opens each page at a phone width and a desktop width. It fails on a console error, a failed request or an empty `main`, and keeps the screenshots. | site | active | k32 |
 | k72 | A compare page: one input, each named strategy side by side, with its output and its measures. The demo offers each strategy of the registry and its options. A test fails when a list of the site differs from the code. | site | active | k32 |
+| k73 | The inputs of the site come from the corpus generator: each family, with sliders for the seed, the count, the size spread, the aspect, the container and the obstacles. Compare and the demo take each generated input. | site | next | k72 |
+| k74 | An analysis card for each strategy: its source, its complexity, its guarantee, its measured scaling exponent, and its response to each dimension and parameter (sweeps and Sobol indices). | measure | next | k13, k68 |
+| k75 | The shape of the items and of the container as a dimension of `packSpace` and of the contracts: rectangle, polygon, circle or free form. Only rectangles have strategies today. | core | next | k68 |
+| k76 | A survey of each published method of packing, as ideas. Each method gets a row of the queue with its gain, its uncertainty and its cost. | theory | next | |
+
+## The queue
+
+The score of an item is its gain times its uncertainty, divided by its cost. Each factor is on a scale of 1 to 5. The gain is the expected change of the efficacy maps. The work takes the items in the order of the score. Up to 3 build subagents run at one time, one family each, each with its prediction.
+
+| Rank | Item | Gain | Uncertainty | Cost | Score |
+| --- | --- | --- | --- | --- | --- |
+| 1 | k75, with k68 | 4 | 2 | 1 | 8.0 |
+| 2 | k51 | 5 | 3 | 2 | 7.5 |
+| 3 | k76 | 4 | 5 | 3 | 6.7 |
+| 4 | k45 | 4 | 3 | 2 | 6.0 |
+| 5 | k23 | 4 | 4 | 3 | 5.3 |
+| 6 | k47 | 4 | 4 | 3 | 5.3 |
+| 7 | k68 | 5 | 2 | 2 | 5.0 |
+| 8 | k26 | 5 | 4 | 4 | 5.0 |
+| 9 | k22 | 3 | 3 | 2 | 4.5 |
+| 10 | k25 | 3 | 3 | 2 | 4.5 |
+| 11 | k70 | 3 | 3 | 2 | 4.5 |
+| 12 | k13 | 3 | 3 | 2 | 4.5 |
+| 13 | k10 | 4 | 4 | 4 | 4.0 |
+| 14 | k46 | 4 | 4 | 4 | 4.0 |
+| 15 | k74 | 4 | 3 | 4 | 3.0 |
+| 16 | k52 | 3 | 2 | 2 | 3.0 |
+| 17 | k73 | 4 | 2 | 3 | 2.7 |
+
+The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
 ## Rules
 
@@ -88,5 +118,5 @@ Status: done, done, waiting, next, done.
 - One item of a strategy family is always active, next to each item of speed or of the default.
 - A time ratio between two commits comes from one job: `paired.yml`, not two bench runs.
 - The site follows the work. Each item that ships a strategy, a result or a bench change also changes the site.
-- The strategy interface stays pure: items and sizes in, rectangles out, the same result for the same seed.
+- The strategy interface stays pure: items and their shapes in, placements out, the same result for the same seed. The design accepts shapes other than rectangles.
 - Each benchmark run writes one JSON record: the strategy, the input set, the seed, each measure and the time.
