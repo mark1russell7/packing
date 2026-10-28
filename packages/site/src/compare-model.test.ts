@@ -4,10 +4,8 @@ import {
   bestIds,
   boardInput,
   COMPARE_ENTRIES,
-  COMPARE_GENERATORS,
+  COMPARE_FAMILIES,
   drawingSvg,
-  generatorKey,
-  generatorOf,
   MAX_COMPARE_COUNT,
   presetInput,
   runAll,
@@ -16,15 +14,16 @@ import {
   valueText,
   type EntryResult,
 } from "./compare-model.ts";
+import { familyKey, familyOf } from "./corpus-input.ts";
 import { parseSnapshot } from "./data.ts";
 import { parseVerdictHash, verdictHash, verdictSnapshot } from "./results-model.ts";
 
 const snapshot = (name: string) => parseSnapshot(readFileSync(new URL(`../data/strategies-${name}.json`, import.meta.url), "utf8"), "strategies");
 
 describe("the input of the compare page", () => {
-  it("makes a board of each generator with its defaults", () => {
-    for (const g of COMPARE_GENERATORS) {
-      const b = boardInput(generatorKey(g), {}, 1);
+  it("makes a board of each family with its defaults", () => {
+    for (const f of COMPARE_FAMILIES) {
+      const b = boardInput(familyKey(f), {}, 1);
       expect(b.id).toMatch(/\/s1$/);
       expect(b.input.items.length).toBeLessThanOrEqual(MAX_COMPARE_COUNT);
     }
@@ -36,7 +35,7 @@ describe("the input of the compare page", () => {
   });
 
   it("gives rect-grid version 2 for an unknown key", () => {
-    expect(generatorKey(generatorOf("nothing@9"))).toBe("rect-grid@2");
+    expect(familyKey(familyOf("nothing@9"))).toBe("rect-grid@2");
   });
 
   it("makes the items of a demo preset in a fixed width", () => {

@@ -1,7 +1,6 @@
 // The compare page: one input, packed with each entry of `ENTRIES` of the benchmark, side by side. The entries pack one
 // at a time, so the page stays responsive. The hash of the URL keeps the input and the sort.
 
-import type { GeneratorParams } from "@mark1russell7/packing";
 import screenJson from "../data/strategies-pack-screen-v1.json?raw";
 import freeJson from "../data/strategies-pack-free-v1.json?raw";
 import test1Json from "../data/strategies-pack-select-v1.json?raw";
@@ -11,13 +10,8 @@ import {
   bestIds,
   boardInput,
   COMPARE_ENTRIES,
-  COMPARE_GENERATORS,
   COMPARE_MEASURES,
   drawingSvg,
-  generatorKey,
-  generatorOf,
-  MAX_COMPARE_COUNT,
-  paramControls,
   presetInput,
   runEntry,
   sortResults,
@@ -26,6 +20,21 @@ import {
   type EntryResult,
   type SortKey,
 } from "./compare-model.ts";
+import {
+  controlsHtml,
+  controlValue,
+  DEFAULT_FAMILY,
+  dimensionControls,
+  dimensionText,
+  familyKey,
+  familyOf,
+  familyOptionsHtml,
+  readDimensions,
+  sliderValue,
+  withDimension,
+  writeDimensions,
+  type DimensionValues,
+} from "./corpus-input.ts";
 import { CORPUS_LABELS, parseSnapshot } from "./data.ts";
 import { esc, msText } from "./format.ts";
 import { PRESETS, presetOf } from "./model.ts";
@@ -49,7 +58,7 @@ type Source = "board" | "demo";
 interface State {
   source: Source;
   generator: string;
-  params: GeneratorParams;
+  params: DimensionValues;
   seed: number;
   preset: string;
   count: number;
@@ -62,7 +71,7 @@ const clamp = (v: number, min: number, max: number): number => Math.min(max, Mat
 
 const state: State = {
   source: "board",
-  generator: "rect-grid@2",
+  generator: DEFAULT_FAMILY,
   params: {},
   seed: 1,
   preset: "cards",
@@ -88,15 +97,8 @@ function readHash(): void {
     return Number.isFinite(v) ? clamp(v, min, max) : fallback;
   };
   state.source = p.get("src") === "demo" ? "demo" : "board";
-  state.generator = generatorKey(generatorOf(p.get("g") ?? state.generator));
-  const g = generatorOf(state.generator);
-  state.params = {};
-  for (const c of paramControls(g)) {
-    const raw = p.get(`p.${c.key}`);
-    if (raw === null) continue;
-    if (c.kind === "select" && c.values.includes(raw)) state.params[c.key] = typeof g.defaults[c.key] === "number" ? Number(raw) : raw;
-    if (c.kind === "number" && Number.isFinite(Number(raw))) state.params[c.key] = clamp(Math.round(Number(raw)), c.min, c.max);
-  }
+  state.generator = familyKey(familyOf(p.get("g") ?? state.generator));
+  state.params = readDimensions(state.generator, (k) => p.get(k));
   state.seed = int("s", 1, 0, 999999);
   state.preset = presetOf(p.get("p") ?? "cards").id;
   state.count = int("n", 24, 1, 200);
@@ -110,7 +112,7 @@ function writeHash(): void {
   const p = new URLSearchParams({ src: state.source });
   if (state.source === "board") {
     p.set("g", state.generator);
-    for (const [k, v] of Object.entries(state.params)) p.set(`p.${k}`, String(v));
+    writeDimensions(p, state.params);
     p.set("s", String(state.seed));
   } else {
     p.set("p", state.preset);
@@ -130,17 +132,8 @@ const paramsEl = $("params");
 function drawParams(): void {
   for (const b of $("source").querySelectorAll<HTMLElement>("[data-source]")) b.setAttribute("aria-checked", String(b.dataset["source"] === state.source));
   if (state.source === "board") {
-    const g = generatorOf(state.generator);
-    const gens = COMPARE_GENERATORS.map((x) => `<option value="${esc(generatorKey(x))}">${esc(x.name)}, version ${x.version}</option>`).join("");
-    const params = paramControls(g).map((c) => {
-      const v = state.params[c.key] ?? c.value;
-      if (c.kind === "select") {
-        const opts = c.values.map((x) => `<option value="${esc(x)}"${x === String(v) ? " selected" : ""}>${esc(x)}</option>`).join("");
-        return `<label class="opt">${esc(c.key)}<select data-param="${esc(c.key)}">${opts}</select></label>`;
-      }
-      return `<label class="opt">${esc(c.key)}<input type="number" data-param="${esc(c.key)}" min="${c.min}" max="${c.max}" step="1" value="${Number(v)}" /></label>`;
-    });
-    paramsEl.innerHTML = `<label class="opt">Generator<select id="generator">${gens}</select></label>${params.join("")}<label class="opt">Seed<input type="number" id="seed" min="0" max="999999" step="1" value="${state.seed}" /></label>`;
+    const dims = controlsHtml(dimensionControls(state.generator, state.params), "cmp");
+    paramsEl.innerHTML = `<label class="opt">Family<select id="generator">${familyOptionsHtml(state.generator)}</select></label><label class="opt">Seed<input type="number" id="seed" min="0" max="999999" step="1" value="${state.seed}" /></label>${dims}`;
     $<HTMLSelectElement>("generator").value = state.generator;
   } else {
     const presets = PRESETS.map((x) => `<option value="${esc(x.id)}"${x.id === state.preset ? " selected" : ""}>${esc(x.label)}</option>`).join("");
@@ -174,14 +167,23 @@ paramsEl.addEventListener("change", (e) => {
   else if (el.id === "preset") state.preset = el.value;
   else if (el.id === "count") state.count = int(1, 200, state.count);
   else if (el.id === "width") state.width = int(160, 1200, state.width);
-  else if (el.dataset["param"] !== undefined) {
-    const key = el.dataset["param"];
-    const g = generatorOf(state.generator);
-    const c = paramControls(g).find((x) => x.key === key);
-    if (c?.kind === "select") state.params[key] = typeof g.defaults[key] === "number" ? Number(el.value) : el.value;
-    else if (c?.kind === "number") state.params[key] = int(c.min, c.max, c.value);
+  else if (el.dataset["dim"] !== undefined) {
+    const v = controlValue(state.generator, el);
+    if (v !== undefined) state.params = withDimension(state.generator, state.params, v.name, v.value);
+    // A dimension can turn another dimension on or off, so the controls draw again.
+    drawParams();
   }
   start();
+});
+
+// A slider shows its value while it moves. The page packs again when the slider stops.
+paramsEl.addEventListener("input", (e) => {
+  const el = e.target as HTMLInputElement;
+  const name = el.dataset["dim"];
+  if (el.type !== "range" || name === undefined) return;
+  const d = familyOf(state.generator).dimensions.find((x) => x.name === name);
+  const out = paramsEl.querySelector<HTMLOutputElement>(`output[data-out="${CSS.escape(name)}"]`);
+  if (d !== undefined && out !== null) out.textContent = dimensionText(sliderValue(d, Number(el.value)));
 });
 
 const packSeedEl = $<HTMLInputElement>("pack-seed");
@@ -256,8 +258,8 @@ function drawInputNote(): void {
   const size = c.fixed === "none" ? "a free size" : c.fixed === "size" ? `a fixed size ${c.w} × ${c.h}` : c.fixed === "width" ? `a fixed width ${c.w}` : `a fixed height ${c.h}`;
   const shape = c.shape === undefined ? "" : `, the shape ${c.shape.kind}`;
   const obstacles = input.input.obstacles?.length ?? 0;
-  const capped = state.source === "board" && Number(state.params["count"] ?? 0) > MAX_COMPARE_COUNT ? ` The count stops at ${MAX_COMPARE_COUNT}.` : "";
-  note.innerHTML = `<code>${esc(input.id)}</code>, the family <code>${esc(input.family)}</code>: ${input.input.items.length} boxes, ${size}${shape}, ${obstacles} ${obstacles === 1 ? "obstacle" : "obstacles"}.${capped}`;
+  const gap = input.input.gap === undefined ? "" : `, a gap of ${input.input.gap}`;
+  note.innerHTML = `<code>${esc(input.id)}</code>, the family <code>${esc(input.family)}</code>: ${input.input.items.length} boxes, ${size}${shape}, ${obstacles} ${obstacles === 1 ? "obstacle" : "obstacles"}${gap}.`;
 }
 
 /** This function gives the link to the verdict of an entry on the results page, or a note when no snapshot has one. */

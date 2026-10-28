@@ -227,6 +227,9 @@ importers:
 
   packages/site:
     dependencies:
+      '@mark1russell7/layout-contract':
+        specifier: github:mark1russell7/layout-contract#a43ca73de2c2a7007f2e6874e7a464a2bde48610&path:packages/layout-contract
+        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/a43ca73de2c2a7007f2e6874e7a464a2bde48610#path:packages/layout-contract
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing

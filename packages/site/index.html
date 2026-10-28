@@ -26,16 +26,28 @@
 
     <main class="app">
       <section class="items-bar" aria-label="Items and container">
-        <div class="field presets">
+        <div class="field source">
+          <span class="label" id="source-label">Input</span>
+          <div class="seg" role="radiogroup" aria-labelledby="source-label" id="sources">
+            <button type="button" role="radio" data-source="preset">Demo items</button>
+            <button type="button" role="radio" data-source="family">Corpus family</button>
+          </div>
+          <p class="hint" id="source-hint"></p>
+        </div>
+        <div class="gen-bar" id="gen" hidden>
+          <label class="opt">Family<select id="family"></select></label>
+          <div class="gen-dims" id="dims"></div>
+        </div>
+        <div class="field presets" id="preset-field">
           <span class="label" id="preset-label">Items</span>
           <div class="seg" role="radiogroup" aria-labelledby="preset-label" id="presets"></div>
           <p class="hint" id="preset-hint"></p>
         </div>
-        <div class="field">
+        <div class="field" id="count-field">
           <label class="label" for="count">Count <output id="count-out" for="count"></output></label>
           <input type="range" id="count" min="1" max="80" step="1" />
         </div>
-        <div class="field">
+        <div class="field" id="width-field">
           <label class="label" for="width">Container width <output id="width-out" for="width"></output></label>
           <input type="range" id="width" min="160" max="1200" step="10" />
           <p class="hint" id="width-hint"></p>

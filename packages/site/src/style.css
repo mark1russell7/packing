@@ -240,8 +240,62 @@ button.danger {
   align-items: start;
 }
 
-.items-bar .presets {
+.items-bar .presets,
+.items-bar .source {
   grid-column: 1 / -1;
+}
+
+.items-bar .field[hidden] {
+  display: none;
+}
+
+/* The generated input of a corpus family: the family picker and one control for each dimension */
+.gen-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 20px;
+}
+
+.gen-bar[hidden] {
+  display: none;
+}
+
+.gen-dims {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 20px;
+}
+
+.opt.dim.range {
+  min-width: min(100%, 180px);
+}
+
+.opt.dim .dim-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.opt.dim output {
+  font: 600 0.9rem "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink);
+}
+
+.opt.dim .hint {
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.opt.dim :disabled {
+  opacity: 0.5;
+}
+
+.obstacle {
+  fill: var(--muted);
+  opacity: 0.45;
 }
 
 .hint:empty {

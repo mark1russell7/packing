@@ -1,73 +1,41 @@
 // The calculations of the compare page: the input, one packing for each named entry, the best value of each measure and
 // the sort. The list of the entries is `ENTRIES` of the benchmark. The sync test fails when the page list differs from it.
 
-import {
-  generators,
-  measure,
-  MEASURE_SPECS,
-  packWith,
-  toPackInput,
-  type CorpusGenerator,
-  type GeneratorParams,
-  type MeasureId,
-  type PackInput,
-  type PackOutput,
-  type Region,
-} from "@mark1russell7/packing";
+import type { CorpusFamily, LayoutInput } from "@mark1russell7/layout-contract";
+import { measure, MEASURE_SPECS, packWith, type MeasureId, type PackInput, type PackOutput } from "@mark1russell7/packing";
 import { ENTRIES, type BenchEntry } from "@mark1russell7/packing/bench/entries";
+import { generateInput, MAX_SITE_COUNT, SITE_FAMILIES, type DimensionValues } from "./corpus-input.ts";
 import { MEASURE_LABELS } from "./data.ts";
 import { errorText, inputOf, makeItems } from "./model.ts";
+import { regionBounds, regionSvg } from "./region.ts";
+
+export { regionBounds, regionSvg } from "./region.ts";
 
 /** This constant lists each entry of the compare page: `ENTRIES` of the benchmark, in its order. */
 export const COMPARE_ENTRIES: readonly BenchEntry[] = ENTRIES;
 
-/** This constant lists each generator of the corpora that the compare page offers. */
-export const COMPARE_GENERATORS: readonly CorpusGenerator[] = generators;
+/** This constant lists each corpus family that the compare page offers: the families of the registry of the site. */
+export const COMPARE_FAMILIES: readonly CorpusFamily<LayoutInput>[] = SITE_FAMILIES;
 
 /** The largest count of boxes on the compare page. Each entry packs the input in this browser. */
-export const MAX_COMPARE_COUNT = 1000;
-
-/** This function gives the key of a generator: its name and its version. */
-export const generatorKey = (g: Pick<CorpusGenerator, "name" | "version">): string => `${g.name}@${g.version}`;
-
-/** This function gives the generator of a key. An unknown key gives the generator `rect-grid`, version 2. */
-export function generatorOf(key: string): CorpusGenerator {
-  return COMPARE_GENERATORS.find((g) => generatorKey(g) === key) ?? COMPARE_GENERATORS.find((g) => generatorKey(g) === "rect-grid@2") ?? COMPARE_GENERATORS[0]!;
-}
-
-/** The control of one parameter of a generator: a list of values, or a number. */
-export type ParamControl =
-  | { key: string; kind: "select"; values: readonly string[]; value: string }
-  | { key: string; kind: "number"; value: number; min: number; max: number };
-
-/** This function gives the control of each parameter of a generator, from its defaults and its lists of values. */
-export function paramControls(g: CorpusGenerator): ParamControl[] {
-  return Object.entries(g.defaults).map(([key, value]): ParamControl => {
-    const values = (g.values as Record<string, readonly (string | number)[] | undefined>)[key];
-    if (values !== undefined) return { key, kind: "select", values: values.map(String), value: String(value) };
-    return { key, kind: "number", value: Number(value), min: 0, max: key === "count" ? MAX_COMPARE_COUNT : 100_000 };
-  });
-}
+export const MAX_COMPARE_COUNT = MAX_SITE_COUNT;
 
 /** One input of the compare page: the packing input, its id and a short text of where it comes from. */
 export interface CompareInput {
   input: PackInput;
-  /** The id of the input. A board of a generator has the id `<set>/<family>/s<seed>` of its file. */
+  /** The id of the input. A board of a family has the id `<set>/<family>/s<seed>` of its file. */
   id: string;
-  /** The family of a board of a generator, or the preset of the demo items. */
+  /** The family of a board of a corpus family, or the preset of the demo items. */
   family: string;
 }
 
 /**
- * This function makes a board of a generator: the parameters over the defaults, and a seed. A count above
- * `MAX_COMPARE_COUNT` becomes `MAX_COMPARE_COUNT`. A bad parameter throws the `RangeError` of the generator.
+ * This function makes a board of a corpus family with `generate` of the registry of the site: the values of the
+ * dimensions and a seed. A count above `MAX_COMPARE_COUNT` becomes `MAX_COMPARE_COUNT`. A bad value throws a `RangeError`.
  */
-export function boardInput(key: string, params: GeneratorParams, seed: number): CompareInput {
-  const g = generatorOf(key);
-  const own = Object.fromEntries(Object.entries(params).filter(([k]) => k in g.defaults));
-  if (typeof own["count"] === "number") own["count"] = Math.max(0, Math.min(MAX_COMPARE_COUNT, Math.round(own["count"])));
-  const file = g.generate(seed, own);
-  return { input: toPackInput(file), id: file.id, family: file.family };
+export function boardInput(key: string, dims: DimensionValues, seed: number): CompareInput {
+  const { file, input } = generateInput(key, dims, seed);
+  return { input, id: file.id, family: file.family ?? key };
 }
 
 /** This function makes the items of a preset of the demo in a container of a fixed width. */
@@ -173,41 +141,6 @@ export function bestIds(results: readonly EntryResult[], key: Exclude<SortKey, "
   if (scored.length < 2) return new Set();
   const best = Math.min(...scored.map((x) => x.s));
   return new Set(scored.filter((x) => Math.abs(x.s - best) <= 1e-9 * Math.max(1, Math.abs(best))).map((x) => x.id));
-}
-
-/** This function gives the bounding box of a region. */
-export function regionBounds(r: Region): { x: number; y: number; w: number; h: number } {
-  switch (r.kind) {
-    case "rect":
-      return { x: r.x, y: r.y, w: r.w, h: r.h };
-    case "circle":
-      return { x: r.cx - r.r, y: r.cy - r.r, w: 2 * r.r, h: 2 * r.r };
-    case "ellipse":
-      return { x: r.cx - r.rx, y: r.cy - r.ry, w: 2 * r.rx, h: 2 * r.ry };
-    case "polygon": {
-      const xs = r.points.map((p) => p[0]);
-      const ys = r.points.map((p) => p[1]);
-      const x = Math.min(...xs);
-      const y = Math.min(...ys);
-      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-    }
-  }
-}
-
-/** This function gives the SVG element of a region, with a class. */
-export function regionSvg(r: Region, cls: string): string {
-  switch (r.kind) {
-    case "rect":
-      return `<rect class="${cls}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" />`;
-    case "circle":
-      return `<circle class="${cls}" cx="${r.cx}" cy="${r.cy}" r="${r.r}" />`;
-    case "ellipse":
-      return `<ellipse class="${cls}" cx="${r.cx}" cy="${r.cy}" rx="${r.rx}" ry="${r.ry}" />`;
-    case "polygon": {
-      const ring = (pts: readonly (readonly [number, number])[]): string => `M${pts.map((p) => `${p[0]},${p[1]}`).join("L")}Z`;
-      return `<path class="${cls}" fill-rule="evenodd" d="${[r.points, ...(r.holes ?? [])].map(ring).join("")}" />`;
-    }
-  }
 }
 
 /**
