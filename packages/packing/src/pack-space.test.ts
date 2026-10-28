@@ -35,6 +35,17 @@ describe("packSpace", () => {
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(705n);
   });
 
+  // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
+  it("gives cell-portfolio one pool entry, and counts 2.75e16 meta configs with 3 levels", () => {
+    const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
+    expect(cell.members!.pool).toHaveLength(1);
+    const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
+    expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
+    // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 705 base configs
+    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(27511368280358820n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(1006177106592n);
+  });
+
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
     const members = named["portfolio"]!.stages["combine"]!.members!;
     expect(members).toHaveLength(Object.keys(PORTFOLIO_SETS.entries).length);
@@ -65,7 +76,7 @@ describe("packSpace", () => {
     expect(() => packConfig(input, { space: "packing", stages: {} })).toThrow(RangeError);
     const members = named["portfolio"]!.stages["combine"]!.members!;
     const other = { space: "packing", stages: { combine: { option: "cell-portfolio", members: [...members.slice(1), named["shelf-first-input"]!] } } };
-    expect(() => packConfig(input, other)).toThrow(/PORTFOLIO_SETS/);
+    expect(() => packConfig(input, other)).toThrow(/pool/);
   });
 
   it("throws a RangeError for an option that the space does not have", () => {

@@ -63,53 +63,6 @@ const PORTFOLIO_PARAMS: readonly SpaceParam[] = [
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
 const RECT_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["rect"] as const) });
 
-/** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
-const STAGES: readonly SpaceStage[] = [
-  { name: "order", options: SORT_ORDERS.map((id) => ({ id, params: [], supports: RECT_ONLY })) },
-  {
-    name: "size-search",
-    options: [
-      { id: "log-sweep", params: [{ name: "samples", kind: "int", min: 12, max: 192, scale: "log", default: 48 }], supports: RECT_ONLY },
-      { id: "none", params: [], supports: RECT_ONLY },
-    ],
-  },
-  {
-    name: "placement",
-    options: [
-      { id: "rows", params: [], supports: RECT_ONLY },
-      { id: "skyline", params: [], supports: RECT_ONLY },
-      { id: "shelf", params: [{ name: "fit", kind: "enum", values: ["none", ...SHELF_FITS], default: "none" }], supports: RECT_ONLY },
-      {
-        id: "maxrects",
-        params: [
-          { name: "rule", kind: "enum", values: [...MAXRECTS_RULES], default: "bssf" },
-          { name: "rotate", kind: "bool", default: false },
-          { name: "fixedBands", kind: "bool", default: false },
-          { name: "bandHeight", kind: "real", min: 1, max: 64, scale: "log", default: 8, when: { param: "fixedBands", in: [true] } },
-        ],
-        supports: RECT_ONLY,
-      },
-      { id: "push", params: [{ name: "maxShovesPerItem", kind: "int", min: 1, max: 64, scale: "log", default: 8 }], supports: RECT_ONLY },
-    ],
-  },
-  { name: "local-search", options: [{ id: "none", params: [], supports: RECT_ONLY }] },
-  {
-    name: "combine",
-    optional: true,
-    options: [
-      { id: "portfolio", params: PORTFOLIO_PARAMS, members: { min: 2, max: 5, ordered: true }, supports: RECT_ONLY },
-      {
-        id: "cell-portfolio",
-        params: [{ name: "k", kind: "enum", values: ["cell", 2, 3], default: "cell" }, ...PORTFOLIO_PARAMS],
-        members: { min: Object.keys(PORTFOLIO_SETS.entries).length, max: Object.keys(PORTFOLIO_SETS.entries).length, ordered: false },
-        supports: RECT_ONLY,
-      },
-      { id: "select", params: [{ name: "table", kind: "enum", values: ["k66"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
-      { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
-    ],
-  },
-];
-
 /** This function gives the stage choice of a param list, without an empty list of params. */
 const choice = (option: string, params: Record<string, string | number | boolean> = {}): StageChoice =>
   Object.keys(params).length === 0 ? { option } : { option, params };
@@ -149,6 +102,56 @@ const POOL: Readonly<Record<string, StrategyConfig>> = Object.fromEntries(
   Object.entries(PORTFOLIO_SETS.entries).map(([id, e]) => [id, baseConfig(e.strategy, (e.options ?? {}) as Record<string, unknown>)]),
 );
 
+/** The configs of the entries of `PORTFOLIO_SETS`. They are the one entry of the `pool` of `cell-portfolio` (roadmap item L39 of the contract). */
+const pool: readonly StrategyConfig[] = Object.values(POOL);
+
+/** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
+const STAGES: readonly SpaceStage[] = [
+  { name: "order", options: SORT_ORDERS.map((id) => ({ id, params: [], supports: RECT_ONLY })) },
+  {
+    name: "size-search",
+    options: [
+      { id: "log-sweep", params: [{ name: "samples", kind: "int", min: 12, max: 192, scale: "log", default: 48 }], supports: RECT_ONLY },
+      { id: "none", params: [], supports: RECT_ONLY },
+    ],
+  },
+  {
+    name: "placement",
+    options: [
+      { id: "rows", params: [], supports: RECT_ONLY },
+      { id: "skyline", params: [], supports: RECT_ONLY },
+      { id: "shelf", params: [{ name: "fit", kind: "enum", values: ["none", ...SHELF_FITS], default: "none" }], supports: RECT_ONLY },
+      {
+        id: "maxrects",
+        params: [
+          { name: "rule", kind: "enum", values: [...MAXRECTS_RULES], default: "bssf" },
+          { name: "rotate", kind: "bool", default: false },
+          { name: "fixedBands", kind: "bool", default: false },
+          { name: "bandHeight", kind: "real", min: 1, max: 64, scale: "log", default: 8, when: { param: "fixedBands", in: [true] } },
+        ],
+        supports: RECT_ONLY,
+      },
+      { id: "push", params: [{ name: "maxShovesPerItem", kind: "int", min: 1, max: 64, scale: "log", default: 8 }], supports: RECT_ONLY },
+    ],
+  },
+  { name: "local-search", options: [{ id: "none", params: [], supports: RECT_ONLY }] },
+  {
+    name: "combine",
+    optional: true,
+    options: [
+      { id: "portfolio", params: PORTFOLIO_PARAMS, members: { min: 2, max: 5, ordered: true }, supports: RECT_ONLY },
+      {
+        id: "cell-portfolio",
+        params: [{ name: "k", kind: "enum", values: ["cell", 2, 3], default: "cell" }, ...PORTFOLIO_PARAMS],
+        members: { min: pool.length, max: pool.length, ordered: false, pool: [pool] },
+        supports: RECT_ONLY,
+      },
+      { id: "select", params: [{ name: "table", kind: "enum", values: ["k66"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
+      { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+    ],
+  },
+];
+
 /** The named single configs: each single entry of the benchmark, then `maxrects` of the registry. */
 const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   rows: baseConfig("rows"),
@@ -163,7 +166,6 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   maxrects: baseConfig("maxrects"),
 };
 
-const pool = Object.values(POOL);
 const single = (id: string): StrategyConfig => SINGLE[id]!;
 
 /**
@@ -173,6 +175,7 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` only.
  * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select` and `aspect-fit`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
+ * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
  * - The named config `aspect-fit` wraps `maxrects`, because the registry strategy needs an inner strategy.
  * - Each option supports only the shape kind `rect`. Thus `spaceSize` with other `shapes` gives 0.
@@ -336,7 +339,7 @@ function wrapped(id: string, options: Record<string, unknown>, params: Readonly<
  * - The function checks the shape kinds of the items with `checkShapes` and `checkConfig`. A break causes `UnsupportedShape`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select` or `aspect-fit`.
- * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members cause a `RangeError`.
+ * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  */
 export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): PackOutput {
