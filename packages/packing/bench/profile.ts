@@ -1,6 +1,6 @@
 // The CPU profile of roadmap item k64 (`docs/BENCH.md`, "A CPU profile"). The workflow `profile.yml` starts it in CI.
 //
-//   node bench/profile.ts --corpus <name> --strategy <id> (--inputs a,b | --slowest <n> --times <dir>) [--default rows]
+//   node bench/profile.ts --corpus <name> --strategy <id> (--inputs a,b | --slowest <n> --times <dir> [--rank ratio|ms]) [--default rows]
 //     [--repeats 3] [--warmup 1] [--interval-us 200] [--out dir]
 //
 // The script times the strategy and the default on each input, then packs each input with the strategy under the
@@ -47,11 +47,15 @@ export function parseTimeRecords(text: string): TimeRecord[] {
   return out;
 }
 
+/** The order of `slowestInputs`: by the time ratio to the default (`ratio`), or by the time of the candidate (`ms`). */
+export type SlowRank = "ratio" | "ms";
+
 /**
  * This function gives the `n` inputs with the highest time ratio of the candidate to the default, highest first.
  * The ratio is `t / max(b, floorMs / timeRatio)`, as the time test of `bench/promote.ts` gives it. A skipped record has no time.
+ * With the rank `ms`, the order is the time of the candidate. Use it when the default is as slow as the candidate.
  */
-export function slowestInputs(records: readonly TimeRecord[], candidate: string, current: string, n: number, floorMs = TIME_FLOOR_MS, timeRatio = TIME_RATIO): SlowInput[] {
+export function slowestInputs(records: readonly TimeRecord[], candidate: string, current: string, n: number, floorMs = TIME_FLOOR_MS, timeRatio = TIME_RATIO, rank: SlowRank = "ratio"): SlowInput[] {
   const least = floorMs / timeRatio;
   const times = (id: string): Map<string, number> => new Map(records.filter((r) => r.strategy === id && r.skipped === undefined).map((r) => [r.input, r.ms]));
   const a = times(candidate);
@@ -62,7 +66,8 @@ export function slowestInputs(records: readonly TimeRecord[], candidate: string,
     if (base === undefined) continue;
     out.push({ input, candidate: t, current: base, ratio: t / Math.max(base, least) });
   }
-  out.sort((x, y) => y.ratio - x.ratio || (x.input < y.input ? -1 : x.input > y.input ? 1 : 0));
+  const key = (s: SlowInput): number => (rank === "ms" ? s.candidate : s.ratio);
+  out.sort((x, y) => key(y) - key(x) || (x.input < y.input ? -1 : x.input > y.input ? 1 : 0));
   return out.slice(0, n);
 }
 
@@ -375,7 +380,9 @@ export async function profileMain(argv: readonly string[]): Promise<ProfileRepor
   else {
     const dir = opt(argv, "--times");
     if (dir === undefined) throw new Error("The profile needs --inputs a,b or --slowest <n> --times <dir>.");
-    const slow = slowestInputs(parseTimeRecords(readFileSync(join(dir, "records.jsonl"), "utf8")), id, current, count(argv, "--slowest", 20));
+    const rank = opt(argv, "--rank") ?? "ratio";
+    if (rank !== "ratio" && rank !== "ms") throw new Error(`The rank "${rank}" is not ratio or ms.`);
+    const slow = slowestInputs(parseTimeRecords(readFileSync(join(dir, "records.jsonl"), "utf8")), id, current, count(argv, "--slowest", 20), TIME_FLOOR_MS, TIME_RATIO, rank);
     picked = slow.map((s) => ({ input: s.input, recordRatio: round3(s.ratio) }));
   }
   if (picked.length === 0) throw new Error("The profile has no inputs.");
