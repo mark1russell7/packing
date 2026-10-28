@@ -4,10 +4,6 @@
 name: Profile
 
 on:
-  # TEMPORARY: a new workflow starts by hand only from the default branch. Remove this trigger before the merge.
-  pull_request:
-    paths:
-      - .github/workflows/profile.yml
   workflow_dispatch:
     inputs:
       corpus:
