@@ -64,6 +64,11 @@ export const DIMENSION_LABELS: Readonly<Record<string, string>> = {
   shape: "Item shape",
   case: "Case",
   class: "Class",
+  ratio: "Height ratio",
+  stages: "Stages",
+  excess: "Excess width",
+  axis: "Axis",
+  rung: "Rung",
 };
 
 /**
