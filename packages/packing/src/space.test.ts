@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boundsOf, regionHitsRect } from "@mark1russell7/layout-contract";
+import { boundsOf, rectInRegion, regionHitsRect } from "@mark1russell7/layout-contract";
 import {
   checkHard,
   freeSpace,
@@ -15,10 +15,9 @@ import {
   type Region,
 } from "./index.ts";
 
-// The container layer of roadmap item k37. `checkHard` reads the container as its bounding box, thus these tests check
-// each box against the true outline of the container: the circle, the ellipse or the polygon with its holes.
+// The container layer of roadmap item k37. By default, `checkHard` reads the container as its bounding box. Thus these
+// tests check each box against the true outline of the container. `rectInRegion` of the contract is the ground truth.
 
-type Ring = readonly (readonly [number, number])[];
 interface Box {
   x: number;
   y: number;
@@ -31,66 +30,9 @@ const SHAPES = ["rect", "convex", "polygon", "circle", "ellipse", "holes"] as co
 const LAYOUTS = ["none", "center", "scattered", "wall", "corridors", "touching", "edge"] as const;
 const STRATEGIES = ["rows", "shelf", "skyline"] as const;
 
-/** The even-odd rule over the rings of a polygon. */
-function inRings(x: number, y: number, rings: readonly Ring[]): boolean {
-  let inside = false;
-  for (const ring of rings) {
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i]!;
-      const [xj, yj] = ring[j]!;
-      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-    }
-  }
-  return inside;
-}
-
-/** This function tells if a part of a segment with a length is in the open box. */
-function crosses(ax: number, ay: number, bx: number, by: number, b: Box): boolean {
-  let t0 = 0;
-  let t1 = 1;
-  const dx = bx - ax;
-  const dy = by - ay;
-  for (const [p, q] of [
-    [-dx, ax - b.x],
-    [dx, b.x + b.w - ax],
-    [-dy, ay - b.y],
-    [dy, b.y + b.h - ay],
-  ] as const) {
-    if (p === 0) {
-      if (q <= 0) return false;
-    } else if (p < 0) t0 = Math.max(t0, q / p);
-    else t1 = Math.min(t1, q / p);
-  }
-  return t1 - t0 > 1e-12;
-}
-
-/** This function tells if a box is in the true outline of a region, with a tolerance. */
+/** This function tells if a box made smaller by a tolerance is in the true outline of a region, out of its holes. */
 function inside(region: Region, box: Box, tol = TOL): boolean {
-  const b = { x: box.x + tol, y: box.y + tol, w: box.w - 2 * tol, h: box.h - 2 * tol };
-  switch (region.kind) {
-    case "rect":
-      return b.x >= region.x && b.y >= region.y && b.x + b.w <= region.x + region.w && b.y + b.h <= region.y + region.h;
-    case "circle":
-    case "ellipse": {
-      const rx = region.kind === "circle" ? region.r : region.rx;
-      const ry = region.kind === "circle" ? region.r : region.ry;
-      for (const [x, y] of [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]] as const) {
-        if (((x - region.cx) / rx) ** 2 + ((y - region.cy) / ry) ** 2 > 1) return false;
-      }
-      return true;
-    }
-    case "polygon": {
-      const rings: Ring[] = [region.points, ...(region.holes ?? [])];
-      for (const ring of rings) {
-        for (let i = 0; i < ring.length; i++) {
-          const p = ring[i]!;
-          const q = ring[(i + 1) % ring.length]!;
-          if (crosses(p[0], p[1], q[0], q[1], b)) return false;
-        }
-      }
-      return inRings(b.x + b.w / 2, b.y + b.h / 2, rings);
-    }
-  }
+  return rectInRegion(region, { x: box.x + tol, y: box.y + tol, w: box.w - 2 * tol, h: box.h - 2 * tol });
 }
 
 /** The box of each placed item with its margin, grown by the inset of the container. */
@@ -107,7 +49,9 @@ function boxesOf(input: PackInput, output: PackOutput): Box[] {
 /** This function checks one packing: the hard rules, the true outline, the holes and the determinism. */
 function checkPacking(id: string, input: PackInput, seed: number): PackOutput {
   const output = packWith(id, input, undefined, seed);
-  expect(checkHard(input, output)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+  const clean = { "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 };
+  expect(checkHard(input, output)).toEqual(clean);
+  expect(checkHard(input, output, undefined, { exactContainer: true })).toEqual(clean);
   const shape = input.container.shape;
   if (shape !== undefined && input.container.fixed === "size") {
     for (const box of boxesOf(input, output)) expect(inside(shape, box), JSON.stringify(box)).toBe(true);

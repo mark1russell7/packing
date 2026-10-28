@@ -203,9 +203,11 @@ The strategies with a space that is not plain:
 
 The hard rules and the outline:
 
-- `checkHard` of `packing` and `packHard` of the contract test the container as its bounding box. They do not test the true outline or the holes of the container. They test the obstacles exactly with `regionHitsRect`.
-- Thus the tests of the layer (`src/space.test.ts`) test each box against the true outline, and against each hole.
-- The rule `in-container` of `checkHard` stays as it is, because `packHard` has the same test. An exact test of the outline is a change of the contract.
+- By default, `checkHard` of `packing` and `packHard` of the contract test the container as its bounding box. They test the obstacles exactly with `regionHitsRect`.
+- Since `packing` 0.2.2 and the contract 0.2.4, both take the option `{ exactContainer: true }` (the type `ContainerTest`). Then a shaped container with the size `fixed` also uses its true outline and its holes.
+- With this option, a box counts in `in-container` when `rectInRegion` of the contract tells that it is not in the shape. The box grows by the inset and becomes smaller by the tolerance.
+- The default is `false`, so the counts of 0.2.1 stay. The contract changes the default to `true` at its next breaking version.
+- The tests of the layer (`src/space.test.ts`) test each box with `rectInRegion`, and with `checkHard` and the option.
 
 ## The decisions
 
@@ -269,19 +271,20 @@ The package `@mark1russell7/layout-contract` holds what the packer, the router a
 | The common fields of a strategy, with `supports` as a record of each dimension and its values | The dimensions of the packer, with their names in `docs/FORMAT.md` |
 | The registry of the measure names | |
 
-- Since 0.2.0, `packing` has the contract `^0.2.1` from npm as a dependency, and it imports the types.
+- Since 0.2.0, `packing` has the contract from npm as a dependency, and it imports the types. Since 0.2.2, the range is `^0.2.4`.
 - A test of `packing` makes sure that its types are the types of the contract.
 - The adapters of 0.1 stay until the contract is final.
 
 ## The type fit with `@mark1russell7/layout-contract`
 
-The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract 0.2.1 from npm (roadmap item k57).
+The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract from npm (roadmap item k57). Since `packing` 0.2.2, the contract is 0.2.4.
 
-- Since 0.2.0, the contract is a dependency of `packing` at run time: `"@mark1russell7/layout-contract": "^0.2.1"`.
+- Since 0.2.0, the contract is a dependency of `packing` at run time: `"@mark1russell7/layout-contract": "^0.2.4"` since 0.2.2. The minimum effects of 0.2.2 need `minEffect` and `compareMeasure` of the contract 0.2.3. The option `exactContainer` needs `rectInRegion` and `ContainerTest` of 0.2.4.
 - `packing` imports each shared type from the contract. Thus each shared type is the same type in both packages.
 - `EPS`, `RECORD_EPS`, `DEFAULT_TOLERANCE`, `checkInput`, `turnPoint`, `turnPort` and `turnRegion` are the values of the contract. `turnItem` is `turnBox` of the contract.
 - `toPackInput` gives the same packer input. `packHard` and `checkHard` give the same counts on the packed outputs of the generators, with and without an inset.
 - `packHard` and `checkHard` give the same counts for each form of obstacle, also after a move in `output.moved`.
+- `packHard` and `checkHard` give the same counts with `{ exactContainer: true }` on the packed outputs of each container shape.
 - `Strategy` fits `StrategyInfo`, and `MeasureSpec` of `packing` is `MeasureSpec` of the contract with a family.
 - A record of the benchmark runner fits `LayoutRecord`, with and without `skipped`. The two types have the same fields. `BenchEnv` and `RunEnv` fit in both directions.
 

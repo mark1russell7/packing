@@ -69,7 +69,7 @@ export {
 export { logSweep, push, rows, shelf, skyline, type LayoutStrategyOptions, type PushStrategyOptions } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
 export { packWith, strategies, strategy } from "./registry.ts";
-export { checkHard, type PackHard } from "./check.ts";
+export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export {
   canonicalJson,
   countCell,

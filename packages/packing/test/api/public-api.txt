@@ -4,10 +4,11 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 129 names
+## . (build/index.d.ts): 130 names
 
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
+type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
 type Corpus: build/index.d.ts#Corpus
 type CorpusCell: build/index.d.ts#CorpusCell
 type CorpusEntry: build/index.d.ts#CorpusEntry
@@ -303,6 +304,11 @@ interface LayoutMeasures {
   "pack.order.breaks": number;
   "pack.raggedness": number;
   "pack.overflow": number;
+  "pack.overflow.rate": number;
+  "pack.overflow.area": number;
+  "pack.overflow.forced": number;
+  "pack.overflow.forcedArea": number;
+  "pack.overflow.excess": number;
   "pack.search.widths": number;
   "pack.search.ms": number;
 }
@@ -320,7 +326,7 @@ export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
 
 ### build/index.d.ts#MeasureId
-type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
+type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
 
 ### build/index.d.ts#MeasureOptions
 interface MeasureOptions {
@@ -531,7 +537,7 @@ export declare const cards: CorpusGenerator<UiParams>;
 export declare function cellOf(input: PackInput): Cell;
 
 ### build/index.d.ts#checkHard
-export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">): PackHard$1;
+export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">, options?: ContainerTest$1): PackHard$1;
 
 ### build/index.d.ts#compareRects
 export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;

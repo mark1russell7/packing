@@ -3,6 +3,7 @@
 import type { MeasureSpec as ContractMeasureSpec, Direction } from "@mark1russell7/layout-contract";
 import { RECORD_EPS, type PackInput, type PackOutput } from "./contract.ts";
 import { aspectError } from "./free.ts";
+import { overflowBound } from "./overflow.ts";
 import { round3 } from "./layout-input.ts";
 
 /** The direction of a measure comes from the contract: `lower` when a lower value is better, `higher` when a higher value is better. */
@@ -12,7 +13,7 @@ export type { Direction } from "@mark1russell7/layout-contract";
 export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
 
 /** The id of a measure of the packer. The ids are those of `docs/FORMAT.md`, and `highways` uses the same ids. */
-export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
+export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
 
 /**
  * The facts of one measure: its family, its unit, its direction and its range.
@@ -47,6 +48,11 @@ export interface LayoutMeasures {
   "pack.order.breaks": number;
   "pack.raggedness": number;
   "pack.overflow": number;
+  "pack.overflow.rate": number;
+  "pack.overflow.area": number;
+  "pack.overflow.forced": number;
+  "pack.overflow.forcedArea": number;
+  "pack.overflow.excess": number;
   "pack.search.widths": number;
   "pack.search.ms": number;
 }
@@ -74,29 +80,43 @@ const spec = (
   direction: Direction,
   min: number,
   max: number,
+  minEffect: MeasureSpec["minEffect"],
   guard?: { floor: number; tol: number },
-): MeasureSpec => ({ id, family, unit, direction, min, max, ...guard });
+): MeasureSpec => ({ id, family, unit, direction, min, max, ...(minEffect === undefined ? {} : { minEffect }), ...guard });
+
+/** The minimum effect of an area or a ratio of lengths: 1% of the larger value. */
+const REL = Object.freeze({ rel: 0.01 });
 
 /**
  * The facts of each measure, by id. `docs/MEASURES.md` gives the full definitions. This record is the source of the floor
- * and the tolerance of each guard of the packer.
+ * and the tolerance of each guard of the packer, and of the minimum effect of each measure.
+ *
+ * - A count and a share of counts have the minimum effect 0. Thus each change of a count is an effect.
+ * - A share of an area from 0 to 1 has 0.005. A guard has its tolerance.
+ * - An area and a ratio of lengths have `{ rel: 0.01 }`: 1% of the larger value.
+ * - The time has no minimum effect, because the times of CI change each time.
  */
 export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.freeze({
-  "pack.area": spec("pack.area", "density", "square units", "lower", 0, Infinity),
-  "pack.fill": spec("pack.fill", "density", "share", "higher", 0, 1),
-  "pack.whitespace": spec("pack.whitespace", "density", "share", "lower", 0, 1),
-  "pack.aspect": spec("pack.aspect", "aspect", "ratio", "lower", 1, Infinity),
-  "pack.aspectError": spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity, { floor: 0, tol: 0.01 }),
-  "pack.order.inversions": spec("pack.order.inversions", "order", "share", "lower", 0, 1, { floor: 0, tol: 0 }),
-  "pack.order.breaks": spec("pack.order.breaks", "order", "count", "lower", 0, Infinity),
-  "pack.raggedness": spec("pack.raggedness", "raggedness", "share", "lower", 0, 1),
-  "pack.overflow": spec("pack.overflow", "overflow", "count", "lower", 0, Infinity, { floor: 0, tol: 0 }),
-  "pack.stability.moved": spec("pack.stability.moved", "stability", "share", "lower", 0, 1, { floor: 0, tol: 0.02 }),
-  "pack.stability.mean": spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity, { floor: 0, tol: 0.005 }),
-  "pack.stability.q95": spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity, { floor: 0, tol: 0.01 }),
-  "pack.deterministic": spec("pack.deterministic", "determinism", "boolean", "higher", 0, 1),
-  "pack.search.widths": spec("pack.search.widths", "speed", "count", "lower", 0, Infinity),
-  "pack.search.ms": spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity),
+  "pack.area": spec("pack.area", "density", "square units", "lower", 0, Infinity, REL),
+  "pack.fill": spec("pack.fill", "density", "share", "higher", 0, 1, 0.005),
+  "pack.whitespace": spec("pack.whitespace", "density", "share", "lower", 0, 1, 0.005),
+  "pack.aspect": spec("pack.aspect", "aspect", "ratio", "lower", 1, Infinity, REL),
+  "pack.aspectError": spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 }),
+  "pack.order.inversions": spec("pack.order.inversions", "order", "share", "lower", 0, 1, 0, { floor: 0, tol: 0 }),
+  "pack.order.breaks": spec("pack.order.breaks", "order", "count", "lower", 0, Infinity, 0),
+  "pack.raggedness": spec("pack.raggedness", "raggedness", "share", "lower", 0, 1, 0.005),
+  "pack.overflow": spec("pack.overflow", "overflow", "count", "lower", 0, Infinity, 0, { floor: 0, tol: 0 }),
+  "pack.overflow.rate": spec("pack.overflow.rate", "overflow", "share", "lower", 0, 1, 0),
+  "pack.overflow.area": spec("pack.overflow.area", "overflow", "share", "lower", 0, 1, 0.005),
+  "pack.overflow.forced": spec("pack.overflow.forced", "overflow", "count", "lower", 0, Infinity, 0),
+  "pack.overflow.forcedArea": spec("pack.overflow.forcedArea", "overflow", "share", "lower", 0, 1, 0.005),
+  "pack.overflow.excess": spec("pack.overflow.excess", "overflow", "count", "lower", 0, Infinity, 0),
+  "pack.stability.moved": spec("pack.stability.moved", "stability", "share", "lower", 0, 1, 0.02, { floor: 0, tol: 0.02 }),
+  "pack.stability.mean": spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity, 0.005, { floor: 0, tol: 0.005 }),
+  "pack.stability.q95": spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 }),
+  "pack.deterministic": spec("pack.deterministic", "determinism", "boolean", "higher", 0, 1, 0),
+  "pack.search.widths": spec("pack.search.widths", "speed", "count", "lower", 0, Infinity, 0),
+  "pack.search.ms": spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity, undefined),
 });
 
 /** A placed box: the rectangle of an item at its position, with its rank. */
@@ -183,6 +203,8 @@ function traceSum(output: PackOutput, id: string): number {
  * - The boxes are the placed items with a width and a height above 0. The hull is the smallest rectangle around them.
  * - An empty layout gives the area 0, the aspect 1 and the aspect error 0. Its fill is 0 and its whitespace is 1.
  * - The time `pack.search.ms` comes from the trace. It is not part of the determinism rule.
+ * - The overflow measures count each id once. `pack.overflow.forced` is the lower bound of `overflowBound`.
+ * - `pack.overflow.excess` is the overflow less the forced overflow. A container with no fixed side gives 0 for both.
  *
  * @example
  * ```ts
@@ -225,6 +247,17 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
   const rights = rowsOf(boxes, tolerance).map((r) => r.right);
   const spread = rights.length > 0 ? Math.max(...rights) - Math.min(...rights) : 0;
 
+  // The overflow: the unplaced items, their area, and the part that no packer can place
+  const unplaced = new Set(output.overflow);
+  let itemArea = 0;
+  let unplacedArea = 0;
+  for (const item of input.items) {
+    const a = Math.max(0, item.w) * Math.max(0, item.h);
+    itemArea += a;
+    if (unplaced.has(item.id)) unplacedArea += a;
+  }
+  const bound = overflowBound(input);
+
   return {
     "pack.area": hullArea,
     "pack.fill": fill,
@@ -234,7 +267,12 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
     "pack.order.inversions": pairs > 0 ? inversions / pairs : 0,
     "pack.order.breaks": breaks,
     "pack.raggedness": hull.w > 0 ? spread / hull.w : 0,
-    "pack.overflow": new Set(output.overflow).size,
+    "pack.overflow": unplaced.size,
+    "pack.overflow.rate": input.items.length > 0 ? unplaced.size / input.items.length : 0,
+    "pack.overflow.area": itemArea > 0 ? unplacedArea / itemArea : 0,
+    "pack.overflow.forced": bound.forced,
+    "pack.overflow.forcedArea": itemArea > 0 ? Math.min(1, bound.area / itemArea) : 0,
+    "pack.overflow.excess": Math.max(0, unplaced.size - bound.forced),
     "pack.search.widths": traceSum(output, "pack.search.widths"),
     "pack.search.ms": traceSum(output, "pack.search.ms"),
   };

@@ -1,7 +1,7 @@
-import { boundsOf, regionHitsRect, translate, type PackHard, type Rect, type Region } from "@mark1russell7/layout-contract";
+import { boundsOf, rectInRegion, regionHitsRect, translate, type ContainerTest, type PackHard, type Rect, type Region } from "@mark1russell7/layout-contract";
 import { DEFAULT_TOLERANCE, marginOf, RECORD_EPS, turnItem, type Item, type PackInput, type PackOutput, type Placement, type Tolerance } from "./contract.ts";
 
-export type { PackHard } from "@mark1russell7/layout-contract";
+export type { ContainerTest, PackHard } from "@mark1russell7/layout-contract";
 
 /** A box with its margin: the left, top, right and bottom edges. */
 interface Box {
@@ -36,8 +36,17 @@ function inner(box: Box, tolerance: number): Rect {
  * The test of an obstacle is exact: a circle, an ellipse and a polygon with holes count only their insides, as in `packHard`.
  * The rules read a shape of the container or of an item as its bounding box (decision 5). The bounding box of an item
  * shape is relative to the position of the item. The result has no tolerance in it.
+ *
+ * With `options.exactContainer`, a shaped container with the size `fixed` also uses its true outline for `in-container`.
+ * A box then counts when `rectInRegion` of the contract tells that it is not in the shape, as in `packHard`.
+ * For that test, the box grows by the inset and becomes smaller by `tolerance.overlap` on each side. The default is `false`.
  */
-export function checkHard(input: PackInput, output: PackOutput, tolerance: Pick<Tolerance, "overlap"> = DEFAULT_TOLERANCE): PackHard {
+export function checkHard(
+  input: PackInput,
+  output: PackOutput,
+  tolerance: Pick<Tolerance, "overlap"> = DEFAULT_TOLERANCE,
+  options: ContainerTest = {},
+): PackHard {
   const tol = tolerance.overlap;
   const placements = new Map<string, Placement>();
   for (const p of output.placements) if (!placements.has(p.id)) placements.set(p.id, p);
@@ -94,11 +103,13 @@ export function checkHard(input: PackInput, output: PackOutput, tolerance: Pick<
   const inset = container.inset ?? 0;
   const fixedW = container.fixed === "size" || container.fixed === "width";
   const fixedH = container.fixed === "size" || container.fixed === "height";
+  const exact = options.exactContainer === true && container.fixed === "size" ? container.shape : undefined;
   let outside = 0;
   for (const box of boxes) {
     const outX = fixedW && (box.l < x + inset - tol || box.r > x + w - inset + tol);
     const outY = fixedH && (box.t < y + inset - tol || box.b > y + h - inset + tol);
     if (outX || outY) outside += 1;
+    else if (exact !== undefined && !rectInRegion(exact, inner({ l: box.l - inset, t: box.t - inset, r: box.r + inset, b: box.b + inset }, tol))) outside += 1;
   }
   return { "no-overlap": overlaps, "in-container": outside, "locked-kept": lockedKept, complete };
 }
