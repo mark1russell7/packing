@@ -105,3 +105,6 @@ temp/
 
 # Local output of the benchmark runner (docs/BENCH.md)
 bench-out/
+
+# Downloaded CI records for local analysis
+.records/
