@@ -63,6 +63,7 @@ export const DIMENSION_LABELS: Readonly<Record<string, string>> = {
   gap: "Gap",
   shape: "Item shape",
   case: "Case",
+  class: "Class",
 };
 
 /**

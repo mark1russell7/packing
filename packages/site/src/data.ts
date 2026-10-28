@@ -227,6 +227,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-28",
+    item: "k106",
+    title: "The families `berkey-wang` and `martello-vigo` make the classes `I` to `X` of the literature by their rules. The corpus `pack-classes-v1` has 500 inputs.",
+    pr: 117,
+    link: "https://github.com/mark1russell7/packing/pull/117",
+  },
+  {
+    date: "2026-10-28",
     item: "k78",
     title: "The strategy `restarts` packs 16 orders of one member and keeps the best. Around `maxrects-bl`, the median `pack.gapToOpt` falls from 0.117 to 0.097.",
     pr: 110,

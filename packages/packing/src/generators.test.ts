@@ -2,6 +2,7 @@ import { createFamilyRegistry, familyKind } from "@mark1russell7/layout-contract
 import { describe, expect, it } from "vitest";
 import {
   cellOf,
+  classGenerators,
   checkHard,
   corpusFamilies,
   rectScattered,
@@ -43,7 +44,8 @@ const CASES: Case[] = (() => {
     cases.push({ gen, params });
   };
   for (const gen of generators) {
-    if (gen === rectGridV2) continue;
+    // The class generators of k106 have their own pinned hashes in `classes.test.ts`
+    if (gen === rectGridV2 || classGenerators.includes(gen)) continue;
     add(gen, {});
     for (const [key, values] of Object.entries(gen.values)) for (const value of values ?? []) add(gen, { [key]: value });
     if (gen.name === "rect-grid") for (const count of COUNTS) add(gen, { count });

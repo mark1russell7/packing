@@ -889,9 +889,152 @@ export const consecutiveSquares: CorpusGenerator<ConsecutiveSquaresParams> = def
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The classes of the literature (roadmap item k106): Berkey and Wang 1987, classes `I` to `VI`, and Martello and Vigo 1998,
+// classes VII to X, as Lodi, Martello and Vigo 2002 give them. The generators use the rules of the classes, not a
+// published file. Each size is a whole number.
+
+/** The container sizes of a class: one bin of `W` by `H`, or a strip of the width `W` with a free height. */
+export type ClassContainer = "fixed" | "freeHeight";
+
+/** The values of `containerSize` of the class generators. */
+const CLASS_SIZES: readonly ClassContainer[] = ["fixed", "freeHeight"];
+
+/** The counts of the items of the classes in the literature: 20, 40, 60, 80 and 100. */
+export const CLASS_COUNTS: readonly number[] = Object.freeze([20, 40, 60, 80, 100]);
+
+/** The classes of Berkey and Wang 1987. */
+export type BerkeyWangClass = "I" | "II" | "III" | "IV" | "V" | "VI";
+
+/** The classes of Martello and Vigo 1998, with the numbers of Lodi, Martello and Vigo. */
+export type MartelloVigoClass = "VII" | "VIII" | "IX" | "X";
+
+/** The rule of a class of Berkey and Wang: the side of the square bin, and the range of the item sides. */
+export interface BerkeyWangRule {
+  readonly bin: number;
+  readonly min: number;
+  readonly max: number;
+}
+
+/**
+ * The rules of the classes of Berkey and Wang 1987. Each width and each height is uniform in `min` to `max`, both included.
+ * The bin is a square of the side `bin`.
+ */
+export const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>> = Object.freeze({
+  I: { bin: 10, min: 1, max: 10 },
+  II: { bin: 30, min: 1, max: 10 },
+  III: { bin: 40, min: 1, max: 35 },
+  IV: { bin: 100, min: 1, max: 35 },
+  V: { bin: 100, min: 1, max: 100 },
+  VI: { bin: 300, min: 1, max: 100 },
+});
+
+/** The side of the square bin of the classes of Martello and Vigo. */
+export const MARTELLO_VIGO_BIN = 100;
+
+/**
+ * The 4 item types of Martello and Vigo for a bin of the side 100. Each range is `[min, max]`, both included.
+ *
+ * - Type 1, wide: the width is 67 to 100 (2W/3 to W), and the height is 1 to 50 (1 to H/2).
+ * - Type 2, high: the width is 1 to 50, and the height is 67 to 100.
+ * - Type 3, large: the width and the height are 50 to 100 (W/2 to W).
+ * - Type 4, small: the width and the height are 1 to 50.
+ */
+export const MARTELLO_VIGO_TYPES: readonly { readonly w: readonly [number, number]; readonly h: readonly [number, number] }[] = Object.freeze([
+  { w: [67, 100], h: [1, 50] },
+  { w: [1, 50], h: [67, 100] },
+  { w: [50, 100], h: [50, 100] },
+  { w: [1, 50], h: [1, 50] },
+]);
+
+/** For each class of Martello and Vigo, the index of its main type. The main type has the probability 0.7, and each other type 0.1. */
+const MAIN_TYPE: Readonly<Record<MartelloVigoClass, number>> = Object.freeze({ VII: 0, VIII: 1, IX: 2, X: 3 });
+
+/** The parameters of `berkey-wang`. */
+export type BerkeyWangParams = { class: BerkeyWangClass; containerSize: ClassContainer; count: number };
+
+/** The parameters of `martello-vigo`. */
+export type MartelloVigoParams = { class: MartelloVigoClass; containerSize: ClassContainer; count: number };
+
+/** The values of `class` of `berkey-wang`. */
+const BW_CLASSES: readonly BerkeyWangClass[] = ["I", "II", "III", "IV", "V", "VI"];
+/** The values of `class` of `martello-vigo`. */
+const MV_CLASSES: readonly MartelloVigoClass[] = ["VII", "VIII", "IX", "X"];
+
+/** This function gives the container of a class: the bin, or a strip of the width of the bin. */
+const classContainer = (size: ClassContainer, bin: number): LayoutContainer => containerOf(size, bin, bin);
+
+/**
+ * The generator `berkey-wang`, version 1: the classes `I` to `VI` of Berkey and Wang 1987. Each width and each height is
+ * uniform in the range of the class. The container is one square bin of the class, or a strip of its width.
+ */
+export const berkeyWang: CorpusGenerator<BerkeyWangParams> = defineGenerator<BerkeyWangParams>({
+  name: "berkey-wang",
+  version: 1,
+  set: "classes-v1",
+  defaults: { class: "I", containerSize: "freeHeight", count: 100 },
+  values: { class: BW_CLASSES, containerSize: CLASS_SIZES },
+  family: (p) => `berkey-wang.${p.class}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", p.count),
+  build(seed, p) {
+    const rule = BERKEY_WANG_RULES[p.class];
+    const r = stepRandom(seed, "boxes");
+    const boxes: Item[] = [];
+    for (let i = 0; i < p.count; i++) {
+      const w = int(r, rule.min, rule.max);
+      boxes.push({ id: `b${i}`, w, h: int(r, rule.min, rule.max) });
+    }
+    return { container: classContainer(p.containerSize, rule.bin), obstacles: [], boxes };
+  },
+});
+
+/**
+ * The generator `martello-vigo`, version 1: the classes VII to X of Martello and Vigo 1998. The bin is 100 by 100. Each
+ * item gets its main type with the probability 0.7, and each other type with 0.1. Then its sides are uniform in the ranges of the type.
+ */
+export const martelloVigo: CorpusGenerator<MartelloVigoParams> = defineGenerator<MartelloVigoParams>({
+  name: "martello-vigo",
+  version: 1,
+  set: "classes-v1",
+  defaults: { class: "VII", containerSize: "freeHeight", count: 100 },
+  values: { class: MV_CLASSES, containerSize: CLASS_SIZES },
+  family: (p) => `martello-vigo.${p.class}.${p.containerSize}.n${p.count}`,
+  // The wide items of VII and the high items of VIII have an aspect up to 100
+  cell: (p) => cellWith(p.containerSize, "rect", "none", p.class === "VII" || p.class === "VIII" ? "extremeAspect" : "uniform", p.count),
+  build(seed, p) {
+    const main = MAIN_TYPE[p.class];
+    const weights = MARTELLO_VIGO_TYPES.map((_, t) => (t === main ? 7 : 1));
+    const r = stepRandom(seed, "boxes");
+    const boxes: Item[] = [];
+    for (let i = 0; i < p.count; i++) {
+      const type = MARTELLO_VIGO_TYPES[pick(r, weights)]!;
+      const w = int(r, type.w[0], type.w[1]);
+      boxes.push({ id: `b${i}`, w, h: int(r, type.h[0], type.h[1]) });
+    }
+    return { container: classContainer(p.containerSize, MARTELLO_VIGO_BIN), obstacles: [], boxes };
+  },
+});
+
+/**
+ * This function gives the bin count bound L1 of an input, in its continuous form: the item area divided by the bin area,
+ * rounded up. No packing puts the items in fewer bins. A container without a fixed size gives `null`.
+ *
+ * In one fixed bin, the bound `placed.free` of `objectiveBound` is the same fact: the placed share is at most `W * H` over the item area.
+ */
+export function binCountBound(input: { readonly container: LayoutContainer; readonly boxes?: readonly Item[]; readonly items?: readonly Item[] }): number | null {
+  const { container } = input;
+  if (container.fixed !== "size" || !(container.w !== undefined && container.w > 0 && container.h !== undefined && container.h > 0)) return null;
+  const items = input.boxes ?? input.items ?? [];
+  const area = items.reduce((sum, b) => sum + Math.max(0, b.w) * Math.max(0, b.h), 0);
+  return Math.ceil(area / (container.w * container.h) - 1e-9);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo] as CorpusGenerator[]);
+
+/** The generators of the classes of the literature (roadmap item k106). */
+export const classGenerators: readonly CorpusGenerator[] = Object.freeze([berkeyWang, martelloVigo] as CorpusGenerator[]);
 
 /**
  * This function gives the generator with a name and a version. Without a version, it gives the first generator of the name
@@ -1078,6 +1221,35 @@ export const consecutiveSquaresFamily: CorpusFamily<GeneratedInput> = familyOf(c
   crossEngine: "exact",
 });
 
+/** The seeding of the class families: the class gives the container, so only the boxes take random numbers. */
+const CLASS_SEEDING = "stepRandom(seed, boxes) gives the type and the sides of each item. The class gives the container, so the container takes no random numbers.";
+
+/** This function gives the dimensions of a class family: `class`, `containerSize` and `count`, with the counts of the literature as the levels. */
+const classDimensions = (classes: readonly string[], value: string, meaning: string): CorpusDimension[] => [
+  { name: "class", kind: "enum", values: Object.freeze([...classes]), default: value, meaning, engines: ["packing"] },
+  {
+    ...enumDimension("containerSize", CLASS_SIZES, "freeHeight"),
+    meaning: "The container: one bin of the class (fixed), or a strip of the width of the bin with a free height (freeHeight).",
+  },
+  countDimension(100, { min: 1, levels: Object.freeze([...CLASS_COUNTS]) }),
+];
+
+/** The family of `berkeyWang`: the classes `I` to `VI` of Berkey and Wang 1987. */
+export const berkeyWangFamily: CorpusFamily<GeneratedInput> = familyOf(berkeyWang, {
+  meaning: "The classes `I` to `VI` of Berkey and Wang 1987: uniform sides in a square bin of the class, or a strip of its width.",
+  dimensions: classDimensions(BW_CLASSES, "I", "The class of Berkey and Wang: the side of the bin and the range of the item sides."),
+  crossEngine: "exact",
+  seeding: CLASS_SEEDING,
+});
+
+/** The family of `martelloVigo`: the classes VII to X of Martello and Vigo 1998. */
+export const martelloVigoFamily: CorpusFamily<GeneratedInput> = familyOf(martelloVigo, {
+  meaning: "The classes VII to X of Martello and Vigo 1998: 4 item types in a bin of 100 by 100, or a strip of the width 100.",
+  dimensions: classDimensions(MV_CLASSES, "VII", "The class of Martello and Vigo: the item type with the probability 0.7."),
+  crossEngine: "exact",
+  seeding: CLASS_SEEDING,
+});
+
 /**
  * Each corpus family of the package, for `createFamilyRegistry` of `layout-contract`. An import registers nothing.
  * The family `rect-scattered` is not in the list: `RECT_SCATTERED` of `layout-contract` is its shared copy.
@@ -1092,4 +1264,6 @@ export const corpusFamilies: readonly CorpusFamily<GeneratedInput>[] = Object.fr
   edgeCasesFamily,
   perfectCutFamily,
   consecutiveSquaresFamily,
+  berkeyWangFamily,
+  martelloVigoFamily,
 ]);
