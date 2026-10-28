@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 207 names
+## . (build/index.d.ts): 211 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -122,6 +122,8 @@ type SpaceRect: build/index.d.ts#SpaceRect
 type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/index.d.ts#Strategy
+type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
+type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type Supports: build/index.d.ts#Supports
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
@@ -170,6 +172,7 @@ objectiveBound: build/index.d.ts#objectiveBound
 objectiveResult: build/index.d.ts#objectiveResult
 outputHash: build/index.d.ts#outputHash
 pack: build/index.d.ts#pack
+packConfig: build/index.d.ts#packConfig
 packDefault: build/index.d.ts#packDefault
 packFree: build/index.d.ts#packFree
 packMaxRects: build/index.d.ts#packMaxRects
@@ -177,6 +180,7 @@ packPortfolio: build/index.d.ts#packPortfolio
 packRows: build/index.d.ts#packRows
 packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
+packSpace: build/index.d.ts#packSpace
 packWith: build/index.d.ts#packWith
 packingMetrics: build/index.d.ts#packingMetrics
 pairedRatio: build/index.d.ts#pairedRatio
@@ -975,6 +979,9 @@ export declare function outputHash(output: Pick<PackOutput, "placements">): stri
 ### build/index.d.ts#pack
 export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;
 
+### build/index.d.ts#packConfig
+export declare function packConfig(input: PackInput, config: StrategyConfig$1, seed?: number): PackOutput;
+
 ### build/index.d.ts#packDefault
 export declare function packDefault(input: PackInput, seed?: number): PackOutput;
 
@@ -995,6 +1002,9 @@ export declare function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options?:
 
 ### build/index.d.ts#packSkyline
 export declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options?: SkylineOptions): Rect<T>;
+
+### build/index.d.ts#packSpace
+export declare const packSpace: StrategySpace$1;
 
 ### build/index.d.ts#packWith
 export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
