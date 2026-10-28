@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_TOLERANCE, EPS, RECORD_EPS, marginOf, turnItem, turnPoint, turnPort, turnRegion, type Item } from "@mark1russell7/packing";
+import { DEFAULT_TOLERANCE, EPS, RECORD_EPS, marginOf, portPoint, turnItem, turnPoint, turnPort, turnRegion, type Item } from "@mark1russell7/packing";
 
 describe("the constants", () => {
   it("are those of docs/PACKER.md", () => {
@@ -29,6 +29,17 @@ describe("the turn helper", () => {
 
   it("turns a port without a point to the next side only", () => {
     expect(turnPort({ id: "p", side: "left" }, h)).toEqual({ id: "p", side: "top" });
+  });
+
+  it("gives the point of a port with along, and keeps it on its side after a turn", () => {
+    const box = { w: 40, h: 10 };
+    expect(portPoint(box, { id: "t", side: "top", along: 0.25 })).toEqual({ x: 10, y: 0 });
+    expect(portPoint(box, { id: "x", side: "left", x: 0, y: 7 })).toEqual({ x: 0, y: 7 });
+    expect(portPoint(box, { id: "p", side: "left" })).toBeUndefined();
+    const turned = turnPort({ id: "l", side: "left", along: 0.3 }, h);
+    expect(turned.side).toBe("top");
+    expect(turned.along).toBeCloseTo(0.7);
+    expect(portPoint({ w: 10, h: 40 }, turned)).toEqual({ x: 7, y: 0 });
   });
 
   it("keeps each turned port on the border of the turned item", () => {

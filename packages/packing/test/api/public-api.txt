@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 260 names
+## . (build/index.d.ts): 261 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -229,6 +229,7 @@ pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
 perfectCutFamily: build/index.d.ts#perfectCutFamily
 perfectCutOf: build/index.d.ts#perfectCutOf
+portPoint: @mark1russell7/layout-contract#portPoint (external)
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
 portfolioMembers: build/index.d.ts#portfolioMembers

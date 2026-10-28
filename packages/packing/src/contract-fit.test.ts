@@ -46,6 +46,7 @@ describe("the types of packing and of the contract", () => {
     expect(P.checkInput).toBe(C.checkInput);
     expect(P.turnPoint).toBe(C.turnPoint);
     expect(P.turnPort).toBe(C.turnPort);
+    expect(P.portPoint).toBe(C.portPoint);
     expect(P.turnRegion).toBe(C.turnRegion);
     expect(P.EPS).toBe(C.EPS);
     expect(P.RECORD_EPS).toBe(C.RECORD_EPS);
@@ -57,7 +58,7 @@ describe("the types of packing and of the contract", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.14");
+    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.15");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
   });
 

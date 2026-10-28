@@ -4,6 +4,7 @@
 
 import {
   createFamilyRegistry,
+  ownerDimension,
   RECT_SCATTERED,
   sharedDimension,
   type CorpusDimension,
@@ -1056,14 +1057,18 @@ export function generator(name: string, version?: number): CorpusGenerator {
 const MAX_FAMILY_COUNT = 10_000;
 
 /**
- * The knobs of each family: `margin`, `gap` and `shape`. A knob at its default adds no field to the input, so the hash
- * does not change. The generators make rectangle items only, so a sweep of `shape` gives `rect` only.
+ * This function gives the knobs of a family: `margin`, `gap` and `shape`. A knob at its default adds no field to the
+ * input, so the hash does not change. The generators make rectangle items only, so `shape` supports `rect` only.
+ * The registry removes the fields of `invalidates` when a margin or a gap is above 0.
  */
-const KNOBS: readonly CorpusDimension[] = Object.freeze([
-  sharedDimension("margin"),
-  sharedDimension("gap"),
-  sharedDimension("shape", { levels: ["rect"], meaning: "The shape kind of each item. The generators of packing make rectangle items only." }),
-]);
+const knobsOf = (invalidates: readonly string[] = []): readonly CorpusDimension[] => {
+  const patch = invalidates.length === 0 ? {} : { invalidates: Object.freeze([...invalidates]) };
+  return Object.freeze([
+    sharedDimension("margin", patch),
+    sharedDimension("gap", patch),
+    sharedDimension("shape", { supported: Object.freeze(["rect"]), meaning: "The shape kind of each item. The generators of packing make rectangle items only." }),
+  ]);
+};
 
 /** The seeding of the 3 steps of a generator. */
 const SEEDING = "stepRandom(seed, container) gives the container and its shape. stepRandom(seed, obstacles) gives the obstacles. stepRandom(seed, boxes) gives the boxes.";
@@ -1086,15 +1091,14 @@ const numberOf = (dims: DimensionValues, name: string): number => {
 /**
  * This function gives an input with the knobs over it. A margin above 0 goes on each box, and a gap above 0 goes on the
  * input. Each value above 0 adds a part to the family: `.m<margin>` and `.g<gap>`. Then the id and the hash change.
- * The function throws a `RangeError` for a shape other than `rect`.
+ * The registry refuses a shape other than `rect` before this function, because `shape` supports `rect` only.
  */
 function withKnobs(file: GeneratedInput, dims: DimensionValues): GeneratedInput {
-  if (dims["shape"] !== "rect") throw new RangeError(`The generators of packing make rectangle items only, not the shape "${String(dims["shape"])}".`);
   const margin = round3(numberOf(dims, "margin"));
   const gap = round3(numberOf(dims, "gap"));
   if (margin === 0 && gap === 0) return file;
-  // A margin or a gap changes the best value, so the known best value of the generator goes.
-  const { hash: _hash, known: _known, ...rest } = file;
+  // The registry removes the fields that a margin or a gap makes wrong, for example `known` (`invalidates` of the knobs).
+  const { hash: _hash, ...rest } = file;
   const family = `${rest.family}${margin === 0 ? "" : `.m${margin}`}${gap === 0 ? "" : `.g${gap}`}`;
   const body: Omit<GeneratedInput, "hash"> = {
     ...rest,
@@ -1113,6 +1117,8 @@ interface FamilySpec {
   dimensions: readonly CorpusDimension[];
   crossEngine: CrossEngine;
   seeding?: string;
+  /** The output fields that a margin or a gap above 0 makes wrong, for example `known`. The default is no field. */
+  invalidates?: readonly string[];
 }
 
 /**
@@ -1128,9 +1134,10 @@ function familyOf<P extends GeneratorParams>(gen: CorpusGenerator<P>, spec: Fami
     version: gen.version,
     owner: "packing",
     meaning: spec.meaning,
-    dimensions: Object.freeze([...spec.dimensions, ...KNOBS]),
+    dimensions: Object.freeze([...spec.dimensions, ...knobsOf(spec.invalidates)]),
     seeding: spec.seeding ?? SEEDING,
     crossEngine: spec.crossEngine,
+    hash: hashInput,
     generate(seed: number, dims: DimensionValues, context: GenerateContext): GeneratedInput {
       const params = Object.fromEntries(keys.map((k) => [k, dims[k]])) as Partial<P>;
       return withKnobs(gen.generate(seed, params, context.set), dims);
@@ -1197,7 +1204,7 @@ export const wordCloudFamily: CorpusFamily<GeneratedInput> = familyOf(wordCloud,
 export const edgeCasesFamily: CorpusFamily<GeneratedInput> = familyOf(edgeCases, {
   meaning: "The inputs at the limits: no box, one box, an oversize box, an exact tiling and boxes that touch obstacles.",
   dimensions: [
-    { name: "case", kind: "enum", values: EDGE_CASES, default: "oversize", meaning: "The case at the limits.", engines: ["packing"] },
+    ownerDimension("case", { kind: "enum", values: EDGE_CASES, default: "oversize", meaning: "The case at the limits.", engines: ["packing"] }),
     countDimension(12, { when: { param: "case", in: ["oversize", "exactTiling", "touchObstacles"] } }),
   ],
   crossEngine: "exact",
@@ -1207,11 +1214,12 @@ export const edgeCasesFamily: CorpusFamily<GeneratedInput> = familyOf(edgeCases,
 export const perfectCutFamily: CorpusFamily<GeneratedInput> = familyOf(perfectCut, {
   meaning: "The pieces of a cut of a rectangle. The input has a known best value. A margin or a gap removes it.",
   dimensions: [
-    { name: "cut", kind: "enum", values: CUTS, default: "guillotine", meaning: "The kind of cut: guillotine cuts, or a free cut. A free cut needs a count of 5 or more.", engines: ["packing"] },
+    ownerDimension("cut", { kind: "enum", values: CUTS, default: "guillotine", meaning: "The kind of cut: guillotine cuts, or a free cut. A free cut needs a count of 5 or more.", engines: ["packing"] }),
     enumDimension("containerSize", CUT_SIZES, "fixed"),
     countDimension(30, { min: 1 }),
   ],
   crossEngine: "exact",
+  invalidates: ["known"],
 });
 
 /** The family of `consecutiveSquares`: the squares of side 1 to `count`, with the known best value of the area. */
@@ -1219,6 +1227,7 @@ export const consecutiveSquaresFamily: CorpusFamily<GeneratedInput> = familyOf(c
   meaning: "The squares of side 1 to the count. The input has a known best value. A margin or a gap removes it.",
   dimensions: [enumDimension("containerSize", SQUARE_SIZES, "freeHeight"), countDimension(30, { min: 1 })],
   crossEngine: "exact",
+  invalidates: ["known"],
 });
 
 /** The seeding of the class families: the class gives the container, so only the boxes take random numbers. */
@@ -1226,7 +1235,7 @@ const CLASS_SEEDING = "stepRandom(seed, boxes) gives the type and the sides of e
 
 /** This function gives the dimensions of a class family: `class`, `containerSize` and `count`, with the counts of the literature as the levels. */
 const classDimensions = (classes: readonly string[], value: string, meaning: string): CorpusDimension[] => [
-  { name: "class", kind: "enum", values: Object.freeze([...classes]), default: value, meaning, engines: ["packing"] },
+  ownerDimension("class", { kind: "enum", values: Object.freeze([...classes]), default: value, meaning, engines: ["packing"] }),
   {
     ...enumDimension("containerSize", CLASS_SIZES, "freeHeight"),
     meaning: "The container: one bin of the class (fixed), or a strip of the width of the bin with a free height (freeHeight).",

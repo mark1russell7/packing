@@ -1,4 +1,4 @@
-import { createFamilyRegistry, dimensionAt, dimensionUnit, levelsOf, SHAPE_KIND_IDS } from "@mark1russell7/layout-contract";
+import { createFamilyRegistry, dimensionAt, dimensionSupports, dimensionUnit, levelsOf, SHAPE_KIND_IDS } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   berkeyWangFamily,
@@ -64,7 +64,9 @@ describe("the corpus families", () => {
     const shape = rectGridFamily.dimensions.find((d) => d.name === "shape")!;
     expect(shape.values).toEqual(SHAPE_KIND_IDS);
     expect(levelsOf(shape)).toEqual(["rect"]);
-    expect(() => registry.generate("rect-grid", 1, { shape: "circle" })).toThrow(RangeError);
+    expect(shape.supported).toEqual(["rect"]);
+    expect(SHAPE_KIND_IDS.filter((k) => dimensionSupports(shape, k))).toEqual(["rect"]);
+    expect(() => registry.generate("rect-grid", 1, { shape: "circle" })).toThrow(/not supported by/);
     expect(() => registry.generate("rect-grid", 1, { shape: "hexagon" })).toThrow(RangeError);
   });
 
@@ -103,8 +105,22 @@ describe("the knobs margin and gap", () => {
   it("remove the known best value, because a margin or a gap changes it", () => {
     expect(registry.generate("perfect-cut", 2, {}).known).toEqual(perfectCut.generate(2).known);
     expect(registry.generate("perfect-cut", 2, {}).known).toBeDefined();
-    expect(registry.generate("perfect-cut", 2, { gap: 1 }).known).toBeUndefined();
-    expect(registry.generate("perfect-cut", 2, { margin: 1 }).known).toBeUndefined();
+    expect(registry.generate("perfect-cut", 2, {}).invalidated).toBeUndefined();
+    for (const [name, dims] of [["perfect-cut", { gap: 1 }], ["perfect-cut", { margin: 1 }], ["consecutive-squares", { margin: 2, gap: 1 }]] as const) {
+      const file = registry.generate(name, 2, dims);
+      expect(file.known, name).toBeUndefined();
+      expect(file.invalidated, name).toEqual(["known"]);
+      expect(file.hash, name).toBe(hashInput(file));
+    }
+  });
+
+  it("declare invalidates only on the families with a known best value", () => {
+    for (const f of corpusFamilies) {
+      const knobs = f.dimensions.filter((d) => d.name === "margin" || d.name === "gap");
+      const want = ["perfect-cut", "consecutive-squares"].includes(f.name) ? ["known"] : undefined;
+      for (const d of knobs) expect(d.invalidates, `${f.name} ${d.name}`).toEqual(want);
+    }
+    expect(registry.generate("gallery", 1, { margin: 1 }).invalidated).toBeUndefined();
   });
 
   it("refuse a value out of 0 to 32", () => {
