@@ -433,6 +433,40 @@ The hard rules and the outline:
 - The default is `false`, so the counts of 0.2.1 stay. The contract changes the default to `true` at its next breaking version.
 - The tests of the layer (`src/space.test.ts`) test each box with `rectInRegion`, and with `checkHard` and the option.
 
+## The skyline family
+
+Roadmap item k22 adds the skyline rules of Jylänki 2010 to the strategy `skyline`. The module is `src/skyline.ts`.
+
+1. The boxes go in the order `sortOrder`. The default is `height-desc`.
+2. The skyline has a height for each whole unit of the width. A window is a run of cells as wide as the box.
+3. The rule examines each window where the box fits. The box goes on the highest cell of the window with the best score.
+4. The cells of the window get the bottom edge of the box.
+
+The option `rule` chooses the window. The default is `bl`, the rule of `skyline` before k22.
+
+| `rule` | The score | Move | Catalog |
+|---|---|---|---|
+| `bl` | The top edge of the box, then its left edge | `move.lowerWindow` | `skyline-bl` |
+| `mw` | The area below the box and above the skyline, then the top edge, then the left edge | `move.minWaste` | `skyline-min-waste` |
+
+The option `wasteMap` keeps the free areas below the skyline. The default is `false`.
+
+- A free area comes from the cells of a window that are lower than the window. For each level, the widest run of cells at or below it gives a free rectangle.
+- Without a space that is not plain, the area above each locked item is also a free area.
+- Each box tries the free rectangles first, with the best short side fit. A box in a free rectangle cuts the list as `maxrects` does.
+- The move `move.wasteFill` counts each box that goes in a free rectangle.
+
+The option `rotate` lets each turnable item that is not locked turn by 90 degrees, as in `maxrects`. The default is `false`.
+
+- The rule compares the places of the two turns. A tie keeps the box without a turn.
+- An item that is too wide for the container fits when its turn fits.
+
+The default options give the outputs of `skyline` before k22. The hash tests `bench/rect-fixture.test.ts` and `bench/maxrects-fixture.test.ts` did not change.
+
+- The locked items, the obstacles and the holes of each container shape stay as in `skyline`. The pair gaps of the frame stay too.
+- The bench entries are `skyline-mw`, `skyline-bl-waste` and `skyline-mw-waste`. Their base is `skyline`.
+- The cost for `n` boxes is `O(n W)` for a width of `W` cells. The waste map adds `O(F)` for each box, with `F` free rectangles.
+
 ## The MaxRects family
 
 Since 0.2.5 (roadmap item k24), the strategy `maxrects` packs with a list of maximal free rectangles (Jylänki 2010). The module is `src/maxrects.ts`.
