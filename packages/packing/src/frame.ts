@@ -1,6 +1,7 @@
 // The internal frame of the adapters of 0.1: the conversion of a PackInput to the Rect objects of 0.1, and back.
 // Each item grows by its margin and by half the gap on each side. Each obstacle grows by half the gap. Thus two items
 // are `mA + gap + mB` apart. The area of the frame is the container less the inset, grown by half the gap on each side.
+// An item of `pairGaps` also grows by its pad on each side (`pairPads`). Thus each pair is apart by its pair gap or more.
 
 import { boundsOf } from "@mark1russell7/layout-contract";
 import { EPS, marginOf, turnItem, type Item, type Obstacle, type PackInput, type PackOutput, type Placement, type Region, type StageTrace } from "./contract.ts";
@@ -72,9 +73,37 @@ export function byRank(items: readonly Item[]): Item[] {
 }
 
 /**
+ * This function gives the pads of the items of `pairGaps` (roadmap item k77), by id. An input without `pairGaps` gives `undefined`.
+ *
+ * - Two frame rectangles do not overlap. Thus two items are apart by their smallest margins, the gap and their two pads.
+ * - The pad of each item of a pair is half of the part of the pair gap that is more than that distance.
+ * - An item of more pairs gets the largest pad. A pad of 0 does not go in the map.
+ */
+export function pairPads(input: Pick<PackInput, "items" | "gap" | "pairGaps">): Map<string, number> | undefined {
+  if (input.pairGaps === undefined || input.pairGaps.length === 0) return undefined;
+  const least = new Map<string, number>();
+  for (const item of input.items) {
+    if (least.has(item.id)) continue;
+    const m = marginOf(item);
+    least.set(item.id, Math.min(m.top, m.right, m.bottom, m.left));
+  }
+  const pads = new Map<string, number>();
+  for (const p of input.pairGaps) {
+    const a = least.get(p.a);
+    const b = least.get(p.b);
+    if (a === undefined || b === undefined || p.a === p.b) continue;
+    const pad = (p.gap - (a + b + (input.gap ?? 0))) / 2;
+    if (!(pad > 0)) continue;
+    pads.set(p.a, Math.max(pads.get(p.a) ?? 0, pad));
+    pads.set(p.b, Math.max(pads.get(p.b) ?? 0, pad));
+  }
+  return pads;
+}
+
+/**
  * This function makes the frame of an input. A locked item with a position and an obstacle without `move` are locked
  * rectangles. An obstacle with `move` is a free rectangle only when `movable` is `true`. With `turnable`, a turnable item
- * is too large only when it is too large in the two directions.
+ * is too large only when it is too large in the two directions. Each item of `pairGaps` grows by its pad of `pairPads`.
  */
 export function buildFrame(input: PackInput, movable = false, turnable = false): Frame {
   const bounds = containerBounds(input);
@@ -87,12 +116,14 @@ export function buildFrame(input: PackInput, movable = false, turnable = false):
   const entries: Entry[] = [];
   const tooLarge: string[] = [];
 
+  const pads = pairPads(input);
   for (const item of byRank(input.items)) {
     const m = marginOf(item);
     const rect = new Rect<number>();
-    rect.size.set(item.w + m.left + m.right + 2 * half, item.h + m.top + m.bottom + 2 * half);
-    const dx = m.left + half;
-    const dy = m.top + half;
+    const pad = half + (pads?.get(item.id) ?? 0);
+    rect.size.set(item.w + m.left + m.right + 2 * pad, item.h + m.top + m.bottom + 2 * pad);
+    const dx = m.left + pad;
+    const dy = m.top + pad;
     if (item.locked === true && item.x !== undefined && item.y !== undefined) {
       rect.locked = true;
       rect.position.set(item.x - dx - ox, item.y - dy - oy);
@@ -266,6 +297,7 @@ export function transposeInput(input: PackInput): PackInput {
     items: input.items.map(transposeItem),
     ...(input.obstacles === undefined ? {} : { obstacles: input.obstacles.map((o) => ({ ...o, region: transposeRegion(o.region) })) }),
     ...(input.gap === undefined ? {} : { gap: input.gap }),
+    ...(input.pairGaps === undefined ? {} : { pairGaps: input.pairGaps }),
   };
 }
 
