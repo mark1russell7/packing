@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.14
+
+A new opt-in strategy, `select`, roadmap item k66. This release has no breaking changes. The default `pack()` and every existing output do not change.
+
+### Added
+
+- The composite strategy `select`: it reads the cheap features `count`, `fixed`, `rect` and `spread`, walks the decision table `SELECT_TABLE` (3 levels, 7 leaves) and packs with one member, `rows` or `maxrects` with the rule `bl`. Its trace stage `select` names the member and the feature values. New exports: `selectStrategy`, `selectFeatures`, `selectLeaf`, `checkSelectTable`, `SELECT_TABLE`, `SELECT_MEMBERS`, `SELECT_STAGE`, `SELECT_MAX_DEPTH` and their types.
+- Bench: the entry `select-rows-bl`, the split files `bench/splits/<corpus>.<corpus hash>.json` with `cells.ts --split <name>`, and the test corpus `pack-select-v1` (2025 inputs, fresh seeds 21 to 25).
+
 ## 0.2.13
 
 A speedup of the strategies `maxrects-*` and `portfolio`, roadmap item k64. This release has no breaking changes. Each output stays byte-equal.
