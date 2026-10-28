@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.9
+
+A dependency update. This release has no breaking changes. The default outputs do not change.
+
+### Changed
+
+- `@mark1russell7/layout-contract` is `^0.2.7`. Its `compareMeasure` compares two values on the grid of the records, in whole steps of `RECORD_EPS`.
+- Thus `packPortfolio` and the strategy `portfolio` find a tie at the `minEffect` limit without float noise. A pick changes only on such an input.
+
 ## 0.2.8
 
 A fix of the opt-in portfolio. This release has no breaking changes. The default outputs do not change.
