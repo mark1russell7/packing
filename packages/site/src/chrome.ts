@@ -1,7 +1,7 @@
 // The parts that each page of the site has: the links of the header and the theme button.
 
 /** The pages of the site that the header links to */
-export type PageId = "demo" | "compare" | "results" | "whats-new" | "status" | "releases";
+export type PageId = "demo" | "compare" | "strategies" | "results" | "whats-new" | "status" | "releases";
 
 /** One link of the header */
 export interface NavLink {
@@ -24,6 +24,7 @@ export function navLinks(base: string, current: PageId): NavLink[] {
   const pages: [PageId, string, string][] = [
     ["demo", "Demo", root],
     ["compare", "Compare", `${root}compare/`],
+    ["strategies", "Strategies", `${root}strategies/`],
     ["results", "Results", `${root}results/`],
     ["whats-new", "What's new", `${root}whats-new/`],
     ["status", "Status", `${root}status/`],
