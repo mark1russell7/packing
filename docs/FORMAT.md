@@ -176,6 +176,11 @@ The package exports each generator below, with `generators`, `generator(name)` a
 | `consecutive-squares` | `containerSize` `freeHeight`, `count` 30 | `freeHeight` and `freeArea`: the squares 1 to `count` with a known lower bound |
 | `berkey-wang` | `class` `I`, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: the classes `I` to `VI` of Berkey 1987 (k106, `docs/BENCH.md`) |
 | `martello-vigo` | `class` `VII`, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: the classes `VII` to `X` of Martello 1998 (k106, `docs/BENCH.md`) |
+| `tall-row` | `ratio` 8, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: one tall item in each band of short items (k107, `docs/BENCH.md`) |
+| `skyline-gap` | `ratio` 8, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: pairs of a narrow pillar and a wide plate (k107, `docs/BENCH.md`) |
+| `bl-trap` | `stages` 3, `containerSize` `freeHeight`, `count` 120 | `fixed` and `freeHeight`: items of one height, the narrow items first (k107, `docs/BENCH.md`) |
+| `half-wide` | `excess` 2, `containerSize` `freeHeight`, `count` 120 | `fixed` and `freeHeight`: items just over half and a quarter of the width (k107, `docs/BENCH.md`) |
+| `ladder` | `axis` `count`, `rung` 3, `count` 100 | `freeHeight`: the count 10 to 2560, or the side ratio 1 to 256 (k107, `docs/BENCH.md`) |
 
 The parameter `containerSize` of `rect-grid` and of the families of a user interface has the values `fixed`, `freeHeight`, `freeWidth`, `freeAspect` and `freeArea`.
 

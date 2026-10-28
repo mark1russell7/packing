@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 260 names
+## . (build/index.d.ts): 289 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -13,11 +13,14 @@ type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
 BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
 BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
+BL_TRAP_WIDTH: build/index.d.ts#BL_TRAP_WIDTH
+BL_TRAP_WIDTHS: build/index.d.ts#BL_TRAP_WIDTHS
 BOUND_KINDS: build/index.d.ts#BOUND_KINDS
 type BboxStrategyOptions: build/index.d.ts#BboxStrategyOptions
 type BerkeyWangClass: build/index.d.ts#BerkeyWangClass
 type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
 type BerkeyWangRule: build/index.d.ts#BerkeyWangRule
+type BlTrapParams: build/index.d.ts#BlTrapParams
 type BoundKind: build/index.d.ts#BoundKind
 type BoundMeasures: build/index.d.ts#BoundMeasures
 type BoundObjective: build/index.d.ts#BoundObjective
@@ -52,8 +55,16 @@ type FreeWidthTry: build/index.d.ts#FreeWidthTry
 type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
+HALF_WIDE_WIDTH: build/index.d.ts#HALF_WIDE_WIDTH
+type HalfWideParams: build/index.d.ts#HalfWideParams
 type Item: @mark1russell7/layout-contract#Item (external)
 type KnownBest: build/index.d.ts#KnownBest
+LADDER_RUNGS: build/index.d.ts#LADDER_RUNGS
+LADDER_SIDE: build/index.d.ts#LADDER_SIDE
+LADDER_WIDTH: build/index.d.ts#LADDER_WIDTH
+LEVEL_COUNTS: build/index.d.ts#LEVEL_COUNTS
+type LadderAxis: build/index.d.ts#LadderAxis
+type LadderParams: build/index.d.ts#LadderParams
 type LayoutContainer: @mark1russell7/layout-contract#LayoutContainer (external)
 type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
 type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
@@ -140,6 +151,7 @@ type Side: @mark1russell7/layout-contract#Side (external)
 type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/index.d.ts#SizeSearch
+type SkylineGapParams: build/index.d.ts#SkylineGapParams
 type SkylineOptions: build/index.d.ts#SkylineOptions
 type SkylineRule: build/index.d.ts#SkylineRule
 type SkylineStrategyOptions: build/index.d.ts#SkylineStrategyOptions
@@ -152,11 +164,15 @@ type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
 type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type Supports: build/index.d.ts#Supports
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
+type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/index.d.ts#UnsupportedCell
 UnsupportedShape: build/index.d.ts#UnsupportedShape
 Vector: build/index.d.ts#Vector
+WORST_COUNTS: build/index.d.ts#WORST_COUNTS
+WORST_WIDTH: build/index.d.ts#WORST_WIDTH
+type WorstContainer: build/index.d.ts#WorstContainer
 aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
@@ -165,6 +181,8 @@ bboxStrategy: build/index.d.ts#bboxStrategy
 berkeyWang: build/index.d.ts#berkeyWang
 berkeyWangFamily: build/index.d.ts#berkeyWangFamily
 binCountBound: build/index.d.ts#binCountBound
+blTrap: build/index.d.ts#blTrap
+blTrapFamily: build/index.d.ts#blTrapFamily
 boundGap: build/index.d.ts#boundGap
 boundMeasures: build/index.d.ts#boundMeasures
 canonicalJson: build/index.d.ts#canonicalJson
@@ -196,9 +214,14 @@ galleryFamily: build/index.d.ts#galleryFamily
 gapToOpt: build/index.d.ts#gapToOpt
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
+halfWide: build/index.d.ts#halfWide
+halfWideFamily: build/index.d.ts#halfWideFamily
 hardBreaks: build/index.d.ts#hardBreaks
 hashInput: build/index.d.ts#hashInput
 isDeterministic: build/index.d.ts#isDeterministic
+ladder: build/index.d.ts#ladder
+ladderFamily: build/index.d.ts#ladderFamily
+ladderRung: build/index.d.ts#ladderRung
 logSweep: build/index.d.ts#logSweep
 lowestWindow: build/index.d.ts#lowestWindow
 marginOf: build/index.d.ts#marginOf
@@ -229,6 +252,7 @@ pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
 perfectCutFamily: build/index.d.ts#perfectCutFamily
 perfectCutOf: build/index.d.ts#perfectCutOf
+portPoint: @mark1russell7/layout-contract#portPoint (external)
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
 portfolioMembers: build/index.d.ts#portfolioMembers
@@ -251,12 +275,16 @@ selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
 shelf: build/index.d.ts#shelf
 skyline: build/index.d.ts#skyline
+skylineGap: build/index.d.ts#skylineGap
+skylineGapFamily: build/index.d.ts#skylineGapFamily
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 supportsCell: build/index.d.ts#supportsCell
 tailShare: build/index.d.ts#tailShare
+tallRow: build/index.d.ts#tallRow
+tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
 turnItem: build/index.d.ts#turnItem
@@ -266,6 +294,7 @@ turnRegion: @mark1russell7/layout-contract#turnRegion (external)
 unsupportedOf: build/index.d.ts#unsupportedOf
 wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
+worstGenerators: build/index.d.ts#worstGenerators
 
 ## Declarations
 
@@ -296,6 +325,12 @@ export declare const BBOX_SHAPES: readonly ShapeKind[];
 ### build/index.d.ts#BERKEY_WANG_RULES
 export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>>;
 
+### build/index.d.ts#BL_TRAP_WIDTH
+export declare const BL_TRAP_WIDTH = 126;
+
+### build/index.d.ts#BL_TRAP_WIDTHS
+export declare const BL_TRAP_WIDTHS: Readonly<Record<2 | 3, readonly number[]>>;
+
 ### build/index.d.ts#BOUND_KINDS
 export declare const BOUND_KINDS: readonly BoundKind[];
 
@@ -321,6 +356,13 @@ interface BerkeyWangRule {
   readonly min: number;
   readonly max: number;
 }
+
+### build/index.d.ts#BlTrapParams
+type BlTrapParams = {
+  stages: number;
+  containerSize: WorstContainer;
+  count: number;
+};
 
 ### build/index.d.ts#BoundKind
 type BoundKind = "strip.area" | "strip.tallest" | "strip.mmv" | "strip.margin" | "hull.area" | "hull.extent" | "hull.margin" | "placed.free";
@@ -519,6 +561,16 @@ interface GeneratorStamp extends LayoutGenerator {
   readonly params: Readonly<GeneratorParams>;
 }
 
+### build/index.d.ts#HALF_WIDE_WIDTH
+export declare const HALF_WIDE_WIDTH = 200;
+
+### build/index.d.ts#HalfWideParams
+type HalfWideParams = {
+  excess: number;
+  containerSize: WorstContainer;
+  count: number;
+};
+
 ### build/index.d.ts#KnownBest
 interface KnownBest {
   readonly kind: "optimum" | "bound";
@@ -526,6 +578,28 @@ interface KnownBest {
   readonly height?: number;
   readonly source: string;
 }
+
+### build/index.d.ts#LADDER_RUNGS
+export declare const LADDER_RUNGS = 8;
+
+### build/index.d.ts#LADDER_SIDE
+export declare const LADDER_SIDE = 256;
+
+### build/index.d.ts#LADDER_WIDTH
+export declare const LADDER_WIDTH = 1024;
+
+### build/index.d.ts#LEVEL_COUNTS
+export declare const LEVEL_COUNTS: readonly number[];
+
+### build/index.d.ts#LadderAxis
+type LadderAxis = "count" | "ratio";
+
+### build/index.d.ts#LadderParams
+type LadderParams = {
+  axis: LadderAxis;
+  rung: number;
+  count: number;
+};
 
 ### build/index.d.ts#LayoutMeasures
 interface LayoutMeasures {
@@ -940,6 +1014,13 @@ interface SizeSearch {
   search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
 }
 
+### build/index.d.ts#SkylineGapParams
+type SkylineGapParams = {
+  ratio: number;
+  containerSize: WorstContainer;
+  count: number;
+};
+
 ### build/index.d.ts#SkylineOptions
 interface SkylineOptions {
   sortOrder?: SortOrder;
@@ -1000,6 +1081,13 @@ type Supports = {
 ### build/index.d.ts#THIN_INPUTS
 export declare const THIN_INPUTS = 12;
 
+### build/index.d.ts#TallRowParams
+type TallRowParams = {
+  ratio: number;
+  containerSize: WorstContainer;
+  count: number;
+};
+
 ### build/index.d.ts#UiParams
 type UiParams = {
   containerSize: DimensionValue<"containerSize">;
@@ -1038,6 +1126,15 @@ export declare class Vector {
   static get Infinity(): Vector;
 }
 
+### build/index.d.ts#WORST_COUNTS
+export declare const WORST_COUNTS: readonly number[];
+
+### build/index.d.ts#WORST_WIDTH
+export declare const WORST_WIDTH = 100;
+
+### build/index.d.ts#WorstContainer
+type WorstContainer = "fixed" | "freeHeight";
+
 ### build/index.d.ts#aspectError
 export declare function aspectError(width: number, height: number, target?: number): number;
 
@@ -1065,6 +1162,12 @@ export declare function binCountBound(input: {
   readonly boxes?: readonly Item[];
   readonly items?: readonly Item[];
 }): number | null;
+
+### build/index.d.ts#blTrap
+export declare const blTrap: CorpusGenerator<BlTrapParams>;
+
+### build/index.d.ts#blTrapFamily
+export declare const blTrapFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#boundGap
 export declare function boundGap(result: number, bound: number, sense: "lower" | "upper"): number;
@@ -1156,6 +1259,12 @@ export declare function generator(name: string, version?: number): CorpusGenerat
 ### build/index.d.ts#generators
 export declare const generators: readonly CorpusGenerator[];
 
+### build/index.d.ts#halfWide
+export declare const halfWide: CorpusGenerator<HalfWideParams>;
+
+### build/index.d.ts#halfWideFamily
+export declare const halfWideFamily: CorpusFamily<GeneratedInput>;
+
 ### build/index.d.ts#hardBreaks
 export declare function hardBreaks(input: PackInput, output: PackOutput): number;
 
@@ -1164,6 +1273,19 @@ export declare function hashInput(file: LayoutInput$1): string;
 
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
+
+### build/index.d.ts#ladder
+export declare const ladder: CorpusGenerator<LadderParams>;
+
+### build/index.d.ts#ladderFamily
+export declare const ladderFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#ladderRung
+export declare function ladderRung(p: Pick<LadderParams, "axis" | "rung" | "count">): {
+  count: number;
+  min: number;
+  max: number;
+};
 
 ### build/index.d.ts#logSweep
 export declare const logSweep: SizeSearch;
@@ -1338,6 +1460,12 @@ export declare const shelf: Strategy<LayoutStrategyOptions>;
 ### build/index.d.ts#skyline
 export declare const skyline: Strategy<SkylineStrategyOptions>;
 
+### build/index.d.ts#skylineGap
+export declare const skylineGap: CorpusGenerator<SkylineGapParams>;
+
+### build/index.d.ts#skylineGapFamily
+export declare const skylineGapFamily: CorpusFamily<GeneratedInput>;
+
 ### build/index.d.ts#spreadBand
 export declare function spreadBand(spread: number): SpreadBand;
 
@@ -1355,6 +1483,12 @@ export declare function supportsCell(supports: Supports, cell: Partial<Record<Di
 
 ### build/index.d.ts#tailShare
 export declare function tailShare(ratios: readonly number[], limit: number): number;
+
+### build/index.d.ts#tallRow
+export declare const tallRow: CorpusGenerator<TallRowParams>;
+
+### build/index.d.ts#tallRowFamily
+export declare const tallRowFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#toPackInput
 export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "boxes" | "obstacles" | "gap" | "pairGaps">): PackInput;
@@ -1376,3 +1510,6 @@ export declare const wordCloud: CorpusGenerator<UiParams>;
 
 ### build/index.d.ts#wordCloudFamily
 export declare const wordCloudFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#worstGenerators
+export declare const worstGenerators: readonly CorpusGenerator[];

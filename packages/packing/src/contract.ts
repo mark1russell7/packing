@@ -8,6 +8,7 @@ export {
   EPS,
   RECORD_EPS,
   checkInput,
+  portPoint,
   turnPoint,
   turnPort,
   turnRegion,
