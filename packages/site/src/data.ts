@@ -190,4 +190,6 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
   "pack.order.inversions": { label: "Order", note: "The share of box pairs out of their rank order. Less is better.", share: true },
   "pack.aspectError": { label: "Aspect", note: "The distance of the hull aspect from the target aspect, on a log scale. Less is better.", share: false },
   "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container that a better packer can place. Less is better.", share: true },
+  "pack.raggedness": { label: "Ragged edge", note: "The longest row less the shortest row, as a share of the hull width. Less is better.", share: true },
+  "pack.overflow": { label: "Not placed", note: "The count of boxes that the packer did not place. Less is better.", share: false },
 };

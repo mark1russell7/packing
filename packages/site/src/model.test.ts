@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { packFree, Rect } from "@mark1russell7/packing";
-import { chosenTry, makeItem, makeItems, ORDERS, PRESETS, random, runPacking, searchChart, STRATEGIES, type Placed } from "./model.ts";
+import { chosenTry, makeItem, makeItems, ORDERS, PRESETS, random, runPacking, SEARCH_STRATEGIES, searchChart, STRATEGIES, type Placed } from "./model.ts";
 
 const overlaps = (a: Placed, b: Placed): boolean =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -39,7 +39,7 @@ describe("runPacking", () => {
     const items = makeItems("mixed", 30, 3);
     for (const strategy of STRATEGIES) {
       for (const order of ORDERS) {
-        const run = runPacking(items, 640, { strategy, order });
+        const run = runPacking(items, 640, { strategy, options: { sortOrder: order } });
         expect(run.placed).toHaveLength(30);
         expect(run.placed.map((p) => p.rank)).toEqual(items.map((_, i) => i + 1));
         expect(run.placed.map((p) => p.key)).toEqual(items.map((i) => i.key));
@@ -60,7 +60,7 @@ describe("runPacking", () => {
 
   it("keeps the input order in the rows with the order input", () => {
     const items = makeItems("ranked", 25, 11);
-    const run = runPacking(items, 500, { strategy: "rows", order: "input" });
+    const run = runPacking(items, 500, { strategy: "rows", options: { sortOrder: "input" } });
     const reading = run.placed.toSorted((a, b) => a.y - b.y || a.x - b.x);
     // The items of a row share its top, so the reading order is the rank order
     expect(reading.map((p) => p.rank)).toEqual(run.placed.map((p) => p.rank));
@@ -68,13 +68,34 @@ describe("runPacking", () => {
 
   it("measures the time with the clock that it gets", () => {
     let t = 0;
-    const run = runPacking(makeItems("cards", 5, 1), 400, { strategy: "rows", order: "height-desc" }, () => (t += 2));
+    const run = runPacking(makeItems("cards", 5, 1), 400, { strategy: "rows", options: { sortOrder: "height-desc" } }, () => (t += 2));
     expect(run.ms).toBe(2);
   });
 
-  it("lets an item wider than the container go past the right edge", () => {
-    const run = runPacking([{ key: 0, w: 500, h: 50 }, { key: 1, w: 100, h: 50 }], 300, { strategy: "rows", order: "height-desc" });
-    expect(run.right).toBe(500);
+  it("does not place an item wider than the container", () => {
+    const run = runPacking([{ key: 0, w: 500, h: 50 }, { key: 1, w: 100, h: 50 }], 300, { strategy: "rows" });
+    expect(run.placed.map((p) => p.packed)).toEqual([false, true]);
+    expect(run.right).toBeLessThanOrEqual(300);
+    expect(run.measures?.["pack.overflow"]).toBe(1);
+  });
+
+  it("gives a run with the error for an input that the strategy does not support", () => {
+    const run = runPacking(makeItems("cards", 6, 1), 400, { strategy: "push", mode: "free" });
+    expect(run.unsupported).toBe(true);
+    expect(run.error).toMatch(/^Not supported for this input/);
+    expect(run.placed.every((p) => !p.packed)).toBe(true);
+    expect(run.measures).toBeUndefined();
+  });
+
+  it("packs with the options of the controls of a composite strategy", () => {
+    const items = makeItems("mixed", 20, 5);
+    const k2 = runPacking(items, 640, { strategy: "portfolio", options: { k: "2" } });
+    const members = runPacking(items, 640, { strategy: "portfolio", options: { members: ["rows", "maxrects-bl"] } });
+    const fit = runPacking(items, 640, { strategy: "aspect-fit", options: { strategy: "rows" } });
+    for (const run of [k2, members, fit]) {
+      expect(run.error).toBeUndefined();
+      expect(run.placed.every((p) => p.packed)).toBe(true);
+    }
   });
 });
 
@@ -82,18 +103,18 @@ describe("runPacking with a free width", () => {
   const items = makeItems("cards", 24, 7);
   const target = { aspect: 4 / 3, weight: 1 };
 
-  const freeOf = (strategy: "rows" | "skyline") => {
+  const freeOf = (strategy: string) => {
     const rects = items.map((item) => {
       const r = new Rect<number>();
       r.id = item.key;
       r.size.set(item.w, item.h);
       return r;
     });
-    return packFree(rects, new Rect<number>(), { strategy, sortOrder: "height-desc", aspect: target.aspect, aspectWeight: target.weight });
+    return packFree(rects, new Rect<number>(), { strategy: strategy as "rows", sortOrder: "height-desc", aspect: target.aspect, aspectWeight: target.weight });
   };
 
   it("gives the size and the measures of packFree", () => {
-    const run = runPacking(items, 640, { strategy: "rows", order: "height-desc", mode: "free" }, undefined, target);
+    const run = runPacking(items, 640, { strategy: "rows", options: { sortOrder: "height-desc" }, mode: "free" }, undefined, target);
     const expected = freeOf("rows");
     expect(run.width).toBe(expected.outer.size.x);
     expect(run.height).toBe(expected.outer.size.y);
@@ -105,7 +126,7 @@ describe("runPacking with a free width", () => {
     expect(run.free!.tried).toEqual(expected.tried);
     expect(run.free!.target).toEqual(target);
     // The width of the fixed mode has no effect
-    expect(runPacking(items, 300, { strategy: "rows", order: "height-desc", mode: "free" }, undefined, target).width).toBe(run.width);
+    expect(runPacking(items, 300, { strategy: "rows", options: { sortOrder: "height-desc" }, mode: "free" }, undefined, target).width).toBe(run.width);
     for (const p of run.placed) {
       expect(p.packed).toBe(true);
       expect(p.x + p.w).toBeLessThanOrEqual(run.width);
@@ -114,7 +135,7 @@ describe("runPacking with a free width", () => {
   });
 
   it("chooses the first try with the lowest objective", () => {
-    const run = runPacking(items, 640, { strategy: "skyline", order: "area-desc", mode: "free" }, undefined, target);
+    const run = runPacking(items, 640, { strategy: "skyline", options: { sortOrder: "area-desc" }, mode: "free" }, undefined, target);
     const free = run.free!;
     const best = Math.min(...free.tried.map((t) => t.objective));
     expect(free.tried[free.chosen]!.objective).toBe(best);
@@ -125,17 +146,17 @@ describe("runPacking with a free width", () => {
   });
 
   it("keeps the fixed mode without a mode", () => {
-    const a = runPacking(items, 640, { strategy: "rows", order: "height-desc" });
-    const b = runPacking(items, 640, { strategy: "rows", order: "height-desc", mode: "fixed" });
+    const a = runPacking(items, 640, { strategy: "rows", options: { sortOrder: "height-desc" } });
+    const b = runPacking(items, 640, { strategy: "rows", options: { sortOrder: "height-desc" }, mode: "fixed" });
     expect(a.free).toBeUndefined();
     expect(a.width).toBe(640);
     expect(b.placed).toEqual(a.placed);
   });
 
   it("uses the same target for each compared strategy, and gives the measures of each", () => {
-    const runs = STRATEGIES.map((strategy) => runPacking(items, 640, { strategy, order: "height-desc", mode: "free" }, undefined, target));
-    for (const [i, run] of runs.entries()) {
-      const expected = freeOf(STRATEGIES[i]!);
+    for (const strategy of ["rows", "skyline"]) {
+      const run = runPacking(items, 640, { strategy, options: { sortOrder: "height-desc" }, mode: "free" }, undefined, target);
+      const expected = freeOf(strategy);
       expect(run.free!.target).toEqual(target);
       expect(run.width).toBe(expected.outer.size.x);
       expect(run.free!.objective).toBe(expected.objective);
@@ -143,8 +164,19 @@ describe("runPacking with a free width", () => {
     }
   });
 
+  it("gives the chart of the search for each strategy of packFree, with the width of the packing", () => {
+    for (const strategy of STRATEGIES) {
+      const run = runPacking(items, 640, { strategy, mode: "free" }, undefined, target);
+      if (!SEARCH_STRATEGIES.includes(strategy)) {
+        expect(run.free, strategy).toBeUndefined();
+        continue;
+      }
+      expect(run.free!.tried[run.free!.chosen]!.contentWidth, strategy).toBe(run.width);
+    }
+  });
+
   it("gives a chart with one point for each try", () => {
-    const run = runPacking(items, 640, { strategy: "rows", order: "height-desc", mode: "free" }, undefined, target);
+    const run = runPacking(items, 640, { strategy: "rows", options: { sortOrder: "height-desc" }, mode: "free" }, undefined, target);
     const free = run.free!;
     const chart = searchChart(free, { width: 560, height: 200 });
     const byWidth = (a: { width: number }, b: { width: number }) => a.width - b.width;

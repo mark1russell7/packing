@@ -29,6 +29,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./bench/entries": "./bench/entries.ts",
     "./package.json": "./package.json"
   },
   "files": [

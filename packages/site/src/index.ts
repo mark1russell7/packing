@@ -7,20 +7,18 @@ import {
   DEFAULT_TARGET,
   makeItem,
   makeItems,
-  ORDERS,
   PRESETS,
   presetOf,
   runPacking,
   searchChart,
-  STRATEGIES,
   WIDTH_MODES,
   type FreeTarget,
   type Item,
   type Run,
   type Setting,
-  type Strategy,
   type WidthMode,
 } from "./model.ts";
+import { DEMO_STRATEGIES, isCompositeId, isDemoId, optionControls, startValues, type OptionControl, type OptionValues } from "./options.ts";
 import { mountChrome } from "./chrome.ts";
 import "./style.css";
 import "./pages.css";
@@ -47,7 +45,32 @@ const ORDER_LABELS: Record<SortOrder, string> = {
   "area-desc": "Largest first",
   input: "List order",
 };
-const STRATEGY_LABELS: Record<Strategy, string> = { rows: "Rows", skyline: "Skyline" };
+/** The names of the strategies on the page. An id without a name shows the id. */
+const STRATEGY_LABELS: Record<string, string> = {
+  rows: "Rows",
+  skyline: "Skyline",
+  shelf: "Shelf",
+  push: "Push",
+  maxrects: "MaxRects",
+  portfolio: "Portfolio",
+  "aspect-fit": "Aspect fit",
+  select: "Select",
+};
+const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
+
+/** The names of the options on the page. An option without a name shows its key. */
+const OPTION_LABELS: Record<string, string> = {
+  sortOrder: "Sort",
+  samples: "Samples",
+  rule: "Rule",
+  rotate: "Turn boxes",
+  maxShovesPerItem: "Shoves per box",
+  fit: "Fit",
+  k: "Member count",
+  members: "Members",
+  strategy: "Inner strategy",
+  targetAspect: "Target aspect",
+};
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 
 interface State {
@@ -70,8 +93,8 @@ const state: State = {
   ...DEFAULTS,
   compare: false,
   settings: [
-    { strategy: "rows", order: "height-desc", mode: "fixed" },
-    { strategy: "skyline", order: "height-desc", mode: "fixed" },
+    { strategy: "rows", options: startValues("rows"), mode: "fixed" },
+    { strategy: "skyline", options: startValues("skyline"), mode: "fixed" },
   ],
   target: { ...DEFAULT_TARGET },
   items: [],
@@ -80,8 +103,6 @@ const state: State = {
 };
 
 const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
-const isStrategy = (s: string | undefined): s is Strategy => STRATEGIES.includes(s as Strategy);
-const isOrder = (s: string | undefined): s is SortOrder => ORDERS.includes(s as SortOrder);
 const isMode = (s: string | undefined): s is WidthMode => WIDTH_MODES.includes(s as WidthMode);
 const ASPECT_MIN = 0.1;
 const ASPECT_MAX = 10;
@@ -99,9 +120,10 @@ function readHash(): void {
   state.compare = p.get("c") === "1";
   for (const [i, key] of (["a", "b"] as const).entries()) {
     const [strategy, order, mode] = (p.get(key) ?? "").split(".");
-    if (isStrategy(strategy)) state.settings[i]!.strategy = strategy;
-    if (isOrder(order)) state.settings[i]!.order = order;
-    state.settings[i]!.mode = isMode(mode) ? mode : "fixed";
+    const setting = state.settings[i]!;
+    if (isDemoId(strategy) && strategy !== setting.strategy) setting.strategy = strategy;
+    setting.options = readOptions(setting.strategy, order, p.get(`${key}o`));
+    setting.mode = isMode(mode) ? mode : "fixed";
   }
   const real = (key: string, fallback: number, min: number, max: number): number => {
     const v = Number.parseFloat(p.get(key) ?? "");
@@ -113,19 +135,57 @@ function readHash(): void {
   };
 }
 
+/**
+ * This function reads the options of a strategy from the hash. The key `a` or `b` has the sort order. The key `ao`
+ * or `bo` has the other options as JSON. A value of the wrong type, or out of its set, uses the start value.
+ */
+function readOptions(id: string, order: string | undefined, json: string | null): OptionValues {
+  const values = startValues(id);
+  let extra: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(json ?? "{}");
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) extra = parsed as Record<string, unknown>;
+  } catch {
+    extra = {};
+  }
+  if (order !== undefined) extra["sortOrder"] = order;
+  for (const c of optionControls(id)) {
+    const v = extra[c.key];
+    if (v === undefined) continue;
+    if (c.kind === "number" && typeof v === "number" && Number.isFinite(v)) values[c.key] = clamp(v, c.min, c.max);
+    else if (c.kind === "flag" && typeof v === "boolean") values[c.key] = v;
+    else if ((c.kind === "select" || c.kind === "entry") && typeof v === "string" && (c.values.includes(v) || (c.kind === "select" && c.none !== undefined && v === ""))) values[c.key] = v;
+    else if (c.kind === "members" && Array.isArray(v) && v.every((x) => typeof x === "string" && c.values.includes(x)) && (c.count === undefined || v.length === c.count)) values[c.key] = v as string[];
+  }
+  return values;
+}
+
+/** This function gives the options of a setting that differ from the start values, without the sort order. */
+function changedOptions(setting: Setting): Record<string, unknown> {
+  const start = startValues(setting.strategy);
+  return Object.fromEntries(
+    Object.entries(setting.options ?? {}).filter(([k, v]) => k !== "sortOrder" && JSON.stringify(v ?? null) !== JSON.stringify(start[k] ?? null)),
+  );
+}
+
 function writeHash(): void {
   const [a, b] = state.settings;
+  const key = (s: Setting): string => `${s.strategy}.${String(s.options?.["sortOrder"] ?? "-")}.${s.mode ?? "fixed"}`;
   const p = new URLSearchParams({
     p: state.preset,
     n: String(state.count),
     s: String(state.seed),
     w: String(state.width),
-    a: `${a.strategy}.${a.order}.${a.mode ?? "fixed"}`,
-    b: `${b.strategy}.${b.order}.${b.mode ?? "fixed"}`,
+    a: key(a),
+    b: key(b),
     c: state.compare ? "1" : "0",
     t: String(Number(state.target.aspect.toFixed(4))),
     k: String(Number(state.target.weight.toFixed(2))),
   });
+  for (const [name, s] of [["ao", a], ["bo", b]] as const) {
+    const changed = changedOptions(s);
+    if (Object.keys(changed).length > 0) p.set(name, JSON.stringify(changed));
+  }
   history.replaceState(null, "", `#${p.toString()}`);
 }
 
@@ -244,9 +304,11 @@ interface Panel {
   root: HTMLElement;
   canvas: HTMLElement;
   svg: SVGSVGElement;
-  strategy: HTMLElement;
+  strategy: HTMLSelectElement;
   mode: HTMLElement;
-  order: HTMLSelectElement;
+  options: HTMLElement;
+  /** The strategy of the option controls on the page. */
+  optionsFor: string | undefined;
   search: HTMLElement;
   status: HTMLElement;
   metrics: HTMLElement;
@@ -262,12 +324,10 @@ const panels: Panel[] = [0, 1].map((i) => {
   root.innerHTML = `
     <header class="stage-head">
       <span class="tag" aria-hidden="true">${i === 0 ? "A" : "B"}</span>
-      <div class="seg" role="radiogroup" aria-label="Strategy ${i === 0 ? "A" : "B"}">
-        ${STRATEGIES.map((s) => `<button type="button" role="radio" data-strategy="${s}">${STRATEGY_LABELS[s]}</button>`).join("")}
-      </div>
-      <label class="order">Sort
-        <select aria-label="Sort order ${i === 0 ? "A" : "B"}">
-          ${ORDERS.map((o) => `<option value="${o}">${ORDER_LABELS[o]} (${o})</option>`).join("")}
+      <label class="order">Strategy
+        <select class="strategy" aria-label="Strategy ${i === 0 ? "A" : "B"}">
+          <optgroup label="One strategy">${strategyOptions(false)}</optgroup>
+          <optgroup label="Composite">${strategyOptions(true)}</optgroup>
         </select>
       </label>
       <span class="order mode">Width
@@ -276,6 +336,7 @@ const panels: Panel[] = [0, 1].map((i) => {
         </span>
       </span>
     </header>
+    <div class="opts" role="group" aria-label="Options ${i === 0 ? "A" : "B"}"></div>
     <div class="canvas"><svg xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Layout ${i === 0 ? "A" : "B"}"></svg></div>
     <p class="status" role="status"></p>
     <figure class="search" hidden></figure>
@@ -285,31 +346,41 @@ const panels: Panel[] = [0, 1].map((i) => {
     root,
     canvas: root.querySelector(".canvas")!,
     svg: root.querySelector("svg")!,
-    strategy: root.querySelector(".seg")!,
+    strategy: root.querySelector("select.strategy")!,
     mode: root.querySelector(".mode .seg")!,
-    order: root.querySelector("select")!,
+    options: root.querySelector(".opts")!,
+    optionsFor: undefined,
     search: root.querySelector(".search")!,
     status: root.querySelector(".status")!,
     metrics: root.querySelector(".metrics")!,
     scale: 1,
     run: undefined,
   };
-  panel.strategy.addEventListener("click", (e) => {
-    const b = (e.target as Element).closest<HTMLElement>("[data-strategy]");
-    const s = b?.dataset["strategy"];
-    if (!isStrategy(s)) return;
+  panel.strategy.addEventListener("change", () => {
+    const s = panel.strategy.value;
+    if (!isDemoId(s)) return;
     state.settings[i]!.strategy = s;
+    state.settings[i]!.options = startValues(s);
     update();
+  });
+  const onOption = (e: Event): void => {
+    const el = e.target as HTMLInputElement | HTMLSelectElement;
+    const key = el.dataset["key"];
+    const setting = state.settings[i]!;
+    const control = optionControls(setting.strategy).find((c) => c.key === key);
+    if (control === undefined) return;
+    setting.options = { ...setting.options, [control.key]: controlValue(panel.options, control) };
+    update();
+  };
+  panel.options.addEventListener("change", onOption);
+  panel.options.addEventListener("input", (e) => {
+    if ((e.target as HTMLInputElement).type === "number") onOption(e);
   });
   panel.mode.addEventListener("click", (e) => {
     const b = (e.target as Element).closest<HTMLElement>("[data-mode]");
     const m = b?.dataset["mode"];
     if (!isMode(m)) return;
     state.settings[i]!.mode = m;
-    update();
-  });
-  panel.order.addEventListener("change", () => {
-    if (isOrder(panel.order.value)) state.settings[i]!.order = panel.order.value;
     update();
   });
   wireCanvas(panel, i);
@@ -330,9 +401,10 @@ function drawPanel(panel: Panel, run: Run): void {
   const px = panel.canvas.clientWidth;
   // A free width can give a tall layout. Its height on the screen stops at 70% of the window.
   let shown = px;
-  if (run.free) shown = Math.min(px, (Math.max(240, innerHeight * 0.7) * vbW) / vbH);
-  panel.svg.style.width = run.free && px > 0 ? `${Math.round(shown)}px` : "";
-  panel.canvas.classList.toggle("free", run.free !== undefined);
+  const free = run.mode === "free";
+  if (free) shown = Math.min(px, (Math.max(240, innerHeight * 0.7) * vbW) / vbH);
+  panel.svg.style.width = free && px > 0 ? `${Math.round(shown)}px` : "";
+  panel.canvas.classList.toggle("free", free);
   panel.scale = shown > 0 ? shown / vbW : 1;
   const s = panel.scale;
   const count = run.placed.length;
@@ -413,6 +485,13 @@ const MEASURES: Measure[] = [
     note: "The number of widths that the search packed.",
     better: 0,
   },
+  {
+    label: "Not placed",
+    value: (r) => (r.error === undefined ? r.placed.filter((p) => !p.packed).length : undefined),
+    text: (v) => num.format(v),
+    note: "The boxes that do not fit in the container. The packer does not place them.",
+    better: -1,
+  },
   { label: "Space covered", value: (r) => r.metrics.utilization, text: (v) => `${dec.format(v * 100)}%`, note: "The part of the outline that the items fill. More is denser.", better: 1 },
   { label: "Height", value: (r) => r.height, text: (v) => num.format(v), note: "The height that the container needs. Less is better.", better: -1 },
   { label: "Ragged right edge", value: (r) => r.metrics.raggedness, text: (v) => num.format(v), note: "The longest row less the shortest row. 0 is a straight edge.", better: -1 },
@@ -445,7 +524,7 @@ function drawMetrics(panel: Panel, run: Run, base: Run | undefined): void {
     const own = FREE_MEASURES.has(m.label) ? " free" : "";
     return [`<div class="m${own}"><dt>${m.label}</dt><dd><b>${m.text(v)}</b>${delta}${meter}<small>${note}</small></dd></div>`];
   });
-  rows.push(`<div class="m time"><dt>Packing time</dt><dd><b>${timeText(run.ms)}</b><small>This browser, this run. One call of <code>${run.free ? "packFree" : "pack"}</code>.</small></dd></div>`);
+  rows.push(`<div class="m time"><dt>Packing time</dt><dd><b>${timeText(run.ms)}</b><small>This browser, this run. One call of <code>packWith</code>.</small></dd></div>`);
   panel.metrics.innerHTML = rows.join("");
 }
 
@@ -658,6 +737,103 @@ function drawEditor(): void {
   laterEl.disabled = i === state.items.length - 1;
 }
 
+// ---- The option controls ----
+
+/** This function gives the options of the strategy select: the single strategies, or the composite strategies. */
+function strategyOptions(composite: boolean): string {
+  return DEMO_STRATEGIES.filter((s) => isCompositeId(s.id) === composite)
+    .map((s) => `<option value="${s.id}">${esc(strategyLabel(s.id))} (${s.id})</option>`)
+    .join("");
+}
+
+/** This function gives the text of a value of a select control. */
+const choiceText = (key: string, v: string): string => (key === "sortOrder" && v in ORDER_LABELS ? `${ORDER_LABELS[v as SortOrder]} (${v})` : v);
+
+/** This function gives the HTML of one option control. */
+function controlHtml(c: OptionControl, panelId: string): string {
+  const label = esc(OPTION_LABELS[c.key] ?? c.key);
+  const tip = `title="The option ${esc(c.key)}"`;
+  const id = `opt-${panelId}-${c.key}`;
+  switch (c.kind) {
+    case "number":
+      return `<label class="opt" ${tip}>${label}<input id="${id}" type="number" data-key="${c.key}" min="${c.min}" max="${c.max}" step="${c.step}" placeholder="auto" /></label>`;
+    case "flag":
+      return `<label class="opt check" ${tip}><input id="${id}" type="checkbox" data-key="${c.key}" />${label}</label>`;
+    case "select":
+    case "entry": {
+      const none = c.kind === "select" && c.none !== undefined ? `<option value="">${esc(c.none)}</option>` : "";
+      const opts = c.values.map((v) => `<option value="${esc(v)}">${esc(choiceText(c.key, v))}</option>`).join("");
+      return `<label class="opt" ${tip}>${label}<select id="${id}" data-key="${c.key}">${none}${opts}</select></label>`;
+    }
+    case "members": {
+      if (c.count !== undefined) {
+        const slots = Array.from({ length: c.count }, (_, j) => `<select data-key="${c.key}" data-slot="${j}" aria-label="${label} ${j + 1}">${c.values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}</select>`);
+        return `<span class="opt" ${tip}>${label}${slots.join("")}</span>`;
+      }
+      const boxes = c.values.map((v) => `<label class="opt check"><input type="checkbox" data-key="${c.key}" value="${esc(v)}" />${esc(v)}</label>`).join("");
+      return `<details class="opt members" ${tip}><summary>${label}: <span class="picked"></span></summary><div class="pick">${boxes}</div></details>`;
+    }
+  }
+}
+
+/** This function reads the value of a control from the page. */
+function controlValue(root: HTMLElement, c: OptionControl): OptionValues[string] {
+  const els = [...root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(`[data-key="${c.key}"]`)];
+  const first = els[0];
+  if (first === undefined) return c.value;
+  switch (c.kind) {
+    case "number": {
+      const v = Number.parseFloat(first.value);
+      return Number.isFinite(v) ? clamp(v, c.min, c.max) : undefined;
+    }
+    case "flag":
+      return (first as HTMLInputElement).checked;
+    case "select":
+    case "entry":
+      return first.value;
+    case "members":
+      return c.count !== undefined ? els.map((el) => el.value) : els.filter((el) => (el as HTMLInputElement).checked).map((el) => el.value);
+  }
+}
+
+/** This function draws the option controls of a setting. It draws them again only when the strategy changes. */
+function drawOptions(panel: Panel, setting: Setting): void {
+  const controls = optionControls(setting.strategy);
+  if (panel.optionsFor !== setting.strategy) {
+    panel.optionsFor = setting.strategy;
+    const panelId = panel === panels[0] ? "a" : "b";
+    panel.options.innerHTML = controls.map((c) => controlHtml(c, panelId)).join("");
+    panel.options.hidden = controls.length === 0;
+  }
+  const values = setting.options ?? {};
+  for (const c of controls) {
+    const v = values[c.key] ?? c.value;
+    const els = [...panel.options.querySelectorAll<HTMLInputElement | HTMLSelectElement>(`[data-key="${c.key}"]`)];
+    for (const [j, el] of els.entries()) {
+      if (document.activeElement === el) continue;
+      if (c.kind === "flag") (el as HTMLInputElement).checked = v === true;
+      else if (c.kind === "members") {
+        const list = Array.isArray(v) ? (v as readonly string[]) : [];
+        if (c.count !== undefined) el.value = list[j] ?? c.values[0] ?? "";
+        else (el as HTMLInputElement).checked = list.includes(el.value);
+      } else el.value = v === undefined ? "" : String(v);
+    }
+    if (c.kind === "members" && c.count === undefined) {
+      const list = Array.isArray(v) ? (v as readonly string[]) : [];
+      const picked = panel.options.querySelector(".picked");
+      if (picked) picked.textContent = list.length === 0 ? "none, the cell picks them" : `${list.length} picked`;
+    }
+  }
+}
+
+/** This function gives the status text of a run: the error, or the count of the boxes that do not fit. */
+function statusText(run: Run): string {
+  if (run.error !== undefined) return run.unsupported ? `${run.error} Pick another strategy or another width.` : `The strategy stops with an error: ${run.error}`;
+  const over = run.placed.filter((p) => !p.packed).length;
+  if (over === 0) return "";
+  return `${over} ${over === 1 ? "box does" : "boxes do"} not fit in the container. The packer does not place ${over === 1 ? "it" : "them"}.`;
+}
+
 // ---- Draw ----
 
 function render(): void {
@@ -670,12 +846,12 @@ function render(): void {
     const run = runPacking(state.items, state.width, setting, undefined, state.target);
     panel.run = run;
     panel.root.querySelector(".tag")!.classList.toggle("on", state.compare);
-    for (const b of panel.strategy.querySelectorAll<HTMLElement>("[data-strategy]")) b.setAttribute("aria-checked", String(b.dataset["strategy"] === setting.strategy));
+    panel.strategy.value = setting.strategy;
+    drawOptions(panel, setting);
     for (const b of panel.mode.querySelectorAll<HTMLElement>("[data-mode]")) b.setAttribute("aria-checked", String(b.dataset["mode"] === (setting.mode ?? "fixed")));
-    panel.order.value = setting.order;
     drawPanel(panel, run);
-    const over = run.placed.filter((p) => p.x + p.w > run.width).length;
-    panel.status.textContent = over > 0 ? `${over} ${over === 1 ? "item is" : "items are"} wider than the container. ${over === 1 ? "It goes" : "They go"} past the dashed edge.` : "";
+    panel.status.textContent = statusText(run);
+    panel.status.classList.toggle("unsupported", run.unsupported === true);
     drawSearch(panel, run);
     drawMetrics(panel, run, i === 1 ? base : undefined);
     base ??= run;
