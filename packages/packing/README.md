@@ -162,6 +162,7 @@ checkHard(input, output); // { "no-overlap": 0, "in-container": 0, "locked-kept"
 ```
 
 - The registry `strategies` has `rows`, `skyline`, `shelf`, `push` and `maxrects`. `strategy(id)` gives one, and `packWith(id, input, options, seed)` packs with it.
+- `packDefault(input, seed)` packs with `DEFAULT_STRATEGY`, the composite strategy `select`. It passed the win test against `rows` on two fresh-seed corpora.
 - `fixed` is `size`, `width`, `height` or `none`. A fixed height turns the axes. The value `none` uses the size search `logSweep`, which wraps `packFree`.
 - Each strategy declares its cells in `supports`. `cellOf(input)` gives the cell of an input. A strategy throws `UnsupportedCell` for an input outside its cells.
 - Only `maxrects` accepts a turnable item, and it turns items only with `rotate: true`. The other strategies give `UnsupportedCell` for a turnable item.
