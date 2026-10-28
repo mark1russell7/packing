@@ -84,7 +84,7 @@ Status: done, done, waiting, next, done.
 | k75 | The shape of the items and of the container as a dimension of `packSpace` and of the contracts: rectangle, polygon, circle or free form. Only rectangles have strategies today. | core | done | k68 |
 | k76 | A survey of each published method of packing, as ideas. Each method gets a row of the queue with its gain, its uncertainty and its cost. | theory | done | |
 | k77 | A space between two given items, or one channel, set once. The input names the pair and its gap, and the placement keeps that gap. Today the gap comes from the margins of both boxes, so it doubles. The routing bench of `layout-contract` (L13) asks for it. | core | done | k65 |
-| k78 | Random restarts around each strategy (idea R1 of the survey) | strategies | next | k6, k7 |
+| k78 | Random restarts around each strategy (idea R1 of the survey) | strategies | done | k6, k7 |
 | k79 | Goal-driven ruin and recreate (idea R5 of the survey) | strategies | later | k6, k7 |
 | k80 | Overlap minimization for rectangles (idea R6 of the survey) | strategies | later | k6, k7 |
 | k81 | Binary search on the height (idea R10 of the survey) | strategies | later | k6, k7 |
@@ -125,51 +125,50 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | k78 | 4 | 3 | 1 | 12.0 |
-| 2 | k22 | 4 | 3 | 2 | 6.0 |
-| 3 | k46 | 4 | 3 | 2 | 6.0 |
-| 4 | k90 | 4 | 3 | 2 | 6.0 |
-| 5 | k91 | 3 | 2 | 1 | 6.0 |
-| 6 | k106 | 4 | 3 | 2 | 6.0 |
-| 7 | k107 | 4 | 3 | 2 | 6.0 |
-| 8 | k108 | 3 | 2 | 1 | 6.0 |
-| 9 | k111 | 4 | 3 | 2 | 6.0 |
-| 10 | k23 | 4 | 4 | 3 | 5.3 |
-| 11 | k47 | 4 | 4 | 3 | 5.3 |
-| 12 | k79 | 4 | 4 | 3 | 5.3 |
-| 13 | k80 | 4 | 4 | 3 | 5.3 |
-| 14 | k26 | 5 | 4 | 4 | 5.0 |
-| 15 | k105 | 5 | 3 | 3 | 5.0 |
-| 16 | k25 | 3 | 3 | 2 | 4.5 |
-| 17 | k70 | 3 | 3 | 2 | 4.5 |
-| 18 | k13 | 3 | 3 | 2 | 4.5 |
-| 19 | k92 | 3 | 3 | 2 | 4.5 |
-| 20 | k10 | 4 | 4 | 4 | 4.0 |
-| 21 | k81 | 4 | 3 | 3 | 4.0 |
-| 22 | k82 | 3 | 4 | 3 | 4.0 |
-| 23 | k83 | 3 | 4 | 3 | 4.0 |
-| 24 | k93 | 4 | 2 | 2 | 4.0 |
-| 25 | k94 | 4 | 3 | 3 | 4.0 |
-| 26 | k95 | 4 | 3 | 3 | 4.0 |
-| 27 | k96 | 5 | 4 | 5 | 4.0 |
-| 28 | k97 | 3 | 4 | 3 | 4.0 |
-| 29 | k110 | 4 | 2 | 2 | 4.0 |
-| 30 | k84 | 3 | 5 | 4 | 3.8 |
-| 31 | k74 | 4 | 3 | 4 | 3.0 |
-| 32 | k52 | 3 | 2 | 2 | 3.0 |
-| 33 | k85 | 3 | 3 | 3 | 3.0 |
-| 34 | k86 | 3 | 5 | 5 | 3.0 |
-| 35 | k87 | 3 | 3 | 3 | 3.0 |
-| 36 | k98 | 3 | 2 | 2 | 3.0 |
-| 37 | k109 | 4 | 2 | 3 | 2.7 |
-| 38 | k99 | 3 | 4 | 5 | 2.4 |
-| 39 | k100 | 3 | 3 | 4 | 2.3 |
-| 40 | k88 | 2 | 2 | 2 | 2.0 |
-| 41 | k101 | 4 | 2 | 4 | 2.0 |
-| 42 | k102 | 3 | 2 | 3 | 2.0 |
-| 43 | k103 | 2 | 2 | 2 | 2.0 |
-| 44 | k89 | 2 | 4 | 5 | 1.6 |
-| 45 | k104 | 2 | 3 | 5 | 1.2 |
+| 1 | k22 | 4 | 3 | 2 | 6.0 |
+| 2 | k46 | 4 | 3 | 2 | 6.0 |
+| 3 | k90 | 4 | 3 | 2 | 6.0 |
+| 4 | k91 | 3 | 2 | 1 | 6.0 |
+| 5 | k106 | 4 | 3 | 2 | 6.0 |
+| 6 | k107 | 4 | 3 | 2 | 6.0 |
+| 7 | k108 | 3 | 2 | 1 | 6.0 |
+| 8 | k111 | 4 | 3 | 2 | 6.0 |
+| 9 | k23 | 4 | 4 | 3 | 5.3 |
+| 10 | k47 | 4 | 4 | 3 | 5.3 |
+| 11 | k79 | 4 | 4 | 3 | 5.3 |
+| 12 | k80 | 4 | 4 | 3 | 5.3 |
+| 13 | k26 | 5 | 4 | 4 | 5.0 |
+| 14 | k105 | 5 | 3 | 3 | 5.0 |
+| 15 | k25 | 3 | 3 | 2 | 4.5 |
+| 16 | k70 | 3 | 3 | 2 | 4.5 |
+| 17 | k13 | 3 | 3 | 2 | 4.5 |
+| 18 | k92 | 3 | 3 | 2 | 4.5 |
+| 19 | k10 | 4 | 4 | 4 | 4.0 |
+| 20 | k81 | 4 | 3 | 3 | 4.0 |
+| 21 | k82 | 3 | 4 | 3 | 4.0 |
+| 22 | k83 | 3 | 4 | 3 | 4.0 |
+| 23 | k93 | 4 | 2 | 2 | 4.0 |
+| 24 | k94 | 4 | 3 | 3 | 4.0 |
+| 25 | k95 | 4 | 3 | 3 | 4.0 |
+| 26 | k96 | 5 | 4 | 5 | 4.0 |
+| 27 | k97 | 3 | 4 | 3 | 4.0 |
+| 28 | k110 | 4 | 2 | 2 | 4.0 |
+| 29 | k84 | 3 | 5 | 4 | 3.8 |
+| 30 | k74 | 4 | 3 | 4 | 3.0 |
+| 31 | k52 | 3 | 2 | 2 | 3.0 |
+| 32 | k85 | 3 | 3 | 3 | 3.0 |
+| 33 | k86 | 3 | 5 | 5 | 3.0 |
+| 34 | k87 | 3 | 3 | 3 | 3.0 |
+| 35 | k98 | 3 | 2 | 2 | 3.0 |
+| 36 | k109 | 4 | 2 | 3 | 2.7 |
+| 37 | k99 | 3 | 4 | 5 | 2.4 |
+| 38 | k100 | 3 | 3 | 4 | 2.3 |
+| 39 | k88 | 2 | 2 | 2 | 2.0 |
+| 40 | k101 | 4 | 2 | 4 | 2.0 |
+| 41 | k102 | 3 | 2 | 3 | 2.0 |
+| 42 | k103 | 2 | 2 | 2 | 2.0 |
+| 43 | k89 | 2 | 4 | 5 | 1.6 |
+| 44 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
