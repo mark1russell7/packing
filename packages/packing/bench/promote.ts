@@ -1,0 +1,675 @@
+// The win test of the promotion rule (roadmap item k58, `docs/BENCH.md`, "The win test"). It reads the records of a run
+// with two strategies on the same inputs: a candidate and the current default. It does not start a packer.
+// The rule is `docs/PROMOTION.md` of `highways`: the paired ratio, the floor rule, the classification, the win test and the noise guard.
+//
+// Start it with `node bench/promote.ts <folder> --candidate <id> --default <id> --win <measure> --out <folder>`.
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { compareMeasure, type Verdict } from "@mark1russell7/layout-contract";
+import { MEASURE_SPECS, medianRatio, mulberry32, pairedRatio, quantile, tailShare, type MeasureId, type MeasureSpec } from "@mark1russell7/packing";
+import { readRecords } from "./choose-sets.ts";
+import { hardOf } from "./portfolio.ts";
+import { OUTSIDE_EXACT, UNKNOWN_SHAPE, type ScreenRecord } from "./screen.ts";
+
+/** The median test: the median ratio of a guard is at most `1 + MEDIAN_WORSE`. */
+export const MEDIAN_WORSE = 0.02;
+
+/** The tail test: a ratio above `1 + TAIL_WORSE` is in the tail. */
+export const TAIL_WORSE = 0.1;
+
+/** The tail test: at most this share of the inputs is in the tail. */
+export const TAIL_SHARE = 0.1;
+
+/** The gain test: the median ratio of a win measure is at most `1 - GAIN_MIN`. */
+export const GAIN_MIN = 0.05;
+
+/** The sign test: its p-value is below this limit. */
+export const SIGN_P = 0.05;
+
+/** The bootstrap: the count of the samples of the inputs. */
+export const BOOTSTRAP_RUNS = 10000;
+
+/** The bootstrap: the level of the interval of the median ratios. */
+export const BOOTSTRAP_LEVEL = 0.95;
+
+/** The fixed seed of the random numbers of the bootstrap. The same seed gives the same interval. */
+export const BOOTSTRAP_SEED = 58;
+
+/** The time test: the median time ratio is at most this value. */
+export const TIME_RATIO = 1.5;
+
+/** The time test: the quantile of the time ratios for the tail. */
+export const TIME_TAIL_Q = 0.95;
+
+/** The time test: the quantile `TIME_TAIL_Q` of the time ratios is at most this value. */
+export const TIME_TAIL = 2.0;
+
+/**
+ * The time floor in milliseconds. The denominator of a time ratio is at least `TIME_FLOOR_MS / TIME_RATIO`. The value 0
+ * keeps the rule without a floor.
+ */
+export const TIME_FLOOR_MS = 0;
+
+/** The selector: a cell needs this count of inputs or more for a rule. */
+export const CELL_MIN = 10;
+
+/** The confirmation run: the fresh set has this count of inputs or more. */
+export const CONFIRM_INPUTS = 200;
+
+/** The parameters of the win test. The names are the names of the table of the rule. */
+export interface PromotionParameters {
+  medianWorse: number;
+  tailWorse: number;
+  tailShare: number;
+  gainMin: number;
+  signP: number;
+  bootstrapRuns: number;
+  bootstrapLevel: number;
+  bootstrapSeed: number;
+  timeRatio: number;
+  timeTailQ: number;
+  timeTail: number;
+  timeFloorMs: number;
+  cellMin: number;
+  confirmInputs: number;
+}
+
+/** The parameters of the rule, with the values of its table. */
+export const PROMOTION_PARAMETERS: Readonly<PromotionParameters> = Object.freeze({
+  medianWorse: MEDIAN_WORSE,
+  tailWorse: TAIL_WORSE,
+  tailShare: TAIL_SHARE,
+  gainMin: GAIN_MIN,
+  signP: SIGN_P,
+  bootstrapRuns: BOOTSTRAP_RUNS,
+  bootstrapLevel: BOOTSTRAP_LEVEL,
+  bootstrapSeed: BOOTSTRAP_SEED,
+  timeRatio: TIME_RATIO,
+  timeTailQ: TIME_TAIL_Q,
+  timeTail: TIME_TAIL,
+  timeFloorMs: TIME_FLOOR_MS,
+  cellMin: CELL_MIN,
+  confirmInputs: CONFIRM_INPUTS,
+});
+
+/** The guard measures of the step `pack` on each input. */
+export const GUARD_MEASURES: readonly MeasureId[] = Object.freeze(["pack.area", "pack.fill", "pack.aspectError", "pack.order.inversions"] as MeasureId[]);
+
+/** The guard measure of the step `pack` in the cells with a fixed container. */
+export const FIXED_GUARD: MeasureId = "pack.overflow";
+
+/** The stability measures of the change pairs. Each one is a guard on the inputs that have it. */
+export const STABILITY_MEASURES: readonly MeasureId[] = Object.freeze(["pack.stability.mean", "pack.stability.q95", "pack.stability.moved"] as MeasureId[]);
+
+/** The value of the cell `containerSize` of an input with a fixed container. */
+export const FIXED_SIZE = "fixed";
+
+/** The part of a record that the win test reads. */
+export interface PromotionRecord extends ScreenRecord {
+  /** The value `false` when two runs of the record gave different outputs */
+  deterministic?: boolean;
+  /** The times of the timed runs, in milliseconds. `ms` is their median. */
+  msRuns?: number[];
+}
+
+/** The cells of an input that the win test reads. The manifest `corpus.json` gives them. */
+export interface InputCell {
+  containerShape?: string;
+  containerSize?: string;
+}
+
+/** The paired ratio of one measure on one input, after the floor rule. */
+export interface FloorRatio {
+  /** The ratio. A value above 1 is worse, in the direction of the measure. */
+  ratio: number;
+  /** The result of the floor rule: `tie` within the tolerance, `loss` beyond it. It is absent when the default is not at the floor. */
+  floor?: "tie" | "loss";
+}
+
+/**
+ * This function gives the paired ratio of a measure on one input, with the floor rule.
+ *
+ * - The default is at the floor when its value is the floor or better. Then the input uses the tolerance `spec.tol`.
+ * - A candidate within the tolerance of the floor gives a tie with the ratio 1. Otherwise the ratio is `Infinity`.
+ * - A measure without a floor, or a default that is not at the floor, gives `pairedRatio`.
+ */
+export function floorRatio(candidate: number, current: number, spec: Pick<MeasureSpec, "direction" | "floor" | "tol">): FloorRatio {
+  const floor = spec.floor;
+  if (floor !== undefined) {
+    const lower = spec.direction === "lower";
+    const atFloor = lower ? current <= floor : current >= floor;
+    if (atFloor) {
+      const gap = lower ? candidate - floor : floor - candidate;
+      return gap <= (spec.tol ?? 0) ? { ratio: 1, floor: "tie" } : { ratio: Infinity, floor: "loss" };
+    }
+  }
+  return { ratio: pairedRatio(candidate, current, spec.direction) };
+}
+
+/**
+ * This function gives the class of one input: `better`, `worse` or `tie`. `compareMeasure` of the contract gives it from the
+ * raw values. A tie of the floor rule is a tie, and a loss of the floor rule is worse.
+ */
+export function classify(candidate: number, current: number, spec: Pick<MeasureSpec, "direction" | "minEffect">, floor?: FloorRatio["floor"]): Verdict {
+  if (floor === "tie") return "tie";
+  if (floor === "loss") return "worse";
+  return compareMeasure(candidate, current, spec);
+}
+
+/** A test of one value against its limit. */
+export interface Check {
+  value: number;
+  limit: number;
+  pass: boolean;
+}
+
+/** This function gives the median test of some ratios: the median is at most `1 + medianWorse`. No ratio fails. */
+export function medianTest(ratios: readonly number[], medianWorse = MEDIAN_WORSE): Check {
+  const limit = 1 + medianWorse;
+  if (ratios.length === 0) return { value: NaN, limit, pass: false };
+  const value = medianRatio(ratios);
+  return { value, limit, pass: value <= limit };
+}
+
+/** This function gives the tail test of some ratios: the share above `1 + tailWorse` is at most `share`. No ratio fails. */
+export function tailTest(ratios: readonly number[], tailWorse = TAIL_WORSE, share = TAIL_SHARE): Check {
+  if (ratios.length === 0) return { value: NaN, limit: share, pass: false };
+  const value = tailShare(ratios, 1 + tailWorse);
+  return { value, limit: share, pass: value <= share };
+}
+
+/**
+ * This function gives the p-value of the one-sided exact sign test: the chance of `better` or more successes in
+ * `better + worse` fair trials. The ties are not in the counts. No trial gives 1.
+ */
+export function signTestP(better: number, worse: number): number {
+  const n = better + worse;
+  if (n === 0 || better === 0) return 1;
+  // The logs of the binomial terms C(n, i) / 2^n for i from `better` to n, summed from their largest term
+  const logs: number[] = [];
+  let logChoose = 0;
+  for (let i = 0; i <= n; i++) {
+    if (i > 0) logChoose += Math.log((n - i + 1) / i);
+    if (i >= better) logs.push(logChoose - n * Math.LN2);
+  }
+  const top = Math.max(...logs);
+  const sum = logs.reduce((s, l) => s + Math.exp(l - top), 0);
+  return Math.min(1, Math.exp(top) * sum);
+}
+
+/** The interval of the paired bootstrap of the median ratio. */
+export interface BootstrapInterval {
+  low: number;
+  high: number;
+  level: number;
+  runs: number;
+  seed: number;
+}
+
+/**
+ * This function gives the paired bootstrap of the median ratio: `runs` samples of the inputs with replacement, from the
+ * seed `seed`. The interval is the central `level` share of the sample medians. The ratio `Infinity` is a valid value.
+ * No ratio gives no interval.
+ */
+export function bootstrapMedian(ratios: readonly number[], runs = BOOTSTRAP_RUNS, level = BOOTSTRAP_LEVEL, seed = BOOTSTRAP_SEED): BootstrapInterval | undefined {
+  const n = ratios.length;
+  if (n === 0) return undefined;
+  const sorted = ratios.toSorted((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const random = mulberry32(seed);
+  const counts = new Uint32Array(n);
+  // The median of a sample of n values: the value of rank (n - 1) / 2, or the mean of the two middle ranks
+  const lowRank = Math.floor((n - 1) / 2);
+  const highRank = Math.ceil((n - 1) / 2);
+  const medians: number[] = [];
+  for (let run = 0; run < runs; run++) {
+    counts.fill(0);
+    for (let i = 0; i < n; i++) counts[Math.floor(random() * n)]! += 1;
+    let seen = 0;
+    let low = NaN;
+    let high = NaN;
+    for (let k = 0; k < n; k++) {
+      seen += counts[k]!;
+      if (Number.isNaN(low) && seen > lowRank) low = sorted[k]!;
+      if (seen > highRank) {
+        high = sorted[k]!;
+        break;
+      }
+    }
+    medians.push(low === high ? low : (low + high) / 2);
+  }
+  const side = (1 - level) / 2;
+  return { low: quantile(medians, side), high: quantile(medians, 1 - side), level, runs, seed };
+}
+
+/** The time of one input of the candidate and of the default, in milliseconds. */
+export interface TimePair {
+  candidate: number;
+  current: number;
+}
+
+/** The time test of some inputs. */
+export interface TimeResult {
+  /** The inputs with a time for the candidate and for the default */
+  inputs: number;
+  /** The inputs without a time for one of the two */
+  missing: number;
+  /** The time floor in milliseconds */
+  floorMs: number;
+  /** The inputs where the floor raised the denominator above the time of the default */
+  raised: number;
+  median: Check;
+  tail: Check & { q: number };
+  pass: boolean;
+}
+
+/**
+ * This function gives the time test of some inputs. The time ratio of an input is `t / max(b, floorMs / timeRatio)`, with
+ * the candidate time `t` and the default time `b`. The median is at most `timeRatio`. The quantile `timeTailQ` is at most `timeTail`.
+ */
+export function timeTest(pairs: readonly TimePair[], params: Pick<PromotionParameters, "timeRatio" | "timeTailQ" | "timeTail" | "timeFloorMs"> = PROMOTION_PARAMETERS, missing = 0): TimeResult {
+  const least = params.timeFloorMs / params.timeRatio;
+  let raised = 0;
+  const ratios = pairs.map((p) => {
+    if (least > p.current) raised += 1;
+    return pairedRatio(p.candidate, Math.max(p.current, least), "lower");
+  });
+  const empty = ratios.length === 0;
+  const median = empty ? NaN : medianRatio(ratios);
+  const tail = empty ? NaN : quantile(ratios, params.timeTailQ);
+  const medianCheck = { value: median, limit: params.timeRatio, pass: median <= params.timeRatio };
+  const tailCheck = { value: tail, limit: params.timeTail, q: params.timeTailQ, pass: tail <= params.timeTail };
+  return { inputs: ratios.length, missing, floorMs: params.timeFloorMs, raised, median: medianCheck, tail: tailCheck, pass: medianCheck.pass && tailCheck.pass };
+}
+
+/** The use of the floor rule for one measure. */
+export interface FloorUse {
+  /** The inputs where the default is at the floor */
+  applied: number;
+  /** The inputs of `applied` where the candidate is within the tolerance */
+  ties: number;
+  /** The inputs of `applied` where the candidate is beyond the tolerance. Their ratio is `Infinity`. */
+  losses: number;
+  /** The ids of the inputs of `applied`. Only the overall tests list them. */
+  ids?: string[];
+}
+
+/** The ratios and the classes of one measure over some inputs. */
+export interface MeasureRatios {
+  measure: string;
+  /** The inputs where both records have the measure */
+  inputs: number;
+  ratios: number[];
+  better: number;
+  worse: number;
+  ties: number;
+  floor: FloorUse;
+}
+
+/** The two measured records of one input. */
+export interface InputPair {
+  input: string;
+  candidate: PromotionRecord;
+  current: PromotionRecord;
+}
+
+/** This function gives the ratios and the classes of one measure over some inputs. An input without the measure in a record does not count. */
+export function ratiosOf(measure: MeasureId, pairs: readonly InputPair[], listIds = false): MeasureRatios {
+  const spec = MEASURE_SPECS[measure];
+  const out: MeasureRatios = { measure, inputs: 0, ratios: [], better: 0, worse: 0, ties: 0, floor: { applied: 0, ties: 0, losses: 0, ...(listIds ? { ids: [] } : {}) } };
+  for (const p of pairs) {
+    const a = p.candidate.measures[measure];
+    const b = p.current.measures[measure];
+    if (a === undefined || b === undefined) continue;
+    const r = floorRatio(a, b, spec);
+    out.inputs += 1;
+    out.ratios.push(r.ratio);
+    if (r.floor !== undefined) {
+      out.floor.applied += 1;
+      if (r.floor === "tie") out.floor.ties += 1;
+      else out.floor.losses += 1;
+      out.floor.ids?.push(p.input);
+    }
+    const c = classify(a, b, spec, r.floor);
+    if (c === "better") out.better += 1;
+    else if (c === "worse") out.worse += 1;
+    else out.ties += 1;
+  }
+  return out;
+}
+
+/** The median test and the tail test of one guard measure. */
+export interface GuardResult {
+  measure: string;
+  inputs: number;
+  median: Check;
+  tail: Check;
+  better: number;
+  worse: number;
+  ties: number;
+  floor: FloorUse;
+  pass: boolean;
+}
+
+/** The gain test of one win measure: the median, the sign test and the bootstrap. */
+export interface GainResult {
+  measure: string;
+  inputs: number;
+  median: Check;
+  sign: { better: number; worse: number; ties: number; p: number; limit: number; pass: boolean };
+  /** The bootstrap passes when the upper end of its interval is below 1. Then the interval does not include 1, on the side of a gain. */
+  bootstrap: (BootstrapInterval & { pass: boolean }) | { pass: false };
+  floor: FloorUse;
+  pass: boolean;
+}
+
+/** The hard-rule test of some inputs. */
+export interface HardResult {
+  inputs: number;
+  /** The inputs where a hard count of the candidate is above that of the default */
+  breaks: number;
+  /** The inputs where the record of the candidate is not deterministic */
+  notDeterministic: number;
+  /** The first inputs of `breaks` and `notDeterministic`, at most 10 */
+  examples: string[];
+  pass: boolean;
+}
+
+/** The tests of the win test on some inputs. */
+export interface WinTests {
+  inputs: number;
+  hard: HardResult;
+  guards: GuardResult[];
+  /** The stability guards. The list is empty when no input has a change pair. */
+  stability: GuardResult[];
+  gain: { measures: GainResult[]; pass: boolean };
+  time: TimeResult;
+  pass: boolean;
+}
+
+/** The verdict of the win test. */
+export interface PromotionVerdict {
+  candidate: string;
+  current: string;
+  win: string[];
+  parameters: PromotionParameters;
+  /** The inputs with a measured record of each of the two strategies */
+  inputs: number;
+  /** The inputs that the test leaves out: a strategy has no measured record there */
+  leftOut: { inputs: number; candidate: number; current: number };
+  /** The input count against `confirmInputs`. A confirmation run needs `enough`. It does not change `pass`. */
+  confirm: { inputs: number; needed: number; enough: boolean };
+  /** The time field of the records */
+  timeField: "ms";
+  tests: WinTests;
+  /** The value `true` when each test passes on all the inputs */
+  pass: boolean;
+  /** The same tests for each container shape, as information for a rule of the selector. They do not change `pass`. */
+  shapes: Record<string, WinTests & { cellMin: boolean }>;
+}
+
+/** The options of the win test. */
+export interface WinTestOptions {
+  candidate: string;
+  current: string;
+  /** The win measures. One of them must pass the gain test. */
+  win: readonly MeasureId[];
+  /** The cells of each input, by input id. An input without cells has the shape `unknown` and no fixed container. */
+  cells?: ReadonlyMap<string, InputCell>;
+  parameters?: Partial<PromotionParameters>;
+}
+
+/** This function gives the hard counts of a record. The count `pack.outsideExact` replaces `in-container`, as `hardOf` tells. */
+function hardCounts(r: PromotionRecord): Record<string, number> {
+  const out: Record<string, number> = { ...r.hard };
+  const exact = r.measures[OUTSIDE_EXACT];
+  if (exact !== undefined) out["in-container"] = exact;
+  return out;
+}
+
+/** This function tells if a record is not deterministic: its field `deterministic` is `false`, or its measure `pack.deterministic` is 0. */
+const notDeterministic = (r: PromotionRecord): boolean => r.deterministic === false || r.measures["pack.deterministic"] === 0;
+
+/** This function gives the hard-rule test of some inputs: each hard count of the candidate is at most that of the default. */
+export function hardTest(pairs: readonly InputPair[]): HardResult {
+  let breaks = 0;
+  let unstable = 0;
+  const examples: string[] = [];
+  for (const p of pairs) {
+    const a = hardCounts(p.candidate);
+    const b = hardCounts(p.current);
+    const broke = Object.entries(a).some(([k, n]) => n > (b[k] ?? 0)) || hardOf(p.candidate) > hardOf(p.current);
+    const changed = notDeterministic(p.candidate);
+    if (broke) breaks += 1;
+    if (changed) unstable += 1;
+    if ((broke || changed) && examples.length < 10) examples.push(p.input);
+  }
+  return { inputs: pairs.length, breaks, notDeterministic: unstable, examples, pass: breaks === 0 && unstable === 0 };
+}
+
+/** This function gives the time of a record in milliseconds: the field `ms`, or the median of `msRuns`. */
+export function timeOf(r: PromotionRecord): number | undefined {
+  if (typeof r.ms === "number") return r.ms;
+  return r.msRuns !== undefined && r.msRuns.length > 0 ? quantile(r.msRuns, 0.5) : undefined;
+}
+
+/** This function gives the median test and the tail test of one guard measure. */
+function guardOf(m: MeasureRatios, params: PromotionParameters): GuardResult {
+  const median = medianTest(m.ratios, params.medianWorse);
+  const tail = tailTest(m.ratios, params.tailWorse, params.tailShare);
+  return { measure: m.measure, inputs: m.inputs, median, tail, better: m.better, worse: m.worse, ties: m.ties, floor: m.floor, pass: median.pass && tail.pass };
+}
+
+/** This function gives the gain test of one win measure. */
+function gainOf(m: MeasureRatios, params: PromotionParameters): GainResult {
+  const limit = 1 - params.gainMin;
+  const value = m.ratios.length === 0 ? NaN : medianRatio(m.ratios);
+  const median = { value, limit, pass: value <= limit };
+  const p = signTestP(m.better, m.worse);
+  const sign = { better: m.better, worse: m.worse, ties: m.ties, p, limit: params.signP, pass: p < params.signP };
+  const interval = bootstrapMedian(m.ratios, params.bootstrapRuns, params.bootstrapLevel, params.bootstrapSeed);
+  const bootstrap = interval === undefined ? ({ pass: false } as const) : { ...interval, pass: interval.high < 1 };
+  return { measure: m.measure, inputs: m.inputs, median, sign, bootstrap, floor: m.floor, pass: median.pass && sign.pass && bootstrap.pass };
+}
+
+/**
+ * This function gives the tests of the win test on some inputs.
+ *
+ * - The guards `GUARD_MEASURES` apply to each input. `FIXED_GUARD` applies to the inputs with a fixed container.
+ * - A guard with no input fails, except `FIXED_GUARD` and the stability guards. They are left out when no input has them.
+ * - The gain test passes when one win measure passes its median, its sign test and its bootstrap.
+ */
+export function testsOf(pairs: readonly InputPair[], win: readonly MeasureId[], cells: ReadonlyMap<string, InputCell>, params: PromotionParameters, listIds = false): WinTests {
+  const guards = GUARD_MEASURES.map((m) => guardOf(ratiosOf(m, pairs, listIds), params));
+  const fixed = pairs.filter((p) => cells.get(p.input)?.containerSize === FIXED_SIZE);
+  const overflow = ratiosOf(FIXED_GUARD, fixed, listIds);
+  if (overflow.inputs > 0) guards.push(guardOf(overflow, params));
+  const stability = STABILITY_MEASURES.map((m) => ratiosOf(m, pairs, listIds))
+    .filter((m) => m.inputs > 0)
+    .map((m) => guardOf(m, params));
+  const gains = win.map((m) => gainOf(ratiosOf(m, pairs, listIds), params));
+  const times: TimePair[] = [];
+  for (const p of pairs) {
+    const candidate = timeOf(p.candidate);
+    const current = timeOf(p.current);
+    if (candidate !== undefined && current !== undefined) times.push({ candidate, current });
+  }
+  const hard = hardTest(pairs);
+  const time = timeTest(times, params, pairs.length - times.length);
+  const gain = { measures: gains, pass: gains.some((g) => g.pass) };
+  const pass = pairs.length > 0 && hard.pass && guards.every((g) => g.pass) && stability.every((g) => g.pass) && gain.pass && time.pass;
+  return { inputs: pairs.length, hard, guards, stability, gain, time, pass };
+}
+
+/**
+ * This function gives the verdict of the win test of a candidate against the current default.
+ *
+ * - The test pairs the first measured record of each strategy on each input. A skipped record is not measured.
+ * - An input without a measured record of each strategy is left out, and the verdict counts it.
+ * - The overall `pass` uses all the inputs. Each container shape gets the same tests as information.
+ */
+export function winTest(records: readonly PromotionRecord[], options: WinTestOptions): PromotionVerdict {
+  const params: PromotionParameters = { ...PROMOTION_PARAMETERS, ...options.parameters };
+  const cells = options.cells ?? new Map<string, InputCell>();
+  const seen = new Set<string>();
+  const candidates = new Map<string, PromotionRecord>();
+  const currents = new Map<string, PromotionRecord>();
+  for (const r of records) {
+    const own = r.strategy === options.candidate ? candidates : r.strategy === options.current ? currents : undefined;
+    if (own === undefined) continue;
+    seen.add(r.input);
+    if (r.skipped === undefined && !own.has(r.input)) own.set(r.input, r);
+  }
+  const pairs: InputPair[] = [];
+  let noCandidate = 0;
+  let noCurrent = 0;
+  for (const input of seen) {
+    const candidate = candidates.get(input);
+    const current = currents.get(input);
+    if (candidate === undefined) noCandidate += 1;
+    if (current === undefined) noCurrent += 1;
+    if (candidate !== undefined && current !== undefined) pairs.push({ input, candidate, current });
+  }
+  const tests = testsOf(pairs, options.win, cells, params, true);
+  const shapeOf = (input: string): string => cells.get(input)?.containerShape ?? UNKNOWN_SHAPE;
+  const shapes: PromotionVerdict["shapes"] = {};
+  for (const shape of [...new Set(pairs.map((p) => shapeOf(p.input)))].toSorted()) {
+    const own = pairs.filter((p) => shapeOf(p.input) === shape);
+    shapes[shape] = { ...testsOf(own, options.win, cells, params), cellMin: own.length >= params.cellMin };
+  }
+  return {
+    candidate: options.candidate,
+    current: options.current,
+    win: [...options.win],
+    parameters: params,
+    inputs: pairs.length,
+    leftOut: { inputs: seen.size - pairs.length, candidate: noCandidate, current: noCurrent },
+    confirm: { inputs: pairs.length, needed: params.confirmInputs, enough: pairs.length >= params.confirmInputs },
+    timeField: "ms",
+    tests,
+    pass: tests.pass,
+    shapes,
+  };
+}
+
+/** This function writes a number for a table: 4 significant digits, `Infinity`, or `-` for no value. */
+export const numText = (v: number): string => (Number.isNaN(v) ? "-" : Number.isFinite(v) ? String(Number(v.toPrecision(4))) : v > 0 ? "Infinity" : "-Infinity");
+
+/** This function writes a result for a table. */
+const passText = (pass: boolean): string => (pass ? "pass" : "fail");
+
+/** This function writes the rows of a check. */
+const checkRow = (test: string, measure: string, c: Check): string => `| ${test} | ${measure} | ${numText(c.value)} | ${numText(c.limit)} | ${passText(c.pass)} |`;
+
+/** This function writes the rows of the tests of the win test. */
+function testRows(t: WinTests, tailWorse: number): string[] {
+  const rows = [
+    `| hard rules | the inputs with a new hard break | ${t.hard.breaks} | 0 | ${passText(t.hard.breaks === 0)} |`,
+    `| hard rules | the inputs that are not deterministic | ${t.hard.notDeterministic} | 0 | ${passText(t.hard.notDeterministic === 0)} |`,
+  ];
+  for (const g of [...t.guards, ...t.stability]) {
+    rows.push(checkRow("median", `\`${g.measure}\``, g.median), checkRow("tail share", `\`${g.measure}\` above ${numText(1 + tailWorse)}`, g.tail));
+  }
+  for (const g of t.gain.measures) {
+    rows.push(checkRow("gain median", `\`${g.measure}\``, g.median));
+    rows.push(`| gain sign test p | \`${g.measure}\` (${g.sign.better} better, ${g.sign.worse} worse, ${g.sign.ties} ties) | ${g.sign.p.toPrecision(3)} | < ${g.sign.limit} | ${passText(g.sign.pass)} |`);
+    const b = g.bootstrap;
+    rows.push("high" in b ? `| gain bootstrap high | \`${g.measure}\` (${b.level} interval ${numText(b.low)} to ${numText(b.high)}) | ${numText(b.high)} | < 1 | ${passText(b.pass)} |` : `| gain bootstrap high | \`${g.measure}\` | - | < 1 | fail |`);
+  }
+  rows.push(`| gain | one win measure passes | ${t.gain.measures.filter((g) => g.pass).length} | 1 or more | ${passText(t.gain.pass)} |`);
+  rows.push(checkRow("time median", `time ratio (${t.time.inputs} inputs)`, t.time.median));
+  rows.push(checkRow(`time quantile ${t.time.tail.q}`, `time ratio (${t.time.inputs} inputs)`, t.time.tail));
+  return rows;
+}
+
+/** This function writes `promotion.md`: the tests of all the inputs, then a table of each container shape. */
+export function promotionMarkdown(v: PromotionVerdict): string {
+  const t = v.tests;
+  const p = v.parameters;
+  const lines = [
+    `# The win test of \`${v.candidate}\` against \`${v.current}\``,
+    "",
+    `The verdict is **${v.pass ? "pass" : "fail"}**. The candidate ${v.pass ? "can" : "cannot"} replace the default by the win test.`,
+    "",
+    `- The inputs: ${v.inputs}. The test leaves out ${v.leftOut.inputs} inputs: ${v.leftOut.candidate} without a measured record of the candidate, ${v.leftOut.current} without one of the default.`,
+    `- The confirmation count: ${v.confirm.inputs} inputs of ${v.confirm.needed} (\`confirmInputs\`), ${v.confirm.enough ? "enough" : "not enough"} for a confirmation run.`,
+    `- The win measures: ${v.win.map((m) => `\`${m}\``).join(", ")}. The time is the field \`${v.timeField}\` of each record.`,
+    `- The time floor: ${p.timeFloorMs} ms. The floor raised the denominator of ${t.time.raised} inputs. ${t.time.missing} inputs have no time.`,
+    `- A ratio above 1 is worse. A tail ratio is above ${numText(1 + p.tailWorse)}. The bootstrap uses ${p.bootstrapRuns} samples and the seed ${p.bootstrapSeed}.`,
+    "",
+    "| test | measure | value | limit | result |",
+    "|---|---|---:|---:|---|",
+    ...testRows(t, p.tailWorse),
+    "",
+    "## The floor rule",
+    "",
+    "| measure | inputs | at the floor | ties | losses |",
+    "|---|---:|---:|---:|---:|",
+  ];
+  for (const g of [...t.guards, ...t.stability, ...t.gain.measures]) if (g.floor.applied > 0) lines.push(`| \`${g.measure}\` | ${g.inputs} | ${g.floor.applied} | ${g.floor.ties} | ${g.floor.losses} |`);
+  lines.push(
+    "",
+    "## The container shapes",
+    "",
+    `These rows are information for a rule of the selector. They do not change the verdict. A cell needs ${p.cellMin} inputs (\`cellMin\`).`,
+    "",
+    "| shape | inputs | cellMin | hard rules | guards | gain median | sign p | bootstrap high | time median | time quantile | result |",
+    "|---|---:|---|---|---|---:|---:|---:|---:|---:|---|",
+  );
+  for (const [shape, s] of Object.entries(v.shapes)) {
+    const g = s.gain.measures[0];
+    const failed = [...s.guards, ...s.stability].filter((x) => !x.pass).map((x) => `\`${x.measure}\``);
+    const high = g !== undefined && "high" in g.bootstrap ? numText(g.bootstrap.high) : "-";
+    lines.push(
+      `| ${shape} | ${s.inputs} | ${s.cellMin ? "yes" : "no"} | ${passText(s.hard.pass)} | ${failed.length === 0 ? "pass" : `fail: ${failed.join(", ")}`} | ${g === undefined ? "-" : numText(g.median.value)} | ${g === undefined ? "-" : g.sign.p.toPrecision(3)} | ${high} | ${numText(s.time.median.value)} | ${numText(s.time.tail.value)} | ${passText(s.pass)} |`,
+    );
+  }
+  lines.push("", "The gain columns of the shapes show the first win measure.", "");
+  return lines.join("\n");
+}
+
+/** This function writes a verdict as JSON. `Infinity` and `NaN` become the strings `Infinity` and `NaN`. */
+export function promotionJson(v: PromotionVerdict): string {
+  return `${JSON.stringify(v, (_, value: unknown) => (typeof value === "number" && !Number.isFinite(value) ? String(value) : value), 2)}\n`;
+}
+
+/** This function gives the cells of each input id of a manifest. A value that is not a manifest gives an empty map. */
+export function cellsOf(manifest: unknown): Map<string, InputCell> {
+  const out = new Map<string, InputCell>();
+  const inputs = (manifest as { inputs?: unknown } | undefined)?.inputs;
+  if (!Array.isArray(inputs)) return out;
+  for (const entry of inputs as { id?: unknown; cell?: InputCell }[]) if (typeof entry.id === "string" && entry.cell !== undefined) out.set(entry.id, entry.cell);
+  return out;
+}
+
+/** This function gives the value of an option of the command line, or `undefined`. */
+const optionOf = (argv: readonly string[], name: string): string | undefined => {
+  const at = argv.indexOf(name);
+  return at >= 0 ? argv[at + 1] : undefined;
+};
+
+/** This function starts the win test from the arguments of the command line. A verdict `fail` does not stop the process with an error. */
+function main(argv: readonly string[]): void {
+  const folder = argv[0];
+  const candidate = optionOf(argv, "--candidate");
+  const current = optionOf(argv, "--default");
+  const out = optionOf(argv, "--out");
+  if (folder === undefined || candidate === undefined || current === undefined || out === undefined) {
+    throw new Error("Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--win <measure>[,<measure>]] [--time-floor-ms <n>]");
+  }
+  const win = (optionOf(argv, "--win") ?? "pack.fill").split(",").map((m) => m.trim());
+  for (const m of win) if (!(m in MEASURE_SPECS)) throw new Error(`The win measure ${m} is not in MEASURE_SPECS.`);
+  const floorText = optionOf(argv, "--time-floor-ms");
+  const timeFloorMs = floorText === undefined ? TIME_FLOOR_MS : Number(floorText);
+  if (!(timeFloorMs >= 0)) throw new Error("The option --time-floor-ms needs a number of 0 or more.");
+  const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8")) as PromotionRecord[];
+  const manifestFile = join(folder, "corpus.json");
+  const cells = existsSync(manifestFile) ? cellsOf(JSON.parse(readFileSync(manifestFile, "utf8"))) : new Map<string, InputCell>();
+  const verdict = winTest(records, { candidate, current, win: win as MeasureId[], cells, parameters: { timeFloorMs } });
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, "promotion.json"), promotionJson(verdict));
+  writeFileSync(join(out, "promotion.md"), promotionMarkdown(verdict));
+  console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs: ${verdict.pass ? "pass" : "fail"}.`);
+}
+
+if (process.argv[1]?.endsWith("promote.ts") === true) main(process.argv.slice(2));

@@ -378,6 +378,55 @@ node bench/choose-sets.ts <folder> --run <id>
 - Each group also gets the median summed time of each prefix of its set of 3, and its `defaultMembers`.
 - The corpus `pack-holdout-v1` tests the table on new seeds. Its split is `all`.
 
+## The win test
+
+`packages/packing/bench/promote.ts` applies the win test of the promotion rule (`docs/PROMOTION.md`) to the records of one run. It compares a candidate with the current default on the same inputs. It does not start a packer.
+
+```sh
+node bench/promote.ts <folder> --candidate maxrects-bl --default rows --win pack.fill --out <folder>
+```
+
+- The first folder holds `records.jsonl` and `corpus.json` of a run. `gh run download <id> -n bench-<corpus>` gives them.
+- `--win` names the win measures, with commas. The default is `pack.fill`.
+- `--time-floor-ms <n>` sets the time floor. The default is `TIME_FLOOR_MS`, 0 ms.
+- The tool writes `promotion.json` and `promotion.md` in the `--out` folder. A verdict `fail` is not an error of the process.
+
+The workflow `Promotion` (`.github/workflows/promotion.yml`) starts the tool in CI on the artifact of a bench run:
+
+```sh
+gh workflow run promotion.yml -f run=<id> -f corpus=pack-holdout-v1 -f candidate=maxrects-bl
+```
+
+The workflow keeps the artifact `promotion-<candidate>`, and the page of its run shows `promotion.md`.
+
+### Read the verdict
+
+The first table of `promotion.md` has one row for each test, with its value, its limit and its result. A ratio above 1 is worse.
+
+| Test | Rule |
+|---|---|
+| hard rules | No input has a hard count of the candidate above that of the default. Each record of the candidate is deterministic. |
+| median | For each guard, the median of the paired ratios is at most 1.02. |
+| tail share | For each guard, at most 10% of the inputs have a ratio above 1.1. |
+| gain median | The median ratio of a win measure is at most 0.95. |
+| gain sign test p | The one-sided sign test of the better and the worse inputs gives a p-value below 0.05. The ties do not count. |
+| gain bootstrap high | The upper end of the 95% interval of the bootstrap of the median ratio is below 1. |
+| time median | The median time ratio is at most 1.5. |
+| time quantile 0.95 | The quantile 0.95 of the time ratios is at most 2. |
+
+- The guards are `pack.area`, `pack.fill`, `pack.aspectError` and `pack.order.inversions`. `pack.overflow` is a guard on the inputs with a fixed container.
+- The stability measures are guards only when the records have change pairs.
+- The floor rule applies when the default is at the floor of a measure. The table "The floor rule" counts these inputs. `promotion.json` names them.
+- The classification uses `compareMeasure` of the contract. A change of the minimum effect or less is a tie.
+- The time of an input is the field `ms` of the record: the median time of the timed passes of the whole pack. `pack.search.ms` counts only the width search, and it is 0 for most entries.
+- The time ratio of an input is `t / max(b, timeFloorMs / timeRatio)`, with the candidate time `t` and the default time `b`.
+- The tool leaves out each input without a measured record of each strategy, and it counts these inputs.
+- The confirmation count compares the inputs with `confirmInputs`, 200. It does not change the verdict.
+
+The table of the container shapes gives the same tests for each shape. It is information for a rule of the selector, and it does not change the verdict.
+
+The candidate and the default of a run come from different jobs of the matrix, so their times come from different computers. Read a time ratio with this fact.
+
 ## Read the summary
 
 The summary `summary.md` has these sections:
