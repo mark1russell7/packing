@@ -54,6 +54,7 @@ export {
 } from "./contract.ts";
 export {
   UnsupportedCell,
+  UnsupportedShape,
   assertSupported,
   cellOf,
   createContext,
@@ -120,7 +121,7 @@ export {
   type SelectStrategyOptions,
 } from "./select.ts";
 export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
-export { packConfig, packSpace } from "./pack-space.ts";
+export { PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type OptionPlace } from "./pack-space.ts";
 export type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export {

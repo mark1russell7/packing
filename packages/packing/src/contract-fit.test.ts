@@ -57,7 +57,7 @@ describe("the types of packing and of the contract", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.12");
+    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.2.13");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
   });
 
@@ -99,7 +99,10 @@ describe("the types of packing and of the contract", () => {
     expectTypeOf<ReturnType<typeof P.rectGrid.generate>>().toEqualTypeOf<P.GeneratedInput>();
     expectTypeOf<P.Corpus["inputs"][number]>().toEqualTypeOf<P.GeneratedInput>();
     expectTypeOf<P.GeneratorStamp>().toExtend<C.LayoutGenerator>();
-    expectTypeOf<P.CorpusCell>().toExtend<C.LayoutCell>();
+    // Pinned: since layout-contract 0.2.13, the cell itemShape of the contract is a ShapeKind or mixed. The taxonomy of
+    // packing also has convex, and it has no free. Thus only the other dimensions fit (roadmap item k75).
+    expectTypeOf<Omit<P.CorpusCell, "itemShape">>().toExtend<C.LayoutCell>();
+    expectTypeOf<P.CorpusCell["itemShape"]>().not.toExtend<NonNullable<C.LayoutCell["itemShape"]>>();
     // Pinned: a generator writes each of these fields, thus a generated file has them. The contract keeps them optional.
     expectTypeOf<Exclude<RequiredKeys<P.GeneratedInput>, RequiredKeys<C.LayoutInput>>>().toEqualTypeOf<
       "set" | "family" | "seed" | "source" | "generator" | "container" | "edges" | "hash"

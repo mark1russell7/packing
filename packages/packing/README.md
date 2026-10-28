@@ -186,6 +186,9 @@ const output = packConfig(input, packSpace.named!["maxrects-cp"]!, 0);
 - The stage `combine` has the meta options `portfolio`, `cell-portfolio`, `select` and `aspect-fit`. Each meta config has members.
 - `named` has each id of the registry and each entry of the benchmark. The output of a named config is equal to the output of its strategy.
 - `packConfig(input, config, seed)` checks the config with `checkConfig` and packs it with the strategies of the registry.
+- Each option supports only the shape kind `rect`. `packConfig` throws `UnsupportedShape` for a `polygon`, `circle` or `free` item.
+- `PACK_SPACE_OPTIONS` gives the place in the space of each option of each strategy: a stage, a param or the members of a meta option.
+- `PACK_SPACE_LEFT_OUT` gives the options that the space does not hold, with the reason of each.
 
 ## More
 
