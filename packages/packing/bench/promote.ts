@@ -2,7 +2,8 @@
 // with two strategies on the same inputs: a candidate and the current default. It does not start a packer.
 // The rule is `docs/PROMOTION.md` of `highways`: the paired ratio, the floor rule, the classification, the win test and the noise guard.
 //
-// Start it with `node bench/promote.ts <folder> --candidate <id> --default <id> --win <measure> --out <folder> [--times <folder>]`.
+// Start it with `node bench/promote.ts <folder> --candidate <id> --default <id> --win <measure> --out <folder> [--times <folder>]
+// [--guards v1|v2] [--compare-guards]`.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -106,6 +107,122 @@ export const STABILITY_MEASURES: readonly MeasureId[] = Object.freeze(["pack.sta
 /** The value of the cell `containerSize` of an input with a fixed container. */
 export const FIXED_SIZE = "fixed";
 
+/**
+ * The value of the cell `containerSize` of an input whose container declares an aspect. The generators set
+ * `container.aspect` only for this value. The records and `corpus.json` do not hold the container, so the cell is the declaration.
+ */
+export const ASPECT_SIZE = "freeAspect";
+
+/** The values of the cell `order` of an input that declares a reading order. The value `free` declares no order. */
+export const ORDERED: readonly string[] = Object.freeze(["soft", "hard"]);
+
+/** The ids of the guard sets. `v1` is the set before the declared guards. `v2` applies each guard only where the input declares its property. */
+export type GuardSetId = "v1" | "v2";
+
+/** The guard set of the win test when the caller names none. */
+export const GUARD_SET: GuardSetId = "v2";
+
+/** The input field that turns on a guard, and the predicate of that field. */
+export interface Declaration {
+  /** The input field that declares the property of the guard */
+  field: string;
+  /** The reason for an input that does not declare the property */
+  reason: string;
+  /** This predicate tells if an input declares the property. `cell` is the cell of the input in `corpus.json`. */
+  declares: (cell: InputCell | undefined, pair: InputPair) => boolean;
+}
+
+/** A guard of the win test and its declaration. */
+export interface GuardDeclaration {
+  measure: MeasureId;
+  /** The list of the verdict: `guards` for the guards of the step, `stability` for the stability guards */
+  kind: "guards" | "stability";
+  /**
+   * The declaration of the property. A guard without it applies to each input, and it fails when no input has the measure.
+   * A guard with it applies only to the inputs that declare the property. No such input leaves the guard out.
+   */
+  declaration?: Declaration;
+}
+
+/** This function tells if a cell has a fixed container. An input without cells has no fixed container. */
+const isFixed = (cell: InputCell | undefined): boolean => cell?.containerSize === FIXED_SIZE;
+
+/** This function tells if both records of a pair have a value of a measure. */
+const bothHave = (p: InputPair, measure: MeasureId): boolean => p.candidate.measures[measure] !== undefined && p.current.measures[measure] !== undefined;
+
+/** The declaration of `FIXED_GUARD`: the cell `containerSize` is `fixed`. */
+const FIXED_DECLARATION: Declaration = Object.freeze({
+  field: "cell.containerSize = fixed",
+  reason: "the container is not fixed",
+  declares: (cell: InputCell | undefined) => isFixed(cell),
+});
+
+/** This function gives the declaration of a stability measure: both records have it, so the input is a change pair. */
+const changePair = (measure: MeasureId): Declaration =>
+  Object.freeze({ field: `the measure ${measure} in both records`, reason: "the input is not a change pair", declares: (_: InputCell | undefined, p: InputPair) => bothHave(p, measure) });
+
+/** The stability guards of both guard sets */
+const STABILITY_GUARDS: readonly GuardDeclaration[] = STABILITY_MEASURES.map((measure) => Object.freeze({ measure, kind: "stability" as const, declaration: changePair(measure) }));
+
+/** The guard set `v1`: the guards before the declared guards. `GUARD_MEASURES` apply to each input. */
+export const GUARD_SET_V1: readonly GuardDeclaration[] = Object.freeze([
+  ...GUARD_MEASURES.map((measure) => Object.freeze({ measure, kind: "guards" as const })),
+  Object.freeze({ measure: FIXED_GUARD, kind: "guards" as const, declaration: FIXED_DECLARATION }),
+  ...STABILITY_GUARDS,
+]);
+
+/**
+ * The guard set `v2`: the table of the declarations. Each guard of a property applies only to the inputs that declare the property.
+ *
+ * - `pack.area` is the area of the hull. In a fixed container, the hull grows with the placed count, and `pack.overflow` guards that count.
+ *   So in a fixed cell, `pack.area` compares only the inputs where the two records place the same count.
+ * - `pack.aspectError` compares the hull with `container.aspect`. Only the cell `freeAspect` sets that aspect.
+ * - `pack.order.inversions` counts the pairs out of the rank order. Only the cell `order` `soft` or `hard` declares an order.
+ * - `pack.fill` has no declaration. It applies to each input.
+ */
+export const GUARD_DECLARATIONS: readonly GuardDeclaration[] = Object.freeze([
+  Object.freeze({
+    measure: "pack.area" as MeasureId,
+    kind: "guards" as const,
+    declaration: Object.freeze({
+      field: "cell.containerSize other than fixed, or the same pack.overflow in both records",
+      reason: "the container is fixed and the placed counts are different",
+      declares: (cell: InputCell | undefined, p: InputPair) => {
+        if (!isFixed(cell)) return true;
+        const placed = p.candidate.measures[FIXED_GUARD];
+        return placed !== undefined && placed === p.current.measures[FIXED_GUARD];
+      },
+    }),
+  }),
+  Object.freeze({ measure: "pack.fill" as MeasureId, kind: "guards" as const }),
+  Object.freeze({
+    measure: "pack.aspectError" as MeasureId,
+    kind: "guards" as const,
+    declaration: Object.freeze({
+      field: `cell.containerSize = ${ASPECT_SIZE}`,
+      reason: "the container declares no aspect",
+      declares: (cell: InputCell | undefined) => cell?.containerSize === ASPECT_SIZE,
+    }),
+  }),
+  Object.freeze({
+    measure: "pack.order.inversions" as MeasureId,
+    kind: "guards" as const,
+    declaration: Object.freeze({
+      field: "cell.order = soft or hard",
+      reason: "the cell declares no order",
+      declares: (cell: InputCell | undefined) => cell?.order !== undefined && ORDERED.includes(cell.order),
+    }),
+  }),
+  Object.freeze({ measure: FIXED_GUARD, kind: "guards" as const, declaration: FIXED_DECLARATION }),
+  ...STABILITY_GUARDS,
+]);
+
+/** The guard sets by id */
+export const GUARD_SETS: Readonly<Record<GuardSetId, readonly GuardDeclaration[]>> = Object.freeze({ v1: GUARD_SET_V1, v2: GUARD_DECLARATIONS });
+
+/** The reason for an input where a record has no value of the measure of a guard */
+export const NO_VALUE = "a record has no value of the measure";
+
 /** The part of a record that the win test reads. */
 export interface PromotionRecord extends ScreenRecord {
   /** The value `false` when two runs of the record gave different outputs */
@@ -122,6 +239,8 @@ export interface PromotionRecord extends ScreenRecord {
 export interface InputCell {
   containerShape?: string;
   containerSize?: string;
+  /** The reading order of the items: `free`, `soft` or `hard` */
+  order?: string;
 }
 
 /** The paired ratio of one measure on one input, after the floor rule. */
@@ -468,11 +587,24 @@ export interface PromotionVerdict {
   timeField: "ms";
   /** The records that give the times */
   timeSource: TimeSource;
+  /** The guard set of the tests */
+  guardSet: GuardSetId;
+  /** The inputs that each guard of `guardSet` covers and leaves out, over all the inputs */
+  coverage: GuardCoverage[];
   tests: WinTests;
   /** The value `true` when each test passes on all the inputs */
   pass: boolean;
   /** The same tests for each container shape, as information for a rule of the selector. They do not change `pass`. */
   shapes: Record<string, WinTests & { cellMin: boolean }>;
+  /** The verdict of each guard set on the same records. Only the option `compareGuards` gives it. It does not change `pass`. */
+  compare?: Record<GuardSetId, GuardSetVerdict>;
+}
+
+/** The verdict of one guard set, for the compare of the guard sets. */
+export interface GuardSetVerdict {
+  pass: boolean;
+  coverage: GuardCoverage[];
+  tests: WinTests;
 }
 
 /** The options of the win test. */
@@ -493,6 +625,10 @@ export interface WinTestOptions {
   timesFolder?: string;
   /** The cells of the inputs of `times`. The default is `cells`. */
   timeCells?: ReadonlyMap<string, InputCell>;
+  /** The guard set. The default is `GUARD_SET`. */
+  guards?: GuardSetId;
+  /** The value `true` adds the verdict of each guard set in `compare` */
+  compareGuards?: boolean;
 }
 
 /** This function gives the hard counts of a record. The count `pack.outsideExact` replaces `in-container`, as `hardOf` tells. */
@@ -536,6 +672,43 @@ function guardOf(m: MeasureRatios, params: PromotionParameters): GuardResult {
   return { measure: m.measure, inputs: m.inputs, median, tail, better: m.better, worse: m.worse, ties: m.ties, floor: m.floor, pass: median.pass && tail.pass };
 }
 
+/** This function gives the pairs where the input declares the property of a guard. A guard without a declaration takes each pair. */
+export function declaredPairs(guard: GuardDeclaration, pairs: readonly InputPair[], cells: ReadonlyMap<string, InputCell>): InputPair[] {
+  const d = guard.declaration;
+  return d === undefined ? [...pairs] : pairs.filter((p) => d.declares(cells.get(p.input), p));
+}
+
+/** The inputs that one guard covers and leaves out. */
+export interface GuardCoverage {
+  measure: string;
+  kind: GuardDeclaration["kind"];
+  /** The input field that declares the property, or `none` for a guard on each input */
+  field: string;
+  /** The inputs where the guard compares the two records */
+  covered: number;
+  /** The inputs that the guard leaves out */
+  leftOut: number;
+  /** The count of the left-out inputs for each reason */
+  reasons: Record<string, number>;
+}
+
+/** This function gives the coverage of each guard of a set: the compared inputs, and the left-out inputs with the reason. */
+export function coverageOf(guards: readonly GuardDeclaration[], pairs: readonly InputPair[], cells: ReadonlyMap<string, InputCell>): GuardCoverage[] {
+  return guards.map((g) => {
+    const reasons: Record<string, number> = {};
+    const add = (reason: string): void => {
+      reasons[reason] = (reasons[reason] ?? 0) + 1;
+    };
+    let covered = 0;
+    for (const p of pairs) {
+      if (g.declaration !== undefined && !g.declaration.declares(cells.get(p.input), p)) add(g.declaration.reason);
+      else if (!bothHave(p, g.measure)) add(NO_VALUE);
+      else covered += 1;
+    }
+    return { measure: g.measure, kind: g.kind, field: g.declaration?.field ?? "none", covered, leftOut: pairs.length - covered, reasons };
+  });
+}
+
 /** This function gives the gain test of one win measure. */
 function gainOf(m: MeasureRatios, params: PromotionParameters): GainResult {
   const limit = 1 - params.gainMin;
@@ -551,10 +724,11 @@ function gainOf(m: MeasureRatios, params: PromotionParameters): GainResult {
 /**
  * This function gives the tests of the win test on some inputs.
  *
- * - The guards `GUARD_MEASURES` apply to each input. `FIXED_GUARD` applies to the inputs with a fixed container.
- * - A guard with no input fails, except `FIXED_GUARD` and the stability guards. They are left out when no input has them.
+ * - Each guard of `guardSet` applies to the inputs that declare its property. A guard without a declaration applies to each input.
+ * - A guard without a declaration fails with no input. A guard with a declaration is left out when no input declares it.
  * - The gain test passes when one win measure passes its median, its sign test and its bootstrap.
  * - The time test uses `timeInputs`. The default is the times of `pairs`.
+ * - The hard rules, the gain test and the time test apply to each input.
  */
 export function testsOf(
   pairs: readonly InputPair[],
@@ -563,14 +737,15 @@ export function testsOf(
   params: PromotionParameters,
   listIds = false,
   timeInputs: readonly TimeInput[] = timeInputsOf(pairs),
+  guardSet: readonly GuardDeclaration[] = GUARD_DECLARATIONS,
 ): WinTests {
-  const guards = GUARD_MEASURES.map((m) => guardOf(ratiosOf(m, pairs, listIds), params));
-  const fixed = pairs.filter((p) => cells.get(p.input)?.containerSize === FIXED_SIZE);
-  const overflow = ratiosOf(FIXED_GUARD, fixed, listIds);
-  if (overflow.inputs > 0) guards.push(guardOf(overflow, params));
-  const stability = STABILITY_MEASURES.map((m) => ratiosOf(m, pairs, listIds))
-    .filter((m) => m.inputs > 0)
-    .map((m) => guardOf(m, params));
+  const guards: GuardResult[] = [];
+  const stability: GuardResult[] = [];
+  for (const g of guardSet) {
+    const m = ratiosOf(g.measure, declaredPairs(g, pairs, cells), listIds);
+    if (g.declaration !== undefined && m.inputs === 0) continue;
+    (g.kind === "stability" ? stability : guards).push(guardOf(m, params));
+  }
   const gains = win.map((m) => gainOf(ratiosOf(m, pairs, listIds), params));
   const times: TimePair[] = [];
   for (const { candidate, current } of timeInputs) if (candidate !== undefined && current !== undefined) times.push({ candidate, current });
@@ -588,22 +763,35 @@ export function testsOf(
  * - An input without a measured record of each strategy is left out, and the verdict counts it.
  * - The overall `pass` uses all the inputs. Each container shape gets the same tests as information.
  * - With `times`, the time test pairs the records of `times` in the same way, and it reads only their times.
+ * - The guard set `options.guards` gives the guards. With `compareGuards`, the verdict also holds the verdict of each guard set.
  */
 export function winTest(records: readonly PromotionRecord[], options: WinTestOptions): PromotionVerdict {
   const params: PromotionParameters = { ...PROMOTION_PARAMETERS, ...options.parameters };
+  const guardSet = options.guards ?? GUARD_SET;
+  const guards = GUARD_SETS[guardSet];
   const cells = options.cells ?? new Map<string, InputCell>();
   const { pairs, seen, noCandidate, noCurrent } = pairsOf(records, options.candidate, options.current);
   const timePairs = options.times === undefined ? pairs : pairsOf(options.times, options.candidate, options.current).pairs;
   const timeInputs = timeInputsOf(timePairs);
   const timeCells = options.times === undefined ? cells : (options.timeCells ?? cells);
-  const tests = testsOf(pairs, options.win, cells, params, true, timeInputs);
+  const tests = testsOf(pairs, options.win, cells, params, true, timeInputs, guards);
+  const coverage = coverageOf(guards, pairs, cells);
   const shapeOf = (input: string): string => cells.get(input)?.containerShape ?? UNKNOWN_SHAPE;
   const timeShapeOf = (input: string): string => timeCells.get(input)?.containerShape ?? UNKNOWN_SHAPE;
   const shapes: PromotionVerdict["shapes"] = {};
   for (const shape of [...new Set(pairs.map((p) => shapeOf(p.input)))].toSorted()) {
     const own = pairs.filter((p) => shapeOf(p.input) === shape);
     const ownTimes = timeInputs.filter((t) => timeShapeOf(t.input) === shape);
-    shapes[shape] = { ...testsOf(own, options.win, cells, params, false, ownTimes), cellMin: own.length >= params.cellMin };
+    shapes[shape] = { ...testsOf(own, options.win, cells, params, false, ownTimes, guards), cellMin: own.length >= params.cellMin };
+  }
+  let compare: PromotionVerdict["compare"];
+  if (options.compareGuards === true) {
+    const verdictOf = (id: GuardSetId): GuardSetVerdict => {
+      if (id === guardSet) return { pass: tests.pass, coverage, tests };
+      const other = testsOf(pairs, options.win, cells, params, false, timeInputs, GUARD_SETS[id]);
+      return { pass: other.pass, coverage: coverageOf(GUARD_SETS[id], pairs, cells), tests: other };
+    };
+    compare = { v1: verdictOf("v1"), v2: verdictOf("v2") };
   }
   return {
     candidate: options.candidate,
@@ -615,9 +803,12 @@ export function winTest(records: readonly PromotionRecord[], options: WinTestOpt
     confirm: { inputs: pairs.length, needed: params.confirmInputs, enough: pairs.length >= params.confirmInputs },
     timeField: "ms",
     timeSource: timeSourceOf(timePairs, options.times === undefined ? "records" : "times", options.timesFolder),
+    guardSet,
+    coverage,
     tests,
     pass: tests.pass,
     shapes,
+    ...(compare === undefined ? {} : { compare }),
   };
 }
 
@@ -677,6 +868,53 @@ function testRows(t: WinTests, tailWorse: number): string[] {
   return rows;
 }
 
+/** This function writes the rows of the coverage of a guard set: the declaration, the covered inputs and the left-out inputs with their reasons. */
+function coverageRows(coverage: readonly GuardCoverage[]): string[] {
+  const rows = ["| guard | declared by | covered | left out | reasons |", "|---|---|---:|---:|---|"];
+  for (const c of coverage) {
+    const reasons = Object.entries(c.reasons).map(([reason, n]) => `${n}: ${reason}`);
+    rows.push(`| \`${c.measure}\` | ${c.field === "none" ? "none, each input" : `\`${c.field}\``} | ${c.covered} | ${c.leftOut} | ${reasons.length === 0 ? "-" : reasons.join(", ")} |`);
+  }
+  return rows;
+}
+
+/** This function writes one guard of a guard set for the compare table: its inputs, its median and tail share, and its result. */
+function guardCells(t: WinTests, measure: string): string {
+  const g = [...t.guards, ...t.stability].find((x) => x.measure === measure);
+  return g === undefined ? "0 | - | - | left out" : `${g.inputs} | ${numText(g.median.value)} | ${numText(g.tail.value)} | ${passText(g.pass)}`;
+}
+
+/** This function writes the compare of the guard sets: one row for each test, with the result of `v1` and of `v2` side by side. */
+function compareLines(compare: NonNullable<PromotionVerdict["compare"]>): string[] {
+  const sets = ["v1", "v2"] as const;
+  const row = (test: string, cell: (t: GuardSetVerdict) => string): string => `| ${test} | ${sets.map((s) => cell(compare[s])).join(" | ")} |`;
+  const measures = [...new Set(sets.flatMap((s) => GUARD_SETS[s].map((g) => g.measure)))];
+  const lines = [
+    "## The guard sets v1 and v2",
+    "",
+    "This table gives the verdict of each guard set on the same records. A guard of `v2` applies only to the inputs that declare its property.",
+    "",
+    "| test | v1 inputs | v1 median | v1 tail share | v1 result | v2 inputs | v2 median | v2 tail share | v2 result |",
+    "|---|---:|---:|---:|---|---:|---:|---:|---|",
+    row("hard rules", (v) => `${v.tests.hard.inputs} | - | - | ${passText(v.tests.hard.pass)}`),
+    ...measures.map((m) => row(`\`${m}\``, (v) => guardCells(v.tests, m))),
+  ];
+  const gains = compare.v2.tests.gain.measures.map((g) => g.measure);
+  for (const m of gains) {
+    lines.push(
+      row(`gain \`${m}\``, (v) => {
+        const g = v.tests.gain.measures.find((x) => x.measure === m)!;
+        return `${g.inputs} | ${numText(g.median.value)} | - | ${passText(g.pass)}`;
+      }),
+    );
+  }
+  lines.push(row("time", (v) => `${v.tests.time.inputs} | ${numText(v.tests.time.median.value)} | - | ${passText(v.tests.time.pass)}`));
+  lines.push(row("**verdict**", (v) => `${v.tests.inputs} | - | - | **${passText(v.pass)}**`));
+  for (const s of sets) lines.push("", `The coverage of the guard set \`${s}\`:`, "", ...coverageRows(compare[s].coverage));
+  lines.push("");
+  return lines;
+}
+
 /** This function writes `promotion.md`: the tests of all the inputs, then a table of each container shape. */
 export function promotionMarkdown(v: PromotionVerdict): string {
   const t = v.tests;
@@ -692,11 +930,19 @@ export function promotionMarkdown(v: PromotionVerdict): string {
     ...timeSourceLines(v),
     `- The time floor: ${p.timeFloorMs} ms. The floor raised the denominator of ${t.time.raised} inputs. ${t.time.missing} inputs have no time.`,
     `- A ratio above 1 is worse. A tail ratio is above ${numText(1 + p.tailWorse)}. The bootstrap uses ${p.bootstrapRuns} samples and the seed ${p.bootstrapSeed}.`,
+    `- The guard set: \`${v.guardSet}\`. The table "The guard coverage" gives the inputs of each guard.`,
     "",
     "| test | measure | value | limit | result |",
     "|---|---|---:|---:|---|",
     ...testRows(t, p.tailWorse),
     "",
+    "## The guard coverage",
+    "",
+    `The guard set \`${v.guardSet}\`. A guard with a declaration applies only to the inputs that declare its property. A guard with no covered input and a declaration is left out.`,
+    "",
+    ...coverageRows(v.coverage),
+    "",
+    ...(v.compare === undefined ? [] : compareLines(v.compare)),
     "## The floor rule",
     "",
     "| measure | inputs | at the floor | ties | losses |",
@@ -762,8 +1008,12 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
   const current = optionOf(argv, "--default");
   const out = optionOf(argv, "--out");
   if (folder === undefined || candidate === undefined || current === undefined || out === undefined) {
-    throw new Error("Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--win <measure>[,<measure>]] [--time-floor-ms <n>] [--times <folder>]");
+    throw new Error(
+      "Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--win <measure>[,<measure>]] [--time-floor-ms <n>] [--times <folder>] [--guards v1|v2] [--compare-guards]",
+    );
   }
+  const guards = optionOf(argv, "--guards") ?? GUARD_SET;
+  if (!Object.hasOwn(GUARD_SETS, guards)) throw new Error(`The option --guards needs v1 or v2, not ${guards}.`);
   const win = (optionOf(argv, "--win") ?? "pack.fill").split(",").map((m) => m.trim());
   for (const m of win) if (!(m in MEASURE_SPECS)) throw new Error(`The win measure ${m} is not in MEASURE_SPECS.`);
   const floorText = optionOf(argv, "--time-floor-ms");
@@ -778,12 +1028,15 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
     win: win as MeasureId[],
     cells,
     parameters: { timeFloorMs },
+    guards: guards as GuardSetId,
+    compareGuards: argv.includes("--compare-guards"),
     ...(times === undefined || timesFolder === undefined ? {} : { times: times.records, timesFolder, timeCells: times.cells }),
   });
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "promotion.json"), promotionJson(verdict));
   writeFileSync(join(out, "promotion.md"), promotionMarkdown(verdict));
-  console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs: ${verdict.pass ? "pass" : "fail"}.`);
+  const others = verdict.compare === undefined ? "" : ` The guard set v1 gives ${passText(verdict.compare.v1.pass)}, and v2 gives ${passText(verdict.compare.v2.pass)}.`;
+  console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs with the guard set ${verdict.guardSet}: ${passText(verdict.pass)}.${others}`);
   return verdict;
 }
 

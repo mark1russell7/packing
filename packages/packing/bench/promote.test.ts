@@ -2,13 +2,20 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { MEASURE_SPECS } from "@mark1russell7/packing";
+import { MEASURE_SPECS, type MeasureId } from "@mark1russell7/packing";
 import {
   bootstrapMedian,
   cellsOf,
   classify,
   CONFIRM_INPUTS,
+  coverageOf,
   floorRatio,
+  GUARD_DECLARATIONS,
+  GUARD_SET_V1,
+  GUARD_SETS,
+  NO_VALUE,
+  PROMOTION_PARAMETERS,
+  testsOf,
   medianTest,
   promotionJson,
   promotionMarkdown,
@@ -19,6 +26,7 @@ import {
   TIME_FLOOR_MS,
   winTest,
   type InputCell,
+  type InputPair,
   type PromotionRecord,
 } from "./promote.ts";
 
@@ -37,10 +45,10 @@ const record = (strategy: string, input: string, measures: Record<string, number
   ...extra,
 });
 
-/** This function gives `n` inputs of two shapes, with a fixed container, and their cells. */
-function corpusOf(n: number): { inputs: string[]; cells: Map<string, InputCell> } {
+/** This function gives `n` inputs of two shapes, with a fixed container and a soft order, and their cells. `cell` changes the cells. */
+function corpusOf(n: number, cell: InputCell = {}): { inputs: string[]; cells: Map<string, InputCell> } {
   const inputs = Array.from({ length: n }, (_, i) => `c/${i % 2 === 0 ? "rect" : "circle"}.n${i}/s1`);
-  const cells = new Map(inputs.map((id, i) => [id, { containerShape: i % 2 === 0 ? "rect" : "circle", containerSize: "fixed" }]));
+  const cells = new Map(inputs.map((id, i) => [id, { containerShape: i % 2 === 0 ? "rect" : "circle", containerSize: "fixed", order: "soft", ...cell }]));
   return { inputs, cells };
 }
 
@@ -183,7 +191,7 @@ describe("the win test", () => {
   });
 
   it("fails a candidate only on the median of one guard", () => {
-    const { inputs, cells } = corpusOf(40);
+    const { inputs, cells } = corpusOf(40, { containerSize: "freeAspect" });
     const v = winTest(
       recordsOf(inputs, () => ({ ...GOOD(), "pack.aspectError": 0.105 })),
       { candidate: "cand", current: "rows", win: ["pack.fill"], cells, parameters: FAST },
@@ -322,6 +330,20 @@ describe("the command line of the win test", () => {
     expect(promoteMain(args("five")).parameters.timeFloorMs).toBe(5);
   });
 
+  it("names the guard set, compares the guard sets with --compare-guards, and refuses an unknown set", () => {
+    const v1 = promoteMain(args("v1", "--guards", "v1"));
+    expect(v1.guardSet).toBe("v1");
+    expect(v1.compare).toBeUndefined();
+    const v = promoteMain(args("compare", "--compare-guards"));
+    expect(v.guardSet).toBe("v2");
+    const json = JSON.parse(readFileSync(join(root, "compare", "promotion.json"), "utf8")) as { guardSet: string; coverage: unknown[]; compare: { v1: { pass: boolean }; v2: { pass: boolean } } };
+    expect(json.guardSet).toBe("v2");
+    expect(json.coverage.length).toBe(GUARD_DECLARATIONS.length);
+    expect(json.compare.v1.pass).toBe(v.compare!.v1.pass);
+    expect(readFileSync(join(root, "compare", "promotion.md"), "utf8")).toContain("The guard set: `v2`.");
+    expect(() => promoteMain(args("bad", "--guards", "v3"))).toThrow("--guards needs v1 or v2");
+  });
+
   it("reads the times of --times", () => {
     const v = promoteMain(args("times", "--time-floor-ms", "0", "--times", time));
     expect(v.timeSource).toMatchObject({ kind: "times", folder: time, cpu: { candidate: ["A"], current: ["A"] }, sameCpu: true });
@@ -331,5 +353,173 @@ describe("the command line of the win test", () => {
     expect(md).toContain("`--times`");
     const json = JSON.parse(readFileSync(join(root, "times", "promotion.json"), "utf8")) as { timeSource: { kind: string } };
     expect(json.timeSource.kind).toBe("times");
+  });
+});
+
+describe("the declared guards", () => {
+  /** The measures of a pair for the declaration test. Each guard measure has a value above 0, so a ratio is not at the floor. */
+  const DECL_BASE: Record<string, number> = {
+    ...BASE,
+    "pack.order.inversions": 0.1,
+    "pack.overflow": 1,
+    "pack.stability.mean": 0.1,
+    "pack.stability.q95": 0.1,
+    "pack.stability.moved": 0.1,
+  };
+  /** An input of the declaration test: its cell, and the measures that change in each record. The value `undefined` removes a measure. */
+  interface Case {
+    cell: InputCell | undefined;
+    candidate?: Record<string, number | undefined>;
+    current?: Record<string, number | undefined>;
+  }
+  /** For each guard with a declaration: the inputs that declare the property, and the inputs that do not */
+  const CASES: Record<string, { declares: Case[]; not: Case[] }> = {
+    "pack.area": {
+      declares: [{ cell: { containerSize: "fixed" } }, { cell: { containerSize: "freeArea" } }, { cell: undefined }],
+      not: [{ cell: { containerSize: "fixed" }, candidate: { "pack.overflow": 0 }, current: { "pack.overflow": 2 } }],
+    },
+    "pack.aspectError": {
+      declares: [{ cell: { containerSize: "freeAspect" } }],
+      not: [{ cell: { containerSize: "fixed" } }, { cell: { containerSize: "freeArea" } }, { cell: { containerSize: "freeHeight" } }, { cell: undefined }],
+    },
+    "pack.order.inversions": {
+      declares: [{ cell: { order: "soft" } }, { cell: { order: "hard" } }],
+      not: [{ cell: { order: "free" } }, { cell: { containerSize: "fixed" } }, { cell: undefined }],
+    },
+    "pack.overflow": {
+      declares: [{ cell: { containerSize: "fixed" } }],
+      not: [{ cell: { containerSize: "freeAspect" } }, { cell: undefined }],
+    },
+    ...Object.fromEntries(
+      ["pack.stability.mean", "pack.stability.q95", "pack.stability.moved"].map((m) => [m, { declares: [{ cell: undefined }], not: [{ cell: undefined, candidate: { [m]: undefined }, current: { [m]: undefined } }] }]),
+    ),
+  };
+
+  /** This function gives the measures of a record, with the changes of a case. */
+  const measuresOf = (changes: Record<string, number | undefined> = {}): Record<string, number> => {
+    const out: Record<string, number> = { ...DECL_BASE };
+    for (const [k, v] of Object.entries(changes)) {
+      if (v === undefined) delete out[k];
+      else out[k] = v;
+    }
+    return out;
+  };
+
+  /** This function gives the pair of a case. With `worse`, the candidate has twice the value of the default on `measure`. */
+  const pairOf = (id: string, c: Case, measure: string, worse: boolean): InputPair => {
+    const current = measuresOf(c.current);
+    const candidate = measuresOf(c.candidate);
+    if (worse) candidate[measure] = 2 * current[measure]!;
+    return { input: id, candidate: record("cand", id, candidate), current: record("rows", id, current) };
+  };
+
+  it("has a declaring and a not-declaring input for each guard with a declaration", () => {
+    const declared = GUARD_DECLARATIONS.filter((g) => g.declaration !== undefined).map((g) => g.measure);
+    expect(declared.toSorted()).toEqual(Object.keys(CASES).toSorted());
+  });
+
+  for (const g of GUARD_DECLARATIONS.filter((x) => x.declaration !== undefined)) {
+    it(`counts ${g.measure} only on the inputs that declare ${g.declaration!.field}`, () => {
+      const cases = CASES[g.measure]!;
+      for (const yes of cases.declares) {
+        for (const no of cases.not) {
+          const pairs = [pairOf("yes", yes, g.measure, true), pairOf("no", no, g.measure, false)];
+          const cells = new Map<string, InputCell>();
+          if (yes.cell !== undefined) cells.set("yes", yes.cell);
+          if (no.cell !== undefined) cells.set("no", no.cell);
+          expect(g.declaration!.declares(yes.cell, pairs[0]!)).toBe(true);
+          expect(g.declaration!.declares(no.cell, pairs[1]!)).toBe(false);
+          const t = testsOf(pairs, ["pack.fill"], cells, PROMOTION_PARAMETERS, false, undefined, GUARD_DECLARATIONS);
+          const result = [...t.guards, ...t.stability].find((x) => x.measure === g.measure)!;
+          // Only the declaring input counts: its ratio is 2, and the ratio of the other input is 1
+          expect(result.inputs).toBe(1);
+          expect(result.median.value).toBeCloseTo(2);
+          const [coverage] = coverageOf([g], pairs, cells);
+          expect(coverage).toMatchObject({ covered: 1, leftOut: 1, reasons: { [g.declaration!.reason]: 1 } });
+          // An input set that does not declare the property leaves the guard out
+          const none = testsOf([pairs[1]!], ["pack.fill"], cells, PROMOTION_PARAMETERS, false, undefined, GUARD_DECLARATIONS);
+          expect([...none.guards, ...none.stability].map((x) => x.measure)).not.toContain(g.measure);
+        }
+      }
+    });
+  }
+
+  it("applies a guard with no declaration, the hard rules, the gain and the time to each input", () => {
+    const undeclared = GUARD_DECLARATIONS.filter((g) => g.declaration === undefined).map((g) => g.measure);
+    expect(undeclared).toEqual(["pack.fill"]);
+    const cases: Case[] = [{ cell: { containerSize: "fixed", order: "free" } }, { cell: { containerSize: "freeArea" } }, { cell: { containerSize: "freeAspect", order: "soft" } }, { cell: undefined }];
+    const pairs = cases.map((c, i) => pairOf(`i${i}`, c, "pack.fill", false));
+    const cells = new Map(cases.flatMap((c, i) => (c.cell === undefined ? [] : [[`i${i}`, c.cell] as const])));
+    const t = testsOf(pairs, ["pack.fill"], cells, PROMOTION_PARAMETERS, false, undefined, GUARD_DECLARATIONS);
+    expect(t.guards.find((x) => x.measure === "pack.fill")!.inputs).toBe(4);
+    expect(t.hard.inputs).toBe(4);
+    expect(t.gain.measures[0]!.inputs).toBe(4);
+    expect(t.time.inputs).toBe(4);
+    const coverage = coverageOf(GUARD_DECLARATIONS, pairs, cells).find((c) => c.measure === "pack.fill")!;
+    expect(coverage).toEqual({ measure: "pack.fill", kind: "guards", field: "none", covered: 4, leftOut: 0, reasons: {} });
+    // A guard with no declaration and no value fails, and the coverage names the reason
+    const empty = pairs.map((p) => ({ ...p, candidate: { ...p.candidate, measures: {} } }));
+    const failed = testsOf(empty, ["pack.fill"], cells, PROMOTION_PARAMETERS, false, undefined, GUARD_DECLARATIONS);
+    expect(failed.guards.find((x) => x.measure === "pack.fill")).toMatchObject({ inputs: 0, pass: false });
+    expect(coverageOf(GUARD_DECLARATIONS, empty, cells).find((c) => c.measure === "pack.fill")!.reasons).toEqual({ [NO_VALUE]: 4 });
+  });
+
+  it("keeps the guards of v1: the four guards on each input, the overflow on the fixed cells", () => {
+    expect(GUARD_SETS.v1).toBe(GUARD_SET_V1);
+    expect(GUARD_SETS.v2).toBe(GUARD_DECLARATIONS);
+    expect(GUARD_SET_V1.filter((g) => g.declaration === undefined).map((g) => g.measure)).toEqual(["pack.area", "pack.fill", "pack.aspectError", "pack.order.inversions"]);
+    expect(GUARD_SET_V1.filter((g) => g.declaration !== undefined).map((g) => g.measure)).toEqual(["pack.overflow", "pack.stability.mean", "pack.stability.q95", "pack.stability.moved"]);
+  });
+});
+
+describe("the guard sets on a fixture", () => {
+  interface GuardFixture {
+    candidate: string;
+    current: string;
+    win: MeasureId[];
+    parameters: { bootstrapRuns: number };
+    cells: Record<string, InputCell>;
+    records: PromotionRecord[];
+    v1: { pass: boolean; tests: unknown; shapes: unknown };
+  }
+  const fixture = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "promote-guards-v1.json"), "utf8")) as GuardFixture;
+  const options = { candidate: fixture.candidate, current: fixture.current, win: fixture.win, cells: new Map(Object.entries(fixture.cells)), parameters: fixture.parameters };
+
+  it("gives the old verdict with the guard set v1", () => {
+    const v = winTest(fixture.records, { ...options, guards: "v1" });
+    expect(v.guardSet).toBe("v1");
+    const json = JSON.parse(promotionJson(v)) as GuardFixture["v1"];
+    expect({ pass: json.pass, tests: json.tests, shapes: json.shapes }).toEqual(fixture.v1);
+    expect(v.pass).toBe(false);
+  });
+
+  it("applies the guards of v2 only to the declaring inputs, and counts the coverage", () => {
+    const v = winTest(fixture.records, options);
+    expect(v.guardSet).toBe("v2");
+    expect(v.pass).toBe(true);
+    const covered = Object.fromEntries(v.coverage.map((c) => [c.measure, [c.covered, c.leftOut]]));
+    expect(covered).toMatchObject({ "pack.area": [24, 6], "pack.fill": [30, 0], "pack.aspectError": [6, 24], "pack.order.inversions": [4, 26], "pack.overflow": [14, 16] });
+    expect(v.coverage.find((c) => c.measure === "pack.area")!.reasons).toEqual({ "the container is fixed and the placed counts are different": 6 });
+    expect(v.tests.guards.map((g) => [g.measure, g.inputs])).toEqual([
+      ["pack.area", 24],
+      ["pack.fill", 30],
+      ["pack.aspectError", 6],
+      ["pack.order.inversions", 4],
+      ["pack.overflow", 14],
+    ]);
+  });
+
+  it("gives the verdicts of v1 and v2 side by side with compareGuards", () => {
+    const v = winTest(fixture.records, { ...options, compareGuards: true });
+    expect(v.compare!.v1.pass).toBe(false);
+    expect(v.compare!.v2.pass).toBe(true);
+    expect(v.compare!.v2.tests).toBe(v.tests);
+    const md = promotionMarkdown(v);
+    expect(md).toContain("## The guard sets v1 and v2");
+    expect(md).toContain("| `pack.order.inversions` | 30 | Infinity | 0.8667 | fail | 4 | 1 | 0 | pass |");
+    expect(md).toContain("| **verdict** | 30 | - | - | **fail** | 30 | - | - | **pass** |");
+    expect(md).toContain("The coverage of the guard set `v1`:");
+    expect(md).toContain("| `pack.aspectError` | `cell.containerSize = freeAspect` | 6 | 24 | 24: the container declares no aspect |");
+    expect(promotionMarkdown(winTest(fixture.records, options))).not.toContain("## The guard sets v1 and v2");
   });
 });

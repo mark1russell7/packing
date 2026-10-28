@@ -392,6 +392,8 @@ node bench/promote.ts <folder> --candidate maxrects-bl --default rows --win pack
 - `--win` names the win measures, with commas. The default is `pack.fill`.
 - `--times <folder>` gives the time source: a folder of records with the same strategy ids. The time test then reads only the `ms` of these records.
 - `--time-floor-ms <n>` sets the time floor. The default is `TIME_FLOOR_MS`, 5 ms: `timeFloorMs` of the shared rule. `--time-floor-ms 0` gives the rule without a floor.
+- `--guards v1|v2` sets the guard set. The default is `v2`. [The guard sets](#the-guard-sets) tells the two sets.
+- `--compare-guards` adds the verdict of each guard set on the same records. `promotion.md` then shows the `v1` and `v2` verdicts side by side.
 - The tool writes `promotion.json` and `promotion.md` in the `--out` folder. A verdict `fail` is not an error of the process.
 
 The shared rule says: CI times the candidate and the default on the same machine, in alternation. The jobs of `bench.yml` cannot do this, because each strategy has its own runner.
@@ -399,13 +401,41 @@ The shared rule says: CI times the candidate and the default on the same machine
 The workflow `Promotion` (`.github/workflows/promotion.yml`) has two jobs:
 
 1. The job `time` packs the corpus with the candidate and the default on one runner, with `--interleave`, `--repeats 5` and `--warmup 1`. It keeps the artifact `promotion-time-<candidate>`.
-2. The job `promotion` downloads the records of a bench run and the time records. It starts the tool with `--times`.
+2. The job `promotion` downloads the records of a bench run and the time records. It starts the tool with `--times`, `--guards` and `--compare-guards`.
 
 ```sh
 gh workflow run promotion.yml -f run=<id> -f corpus=pack-holdout-v1 -f candidate=maxrects-bl -f repeats=5
 ```
 
+- The input `guards` sets the guard set of the verdict. The default is `v2`.
+- The input `times_run` is the run id of an earlier run of `promotion.yml`. Then the job `time` does not pack. The job `promotion` downloads the artifact `promotion-time-<candidate>` of that run, and it uses these time records.
+- To score the records again with new guards and the same times, give `times_run`. The candidate must be the candidate of that run.
+
+```sh
+gh workflow run promotion.yml -f run=<id> -f corpus=pack-holdout-v1 -f candidate=maxrects-bl -f times_run=<promotion run id>
+```
+
 The workflow keeps the artifact `promotion-<candidate>`, and the page of its run shows `promotion.md`. A pull request starts the job `time` on the small corpus `smoke-v1`, and the guards on the records of run 40662373078.
+
+### The guard sets
+
+A guard of a property applies only to the inputs that declare the property. `GUARD_DECLARATIONS` of `bench/promote.ts` names, for each guard, the input field that declares its property. `docs/PROMOTION.md` ("The parts of packing") gives the table.
+
+| Guard | `v1` | `v2` |
+|---|---|---|
+| `pack.fill` | each input | each input |
+| `pack.area` | each input | each input with a free size. In a fixed cell, only the inputs where both records have the same `pack.overflow`. |
+| `pack.aspectError` | each input | the inputs with the cell `containerSize` `freeAspect`, the only cell where the container has `aspect` |
+| `pack.order.inversions` | each input | the inputs with the cell `order` `soft` or `hard` |
+| `pack.overflow` | the fixed cells | the fixed cells |
+| `pack.stability.*` | the change pairs | the change pairs |
+
+- The records and `corpus.json` do not hold the container of an input. Thus the tool reads the cell of each input in `corpus.json`.
+- A guard without a declaration fails when no input has its measure. A guard with a declaration is left out when no input declares its property.
+- The hard rules, the gain test and the time test apply to each input in both sets.
+- `v1` gives the verdict of the tool before the declared guards. A test keeps this verdict on the fixture `bench/fixtures/promote-guards-v1.json`.
+- `promotion.json` and `promotion.md` name the guard set (`guardSet`). For each guard, they give the covered inputs and the left-out inputs with the reason (`coverage`).
+- With `--compare-guards`, `promotion.json` has the verdict of each set in `compare`. A rescore reports the `v1` and `v2` verdicts together.
 
 ### Read the verdict
 
@@ -422,7 +452,8 @@ The first table of `promotion.md` has one row for each test, with its value, its
 | time median | The median time ratio is at most 1.5. |
 | time quantile 0.95 | The quantile 0.95 of the time ratios is at most 2. |
 
-- The guards are `pack.area`, `pack.fill`, `pack.aspectError` and `pack.order.inversions`. `pack.overflow` is a guard on the inputs with a fixed container.
+- The guards are `pack.area`, `pack.fill`, `pack.aspectError` and `pack.order.inversions`. `pack.overflow` is a guard on the inputs with a fixed container. [The guard sets](#the-guard-sets) tells the inputs of each guard.
+- The table "The guard coverage" gives the covered inputs of each guard, and the left-out inputs with the reason.
 - The stability measures are guards only when the records have change pairs.
 - The floor rule applies when the default is at the floor of a measure. The table "The floor rule" counts these inputs. `promotion.json` names them.
 - The classification uses `compareMeasure` of the contract. A change of the minimum effect or less is a tie.
