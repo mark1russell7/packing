@@ -18,10 +18,11 @@ import {
   type StrategyConfig,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import type { LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions } from "./adapters.ts";
+import type { LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
+import { SKYLINE_RULES } from "./skyline.ts";
 import { MEASURE_SPECS } from "./measures.ts";
 import { SORT_ORDERS } from "./order.ts";
 import type { PackLayoutOptions } from "./pack.ts";
@@ -91,7 +92,7 @@ const choice = (option: string, params: Record<string, string | number | boolean
  */
 export function baseConfig(id: string, options: Readonly<Record<string, unknown>> = {}): StrategyConfig {
   const o = { ...(strategy(id).defaults as Record<string, unknown>), ...options };
-  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight"];
+  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap"];
   for (const key of Object.keys(o)) if (!known.includes(key) || (key === "fit" && id !== "shelf")) throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
   const stages: Record<string, StageChoice | null> = { order: choice(String(o["sortOrder"])), "local-search": choice("none") };
   if (id === "push") {
@@ -104,7 +105,8 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
   else if (id === "maxrects") {
     const bands = o["bandHeight"] === undefined ? { fixedBands: false } : { fixedBands: true, bandHeight: o["bandHeight"] as number };
     stages["placement"] = choice("maxrects", { rule: o["rule"] as string, rotate: o["rotate"] as boolean, ...bands });
-  } else if (id === "rows" || id === "skyline") stages["placement"] = choice(id);
+  } else if (id === "skyline") stages["placement"] = choice("skyline", { rule: o["rule"] as string, wasteMap: o["wasteMap"] as boolean, rotate: o["rotate"] as boolean });
+  else if (id === "rows") stages["placement"] = choice(id);
   else throw new RangeError(`The strategy ${id} is not a single strategy of the space packing.`);
   return { space: ENGINE, stages };
 }
@@ -137,7 +139,15 @@ const STAGES: readonly SpaceStage[] = [
     name: "placement",
     options: [
       { id: "rows", params: [], supports: RECT_ONLY },
-      { id: "skyline", params: [], supports: RECT_ONLY },
+      {
+        id: "skyline",
+        params: [
+          { name: "rule", kind: "enum", values: [...SKYLINE_RULES], default: "bl" },
+          { name: "wasteMap", kind: "bool", default: false },
+          { name: "rotate", kind: "bool", default: false },
+        ],
+        supports: RECT_ONLY,
+      },
       { id: "shelf", params: [{ name: "fit", kind: "enum", values: ["none", ...SHELF_FITS], default: "none" }], supports: RECT_ONLY },
       {
         id: "maxrects",
@@ -182,6 +192,9 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "shelf-first": baseConfig("shelf", { fit: "first", sortOrder: "height-desc" }),
   "shelf-best": baseConfig("shelf", { fit: "best", sortOrder: "height-desc" }),
   "shelf-first-input": baseConfig("shelf", { fit: "first", sortOrder: "input" }),
+  "skyline-mw": baseConfig("skyline", { rule: "mw" }),
+  "skyline-bl-waste": baseConfig("skyline", { wasteMap: true }),
+  "skyline-mw-waste": baseConfig("skyline", { rule: "mw", wasteMap: true }),
   ...Object.fromEntries(MAXRECTS_RULES.map((rule) => [`maxrects-${rule}`, baseConfig("maxrects", { rule })])),
   maxrects: baseConfig("maxrects"),
 };
@@ -262,7 +275,12 @@ const PORTFOLIO_PLACES = {
  */
 export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string, OptionPlace>>>> = Object.freeze({
   rows: LAYOUT_PLACES,
-  skyline: LAYOUT_PLACES,
+  skyline: {
+    ...LAYOUT_PLACES,
+    rule: "placement.skyline.rule",
+    wasteMap: "placement.skyline.wasteMap",
+    rotate: "placement.skyline.rotate",
+  } satisfies Places<SkylineStrategyOptions>,
   shelf: { ...LAYOUT_PLACES, fit: "placement.shelf.fit" } satisfies Places<LayoutStrategyOptions>,
   maxrects: {
     ...LAYOUT_PLACES,
@@ -295,6 +313,8 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     fit: "placement.shelf.fit",
     rule: "placement.maxrects.rule",
     bandHeight: "placement.maxrects.bandHeight",
+    skylineRule: "placement.skyline.rule",
+    wasteMap: "placement.skyline.wasteMap",
     turnable: null,
     turned: null,
   } satisfies Places<PackLayoutOptions>,
@@ -312,7 +332,7 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
   "skyline.fit": ONLY_SHELF,
   "maxrects.fit": ONLY_SHELF,
   "pack.space": "It is an object: the free space of the container. `pack` gets it from the input, not from a choice.",
-  "pack.turnable": "It is a set of rectangles of the input. The param `placement.maxrects.rotate` makes it.",
+  "pack.turnable": "It is a set of rectangles of the input. The params `placement.maxrects.rotate` and `placement.skyline.rotate` make it.",
   "pack.turned": "It is a set that `pack` fills with the turned rectangles. It holds a result, not a choice.",
 });
 
@@ -347,6 +367,11 @@ function runOf(config: StrategyConfig): Run {
   if (place.option === "push") return { strategy: "push", options: { sortOrder, maxShovesPerItem: p["maxShovesPerItem"] } };
   const options: Record<string, unknown> = { sortOrder, samples: s["size-search"]!.params?.["samples"] };
   if (place.option === "shelf" && p["fit"] !== "none") options["fit"] = p["fit"];
+  if (place.option === "skyline") {
+    options["rule"] = p["rule"];
+    options["wasteMap"] = p["wasteMap"];
+    options["rotate"] = p["rotate"];
+  }
   if (place.option === "maxrects") {
     options["rule"] = p["rule"];
     options["rotate"] = p["rotate"];

@@ -3,7 +3,7 @@ import { clearMoves, countMove, moveCount, MOVES } from "./moves.ts";
 import { compareRects, type SortOrder } from "./order.ts";
 import { Rect } from "./rect.ts";
 import { packRowsInSpace, packShelf, type ShelfFit } from "./shelf.ts";
-import { packSkyline } from "./skyline.ts";
+import { packSkyline, type SkylineRule } from "./skyline.ts";
 import type { FreeSpace } from "./space.ts";
 import { Vector } from "./vector.ts";
 
@@ -31,9 +31,13 @@ export interface PackLayoutOptions extends PackOptions {
   rule?: MaxRectsRule;
   /** The largest height of a band of `maxrects` in a space that is not plain. Only `maxrects` reads it. `MaxRectsOptions` tells it. */
   bandHeight?: number;
-  /** The rectangles that `maxrects` can turn by 90 degrees. Only `maxrects` reads it. */
+  /** The rule of `skyline` to choose a place on the skyline. Only `skyline` reads it. The default is `bl`. */
+  skylineRule?: SkylineRule;
+  /** The value `true` gives `skyline` a waste map. Only `skyline` reads it. `SkylineOptions` tells it. */
+  wasteMap?: boolean;
+  /** The rectangles that `maxrects` and `skyline` can turn by 90 degrees. */
   turnable?: ReadonlySet<unknown>;
-  /** The rectangles that `maxrects` turned. Only `maxrects` reads it. `MaxRectsOptions` tells it. */
+  /** The rectangles that `maxrects` and `skyline` turned. `MaxRectsOptions` tells it. */
   turned?: Set<unknown>;
 }
 
@@ -291,7 +295,10 @@ export function pack<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), options: 
 
   // A fixed width stays, also when a rectangle is wider: that rectangle overflows
   if (!outer.fixedSize) outer.size.setTo(outer.fixedWidth ? new Vector(outer.size.x, ideal.y) : ideal);
-  if (options.strategy === "skyline") packSkyline(rects, outer, options);
+  if (options.strategy === "skyline") {
+    const { rule, skylineRule, ...rest } = options;
+    packSkyline(rects, outer, skylineRule === undefined ? rest : { ...rest, rule: skylineRule });
+  }
   else if (options.strategy === "shelf") packShelf(rects, outer, options);
   else if (options.strategy === "maxrects") packMaxRects(rects, outer, options);
   else packRows(rects, outer, options);
