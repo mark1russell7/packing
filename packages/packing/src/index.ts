@@ -34,6 +34,7 @@ export {
   RECORD_EPS,
   checkInput,
   marginOf,
+  portPoint,
   turnItem,
   turnPoint,
   turnPort,
