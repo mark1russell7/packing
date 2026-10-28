@@ -73,7 +73,7 @@ Status: done, done, waiting, next, done.
 | k64 | The time tail of `maxrects`: in a curved container, the check of each new part against all parts and free rectangles was most of the work. It now compares only parts on the same side of the box, without a sort, with the same outputs. | strategies | active | k58, k61 |
 | k65 | A corpus with a margin and a gap axis. The screen corpora have no margin and no gap, but callers use them. Its manifest declares its properties. | measure | later | k62 |
 | k66 | Where maxrects beats rows: a selector by cheap features (count, shape, spread) that runs maxrects only in its cells, so the other cells keep the time of rows. Part 2 is in: the opt-in strategy `select` with a table of 7 leaves, the split files and the test corpus `pack-select-v1`. It passed on `pack-select-v1` with the gain median at the limit, and it passed again on `pack-select-v2` (seeds 31 to 35). Since 0.2.15, `DEFAULT_STRATEGY` is `select`. Next: `pack()` with no strategy uses `select` for fixed sizes (0.3.0). | strategies | active | k61, k62 |
-| k67 | The size search `log-sweep` is slow: a free size with 100 items takes about 390 ms with `rows` and with `select`. Profile it first, then make it faster with the same outputs. | core | active | k33 |
+| k67 | The size search `log-sweep` is slow: a free size with 100 items takes about 390 ms with `rows` and with `select`. Profile it first, then make it faster with the same outputs. Step 2 shipped in 0.2.16: `rows` sorts once (#82), and the slow inputs take about 0.11 of their time. The slowest takes 58 ms. | core | active | k33 |
 
 ## Rules
 

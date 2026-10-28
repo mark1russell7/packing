@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.16
+
+A faster row packing, roadmap item k67. This release has no breaking changes. Each output stays the same, byte for byte.
+
+### Changed
+
+- The row packing (`rows`, the default of `pack()`) sorts the rectangles once for each call. Before, it sorted them again for each try of the height and for each gap fill.
+- A free size with 100 items now takes about 40 ms in the size search, against about 390 ms before. The other inputs take about 0.7 of their time before.
+- Bench: the merge job of `bench.yml` also reads a run with one strategy.
+
 ## 0.2.15
 
 A default strategy for an input, roadmap item k66. This release has no breaking changes. `pack()` and every existing output do not change.
