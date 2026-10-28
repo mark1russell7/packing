@@ -2,16 +2,30 @@
 // packers count their move here, and the adapters write the count in `trace.measures`. The counts do not change a layout.
 // The module is internal: the package root does not export it.
 
-/** The id of the characteristic move of each strategy. The trace of each strategy has its id, also with the count 0. */
-export const MOVES: Readonly<{ rows: "move.gapFill"; shelf: "move.stack"; skyline: "move.lowerWindow"; push: "move.cascade" }> = Object.freeze({
+/** The id of the characteristic move of each strategy and of each shelf fit. The trace of each strategy has its id, also with the count 0. */
+export const MOVES: Readonly<{
+  rows: "move.gapFill";
+  shelf: "move.stack";
+  skyline: "move.lowerWindow";
+  push: "move.cascade";
+  firstFit: "move.firstFit";
+  bestFit: "move.bestFit";
+}> = Object.freeze({
   /** A rectangle that the gap fill of `packRow` places in a gap of a row: under a shorter neighbor, or at the row break. */
   rows: "move.gapFill",
-  /** A rectangle that `packShelf` puts on an open shelf with a taller rectangle. The strip above it stays empty. */
+  /**
+   * A rectangle that `packShelf` puts on an open shelf with a taller rectangle. The strip above it stays empty. With a
+   * `fit`, the move is a rectangle in the strip above a shorter rectangle of a shelf.
+   */
   shelf: "move.stack",
   /** A rectangle that the skyline puts in a lower window, not in the leftmost window where it fits. */
   skyline: "move.lowerWindow",
   /** A rectangle that a push cascade moves. */
   push: "move.cascade",
+  /** A rectangle that a shelf fit puts on a shelf that is not the open shelf. The open shelf is the last shelf that the packing opened. */
+  firstFit: "move.firstFit",
+  /** A rectangle that the fit `best` puts on a shelf that is not the first shelf where it fits. */
+  bestFit: "move.bestFit",
 });
 
 const counts = new Map<string, number>();

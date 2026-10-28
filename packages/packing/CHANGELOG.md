@@ -1,13 +1,32 @@
 # Changelog
 
-## Unreleased
+## 0.2.4
+
+The shelf family of roadmap item k21, and one name for the area bound. This release has no breaking changes.
 
 ### New
 
+- `packShelf`, `pack` and the strategy `shelf` have the optional option `fit`: `next`, `first` or `best`. `SHELF_FITS` and the type `ShelfFit` list them.
+- `fit: "next"` uses only the open shelf. `fit: "first"` uses the first shelf where the box fits. `fit: "best"` uses the shelf with the least height left over.
+- With a `fit`, `shelf` opens its own shelves in the free spans of each container shape. A box can also stack in the strip above a shorter box.
+- The trace of `shelf` with a `fit` counts `move.stack`, `move.firstFit` and `move.bestFit`. `docs/PACKER.md` tells the rules.
+- The bench has entries: each strategy of the registry, and the variants `shelf-next`, `shelf-first`, `shelf-best` and `shelf-first-input`. Each record has the options of its entry.
+- The activation of a variant also counts the inputs where its output is not the output of its base, `shelf`.
+- The smoke check needs the coverage 1 for each variant.
 - The bench gives the two-step ranking of roadmap item k60 for each container shape. `docs/BENCH.md` tells it.
 - Step 1 ranks by the median `pack.overflow.excessArea`. Step 2 ranks each tie group by the median `pack.fill` on the common clean inputs.
-- The table `Overflow` gives the means of `pack.overflow.forcedAreaMin` and `pack.overflow.excessArea`, and their medians.
-- The smoke check fails when `pack.overflow.forcedAreaMin` is above `pack.overflow.area + 1e-9` on a record.
+- The table `Overflow` gives the means of `pack.overflow.forcedArea` and `pack.overflow.excessArea`, and their medians.
+- The smoke check fails when `pack.overflow.forcedArea` is above `pack.overflow.area + 1e-9` on a record.
+
+### Deprecated
+
+- `pack.overflow.forcedAreaMin` is now a deprecated alias of `pack.overflow.forcedArea`. It has the same value. It stays until the next minor version.
+- Use `pack.overflow.forcedArea`. `pack.overflow.excessArea` is `pack.overflow.area` less `pack.overflow.forcedArea`.
+- A test shows that the two values are equal on generated inputs of each container shape, fixed and free.
+
+### The outputs
+
+- Without `fit`, the placements of each strategy do not change. The fixture `bench/fixtures/rect-hashes.json` still pins them.
 
 ## 0.2.3
 

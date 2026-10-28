@@ -1,6 +1,7 @@
 # The smoke bench of each pull request and of each push to main (docs/BENCH.md). It starts the runner of bench.yml
-# on the tiny corpus smoke-v1: list, one run for each strategy, merge and check. The check fails on an error, a hard
-# break, a record that is not deterministic, an empty records.jsonl, or a coverage below 1 of rows, shelf or skyline.
+# on the tiny corpus smoke-v1: list, one run for each entry, merge and check. The check fails on an error, a hard
+# break, a record that is not deterministic, an empty records.jsonl, or a coverage below 1 of an entry of FULL_COVERAGE:
+# rows, shelf, skyline and the 4 variants of the shelf family (bench/entries.ts).
 # The times of this job are not a gate.
 name: Bench smoke
 
@@ -33,7 +34,7 @@ jobs:
           cache: pnpm
       # Since 0.2.0, bench/main.ts imports @mark1russell7/layout-contract at run time
       - run: pnpm install --frozen-lockfile
-      # One run for each strategy, as the matrix of bench.yml does. A run with an error exits with the code 1.
+      # One run for each entry, as the matrix of bench.yml does. A run with an error exits with the code 1.
       - name: Run the smoke bench for each strategy
         run: |
           list=$(node packages/packing/bench/main.ts list --strategies all)

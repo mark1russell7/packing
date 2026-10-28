@@ -8,6 +8,7 @@ import type { SortOrder } from "./order.ts";
 import { pack } from "./pack.ts";
 import { pushCascade } from "./push.ts";
 import { Rect } from "./rect.ts";
+import type { ShelfFit } from "./shelf.ts";
 import { packSkyline } from "./skyline.ts";
 import { spaceOf } from "./space.ts";
 import { assertSupported, cellOf, UnsupportedCell, type PackContext, type SizeSearch, type Strategy, type Supports } from "./strategy.ts";
@@ -18,6 +19,11 @@ export interface LayoutStrategyOptions {
   sortOrder: SortOrder;
   /** The number of widths that the first pass of the size search `log-sweep` tries. */
   samples: number;
+  /**
+   * The rule of `shelf` to choose a shelf: `next`, `first` or `best`. Only `shelf` reads it. Without it, `shelf` packs
+   * as in 0.2.3. With it, the trace also counts `move.firstFit` and `move.bestFit`.
+   */
+  fit?: ShelfFit;
 }
 
 /** The options of the strategy `push`. */
@@ -55,15 +61,28 @@ function supportsOf(cells: { [D in keyof Supports]: readonly Supports[D][number]
   };
 }
 
+/** This function gives the fit of the options of a strategy: only `shelf` reads it. */
+function fitOf(id: "rows" | "skyline" | "shelf", options: Partial<LayoutStrategyOptions>): { fit?: ShelfFit } {
+  return id === "shelf" && options.fit !== undefined ? { fit: options.fit } : {};
+}
+
+/** This function gives the move counts of the trace of a strategy: its own move, and the moves of a shelf fit. */
+function movesOf(id: "rows" | "skyline" | "shelf", fit: { fit?: ShelfFit }): Record<string, number> {
+  const out: Record<string, number> = { [MOVES[id]]: moveCount(MOVES[id]) };
+  if (fit.fit !== undefined) for (const move of [MOVES.firstFit, MOVES.bestFit]) out[move] = moveCount(move);
+  return out;
+}
+
 /** This function packs an input with a fixed size or a fixed width with one strategy of `pack`. */
 function packFixedWidth(id: "rows" | "skyline" | "shelf", input: PackInput, options: LayoutStrategyOptions): PackOutput {
   const start = now();
   const frame = buildFrame(input);
   const rects = rectsOf(frame);
+  const fit = fitOf(id, options);
   clearMoves();
-  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, space: spaceOf(input, frame) });
+  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, space: spaceOf(input, frame), ...fit });
   const output = readFrame(input, frame, []);
-  return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length, [MOVES[id]]: moveCount(MOVES[id]) } }] };
+  return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length, ...movesOf(id, fit) } }] };
 }
 
 /** This function makes the strategy of one function of `pack`. */
@@ -118,6 +137,7 @@ export const skyline: Strategy<LayoutStrategyOptions> = layoutStrategy("skyline"
 /**
  * The strategy `shelf` uses `packShelf`: rows filled left to right, around the locked items and the fixed obstacles.
  * With the sort order `input`, the rows keep the rank order. Turnable items, groups and item shapes throw `UnsupportedCell`.
+ * The option `fit` selects a shelf rule of roadmap item k21: `next`, `first` or `best`. The default has no `fit`.
  */
 export const shelf: Strategy<LayoutStrategyOptions> = layoutStrategy("shelf", "shelf", ["shelf-nf", "shelf-nfdh"], {
   obstacleMove: ["fixed"],
@@ -137,6 +157,7 @@ export const logSweep: SizeSearch = {
     const o = { ...(inner.defaults as LayoutStrategyOptions), ...(options as Partial<LayoutStrategyOptions> | undefined) };
     const start = now();
     const frame = buildFrame(input);
+    const fit = fitOf(id, o);
     const result = packFree(rectsOf(frame), new Rect<number>(), {
       strategy: id,
       sortOrder: o.sortOrder,
@@ -144,6 +165,7 @@ export const logSweep: SizeSearch = {
       samples: o.samples,
       aspect: input.container.aspect ?? 1,
       aspectWeight: input.container.aspectWeight ?? 1,
+      ...fit,
     });
     const ms = now() - start;
     const runs = result.tried.length + 1;
@@ -152,7 +174,7 @@ export const logSweep: SizeSearch = {
       ...output,
       trace: [
         { id: "log-sweep", ms, measures: { "pack.search.widths": result.tried.length, "pack.search.ms": ms } },
-        { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length, [MOVES[id]]: moveCount(MOVES[id]) } },
+        { id, ms: ms / runs, measures: { "pack.overflow": output.overflow.length, ...movesOf(id, fit) } },
       ],
     };
   },

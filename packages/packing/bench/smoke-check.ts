@@ -5,8 +5,8 @@ import { round3 } from "@mark1russell7/packing";
 import { isMeasured, type BenchRecord, type BenchRun } from "./run.ts";
 import { OUTSIDE_EXACT } from "./screen.ts";
 
-/** The strategies that pack each input of `smoke-v1`. The check needs the coverage 1 for each of them. */
-export const FULL_COVERAGE: readonly string[] = ["rows", "shelf", "skyline"];
+/** The entries that pack each input of `smoke-v1`: 3 strategies and the 4 variants of the shelf family. The check needs the coverage 1 for each of them. */
+export const FULL_COVERAGE: readonly string[] = ["rows", "shelf", "skyline", "shelf-next", "shelf-first", "shelf-best", "shelf-first-input"];
 
 /** The float noise of an area share. A forced overflow area above the overflow area by more than this value is a failure. */
 export const AREA_NOISE = 1e-9;
@@ -41,7 +41,7 @@ export function parseRecords(text: string): BenchRecord[] {
  * - The run has an error, or it has no records.
  * - A measured record has a hard break, or it is not deterministic.
  * - A measured record has a forced overflow above its overflow, or a box out of the true outline (`pack.outsideExact` above 0).
- * - A measured record has a `pack.overflow.forcedAreaMin` above its `pack.overflow.area` by more than `AREA_NOISE`.
+ * - A measured record has a `pack.overflow.forcedArea` above its `pack.overflow.area` by more than `AREA_NOISE`.
  * - A strategy has no coverage in the run, or its coverage does not agree with its records.
  * - A strategy of `full` has a coverage below 1, or the run does not have that strategy.
  */
@@ -58,7 +58,7 @@ export function smokeCheck(run: BenchRun, records: readonly BenchRecord[], full:
     if (forced !== undefined && overflow !== undefined && forced > overflow) {
       failures.push(`The record of ${r.strategy} on ${r.input} has a forced overflow of ${forced}, above its overflow of ${overflow}.`);
     }
-    const forcedArea = r.measures["pack.overflow.forcedAreaMin"];
+    const forcedArea = r.measures["pack.overflow.forcedArea"];
     const area = r.measures["pack.overflow.area"];
     if (forcedArea !== undefined && area !== undefined && forcedArea > area + AREA_NOISE) {
       failures.push(`The record of ${r.strategy} on ${r.input} has a forced overflow area of ${forcedArea}, above its overflow area of ${area}.`);

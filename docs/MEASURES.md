@@ -129,7 +129,7 @@ The rows: the boxes go in the order of their top. A box joins the last row when 
 | `pack.overflow.forced` | count | lower | 0 to `n` |
 | `pack.overflow.forcedArea` | share | lower | 0 to 1 |
 | `pack.overflow.excess` | count | lower | 0 to `n` |
-| `pack.overflow.forcedAreaMin` | share | lower | 0 to 1 |
+| `pack.overflow.forcedAreaMin` | share | lower | 0 to 1 (a deprecated alias of `pack.overflow.forcedArea`) |
 | `pack.overflow.excessArea` | share | lower | 0 to 1 |
 
 **`pack.overflow`** counts the items that the packer did not place: the distinct ids of `output.overflow`.
@@ -149,22 +149,25 @@ The rows: the boxes go in the order of their top. A box joins the last row when 
 
 `excess = overflow - forced`
 
-**`pack.overflow.forcedArea`** is the area of the forced overflow, divided by the area of all the items. It is a lower bound of `pack.overflow.area`. It is a diagnostic of 0.2.2. Since 0.2.3, use `pack.overflow.forcedAreaMin`.
+**`pack.overflow.forcedArea`** is the tight lower bound of the overflow area. It uses the same free area `F` and the same rule for too-long items as `forced`.
 
-**`pack.overflow.forcedAreaMin`** (since 0.2.3) is the tight lower bound of the overflow area. It uses the same free area `F` and the same rule for too-long items as `forced`.
-
-`forcedAreaMin = (area of the too-long items + max(0, rest - F)) / total item area`
+`forcedArea = (area of the too-long items + max(0, rest - F)) / total item area`
 
 - `rest` is the area of the other candidates. The section "The forced overflow" gives `F` and the area of a candidate.
 - A container with no fixed side gives 0. A container with only a fixed width or height gives the area of the too-long items.
-- The value is equal to `pack.overflow.forcedArea`. The new id tells that the value is a bound of an area, not the area of the dropped items.
+
+**`pack.overflow.forcedAreaMin`** (since 0.2.3, deprecated since 0.2.4) is an alias of `pack.overflow.forcedArea`. It has the same value and the same spec, except the id.
+
+- 0.2.3 added it as a second id of the same value. Since 0.2.4, `forcedArea` is the one name.
+- The alias stays until the next minor version. Use `pack.overflow.forcedArea`.
+- A test of `src/measures.test.ts` shows that the two values are equal on generated inputs of each container shape, fixed and free.
 
 **`pack.overflow.excessArea`** (since 0.2.3) is the overflow area that a better packer can perhaps place.
 
-`excessArea = overflow.area - forcedAreaMin`
+`excessArea = overflow.area - forcedArea`
 
 - A difference from `-1e-9` to 0 is float noise, and it becomes 0. A value below `-1e-9` stays, because it shows a bug.
-- The property test of each strategy shows `forcedAreaMin <= overflow.area + 1e-9` on generated inputs of each container shape, fixed and free.
+- The property test of each strategy shows `forcedArea <= overflow.area + 1e-9` on generated inputs of each container shape, fixed and free.
 
 **Judge a strategy by `excessArea`.** The count bound `forced` is weak on mixed sizes. The bound drops the largest items first, and a packer often leaves out many small items.
 
@@ -196,7 +199,7 @@ The free area `F` is an upper bound. Thus `forced` is a lower bound for each pac
 - The bound ignores the gap and the margins. They make the true free area smaller, thus the bound stays valid.
 - The area of a candidate is `w * h`, or the area of its shape when that is smaller.
 - A slack keeps the bound valid for the tolerance of the hard rules: `2 * tolerance.overlap` along the edges of each candidate and of the container.
-- The area of `pack.overflow.forcedAreaMin` and `pack.overflow.forcedArea` is the area of the long items of step 1, plus the part of the area of the rest above `F`.
+- The area of `pack.overflow.forcedArea` and of its alias `pack.overflow.forcedAreaMin` is the area of the long items of step 1, plus the part of the area of the rest above `F`.
 - The area bound does not use the items that step 2 drops. Their area is often more than the part above `F`.
 
 ## Coverage
@@ -385,7 +388,7 @@ Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `Measu
 | `pack.overflow.forced` | 0 | A count. |
 | `pack.overflow.forcedArea` | 0.005 | A share of an area from 0 to 1. |
 | `pack.overflow.excess` | 0 | A count. |
-| `pack.overflow.forcedAreaMin` | 0.005 | A share of an area from 0 to 1. |
+| `pack.overflow.forcedAreaMin` | 0.005 | The deprecated alias of `pack.overflow.forcedArea`, with its spec. |
 | `pack.overflow.excessArea` | 0.005 | A share of an area from 0 to 1. |
 | `pack.stability.moved` | 0.02 | The tolerance of the guard. |
 | `pack.stability.mean` | 0.005 | The tolerance of the guard. |

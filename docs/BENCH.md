@@ -24,7 +24,7 @@ The inputs of the workflow:
 | Input | Default | What it sets |
 |---|---|---|
 | `corpus` | `smoke-v1` | The corpus: the name of a file in `packages/packing/bench/corpora`, without `.json`. |
-| `strategies` | `all` | The strategies, with commas, for example `shelf,skyline`. The value `all` gives each strategy of the registry. |
+| `strategies` | `all` | The entries, with commas, for example `shelf,shelf-best`. The value `all` gives each entry of the section "The entries". |
 | `prediction` | (none) | The id of the prediction. Each record writes it in `prediction`. The input is necessary. |
 | `repeats` | `5` | The timed passes of each pair of a strategy and an input. The record keeps the median in `ms`. |
 | `warmup` | `2` | The passes before the timed passes of each pair. They have no time. |
@@ -33,10 +33,26 @@ To start the workflow on a branch, add `--ref <branch>`. GitHub starts a workflo
 
 Watch the run with `gh run watch <run id>`. Get the result with `gh run download <run id> -n bench-<corpus>`.
 
+## The entries
+
+An entry is a strategy of the registry with some options. `packages/packing/bench/entries.ts` lists them. Each record names its entry in the field `strategy`.
+
+| Entry | Strategy | Options | Base |
+|---|---|---|---|
+| `rows`, `skyline`, `shelf`, `push` | the same | the defaults | none |
+| `shelf-next` | `shelf` | `fit: "next"`, `sortOrder: "height-desc"` | `shelf` |
+| `shelf-first` | `shelf` | `fit: "first"`, `sortOrder: "height-desc"` | `shelf` |
+| `shelf-best` | `shelf` | `fit: "best"`, `sortOrder: "height-desc"` | `shelf` |
+| `shelf-first-input` | `shelf` | `fit: "first"`, `sortOrder: "input"` | `shelf` |
+
+- The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
+- The base of a variant is the same strategy without the options of the variant. The activation compares the outputs of a variant and its base.
+- An entry of the registry gets no options from the runner. A variant gets the defaults of its strategy, with its options over them.
+
 ## The jobs
 
-1. The job `plan` examines the inputs and makes a list of the strategies.
-2. The matrix `run` has one job for each strategy. Each job packs each input of the corpus with its strategy.
+1. The job `plan` examines the inputs and makes a list of the entries with `main.ts list`.
+2. The matrix `run` has one job for each entry. Each job packs each input of the corpus with its entry.
 3. The job `merge` joins the records of all jobs into one artifact.
 
 A job of the matrix fails when a strategy throws an error on an input. The other jobs continue, and `merge` keeps their records.
@@ -46,8 +62,8 @@ A job of the matrix fails when a strategy throws an error on an input. The other
 The workflow `Bench smoke` (`.github/workflows/bench-smoke.yml`) runs on each pull request and on each push to `main`. It has one job with these steps:
 
 1. It installs the dependencies with `pnpm install --frozen-lockfile`.
-2. It gets the strategies with `main.ts list`. Then it packs the corpus `smoke-v1` once for each strategy, with `--repeats 1` and `--warmup 0`.
-3. It joins the folders of the strategies with `main.ts merge`.
+2. It gets the entries with `main.ts list`. Then it packs the corpus `smoke-v1` once for each entry, with `--repeats 1` and `--warmup 0`.
+3. It joins the folders of the entries with `main.ts merge`.
 4. It examines the merged folder with `main.ts check`, and it writes the coverage table into the summary of the job.
 
 The command of the check is:
@@ -62,9 +78,9 @@ The check reads `run.json` and `records.jsonl` of the folder. The code is in `pa
 - The file `records.jsonl` has no records.
 - A measured record has a hard count above 0, or `deterministic` is `false`.
 - The coverage of a strategy in `run.json` does not agree with its records.
-- The coverage of `rows`, `shelf` or `skyline` is below 1.
+- The coverage of `rows`, `shelf`, `skyline` or a variant of the shelf family is below 1.
 - A measured record has a `pack.overflow.forced` above its `pack.overflow`. The forced overflow is a lower bound, thus this is an error of the bound.
-- A measured record has a `pack.overflow.forcedAreaMin` above its `pack.overflow.area + 1e-9`. This is an error of the area bound, or of the packer.
+- A measured record has a `pack.overflow.forcedArea` above its `pack.overflow.area + 1e-9`. This is an error of the area bound, or of the packer.
 - A measured record has a `pack.outsideExact` above 0: a box is out of the true outline of the container.
 
 The strategy `push` has only the mode `incremental`, and each input of `smoke-v1` is offline. Thus its coverage is 0. The table shows it, and the check does not fail on it.
@@ -152,7 +168,7 @@ Each job of the matrix keeps the artifact `bench-<corpus>-<strategy>`. The job `
 A record has each field of `layout-record/1` in `docs/FORMAT.md`. These values are specific to the packer:
 
 - `stage` and `step` are `pack`.
-- `options` holds the defaults of the strategy, because the runner gives no options.
+- `options` holds the defaults of the strategy, with the options of the entry over them. An entry of the registry has only the defaults.
 - `nodes` counts the boxes and the obstacles of the input, as the twin document of `highways` does.
 - `commit` holds the first 7 characters of the commit.
 - `measures` holds the measures of `measure`. The value `pack.search.ms` is the median of the timed runs.
@@ -231,7 +247,7 @@ Since k60, this rank is a diagnostic. Each strategy has its own clean records, t
 
 ### Overflow and the true outline
 
-The table `Overflow` gives the mean of `pack.overflow`, `pack.overflow.rate`, `pack.overflow.area`, `pack.overflow.forced`, `pack.overflow.excess`, `pack.overflow.forcedAreaMin` and `pack.overflow.excessArea`. It also gives the median of the last two. `docs/MEASURES.md` tells each one.
+The table `Overflow` gives the mean of `pack.overflow`, `pack.overflow.rate`, `pack.overflow.area`, `pack.overflow.forced`, `pack.overflow.excess`, `pack.overflow.forcedArea` and `pack.overflow.excessArea`. It also gives the median of the last two. `docs/MEASURES.md` tells each one.
 
 The count bound `pack.overflow.forced` is weak on mixed sizes. Thus judge a strategy by `pack.overflow.excessArea`, the overflow area above its bound.
 
@@ -256,10 +272,17 @@ Each strategy counts its characteristic move, and its trace holds the count. The
 |---|---|---|
 | `rows` | `move.gapFill` | The gap fill of a row places a box: under a shorter neighbor, or at the break of the row. |
 | `shelf` | `move.stack` | A box goes on an open shelf that a taller box made. |
+| `shelf-next` | `move.stack` | A box goes into the strip above a shorter box of a shelf. |
+| `shelf-first`, `shelf-first-input` | `move.firstFit` | A box goes on a shelf that is not the open shelf: the last shelf that the packing opened. |
+| `shelf-best` | `move.bestFit` | A box goes on a shelf that is not the first shelf where it fits, because that shelf has less height left over. |
 | `skyline` | `move.lowerWindow` | The skyline puts a box in a lower window, not in the leftmost window where it fits. |
 | `push` | `move.cascade` | A push cascade moves a box. |
 
 A strategy is `exercised` when its count is above 0 on 1 input or more. Else it is `not-exercised`, and `reason` tells why. The activation also has one cell for each container shape.
+
+A variant also gets `base` and `differs` when the run has the records of its base. `differs` counts the common inputs where the `outputHash` of the variant is not the hash of the base. A variant is `exercised` when its count is above 0, or when `differs` is above 0. This is the rule of PROMOTION. A job of the matrix has only its own entry, thus only the merged run gives `differs`.
+
+A variant that is equal to another entry on each common input is in one output group with it. Such a group is valid. It tells that the option has no effect on those inputs.
 
 The strategies `rows` and `shelf` pack a container that is not a rectangle with the same packer. That packer does not make their moves. Thus they are `not-exercised` on such a shape, and their outputs on it are often in one cell group.
 
