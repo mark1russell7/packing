@@ -151,6 +151,25 @@ jobs:
           node packages/packing/bench/main.ts merge --out "$out" "${parts[@]}" || status=$?
           [ -f "$out/summary.md" ] && cat "$out/summary.md" >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+      # k105: the space coverage of the merged records, with the folds by spec. It takes some seconds.
+      # A run with fewer than 50 measured records gives a note in coverage.json. The step does not fail the job.
+      - name: Compute the space coverage
+        if: always()
+        continue-on-error: true
+        run: |
+          out="$RUNNER_TEMP/merged"
+          if [ ! -f "$out/records.jsonl" ] || [ ! -f "$out/corpus.json" ]; then
+            echo "The merged folder has no records.jsonl or corpus.json. The coverage is not computed."
+            exit 0
+          fi
+          run_date="$(date -u +%Y-%m-%d)"
+          {
+            echo "### The space coverage (folds by spec)"
+            echo '```'
+            node packages/packing/bench/coverage.ts --records "$out/records.jsonl" --corpus "$out/corpus.json" \
+              --out "$out/coverage.json" --by spec --run "$GITHUB_RUN_ID" --date "$run_date" --min-records 50
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

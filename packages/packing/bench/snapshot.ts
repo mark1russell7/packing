@@ -6,7 +6,7 @@
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
 //   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--out <file>]
-//   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--by input|spec] [--out <file>]
+//   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
@@ -681,6 +681,10 @@ export interface CoverageSnapshotMeasure {
   mae: number;
   /** The held-out mean absolute error of the median of the training rows */
   baselineMae: number;
+  /** The held-out median absolute error of the model */
+  medianAe: number;
+  /** The held-out median absolute error of the median of the training rows */
+  baselineMedianAe: number;
   skill: number | null;
   share: number;
   shareOfMeasured: number;
@@ -689,6 +693,8 @@ export interface CoverageSnapshotMeasure {
   noise: number;
   /** The highest first-order indices, `COVERAGE_TOP` or fewer */
   indices: { feature: string; group: "strategy" | "input"; index: number }[];
+  /** The errors and the share of the folds by input, when the snapshot has them. This test is less strict. */
+  byInput?: { mae: number; medianAe: number; share: number };
 }
 
 /** One point of the trend of the coverage: the share of each measure on one date */
@@ -697,7 +703,10 @@ export interface CoveragePoint {
   run: number | null;
   corpus: string;
   commit: string;
+  /** The share of each measure, with the folds of the summary */
   shares: Record<string, number>;
+  /** The share of each measure with the folds by input, when the snapshot has them */
+  sharesByInput?: Record<string, number>;
 }
 
 /** The snapshot of the space coverage: the last summary and the trend of the shares */
@@ -722,14 +731,17 @@ export interface CoverageSnapshot {
 /**
  * This function gives the coverage snapshot of a summary of `coverage`. The trend keeps each point of the earlier
  * snapshot, and the new point takes the place of a point with the same date and corpus.
+ * The optional `byInput` is a second summary of the same records with the folds by input. Its numbers go next to the first numbers.
  */
-export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot): CoverageSnapshot {
+export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary): CoverageSnapshot {
+  const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const point: CoveragePoint = {
     date: summary.date,
     run: summary.run,
     corpus: summary.corpus,
     commit: origin.commit,
     shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
+    ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
   };
   const trend = [...(earlier?.trend ?? []).filter((p) => p.date !== point.date || p.corpus !== point.corpus), point].sort((a, b) => a.date.localeCompare(b.date) || a.corpus.localeCompare(b.corpus));
   return {
@@ -751,6 +763,8 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
         n: m.n,
         mae: m.model.mae,
         baselineMae: m.baseline.mae,
+        medianAe: m.model.medianAe,
+        baselineMedianAe: m.baseline.medianAe,
         skill: m.skill,
         share: m.share,
         shareOfMeasured: m.shareOfMeasured,
@@ -758,6 +772,7 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
         explained: { ...m.explained },
         noise: m.noise,
         indices: m.indices.slice(0, COVERAGE_TOP).map((x) => ({ ...x })),
+        ...(second.has(m.id) ? { byInput: { mae: second.get(m.id)!.model.mae, medianAe: second.get(m.id)!.model.medianAe, share: second.get(m.id)!.share } } : {}),
       })),
     },
     trend,
@@ -876,7 +891,10 @@ export function snapshotMain(argv: readonly string[]): void {
     const origin = originOf(run.commit, options.run, `bench.yml, the artifact bench-${run.corpus}, and bench/coverage.ts`, optionOf(argv, "--release"));
     const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
     const earlier = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as CoverageSnapshot) : undefined;
-    writeSnapshot(file, coverageSnapshot(coverage(records, manifest, options), origin, earlier));
+    // The site shows the folds by spec, the stricter test. The folds by input give the second number.
+    const bySpec = coverage(records, manifest, { ...options, by: "spec" });
+    const byInput = coverage(records, manifest, { ...options, by: "input" });
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
     return;
   }
   if (kind === "paired" && folder !== undefined) {

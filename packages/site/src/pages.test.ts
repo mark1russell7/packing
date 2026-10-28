@@ -220,7 +220,12 @@ describe("the space coverage of k105", () => {
       expect(m.cells.covered).toBeLessThanOrEqual(m.cells.withRecords);
       expect(m.cells.withRecords).toBeLessThanOrEqual(m.cells.space);
       expect(m.mae).toBeLessThan(m.baselineMae);
+      expect(m.medianAe).toBeLessThanOrEqual(m.baselineMedianAe);
+      expect(m.byInput!.share).toBeGreaterThanOrEqual(0);
+      expect(m.byInput!.mae).toBeLessThanOrEqual(m.mae);
     }
+    expect(snap.latest.model.by).toBe("spec");
+    expect(Object.keys(snap.trend[0]!.sharesByInput!)).toEqual(Object.keys(snap.trend[0]!.shares));
     expect(snap.origin[0]).toMatchObject({ release: "0.2.17", commit: "443bbca" });
   });
 
@@ -228,9 +233,9 @@ describe("the space coverage of k105", () => {
     expect(percentText(0.2864)).toBe("29%");
     expect(errorText({ scale: "linear" }, 0.0481)).toBe("0.048");
     expect(errorText({ scale: "log" }, 0.083)).toBe("×1.21");
-    expect(errorWidth({ mae: 0.05, baselineMae: 0.2 })).toBe(25);
-    expect(errorWidth({ mae: 0.3, baselineMae: 0.2 })).toBe(100);
-    expect(errorWidth({ mae: 0.1, baselineMae: 0 })).toBe(0);
+    expect(errorWidth(0.05, 0.2)).toBe(25);
+    expect(errorWidth(0.3, 0.2)).toBe(100);
+    expect(errorWidth(0.1, 0)).toBe(0);
   });
 
   it("places the points of the trend by date and share", () => {

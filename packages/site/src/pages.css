@@ -1104,6 +1104,32 @@
   overflow: hidden;
 }
 
+.cbars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cbar.median {
+  height: 10px;
+}
+
+.cbar.median .model {
+  top: 2px;
+  bottom: 2px;
+  background: color-mix(in oklab, var(--accent) 60%, var(--surface));
+}
+
+.tile b .alt,
+.cval .alt {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
 .cbar .base {
   position: absolute;
   inset: 0;

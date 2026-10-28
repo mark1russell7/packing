@@ -209,4 +209,16 @@ describe("the command line", () => {
     expect(readRecords("\n{\"strategy\":\"a\",\"input\":\"b\"}\n\n")).toHaveLength(1);
     expect(() => coverageMain(["--records", "x"])).toThrow(/--corpus/);
   });
+
+  it("writes a note and no error for a run with fewer records than --min-records", () => {
+    const { manifest, records } = madeUp();
+    writeFileSync(join(dir, "few.jsonl"), `${records.map((r) => JSON.stringify(r)).join("\n")}\n`);
+    writeFileSync(join(dir, "corpus.json"), JSON.stringify(manifest));
+    const out = join(dir, "note.json");
+    const note = coverageMain(["--records", join(dir, "few.jsonl"), "--corpus", join(dir, "corpus.json"), "--out", out, "--min-records", "50"]);
+    expect(note).toEqual({ schema: "packing-coverage/1", corpus: "toy-v1", records: 48, note: "The run has 48 measured records, fewer than 50. The coverage needs more records." });
+    expect(JSON.parse(readFileSync(out, "utf8"))).toEqual(note);
+    expect("measures" in coverageMain(["--records", join(dir, "few.jsonl"), "--corpus", join(dir, "corpus.json"), "--out", out, "--min-records", "48"])).toBe(true);
+    expect(() => coverageMain(["--records", join(dir, "few.jsonl"), "--corpus", join(dir, "corpus.json"), "--out", out, "--min-records", "-1"])).toThrow(/0 or more/);
+  });
 });

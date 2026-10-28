@@ -618,20 +618,43 @@ export function coverageOptions(argv: readonly string[]): CoverageOptions {
   return { folds, seed, by, ...(run === undefined ? {} : { run: Number(run) }), ...(date === undefined ? {} : { date }) };
 }
 
-/** This function starts the coverage from the arguments of the command line. It writes the summary and shows one line for each measure. */
-export function coverageMain(argv: readonly string[]): CoverageSummary {
+/** The note of `coverageMain` when a run has too few records for a summary */
+export interface CoverageNote {
+  readonly schema: typeof COVERAGE_SCHEMA;
+  readonly corpus: string;
+  readonly records: number;
+  readonly note: string;
+}
+
+/**
+ * This function starts the coverage from the arguments of the command line. It writes the summary and shows one line for each measure.
+ * With `--min-records <n>`, a run with fewer measured records gives a note in place of the summary, and no error.
+ */
+export function coverageMain(argv: readonly string[]): CoverageSummary | CoverageNote {
   const records = optionOf(argv, "--records");
   const corpusFile = optionOf(argv, "--corpus");
   const out = optionOf(argv, "--out");
   if (records === undefined || corpusFile === undefined || out === undefined) throw new Error("Start the coverage with: node bench/coverage.ts --records <file> --corpus <file> --out <file>");
+  const min = Number(optionOf(argv, "--min-records") ?? 0);
+  if (!Number.isInteger(min) || min < 0) throw new Error("The option --min-records is a whole number of 0 or more.");
   const manifest = JSON.parse(readFileSync(corpusFile, "utf8")) as CoverageManifest;
-  const summary = coverage(readRecords(readFileSync(records, "utf8")), manifest, coverageOptions(argv));
+  const rows = readRecords(readFileSync(records, "utf8"));
+  const measured = rows.filter((r) => r.skipped === undefined).length;
   const path = resolve(out);
   mkdirSync(dirname(path), { recursive: true });
+  if (measured < min) {
+    const note: CoverageNote = { schema: COVERAGE_SCHEMA, corpus: manifest.corpus, records: measured, note: `The run has ${measured} measured records, fewer than ${min}. The coverage needs more records.` };
+    writeFileSync(path, `${JSON.stringify(note, null, 1)}\n`);
+    console.log(note.note);
+    return note;
+  }
+  const summary = coverage(rows, manifest, coverageOptions(argv));
   writeFileSync(path, `${JSON.stringify(summary, null, 1)}\n`);
   for (const m of summary.measures) {
     const top = m.indices.slice(0, 3).map((x) => `${x.feature} ${x.index}`).join(", ");
-    console.log(`${m.id}: error ${m.model.mae} against ${m.baseline.mae}, share ${m.share} (${m.cells.covered} of ${m.cells.space} cells), top ${top}`);
+    console.log(
+      `${m.id}: error ${m.model.mae} against ${m.baseline.mae}, median error ${m.model.medianAe} against ${m.baseline.medianAe}, share ${m.share} (${m.cells.covered} of ${m.cells.space} cells), top ${top}`,
+    );
   }
   return summary;
 }

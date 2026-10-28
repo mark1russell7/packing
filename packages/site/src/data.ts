@@ -174,9 +174,13 @@ export interface CoverageMeasure {
   n: number;
   mae: number;
   baselineMae: number;
+  medianAe: number;
+  baselineMedianAe: number;
   skill: number | null;
   share: number;
   shareOfMeasured: number;
+  /** The errors and the share of the folds by input, a less strict test */
+  byInput?: { mae: number; medianAe: number; share: number };
   cells: { space: number; withRecords: number; covered: number };
   explained: { strategy: number; input: number; joint: number };
   noise: number;
@@ -190,6 +194,7 @@ export interface CoveragePoint {
   corpus: string;
   commit: string;
   shares: Record<string, number>;
+  sharesByInput?: Record<string, number>;
 }
 
 /** The snapshot of the space coverage of k105: the last summary and the trend of the shares, oldest first */

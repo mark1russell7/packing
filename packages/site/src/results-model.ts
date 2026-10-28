@@ -167,8 +167,8 @@ export const percentText = (share: number): string => `${Math.round(share * 100)
  */
 export const errorText = (m: Pick<CoverageMeasure, "scale">, error: number): string => (m.scale === "log" ? `×${(10 ** error).toFixed(2)}` : error.toFixed(3));
 
-/** This function gives the width of the bar of the model error, as a percent of the baseline error. It is from 0 to 100. */
-export const errorWidth = (m: Pick<CoverageMeasure, "mae" | "baselineMae">): number => (m.baselineMae <= 0 ? 0 : Math.max(0, Math.min(100, (m.mae / m.baselineMae) * 100)));
+/** This function gives the width of the bar of an error of the model, as a percent of the baseline error. It is from 0 to 100. */
+export const errorWidth = (model: number, baseline: number): number => (baseline <= 0 ? 0 : Math.max(0, Math.min(100, (model / baseline) * 100)));
 
 /** One point of a series of the trend chart, in the units of the box of the chart */
 export interface TrendPoint {

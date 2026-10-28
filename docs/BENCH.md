@@ -736,6 +736,11 @@ node bench/coverage.ts --records <folder>/records.jsonl --corpus <folder>/corpus
 
 The options `--folds` (5), `--seed` (1) and `--by input|spec` (`input`) change the held-out test. The script prints one line for each measure.
 
+With `--min-records <n>`, a run with fewer measured records gives a note in the output file. The script then stops without an error.
+
+The job `merge` of `bench.yml` starts the script after the merge, with `--by spec` and `--min-records 50`. It writes `coverage.json` into the artifact `bench-<corpus>`.
+The step does not fail the job at any time. Its lines also go into the summary of the job.
+
 ### The features
 
 - The strategy features come from the named config of `packSpace`. Each stage gives its option, and each param of the option gives one feature.
@@ -754,6 +759,8 @@ The options `--folds` (5), `--seed` (1) and `--by input|spec` (`input`) change t
 
 ### The tolerances
 
+These are the current values. A change of a tolerance changes the shares of all later points of the trend.
+
 | Measure | Scale | Tolerance |
 |---|---|---|
 | `pack.fill` | linear | 0.02 |
@@ -765,7 +772,7 @@ A skipped record and a value that is not finite count as missing.
 
 ### The summary
 
-- `model` and `baseline` give the mean absolute error, the median absolute error and the share of records within the tolerance.
+- `model` and `baseline` give the mean absolute error, the median absolute error and the share of records within the tolerance. The values are raw, with no transform.
 - `skill` is 1 minus the model error over the baseline error. A skill of 0.7 tells that the model removes 70% of the error.
 - `indices` give the first-order index of each feature: the variance of the means of its levels over the full variance.
 - `explained` gives the same index for the strategy, the input spec and the two together. `noise` is 1 minus the joint index. The seeds cause it.
@@ -779,3 +786,12 @@ A skipped record and a value that is not finite count as missing.
 - A low share tells where to measure next. Look at the features with high indices first.
 - A high `noise` tells that the seed changes the measure much. More seeds help, but a better model does not.
 - An outlier changes the mean error and the indices much. Compare `medianAe` and `mae` before you trust a low index.
+- `pack.gap` has a long tail. Its median error is much lower than its mean error.
+
+### The site
+
+The section `#coverage` of the results page reads `packages/site/data/coverage.json`. The command `snapshot.ts coverage` computes the coverage two times.
+
+- The large numbers come from the folds by spec, the stricter test.
+- The small numbers "by input" come from the folds by input.
+- The error bars show the mean error and the median error of the model against the baseline.

@@ -368,13 +368,13 @@ function trendSvg(): string {
 function mountCoverage(): void {
   const l = cover.latest;
   $("coverage-text").innerHTML = marked.parse(coverageText, { async: false });
-  $("coverage-note").innerHTML = `The data: ${dataLine(cover.origin)}. The corpus <code>${esc(l.corpus)}</code>: ${l.records} records of ${l.strategies.length} strategies on ${l.inputs} inputs. The model: a regression tree, ${l.model.folds} parts by ${esc(l.model.by)}, the seed ${l.model.seed}.`;
+  $("coverage-note").innerHTML = `The data: ${dataLine(cover.origin)}. The corpus <code>${esc(l.corpus)}</code>: ${l.records} records of ${l.strategies.length} strategies on ${l.inputs} inputs. The model: a regression tree, ${l.model.folds} parts by ${esc(l.model.by)}, the seed ${l.model.seed}. The small number "by input" is the less strict test.`;
   $("coverage-origin").innerHTML = originHtml(cover.origin);
   $("coverage-tiles").innerHTML = l.measures
     .map(
       (m) => `<div class="tile cover">
         <span>${esc(coverLabel(m.id))}</span>
-        <b>${percentText(m.share)}</b>
+        <b>${percentText(m.share)}${m.byInput === undefined ? "" : ` <small class="alt">by input ${percentText(m.byInput.share)}</small>`}</b>
         <span class="cmeter" aria-hidden="true"><i style="width:${m.share * 100}%"></i></span>
         <small>${m.cells.covered} of ${m.cells.space} cells within ${esc(errorText(m, m.tolerance))}</small>
       </div>`,
@@ -383,10 +383,14 @@ function mountCoverage(): void {
   $("coverage-errors").innerHTML = l.measures
     .map((m) => {
       const skill = m.skill === null ? "" : `, ${percentText(m.skill)} less error`;
+      const alt = m.byInput === undefined ? "" : `<small class="alt">by input ${esc(errorText(m, m.byInput.mae))}, median ${esc(errorText(m, m.byInput.medianAe))}</small>`;
       return `<li class="crow" title="${esc(`${coverLabel(m.id)}: ${m.n} records`)}">
         <span class="cname">${esc(coverLabel(m.id))} <small>tolerance ${esc(errorText(m, m.tolerance))}</small></span>
-        <span class="cbar" aria-hidden="true"><span class="base"></span><span class="model" style="width:${errorWidth(m)}%"></span></span>
-        <span class="cval">${esc(errorText(m, m.mae))} against ${esc(errorText(m, m.baselineMae))}${skill}</span>
+        <span class="cbars">
+          <span class="cbar" aria-hidden="true"><span class="base"></span><span class="model" style="width:${errorWidth(m.mae, m.baselineMae)}%"></span></span>
+          <span class="cbar median" aria-hidden="true"><span class="base"></span><span class="model" style="width:${errorWidth(m.medianAe, m.baselineMedianAe)}%"></span></span>
+        </span>
+        <span class="cval">mean ${esc(errorText(m, m.mae))} against ${esc(errorText(m, m.baselineMae))}${skill}<br>median ${esc(errorText(m, m.medianAe))} against ${esc(errorText(m, m.baselineMedianAe))}${alt}</span>
       </li>`;
     })
     .join("");
@@ -403,12 +407,15 @@ function mountCoverage(): void {
   $("coverage-trend").innerHTML = trendSvg();
   const last = cover.trend.at(-1)!;
   $("coverage-legend").innerHTML = l.measures
-    .map((m, i) => `<span class="ckey"><i class="csw s${i + 1}" aria-hidden="true"></i>${esc(coverLabel(m.id))} <b>${percentText(last.shares[m.id] ?? 0)}</b></span>`)
+    .map((m, i) => {
+      const alt = last.sharesByInput?.[m.id];
+      return `<span class="ckey"><i class="csw s${i + 1}" aria-hidden="true"></i>${esc(coverLabel(m.id))} <b>${percentText(last.shares[m.id] ?? 0)}</b>${alt === undefined ? "" : ` <small>by input ${percentText(alt)}</small>`}</span>`;
+    })
     .join("");
-  const head = l.measures.map((m) => `<th scope="col" class="num">${esc(coverLabel(m.id))}</th>`).join("");
+  const head = l.measures.map((m) => `<th scope="col" class="num">${esc(coverLabel(m.id))} <small>by spec (by input)</small></th>`).join("");
   const body = [...cover.trend]
     .reverse()
-    .map((p) => `<tr><th scope="row">${esc(p.date)}</th><td><code>${esc(p.corpus)}</code></td><td><code>${esc(p.commit)}</code></td>${l.measures.map((m) => `<td class="num">${p.shares[m.id] === undefined ? "" : percentText(p.shares[m.id]!)}</td>`).join("")}</tr>`)
+    .map((p) => `<tr><th scope="row">${esc(p.date)}</th><td><code>${esc(p.corpus)}</code></td><td><code>${esc(p.commit)}</code></td>${l.measures.map((m) => `<td class="num">${p.shares[m.id] === undefined ? "" : percentText(p.shares[m.id]!)}${p.sharesByInput?.[m.id] === undefined ? "" : ` <small>(${percentText(p.sharesByInput[m.id]!)})</small>`}</td>`).join("")}</tr>`)
     .join("");
   $("coverage-table").innerHTML = `<thead><tr><th scope="col">Date</th><th scope="col">Corpus</th><th scope="col">Commit</th>${head}</tr></thead><tbody>${body}</tbody>`;
 }

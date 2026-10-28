@@ -248,4 +248,13 @@ describe("the coverage snapshot (k105)", () => {
     ]);
     expect(again.latest.date).toBe("2026-10-28");
   });
+
+  it("keeps the median errors, and puts the numbers of the folds by input next to the first numbers", () => {
+    const strict = summary("2026-10-28", 0.5);
+    const loose = summary("2026-10-28", 0.6);
+    const snap = coverageSnapshot(strict, origin, undefined, loose);
+    expect(snap.latest.measures[0]).toMatchObject({ medianAe: 0.005, baselineMedianAe: 0.08, share: 0.5, byInput: { mae: 0.01, medianAe: 0.005, share: 0.6 } });
+    expect(snap.trend[0]).toMatchObject({ shares: { "pack.fill": 0.5 }, sharesByInput: { "pack.fill": 0.6 } });
+    expect(coverageSnapshot(strict, origin).latest.measures[0]!.byInput).toBeUndefined();
+  });
 });
