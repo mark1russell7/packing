@@ -136,12 +136,13 @@ describe("the portfolio report: the sets", () => {
     expect(c.pool).toEqual(["C", "B", "A"]);
   });
 
-  it("gives no set without a training input, and no k = 3 set with 2 entries", () => {
+  it("gives no set without a training input, and no larger set when no entry improves the best single entry", () => {
     const held = cellPortfolioOf(["A", "B"], [rec("A", "x/s3", 0, 0.5), rec("B", "x/s3", 0, 0.6)]);
     expect(held.best).toBeUndefined();
     expect(held.sets).toEqual([]);
     const two = cellPortfolioOf(["A", "B"], [rec("A", "x/s1", 0, 0.5), rec("B", "x/s1", 0, 0.6)]);
-    expect(two.sets.map((s) => s.members)).toEqual([["B", "A"]]);
+    expect(two.best?.members).toEqual(["B"]);
+    expect(two.sets).toEqual([]);
   });
 
   it("gives the cell all and each container shape, and writes the tables", () => {

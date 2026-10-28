@@ -27,10 +27,6 @@ export const PORTFOLIO_SETS: PortfolioSets = {
       "id": "shelf",
       "strategy": "shelf"
     },
-    "push": {
-      "id": "push",
-      "strategy": "push"
-    },
     "shelf-next": {
       "id": "shelf-next",
       "strategy": "shelf",
@@ -637,8 +633,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "3": [
           "maxrects-bl",
-          "maxrects-cp",
-          "push"
+          "maxrects-cp"
         ]
       },
       "train": {
@@ -675,7 +670,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "2": 14.826,
         "3": 14.826
       },
-      "defaultMembers": 3
+      "defaultMembers": 2
     },
     "circle/1k/heavyTail": {
       "inputs": 35,
@@ -743,8 +738,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "3": [
           "maxrects-bl",
-          "shelf-best",
-          "push"
+          "shelf-best"
         ]
       },
       "train": {
@@ -1003,13 +997,10 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "maxrects-cp"
         ],
         "2": [
-          "maxrects-cp",
-          "push"
+          "maxrects-cp"
         ],
         "3": [
-          "maxrects-cp",
-          "push",
-          "shelf"
+          "maxrects-cp"
         ]
       },
       "train": {
@@ -1038,15 +1029,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": -0.001,
           "wins": 35,
           "winShare": 1,
-          "msMean": 4.387
+          "msMean": 3.71
         }
       },
       "prefixMedianMs": {
         "1": 2.383,
         "2": 2.383,
-        "3": 3.043
+        "3": 2.383
       },
-      "defaultMembers": 3
+      "defaultMembers": 1
     },
     "convex/1k/uniform": {
       "inputs": 35,
@@ -1056,13 +1047,10 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "shelf-best"
         ],
         "2": [
-          "shelf-best",
-          "push"
+          "shelf-best"
         ],
         "3": [
-          "shelf-best",
-          "push",
-          "shelf"
+          "shelf-best"
         ]
       },
       "train": {
@@ -1091,15 +1079,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0.001,
           "wins": 35,
           "winShare": 1,
-          "msMean": 20.675
+          "msMean": 19.138
         }
       },
       "prefixMedianMs": {
         "1": 18.965,
         "2": 18.965,
-        "3": 20.413
+        "3": 18.965
       },
-      "defaultMembers": 3
+      "defaultMembers": 1
     },
     "ellipse/10/heavyTail": {
       "inputs": 35,
@@ -1374,13 +1362,10 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "maxrects-bl"
         ],
         "2": [
-          "maxrects-bl",
-          "push"
+          "maxrects-bl"
         ],
         "3": [
-          "maxrects-bl",
-          "push",
-          "shelf"
+          "maxrects-bl"
         ]
       },
       "train": {
@@ -1409,15 +1394,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0,
           "wins": 35,
           "winShare": 1,
-          "msMean": 43.01
+          "msMean": 42.562
         }
       },
       "prefixMedianMs": {
         "1": 43.159,
         "2": 43.159,
-        "3": 43.575
+        "3": 43.159
       },
-      "defaultMembers": 3
+      "defaultMembers": 1
     },
     "holes/10/heavyTail": {
       "inputs": 35,
@@ -1639,13 +1624,10 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "maxrects-cp"
         ],
         "2": [
-          "maxrects-cp",
-          "push"
+          "maxrects-cp"
         ],
         "3": [
-          "maxrects-cp",
-          "push",
-          "shelf"
+          "maxrects-cp"
         ]
       },
       "train": {
@@ -1674,15 +1656,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0,
           "wins": 35,
           "winShare": 1,
-          "msMean": 1.903
+          "msMean": 1.206
         }
       },
       "prefixMedianMs": {
         "1": 1.011,
         "2": 1.011,
-        "3": 1.594
+        "3": 1.011
       },
-      "defaultMembers": 3
+      "defaultMembers": 1
     },
     "holes/1k/uniform": {
       "inputs": 35,
@@ -1697,8 +1679,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "3": [
           "shelf-first",
-          "maxrects-bl",
-          "push"
+          "maxrects-bl"
         ]
       },
       "train": {
@@ -1735,7 +1716,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "2": 37.4,
         "3": 37.4
       },
-      "defaultMembers": 3
+      "defaultMembers": 2
     },
     "polygon/10/heavyTail": {
       "inputs": 35,
@@ -1957,13 +1938,10 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "maxrects-cp"
         ],
         "2": [
-          "maxrects-cp",
-          "push"
+          "maxrects-cp"
         ],
         "3": [
-          "maxrects-cp",
-          "push",
-          "shelf"
+          "maxrects-cp"
         ]
       },
       "train": {
@@ -1992,15 +1970,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0,
           "wins": 35,
           "winShare": 1,
-          "msMean": 1.56
+          "msMean": 0.981
         }
       },
       "prefixMedianMs": {
         "1": 0.769,
         "2": 0.769,
-        "3": 1.357
+        "3": 0.769
       },
-      "defaultMembers": 3
+      "defaultMembers": 1
     },
     "polygon/1k/uniform": {
       "inputs": 35,
@@ -2287,13 +2265,10 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "maxrects-cp"
         ],
         "2": [
-          "maxrects-cp",
-          "push"
+          "maxrects-cp"
         ],
         "3": [
-          "maxrects-cp",
-          "push",
-          "shelf"
+          "maxrects-cp"
         ]
       },
       "train": {
@@ -2322,15 +2297,15 @@ export const PORTFOLIO_SETS: PortfolioSets = {
           "fillRegret": 0,
           "wins": 35,
           "winShare": 1,
-          "msMean": 1
+          "msMean": 0.679
         }
       },
       "prefixMedianMs": {
         "1": 0.554,
         "2": 0.554,
-        "3": 0.905
+        "3": 0.554
       },
-      "defaultMembers": 3
+      "defaultMembers": 1
     },
     "rect/1k/uniform": {
       "inputs": 35,
@@ -2345,8 +2320,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         ],
         "3": [
           "shelf-first",
-          "maxrects-bl",
-          "push"
+          "maxrects-bl"
         ]
       },
       "train": {
@@ -2383,7 +2357,7 @@ export const PORTFOLIO_SETS: PortfolioSets = {
         "2": 8.887,
         "3": 8.887
       },
-      "defaultMembers": 3
+      "defaultMembers": 2
     }
   }
 };

@@ -131,7 +131,7 @@ describe("the set table", () => {
   it("gives a group with fewer than 12 inputs no set, and the default count by the frame budget", () => {
     const records: ScreenRecord[] = [];
     for (let i = 0; i < 12; i++) {
-      const fills: Record<string, number> = { A: 0.5, B: 0.9, C: 0.7 };
+      const fills: Record<string, number> = i % 2 === 0 ? { A: 0.9, B: 0.5, C: 0.7 } : { A: 0.5, B: 0.9, C: 0.7 };
       for (const [id, ms] of [
         ["A", 10],
         ["B", 30],
@@ -142,11 +142,11 @@ describe("the set table", () => {
     const facts = [...factsOf(["A", "B", "C"], records).values()];
     expect(setsOf(["A", "B", "C"], facts.slice(0, 11))).toEqual({ inputs: 11, thin: true });
     const g = setsOf(["A", "B", "C"], facts);
-    // B is the oracle of each input. A ties C on the regrets and the win share, and A is faster.
-    expect(g.sets!["3"]).toEqual(["B", "A", "C"]);
-    expect(g.prefixMedianMs).toEqual({ "1": 30, "2": 40, "3": 140 });
+    // A and B each win half of the inputs, and A is faster. C improves no set, so the choice stops at 2 members.
+    expect(g.sets).toEqual({ "1": ["A"], "2": ["A", "B"], "3": ["A", "B"] });
+    expect(g.prefixMedianMs).toEqual({ "1": 10, "2": 40, "3": 40 });
     expect(g.defaultMembers).toBe(2);
-    expect(g.train!["1"]).toMatchObject({ inputs: 12, winShare: 1, fillRegret: 0, msMean: 30 });
+    expect(g.train!["1"]).toMatchObject({ inputs: 12, winShare: 0.5, fillRegret: 0.2, msMean: 10 });
     expect(tableSource({ ...PORTFOLIO_SETS, cells: { "rect/10/uniform": g } })).toContain("export const PORTFOLIO_SETS: PortfolioSets = {");
   });
 });
