@@ -20,7 +20,7 @@ The functions:
 | `measure(input, output, options?)` | The measures of one layout, by id. |
 | `measureChange(baseInput, baseOutput, changeInput, changeOutput)` | The stability measures of a change pair. The items match by id. |
 | `isDeterministic(first, second)` | The measure `pack.deterministic` of two runs. |
-| `MEASURE_SPECS` | The family, the unit, the direction and the range of each id. Each guard also has its `floor` and its `tol`. |
+| `MEASURE_SPECS` | The family, the unit, the direction, the range and the minimum effect of each id. Each guard also has its `floor` and its `tol`. |
 
 ### The numbers
 
@@ -124,11 +124,56 @@ The rows: the boxes go in the order of their top. A box joins the last row when 
 | Id | Unit | Direction | Range |
 |---|---|---|---|
 | `pack.overflow` | count | lower | 0 to `n` |
+| `pack.overflow.rate` | share | lower | 0 to 1 |
+| `pack.overflow.area` | share | lower | 0 to 1 |
+| `pack.overflow.forced` | count | lower | 0 to `n` |
+| `pack.overflow.forcedArea` | share | lower | 0 to 1 |
+| `pack.overflow.excess` | count | lower | 0 to `n` |
 
 **`pack.overflow`** counts the items that the packer did not place: the distinct ids of `output.overflow`.
 
 - The promotion rule names this measure "unplaced items". It is a guard only in the cells with a fixed size: `containerSize` set to `fixed`.
 - An item with no position that is not in the overflow is a break of the hard rule `complete`. It is not part of `pack.overflow`.
+
+**`pack.overflow.rate`** is the overflow divided by the count of the items, `n`. No item gives 0.
+
+`rate = overflow / n`
+
+**`pack.overflow.area`** is the area of the unplaced items divided by the area of all the items. The area of an item is `w * h`. No area gives 0.
+
+**`pack.overflow.forced`** is a lower bound of the overflow. It counts the items that no packer can place. The function `overflowBound` of `src/overflow.ts` gives it.
+
+**`pack.overflow.excess`** is the overflow that a better packer can perhaps place.
+
+`excess = overflow - forced`
+
+**`pack.overflow.forcedArea`** is the area of the forced overflow, divided by the area of all the items. It is a lower bound of `pack.overflow.area`.
+
+Since 0.2.2 (roadmap item k59), the bench ranks the fill only on the records with no overflow. A strategy that leaves out items gets a high fill. The forced overflow tells which part of the overflow the input forces.
+
+### The forced overflow
+
+The candidates are the items that are not locked at a position. A locked item with `x` and `y` uses its rectangle of the container.
+
+1. A fixed side forces each candidate that is longer than that side less 2 times the inset. A `turnable` item is forced only when both turns are too long.
+2. When the container has a fixed size, the other candidates must fit in the free area `F`. The largest candidates go first, until the sum of the rest is `F` or less. Each candidate that goes is forced.
+3. `forced` is the sum of the counts of step 1 and step 2. A container with no fixed side gives 0.
+
+The free area `F` is an upper bound. Thus `forced` is a lower bound for each packer, and the property test of each strategy shows `forced <= overflow`.
+
+| Container | `F` |
+|---|---|
+| A rectangle | The area of the container less the inset, less the exact union of the fixed rectangle obstacles and the locked items in it. |
+| A circle or an ellipse | `pi * r^2` or `pi * rx * ry`, and not more than the rectangle less the inset. |
+| A polygon | The shoelace area of the outer ring, less each hole whose box is in the ring and has no common point with the box of a hole before it. |
+| Each shape, not a rectangle | It loses each fixed obstacle and each locked item that is fully in the shape, when their boxes have no common point. |
+
+- An obstacle with `move` is not subtracted, because a packer can move it.
+- A rectangle container also loses the exact area of each obstacle of another shape that is fully in it. Its box has no common point with the other boxes.
+- The bound ignores the gap and the margins. They make the true free area smaller, thus the bound stays valid.
+- The area of a candidate is `w * h`, or the area of its shape when that is smaller.
+- A slack keeps the bound valid for the tolerance of the hard rules: `2 * tolerance.overlap` along the edges of each candidate and of the container.
+- The area of `pack.overflow.forcedArea` is the area of the long items of step 1, plus the part of the area of the rest above `F`.
 
 ## Coverage
 
@@ -291,3 +336,37 @@ The floor rule of PROMOTION ([the floor rule](https://github.com/mark1russell7/h
 - The other measures have no `floor` and no `tol`.
 - The tolerances of `pack.aspectError` and `pack.stability` are first values. The records of the floor rule give the data to measure them later.
 - A change of a value is a change of `MEASURE_SPECS`, its test and this table.
+
+### The minimum effects
+
+Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `MeasureSpec` of `@mark1russell7/layout-contract` 0.2.3. It is the smallest change that counts as better or worse.
+
+- `compareMeasure(candidate, baseline, spec)` of the contract gives `tie` for a change of `minEffectOf(spec, candidate, baseline)` or less.
+- A number is an absolute change. `{ rel: 0.01 }` is 1% of the larger of the two values.
+- The contract makes each minimum effect at least `RECORD_EPS`, the rounding of a record.
+
+| Id | `minEffect` | Reason |
+|---|---|---|
+| `pack.area` | `{ rel: 0.01 }` | An area. The scale changes with the input, thus the effect is relative. |
+| `pack.fill` | 0.005 | A share of an area from 0 to 1. |
+| `pack.whitespace` | 0.005 | A share of an area from 0 to 1. |
+| `pack.aspect` | `{ rel: 0.01 }` | A ratio of lengths, with no upper limit. |
+| `pack.aspectError` | 0.01 | The tolerance of the guard. |
+| `pack.order.inversions` | 0 | The tolerance of the guard. Each new inversion counts. |
+| `pack.order.breaks` | 0 | A count. |
+| `pack.raggedness` | 0.005 | A share of a length from 0 to 1. |
+| `pack.overflow` | 0 | The tolerance of the guard. Each new unplaced item counts. |
+| `pack.overflow.rate` | 0 | A share of a count. |
+| `pack.overflow.area` | 0.005 | A share of an area from 0 to 1. |
+| `pack.overflow.forced` | 0 | A count. |
+| `pack.overflow.forcedArea` | 0.005 | A share of an area from 0 to 1. |
+| `pack.overflow.excess` | 0 | A count. |
+| `pack.stability.moved` | 0.02 | The tolerance of the guard. |
+| `pack.stability.mean` | 0.005 | The tolerance of the guard. |
+| `pack.stability.q95` | 0.01 | The tolerance of the guard. |
+| `pack.deterministic` | 0 | A boolean as 0 or 1. |
+| `pack.search.widths` | 0 | A count. |
+| `pack.search.ms` | none | A time. The times of CI change from run to run, and the time test of PROMOTION has its own rule. |
+
+- A measure with no `minEffect` uses `RECORD_EPS` in `compareMeasure`.
+- The test `src/overflow.test.ts` pins this table, and it compares values with `compareMeasure` of the contract.

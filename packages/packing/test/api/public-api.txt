@@ -303,6 +303,11 @@ interface LayoutMeasures {
   "pack.order.breaks": number;
   "pack.raggedness": number;
   "pack.overflow": number;
+  "pack.overflow.rate": number;
+  "pack.overflow.area": number;
+  "pack.overflow.forced": number;
+  "pack.overflow.forcedArea": number;
+  "pack.overflow.excess": number;
   "pack.search.widths": number;
   "pack.search.ms": number;
 }
@@ -320,7 +325,7 @@ export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
 
 ### build/index.d.ts#MeasureId
-type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
+type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms";
 
 ### build/index.d.ts#MeasureOptions
 interface MeasureOptions {

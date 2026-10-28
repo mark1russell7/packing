@@ -269,15 +269,15 @@ The package `@mark1russell7/layout-contract` holds what the packer, the router a
 | The common fields of a strategy, with `supports` as a record of each dimension and its values | The dimensions of the packer, with their names in `docs/FORMAT.md` |
 | The registry of the measure names | |
 
-- Since 0.2.0, `packing` has the contract `^0.2.1` from npm as a dependency, and it imports the types.
+- Since 0.2.0, `packing` has the contract from npm as a dependency, and it imports the types. Since 0.2.2, the range is `^0.2.3`.
 - A test of `packing` makes sure that its types are the types of the contract.
 - The adapters of 0.1 stay until the contract is final.
 
 ## The type fit with `@mark1russell7/layout-contract`
 
-The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract 0.2.1 from npm (roadmap item k57).
+The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract from npm (roadmap item k57). Since `packing` 0.2.2, the contract is 0.2.3.
 
-- Since 0.2.0, the contract is a dependency of `packing` at run time: `"@mark1russell7/layout-contract": "^0.2.1"`.
+- Since 0.2.0, the contract is a dependency of `packing` at run time: `"@mark1russell7/layout-contract": "^0.2.3"` since 0.2.2. The minimum effects of 0.2.2 need `minEffect` and `compareMeasure` of the contract 0.2.3.
 - `packing` imports each shared type from the contract. Thus each shared type is the same type in both packages.
 - `EPS`, `RECORD_EPS`, `DEFAULT_TOLERANCE`, `checkInput`, `turnPoint`, `turnPort` and `turnRegion` are the values of the contract. `turnItem` is `turnBox` of the contract.
 - `toPackInput` gives the same packer input. `packHard` and `checkHard` give the same counts on the packed outputs of the generators, with and without an inset.

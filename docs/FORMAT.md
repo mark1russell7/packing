@@ -253,6 +253,11 @@ The names are lowercase, with a dot after the stage. This table is the short lis
 | `pack.search.widths` | count | lower | The widths that a search of the size tried. |
 | `pack.search.ms` | milliseconds | lower | The time of the search of the size. |
 | `pack.overflow` | count | lower | The boxes that the packer did not place. |
+| `pack.overflow.rate` | 0 to 1 | lower | The overflow divided by the count of the boxes. |
+| `pack.overflow.area` | 0 to 1 | lower | The area of the unplaced boxes divided by the area of all the boxes. |
+| `pack.overflow.forced` | count | lower | A lower bound of the overflow: the boxes that no packer can place in a fixed container. |
+| `pack.overflow.forcedArea` | 0 to 1 | lower | The area of the forced overflow divided by the area of all the boxes. |
+| `pack.overflow.excess` | count | lower | The overflow less the forced overflow. |
 | `pack.stability.moved` | 0 to 1 | lower | The part of the boxes that moved, against the run on the base input. |
 | `pack.stability.mean` | 0 or more | lower | The mean movement of a box against the base run, divided by the width of the container. |
 | `pack.stability.q95` | 0 or more | lower | The quantile 0.95 of the movement of a box against the base run, divided by the width of the container. |

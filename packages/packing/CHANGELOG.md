@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.2
+
+New overflow measures with a forced bound, and a minimum effect for each measure (roadmap item k59). This release has no breaking changes.
+
+### New
+
+- `measure` gives 5 new measures: `pack.overflow.rate`, `pack.overflow.area`, `pack.overflow.forced`, `pack.overflow.forcedArea` and `pack.overflow.excess`.
+- `pack.overflow.forced` is a lower bound of the overflow of a fixed container. `docs/MEASURES.md` defines it, with the free area of each container shape.
+- `MeasureId` and `LayoutMeasures` have the 5 new ids. `MEASURE_SPECS` has 20 specs, in the family `overflow` for the new ids.
+- Each spec of `MEASURE_SPECS` has `minEffect`, except `pack.search.ms`. `docs/MEASURES.md` has the table "The minimum effects".
+- The dependency `@mark1russell7/layout-contract` is `^0.2.3`, for `minEffect` and `compareMeasure`.
+
+### The outputs
+
+- The placements of each strategy do not change. The fixture `bench/fixtures/rect-hashes.json` still pins them.
+- Each record of the bench has the 5 new measures.
+
 ## 0.2.1
 
 One container layer gives the free space of each container shape (roadmap item k37). `rows`, `shelf` and `skyline` now pack a circle, an ellipse, a convex polygon, a polygon and a polygon with holes. This release has no breaking changes.
