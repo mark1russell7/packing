@@ -172,6 +172,21 @@ checkHard(input, output); // { "no-overlap": 0, "in-container": 0, "locked-kept"
 
 `docs/PACKER.md` in the repository gives the interface in full.
 
+## The strategy space
+
+`packSpace` gives the strategies of the package as data: a `StrategySpace` of the schema `strategy-space/1` of `@mark1russell7/layout-contract`.
+
+```ts
+import { packConfig, packSpace } from "@mark1russell7/packing";
+
+const output = packConfig(input, packSpace.named!["maxrects-cp"]!, 0);
+```
+
+- The space has 5 stages: `order`, `size-search`, `placement`, `local-search` and `combine`. Each option gives its params with their ranges.
+- The stage `combine` has the meta options `portfolio`, `cell-portfolio`, `select` and `aspect-fit`. Each meta config has members.
+- `named` has each id of the registry and each entry of the benchmark. The output of a named config is equal to the output of its strategy.
+- `packConfig(input, config, seed)` checks the config with `checkConfig` and packs it with the strategies of the registry.
+
 ## More
 
 - [The repository](https://github.com/mark1russell7/packing): the source, the tests and the roadmap.
