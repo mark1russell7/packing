@@ -20,7 +20,7 @@ Status: done, done, waiting, next, done.
 | k11 | Benchmarks in CI, with a prediction before each run | measure | done | k8, k9 |
 | k12 | Stability: the movement when one item changes | measure | later | k8 |
 | k13 | Speed and its scaling | measure | later | k11 |
-| k14 | A live site with interactive examples (v1: a demo of the current strategies) | site | active | k1 |
+| k14 | A live site with interactive examples (v1: a demo of the current strategies). The site rebuilds in CI on each merge to `main`, from the source and the committed results. Each page shows the release and the date of its data, and a list of the changes with dates. | site | active | k1 |
 | k15 | The s38 checks: `conventions` and `api-report` in CI | move | done | k0 |
 | k16 | The sort order `input` | strategies | done | |
 | k17 | `packShelf`: rows in the input order around obstacles | strategies | done | k1 |
@@ -38,7 +38,7 @@ Status: done, done, waiting, next, done.
 | k29 | Methods that keep the reading order or the layout under change | strategies | later | k6, k7 |
 | k30 | Online and incremental packing | strategies | later | k6, k7 |
 | k31 | New ideas of our own | strategies | later | k6, k7 |
-| k32 | Every result on the site, the losers too | site | later | k11, k14 |
+| k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. | site | next | k11, k14 |
 | k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
 | k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | done | k33 |
 | k35 | The problem taxonomy: the dimensions of the problem and their values | theory | done |  |
@@ -76,6 +76,7 @@ Status: done, done, waiting, next, done.
 | k67 | The size search `log-sweep` is slow: a free size with 100 items takes about 390 ms with `rows` and with `select`. Profile it first, then make it faster with the same outputs. Step 2 shipped in 0.2.16: `rows` sorts once (#82), and the slow inputs take about 0.11 of their time. The slowest takes 58 ms. Step 3 shipped in 0.2.17: `rows` packs each width one time (#84). The slowest takes 3.7 ms. | core | done | k33 |
 | k68 | The strategy space as data: export `packSpace` (strategy-space/1 of `layout-contract`, 5 stages) and `packConfig`. Each strategy of today is a named point with the same outputs. | strategies | next | k66 |
 | k69 | A baseline arm in the same job of `bench.yml`, so each time ratio is paired and a drift of the runner cancels. `paired.yml` (#85) does it for two refs. | measure | later | k33 |
+| k70 | Fit `SELECT_TABLE` again on two measures, the fill and the joint floor of `layout-contract`, with `verdict()`. The fit decides leaf 6: free size, a heavy tail and a shape that is not a rectangle. | strategies | next | k66 |
 
 ## Rules
 
@@ -84,5 +85,6 @@ Status: done, done, waiting, next, done.
 - Write each prediction before its benchmark run.
 - One item of a strategy family is always active, next to each item of speed or of the default.
 - A time ratio between two commits comes from one job: `paired.yml`, not two bench runs.
+- The site follows the work. Each item that ships a strategy, a result or a bench change also changes the site.
 - The strategy interface stays pure: items and sizes in, rectangles out, the same result for the same seed.
 - Each benchmark run writes one JSON record: the strategy, the input set, the seed, each measure and the time.
