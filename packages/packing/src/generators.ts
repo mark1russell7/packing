@@ -1081,7 +1081,7 @@ export const LADDER_WIDTH = 1024;
 /** The largest side of an item of `ladder`. */
 export const LADDER_SIDE = 256;
 
-/** This function gives the container of a family for the worst case: the strip of the width `w`, with or without the height `h` of the witness. */
+/** This function gives the container of a worst-case family: the strip of the width `w`. A `fixed` container has the height `h` of the witness. */
 const worstContainer = (size: WorstContainer, w: number, h: number): LayoutContainer => containerOf(size, w, h);
 
 /** This function gives the items of a list of sizes, with the ids `b0`, `b1` and on. */
@@ -1097,8 +1097,8 @@ const itemsOf = (sizes: readonly (readonly [number, number])[]): Item[] => sizes
  * - The input has the tall items first, then the short items from the narrowest to the widest.
  *
  * Why it is hard: the height sort puts the tall items first, and each one opens a row of its own. The short items keep
- * the order of the input, because they have the same height. A short item does not fit in the space above a narrower
- * short item, so the space above the short items of a tall row stays empty.
+ * the order of the input, because they have the same height. A short item does not fit above a narrower short item.
+ * Thus the space above the short items of a tall row stays empty.
  */
 export const tallRow: CorpusGenerator<TallRowParams> = defineGenerator<TallRowParams>({
   name: "tall-row",
@@ -1134,11 +1134,12 @@ export const tallRow: CorpusGenerator<TallRowParams> = defineGenerator<TallRowPa
 });
 
 /**
- * The generator `skyline-gap`, version 1: it breaks `skyline`. The items come in pairs on the strip of the width 100: a
- * narrow pillar, and a wide plate 1 unit too wide to go next to the pillar.
+ * The generator `skyline-gap`, version 1: it breaks `skyline`. The items come in pairs on the strip of the width 100.
+ * Each pair has a narrow pillar and a wide plate. The plate is 1 unit too wide to go next to the pillar.
  *
  * - The pillar is `floor(100 / (ratio + 1))` wide. The plate is `101` minus that width, so `ratio` is about the plate width over the pillar width.
- * - The plate height `b` is 4 to 30, and the pillar height is `b + 1`. Thus the height sort keeps the pillar of a pair just before its plate.
+ * - The plate heights are even and different. Each plate is 2 or 4 units taller than the plate of the pair before it.
+ * - The pillar height is the plate height plus 1. Thus the height sort keeps the pillar of a pair directly before its plate.
  * - The witness stacks the plates, and puts the pillars in shelves under them, from the tallest.
  *
  * Why it is hard: the plate goes on the top of the pillar, because it has no place next to it. The free space next to
@@ -1211,10 +1212,11 @@ export const blTrap: CorpusGenerator<BlTrapParams> = defineGenerator<BlTrapParam
  *
  * - For `excess` `e` (1 to 4), the widths are `100 + e`, `50 + 2e`, `50 + e` and `50 - 2e`, with 6, 6, 6 and 12 items in each group of 30.
  * - The input is in the order of the area, from the largest. Thus a strategy sees the items as in the greedy sort by area.
- * - The witness has 9 full levels for each group: 6 levels of `100 + e`, `50 + e` and `50 - 2e`, and 3 levels of 2 times `50 + 2e` and 2 times `50 - 2e`.
+ * - The witness has 9 full levels for each group. 6 levels have `100 + e`, `50 + e` and `50 - 2e`.
+ * - The 3 other levels have 2 items of `50 + 2e` and 2 items of `50 - 2e`.
  *
- * Why it is hard: the items just over half the width each take a level, and the greedy fit puts the wrong quarter
- * item next to them. Then the other quarters fill levels of their own. The result has 11 levels for each group of 30, not 9.
+ * Why it is hard: each item a bit over half the width takes a level. The greedy fit puts the wrong quarter item next
+ * to it. Then the other quarters fill levels of their own. The result has 11 levels for each group of 30, not 9.
  */
 export const halfWide: CorpusGenerator<HalfWideParams> = defineGenerator<HalfWideParams>({
   name: "half-wide",
@@ -1533,7 +1535,7 @@ const worstSizeDimension = (): CorpusDimension => ({
 
 /** This function gives a whole-number dimension of a family for the worst case, with its range, its default and its levels. */
 const intDimension = (name: string, min: number, max: number, value: number, levels: readonly number[], meaning: string, scale: "linear" | "log" = "linear"): CorpusDimension =>
-  Object.freeze({ name, kind: "int", min, max, default: value, scale, levels: Object.freeze([...levels]), meaning, engines: Object.freeze(["packing"]) });
+  ownerDimension(name, { kind: "int", min, max, default: value, scale, levels: Object.freeze([...levels]), meaning, engines: Object.freeze(["packing"]) });
 
 /** The dimensions of `tall-row` and `skyline-gap`: `ratio`, `containerSize` and `count`. */
 const ratioDimensions = (meaning: string): CorpusDimension[] => [
@@ -1586,7 +1588,7 @@ export const halfWideFamily: CorpusFamily<GeneratedInput> = familyOf(halfWide, {
 export const ladderFamily: CorpusFamily<GeneratedInput> = familyOf(ladder, {
   meaning: "The scaling ladder: the count 10 to 2560 at fixed sizes, or the side ratio 1 to 256 at a fixed count.",
   dimensions: [
-    { name: "axis", kind: "enum", values: LADDER_AXES, default: "count", meaning: "The axis of the ladder: the count of the items, or the ratio of the sides.", engines: ["packing"] },
+    ownerDimension("axis", { kind: "enum", values: LADDER_AXES, default: "count", meaning: "The axis of the ladder: the count of the items, or the ratio of the sides.", engines: ["packing"] }),
     intDimension("rung", 0, LADDER_RUNGS, 3, [0, 1, 2, 3, 4, 5, 6, 7, 8], "The rung of the ladder: the count `10 * 2^rung`, or the side ratio `2^rung`."),
     countDimension(100, { min: 1, when: { param: "axis", in: ["ratio"] } }),
   ],
