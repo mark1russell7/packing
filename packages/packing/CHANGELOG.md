@@ -8,6 +8,7 @@ A dependency update. This release has no breaking changes. The default outputs d
 
 - `@mark1russell7/layout-contract` is `^0.2.7`. Its `compareMeasure` compares two values on the grid of the records, in whole steps of `RECORD_EPS`.
 - Thus `packPortfolio` and the strategy `portfolio` find a tie at the `minEffect` limit without float noise. A pick changes only on such an input.
+- `PORTFOLIO_SETS` is generated again with the new compare, from the same run 40652567756. More inputs are ties, so the win shares go up. Some cells choose a different second or third member, so the strategy `portfolio` changes its output on these cells.
 
 ## 0.2.8
 
