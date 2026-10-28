@@ -164,9 +164,9 @@ export const DEFAULT_WARMUP = 2;
 /** This function tells if a value is a plain object. */
 const isObject = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 
+/**
  * This function reads the text of a corpus file. It throws an `Error` for a text that is not a `layout-corpus/1` manifest.
  * It also throws an `Error` for a manifest with no specs, or when `name` is not the name in the file.
- * with a list of specs, or when `name` is not the name in the file.
  */
 export function parseCorpus(text: string, name?: string): BenchCorpus {
   const value: unknown = JSON.parse(text);
