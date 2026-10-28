@@ -64,9 +64,10 @@ Status: done, done, waiting, next, done.
 | k55 | Component packing: polyominoes and the placement of the parts of a graph | strategies | later | k6, k7 |
 | k56 | Labels and word clouds: greedy, annealing, four places, and the spiral | strategies | later | k6, k7 |
 | k57 | The types of packing fit `@mark1russell7/layout-contract`, then packing uses them | core | done | k7 |
-| k58 | Promotion: a winner of the catalog becomes the default or a rule of the selector, by the shared promotion rule | measure | later | k11, k20 |
+| k58 | Promotion: a winner of the catalog becomes the default or a rule of the selector, by the shared promotion rule. The first part is the win test of `docs/PROMOTION.md` on the records of two entries. | measure | active | k11, k20 |
 | k59 | Screen guards: overflow measures with a forced bound, an exact container test, fill ranked without overflow, distinct strategies, activation | measure | done | k11, k37 |
 | k60 | Overflow excess by area, and fill ranked on shared clean records | measure | done | k59 |
+| k61 | DEFAULT-CANDIDATE: `portfolio-k2` and `maxrects-bl` against the default `rows`, each by the promotion rule. The default changes only when a candidate passes. | measure | active | k58, k20 |
 
 ## Rules
 
