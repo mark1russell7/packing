@@ -290,6 +290,22 @@ The tests (`src/maxrects.test.ts`) examine each rule on each container shape, wi
 - On a plain rectangle, no box in the overflow fits in a free rectangle at the end.
 - A hand case of each rule shows a place that is not the place of `bl`.
 
+The fill of the rules, from the smoke run of 0.2.5:
+
+- `pack.fill` is the area of the boxes divided by the area of their hull. It measures how compact a layout is, not how full a bin is.
+- On the 10 clean `rect` inputs of `smoke-v1`, the median fill is 0.816 for `bl`, 0.669 for `blsf` and 0.48 for `cp`.
+- Of these 10 inputs, 7 have a fixed size, 2 have a free height and 1 has a free aspect. No input has overflow.
+- The rule `cp` counts the contact with the frame. A box on the left edge gets its full height of contact.
+- Thus `cp` puts 4 of 10 boxes on the left edge, and `bl` puts 1 of 10. The hull becomes an L shape.
+- On `rect-grid.fixed.rect.none.uniform.n10/s1`, the hull is 902 by 617 for `cp` and 943 by 326 for `bl`.
+- The rule `blsf` takes the free rectangle with the smallest larger leftover side. This rectangle is frequently in the middle of the frame.
+- With a free height, the bottom of the frame is far below the boxes. The larger leftover side of `blsf` is then always the height.
+- Thus `blsf` puts each box under the last box. The result is one column with the fill 1 and a large aspect error.
+- On `gallery.freeHeight.n10/s1`, the column of `blsf` is 212 by 1413. The hull of `bl` is 1272 by 283.
+- The literature measures a rule by the boxes that fit in one bin. Only `rect-grid.fixed.rect.none.heavyTail.n100/s1` has overflow.
+- On it, the overflow is 45 boxes for `bl`, 51 for `cp`, 55 for `bssf`, 57 for `blsf` and 60 for `baf`.
+- Thus `cp` is second on the measure of the literature. The low fill of `cp` and `blsf` is not a defect of the code.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.
