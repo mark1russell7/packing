@@ -145,6 +145,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-free-v1` | 720 | The corpus of free sizes of roadmap item k62: `freeAspect` and `freeArea` with each shape. Write its prediction first. |
 | `pack-select-v1` | 2025 | The test corpus of the feature select of roadmap item k66: the specs of `pack-screen-v1` and `pack-free-v1` with fresh seeds. Write its prediction first. |
 | `pack-select-v2` | 2025 | The second test corpus of the feature select: the specs of `pack-select-v1` with the fresh seeds 31 to 35. Write its prediction first. |
+| `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -169,6 +170,13 @@ The corpus `pack-select-v1` has the 261 specs of `pack-screen-v1` and the 144 sp
 - It has `heldOut: "all"`. The fit of `SELECT_TABLE` did not see these seeds.
 - Its `claims.declared` counts are `order` 360, `aspect` 360, `free-size` 740 and `shaped` 1650, with no thin property.
 - The corpus `pack-select-v2` has the same specs and claims with the fresh seeds 31 to 35. It is the second confirmation of `select` before a change of the default. The win test and its limits do not change between the two corpora.
+
+The corpus `pack-known-v1` has 24 specs, each with the seeds 1 to 12:
+
+- `perfect-cut` with the cuts `guillotine` and `free`, the sizes `fixed`, `freeHeight` and `freeArea`, and the counts 10, 30 and 100. Each input has a known optimum.
+- `consecutive-squares` with the sizes `freeHeight` and `freeArea`, and the counts 10, 30 and 100. Each input has a known lower bound.
+- It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 216 and `shaped` 0. The thin properties are `order`, `aspect` and `shaped`.
+- The builder `bench/known.ts` writes the file. `node bench/known.ts --check` and a test compare the file with the builder.
 
 Version 2 of `rect-grid` adds the parameter `order`. With `soft`, each item gets a `rank` from a permutation of the seed. Version 1 does not change.
 

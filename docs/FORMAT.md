@@ -31,7 +31,8 @@ The corpus is a folder of input files and an index. Each input is one JSON file.
 | Field | Use |
 |---|---|
 | `id`, `set`, `family`, `seed` | The name of the input. The `set` is the corpus version, for example `screen-v1`. |
-| `source` | The origin of the input: `made-up`, `published:<set>` or `known-best:<construction>`. A generated input has `made-up`. The repository is public, so no input comes from a real product. |
+| `source` | The origin of the input: `made-up`, `published:<set>` or `known-best:<construction>`. A generated input has `made-up`, or `known-best:<generator>` when it has a known best value. The repository is public, so no input comes from a real product. |
+| `known` | The known best value of an input of `known-best:<construction>`: `{ "kind", "area", "height"?, "source" }`. The section "The inputs with a known best value" tells it. Optional. |
 | `hash` | The first 16 hex characters of the SHA-256 of the canonical file: sorted keys, no whitespace, without the field `hash`. |
 | `container` | The outer rectangle. `fixed` is `none`, `width`, `height` or `size`. The router ignores it. |
 | `container.aspect` | The target aspect: the width divided by the height. The default is 1. With `fixed` set to `none`, the packer searches the size for this aspect. |
@@ -171,6 +172,8 @@ The package exports each generator below, with `generators`, `generator(name)` a
 | `cards` | `containerSize` `freeHeight`, `count` 100 | `uniform`: one width, a different height for each card |
 | `word-cloud` | `containerSize` `freeHeight`, `count` 100 | `heavyTail`: the height from 6 font sizes, the width from the count of letters |
 | `edge-cases` | `case` `oversize`, `count` 12 | The cases `empty`, `one`, `oversize`, `exactTiling` and `touchObstacles` |
+| `perfect-cut` | `cut` `guillotine`, `containerSize` `fixed`, `count` 30 | `fixed`, `freeHeight` and `freeArea`: pieces of a cut with a known optimum |
+| `consecutive-squares` | `containerSize` `freeHeight`, `count` 30 | `freeHeight` and `freeArea`: the squares 1 to `count` with a known lower bound |
 
 The parameter `containerSize` of `rect-grid` and of the families of a user interface has the values `fixed`, `freeHeight`, `freeWidth`, `freeAspect` and `freeArea`.
 
@@ -187,6 +190,36 @@ The cases of `edge-cases` have a fixed rectangle container:
 - `oversize` has one box that is wider than the container.
 - `exactTiling` has identical boxes that fill the container with no free space.
 - `touchObstacles` has a locked box on an obstacle, and boxes as wide as the path between 2 obstacles. Its cell has the obstacles `corridors`.
+
+### The inputs with a known best value
+
+The generators `perfect-cut` and `consecutive-squares` of roadmap item k45 make inputs with a known best value. The measure `pack.gapToOpt` compares a layout with that value.
+
+- The default set is `known-v1`. The `source` of each input is `known-best:<generator>`.
+- Each input has the field `known`: `{ "kind", "area", "height"?, "source" }`. The other inputs do not have it, thus their hashes stay the same.
+- `kind` is `optimum` when a layout reaches the value, and `bound` when no layout is better.
+- `area` is the best area of the hull. For a fixed container, it is the area of the container.
+- `height` is the best height for a fixed width. Only `containerSize` `freeHeight` has it.
+- `source` is the construction of the generator, or a source of `docs/research/CATALOG.md`.
+
+The parts of `perfect-cut`:
+
+- The steps are `container`, `boxes` and `order`. The container step gives the rectangle `W` by `H`: 600 to 1000 by 400 to 800.
+- The boxes step cuts the rectangle into `count` pieces. Each step cuts the piece with the largest area. The cut positions are whole numbers.
+- With `cut` set to `guillotine`, each cut is a straight line across one piece. Most cuts go across the longer side.
+- With `cut` set to `free`, the first cut is a pinwheel: 4 pieces around a center piece. Thus no straight line goes across the rectangle.
+- The order step shuffles the pieces with the algorithm of Fisher and Yates. The boxes have the ids `b0` to `b<count - 1>` in that order.
+- The pieces fill the rectangle with no free space. Thus `kind` is `optimum`, `area` is `W * H`, and `height` is `H`.
+- `perfectCutOf(seed, params)` gives the pieces at their places in the cut. A test packs them and gets `pack.gapToOpt` 0.
+
+The parts of `consecutive-squares`:
+
+- The container step gives a scale `s` from 2 to 8. The squares have the sides `s`, `2s` to `count * s`.
+- With `freeHeight`, the width is 1 to 1.5 times the square root of the total area, and not less than the largest side.
+- The order step shuffles the squares.
+- `kind` is `bound`. `area` is the total area of the squares: `lb-area` of Martello 2003.
+- `height` is the larger of the total area divided by the width and the largest side: `lb-area` and `lb-tallest` of Martello 2003.
+- Korf 2010 finds the smallest enclosing rectangle of these squares for small counts. The generator does not use those optima. It uses only the bound.
 
 ## The record: `layout-record/1`
 
@@ -260,6 +293,7 @@ The names are lowercase, with a dot after the stage. This table is the short lis
 | `pack.overflow.excess` | count | lower | The overflow less the forced overflow. |
 | `pack.overflow.forcedAreaMin` | 0 to 1 | lower | A deprecated alias of `pack.overflow.forcedArea`, with the same value. It stays until the next minor version. |
 | `pack.overflow.excessArea` | 0 to 1 | lower | `pack.overflow.area` less `pack.overflow.forcedArea`: the overflow area that a better packer can perhaps place. |
+| `pack.gapToOpt` | ratio | lower | The distance from the known best value of the input. Only an input with the field `known` has it. |
 | `pack.stability.moved` | 0 to 1 | lower | The part of the boxes that moved, against the run on the base input. |
 | `pack.stability.mean` | 0 or more | lower | The mean movement of a box against the base run, divided by the width of the container. |
 | `pack.stability.q95` | 0 or more | lower | The quantile 0.95 of the movement of a box against the base run, divided by the width of the container. |

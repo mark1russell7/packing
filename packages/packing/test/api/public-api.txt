@@ -4,20 +4,16 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 211 names
+## . (build/index.d.ts): 204 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
-BOUND_KINDS: build/index.d.ts#BOUND_KINDS
-type BoundKind: build/index.d.ts#BoundKind
-type BoundMeasures: build/index.d.ts#BoundMeasures
-type BoundObjective: build/index.d.ts#BoundObjective
-type BoundOptions: build/index.d.ts#BoundOptions
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
+type ConsecutiveSquaresParams: build/index.d.ts#ConsecutiveSquaresParams
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
 type Corpus: build/index.d.ts#Corpus
 type CorpusCell: build/index.d.ts#CorpusCell
@@ -26,6 +22,7 @@ type CorpusGenerator: build/index.d.ts#CorpusGenerator
 type CorpusManifest: build/index.d.ts#CorpusManifest
 type CorpusSpec: build/index.d.ts#CorpusSpec
 type CountScale: build/index.d.ts#CountScale
+type CutPiece: build/index.d.ts#CutPiece
 DEFAULT_STRATEGY: build/index.d.ts#DEFAULT_STRATEGY
 DEFAULT_TOLERANCE: @mark1russell7/layout-contract#DEFAULT_TOLERANCE (external)
 type Dimension: build/index.d.ts#Dimension
@@ -43,6 +40,7 @@ type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type Item: @mark1russell7/layout-contract#Item (external)
+type KnownBest: build/index.d.ts#KnownBest
 type LayoutContainer: @mark1russell7/layout-contract#LayoutContainer (external)
 type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
 type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
@@ -61,7 +59,6 @@ type MeasureOptions: build/index.d.ts#MeasureOptions
 type MeasureSpec: build/index.d.ts#MeasureSpec
 type MemberTrace: @mark1russell7/layout-contract#MemberTrace (external)
 type MetricsOptions: build/index.d.ts#MetricsOptions
-type ObjectiveBound: build/index.d.ts#ObjectiveBound
 type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
 PORTFOLIO_FRAME_MS: build/index.d.ts#PORTFOLIO_FRAME_MS
@@ -76,6 +73,7 @@ type PackOptions: build/index.d.ts#PackOptions
 type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
 type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
 type PackingMetrics: build/index.d.ts#PackingMetrics
+type PerfectCutParams: build/index.d.ts#PerfectCutParams
 type Placement: @mark1russell7/layout-contract#Placement (external)
 type Port: @mark1russell7/layout-contract#Port (external)
 type Portfolio: @mark1russell7/layout-contract#Portfolio (external)
@@ -122,8 +120,6 @@ type SpaceRect: build/index.d.ts#SpaceRect
 type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/index.d.ts#Strategy
-type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
-type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type Supports: build/index.d.ts#Supports
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
@@ -134,8 +130,6 @@ aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
 assertSupported: build/index.d.ts#assertSupported
-boundGap: build/index.d.ts#boundGap
-boundMeasures: build/index.d.ts#boundMeasures
 canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
 cellKey: build/index.d.ts#cellKey
@@ -145,6 +139,7 @@ checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
 compareRects: build/index.d.ts#compareRects
 composites: build/index.d.ts#composites
+consecutiveSquares: build/index.d.ts#consecutiveSquares
 corpus: build/index.d.ts#corpus
 countCell: build/index.d.ts#countCell
 createContext: build/index.d.ts#createContext
@@ -154,6 +149,7 @@ fnv1a32: build/index.d.ts#fnv1a32
 freeSpace: build/index.d.ts#freeSpace
 fromRects: build/index.d.ts#fromRects
 gallery: build/index.d.ts#gallery
+gapToOpt: build/index.d.ts#gapToOpt
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
 hardBreaks: build/index.d.ts#hardBreaks
@@ -166,13 +162,9 @@ maxrects: build/index.d.ts#maxrects
 measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
 medianRatio: build/index.d.ts#medianRatio
-mmvBound: build/index.d.ts#mmvBound
 mulberry32: build/index.d.ts#mulberry32
-objectiveBound: build/index.d.ts#objectiveBound
-objectiveResult: build/index.d.ts#objectiveResult
 outputHash: build/index.d.ts#outputHash
 pack: build/index.d.ts#pack
-packConfig: build/index.d.ts#packConfig
 packDefault: build/index.d.ts#packDefault
 packFree: build/index.d.ts#packFree
 packMaxRects: build/index.d.ts#packMaxRects
@@ -180,10 +172,11 @@ packPortfolio: build/index.d.ts#packPortfolio
 packRows: build/index.d.ts#packRows
 packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
-packSpace: build/index.d.ts#packSpace
 packWith: build/index.d.ts#packWith
 packingMetrics: build/index.d.ts#packingMetrics
 pairedRatio: build/index.d.ts#pairedRatio
+perfectCut: build/index.d.ts#perfectCut
+perfectCutOf: build/index.d.ts#perfectCutOf
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
 portfolioMembers: build/index.d.ts#portfolioMembers
@@ -241,27 +234,6 @@ interface AspectFitStrategyOptions {
   targetAspect?: number;
 }
 
-### build/index.d.ts#BOUND_KINDS
-export declare const BOUND_KINDS: readonly BoundKind[];
-
-### build/index.d.ts#BoundKind
-type BoundKind = "strip.area" | "strip.tallest" | "strip.mmv" | "strip.margin" | "hull.area" | "hull.extent" | "hull.margin" | "placed.free";
-
-### build/index.d.ts#BoundMeasures
-interface BoundMeasures {
-  "pack.bound"?: number;
-  "pack.bound.kind"?: number;
-  "pack.gap"?: number;
-}
-
-### build/index.d.ts#BoundObjective
-type BoundObjective = "height" | "width" | "area" | "placed";
-
-### build/index.d.ts#BoundOptions
-interface BoundOptions {
-  readonly tolerance?: number;
-}
-
 ### build/index.d.ts#Cell
 interface Cell {
   containerSize: DimensionValue<"containerSize">;
@@ -279,6 +251,12 @@ interface ChangeMeasures {
   "pack.stability.mean": number;
   "pack.stability.q95": number;
 }
+
+### build/index.d.ts#ConsecutiveSquaresParams
+type ConsecutiveSquaresParams = {
+  containerSize: "freeHeight" | "freeArea";
+  count: number;
+};
 
 ### build/index.d.ts#Corpus
 interface Corpus {
@@ -336,6 +314,15 @@ interface CorpusSpec {
 
 ### build/index.d.ts#CountScale
 type CountScale = "1" | "10" | "100" | "1k" | "10k";
+
+### build/index.d.ts#CutPiece
+interface CutPiece {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 ### build/index.d.ts#DEFAULT_STRATEGY
 export declare const DEFAULT_STRATEGY = "select";
@@ -409,6 +396,7 @@ interface GeneratedInput extends LayoutInput$1 {
   readonly container: LayoutContainer$1;
   readonly edges: readonly LayoutEdge$1[];
   readonly hash: string;
+  readonly known?: KnownBest;
 }
 
 ### build/index.d.ts#GeneratorParams
@@ -417,6 +405,14 @@ type GeneratorParams = Record<string, string | number>;
 ### build/index.d.ts#GeneratorStamp
 interface GeneratorStamp extends LayoutGenerator {
   readonly params: Readonly<GeneratorParams>;
+}
+
+### build/index.d.ts#KnownBest
+interface KnownBest {
+  readonly kind: "optimum" | "bound";
+  readonly area: number;
+  readonly height?: number;
+  readonly source: string;
 }
 
 ### build/index.d.ts#LayoutMeasures
@@ -478,10 +474,10 @@ interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
 }
 
 ### build/index.d.ts#MeasureFamily
-type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound";
+type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed";
 
 ### build/index.d.ts#MeasureId
-type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap";
+type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gapToOpt";
 
 ### build/index.d.ts#MeasureOptions
 interface MeasureOptions {
@@ -498,17 +494,6 @@ interface MeasureSpec extends MeasureSpec$1<MeasureId> {
 ### build/index.d.ts#MetricsOptions
 interface MetricsOptions {
   rowTolerance?: number;
-}
-
-### build/index.d.ts#ObjectiveBound
-interface ObjectiveBound {
-  readonly objective: BoundObjective;
-  readonly sense: "lower" | "upper";
-  readonly value: number;
-  readonly kind: BoundKind;
-  readonly parts: Readonly<Partial<Record<BoundKind, number>>>;
-  readonly items: readonly string[];
-  readonly overflow: number;
 }
 
 ### build/index.d.ts#ObstacleLayout
@@ -576,6 +561,13 @@ interface PackingMetrics {
   utilization: number;
   widestOverMedian: number;
 }
+
+### build/index.d.ts#PerfectCutParams
+type PerfectCutParams = {
+  cut: "guillotine" | "free";
+  containerSize: "fixed" | "freeHeight" | "freeArea";
+  count: number;
+};
 
 ### build/index.d.ts#PortfolioCell
 interface PortfolioCell {
@@ -862,12 +854,6 @@ export declare const aspectFitStrategy: Strategy<AspectFitStrategyOptions>;
 ### build/index.d.ts#assertSupported
 export declare function assertSupported(supports: Supports, input: PackInput): void;
 
-### build/index.d.ts#boundGap
-export declare function boundGap(result: number, bound: number, sense: "lower" | "upper"): number;
-
-### build/index.d.ts#boundMeasures
-export declare function boundMeasures(input: PackInput, output: PackOutput, options?: BoundOptions): BoundMeasures;
-
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
 
@@ -891,6 +877,9 @@ export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<
 
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];
+
+### build/index.d.ts#consecutiveSquares
+export declare const consecutiveSquares: CorpusGenerator<ConsecutiveSquaresParams>;
 
 ### build/index.d.ts#corpus
 export declare function corpus(name: string, specs: readonly CorpusSpec[]): Corpus;
@@ -918,6 +907,9 @@ export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>):
 
 ### build/index.d.ts#gallery
 export declare const gallery: CorpusGenerator<UiParams>;
+
+### build/index.d.ts#gapToOpt
+export declare function gapToOpt(input: PackInput, output: PackOutput, known: KnownBest): number;
 
 ### build/index.d.ts#generator
 export declare function generator(name: string, version?: number): CorpusGenerator;
@@ -958,29 +950,14 @@ export declare function measureChange(baseInput: PackInput, baseOutput: PackOutp
 ### build/index.d.ts#medianRatio
 export declare function medianRatio(ratios: readonly number[]): number;
 
-### build/index.d.ts#mmvBound
-export declare function mmvBound(pieces: readonly {
-  readonly w: number;
-  readonly h: number;
-}[], width: number, integral?: boolean): number;
-
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
-
-### build/index.d.ts#objectiveBound
-export declare function objectiveBound(input: PackInput, options?: BoundOptions): ObjectiveBound | null;
-
-### build/index.d.ts#objectiveResult
-export declare function objectiveResult(input: PackInput, output: PackOutput, bound: ObjectiveBound): number | undefined;
 
 ### build/index.d.ts#outputHash
 export declare function outputHash(output: Pick<PackOutput, "placements">): string;
 
 ### build/index.d.ts#pack
 export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;
-
-### build/index.d.ts#packConfig
-export declare function packConfig(input: PackInput, config: StrategyConfig$1, seed?: number): PackOutput;
 
 ### build/index.d.ts#packDefault
 export declare function packDefault(input: PackInput, seed?: number): PackOutput;
@@ -1003,9 +980,6 @@ export declare function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options?:
 ### build/index.d.ts#packSkyline
 export declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options?: SkylineOptions): Rect<T>;
 
-### build/index.d.ts#packSpace
-export declare const packSpace: StrategySpace$1;
-
 ### build/index.d.ts#packWith
 export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 
@@ -1014,6 +988,16 @@ export declare function packingMetrics(rects: readonly Rect[], options?: Metrics
 
 ### build/index.d.ts#pairedRatio
 export declare function pairedRatio(candidate: number, current: number, direction: Direction$1): number;
+
+### build/index.d.ts#perfectCut
+export declare const perfectCut: CorpusGenerator<PerfectCutParams>;
+
+### build/index.d.ts#perfectCutOf
+export declare function perfectCutOf(seed: number, params?: Partial<PerfectCutParams>): {
+  w: number;
+  h: number;
+  pieces: CutPiece[];
+};
 
 ### build/index.d.ts#portfolioCell
 export declare function portfolioCell(input: PackInput): PortfolioCell;

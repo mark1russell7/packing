@@ -159,7 +159,7 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
       const full = withDefaults(params);
       const family = spec.family(full);
       const { container, obstacles, boxes, known } = spec.build(seed, full);
-      // A key with the value undefined goes. Thus an input without a known best value keeps its bytes and its hash.
+      // An input without a known best value has no field known. Thus it keeps its bytes and its hash.
       const file: Omit<GeneratedInput, "hash"> = roundNumbers({
         schema: "layout-input/1" as const,
         id: `${set}/${family}/s${seed}`,
@@ -172,7 +172,7 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
         obstacles,
         boxes,
         edges: [],
-        known,
+        ...(known === undefined ? {} : { known }),
       });
       return { ...file, hash: hashInput(file) };
     },
@@ -713,17 +713,17 @@ export const edgeCases: CorpusGenerator<EdgeCaseParams> = defineGenerator<EdgeCa
 // ---------------------------------------------------------------------------------------------------------------------
 // The inputs with a known best value (roadmap item k45): `perfect-cut` and `consecutive-squares`.
 
-/** The values of `containerSize` of `perfect-cut`. */
-const CUT_SIZES = ["fixed", "freeHeight", "freeArea"] as const;
-/** The values of `cut` of `perfect-cut`. */
-const CUTS = ["guillotine", "free"] as const;
-
 /** The parameters of `perfect-cut`. */
 export type PerfectCutParams = {
-  cut: (typeof CUTS)[number];
-  containerSize: (typeof CUT_SIZES)[number];
+  cut: "guillotine" | "free";
+  containerSize: "fixed" | "freeHeight" | "freeArea";
   count: number;
 };
+
+/** The values of `containerSize` of `perfect-cut`. */
+const CUT_SIZES: readonly PerfectCutParams["containerSize"][] = ["fixed", "freeHeight", "freeArea"];
+/** The values of `cut` of `perfect-cut`. */
+const CUTS: readonly PerfectCutParams["cut"][] = ["guillotine", "free"];
 
 /** A piece of a cut: a rectangle at its place in the container. */
 export interface CutPiece {
@@ -849,14 +849,14 @@ export const perfectCut: CorpusGenerator<PerfectCutParams> = defineGenerator<Per
   },
 });
 
-/** The values of `containerSize` of `consecutive-squares`. */
-const SQUARE_SIZES = ["freeHeight", "freeArea"] as const;
-
 /** The parameters of `consecutive-squares`. */
 export type ConsecutiveSquaresParams = {
-  containerSize: (typeof SQUARE_SIZES)[number];
+  containerSize: "freeHeight" | "freeArea";
   count: number;
 };
+
+/** The values of `containerSize` of `consecutive-squares`. */
+const SQUARE_SIZES: readonly ConsecutiveSquaresParams["containerSize"][] = ["freeHeight", "freeArea"];
 
 /**
  * The generator `consecutive-squares`, version 1: the squares of the sides `1` to `count`, times a scale from 2 to 8, in a
