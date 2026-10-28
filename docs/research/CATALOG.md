@@ -16,10 +16,13 @@ Each family has a table. The columns are:
 | Source | The first author and the year. The [bibliography](#bibliography) gives all the authors, the title and a DOI or a URL. |
 | Goal | What the method makes better: density, aspect, order, stability or speed. |
 | Cost | The time for `n` boxes. `W` is the width of the container, `F` is the count of free rectangles. |
+| Guarantee | The proved bound of the result against the best result `OPT`, and its source. `—` tells that we know no bound. |
 | Status | `implemented` when the package has it today. Else `planned`. |
 | Item | The roadmap item. "new item" means that the roadmap has no item for it yet. |
 
 A source with the word "unverified" is a source that we did not find in a library or on the page of its publisher. Do not use an unverified source as a fact.
+
+A guarantee is a bound that a source proves for its method. For a strip packer, it is a bound on the height at a fixed width. `h_max` is the height of the highest box. A guarantee holds only for a plain rectangle container with no obstacles. A guarantee with the word "unverified" is a bound that we did not check in its source.
 
 The boxes of this project do not turn. A method from the literature with an option to turn a box by 90 degrees gets the option `rotate`, and the default is `false`.
 
@@ -71,25 +74,25 @@ A treemap gives each box a cell with the area of the box, but not with its shape
 
 A shelf packer puts the boxes into rows. Each row is as high as its highest box. The literature uses the names "level" and "shelf" for a row. Most methods sort by height first, from the highest box to the lowest box.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `shelf-nf` | Next Fit, input order | Put each box in the order of the array at the right end of the current row. When it does not fit, start a new row. | Coffman 1980 | order, speed | `O(n)` | implemented: `packShelf` with `sortOrder: "input"` | k21 |
-| `shelf-nfdh` | Next Fit Decreasing Height (NFDH) | Sort by height, decreasing. Then do `shelf-nf`. | Coffman 1980 | density, speed | `O(n log n)` | implemented: `packShelf` with `sortOrder: "height-desc"`. `fit: "next"` (0.2.4) also stacks a box in the strip above a shorter box. | k21 |
-| `shelf-ffdh` | First Fit Decreasing Height (FFDH) | Sort by height, decreasing. Put each box in the first row, from the top, where it fits. Else start a new row. | Coffman 1980 | density | `O(n log n)` with a tree of the free widths | implemented (0.2.4): `packShelf` with `fit: "first"`, in `O(n * rows)`. A box also stacks in the strip above a shorter box. | k21 |
-| `shelf-bfdh` | Best Fit Decreasing Height (BFDH) | Sort by height, decreasing. Put each box in the row with the smallest free width that is not less than the width of the box. | Berkey 1987 | density | `O(n log n)` | planned | k21 |
-| `shelf-wfdh` | Worst Fit Decreasing Height | Put each box in the row with the largest free width. | Jylänki 2010 | density | `O(n log n)` | planned | k21 |
-| `shelf-bhf` | Best Height Fit | Put each box in the row where the height of the row minus the height of the box is the smallest. | Jylänki 2010 | density | `O(n * rows)` | implemented (0.2.4): `packShelf` with `fit: "best"`. A box also stacks in the strip above a shorter box. | k21 |
-| `shelf-baf` | Best Area Fit | Put each box in the row where the free area after the box is the smallest. | Jylänki 2010 | density | `O(n * rows)` | planned | k21 |
-| `shelf-waf` | Worst Area Fit | Put each box in the row where the free area after the box is the largest. | Jylänki 2010 | density | `O(n * rows)` | planned | k21 |
-| `shelf-waste-map` | Shelf with a waste map | Keep the space above each box in a row as free rectangles. Put a later box there first, with a guillotine rule. | Jylänki 2010 | density | `O(n * F)` | planned | k21 |
-| `shelf-split-fit` | Split-Fit (SF) | Sort by width. Pack the boxes wider than half the width first, with `shelf-ffdh`. Pack the narrow boxes into the space at the side of those rows, then above. | Coffman 1980 | density, bound 1.5 | `O(n log n)` | planned | k21 |
-| `shelf-floor-ceiling` | Floor-Ceiling (FC) | Fill each row from the left on its floor. Then fill it from the right under its ceiling, under the highest box. | Lodi 1999 | density | `O(n^2)` | planned | k21 |
-| `shelf-knapsack` | Knapsack shelf (KP) | The highest box left opens a row. A 0-1 knapsack picks the boxes that fill the width of the row with the largest area. | Lodi 1999 (the attribution of KP is unverified) | density | `O(n^2 W)` with dynamic programming | planned | k21 |
-| `shelf-hff` | Hybrid First Fit (HFF) | Do `shelf-ffdh` in a strip. Then put the rows into bins with First Fit Decreasing on the row heights. | Chung 1982 | density in bins | `O(n log n)` | planned | k21 |
-| `shelf-sas` | Size Alternating Stack (SAS) | Split the boxes into narrow and wide boxes. Each row alternates a stack of narrow boxes and a wide box. | Ntene 2009 | density | `O(n log n)` | planned | k21 |
-| `shelf-level-improved` | The improved level methods | Fill the space above the lower boxes of a closed row with the next boxes, in a stack. The rule is unverified. | Ortmann 2010 | density | `O(n^2)` | planned | k21 |
-| `rows-gap-fill` | Rows with a recursive gap fill | Do `shelf-nfdh`. Pack later boxes recursively into the space under each lower box and at the right end of each row. | this repository | density | `O(n^2)` | implemented: `packRows` | k21 |
-| `rows-input` | Rows in the input order | Do `rows-gap-fill` with no gap fill, thus the rows keep the input order. | this repository | order | `O(n)` | implemented: `packRows` with `sortOrder: "input"` | k21 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `shelf-nf` | Next Fit, input order | Put each box in the order of the array at the right end of the current row. When it does not fit, start a new row. | Coffman 1980 | order, speed | `O(n)` | — | implemented: `packShelf` with `sortOrder: "input"` | k21 |
+| `shelf-nfdh` | Next Fit Decreasing Height (NFDH) | Sort by height, decreasing. Then do `shelf-nf`. | Coffman 1980 | density, speed | `O(n log n)` | `2·OPT + h_max` (Coffman 1980) | implemented: `packShelf` with `sortOrder: "height-desc"`. `fit: "next"` (0.2.4) also stacks a box in the strip above a shorter box. | k21 |
+| `shelf-ffdh` | First Fit Decreasing Height (FFDH) | Sort by height, decreasing. Put each box in the first row, from the top, where it fits. Else start a new row. | Coffman 1980 | density | `O(n log n)` with a tree of the free widths | `1.7·OPT + h_max` (Coffman 1980) | implemented (0.2.4): `packShelf` with `fit: "first"`, in `O(n * rows)`. A box also stacks in the strip above a shorter box. | k21 |
+| `shelf-bfdh` | Best Fit Decreasing Height (BFDH) | Sort by height, decreasing. Put each box in the row with the smallest free width that is not less than the width of the box. | Berkey 1987 | density | `O(n log n)` | — | planned | k21 |
+| `shelf-wfdh` | Worst Fit Decreasing Height | Put each box in the row with the largest free width. | Jylänki 2010 | density | `O(n log n)` | — | planned | k21 |
+| `shelf-bhf` | Best Height Fit | Put each box in the row where the height of the row minus the height of the box is the smallest. | Jylänki 2010 | density | `O(n * rows)` | — | implemented (0.2.4): `packShelf` with `fit: "best"`. A box also stacks in the strip above a shorter box. | k21 |
+| `shelf-baf` | Best Area Fit | Put each box in the row where the free area after the box is the smallest. | Jylänki 2010 | density | `O(n * rows)` | — | planned | k21 |
+| `shelf-waf` | Worst Area Fit | Put each box in the row where the free area after the box is the largest. | Jylänki 2010 | density | `O(n * rows)` | — | planned | k21 |
+| `shelf-waste-map` | Shelf with a waste map | Keep the space above each box in a row as free rectangles. Put a later box there first, with a guillotine rule. | Jylänki 2010 | density | `O(n * F)` | — | planned | k21 |
+| `shelf-split-fit` | Split-Fit (SF) | Sort by width. Pack the boxes wider than half the width first, with `shelf-ffdh`. Pack the narrow boxes into the space at the side of those rows, then above. | Coffman 1980 | density, bound 1.5 | `O(n log n)` | `1.5·OPT + 2` with heights of 1 or less (Coffman 1980) | planned | k21 |
+| `shelf-floor-ceiling` | Floor-Ceiling (FC) | Fill each row from the left on its floor. Then fill it from the right under its ceiling, under the highest box. | Lodi 1999 | density | `O(n^2)` | — | planned | k21 |
+| `shelf-knapsack` | Knapsack shelf (KP) | The highest box left opens a row. A 0-1 knapsack picks the boxes that fill the width of the row with the largest area. | Lodi 1999 (the attribution of KP is unverified) | density | `O(n^2 W)` with dynamic programming | — | planned | k21 |
+| `shelf-hff` | Hybrid First Fit (HFF) | Do `shelf-ffdh` in a strip. Then put the rows into bins with First Fit Decreasing on the row heights. | Chung 1982 | density in bins | `O(n log n)` | asymptotic `17/8·OPT` bins (Chung 1982, unverified) | planned | k21 |
+| `shelf-sas` | Size Alternating Stack (SAS) | Split the boxes into narrow and wide boxes. Each row alternates a stack of narrow boxes and a wide box. | Ntene 2009 | density | `O(n log n)` | — | planned | k21 |
+| `shelf-level-improved` | The improved level methods | Fill the space above the lower boxes of a closed row with the next boxes, in a stack. The rule is unverified. | Ortmann 2010 | density | `O(n^2)` | — | planned | k21 |
+| `rows-gap-fill` | Rows with a recursive gap fill | Do `shelf-nfdh`. Pack later boxes recursively into the space under each lower box and at the right end of each row. | this repository | density | `O(n^2)` | — | implemented: `packRows` | k21 |
+| `rows-input` | Rows in the input order | Do `rows-gap-fill` with no gap fill, thus the rows keep the input order. | this repository | order | `O(n)` | — | implemented: `packRows` with `sortOrder: "input"` | k21 |
 
 Notes:
 
@@ -102,15 +105,15 @@ Notes:
 
 A skyline packer keeps only the top edge of the packed boxes: a list of segments from the left to the right. A box goes on the skyline. The space under a box that is above a lower segment is lost, but a waste map keeps it.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `skyline-bl` | Skyline bottom-left | Put each box in the lowest place on the skyline where it fits. Between two equal places, take the left place. | Jylänki 2010 | density, speed | `O(n W)` with unit cells, `O(n^2)` with segments | implemented: `packSkyline` | k22 |
-| `skyline-min-waste` | Skyline minimum waste | Put each box in the place where the area under the box and above the skyline is the smallest. Between equal places, take the lower place. | Jylänki 2010 | density | `O(n^2)` | planned | k22 |
-| `skyline-bl-waste-map` | Skyline bottom-left with a waste map | Do `skyline-bl`. Keep the space under each box as free rectangles, and fill them with a guillotine rule. | Jylänki 2010 | density | `O(n^2 + n F)` | planned | k22 |
-| `skyline-min-waste-map` | Skyline minimum waste with a waste map | Do `skyline-min-waste` with the waste map of `skyline-bl-waste-map`. | Jylänki 2010 | density | `O(n^2 + n F)` | planned | k22 |
-| `skyline-score` | Skyline with a fit score | For each segment and each box left, give a score from 0 to 4: the count of sides of the box that touch the wall or the neighbors exactly. Put the box with the best score. | Wei 2011 | density | `O(n^2)` for each box | planned | k22 |
-| `skyline-stb` | Skyline of `stb_rect_pack` | `skyline-bl` and a best-fit option that takes the place with the smallest waste. | Barrett, software | speed | `O(n^2)` | planned | k22 |
-| `skyline-multi-start` | Skyline with each sort order | Do `skyline-bl` with each order of `SORT_ORDERS`, and keep the best result. | Jylänki 2010 | density | five runs | planned | k22 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `skyline-bl` | Skyline bottom-left | Put each box in the lowest place on the skyline where it fits. Between two equal places, take the left place. | Jylänki 2010 | density, speed | `O(n W)` with unit cells, `O(n^2)` with segments | — | implemented: `packSkyline` | k22 |
+| `skyline-min-waste` | Skyline minimum waste | Put each box in the place where the area under the box and above the skyline is the smallest. Between equal places, take the lower place. | Jylänki 2010 | density | `O(n^2)` | — | planned | k22 |
+| `skyline-bl-waste-map` | Skyline bottom-left with a waste map | Do `skyline-bl`. Keep the space under each box as free rectangles, and fill them with a guillotine rule. | Jylänki 2010 | density | `O(n^2 + n F)` | — | planned | k22 |
+| `skyline-min-waste-map` | Skyline minimum waste with a waste map | Do `skyline-min-waste` with the waste map of `skyline-bl-waste-map`. | Jylänki 2010 | density | `O(n^2 + n F)` | — | planned | k22 |
+| `skyline-score` | Skyline with a fit score | For each segment and each box left, give a score from 0 to 4: the count of sides of the box that touch the wall or the neighbors exactly. Put the box with the best score. | Wei 2011 | density | `O(n^2)` for each box | — | planned | k22 |
+| `skyline-stb` | Skyline of `stb_rect_pack` | `skyline-bl` and a best-fit option that takes the place with the smallest waste. | Barrett, software | speed | `O(n^2)` | — | planned | k22 |
+| `skyline-multi-start` | Skyline with each sort order | Do `skyline-bl` with each order of `SORT_ORDERS`, and keep the best result. | Jylänki 2010 | density | five runs | — | planned | k22 |
 
 Notes:
 
@@ -141,11 +144,11 @@ Each guillotine strategy is a rule to choose and a rule to split. Its `id` is `g
 | `minas` | Min Area Split | Cut to make the two new areas as different as possible. |
 | `maxas` | Max Area Split | Cut to make the two new areas as equal as possible. |
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `guillotine-<choice>-<split>` | Guillotine, 36 combinations | Choose a free rectangle with the choice rule. Put the box in its bottom-left corner. Cut the rest with the split rule. | Jylänki 2010 | density | `O(n F)`, `F` is `O(n)` | planned | k23 |
-| option `merge` | Rectangle merge | After each box, join two free rectangles with a common full edge into one. | Jylänki 2010 | density | `O(F^2)` for each box | planned | k23 |
-| `guillotine-global` | Global choice | For each step, test each box left with each free rectangle, and put the best pair. | Jylänki 2010 | density | `O(n^2 F)` | planned | k23 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `guillotine-<choice>-<split>` | Guillotine, 36 combinations | Choose a free rectangle with the choice rule. Put the box in its bottom-left corner. Cut the rest with the split rule. | Jylänki 2010 | density | `O(n F)`, `F` is `O(n)` | — | planned | k23 |
+| option `merge` | Rectangle merge | After each box, join two free rectangles with a common full edge into one. | Jylänki 2010 | density | `O(F^2)` for each box | — | planned | k23 |
+| `guillotine-global` | Global choice | For each step, test each box left with each free rectangle, and put the best pair. | Jylänki 2010 | density | `O(n^2 F)` | — | planned | k23 |
 
 Notes:
 
@@ -156,18 +159,18 @@ Notes:
 
 A MaxRects packer keeps all the maximal free rectangles. These rectangles can overlap. After a box goes in, each free rectangle that the box cuts gives up to four new free rectangles. Then the packer removes each free rectangle that is in another free rectangle.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `maxrects-bssf` | MaxRects Best Short Side Fit | Choose the free rectangle with the smallest leftover on the shorter side. | Jylänki 2010 | density | `O(n F)`, `F` up to `O(n^2)` | implemented (0.2.5): `packMaxRects` with `rule: "bssf"`, the default. | k24 |
-| `maxrects-blsf` | MaxRects Best Long Side Fit | Choose the free rectangle with the smallest leftover on the longer side. | Jylänki 2010 | density | `O(n F)` | implemented (0.2.5): `packMaxRects` with `rule: "blsf"`. | k24 |
-| `maxrects-baf` | MaxRects Best Area Fit | Choose the free rectangle with the smallest area that holds the box. | Jylänki 2010 | density | `O(n F)` | implemented (0.2.5): `packMaxRects` with `rule: "baf"`. | k24 |
-| `maxrects-bl` | MaxRects Bottom-Left | Choose the place with the lowest top edge of the box. Between equal places, take the left place. | Jylänki 2010 | density, order | `O(n F)` | implemented (0.2.5): `packMaxRects` with `rule: "bl"`. | k24 |
-| `maxrects-cp` | MaxRects Contact Point | Choose the place where the box touches the most length of the walls and of the other boxes. | Jylänki 2010 | density | `O(n^2 F)` | implemented (0.2.5): `packMaxRects` with `rule: "cp"`. The contact uses maps of the edges. | k24 |
-| `maxrects-<rule>-global` | Global MaxRects | For each step, test each box left with each free rectangle and each rule, and put the best pair. | Jylänki 2010 | density | `O(n^2 F)` | planned | k24 |
-| `maxrects-locked` | MaxRects around locked boxes | Start with the free rectangles that the locked boxes leave. Then do any MaxRects rule. | this repository | density with obstacles | `O(n F)` | implemented (0.2.5): each rule of `packMaxRects` starts from the free space less the locked boxes. | k24, k42 |
-| `free-space-maximal` | Maximal free spaces with pretreatment | Keep the maximal free spaces. First remove the boxes that fit nowhere else, and join the boxes that fill a full width. | El Hayek 2008 | density | `O(n F)` | planned | k24 |
-| `extreme-points` | Extreme points | Keep only the points where a box can touch two edges: the projections of the corners of each box. Put each box on the best point. | Crainic 2008 | density, speed | `O(n^2)` | planned | k24 |
-| `potpack` | Free list of `potpack` | Sort by height. Keep a list of free spaces. Put each box at the top left of the first space where it fits. Split the rest to the right and below. | Agafonkin, software | speed | `O(n F)` | planned | k24 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `maxrects-bssf` | MaxRects Best Short Side Fit | Choose the free rectangle with the smallest leftover on the shorter side. | Jylänki 2010 | density | `O(n F)`, `F` up to `O(n^2)` | — | implemented (0.2.5): `packMaxRects` with `rule: "bssf"`, the default. | k24 |
+| `maxrects-blsf` | MaxRects Best Long Side Fit | Choose the free rectangle with the smallest leftover on the longer side. | Jylänki 2010 | density | `O(n F)` | — | implemented (0.2.5): `packMaxRects` with `rule: "blsf"`. | k24 |
+| `maxrects-baf` | MaxRects Best Area Fit | Choose the free rectangle with the smallest area that holds the box. | Jylänki 2010 | density | `O(n F)` | — | implemented (0.2.5): `packMaxRects` with `rule: "baf"`. | k24 |
+| `maxrects-bl` | MaxRects Bottom-Left | Choose the place with the lowest top edge of the box. Between equal places, take the left place. | Jylänki 2010 | density, order | `O(n F)` | — | implemented (0.2.5): `packMaxRects` with `rule: "bl"`. | k24 |
+| `maxrects-cp` | MaxRects Contact Point | Choose the place where the box touches the most length of the walls and of the other boxes. | Jylänki 2010 | density | `O(n^2 F)` | — | implemented (0.2.5): `packMaxRects` with `rule: "cp"`. The contact uses maps of the edges. | k24 |
+| `maxrects-<rule>-global` | Global MaxRects | For each step, test each box left with each free rectangle and each rule, and put the best pair. | Jylänki 2010 | density | `O(n^2 F)` | — | planned | k24 |
+| `maxrects-locked` | MaxRects around locked boxes | Start with the free rectangles that the locked boxes leave. Then do any MaxRects rule. | this repository | density with obstacles | `O(n F)` | — | implemented (0.2.5): each rule of `packMaxRects` starts from the free space less the locked boxes. | k24, k42 |
+| `free-space-maximal` | Maximal free spaces with pretreatment | Keep the maximal free spaces. First remove the boxes that fit nowhere else, and join the boxes that fill a full width. | El Hayek 2008 | density | `O(n F)` | — | planned | k24 |
+| `extreme-points` | Extreme points | Keep only the points where a box can touch two edges: the projections of the corners of each box. Put each box on the best point. | Crainic 2008 | density, speed | `O(n^2)` | — | planned | k24 |
+| `potpack` | Free list of `potpack` | Sort by height. Keep a list of free spaces. Put each box at the top left of the first space where it fits. Split the rest to the right and below. | Agafonkin, software | speed | `O(n F)` | — | planned | k24 |
 
 Notes:
 
@@ -178,20 +181,20 @@ Notes:
 
 These methods put each box in a corner of the boxes before it. Bottom-left moves a box down and left until it stops. Bottom-left fill can also put a box in a hole. The gap rules choose the box for a gap, not the gap for a box.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n^2)` | planned | k25 |
-| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | planned | k25 |
-| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | planned | k25 |
-| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | planned | k25 |
-| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n^2)` | planned | k25 |
-| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | planned | k25 |
-| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | planned | k25 |
-| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | planned | k25 |
-| `touching-perimeter` | Touching Perimeter (TP) | Put each box in the corner place where the part of its edge that touches walls and boxes is the largest. | Lodi 1999 | density | `O(n^3)` | planned | k25 |
-| `corner-degree` | Corner-occupying action with a degree | Put each box only in a corner of two edges. Choose the corner with the highest degree, a measure of how close the box is to the other boxes. | Wu 2002 | density | `O(n^4)` | planned | k25 |
-| `caving-degree` | Caving degree | Do `corner-degree` with the caving degree: the box that fits closest into a corner wins. | Huang 2007 | density | `O(n^4)` | planned | k25 |
-| `two-level-search` | Two-level search | Do `caving-degree`, and look ahead one step to choose between the best few corners. | Chen 2007 | density | `O(n^5)` | planned | k25 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n^2)` | `3·OPT` with the decreasing width order (Baker 1980) | planned | k25 |
+| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | — | planned | k25 |
+| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | — | planned | k25 |
+| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | — | planned | k25 |
+| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n^2)` | — | planned | k25 |
+| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | planned | k25 |
+| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | planned | k25 |
+| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | planned | k25 |
+| `touching-perimeter` | Touching Perimeter (TP) | Put each box in the corner place where the part of its edge that touches walls and boxes is the largest. | Lodi 1999 | density | `O(n^3)` | — | planned | k25 |
+| `corner-degree` | Corner-occupying action with a degree | Put each box only in a corner of two edges. Choose the corner with the highest degree, a measure of how close the box is to the other boxes. | Wu 2002 | density | `O(n^4)` | — | planned | k25 |
+| `caving-degree` | Caving degree | Do `corner-degree` with the caving degree: the box that fits closest into a corner wins. | Huang 2007 | density | `O(n^4)` | — | planned | k25 |
+| `two-level-search` | Two-level search | Do `caving-degree`, and look ahead one step to choose between the best few corners. | Chen 2007 | density | `O(n^5)` | — | planned | k25 |
 
 Notes:
 
@@ -202,27 +205,27 @@ Notes:
 
 A search changes the input of a fast packer, the "decoder", and keeps the best result. The input is an order of the boxes, or an encoding of the relative places of the boxes. Each search takes a seed, thus two runs with the same seed give the same result.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `search-ga-order` | Genetic algorithm over orders | Keep a population of orders. Cross two orders and change some places. Decode each order with `bl-jakobs` or `blf-hopper`. | Jakobs 1996, Hopper 2001 | density | generations x population x decoder | planned | k26 |
-| `search-ga-layers` | Genetic algorithm over layers | Encode a layout as layers of boxes. Cross and change the layers. | Bortfeldt 2006 | density | generations x population | planned | k26 |
-| `search-sa-order` | Simulated annealing over orders | Swap two boxes in the order. Keep a worse order with a probability that falls with the temperature. | Hopper 2001, Kirkpatrick 1983 | density | steps x decoder | planned | k26 |
-| `search-sa-best-fit` | Annealing with best fit | Place the first boxes with an order that annealing finds. Place the rest with `best-fit-bkw`. | Burke 2009 | density | steps x decoder | planned | k26 |
-| `search-tabu` | Tabu search | Move a box from the worst bin or level to another place. Forbid the reverse move for some steps. | Lodi 1999, Iori 2003 | density | steps x decoder | planned | k26 |
-| `search-naive-evolution` | Naive evolution | Change the order at random and keep the better order. | Hopper 2001 | density | steps x decoder | planned | k26 |
-| `search-grasp` | Reactive GRASP | Build an order with a random greedy rule. Improve it with a local search. Learn the best amount of randomness from the results. | Alvarez-Valdes 2008 | density | starts x decoder | planned | k26 |
-| `search-ils` | Local search in three stages | Build an order with a greedy rule. Improve it with a local search that has no randomness. Then do a local search with random changes. | Wei 2016 | density | steps x decoder | planned | k26 |
-| `search-beam` | Filtered beam search | Keep the best `k` partial layouts. Grow each with each box left, remove the weak children with a fast filter, and keep the best `k` again. | Chen 2025 | density | `O(n^2 k)` x decoder | planned | k26 |
-| `search-random-restart` | Randomized search | Do a greedy packer with random changes of the order, many times. Keep the best result. | Yang 2013 | density | restarts x decoder | planned | k26 |
-| `search-two-stage` | Two-stage intelligent search | Do a greedy search with a fit score. Then improve the order with annealing. | Leung 2011 | density | steps x decoder | planned | k26 |
-| `enc-sequence-pair` | Sequence pair | Encode the layout as two orders of the boxes. The two orders give each pair "left of" or "below". A longest path gives the places. | Murata 1996 | density | `O(n^2)` for each decode | planned | k26 |
-| `enc-sequence-pair-cost` | Sequence pair with general costs | Do a local search over sequence pairs with a cost for each box and place. | Imahori 2003 | density, other costs | `O(n log n)` for each decode | planned | k26 |
-| `enc-bsg` | Bounded slicing grid (BSG) | Put each box in a cell of a grid of crossing walls. The grid gives the relative places. | Nakatake 1996 | density | `O(n^2)` for each decode | planned | k26 |
-| `enc-slicing-tree` | Slicing tree, Polish expression | Encode the layout as a tree of horizontal and vertical cuts in postfix form. Anneal over the expression. | Wong 1986 | density, aspect | `O(n)` for each decode | planned | k26 |
-| `enc-o-tree` | O-tree | Encode the layout as an ordered tree. A walk of the tree puts each box against its parent. | Guo 1999 | density | `O(n)` for each decode | planned | k26 |
-| `enc-b-star-tree` | B*-tree | Encode the layout as a binary tree. A left child is to the right of its parent, a right child is above its parent. | Chang 2000 | density | `O(n)` with a contour | planned | k26 |
-| `enc-corner-block-list` | Corner block list (CBL) | Encode the layout by the order in which the box in the top-right corner goes away. | Hong 2000 | density | `O(n)` for each decode | planned | k26 |
-| `enc-tcg` | Transitive closure graph (TCG) | Encode the layout as two graphs, "left of" and "below". | Lin 2001 | density | `O(n^2)` for each decode | planned | k26 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `search-ga-order` | Genetic algorithm over orders | Keep a population of orders. Cross two orders and change some places. Decode each order with `bl-jakobs` or `blf-hopper`. | Jakobs 1996, Hopper 2001 | density | generations x population x decoder | — | planned | k26 |
+| `search-ga-layers` | Genetic algorithm over layers | Encode a layout as layers of boxes. Cross and change the layers. | Bortfeldt 2006 | density | generations x population | — | planned | k26 |
+| `search-sa-order` | Simulated annealing over orders | Swap two boxes in the order. Keep a worse order with a probability that falls with the temperature. | Hopper 2001, Kirkpatrick 1983 | density | steps x decoder | — | planned | k26 |
+| `search-sa-best-fit` | Annealing with best fit | Place the first boxes with an order that annealing finds. Place the rest with `best-fit-bkw`. | Burke 2009 | density | steps x decoder | — | planned | k26 |
+| `search-tabu` | Tabu search | Move a box from the worst bin or level to another place. Forbid the reverse move for some steps. | Lodi 1999, Iori 2003 | density | steps x decoder | — | planned | k26 |
+| `search-naive-evolution` | Naive evolution | Change the order at random and keep the better order. | Hopper 2001 | density | steps x decoder | — | planned | k26 |
+| `search-grasp` | Reactive GRASP | Build an order with a random greedy rule. Improve it with a local search. Learn the best amount of randomness from the results. | Alvarez-Valdes 2008 | density | starts x decoder | — | planned | k26 |
+| `search-ils` | Local search in three stages | Build an order with a greedy rule. Improve it with a local search that has no randomness. Then do a local search with random changes. | Wei 2016 | density | steps x decoder | — | planned | k26 |
+| `search-beam` | Filtered beam search | Keep the best `k` partial layouts. Grow each with each box left, remove the weak children with a fast filter, and keep the best `k` again. | Chen 2025 | density | `O(n^2 k)` x decoder | — | planned | k26 |
+| `search-random-restart` | Randomized search | Do a greedy packer with random changes of the order, many times. Keep the best result. | Yang 2013 | density | restarts x decoder | — | planned | k26 |
+| `search-two-stage` | Two-stage intelligent search | Do a greedy search with a fit score. Then improve the order with annealing. | Leung 2011 | density | steps x decoder | — | planned | k26 |
+| `enc-sequence-pair` | Sequence pair | Encode the layout as two orders of the boxes. The two orders give each pair "left of" or "below". A longest path gives the places. | Murata 1996 | density | `O(n^2)` for each decode | — | planned | k26 |
+| `enc-sequence-pair-cost` | Sequence pair with general costs | Do a local search over sequence pairs with a cost for each box and place. | Imahori 2003 | density, other costs | `O(n log n)` for each decode | — | planned | k26 |
+| `enc-bsg` | Bounded slicing grid (BSG) | Put each box in a cell of a grid of crossing walls. The grid gives the relative places. | Nakatake 1996 | density | `O(n^2)` for each decode | — | planned | k26 |
+| `enc-slicing-tree` | Slicing tree, Polish expression | Encode the layout as a tree of horizontal and vertical cuts in postfix form. Anneal over the expression. | Wong 1986 | density, aspect | `O(n)` for each decode | — | planned | k26 |
+| `enc-o-tree` | O-tree | Encode the layout as an ordered tree. A walk of the tree puts each box against its parent. | Guo 1999 | density | `O(n)` for each decode | — | planned | k26 |
+| `enc-b-star-tree` | B*-tree | Encode the layout as a binary tree. A left child is to the right of its parent, a right child is above its parent. | Chang 2000 | density | `O(n)` with a contour | — | planned | k26 |
+| `enc-corner-block-list` | Corner block list (CBL) | Encode the layout by the order in which the box in the top-right corner goes away. | Hong 2000 | density | `O(n)` for each decode | — | planned | k26 |
+| `enc-tcg` | Transitive closure graph (TCG) | Encode the layout as two graphs, "left of" and "below". | Lin 2001 | density | `O(n^2)` for each decode | — | planned | k26 |
 
 Notes:
 
@@ -233,24 +236,24 @@ Notes:
 
 An exact method finds the best layout or proves that no layout fits. Its time grows very fast with the count of boxes. The benchmark uses it on small inputs, to get the best value for the "distance to best".
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `exact-bb-bins` | Branch and bound for bins | Put the boxes into bins one at a time, in the corner places. Cut a branch when a lower bound is not less than the best count of bins. | Martello 1998 | density | exponential | planned | k10 |
-| `exact-bb-strip` | Branch and bound for a strip | Search the height of the strip from a lower bound up. For each height, do a branch and bound on the corner places. | Martello 2003 | density | exponential | planned | k10 |
-| `exact-bb-strip-avpt` | Branch and bound with better bounds | Do `exact-bb-strip` with new lower bounds and rules that remove equal layouts. | Alvarez-Valdes 2009 | density | exponential | planned | k10 |
-| `exact-strip-boschetti` | Exact strip with a relaxation | Solve a relaxation first, then search the places of the boxes. | Boschetti 2010 | density | exponential | planned | k10 |
-| `exact-strip-kenmochi` | Exact strip with a staircase | Branch on the places of a staircase of boxes. | Kenmochi 2009 | density | exponential | planned | k10 |
-| `exact-benders` | Combinatorial Benders cuts | A master problem cuts the boxes into vertical slices. A check of the order of the slices adds cuts. | Côté 2014 | density | exponential | planned | k10 |
-| `exact-benders-logic` | Logic-based Benders | Do `exact-benders` with a logic check. | Delorme 2017 | density | exponential | planned | k10 |
-| `exact-opp-graphs` | Packing classes | Search the interval graphs of the two axes, not the places. | Fekete 2004 | density | exponential | planned | k10 |
-| `exact-opp-clautiaux` | Two-step orthogonal packing | Branch on the places on the x axis first, then check the y axis. | Clautiaux 2007 | density | exponential | planned | k10 |
-| `exact-tree-beasley` | Tree search on grid points | Search over the places on a grid of the possible coordinates. | Beasley 1985a | density | exponential | planned | k10 |
-| `milp-relative` | Mixed integer program with relative places | For each pair of boxes, a set of binary variables chooses left, right, above or below. "Big M" rules keep the pair apart. | Chen 1995 | density | exponential | planned | k10 |
-| `cp-diffn` | Constraint model with `diffn` and `cumulative` | The global constraint `diffn` keeps the boxes apart. A `cumulative` on each axis cuts the search. | Beldiceanu 1994 | density | exponential | planned | k10 |
-| `cp-sweep` | Sweep for non-overlap | Do `cp-diffn` with a sweep over each axis that removes the places that cannot be correct. | Beldiceanu 2001 | density | exponential | planned | k10 |
-| `cp-search-strategies` | Search strategies for packing | Do `cp-diffn`, choose all the x places first, then the y places, with interval splits. | Simonis 2008 | density | exponential | planned | k10 |
-| `sat-order` | SAT with the order encoding | Encode each coordinate with Boolean variables "x is at most c". Encode each pair with four variables of relative place. Search the height with the solver. | Soh 2010 | density | exponential | planned | k10 |
-| `dp-guillotine` | Dynamic programming for guillotine cuts | For each size `(w, h)` on a grid, the best value is the best of each box that fits and of each cut into two parts. | Gilmore 1965, Christofides 1977, Beasley 1985b | density | `O(W H (W + H))` | planned | k10 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `exact-bb-bins` | Branch and bound for bins | Put the boxes into bins one at a time, in the corner places. Cut a branch when a lower bound is not less than the best count of bins. | Martello 1998 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-bb-strip` | Branch and bound for a strip | Search the height of the strip from a lower bound up. For each height, do a branch and bound on the corner places. | Martello 2003 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-bb-strip-avpt` | Branch and bound with better bounds | Do `exact-bb-strip` with new lower bounds and rules that remove equal layouts. | Alvarez-Valdes 2009 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-strip-boschetti` | Exact strip with a relaxation | Solve a relaxation first, then search the places of the boxes. | Boschetti 2010 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-strip-kenmochi` | Exact strip with a staircase | Branch on the places of a staircase of boxes. | Kenmochi 2009 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-benders` | Combinatorial Benders cuts | A master problem cuts the boxes into vertical slices. A check of the order of the slices adds cuts. | Côté 2014 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-benders-logic` | Logic-based Benders | Do `exact-benders` with a logic check. | Delorme 2017 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-opp-graphs` | Packing classes | Search the interval graphs of the two axes, not the places. | Fekete 2004 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-opp-clautiaux` | Two-step orthogonal packing | Branch on the places on the x axis first, then check the y axis. | Clautiaux 2007 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-tree-beasley` | Tree search on grid points | Search over the places on a grid of the possible coordinates. | Beasley 1985a | density | exponential | exact: `OPT` | planned | k10 |
+| `milp-relative` | Mixed integer program with relative places | For each pair of boxes, a set of binary variables chooses left, right, above or below. "Big M" rules keep the pair apart. | Chen 1995 | density | exponential | exact: `OPT` | planned | k10 |
+| `cp-diffn` | Constraint model with `diffn` and `cumulative` | The global constraint `diffn` keeps the boxes apart. A `cumulative` on each axis cuts the search. | Beldiceanu 1994 | density | exponential | exact: `OPT` | planned | k10 |
+| `cp-sweep` | Sweep for non-overlap | Do `cp-diffn` with a sweep over each axis that removes the places that cannot be correct. | Beldiceanu 2001 | density | exponential | exact: `OPT` | planned | k10 |
+| `cp-search-strategies` | Search strategies for packing | Do `cp-diffn`, choose all the x places first, then the y places, with interval splits. | Simonis 2008 | density | exponential | exact: `OPT` | planned | k10 |
+| `sat-order` | SAT with the order encoding | Encode each coordinate with Boolean variables "x is at most c". Encode each pair with four variables of relative place. Search the height with the solver. | Soh 2010 | density | exponential | exact: `OPT` | planned | k10 |
+| `dp-guillotine` | Dynamic programming for guillotine cuts | For each size `(w, h)` on a grid, the best value is the best of each box that fits and of each cut into two parts. | Gilmore 1965, Christofides 1977, Beasley 1985b | density | `O(W H (W + H))` | exact: `OPT` of the guillotine layouts | planned | k10 |
 
 Notes:
 
@@ -264,20 +267,20 @@ Most inputs of this project have no fixed width (`container.fixed` is `none`). T
 
 The general method is a search over widths: pack at each width, and keep the width with the best value. The value is the area, the aspect error or a mix. The exact methods of Korf and of Huang test the candidate rectangles in order of area.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `width-sqrt-area` | Width from the square root of the area | Set the width to 1.5 times the square root of the total area, and not less than the widest box. Then pack. | this repository | speed, aspect | one pack | implemented: `pack` | k33 |
-| `width-potpack` | Width of `potpack` | Set the width to the square root of the total area divided by 0.95, and not less than the widest box. Then pack with `potpack`. | Agafonkin, software | speed, aspect | one pack | planned | k33 |
-| `width-sweep` | Sweep over widths | Pack at widths on a log scale, from the widest box to the width of one row. Then try the widths between the neighbors of the best width. Keep the lowest area times `1 + weight * aspectError`. | this repository, after Korf 2003 | area, aspect | samples x pack | implemented: `packFree` | k33 |
-| `width-breakpoints` | Sweep over breakpoints | Take as candidates only the widths where a row break of the packer changes: the sums of the widths of neighbor boxes. | Korf 2004 | area | candidates x pack | planned | k33 |
-| `width-aspect-bisect` | Bisection to a target aspect | The aspect of a strip pack grows with the width. Halve the interval of widths until the aspect is near the target. | this repository | aspect | `O(log W)` x pack | planned | k33 |
-| `exact-korf-2003` | Optimal rectangle packing | Test each candidate enclosing rectangle in order of area, with a branch and bound that fills the empty space. Stop at the first that holds all the boxes. The order of the search is unverified. | Korf 2003 | area | exponential | planned | k33 |
-| `exact-korf-2004` | Optimal rectangle packing, new results | Do `exact-korf-2003` with better cuts of the search. | Korf 2004 | area | exponential | planned | k33 |
-| `exact-meta-csp` | Meta-CSP | Do the search over the relative places of each pair, not over the coordinates. | Moffitt 2006 (unverified), Korf 2010 | area | exponential | planned | k33 |
-| `exact-huang-korf` | Absolute placement | Choose all the x coordinates first, then the y coordinates. Add empty boxes to make a perfect packing. Use only the sums of widths as coordinates. | Huang 2009, Huang 2013 | area | exponential | planned | k33 |
-| `exact-huang-korf-precision` | High-precision rectangles | Do the search over relative places when the sizes are not small integers. | Huang 2011 | area | exponential | planned | k33 |
-| `cp-min-area` | Constraint model for the enclosing rectangle | Do `cp-search-strategies` for each candidate rectangle in order of area. | Simonis 2008, Simonis 2011 | area | exponential | planned | k33 |
-| `rpamp-reduction` | Reduction to strip and knapsack problems | Reduce the area problem to strip packing with candidate widths, and to knapsack problems. | Bortfeldt 2013 | area | candidates x strip heuristic | planned | k33 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `width-sqrt-area` | Width from the square root of the area | Set the width to 1.5 times the square root of the total area, and not less than the widest box. Then pack. | this repository | speed, aspect | one pack | — | implemented: `pack` | k33 |
+| `width-potpack` | Width of `potpack` | Set the width to the square root of the total area divided by 0.95, and not less than the widest box. Then pack with `potpack`. | Agafonkin, software | speed, aspect | one pack | — | planned | k33 |
+| `width-sweep` | Sweep over widths | Pack at widths on a log scale, from the widest box to the width of one row. Then try the widths between the neighbors of the best width. Keep the lowest area times `1 + weight * aspectError`. | this repository, after Korf 2003 | area, aspect | samples x pack | — | implemented: `packFree` | k33 |
+| `width-breakpoints` | Sweep over breakpoints | Take as candidates only the widths where a row break of the packer changes: the sums of the widths of neighbor boxes. | Korf 2004 | area | candidates x pack | — | planned | k33 |
+| `width-aspect-bisect` | Bisection to a target aspect | The aspect of a strip pack grows with the width. Halve the interval of widths until the aspect is near the target. | this repository | aspect | `O(log W)` x pack | — | planned | k33 |
+| `exact-korf-2003` | Optimal rectangle packing | Test each candidate enclosing rectangle in order of area, with a branch and bound that fills the empty space. Stop at the first that holds all the boxes. The order of the search is unverified. | Korf 2003 | area | exponential | exact: `OPT` | planned | k33 |
+| `exact-korf-2004` | Optimal rectangle packing, new results | Do `exact-korf-2003` with better cuts of the search. | Korf 2004 | area | exponential | exact: `OPT` | planned | k33 |
+| `exact-meta-csp` | Meta-CSP | Do the search over the relative places of each pair, not over the coordinates. | Moffitt 2006 (unverified), Korf 2010 | area | exponential | exact: `OPT` | planned | k33 |
+| `exact-huang-korf` | Absolute placement | Choose all the x coordinates first, then the y coordinates. Add empty boxes to make a perfect packing. Use only the sums of widths as coordinates. | Huang 2009, Huang 2013 | area | exponential | exact: `OPT` | planned | k33 |
+| `exact-huang-korf-precision` | High-precision rectangles | Do the search over relative places when the sizes are not small integers. | Huang 2011 | area | exponential | exact: `OPT` | planned | k33 |
+| `cp-min-area` | Constraint model for the enclosing rectangle | Do `cp-search-strategies` for each candidate rectangle in order of area. | Simonis 2008, Simonis 2011 | area | exponential | exact: `OPT` | planned | k33 |
+| `rpamp-reduction` | Reduction to strip and knapsack problems | Reduce the area problem to strip packing with candidate widths, and to knapsack problems. | Bortfeldt 2013 | area | candidates x strip heuristic | — | planned | k33 |
 
 Notes:
 
@@ -331,32 +334,32 @@ Notes:
 
 A treemap cuts a rectangle into cells. The area of each cell is the weight of its item. A box of this project has a fixed size, thus the weight is `w * h`, and the box goes to the center of its cell. The section [The measures and the families](#the-measures-and-the-families) tells how to measure it.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | planned | k27 |
-| `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | planned | k27 |
-| `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips. | Bederson 2002 | order, aspect | `O(n^2)` | planned | k27 |
-| `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | planned | k27 |
-| `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | planned | k27 |
-| `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | planned | k27 |
-| `treemap-split` | Split | Split the ordered list into two parts of near equal weight. Cut the rectangle along its longer side. Recurse. | Engdahl 2005 (unverified) | order, aspect | `O(n log n)` | planned | k27 |
-| `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | planned | k27 |
-| `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` | planned | k27 |
-| `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` | planned | k27 |
-| `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | planned | k27 |
-| `treemap-quantum` | Quantum | Do an ordered treemap with cells that are whole multiples of a unit size, for grids of pictures. | Bederson 2002 | order, aspect | `O(n log n)` | planned | k27 |
-| `treemap-voronoi` | Voronoi | Move weighted sites until the area of each Voronoi cell is its weight. The cells are polygons. | Balzer 2005 | aspect | iterations x `O(n log n)` | planned | k27 |
-| `treemap-voronoi-fast` | Fast Voronoi | Do `treemap-voronoi` with power diagrams and no raster. | Nocaj 2012 | aspect, speed | iterations x `O(n log n)` | planned | k27 |
-| `circle-pack-front-chain` | Circle packing | Put each circle against the front chain of the circles before it. | Wang 2006 (the co-authors are unverified) | aspect | `O(n^2)` | planned | k27 |
-| `treemap-spatial` | Spatially ordered | Put each item near a given point, with a split that keeps the order of the two axes. | Wood 2008 | order | `O(n log n)` | planned | k27 |
-| `treemap-nmap` | Nmap | Split the items by their given points, and keep the neighbors near. | Duarte 2014 | order, neighbors | `O(n log n)` | planned | k27 |
-| `treemap-bounded-aspect` | Bounded aspect | Use convex cells with an aspect of `O(depth)`, or orthoconvex cells with a constant aspect. | de Berg 2011 | aspect | `O(n log n)` | planned | k27 |
-| `treemap-local-moves` | Stable by local moves | After a change, do the local move of the layout that gives the best mix of aspect and stability. | Sondag 2018 | stability, aspect | moves x `O(n)` | planned | k27 |
-| `treemap-git` | Greedy insertion treemap | Keep the old layout. Remove the old items, and add each new item into the cell that changes the least. | Vernier 2018 | stability | `O(n log n)` | planned | k27 |
-| `treemap-evocells` | EvoCells | Map the changes of the tree onto the old layout. Grow and shrink the cells in place. | Scheibel 2018 | stability | `O(n log n)` | planned | k27 |
-| `treemap-sizepairs` | SizePairs | Pair the items by their change of size and by their size. Choose the direction of each split and the flips for stability and aspect. | Han 2022 | stability, aspect | `O(n log n)` | planned | k27 |
-| `treemap-voronoi-stable` | Stable Voronoi | Start the sites of a new Voronoi treemap at the sites of the old one. | Hahn 2014 | stability | iterations x `O(n log n)` | planned | k27 |
-| `treemap-shelf-hybrid` | Treemap rows with boxes | refer to `new-treemap-shelf` | this repository | aspect, density | `O(n log n)` | planned | k31 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | — | planned | k27 |
+| `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips. | Bederson 2002 | order, aspect | `O(n^2)` | — | planned | k27 |
+| `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | — | planned | k27 |
+| `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-split` | Split | Split the ordered list into two parts of near equal weight. Cut the rectangle along its longer side. Recurse. | Engdahl 2005 (unverified) | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | — | planned | k27 |
+| `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
+| `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
+| `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | — | planned | k27 |
+| `treemap-quantum` | Quantum | Do an ordered treemap with cells that are whole multiples of a unit size, for grids of pictures. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-voronoi` | Voronoi | Move weighted sites until the area of each Voronoi cell is its weight. The cells are polygons. | Balzer 2005 | aspect | iterations x `O(n log n)` | — | planned | k27 |
+| `treemap-voronoi-fast` | Fast Voronoi | Do `treemap-voronoi` with power diagrams and no raster. | Nocaj 2012 | aspect, speed | iterations x `O(n log n)` | — | planned | k27 |
+| `circle-pack-front-chain` | Circle packing | Put each circle against the front chain of the circles before it. | Wang 2006 (the co-authors are unverified) | aspect | `O(n^2)` | — | planned | k27 |
+| `treemap-spatial` | Spatially ordered | Put each item near a given point, with a split that keeps the order of the two axes. | Wood 2008 | order | `O(n log n)` | — | planned | k27 |
+| `treemap-nmap` | Nmap | Split the items by their given points, and keep the neighbors near. | Duarte 2014 | order, neighbors | `O(n log n)` | — | planned | k27 |
+| `treemap-bounded-aspect` | Bounded aspect | Use convex cells with an aspect of `O(depth)`, or orthoconvex cells with a constant aspect. | de Berg 2011 | aspect | `O(n log n)` | cell aspect `O(depth)` (de Berg 2011) | planned | k27 |
+| `treemap-local-moves` | Stable by local moves | After a change, do the local move of the layout that gives the best mix of aspect and stability. | Sondag 2018 | stability, aspect | moves x `O(n)` | — | planned | k27 |
+| `treemap-git` | Greedy insertion treemap | Keep the old layout. Remove the old items, and add each new item into the cell that changes the least. | Vernier 2018 | stability | `O(n log n)` | — | planned | k27 |
+| `treemap-evocells` | EvoCells | Map the changes of the tree onto the old layout. Grow and shrink the cells in place. | Scheibel 2018 | stability | `O(n log n)` | — | planned | k27 |
+| `treemap-sizepairs` | SizePairs | Pair the items by their change of size and by their size. Choose the direction of each split and the flips for stability and aspect. | Han 2022 | stability, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-voronoi-stable` | Stable Voronoi | Start the sites of a new Voronoi treemap at the sites of the old one. | Hahn 2014 | stability | iterations x `O(n log n)` | — | planned | k27 |
+| `treemap-shelf-hybrid` | Treemap rows with boxes | refer to `new-treemap-shelf` | this repository | aspect, density | `O(n log n)` | — | planned | k31 |
 
 Notes:
 
@@ -368,21 +371,21 @@ Notes:
 
 These are the layouts of pages with many cards or pictures. A masonry layout keeps columns of the same width. A justified layout keeps rows of the same width and scales the pictures of each row.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1969 | order, speed | `O(n log c)` for `c` columns | planned | k28 |
-| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | planned | k28 |
-| `masonry-differencing` | Balanced columns by differencing | Balance the column heights with the differencing method of Karmarkar and Karp. | Karmarkar 1982 (the report number is unverified) | density | `O(n log n)` | planned | k28 |
-| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | planned | k28 |
-| `columns-css-balance` | CSS multi-column balance | Fill the columns in order and balance their heights, as `column-fill: balance` does. | W3C multi-column | order | `O(n log n)` | planned | k28 |
-| `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | planned | k28 |
-| `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | planned | k28 |
-| `css-grid-dense` | CSS grid dense flow | Put each item in the first free area of the grid from the start, as `grid-auto-flow: dense` does. | W3C grid | density | `O(n^2 c)` | planned | k28 |
-| `css-grid-lanes` | CSS grid lanes | Do `masonry-shortest` in a grid, with `display: grid-lanes` of the 2026 draft. The earlier drafts called it `masonry`. | W3C grid level 3 draft | order | `O(n log c)` | planned | k28 |
-| `justified-greedy` | Justified rows, greedy | Add pictures to a row at a target height. When a picture makes the row too wide, keep it only if the row gets nearer to the target. Scale the row to the width. | Flickr, software | order, raggedness | `O(n)` | planned | k28 |
-| `justified-linear-partition` | Justified rows, linear partition | Cut the order into `k` rows of near equal width with dynamic programming. | Treitz 2013 (unverified), Skiena 2008 | order, raggedness | `O(n^2 k)` | planned | k28 |
-| `justified-line-break` | Justified rows, line breaking | Choose all the row breaks at once with the method of Knuth and Plass. The cost of a row is the change of its scale from the target. | Knuth 1981, Harasymiv 2016 (unverified) | order, raggedness | `O(n w)` for `w` items in a row | planned | k28 |
-| `grid-template-layout` | Adaptive grid layout | Choose a template of grid cells for each page with a search over a cost. Fit the items to the cells. | Jacobs 2003 | aspect | template count x `n` | planned | k28 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1969 | order, speed | `O(n log c)` for `c` columns | `(2 - 1/c)·OPT` for the highest column (Graham 1969, unverified) | planned | k28 |
+| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | planned | k28 |
+| `masonry-differencing` | Balanced columns by differencing | Balance the column heights with the differencing method of Karmarkar and Karp. | Karmarkar 1982 (the report number is unverified) | density | `O(n log n)` | — | planned | k28 |
+| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
+| `columns-css-balance` | CSS multi-column balance | Fill the columns in order and balance their heights, as `column-fill: balance` does. | W3C multi-column | order | `O(n log n)` | — | planned | k28 |
+| `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | planned | k28 |
+| `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | planned | k28 |
+| `css-grid-dense` | CSS grid dense flow | Put each item in the first free area of the grid from the start, as `grid-auto-flow: dense` does. | W3C grid | density | `O(n^2 c)` | — | planned | k28 |
+| `css-grid-lanes` | CSS grid lanes | Do `masonry-shortest` in a grid, with `display: grid-lanes` of the 2026 draft. The earlier drafts called it `masonry`. | W3C grid level 3 draft | order | `O(n log c)` | — | planned | k28 |
+| `justified-greedy` | Justified rows, greedy | Add pictures to a row at a target height. When a picture makes the row too wide, keep it only if the row gets nearer to the target. Scale the row to the width. | Flickr, software | order, raggedness | `O(n)` | — | planned | k28 |
+| `justified-linear-partition` | Justified rows, linear partition | Cut the order into `k` rows of near equal width with dynamic programming. | Treitz 2013 (unverified), Skiena 2008 | order, raggedness | `O(n^2 k)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
+| `justified-line-break` | Justified rows, line breaking | Choose all the row breaks at once with the method of Knuth and Plass. The cost of a row is the change of its scale from the target. | Knuth 1981, Harasymiv 2016 (unverified) | order, raggedness | `O(n w)` for `w` items in a row | the best breaks for its cost (Knuth 1981) | planned | k28 |
+| `grid-template-layout` | Adaptive grid layout | Choose a template of grid cells for each page with a search over a cost. Fit the items to the cells. | Jacobs 2003 | aspect | template count x `n` | — | planned | k28 |
 
 Notes:
 
@@ -393,17 +396,17 @@ Notes:
 
 These methods keep the reading order of the input, or keep the layout when the input changes. The measures are `pack.order.*` and `pack.stability.*`.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `order-shelf-input` | Shelf in the input order | `shelf-nf` around locked boxes. | this repository | order | `O(n)` | implemented: `packShelf` with `sortOrder: "input"` | k29 |
-| `order-ordered-treemaps` | Ordered treemaps | `treemap-pivot-*`, `treemap-strip`, `treemap-split`, `treemap-spiral` and the curves keep the order. | Shneiderman 2001, Bederson 2002 | order | refer to [Treemaps](#treemaps) | planned | k29 |
-| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n log n)` | planned | k29 |
-| `order-mental-map` | Keep the mental map | Keep the orthogonal order, the near neighbors and the topology of a layout when it changes. | Misue 1995, Eades 1991 | stability | depends on the method | planned | k29 |
-| `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | Vernier 2018 | stability | one pack | planned | k29 |
-| `stable-local-moves` | Local moves | `treemap-local-moves` for packers: search the moves of a layout for the best mix of a measure and the movement. | Sondag 2018 | stability | moves x measure | planned | k29 |
-| `stable-voronoi` | Old sites as the start | `treemap-voronoi-stable`. | Hahn 2014 | stability | refer to [Treemaps](#treemaps) | planned | k29 |
-| `stable-animated` | Animated change | Move each box from the old place to the new place in steps. This changes no measure, but it helps a person follow the change. | Heer 2007 | perceived stability | `O(n)` for each frame | planned | k29 |
-| `order-spatial` | Near the given place | `treemap-spatial` and `treemap-nmap` for boxes with a given place. | Wood 2008, Duarte 2014 | order | `O(n log n)` | planned | k29 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `order-shelf-input` | Shelf in the input order | `shelf-nf` around locked boxes. | this repository | order | `O(n)` | — | implemented: `packShelf` with `sortOrder: "input"` | k29 |
+| `order-ordered-treemaps` | Ordered treemaps | `treemap-pivot-*`, `treemap-strip`, `treemap-split`, `treemap-spiral` and the curves keep the order. | Shneiderman 2001, Bederson 2002 | order | refer to [Treemaps](#treemaps) | — | planned | k29 |
+| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n log n)` | — | planned | k29 |
+| `order-mental-map` | Keep the mental map | Keep the orthogonal order, the near neighbors and the topology of a layout when it changes. | Misue 1995, Eades 1991 | stability | depends on the method | — | planned | k29 |
+| `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | Vernier 2018 | stability | one pack | — | planned | k29 |
+| `stable-local-moves` | Local moves | `treemap-local-moves` for packers: search the moves of a layout for the best mix of a measure and the movement. | Sondag 2018 | stability | moves x measure | — | planned | k29 |
+| `stable-voronoi` | Old sites as the start | `treemap-voronoi-stable`. | Hahn 2014 | stability | refer to [Treemaps](#treemaps) | — | planned | k29 |
+| `stable-animated` | Animated change | Move each box from the old place to the new place in steps. This changes no measure, but it helps a person follow the change. | Heer 2007 | perceived stability | `O(n)` for each frame | — | planned | k29 |
+| `order-spatial` | Near the given place | `treemap-spatial` and `treemap-nmap` for boxes with a given place. | Wood 2008, Duarte 2014 | order | `O(n log n)` | — | planned | k29 |
 
 Notes:
 
@@ -414,18 +417,18 @@ Notes:
 
 An online packer puts each box when it comes, and does not move it later. An incremental packer changes a layout after a change of the input.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `online-nfs-r` | Next Fit Shelf with parameter `r` | Round each height up to a power of `r`. Keep one open shelf for each class of height. | Baker 1983 | density, online | `O(n)` | planned | k30 |
-| `online-ffs-r` | First Fit Shelf with parameter `r` | Do `online-nfs-r`, but put a box in the first shelf of its class where it fits. | Baker 1983 | density, online | `O(n log n)` | planned | k30 |
-| `shelf-online-harmonic` | Harmonic shelf | Do `online-ffs-r` with classes of width too, as the harmonic bin packing does. | Csirik 1997 | density, online | `O(n log n)` | planned | k30 |
-| `online-bl` | Online bottom-left | Do `bl-chazelle` in the order of arrival. Its bound is a lower bound for all online packers. | Brown 1982 | online | `O(n^2)` | planned | k30 |
-| `online-dynamic-bins` | Dynamic bin packing | Boxes come and go. Put each new box with First Fit, and do not move the boxes left. | Coffman 1983 | stability | `O(n log n)` | planned | k30 |
-| `incremental-push` | Push cascade | Put a box where the user drops it. Push each box that it overlaps away on the axis of the smaller overlap, and push on in turn. | this repository | stability | `O(n^2)` | implemented: `pushCascade` | k30 |
-| `incremental-vertical-compact` | Vertical compaction | After a move, move each box up as far as it goes, in order from the top. | react-grid-layout, software | stability, density | `O(n^2)` | planned | k30 |
-| `incremental-float` | Float grid | Do `incremental-push`, but do not compact. A box stays where the user puts it. | gridstack.js, software | stability | `O(n^2)` | planned | k30 |
-| `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | planned | k30 |
-| `incremental-git` | Greedy insertion | `treemap-git` for packers: remove the old boxes, and put each new box in the free space that changes the least. | Vernier 2018 | stability | `O(n F)` | planned | k30 |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `online-nfs-r` | Next Fit Shelf with parameter `r` | Round each height up to a power of `r`. Keep one open shelf for each class of height. | Baker 1983 | density, online | `O(n)` | asymptotic `2/r·OPT` (Baker 1983, unverified) | planned | k30 |
+| `online-ffs-r` | First Fit Shelf with parameter `r` | Do `online-nfs-r`, but put a box in the first shelf of its class where it fits. | Baker 1983 | density, online | `O(n log n)` | asymptotic `1.7/r·OPT` (Baker 1983, unverified) | planned | k30 |
+| `shelf-online-harmonic` | Harmonic shelf | Do `online-ffs-r` with classes of width too, as the harmonic bin packing does. | Csirik 1997 | density, online | `O(n log n)` | asymptotic `1.69·OPT` (Csirik 1997, unverified) | planned | k30 |
+| `online-bl` | Online bottom-left | Do `bl-chazelle` in the order of arrival. Its bound is a lower bound for all online packers. | Brown 1982 | online | `O(n^2)` | — | planned | k30 |
+| `online-dynamic-bins` | Dynamic bin packing | Boxes come and go. Put each new box with First Fit, and do not move the boxes left. | Coffman 1983 | stability | `O(n log n)` | — | planned | k30 |
+| `incremental-push` | Push cascade | Put a box where the user drops it. Push each box that it overlaps away on the axis of the smaller overlap, and push on in turn. | this repository | stability | `O(n^2)` | — | implemented: `pushCascade` | k30 |
+| `incremental-vertical-compact` | Vertical compaction | After a move, move each box up as far as it goes, in order from the top. | react-grid-layout, software | stability, density | `O(n^2)` | — | planned | k30 |
+| `incremental-float` | Float grid | Do `incremental-push`, but do not compact. A box stays where the user puts it. | gridstack.js, software | stability | `O(n^2)` | — | planned | k30 |
+| `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | — | planned | k30 |
+| `incremental-git` | Greedy insertion | `treemap-git` for packers: remove the old boxes, and put each new box in the free space that changes the least. | Vernier 2018 | stability | `O(n F)` | — | planned | k30 |
 
 Notes:
 
@@ -436,21 +439,21 @@ Notes:
 
 These methods come from graph drawing and from the layout of chips. They are near to packing. A component packer packs groups of nodes. An overlap removal moves boxes apart with little movement. A compaction moves boxes together and keeps their order. These methods need a new item.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `components-polyomino` | Polyomino packing | Cover each component with grid cells (a polyomino). Put the polyominoes, from the largest, on the free cells nearest to the center. | Freivalds 2002 | density, aspect | `O(n c^2)` for `c` cells | planned | new item |
-| `components-placing` | Placing components | Put each component as a box with a rule for the aspect and the order of the components. The rule is unverified. | Goehlsdorf 2007 | aspect | `O(n log n)` | planned | new item |
-| `overlap-prism` | PRISM | Build a proximity graph of the boxes. Grow the edges between overlapping boxes, and do a stress layout. Repeat until no overlap is left. | Gansner 2010 | stability | iterations x `O(n log n)` | planned | new item |
-| `overlap-vpsc` | VPSC | For each axis, write "a is left of b by at least the gap" as constraints. Solve the quadratic problem of the smallest movement. | Dwyer 2006 | stability | `O(n log n)` for each axis | planned | new item |
-| `overlap-force-scan` | Force-scan | Scan the boxes along each axis. Push each box that overlaps the box before it, along the line between the two centers. | Misue 1995 | stability | `O(n^2)` | planned | new item |
-| `overlap-qp` | Constrained optimization | Write the overlap removal as a quadratic program with a choice of "left", "right", "above" or "below" for each pair. | Marriott 2003 | stability | exponential | planned | new item |
-| `overlap-gtree` | GTree | Build a minimum spanning tree of the overlap graph. Grow the tree edges, and move the boxes along the tree. | Nachmanson 2016 | stability | iterations x `O(n log n)` | planned | new item |
-| `overlap-spring` | Spring removal (DNLS) | Add a spring force between overlapping boxes, and do a force layout. | Li 2005 | stability | iterations x `O(n^2)` | planned | new item |
-| `overlap-odnls` | ODNLS | The second spring method of Li 2005. The brief called it ODNC. Its full name and rule are unverified. | Li 2005 | stability | iterations x `O(n^2)` | planned | new item |
-| `overlap-orthogonal` | Orthogonal order | Remove the overlap and keep the orthogonal order of each pair. | Hayashi 1998 | stability, order | `O(n log n)` | planned | new item |
-| `compact-1d` | One-dimensional compaction | Build a graph of the constraints "a is left of b by at least the gap" with a scan line. Give each box its longest path from the left wall. Do the same for y. | Lengauer 1990, Liao 1983 | density, order | `O(n log n)` | planned | new item |
-| `compact-mixed` | Compaction with mixed constraints | Do `compact-1d` with upper bounds on some distances too. | Liao 1983 | density | `O(n E)` for `E` constraints | planned | new item |
-| `compact-optimal` | Optimal compaction | Compact both axes at once with an integer program. | Klau 1999 | density | exponential | planned | new item |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `components-polyomino` | Polyomino packing | Cover each component with grid cells (a polyomino). Put the polyominoes, from the largest, on the free cells nearest to the center. | Freivalds 2002 | density, aspect | `O(n c^2)` for `c` cells | — | planned | new item |
+| `components-placing` | Placing components | Put each component as a box with a rule for the aspect and the order of the components. The rule is unverified. | Goehlsdorf 2007 | aspect | `O(n log n)` | — | planned | new item |
+| `overlap-prism` | PRISM | Build a proximity graph of the boxes. Grow the edges between overlapping boxes, and do a stress layout. Repeat until no overlap is left. | Gansner 2010 | stability | iterations x `O(n log n)` | — | planned | new item |
+| `overlap-vpsc` | VPSC | For each axis, write "a is left of b by at least the gap" as constraints. Solve the quadratic problem of the smallest movement. | Dwyer 2006 | stability | `O(n log n)` for each axis | — | planned | new item |
+| `overlap-force-scan` | Force-scan | Scan the boxes along each axis. Push each box that overlaps the box before it, along the line between the two centers. | Misue 1995 | stability | `O(n^2)` | — | planned | new item |
+| `overlap-qp` | Constrained optimization | Write the overlap removal as a quadratic program with a choice of "left", "right", "above" or "below" for each pair. | Marriott 2003 | stability | exponential | — | planned | new item |
+| `overlap-gtree` | GTree | Build a minimum spanning tree of the overlap graph. Grow the tree edges, and move the boxes along the tree. | Nachmanson 2016 | stability | iterations x `O(n log n)` | — | planned | new item |
+| `overlap-spring` | Spring removal (DNLS) | Add a spring force between overlapping boxes, and do a force layout. | Li 2005 | stability | iterations x `O(n^2)` | — | planned | new item |
+| `overlap-odnls` | ODNLS | The second spring method of Li 2005. The brief called it ODNC. Its full name and rule are unverified. | Li 2005 | stability | iterations x `O(n^2)` | — | planned | new item |
+| `overlap-orthogonal` | Orthogonal order | Remove the overlap and keep the orthogonal order of each pair. | Hayashi 1998 | stability, order | `O(n log n)` | — | planned | new item |
+| `compact-1d` | One-dimensional compaction | Build a graph of the constraints "a is left of b by at least the gap" with a scan line. Give each box its longest path from the left wall. Do the same for y. | Lengauer 1990, Liao 1983 | density, order | `O(n log n)` | — | planned | new item |
+| `compact-mixed` | Compaction with mixed constraints | Do `compact-1d` with upper bounds on some distances too. | Liao 1983 | density | `O(n E)` for `E` constraints | — | planned | new item |
+| `compact-optimal` | Optimal compaction | Compact both axes at once with an integer program. | Klau 1999 | density | exponential | exact: `OPT` | planned | new item |
 
 Notes:
 
@@ -462,16 +465,16 @@ Notes:
 
 These methods come from the layout of text and of user interfaces. They are packers with an order.
 
-| `id` | Name | Rule | Source | Goal | Cost | Status | Item |
-|---|---|---|---|---|---|---|---|
-| `flex-wrap` | Flexbox wrap | `shelf-nf` in the input order, with a rule for the space that is left in each row (start, center, end or between). | W3C flexbox | order | `O(n)` | planned | k28 |
-| `flex-wrap-grow` | Flexbox wrap with grow | Do `flex-wrap`, then give the space left in each row to the boxes that can grow. | W3C flexbox | order, raggedness | `O(n)` | planned | k28 |
-| `line-break-knuth-plass` | Line breaking of boxes | Choose all the row breaks of the input order at once. The cost of a row is the square of its free width. The last row has no cost. | Knuth 1981 | order, raggedness | `O(n w)` | planned | k29 |
-| `label-greedy` | Greedy label placement | For each point, choose one of four places for its label. Take the place with the fewest overlaps. | Christensen 1995 | overlap | `O(n log n)` | planned | new item |
-| `label-annealing` | Label placement by annealing | Do `label-greedy`, then anneal over the choices. | Christensen 1995 | overlap | steps x `O(log n)` | planned | new item |
-| `label-four-place` | Four-place labels | Choose one of four corners of each point for its square label. Make the labels as large as possible with no overlap. | Formann 1991 | overlap | `O(n log n)` | planned | new item |
-| `word-cloud-spiral` | Spiral placement | Put each box, from the largest, at the first place without overlap along a spiral from the center. The rule is unverified. | Viégas 2009 | density, aspect | `O(n^2)` | planned | new item |
-| `ui-grid-ip` | Grid layout by integer program | Write the layout of interface elements on a grid as an integer program, with goals of alignment and balance. | Dayama 2020 | order, aspect | exponential | planned | new item |
+| `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
+|---|---|---|---|---|---|---|---|---|
+| `flex-wrap` | Flexbox wrap | `shelf-nf` in the input order, with a rule for the space that is left in each row (start, center, end or between). | W3C flexbox | order | `O(n)` | — | planned | k28 |
+| `flex-wrap-grow` | Flexbox wrap with grow | Do `flex-wrap`, then give the space left in each row to the boxes that can grow. | W3C flexbox | order, raggedness | `O(n)` | — | planned | k28 |
+| `line-break-knuth-plass` | Line breaking of boxes | Choose all the row breaks of the input order at once. The cost of a row is the square of its free width. The last row has no cost. | Knuth 1981 | order, raggedness | `O(n w)` | the best breaks for its cost (Knuth 1981) | planned | k29 |
+| `label-greedy` | Greedy label placement | For each point, choose one of four places for its label. Take the place with the fewest overlaps. | Christensen 1995 | overlap | `O(n log n)` | — | planned | new item |
+| `label-annealing` | Label placement by annealing | Do `label-greedy`, then anneal over the choices. | Christensen 1995 | overlap | steps x `O(log n)` | — | planned | new item |
+| `label-four-place` | Four-place labels | Choose one of four corners of each point for its square label. Make the labels as large as possible with no overlap. | Formann 1991 | overlap | `O(n log n)` | labels of `1/2` of the best size (Formann 1991, unverified) | planned | new item |
+| `word-cloud-spiral` | Spiral placement | Put each box, from the largest, at the first place without overlap along a spiral from the center. The rule is unverified. | Viégas 2009 | density, aspect | `O(n^2)` | — | planned | new item |
+| `ui-grid-ip` | Grid layout by integer program | Write the layout of interface elements on a grid as an integer program, with goals of alignment and balance. | Dayama 2020 | order, aspect | exponential | — | planned | new item |
 
 Notes:
 
