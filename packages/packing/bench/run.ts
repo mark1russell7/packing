@@ -51,17 +51,14 @@ export interface BenchEnv {
   cpus: number;
 }
 
-/**
- * One record of a run: a `layout-record/1` line of `docs/FORMAT.md`. The last three fields are not in `docs/FORMAT.md`.
- * A reader of the format ignores them.
- */
-export interface BenchRecord {
+/** The fields of each record of a run: a `layout-record/1` line of `docs/FORMAT.md`. */
+interface BenchRecordHead {
   schema: "layout-record/1";
   stage: "pack";
   step: "pack";
   strategy: string;
   /** The full options of the strategy: its defaults, because the runner gives no options. */
-  options: unknown;
+  options: Record<string, unknown>;
   corpus: string;
   input: string;
   inputHash: string;
@@ -70,22 +67,48 @@ export interface BenchRecord {
   /** The count of the boxes and the obstacles of the input, as the twin document of `highways` counts them. */
   nodes: number;
   edges: number;
-  /** The measures of `measure`, rounded with `roundMeasures`. A measure without a finite value is not in the record. */
-  measures: Record<string, number>;
-  hard: HardBreaks;
   tolerance: { overlap: number };
   deterministic: boolean;
   prediction: string;
-  /** The median time of the timed runs, in milliseconds. */
+  /** The median time of the timed runs, in milliseconds. A skipped record has 0. */
   ms: number;
   /** The first 7 characters of the commit of the code. */
   commit?: string;
+  env: BenchEnv;
+}
+
+/** The record of a pair that the runner packed. It has the measures, the hard counts and the times. */
+export interface MeasuredRecord extends BenchRecordHead {
+  /** The measures of `measure`, rounded with `roundMeasures`. A measure without a finite value is not in the record. */
+  measures: Record<string, number>;
+  /** The counts of `checkHard`, as an object type. An object type fits the index signature of the contract, and an interface does not. */
+  hard: { [K in keyof HardBreaks]: HardBreaks[K] };
   /** The time of each timed run, in milliseconds, in the order of the runs. The median of this list is `ms`. */
   msRuns: number[];
   /** The first 16 hex characters of the SHA-256 of the canonical placements, sorted by id. */
-  placementsHash: string;
-  env: BenchEnv;
+  outputHash: string;
+  skipped?: never;
 }
+
+/**
+ * The record of a pair that the runner did not pack, because the strategy does not support the cell of the input.
+ * It has no measures and no hard counts, and its `ms` is 0.
+ */
+export interface SkippedRecord extends BenchRecordHead {
+  measures: Record<string, never>;
+  hard: Record<string, never>;
+  /** The reason: the value of the cell that the strategy does not support. */
+  skipped: string;
+}
+
+/** One record of a run: a `layout-record/1` line of `docs/FORMAT.md`. A record with `skipped` has no measures. */
+export type BenchRecord = MeasuredRecord | SkippedRecord;
+
+/** This function tells if a record has measures, and thus is not a skipped record. */
+export const isMeasured = (r: BenchRecord): r is MeasuredRecord => r.skipped === undefined;
+
+/** This function gives the reason of a skipped record from the dimension and the value that the strategy does not support. */
+export const skipReason = (dimension: string, value: string): string => `unsupported ${dimension}: ${value}`;
 
 /** A pair of a strategy and an input that the runner did not pack, because the strategy does not support the cell. */
 export interface BenchSkip {
@@ -219,8 +242,8 @@ function traceSum(output: PackOutput, id: string): number {
   return sum;
 }
 
-/** This function gives the hash of the placements of an output. The order of the list does not count. */
-export function placementsHash(output: PackOutput): string {
+/** This function gives the `outputHash` of an output: the hash of its placements. The order of the list does not count. */
+export function outputHash(output: PackOutput): string {
   const sorted = output.placements.toSorted((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return createHash("sha256").update(canonicalJson(sorted)).digest("hex").slice(0, 16);
 }
@@ -235,7 +258,8 @@ function finite(values: Record<string, number>): Record<string, number> {
 /**
  * This function benchmarks a corpus. It packs each input with each strategy that supports the cell of the input.
  *
- * - A strategy that does not support the cell of the manifest gets a skip, not a record.
+ * - A strategy that does not support the cell of the manifest gets a skipped record and a skip in the run.
+ * - The records keep the order of the strategies, and then the order of the inputs.
  * - The runner packs each pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock.
  * - An input with a `base` in the corpus gets the stability measures of `measureChange` against the run on its base.
  * - An error other than `UnsupportedCell` goes into `errors`, and the runner goes on.
@@ -260,10 +284,41 @@ export function runBench(options: BenchOptions): BenchResult {
     const done = new Map<string, { input: PackInput; output: PackOutput }>();
     const kept = new Map<string, PackOutput>();
     outputs.set(id, kept);
+    const defaults = { ...(s.defaults as Record<string, unknown>) };
     for (const [index, file] of inputs.entries()) {
+      const head = {
+        schema: "layout-record/1",
+        stage: "pack",
+        step: "pack",
+        strategy: id,
+        options: defaults,
+        corpus: manifest.corpus,
+        input: file.id,
+        inputHash: file.hash,
+        set: file.set,
+        seed: file.seed,
+        nodes: file.boxes.length + (file.obstacles?.length ?? 0),
+        edges: file.edges.length,
+      } as const;
+      const skip = (dimension: string, value: string): void => {
+        skipped.push({ strategy: id, input: file.id, dimension, value });
+        const record: SkippedRecord = {
+          ...head,
+          measures: {},
+          hard: {},
+          tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
+          deterministic: true,
+          prediction: options.prediction,
+          ms: 0,
+          skipped: skipReason(dimension, value),
+          env: options.env,
+        };
+        if (options.commit !== undefined) record.commit = options.commit;
+        records.push(record);
+      };
       const miss = unsupportedOf(s.supports, manifest.inputs[index]!.cell);
       if (miss !== undefined) {
-        skipped.push({ strategy: id, input: file.id, dimension: miss.dimension, value: miss.value });
+        skip(miss.dimension, miss.value);
         continue;
       }
       const input = toPackInput(file);
@@ -287,19 +342,8 @@ export function runBench(options: BenchOptions): BenchResult {
         done.set(file.id, { input, output: first });
         kept.set(file.id, first);
 
-        const record: BenchRecord = {
-          schema: "layout-record/1",
-          stage: "pack",
-          step: "pack",
-          strategy: id,
-          options: { ...(s.defaults as object) },
-          corpus: manifest.corpus,
-          input: file.id,
-          inputHash: file.hash,
-          set: file.set,
-          seed: file.seed,
-          nodes: file.boxes.length + (file.obstacles?.length ?? 0),
-          edges: file.edges.length,
+        const record: MeasuredRecord = {
+          ...head,
           measures: roundMeasures(finite(values)),
           hard: checkHard(input, first, DEFAULT_TOLERANCE),
           tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
@@ -307,13 +351,13 @@ export function runBench(options: BenchOptions): BenchResult {
           prediction: options.prediction,
           ms: round3(median(msRuns)),
           msRuns: msRuns.map(round3),
-          placementsHash: placementsHash(first),
+          outputHash: outputHash(first),
           env: options.env,
         };
         if (options.commit !== undefined) record.commit = options.commit;
         records.push(record);
       } catch (error) {
-        if (error instanceof UnsupportedCell) skipped.push({ strategy: id, input: file.id, dimension: error.dimension, value: error.value });
+        if (error instanceof UnsupportedCell) skip(error.dimension, error.value);
         else errors.push({ strategy: id, input: file.id, message: error instanceof Error ? error.message : String(error) });
       }
     }
@@ -367,21 +411,24 @@ const SUMMARY_MEASURES: string[] = [...GUARDS, "pack.fill", "pack.whitespace"];
 const familyOf = (input: string): string => input.split("/").slice(1, -1).join("/");
 
 /** This function sums the hard breaks of a record. */
-const breaksOf = (r: BenchRecord): number => Object.values(r.hard).reduce((sum, n) => sum + n, 0);
+const breaksOf = (r: MeasuredRecord): number => Object.values(r.hard).reduce((sum, n) => sum + n, 0);
 
 /** This function writes a number for a table: at most 3 decimals. */
 const num = (v: number | undefined): string => (v === undefined ? "-" : String(round3(v)));
 
-/** This function gives the median of a measure over records. Records without the measure do not count. */
+/** This function gives the median of a measure over records. Skipped records and records without the measure do not count. */
 function medianOf(records: readonly BenchRecord[], id: string): number | undefined {
-  const values = records.map((r) => (id === "ms" ? r.ms : r.measures[id])).filter((v): v is number => v !== undefined);
+  const values = records
+    .filter(isMeasured)
+    .map((r) => (id === "ms" ? r.ms : r.measures[id]))
+    .filter((v): v is number => v !== undefined);
   return values.length === 0 ? undefined : median(values);
 }
 
-/** This function checks a prediction against the records. The value `met` is absent when no record has the measure. */
+/** This function checks a prediction against the measured records. The value `met` is absent when no measured record has the measure. */
 export function checkPrediction(p: BenchPrediction, records: readonly BenchRecord[]): { measured?: number; met?: boolean } {
   if (p.measure === undefined || p.expected === undefined) return {};
-  const match = records.filter((r) => (p.strategy === undefined || r.strategy === p.strategy) && (p.set === undefined || r.set === p.set) && (p.input === undefined || r.input === p.input));
+  const match = records.filter((r) => isMeasured(r) && (p.strategy === undefined || r.strategy === p.strategy) && (p.set === undefined || r.set === p.set) && (p.input === undefined || r.input === p.input));
   const measured = medianOf(match, p.measure);
   if (measured === undefined) return {};
   const spec = MEASURE_SPECS[p.measure as MeasureId] as (typeof MEASURE_SPECS)[MeasureId] | undefined;
@@ -396,29 +443,31 @@ export function checkPrediction(p: BenchPrediction, records: readonly BenchRecor
  */
 export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], predictions: readonly BenchPrediction[] = []): string {
   const short = (id: string): string => id.replace(/^pack\./, "");
+  const measured = records.filter(isMeasured);
+  const skips = records.filter((r): r is SkippedRecord => !isMeasured(r));
   const lines: string[] = [`# Bench \`${run.corpus}\``, ""];
   lines.push(
     `- Prediction: \`${run.prediction}\``,
     `- Commit: \`${run.commit ?? "unknown"}\``,
     `- Computer: ${run.env.runner}, ${run.env.os} ${run.env.arch}, ${run.env.cpus} x ${run.env.cpu}, Node.js ${run.env.node}`,
     `- Runs of each pair: 2 for determinism, ${run.warmup} warm-up, ${run.repeats} timed. \`ms\` is the median of the timed runs.`,
-    `- Records: ${records.length}. Skipped pairs: ${run.skipped.length}. Errors: ${run.errors.length}.`,
+    `- Records: ${records.length}. Measured records: ${measured.length}. Skipped records: ${skips.length}. Errors: ${run.errors.length}.`,
     "",
     "## Strategies",
     "",
-    `| strategy | records | skipped | errors | hard breaks | not deterministic | ${SUMMARY_MEASURES.map((m) => `${short(m)} (median)`).join(" | ")} | ms median | ms max | ms sum |`,
+    `| strategy | measured | skipped | errors | hard breaks | not deterministic | ${SUMMARY_MEASURES.map((m) => `${short(m)} (median)`).join(" | ")} | ms median | ms max | ms sum |`,
     `|---|---:|---:|---:|---:|---:|${SUMMARY_MEASURES.map(() => "---:").join("|")}|---:|---:|---:|`,
   );
   for (const id of run.strategies) {
-    const own = records.filter((r) => r.strategy === id);
+    const own = measured.filter((r) => r.strategy === id);
     const ms = own.map((r) => r.ms);
     lines.push(
-      `| ${id} | ${own.length} | ${run.skipped.filter((s) => s.strategy === id).length} | ${run.errors.filter((e) => e.strategy === id).length} | ${own.reduce((sum, r) => sum + breaksOf(r), 0)} | ${own.filter((r) => !r.deterministic).length} | ${SUMMARY_MEASURES.map((m) => num(medianOf(own, m))).join(" | ")} | ${num(medianOf(own, "ms"))} | ${num(ms.length > 0 ? Math.max(...ms) : undefined)} | ${num(ms.reduce((a, b) => a + b, 0))} |`,
+      `| ${id} | ${own.length} | ${skips.filter((r) => r.strategy === id).length} | ${run.errors.filter((e) => e.strategy === id).length} | ${own.reduce((sum, r) => sum + breaksOf(r), 0)} | ${own.filter((r) => !r.deterministic).length} | ${SUMMARY_MEASURES.map((m) => num(medianOf(own, m))).join(" | ")} | ${num(medianOf(own, "ms"))} | ${num(ms.length > 0 ? Math.max(...ms) : undefined)} | ${num(ms.reduce((a, b) => a + b, 0))} |`,
     );
   }
 
   for (const id of run.strategies) {
-    const own = records.filter((r) => r.strategy === id);
+    const own = measured.filter((r) => r.strategy === id);
     if (own.length === 0) continue;
     lines.push("", `## \`${id}\` by family`, "", `| family | inputs | hard breaks | ${SUMMARY_MEASURES.map(short).join(" | ")} | ms median | ms max |`, `|---|---:|---:|${SUMMARY_MEASURES.map(() => "---:").join("|")}|---:|---:|`);
     const families = [...new Set(own.map((r) => familyOf(r.input)))];
@@ -431,20 +480,20 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
   }
 
   lines.push("", "## Skipped cells", "");
-  if (run.skipped.length === 0) lines.push("No pair was skipped.");
+  if (skips.length === 0) lines.push("No pair was skipped.");
   else {
-    lines.push("| strategy | value that the strategy does not support | inputs |", "|---|---|---:|");
+    lines.push("| strategy | reason | skipped records |", "|---|---|---:|");
     const counts = new Map<string, number>();
-    for (const s of run.skipped) {
-      const key = `${s.strategy} | \`${s.dimension}\` = \`${s.value}\``;
+    for (const r of skips) {
+      const key = `${r.strategy} | \`${r.skipped}\``;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     for (const [key, count] of counts) lines.push(`| ${key} | ${count} |`);
   }
 
-  const broken = records.filter((r) => breaksOf(r) > 0 || !r.deterministic);
+  const broken = measured.filter((r) => breaksOf(r) > 0 || !r.deterministic);
   lines.push("", "## Hard breaks and determinism", "");
-  if (broken.length === 0) lines.push("Each record has 0 hard breaks, and each pair is deterministic.");
+  if (broken.length === 0) lines.push("Each measured record has 0 hard breaks, and each measured pair is deterministic.");
   else {
     lines.push("| strategy | input | hard | deterministic |", "|---|---|---|---|");
     for (const r of broken.slice(0, 50)) lines.push(`| ${r.strategy} | ${r.input} | \`${JSON.stringify(r.hard)}\` | ${r.deterministic} |`);
@@ -457,7 +506,7 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
   }
 
   lines.push("", "## Stability", "");
-  const changed = records.filter((r) => r.measures["pack.stability.moved"] !== undefined);
+  const changed = measured.filter((r) => r.measures["pack.stability.moved"] !== undefined);
   if (changed.length === 0) lines.push("No input of the corpus has a base, so no record has the stability measures.");
   else lines.push(`${changed.length} records have the stability measures. The tables above show their medians.`);
 

@@ -308,7 +308,7 @@ The package `@mark1russell7/layout-contract` holds what the packer, the router a
 
 ## The type fit with `@mark1russell7/layout-contract`
 
-The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract 0.2.0 at commit `710ec51` (roadmap item k57). The commit `710ec51` is the pull request 8 of `layout-contract`.
+The test `src/contract-fit.test.ts` compares the types and the functions of `packing` with the contract 0.2.1 at commit `d15b240` (roadmap item k57). The commit `d15b240` is the pull request 9 of `layout-contract`.
 
 - The contract is a dev dependency. The release refuses a `github:` specifier only in `dependencies`, `peerDependencies` and `optionalDependencies`.
 - `Placement`, `Tolerance` and the counts of the hard rules fit in both directions. `Port` of `packing` fits the contract.
@@ -317,10 +317,11 @@ The test `src/contract-fit.test.ts` compares the types and the functions of `pac
 - `toPackInput` gives the same packer input. `packHard` and `checkHard` give the same counts on the packed outputs of the generators, with and without an inset.
 - `packHard` and `checkHard` give the same counts for a rectangle obstacle, also after a move in `output.moved`.
 - `Strategy` fits `StrategyInfo`, and each entry of `MEASURE_SPECS` fits `MeasureSpec`. `Direction` is the same.
+- A record of the benchmark runner fits `LayoutRecord`, with and without `skipped`. The two types have the same fields. `BenchEnv` and `RunEnv` fit in both directions.
 
 The gaps are below. The test has a check for each gap from 1 to 14. When a gap closes, its check fails. Then change the check and this list. A closed gap keeps its line and its number, and its check shows the fit.
 
-0. The install. `packing`: the specifier `github:mark1russell7/layout-contract#710ec51` installs the root of the repository. The contract: the package is in `packages/layout-contract`. Thus `packing` adds `&path:packages/layout-contract`. No decision applies. The npm release closes this gap.
+0. The install. `packing`: the specifier `github:mark1russell7/layout-contract#d15b240` installs the root of the repository. The contract: the package is in `packages/layout-contract`. Thus `packing` adds `&path:packages/layout-contract`. No decision applies. The npm release closes this gap.
 1. The arrays. `packing`: mutable arrays, for example `Item[]`, `Port[]` and the rings of a polygon. The contract: readonly arrays and fields. The decisions favor the contract, because a packer does not change its input.
 2. The trace. `packing`: `PackOutput.trace`, `StageTrace.ms` and `StageTrace.measures` are necessary. The contract: they are optional. No decision applies. The output of `packing` fits the contract.
 3. The names. `packing`: `Margin` (the four sides), `Container`, `Edge`, `HardBreaks` and the class `Rect` of 0.1. The contract: `Sides`, `Margin` (a number or `Sides`), `LayoutContainer`, `LayoutEdge`, `PackHard` and a plain `Rect`. Decision 5 favors the contract. The class `Rect` of 0.1 needs a decision. `packing` closes gaps 1 and 3 in its 0.2.0, when it imports the contract.

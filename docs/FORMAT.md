@@ -223,6 +223,15 @@ Each run writes one line of JSON Lines: one line for each strategy, input and se
 - `deterministic` is `true` when two runs with the same seed give the same positions.
 - `ms` is the time of the run. Time runs go in CI only.
 
+A record can also have these optional fields:
+
+- `msRuns` gives the time of each timed repeat, in milliseconds. `ms` is their median.
+- `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical output of the stage. The packer hashes its placements, sorted by id.
+- `env` gives the computer of the run: `node`, `os`, `arch`, `runner`, `cpu` and `cpus`.
+- `skipped` gives the reason when the strategy did not start, for example a cell that the strategy does not support.
+
+A skipped record has no measures and no hard counts: `measures` and `hard` are empty objects. Its `ms` is 0, and it has no `msRuns` and no `outputHash`. A reader of the measures and the times ignores a skipped record.
+
 ## The predictions
 
 Each prediction is written before its run. The predictions are a JSON Lines file, and a commit adds it before the run starts. A prediction has an `id`, the keys `strategy`, `input` and `set`, the measure, the expected value and the reason. A record names its prediction in `prediction`.
