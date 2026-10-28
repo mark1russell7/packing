@@ -78,6 +78,7 @@ Status: done, done, waiting, next, done.
 | k69 | A baseline arm in the same job of `bench.yml`, so each time ratio is paired and a drift of the runner cancels. `paired.yml` (#85) does it for two refs. | measure | later | k33 |
 | k70 | Fit `SELECT_TABLE` again on two measures, the fill and the joint floor of `layout-contract`, with `verdict()`. The fit decides leaf 6: free size, a heavy tail and a shape that is not a rectangle. | strategies | next | k66 |
 | k71 | A render check of the site in CI: headless Chromium opens each page at a phone width and a desktop width. It fails on a console error, a failed request or an empty `main`, and keeps the screenshots. | site | active | k32 |
+| k72 | A compare page: one input, each named strategy side by side, with its output and its measures. The demo offers each strategy of the registry and its options. A test fails when a list of the site differs from the code. | site | active | k32 |
 
 ## Rules
 
