@@ -129,6 +129,8 @@ The rows: the boxes go in the order of their top. A box joins the last row when 
 | `pack.overflow.forced` | count | lower | 0 to `n` |
 | `pack.overflow.forcedArea` | share | lower | 0 to 1 |
 | `pack.overflow.excess` | count | lower | 0 to `n` |
+| `pack.overflow.forcedAreaMin` | share | lower | 0 to 1 |
+| `pack.overflow.excessArea` | share | lower | 0 to 1 |
 
 **`pack.overflow`** counts the items that the packer did not place: the distinct ids of `output.overflow`.
 
@@ -147,7 +149,28 @@ The rows: the boxes go in the order of their top. A box joins the last row when 
 
 `excess = overflow - forced`
 
-**`pack.overflow.forcedArea`** is the area of the forced overflow, divided by the area of all the items. It is a lower bound of `pack.overflow.area`.
+**`pack.overflow.forcedArea`** is the area of the forced overflow, divided by the area of all the items. It is a lower bound of `pack.overflow.area`. It is a diagnostic of 0.2.2. Since 0.2.3, use `pack.overflow.forcedAreaMin`.
+
+**`pack.overflow.forcedAreaMin`** (since 0.2.3) is the tight lower bound of the overflow area. It uses the same free area `F` and the same rule for too-long items as `forced`.
+
+`forcedAreaMin = (area of the too-long items + max(0, rest - F)) / total item area`
+
+- `rest` is the area of the other candidates. The section "The forced overflow" gives `F` and the area of a candidate.
+- A container with no fixed side gives 0. A container with only a fixed width or height gives the area of the too-long items.
+- The value is equal to `pack.overflow.forcedArea`. The new id tells that the value is a bound of an area, not the area of the dropped items.
+
+**`pack.overflow.excessArea`** (since 0.2.3) is the overflow area that a better packer can perhaps place.
+
+`excessArea = overflow.area - forcedAreaMin`
+
+- A difference from `-1e-9` to 0 is float noise, and it becomes 0. A value below `-1e-9` stays, because it shows a bug.
+- The property test of each strategy shows `forcedAreaMin <= overflow.area + 1e-9` on generated inputs of each container shape, fixed and free.
+
+**Judge a strategy by `excessArea`.** The count bound `forced` is weak on mixed sizes. The bound drops the largest items first, and a packer often leaves out many small items.
+
+- Example: 1 box of 10000 and 10 boxes of 100 in a box of 100 by 100. `forced` is 1.
+- A packer that leaves out the 10 small boxes has the overflow 10 and the excess 9. Its `excessArea` is approximately 0, because no packer can place more area.
+- Thus `excess` counts overflow that no packer can avoid. `excessArea` does not.
 
 Since 0.2.2 (roadmap item k59), the bench ranks the fill only on the records with no overflow. A strategy that leaves out items gets a high fill. The forced overflow tells which part of the overflow the input forces.
 
@@ -173,7 +196,8 @@ The free area `F` is an upper bound. Thus `forced` is a lower bound for each pac
 - The bound ignores the gap and the margins. They make the true free area smaller, thus the bound stays valid.
 - The area of a candidate is `w * h`, or the area of its shape when that is smaller.
 - A slack keeps the bound valid for the tolerance of the hard rules: `2 * tolerance.overlap` along the edges of each candidate and of the container.
-- The area of `pack.overflow.forcedArea` is the area of the long items of step 1, plus the part of the area of the rest above `F`.
+- The area of `pack.overflow.forcedAreaMin` and `pack.overflow.forcedArea` is the area of the long items of step 1, plus the part of the area of the rest above `F`.
+- The area bound does not use the items that step 2 drops. Their area is often more than the part above `F`.
 
 ## Coverage
 
@@ -361,6 +385,8 @@ Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `Measu
 | `pack.overflow.forced` | 0 | A count. |
 | `pack.overflow.forcedArea` | 0.005 | A share of an area from 0 to 1. |
 | `pack.overflow.excess` | 0 | A count. |
+| `pack.overflow.forcedAreaMin` | 0.005 | A share of an area from 0 to 1. |
+| `pack.overflow.excessArea` | 0.005 | A share of an area from 0 to 1. |
 | `pack.stability.moved` | 0.02 | The tolerance of the guard. |
 | `pack.stability.mean` | 0.005 | The tolerance of the guard. |
 | `pack.stability.q95` | 0.01 | The tolerance of the guard. |

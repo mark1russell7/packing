@@ -6,6 +6,8 @@ import {
   measure,
   packWith,
   rectGrid,
+  strategies,
+  supportsCell,
   toPackInput,
   type CorpusGenerator,
   type GeneratorParams,
@@ -122,16 +124,42 @@ describe("the overflow measures", () => {
     expect(m["pack.overflow.forced"]).toBe(1);
     expect(m["pack.overflow.forcedArea"]).toBeCloseTo(2000 / 2300, 12);
     expect(m["pack.overflow.excess"]).toBe(1);
+    // The area of "big" is forced. Only the area of "b2" is above the bound.
+    expect(m["pack.overflow.forcedAreaMin"]).toBe(m["pack.overflow.forcedArea"]);
+    expect(m["pack.overflow.excessArea"]).toBeCloseTo(100 / 2300, 12);
+  });
+
+  it("gives an excess area of 0 when the packer leaves out only the forced area", () => {
+    const long: PackInput = { container: box100, items: [{ id: "big", w: 200, h: 10 }, ...square(2, 10)] };
+    const m = measure(long, { placements: [{ id: "b0", x: 0, y: 0 }, { id: "b1", x: 10, y: 0 }], overflow: ["big"], size: { w: 100, h: 100 }, moved: [] });
+    expect(m["pack.overflow.area"]).toBe(m["pack.overflow.forcedAreaMin"]);
+    expect(m["pack.overflow.excessArea"]).toBe(0);
+  });
+
+  it("separates the forced area from the avoidable area when the count bound is weak", () => {
+    // 1 box of 10000 and 10 boxes of 100 in an area of 10000. The count bound is 1: the large box goes.
+    const mixed: PackInput = { container: box100, items: [{ id: "l", w: 100, h: 100 }, ...square(10, 10)] };
+    const small = mixed.items.slice(1).map((i) => i.id);
+    // The packer places the large box and leaves out the 10 small boxes: their area is the area above the free area
+    const m = measure(mixed, { placements: [{ id: "l", x: 0, y: 0 }], overflow: small, size: { w: 100, h: 100 }, moved: [] });
+    expect(m["pack.overflow.forced"]).toBe(1);
+    expect(m["pack.overflow.excess"]).toBe(9);
+    expect(m["pack.overflow.area"]).toBeCloseTo(1000 / 11000, 12);
+    // The slack of the tolerance makes the bound a little smaller than 1000 / 11000
+    expect(m["pack.overflow.forcedAreaMin"]).toBeCloseTo(1000 / 11000, 3);
+    expect(m["pack.overflow.excessArea"]).toBeCloseTo(0, 3);
+    expect(m["pack.overflow.excessArea"]).toBeGreaterThanOrEqual(0);
   });
 
   it("gives 0 for each overflow measure of an empty input and of a free container", () => {
     const empty = measure({ container: box100, items: [] }, { placements: [], overflow: [], size: { w: 100, h: 100 }, moved: [] });
     const free = measure({ ...input, container: { fixed: "none" } }, output);
-    for (const id of ["pack.overflow.rate", "pack.overflow.area", "pack.overflow.forced", "pack.overflow.forcedArea", "pack.overflow.excess"] as const) {
-      expect(empty[id], id).toBe(0);
-    }
+    const ids = ["pack.overflow.rate", "pack.overflow.area", "pack.overflow.forced", "pack.overflow.forcedArea", "pack.overflow.excess", "pack.overflow.forcedAreaMin", "pack.overflow.excessArea"] as const;
+    for (const id of ids) expect(empty[id], id).toBe(0);
     expect(free["pack.overflow.forced"]).toBe(0);
     expect(free["pack.overflow.excess"]).toBe(free["pack.overflow"]);
+    expect(free["pack.overflow.forcedAreaMin"]).toBe(0);
+    expect(free["pack.overflow.excessArea"]).toBe(free["pack.overflow.area"]);
   });
 });
 
@@ -143,15 +171,29 @@ describe("the forced overflow of generated inputs", () => {
     }
   }
   for (const c of ["empty", "one", "oversize", "exactTiling", "touchObstacles"]) cases.push({ gen: edgeCases as CorpusGenerator, params: { case: c } });
+  // The free sizes: a fixed width, a fixed height and no fixed side, on each container shape
+  for (const containerSize of ["freeHeight", "freeWidth", "freeArea"]) {
+    for (const containerShape of ["rect", "convex", "polygon", "circle", "ellipse", "holes"]) {
+      for (const sizes of ["uniform", "extremeAspect"]) cases.push({ gen: rectGrid as CorpusGenerator, params: { containerSize, containerShape, obstacles: "scattered", sizes, count: 40 } });
+    }
+  }
 
   for (const { gen, params } of cases) {
     it(`keeps the forced overflow at or below the overflow of each strategy: ${gen.name} ${JSON.stringify(params)}`, () => {
       const input = toPackInput(gen.generate(1, params));
-      for (const id of ["rows", "shelf", "skyline"]) {
+      // The bench measures each strategy that supports the cell of the generator. This test does the same.
+      const cell = gen.cell(params);
+      const measured = strategies.filter((s) => supportsCell(s.supports, cell)).map((s) => s.id);
+      expect(measured).toEqual(expect.arrayContaining(["rows", "shelf", "skyline"]));
+      for (const id of measured) {
         const m = measure(input, packWith(id, input));
         expect(m["pack.overflow.forced"], id).toBeLessThanOrEqual(m["pack.overflow"]);
         expect(m["pack.overflow.forcedArea"], id).toBeLessThanOrEqual(m["pack.overflow.area"] + 1e-9);
         expect(m["pack.overflow.excess"], id).toBe(m["pack.overflow"] - m["pack.overflow.forced"]);
+        // The area bound: below -1e-9, excessArea shows a bug of the bound or of the packer
+        expect(m["pack.overflow.forcedAreaMin"], id).toBeLessThanOrEqual(m["pack.overflow.area"] + 1e-9);
+        expect(m["pack.overflow.excessArea"], id).toBeGreaterThanOrEqual(0);
+        expect(m["pack.overflow.excessArea"], id).toBeCloseTo(m["pack.overflow.area"] - m["pack.overflow.forcedAreaMin"], 9);
       }
     });
   }
@@ -179,6 +221,8 @@ describe("the minimum effects", () => {
     "pack.overflow.forced": 0,
     "pack.overflow.forcedArea": 0.005,
     "pack.overflow.excess": 0,
+    "pack.overflow.forcedAreaMin": 0.005,
+    "pack.overflow.excessArea": 0.005,
     "pack.stability.moved": 0.02,
     "pack.stability.mean": 0.005,
     "pack.stability.q95": 0.01,

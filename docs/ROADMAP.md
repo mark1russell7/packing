@@ -66,6 +66,7 @@ Status: done, done, waiting, next, done.
 | k57 | The types of packing fit `@mark1russell7/layout-contract`, then packing uses them | core | done | k7 |
 | k58 | Promotion: a winner of the catalog becomes the default or a rule of the selector, by the shared promotion rule | measure | later | k11, k20 |
 | k59 | Screen guards: overflow measures with a forced bound, an exact container test, fill ranked without overflow, distinct strategies, activation | measure | done | k11, k37 |
+| k60 | Overflow excess by area, and fill ranked on shared clean records | measure | active | k59 |
 
 ## Rules
 

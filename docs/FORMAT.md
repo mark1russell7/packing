@@ -258,6 +258,8 @@ The names are lowercase, with a dot after the stage. This table is the short lis
 | `pack.overflow.forced` | count | lower | A lower bound of the overflow: the boxes that no packer can place in a fixed container. |
 | `pack.overflow.forcedArea` | 0 to 1 | lower | The area of the forced overflow divided by the area of all the boxes. |
 | `pack.overflow.excess` | count | lower | The overflow less the forced overflow. |
+| `pack.overflow.forcedAreaMin` | 0 to 1 | lower | The tight lower bound of `pack.overflow.area`: the too-long boxes, plus the area of the rest above the free area. |
+| `pack.overflow.excessArea` | 0 to 1 | lower | `pack.overflow.area` less `pack.overflow.forcedAreaMin`: the overflow area that a better packer can perhaps place. |
 | `pack.stability.moved` | 0 to 1 | lower | The part of the boxes that moved, against the run on the base input. |
 | `pack.stability.mean` | 0 or more | lower | The mean movement of a box against the base run, divided by the width of the container. |
 | `pack.stability.q95` | 0 or more | lower | The quantile 0.95 of the movement of a box against the base run, divided by the width of the container. |

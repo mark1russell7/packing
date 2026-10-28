@@ -1,11 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.2.3
+
+New overflow measures by area (roadmap item k60), and the move counts and screen guards of k59. This release has no breaking changes.
 
 ### New
 
+- `measure` gives 2 new measures: `pack.overflow.forcedAreaMin` and `pack.overflow.excessArea`. `docs/MEASURES.md` defines them.
+- `pack.overflow.forcedAreaMin` is the tight lower bound of the overflow area: the area of the too-long items, plus the area of the rest above `F`.
+- `pack.overflow.excessArea` is `pack.overflow.area` less `pack.overflow.forcedAreaMin`. A difference from `-1e-9` to 0 becomes 0.
+- The count bound `pack.overflow.forced` is weak on mixed sizes. Judge a strategy by `pack.overflow.excessArea`.
+- `MeasureId` and `LayoutMeasures` have the 2 new ids. `MEASURE_SPECS` has 22 specs. The new specs are in the family `overflow`, with `minEffect` 0.005.
+- `pack.overflow.forced`, `pack.overflow.forcedArea` and `pack.overflow.excess` stay. `pack.overflow.forcedArea` is a diagnostic with the value of `forcedAreaMin`.
+- A property test shows `forcedAreaMin <= overflow.area + 1e-9` for each strategy on generated inputs of each container shape, fixed and free.
 - The trace of each strategy counts its characteristic move: `move.gapFill` (rows), `move.stack` (shelf), `move.lowerWindow` (skyline) and `move.cascade` (push). The counts do not change a layout.
 - The bench gives the screen guards of roadmap item k59: the fill without overflow, the overflow, the output groups, the cell groups, the activation and `pack.outsideExact`. `docs/BENCH.md` tells them.
+
+### The outputs
+
+- The placements of each strategy do not change. The fixture `bench/fixtures/rect-hashes.json` still pins them.
+- Each record of the bench has the 2 new measures.
 
 ## 0.2.2
 
