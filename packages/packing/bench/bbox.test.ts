@@ -1,6 +1,6 @@
-import { applyPack, packHard, placedRect, toPackInput, type LayoutInput, type PackOutput } from "@mark1russell7/layout-contract";
+import { applyPack, checkShapes, PACK_HARD_RULES, packHard, placedRect, toPackInput, type LayoutInput, type PackOutput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
-import { bboxStrategy, outputHash, packConfig, packSpace, packWith, rectGrid, UnsupportedShape } from "@mark1russell7/packing";
+import { bboxStrategy, measure, MEASURE_SPECS, outputHash, packConfig, packSpace, packWith, rectGrid, UnsupportedShape } from "@mark1russell7/packing";
 import { BBOX_ENTRIES, entry } from "./entries.ts";
 import { shapeArea, shapeInput, type ShapeFamily } from "./shape-inputs.ts";
 
@@ -10,11 +10,27 @@ const named = packSpace.named!;
 const FAMILIES: readonly ShapeFamily[] = ["circle", "polygon", "mixed"];
 const SEEDS = [1, 2, 3];
 
+/** The mean `pack.shapeFill` of each family and bbox entry over the seeds 1 to 3, with 3 decimals. */
+const SHAPE_FILLS: readonly string[] = [
+  "circle bbox-maxrects-bl 0.691",
+  "circle bbox-skyline 0.642",
+  "polygon bbox-maxrects-bl 0.333",
+  "polygon bbox-skyline 0.310",
+  "mixed bbox-maxrects-bl 0.509",
+  "mixed bbox-skyline 0.506",
+];
+
 /** This function packs an input with a bench entry. */
 function packEntry(id: string, input: LayoutInput, seed = 0): PackOutput {
   const e = entry(id);
   return packWith(e.strategy, toPackInput(input), e.options, seed);
 }
+
+/**
+ * The level of the shape check of a `bbox` output (contract 0.2.16). `no-overlap` and `in-container` count the bounding boxes on a shape.
+ * That count is safe: a count of 0 tells that the shapes have no break. The strict level refuses the shape kinds of the input.
+ */
+const SAFE = { level: "safe" } as const;
 
 /** The fill of the bounding boxes and the share of the box area that the shapes cover, on the output. */
 function fills(input: LayoutInput, out: PackOutput): { boxFill: number; shapeCover: number } {
@@ -25,6 +41,17 @@ function fills(input: LayoutInput, out: PackOutput): { boxFill: number; shapeCov
 }
 
 describe("the strategy bbox on circles and convex polygons", () => {
+  it("checks the hard rules of a shape input at the level safe, and the strict level refuses them", () => {
+    for (const family of FAMILIES) {
+      const input = shapeInput(family, 1);
+      expect(checkShapes(input, PACK_HARD_RULES, SAFE), family).toEqual([]);
+      expect(new Set(checkShapes(input, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])), family).toEqual(new Set(["no-overlap", "in-container"]));
+      // The measures of the box area stay rect only. The measure pack.shapeFill supports each kind.
+      expect(checkShapes(input, [MEASURE_SPECS["pack.shapeFill"]], SAFE), family).toEqual([]);
+      expect(checkShapes(input, [MEASURE_SPECS["pack.fill"]], SAFE).length, family).toBeGreaterThan(0);
+    }
+  });
+
   it("places each shape with no overlap and in the container, by packHard of the contract", () => {
     for (const family of FAMILIES)
       for (const seed of SEEDS)
@@ -34,6 +61,7 @@ describe("the strategy bbox on circles and convex polygons", () => {
             const out = packEntry(id, input, seed);
             const hard = packHard(input, out);
             expect(hard, `${id} ${input.id} ${fixedSize}`).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+            expect(checkShapes(input, PACK_HARD_RULES, SAFE), `${id} ${input.id}`).toEqual([]);
             if (!fixedSize) expect(out.overflow, id).toEqual([]);
           }
         }
@@ -96,6 +124,28 @@ describe("the strategy bbox on circles and convex polygons", () => {
         else expect(shapeCover).toBeLessThan(1);
       }
     expect(lines).toHaveLength(FAMILIES.length * BBOX_ENTRIES.length);
+  });
+
+  it("gives the measure pack.shapeFill: the shape area over the hull, by boxArea of the contract", () => {
+    const lines: string[] = [];
+    for (const family of FAMILIES)
+      for (const { id } of BBOX_ENTRIES) {
+        const got = SEEDS.map((s) => {
+          const input = shapeInput(family, s);
+          const out = packEntry(id, input, s);
+          const m = measure(toPackInput(input), out);
+          const placed = applyPack(input, out).boxes.filter((b) => b.x !== undefined);
+          const boxes = placed.reduce((sum, b) => sum + b.w * b.h, 0);
+          const shapes = placed.reduce((sum, b) => sum + shapeArea(b), 0);
+          // The hull is the same for the two measures. Thus their ratio is the share of the item boxes that the shapes cover.
+          expect(m["pack.shapeFill"] / m["pack.fill"], `${id} ${input.id}`).toBeCloseTo(shapes / boxes, 9);
+          expect(m["pack.shapeFill"], `${id} ${input.id}`).toBeLessThan(m["pack.fill"]);
+          return m["pack.shapeFill"];
+        });
+        const mean = got.reduce((a, g) => a + g, 0) / got.length;
+        lines.push(`${family} ${id} ${mean.toFixed(3)}`);
+      }
+    expect(lines).toEqual(SHAPE_FILLS);
   });
 });
 

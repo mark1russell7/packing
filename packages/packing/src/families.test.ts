@@ -114,6 +114,20 @@ describe("the knobs margin and gap", () => {
     }
   });
 
+  // Contract 0.2.16: the knobs have the precision 3 of round3, so a margin that rounds to 0 is the default
+  it("keep the known best value for a margin or a gap that rounds to 0", () => {
+    for (const dims of [{ margin: 0.0004 }, { gap: 0.0004 }, { margin: 0.0004, gap: 0.0004 }]) {
+      const file = registry.generate("perfect-cut", 2, dims);
+      expect(file.known, JSON.stringify(dims)).toEqual(perfectCut.generate(2).known);
+      expect("invalidated" in file, JSON.stringify(dims)).toBe(false);
+      expect(file.hash).toBe(registry.generate("perfect-cut", 2, {}).hash);
+    }
+    // A margin of 0.0005 rounds up to 0.001. Then the known best value goes.
+    expect(registry.generate("perfect-cut", 2, { margin: 0.0005 }).invalidated).toEqual(["known"]);
+    for (const f of corpusFamilies)
+      for (const d of f.dimensions.filter((x) => x.name === "margin" || x.name === "gap")) expect(d.precision, `${f.name} ${d.name}`).toBe(3);
+  });
+
   it("declare invalidates only on the families with a known best value", () => {
     for (const f of corpusFamilies) {
       const knobs = f.dimensions.filter((d) => d.name === "margin" || d.name === "gap");

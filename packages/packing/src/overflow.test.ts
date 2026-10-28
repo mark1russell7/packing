@@ -209,6 +209,7 @@ describe("the minimum effects", () => {
   const expected: Record<MeasureId, number | { rel: number } | undefined> = {
     "pack.area": { rel: 0.01 },
     "pack.fill": 0.005,
+    "pack.shapeFill": 0.005,
     "pack.whitespace": 0.005,
     "pack.aspect": { rel: 0.01 },
     "pack.aspectError": 0.01,
