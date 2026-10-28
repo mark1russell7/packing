@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 257 names
+## . (build/index.d.ts): 260 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -125,6 +125,7 @@ SELECT_MEMBERS: build/index.d.ts#SELECT_MEMBERS
 SELECT_STAGE: build/index.d.ts#SELECT_STAGE
 SELECT_TABLE: build/index.d.ts#SELECT_TABLE
 SHELF_FITS: build/index.d.ts#SHELF_FITS
+SKYLINE_RULES: build/index.d.ts#SKYLINE_RULES
 SORT_ORDERS: build/index.d.ts#SORT_ORDERS
 SPREAD_THRESHOLDS: build/index.d.ts#SPREAD_THRESHOLDS
 type SelectFeatures: build/index.d.ts#SelectFeatures
@@ -140,6 +141,8 @@ type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/index.d.ts#SizeSearch
 type SkylineOptions: build/index.d.ts#SkylineOptions
+type SkylineRule: build/index.d.ts#SkylineRule
+type SkylineStrategyOptions: build/index.d.ts#SkylineStrategyOptions
 type SortOrder: build/index.d.ts#SortOrder
 type SpaceRect: build/index.d.ts#SpaceRect
 type SpreadBand: build/index.d.ts#SpreadBand
@@ -676,6 +679,8 @@ interface PackLayoutOptions extends PackOptions {
   fit?: ShelfFit;
   rule?: MaxRectsRule;
   bandHeight?: number;
+  skylineRule?: SkylineRule;
+  wasteMap?: boolean;
   turnable?: ReadonlySet<unknown>;
   turned?: Set<unknown>;
 }
@@ -869,6 +874,9 @@ export declare const SELECT_TABLE: SelectNode;
 ### build/index.d.ts#SHELF_FITS
 export declare const SHELF_FITS: readonly ShelfFit[];
 
+### build/index.d.ts#SKYLINE_RULES
+export declare const SKYLINE_RULES: readonly ["bl", "mw"];
+
 ### build/index.d.ts#SORT_ORDERS
 export declare const SORT_ORDERS: readonly SortOrder[];
 
@@ -936,6 +944,20 @@ interface SizeSearch {
 interface SkylineOptions {
   sortOrder?: SortOrder;
   space?: FreeSpace;
+  rule?: SkylineRule;
+  wasteMap?: boolean;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
+}
+
+### build/index.d.ts#SkylineRule
+type SkylineRule = (typeof SKYLINE_RULES)[number];
+
+### build/index.d.ts#SkylineStrategyOptions
+interface SkylineStrategyOptions extends LayoutStrategyOptions {
+  rule: SkylineRule;
+  wasteMap: boolean;
+  rotate: boolean;
 }
 
 ### build/index.d.ts#SortOrder
@@ -1314,7 +1336,7 @@ export declare const selectStrategy: Strategy<SelectStrategyOptions>;
 export declare const shelf: Strategy<LayoutStrategyOptions>;
 
 ### build/index.d.ts#skyline
-export declare const skyline: Strategy<LayoutStrategyOptions>;
+export declare const skyline: Strategy<SkylineStrategyOptions>;
 
 ### build/index.d.ts#spreadBand
 export declare function spreadBand(spread: number): SpreadBand;

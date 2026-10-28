@@ -42,8 +42,8 @@ describe("packSpace", () => {
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
     // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 810 base configs
-    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(55171224249680370n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(3230760471102n);
+    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(55171224249681990n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(3230760471442n);
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
