@@ -2,7 +2,7 @@
 
 The status of each item of `@mark1russell7/packing`. A live tracker mirrors this file. Change both together.
 
-Status: done, done, waiting, Shipped in #99: `pack.bound` and `pack.gap` on each record. Bench 40766464710: the best strategies are 0 to 0.13 above the bound, `rows` 0.02 to 0.20. done, done.
+Status: done, done, waiting, next, done.
 
 | ID | Item | Area | Status | Needs |
 |---|---|---|---|---|
@@ -11,7 +11,7 @@ Status: done, done, waiting, Shipped in #99: `pack.bound` and `pack.gap` on each
 | k2 | `render-pack` re-exports `@mark1russell7/packing` | move | done | k1 |
 | k3 | The downstream app moves its imports to the new name | move | done | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | done | k2, k3 |
-| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | Shipped in #97: the compare page runs all 20 entries, and the demo offers all 8 ids. done | |
+| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
 | k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
 | k7 | One Packer interface for every strategy | core | done | k0, k18, k35 |
 | k8 | An algebra of measures | theory | done | k6, k7 |
@@ -51,13 +51,13 @@ Status: done, done, waiting, Shipped in #99: `pack.bound` and `pack.gap` on each
 | k42 | The ways to split the free space: maximal empty rectangles, slabs, cuts at obstacle edges, cells, or one region with holes | strategies | later | k41, k36 |
 | k43 | The ways to give items to the parts: greedy in reading order, assignment, and a flow that keeps the reading order | strategies | later | k41 |
 | k44 | The measures of pack-around: fill of each part, slivers, order breaks across parts, stability when an obstacle moves | measure | later | k8, k41 |
-| k45 | Inputs with a known best answer: perfect cuts that are shuffled, and the consecutive squares | measure | next | k19 |
+| k45 | Inputs with a known best answer: perfect cuts that are shuffled, and the consecutive squares | measure | done | k19 |
 | k46 | The published benchmark sets for strip packing and nesting | measure | later | k19 |
 | k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | next | k19, k9 |
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
 | k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
-| k51 | Lower bounds, so each result shows its distance to the best | measure | next | k6 |
+| k51 | Lower bounds, so each result shows its distance to the best | measure | done | k6 |
 | k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
 | k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
 | k54 | Compaction: a constraint graph in one direction, mixed constraints and the exact form | strategies | later | k6, k7 |
@@ -74,41 +74,91 @@ Status: done, done, waiting, Shipped in #99: `pack.bound` and `pack.gap` on each
 | k65 | A corpus with a margin and a gap axis. The screen corpora have no margin and no gap, but callers use them. Its manifest declares its properties. | measure | later | k62 |
 | k66 | Where maxrects beats rows: a selector by cheap features (count, shape, spread) that runs maxrects only in its cells, so the other cells keep the time of rows. Part 2 is in: the opt-in strategy `select` with a table of 7 leaves, the split files and the test corpus `pack-select-v1`. It passed on `pack-select-v1` with the gain median at the limit, and it passed again on `pack-select-v2` (seeds 31 to 35). Since 0.2.15, `DEFAULT_STRATEGY` is `select`. Next: `pack()` with no strategy uses `select` for fixed sizes (0.3.0). | strategies | active | k61, k62 |
 | k67 | The size search `log-sweep` is slow: a free size with 100 items takes about 390 ms with `rows` and with `select`. Profile it first, then make it faster with the same outputs. Step 2 shipped in 0.2.16: `rows` sorts once (#82), and the slow inputs take about 0.11 of their time. The slowest takes 58 ms. Step 3 shipped in 0.2.17: `rows` packs each width one time (#84). The slowest takes 3.7 ms. | core | done | k33 |
-| k68 | The strategy space as data: export `packSpace` (strategy-space/1 of `layout-contract`, 5 stages) and `packConfig`. Each strategy of today is a named point with the same outputs. | strategies | next | k66 |
+| k68 | The strategy space as data: export `packSpace` (strategy-space/1 of `layout-contract`, 5 stages) and `packConfig`. Each strategy of today is a named point with the same outputs. | strategies | done | k66 |
 | k69 | A baseline arm in the same job of `bench.yml`, so each time ratio is paired and a drift of the runner cancels. `paired.yml` (#85) does it for two refs. | measure | later | k33 |
 | k70 | Fit `SELECT_TABLE` again on two measures, the fill and the joint floor of `layout-contract`, with `verdict()`. The fit decides leaf 6: free size, a heavy tail and a shape that is not a rectangle. | strategies | next | k66 |
 | k71 | A render check of the site in CI: headless Chromium opens each page at a phone width and a desktop width. It fails on a console error, a failed request or an empty `main`, and keeps the screenshots. Shipped in #94: 12 of 12 views pass. | site | done | k32 |
-| k72 | A compare page: one input, each named strategy side by side, with its output and its measures. The demo offers each strategy of the registry and its options. A test fails when a list of the site differs from the code. | site | active | k32 |
-| k73 | The inputs of the site come from the corpus generator: each family, with sliders for the seed, the count, the size spread, the aspect, the container and the obstacles. Compare and the demo take each generated input. | site | next | k72 |
+| k72 | A compare page: one input, each named strategy side by side, with its output and its measures. The demo offers each strategy of the registry and its options. A test fails when a list of the site differs from the code. | site | done | k32 |
+| k73 | The inputs of the site come from the corpus generator: each family, with sliders for the seed, the count, the size spread, the aspect, the container and the obstacles. Compare and the demo take each generated input. | site | active | k72 |
 | k74 | An analysis card for each strategy: its source, its complexity, its guarantee, its measured scaling exponent, and its response to each dimension and parameter (sweeps and Sobol indices). Part 1 (the cards from the code and the catalog) is active. Part 2 (the sweeps) waits for `packSpace`. | measure | active | k13, k68 |
-| k75 | The shape of the items and of the container as a dimension of `packSpace` and of the contracts: rectangle, polygon, circle or free form. Only rectangles have strategies today. | core | next | k68 |
-| k76 | A survey of each published method of packing, as ideas. Each method gets a row of the queue with its gain, its uncertainty and its cost. | theory | next | |
+| k75 | The shape of the items and of the container as a dimension of `packSpace` and of the contracts: rectangle, polygon, circle or free form. Only rectangles have strategies today. | core | active | k68 |
+| k76 | A survey of each published method of packing, as ideas. Each method gets a row of the queue with its gain, its uncertainty and its cost. | theory | done | |
 | k77 | A space between two given items, or one channel, set once. The input names the pair and its gap, and the placement keeps that gap. Today the gap comes from the margins of both boxes, so it doubles. The routing bench of `layout-contract` (L13) asks for it. | core | next | k65 |
+| k78 | Random restarts around each strategy (idea R1 of the survey) | strategies | next | k6, k7 |
+| k79 | Goal-driven ruin and recreate (idea R5 of the survey) | strategies | later | k6, k7 |
+| k80 | Overlap minimization for rectangles (idea R6 of the survey) | strategies | later | k6, k7 |
+| k81 | Binary search on the height (idea R10 of the survey) | strategies | later | k6, k7 |
+| k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
+| k83 | Genetic programming of the score (idea R12 of the survey) | strategies | later | k6, k7 |
+| k84 | Priority code that a language model evolves (idea R13 of the survey) | strategies | later | k6, k7 |
+| k85 | Beam search (idea R14 of the survey) | strategies | later | k6, k7 |
+| k86 | Global placement for large inputs (idea R16 of the survey) | strategies | later | k6, k7 |
+| k87 | Dynamic reduction of the width (idea R17 of the survey) | strategies | later | k33 |
+| k88 | Identical boxes in five blocks (idea R19 of the survey) | strategies | later | k6, k7 |
+| k89 | A learned order (idea R20 of the survey) | strategies | later | k6, k7 |
+| k90 | Circles by the maximum hole degree (idea S1 of the survey) | strategies | later | k75 |
+| k91 | Shapes by their bounding boxes (idea S2 of the survey) | strategies | later | k75 |
+| k92 | A raster no-fit for free forms (idea S3 of the survey) | strategies | later | k75 |
+| k93 | Front chain and enclosing circle (idea S4 of the survey) | strategies | later | k75, k27 |
+| k94 | Basin hopping for circles (idea S5 of the survey) | strategies | later | k75 |
+| k95 | Bottom-left fill for polygons (idea S6 of the survey) | strategies | later | k75, k101 |
+| k96 | Overlap minimization for polygons (idea S7 of the survey) | strategies | later | k75, k101 |
+| k97 | Groups of pieces as near rectangles (idea S8 of the survey) | strategies | later | k75 |
+| k98 | The ESICUP nesting sets (idea S9 of the survey) | measure | later | k75 |
+| k99 | Phi-functions (idea S10 of the survey) | strategies | later | k75 |
+| k100 | The best search for circles (idea S11 of the survey) | strategies | later | k75 |
+| k101 | A collision engine (idea S12 of the survey) | core | later | k75 |
+| k102 | No-fit polygons by Minkowski sums (idea S13 of the survey) | core | later | k75 |
+| k103 | Packomania as a reference (idea S14 of the survey) | measure | later | k75 |
+| k104 | Exact models for few polygons (idea S15 of the survey) | strategies | later | k75, k10 |
 
 ## The queue
 
-The score of an item is its gain times its uncertainty, divided by its cost. Each factor is on a scale of 1 to 5. The gain is the expected change of the efficacy maps. The work takes the items in the order of the score. After its bench, an item records its measured gain next to its expected gain. Each month, the scores get a calibration from these pairs. Up to 3 build subagents run at one time, one family each, each with its prediction.
+The score of an item is its gain times its uncertainty, divided by its cost. Each factor is on a scale of 1 to 5. The gain is the expected change of the efficacy maps. The work takes the items in the order of the score. After its bench, an item records its measured gain next to its expected gain. Each month, the scores get a calibration from these pairs. Up to 3 build subagents run at one time, one family each, each with its prediction. The ideas of the survey (k76, `docs/research/SURVEY.md`) are the items k78 to k104, or a part of an older item.
 
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | k75, with k68 | 4 | 2 | 1 | 8.0 |
-| 2 | k51 | 5 | 3 | 2 | 7.5 |
-| 3 | k76 | 4 | 5 | 3 | 6.7 |
-| 4 | k45 | 4 | 3 | 2 | 6.0 |
-| 5 | k23 | 4 | 4 | 3 | 5.3 |
-| 6 | k47 | 4 | 4 | 3 | 5.3 |
-| 7 | k68 | 5 | 2 | 2 | 5.0 |
-| 8 | k26 | 5 | 4 | 4 | 5.0 |
-| 9 | k22 | 3 | 3 | 2 | 4.5 |
-| 10 | k25 | 3 | 3 | 2 | 4.5 |
-| 11 | k70 | 3 | 3 | 2 | 4.5 |
-| 12 | k13 | 3 | 3 | 2 | 4.5 |
-| 13 | k10 | 4 | 4 | 4 | 4.0 |
-| 14 | k46 | 4 | 4 | 4 | 4.0 |
-| 15 | k77 | 4 | 3 | 3 | 4.0 |
-| 16 | k74 | 4 | 3 | 4 | 3.0 |
-| 17 | k52 | 3 | 2 | 2 | 3.0 |
-| 18 | k73 | 4 | 2 | 3 | 2.7 |
+| 1 | k78 | 4 | 3 | 1 | 12.0 |
+| 2 | k75 | 4 | 2 | 1 | 8.0 |
+| 3 | k22 | 4 | 3 | 2 | 6.0 |
+| 4 | k46 | 4 | 3 | 2 | 6.0 |
+| 5 | k90 | 4 | 3 | 2 | 6.0 |
+| 6 | k91 | 3 | 2 | 1 | 6.0 |
+| 7 | k23 | 4 | 4 | 3 | 5.3 |
+| 8 | k47 | 4 | 4 | 3 | 5.3 |
+| 9 | k79 | 4 | 4 | 3 | 5.3 |
+| 10 | k80 | 4 | 4 | 3 | 5.3 |
+| 11 | k26 | 5 | 4 | 4 | 5.0 |
+| 12 | k25 | 3 | 3 | 2 | 4.5 |
+| 13 | k70 | 3 | 3 | 2 | 4.5 |
+| 14 | k13 | 3 | 3 | 2 | 4.5 |
+| 15 | k92 | 3 | 3 | 2 | 4.5 |
+| 16 | k10 | 4 | 4 | 4 | 4.0 |
+| 17 | k77 | 4 | 3 | 3 | 4.0 |
+| 18 | k81 | 4 | 3 | 3 | 4.0 |
+| 19 | k82 | 3 | 4 | 3 | 4.0 |
+| 20 | k83 | 3 | 4 | 3 | 4.0 |
+| 21 | k93 | 4 | 2 | 2 | 4.0 |
+| 22 | k94 | 4 | 3 | 3 | 4.0 |
+| 23 | k95 | 4 | 3 | 3 | 4.0 |
+| 24 | k96 | 5 | 4 | 5 | 4.0 |
+| 25 | k97 | 3 | 4 | 3 | 4.0 |
+| 26 | k84 | 3 | 5 | 4 | 3.8 |
+| 27 | k74 | 4 | 3 | 4 | 3.0 |
+| 28 | k52 | 3 | 2 | 2 | 3.0 |
+| 29 | k85 | 3 | 3 | 3 | 3.0 |
+| 30 | k86 | 3 | 5 | 5 | 3.0 |
+| 31 | k87 | 3 | 3 | 3 | 3.0 |
+| 32 | k98 | 3 | 2 | 2 | 3.0 |
+| 33 | k73 | 4 | 2 | 3 | 2.7 |
+| 34 | k99 | 3 | 4 | 5 | 2.4 |
+| 35 | k100 | 3 | 3 | 4 | 2.3 |
+| 36 | k88 | 2 | 2 | 2 | 2.0 |
+| 37 | k101 | 4 | 2 | 4 | 2.0 |
+| 38 | k102 | 3 | 2 | 3 | 2.0 |
+| 39 | k103 | 2 | 2 | 2 | 2.0 |
+| 40 | k89 | 2 | 4 | 5 | 1.6 |
+| 41 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
