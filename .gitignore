@@ -106,5 +106,8 @@ temp/
 # Local output of the benchmark runner (docs/BENCH.md)
 bench-out/
 
+# Local output of the render check of the site (packages/site/README.md)
+render-out/
+
 # Downloaded CI records for local analysis
 .records/
