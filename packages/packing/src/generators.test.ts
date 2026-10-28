@@ -458,16 +458,19 @@ describe("the corpus families through the registry", () => {
     expect(registry.families()).toEqual(corpusFamilies);
   });
 
-  it.each(cases.map((c) => [label(c), c] as const))("gives the pinned corpus-v1 hash and the same bytes as the generator: %s", (_, c) => {
-    const file = registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: "corpus-v1" });
+  // The set of a generator of known-best inputs is known-v1. The set of each other generator is corpus-v1.
+  const setOf = (c: Case): string => c.gen.generate(1, c.params).set;
+
+  it.each(cases.map((c) => [label(c), c] as const))("gives the pinned hash of its set and the same bytes as the generator: %s", (_, c) => {
+    const file = registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: setOf(c) });
     expect(file.hash, file.id).toBe(HASHES[file.id]);
     expect(JSON.stringify(file)).toBe(JSON.stringify(c.gen.generate(1, c.params)));
     expect(registry.generate(c.gen.name, 1, c.params, { version: c.gen.version }).hash).toBe(file.hash);
   });
 
-  it("covers each pinned corpus-v1 hash", () => {
-    const ids = cases.map((c) => registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: "corpus-v1" }).id);
-    expect(ids.toSorted()).toEqual(Object.keys(HASHES).filter((id) => id.startsWith("corpus-v1/")).toSorted());
+  it("covers each pinned corpus-v1 and known-v1 hash", () => {
+    const ids = cases.map((c) => registry.generate(c.gen.name, 1, c.params, { version: c.gen.version, set: setOf(c) }).id);
+    expect(ids.toSorted()).toEqual(Object.keys(HASHES).filter((id) => id.startsWith("corpus-v1/") || id.startsWith("known-v1/")).toSorted());
   });
 });
 

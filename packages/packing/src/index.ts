@@ -178,6 +178,8 @@ export {
   cardsFamily,
   wordCloudFamily,
   edgeCasesFamily,
+  perfectCutFamily,
+  consecutiveSquaresFamily,
   type ConsecutiveSquaresParams,
   type CorpusGenerator,
   type CutPiece,

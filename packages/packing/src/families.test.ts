@@ -1,6 +1,17 @@
 import { createFamilyRegistry, dimensionAt, dimensionUnit, levelsOf, SHAPE_KIND_IDS } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
-import { corpusFamilies, edgeCasesFamily, hashInput, rectGrid, rectGridFamily, rectGridV2Family, toPackInput, type GeneratedInput } from "@mark1russell7/packing";
+import {
+  corpusFamilies,
+  edgeCasesFamily,
+  hashInput,
+  perfectCut,
+  perfectCutFamily,
+  rectGrid,
+  rectGridFamily,
+  rectGridV2Family,
+  toPackInput,
+  type GeneratedInput,
+} from "@mark1russell7/packing";
 
 // Roadmap item k73: the generators of packing as the corpus families of the shared registry (docs/CORPUS.md of layout-contract).
 
@@ -12,8 +23,9 @@ describe("the corpus families", () => {
   it("have the parameters of their generator, then the knobs", () => {
     expect(names(rectGridFamily)).toEqual(["containerSize", "containerShape", "obstacles", "sizes", "count", ...KNOBS]);
     expect(names(rectGridV2Family)).toEqual(["containerSize", "containerShape", "obstacles", "sizes", "order", "count", ...KNOBS]);
-    for (const f of corpusFamilies.filter((x) => x.name !== "rect-grid" && x.name !== "edge-cases")) expect(names(f), f.name).toEqual(["containerSize", "count", ...KNOBS]);
+    for (const f of corpusFamilies.filter((x) => !["rect-grid", "edge-cases", "perfect-cut"].includes(x.name))) expect(names(f), f.name).toEqual(["containerSize", "count", ...KNOBS]);
     expect(names(edgeCasesFamily)).toEqual(["case", "count", ...KNOBS]);
+    expect(names(perfectCutFamily)).toEqual(["cut", "containerSize", "count", ...KNOBS]);
   });
 
   it("are libm-dependent for rect-grid and exact for the others", () => {
@@ -32,12 +44,14 @@ describe("the corpus families", () => {
     expect(registry.resolve("edge-cases")).toMatchObject({ case: "oversize", count: 12 });
   });
 
-  it("give count a log scale from 0 to 10000 with the sweep 1, 10, 100, 1000 and 10000", () => {
+  it("give count a log scale to 10000 with the sweep 1, 10, 100, 1000 and 10000", () => {
     for (const f of corpusFamilies) {
       const count = f.dimensions.find((d) => d.name === "count")!;
-      expect([count.min, count.max, count.scale], f.name).toEqual([0, 10_000, "log"]);
+      // The generators of known-best inputs need a box or more.
+      const min = f.name === "perfect-cut" || f.name === "consecutive-squares" ? 1 : 0;
+      expect([count.min, count.max, count.scale], f.name).toEqual([min, 10_000, "log"]);
       expect(levelsOf(count)).toEqual([1, 10, 100, 1000, 10_000]);
-      expect(dimensionAt(count, 0)).toBe(0);
+      expect(dimensionAt(count, 0)).toBe(min);
       expect(dimensionAt(count, 1)).toBe(10_000);
       expect(dimensionAt(count, dimensionUnit(count, 100))).toBe(100);
     }
@@ -81,6 +95,13 @@ describe("the knobs margin and gap", () => {
     expect(file.generator).toEqual(plain.generator);
     expect(toPackInput(file).gap).toBe(2.5);
     expect(registry.generate("rect-grid", 3, { count: 20, gap: 1 }).boxes.some((b) => b.margin !== undefined)).toBe(false);
+  });
+
+  it("remove the known best value, because a margin or a gap changes it", () => {
+    expect(registry.generate("perfect-cut", 2, {}).known).toEqual(perfectCut.generate(2).known);
+    expect(registry.generate("perfect-cut", 2, {}).known).toBeDefined();
+    expect(registry.generate("perfect-cut", 2, { gap: 1 }).known).toBeUndefined();
+    expect(registry.generate("perfect-cut", 2, { margin: 1 }).known).toBeUndefined();
   });
 
   it("refuse a value out of 0 to 32", () => {

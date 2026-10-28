@@ -958,7 +958,8 @@ function withKnobs(file: GeneratedInput, dims: DimensionValues): GeneratedInput 
   const margin = round3(numberOf(dims, "margin"));
   const gap = round3(numberOf(dims, "gap"));
   if (margin === 0 && gap === 0) return file;
-  const { hash: _hash, ...rest } = file;
+  // A margin or a gap changes the best value, so the known best value of the generator goes.
+  const { hash: _hash, known: _known, ...rest } = file;
   const family = `${rest.family}${margin === 0 ? "" : `.m${margin}`}${gap === 0 ? "" : `.g${gap}`}`;
   const body: Omit<GeneratedInput, "hash"> = {
     ...rest,
@@ -1067,6 +1068,24 @@ export const edgeCasesFamily: CorpusFamily<GeneratedInput> = familyOf(edgeCases,
   crossEngine: "exact",
 });
 
+/** The family of `perfectCut`: the pieces of a cut of the container, with the known best value of the cut. */
+export const perfectCutFamily: CorpusFamily<GeneratedInput> = familyOf(perfectCut, {
+  meaning: "The pieces of a cut of a rectangle. The input has a known best value. A margin or a gap removes it.",
+  dimensions: [
+    { name: "cut", kind: "enum", values: CUTS, default: "guillotine", meaning: "The kind of cut: guillotine cuts, or a free cut. A free cut needs a count of 5 or more.", engines: ["packing"] },
+    enumDimension("containerSize", CUT_SIZES, "fixed"),
+    countDimension(30, { min: 1 }),
+  ],
+  crossEngine: "exact",
+});
+
+/** The family of `consecutiveSquares`: the squares of side 1 to `count`, with the known best value of the area. */
+export const consecutiveSquaresFamily: CorpusFamily<GeneratedInput> = familyOf(consecutiveSquares, {
+  meaning: "The squares of side 1 to the count. The input has a known best value. A margin or a gap removes it.",
+  dimensions: [enumDimension("containerSize", SQUARE_SIZES, "freeHeight"), countDimension(30, { min: 1 })],
+  crossEngine: "exact",
+});
+
 /**
  * Each corpus family of the package, for `createFamilyRegistry` of `layout-contract`. An import registers nothing.
  * The family `rect-scattered` is not in the list: `RECT_SCATTERED` of `layout-contract` is its shared copy.
@@ -1079,4 +1098,6 @@ export const corpusFamilies: readonly CorpusFamily<GeneratedInput>[] = Object.fr
   cardsFamily,
   wordCloudFamily,
   edgeCasesFamily,
+  perfectCutFamily,
+  consecutiveSquaresFamily,
 ]);
