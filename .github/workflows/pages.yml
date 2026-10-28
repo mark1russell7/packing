@@ -6,6 +6,9 @@ name: Pages
 on:
   push:
     branches: [main]
+  # One build each day, so the Status page shows the open pull requests and the data date of the day
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions: {}
@@ -33,5 +36,8 @@ jobs:
       build: pnpm --filter @packing/site run build
       out: packages/site/dist
       env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'
-      # The first version of the site has only the demo: no Releases page and no Status page yet.
-      site-pages: false
+      # The Releases page and the Status page (releases/, status/ and their data/*.json), at deploy time
+      roadmap: docs/ROADMAP.md
+      group: "@mark1russell7/packing"
+      packages: "@mark1russell7/packing"
+      site-name: packing
