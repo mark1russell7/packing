@@ -889,7 +889,7 @@ export const consecutiveSquares: CorpusGenerator<ConsecutiveSquaresParams> = def
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The classes of the literature (roadmap item k106): Berkey and Wang 1987, classes I to VI, and Martello and Vigo 1998,
+// The classes of the literature (roadmap item k106): Berkey and Wang 1987, classes `I` to `VI`, and Martello and Vigo 1998,
 // classes VII to X, as Lodi, Martello and Vigo 2002 give them. The generators use the rules of the classes, not a
 // published file. Each size is a whole number.
 
@@ -908,7 +908,7 @@ export type BerkeyWangClass = "I" | "II" | "III" | "IV" | "V" | "VI";
 /** The classes of Martello and Vigo 1998, with the numbers of Lodi, Martello and Vigo. */
 export type MartelloVigoClass = "VII" | "VIII" | "IX" | "X";
 
-/** The rule of a class of Berkey and Wang: the side of the square bin, and the range of the width and of the height of each item. */
+/** The rule of a class of Berkey and Wang: the side of the square bin, and the range of the item sides. */
 export interface BerkeyWangRule {
   readonly bin: number;
   readonly min: number;
@@ -964,7 +964,7 @@ const MV_CLASSES: readonly MartelloVigoClass[] = ["VII", "VIII", "IX", "X"];
 const classContainer = (size: ClassContainer, bin: number): LayoutContainer => containerOf(size, bin, bin);
 
 /**
- * The generator `berkey-wang`, version 1: the classes I to VI of Berkey and Wang 1987. Each width and each height is
+ * The generator `berkey-wang`, version 1: the classes `I` to `VI` of Berkey and Wang 1987. Each width and each height is
  * uniform in the range of the class. The container is one square bin of the class, or a strip of its width.
  */
 export const berkeyWang: CorpusGenerator<BerkeyWangParams> = defineGenerator<BerkeyWangParams>({
@@ -1234,9 +1234,9 @@ const classDimensions = (classes: readonly string[], value: string, meaning: str
   countDimension(100, { min: 1, levels: Object.freeze([...CLASS_COUNTS]) }),
 ];
 
-/** The family of `berkeyWang`: the classes I to VI of Berkey and Wang 1987. */
+/** The family of `berkeyWang`: the classes `I` to `VI` of Berkey and Wang 1987. */
 export const berkeyWangFamily: CorpusFamily<GeneratedInput> = familyOf(berkeyWang, {
-  meaning: "The classes I to VI of Berkey and Wang 1987: uniform sides in a square bin of the class, or a strip of its width.",
+  meaning: "The classes `I` to `VI` of Berkey and Wang 1987: uniform sides in a square bin of the class, or a strip of its width.",
   dimensions: classDimensions(BW_CLASSES, "I", "The class of Berkey and Wang: the side of the bin and the range of the item sides."),
   crossEngine: "exact",
   seeding: CLASS_SEEDING,

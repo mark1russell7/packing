@@ -228,7 +228,7 @@ export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-28",
     item: "k106",
-    title: "The families `berkey-wang` and `martello-vigo` make the classes I to X of the literature by their rules. The corpus `pack-classes-v1` has 500 inputs.",
+    title: "The families `berkey-wang` and `martello-vigo` make the classes `I` to `X` of the literature by their rules. The corpus `pack-classes-v1` has 500 inputs.",
     pr: 117,
     link: "https://github.com/mark1russell7/packing/pull/117",
   },
