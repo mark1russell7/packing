@@ -116,6 +116,8 @@ For each strategy and each input of the corpus, the runner does these steps:
 5. It adds the count of the move of the strategy from the trace, and `pack.outsideExact`. The section "The screen guards" tells these measures.
 6. It writes one `layout-record/1` line with the measures rounded by `roundMeasures`.
 
+The flag `--interleave` changes only the order of the timed runs. For each input, the runner does the warm-up runs of each strategy. Then, for each repeat, it does one timed run of each strategy. The records, their order and their format do not change. `run.json` gets `"interleave": true`. The job `time` of the section "The win test" uses this flag.
+
 The runner does not stop at an error of a strategy. It writes the error in `run.json` and in the summary, and it exits with the code 1.
 
 A strategy of the mode `incremental` gets only skipped records on an offline corpus. Each generator of the package makes offline inputs, so the runner skips `push` on each input.
@@ -383,21 +385,27 @@ node bench/choose-sets.ts <folder> --run <id>
 `packages/packing/bench/promote.ts` applies the win test of the promotion rule (`docs/PROMOTION.md`) to the records of one run. It compares a candidate with the current default on the same inputs. It does not start a packer.
 
 ```sh
-node bench/promote.ts <folder> --candidate maxrects-bl --default rows --win pack.fill --out <folder>
+node bench/promote.ts <folder> --candidate maxrects-bl --default rows --win pack.fill --times <folder> --out <folder>
 ```
 
 - The first folder holds `records.jsonl` and `corpus.json` of a run. `gh run download <id> -n bench-<corpus>` gives them.
 - `--win` names the win measures, with commas. The default is `pack.fill`.
-- `--time-floor-ms <n>` sets the time floor. The default is `TIME_FLOOR_MS`, 0 ms.
+- `--times <folder>` gives the time source: a folder of records with the same strategy ids. The time test then reads only the `ms` of these records.
+- `--time-floor-ms <n>` sets the time floor. The default is `TIME_FLOOR_MS`, 5 ms: `timeFloorMs` of the shared rule. `--time-floor-ms 0` gives the rule without a floor.
 - The tool writes `promotion.json` and `promotion.md` in the `--out` folder. A verdict `fail` is not an error of the process.
 
-The workflow `Promotion` (`.github/workflows/promotion.yml`) starts the tool in CI on the artifact of a bench run:
+The shared rule says: CI times the candidate and the default on the same machine, in alternate runs. The jobs of `bench.yml` cannot do this, because each strategy runs on its own runner.
+
+The workflow `Promotion` (`.github/workflows/promotion.yml`) has two jobs:
+
+1. The job `time` packs the corpus with the candidate and the default on one runner, with `--interleave`, `--repeats 5` and `--warmup 1`. It keeps the artifact `promotion-time-<candidate>`.
+2. The job `promotion` downloads the records of a bench run and the time records. It starts the tool with `--times`.
 
 ```sh
-gh workflow run promotion.yml -f run=<id> -f corpus=pack-holdout-v1 -f candidate=maxrects-bl
+gh workflow run promotion.yml -f run=<id> -f corpus=pack-holdout-v1 -f candidate=maxrects-bl -f repeats=5
 ```
 
-The workflow keeps the artifact `promotion-<candidate>`, and the page of its run shows `promotion.md`.
+The workflow keeps the artifact `promotion-<candidate>`, and the page of its run shows `promotion.md`. A pull request runs the job `time` on the small corpus `smoke-v1`, and the guards on the records of run 40662373078.
 
 ### Read the verdict
 
@@ -419,13 +427,14 @@ The first table of `promotion.md` has one row for each test, with its value, its
 - The floor rule applies when the default is at the floor of a measure. The table "The floor rule" counts these inputs. `promotion.json` names them.
 - The classification uses `compareMeasure` of the contract. A change of the minimum effect or less is a tie.
 - The time of an input is the field `ms` of the record: the median time of the timed passes of the whole pack. `pack.search.ms` counts only the width search, and it is 0 for most entries.
-- The time ratio of an input is `t / max(b, timeFloorMs / timeRatio)`, with the candidate time `t` and the default time `b`.
+- With `--times`, the time test uses the inputs of the time records with a measured record of each strategy. The other tests use the first folder.
+- The time ratio of an input is `t / max(b, timeFloorMs / timeRatio)`, with the candidate time `t` and the default time `b`. The floor is 5 ms, so the least denominator is 3.33 ms.
 - The tool leaves out each input without a measured record of each strategy, and it counts these inputs.
 - The confirmation count compares the inputs with `confirmInputs`, 200. It does not change the verdict.
 
 The table of the container shapes gives the same tests for each shape. It is information for a rule of the selector, and it does not change the verdict.
 
-The candidate and the default of a run come from different jobs of the matrix, so their times come from different computers. Read a time ratio with this fact.
+`promotion.md` and `promotion.json` (`timeSource`) name the time source and the CPU models of its records, from the field `env` of each record. When the candidate and the default have different CPU models, `promotion.md` shows a warning. The records of `bench.yml` alone give this warning, because each strategy has its own runner.
 
 ## Read the summary
 

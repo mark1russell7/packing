@@ -25,7 +25,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { COMPOSITE_IDS, ENTRIES, entry } from "./entries.ts";
+import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
 import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
 
@@ -171,6 +171,8 @@ export interface BenchRun extends Partial<BenchScreen> {
   coverage?: Record<string, BenchCoverage>;
   /** The held-out split of the corpus. A `run.json` before 0.2.7 does not have it: its split is the seed 3. */
   heldOut?: HeldOut;
+  /** The value `true` when the timed runs of each input alternate between the entries. A run without `interleave` does not have it. */
+  interleave?: true;
 }
 
 /** A prediction of `bench/predictions.jsonl`. `docs/BENCH.md` gives the fields. */
@@ -203,6 +205,11 @@ export interface BenchOptions {
   env: BenchEnv;
   /** The clock in milliseconds. The default is `performance.now`. */
   clock?: () => number;
+  /**
+   * The value `true` alternates the timed runs of each input between the entries: for each repeat, one timed run of each entry.
+   * Then the time ratio of two entries compares runs on the same computer at nearly the same moment. The default is `false`.
+   */
+  interleave?: boolean;
 }
 
 /** The result of `runBench`: the facts of the run, the records, the manifest of the corpus and the outputs. */
@@ -292,6 +299,84 @@ export function median(values: readonly number[]): number {
   return values.length === 0 ? 0 : quantile(values, 0.5);
 }
 
+/** One timed run in the interleaved mode: the index of the entry and the index of the repeat. */
+export interface TimedRun {
+  entry: number;
+  repeat: number;
+}
+
+/** This function gives the order of the timed runs of one input in the interleaved mode: for each repeat, one run of each entry. */
+export function interleavedOrder(entries: number, repeats: number): TimedRun[] {
+  const out: TimedRun[] = [];
+  for (let repeat = 0; repeat < repeats; repeat++) for (let entry = 0; entry < entries; entry++) out.push({ entry, repeat });
+  return out;
+}
+
+/** The times of the timed runs of one pair, in the order of the runs: the time of the whole pack and the time of the search. */
+interface PairTimes {
+  msRuns: number[];
+  searchMs: number[];
+}
+
+/** This function gives the options that the runner gives to `packWith` for an entry. An entry of the registry gives none. */
+function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | undefined {
+  return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
+}
+
+/** This function times `repeats` runs of one pair, one after the other. */
+function timeRuns(pack: () => PackOutput, repeats: number, clock: () => number): PairTimes {
+  const out: PairTimes = { msRuns: [], searchMs: [] };
+  for (let r = 0; r < repeats; r++) {
+    const start = clock();
+    const output = pack();
+    out.msRuns.push(clock() - start);
+    out.searchMs.push(traceSum(output, "pack.search.ms"));
+  }
+  return out;
+}
+
+/**
+ * This function gives the times of each pair in the interleaved mode, by entry id and by input id.
+ *
+ * - For each input, it does the warm-up runs of each entry, then the timed runs in the order of `interleavedOrder`.
+ * - An entry that does not support the cell of the input, or that throws, gets no times for that input.
+ * - The main loop of `runBench` then packs the pair again. It gives the skip or the error of the pair, as without the mode.
+ */
+function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corpus>["inputs"], manifest: CorpusManifest, repeats: number, warmup: number, clock: () => number): Map<string, Map<string, PairTimes>> {
+  const out = new Map<string, Map<string, PairTimes>>(ids.map((id) => [id, new Map()]));
+  for (const [index, file] of inputs.entries()) {
+    const input = toPackInput(file);
+    const ready: { id: string; pack: () => PackOutput; times: PairTimes }[] = [];
+    for (const id of ids) {
+      const e = entry(id);
+      const s = strategy(e.strategy);
+      if (unsupportedOf(s.supports, manifest.inputs[index]!.cell) !== undefined) continue;
+      const given = givenOf(e, s.defaults);
+      const pack = (): PackOutput => packWith(e.strategy, input, given, file.seed);
+      try {
+        for (let w = 0; w < warmup; w++) pack();
+      } catch {
+        continue;
+      }
+      ready.push({ id, pack, times: { msRuns: [], searchMs: [] } });
+    }
+    const failed = new Set<number>();
+    for (const run of interleavedOrder(ready.length, repeats)) {
+      if (failed.has(run.entry)) continue;
+      const own = ready[run.entry]!;
+      try {
+        const step = timeRuns(own.pack, 1, clock);
+        own.times.msRuns.push(...step.msRuns);
+        own.times.searchMs.push(...step.searchMs);
+      } catch {
+        failed.add(run.entry);
+      }
+    }
+    for (const [i, own] of ready.entries()) if (!failed.has(i)) out.get(own.id)!.set(file.id, own.times);
+  }
+  return out;
+}
+
 /** This function sums one measure over the stages of a trace. */
 function traceSum(output: PackOutput, id: string): number {
   let sum = 0;
@@ -312,6 +397,7 @@ function finite(values: Record<string, number>): Record<string, number> {
  * - A strategy that does not support the cell of the manifest gets a skipped record and a skip in the run.
  * - The records keep the order of the strategies, and then the order of the inputs.
  * - The runner packs each pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock.
+ * - With `interleave`, the timed runs of each input alternate between the entries. The records and their order do not change.
  * - An input with a `base` in the corpus gets the stability measures of `measureChange` against the run on its base.
  * - An error other than `UnsupportedCell` goes into `errors`, and the runner goes on.
  */
@@ -324,6 +410,7 @@ export function runBench(options: BenchOptions): BenchResult {
   const clock = options.clock ?? (() => performance.now());
   const ids = options.strategies === undefined ? ENTRIES.map((e) => e.id) : [...options.strategies];
   const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
+  const interleaved = options.interleave === true ? interleavedTimes(ids, inputs, manifest, repeats, warmup, clock) : undefined;
 
   const records: BenchRecord[] = [];
   const skipped: BenchSkip[] = [];
@@ -335,7 +422,7 @@ export function runBench(options: BenchOptions): BenchResult {
     const e = entry(id);
     const s = strategy(e.strategy);
     // An entry of the registry gives no options to packWith, as the runner before k21 did
-    const given = Object.keys(e.options).length === 0 ? undefined : { ...(s.defaults as Record<string, unknown>), ...e.options };
+    const given = givenOf(e, s.defaults);
     const done = new Map<string, { input: PackInput; output: PackOutput }>();
     const kept = new Map<string, PackOutput>();
     outputs.set(id, kept);
@@ -380,15 +467,14 @@ export function runBench(options: BenchOptions): BenchResult {
       try {
         const first = packWith(e.strategy, input, given, file.seed);
         const second = packWith(e.strategy, input, given, file.seed);
-        for (let w = 0; w < warmup; w++) packWith(e.strategy, input, given, file.seed);
-        const msRuns: number[] = [];
-        const searchMs: number[] = [];
-        for (let r = 0; r < repeats; r++) {
-          const start = clock();
-          const out = packWith(e.strategy, input, given, file.seed);
-          msRuns.push(clock() - start);
-          searchMs.push(traceSum(out, "pack.search.ms"));
+        const pack = (): PackOutput => packWith(e.strategy, input, given, file.seed);
+        // The interleaved mode did the warm-up runs and the timed runs before this loop
+        let times = interleaved?.get(id)?.get(file.id);
+        if (times === undefined) {
+          for (let w = 0; w < warmup; w++) pack();
+          times = timeRuns(pack, repeats, clock);
         }
+        const { msRuns, searchMs } = times;
 
         const values: Record<string, number> = { ...measure(input, first) };
         values["pack.search.ms"] = median(searchMs);
@@ -445,6 +531,7 @@ export function runBench(options: BenchOptions): BenchResult {
   };
   if (options.commit !== undefined) run.commit = options.commit;
   if (options.corpus.heldOut !== undefined) run.heldOut = options.corpus.heldOut;
+  if (options.interleave === true) run.interleave = true;
   const members = ids.some((id) => COMPOSITE_IDS.has(id))
     ? compositeMembersOf(
         ids,
@@ -580,6 +667,7 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
     `- Commit: \`${run.commit ?? "unknown"}\``,
     `- Computer: ${run.env.runner}, ${run.env.os} ${run.env.arch}, ${run.env.cpus} x ${run.env.cpu}, Node.js ${run.env.node}`,
     `- Runs of each pair: 2 for determinism, ${run.warmup} warm-up, ${run.repeats} timed. \`ms\` is the median of the timed runs.`,
+    ...(run.interleave === true ? ["- The timed runs of each input alternate between the strategies: for each repeat, one timed run of each strategy."] : []),
     `- Records: ${records.length}. Measured records: ${measured.length}. Skipped records: ${skips.length}. Errors: ${run.errors.length}.`,
     "",
     "## Strategies",

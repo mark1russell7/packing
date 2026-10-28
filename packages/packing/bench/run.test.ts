@@ -6,7 +6,9 @@ import { composites, strategies } from "@mark1russell7/packing";
 import { ENTRIES, entry, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, SHELF_VARIANTS } from "./entries.ts";
 import {
   checkPrediction,
+  interleavedOrder,
   isMeasured,
+  median,
   mergeRuns,
   outputHash,
   parseCorpus,
@@ -16,8 +18,10 @@ import {
   skipReason,
   strategyIds,
   summaryMarkdown,
+  type BenchCorpus,
   type BenchEnv,
   type BenchRecord,
+  type MeasuredRecord,
   type SkippedRecord,
 } from "./run.ts";
 
@@ -261,5 +265,80 @@ describe("the benchmark runner", () => {
     const screen = parseCorpus(corpusFile("pack-screen-v1"), "pack-screen-v1");
     expect(screen.specs.reduce((n, s) => n + s.seeds.length, 0)).toBe(1305);
     expect(screen.corpus).not.toBe("screen-v1");
+  });
+});
+
+describe("the interleaved timing mode", () => {
+  // A small made-up corpus: two plain inputs, a circle container and an empty input
+  const tiny: BenchCorpus = {
+    schema: "layout-corpus/1",
+    corpus: "tiny-v1",
+    specs: [
+      { generator: "rect-grid", version: 1, params: { count: 8 }, seeds: [1, 2] },
+      { generator: "rect-grid", version: 1, params: { containerShape: "circle", count: 6 }, seeds: [1] },
+      { generator: "edge-cases", version: 1, params: { case: "empty" }, seeds: [1] },
+    ],
+  };
+  // The entry push skips each input of an offline corpus. The entry portfolio-k2 is a composite entry.
+  const ids = ["rows", "push", "maxrects-bl", "portfolio-k2"];
+  const repeats = 3;
+
+  /** This clock gives the square of its call count. A run that starts at the call c then takes 2c + 1 ms, so its time gives its place. */
+  const squareClock = (): (() => number) => {
+    let calls = 0;
+    return () => {
+      const c = calls++;
+      return c * c;
+    };
+  };
+  const bench = (interleave: boolean) => runBench({ corpus: tiny, prediction: "p-test", strategies: ids, repeats, warmup: 1, env: ENV, clock: squareClock(), interleave });
+  const plain = bench(false);
+  const mixed = bench(true);
+
+  /** This function gives the timed runs of some records in the order of the clock: the strategy, the input and the repeat. */
+  const runOrder = (records: readonly BenchRecord[]): string[] =>
+    records
+      .filter(isMeasured)
+      .flatMap((r: MeasuredRecord) => r.msRuns.map((ms, repeat) => ({ at: (ms - 1) / 4, text: `${r.strategy} ${r.input} ${repeat}` })))
+      .toSorted((a, b) => a.at - b.at)
+      .map((run) => run.text);
+
+  it("gives the order of the timed runs of one input: for each repeat, one run of each entry", () => {
+    expect(interleavedOrder(2, 3)).toEqual([
+      { entry: 0, repeat: 0 },
+      { entry: 1, repeat: 0 },
+      { entry: 0, repeat: 1 },
+      { entry: 1, repeat: 1 },
+      { entry: 0, repeat: 2 },
+      { entry: 1, repeat: 2 },
+    ]);
+    expect(interleavedOrder(0, 3)).toEqual([]);
+  });
+
+  it("gives the same records, in the same order, with the same ids, hashes and measures", () => {
+    expect(mixed.records.map((r) => `${r.strategy} ${r.input}`)).toEqual(plain.records.map((r) => `${r.strategy} ${r.input}`));
+    expect(mixed.records.map(timeless)).toEqual(plain.records.map(timeless));
+    expect(mixed.run.errors).toEqual([]);
+    expect(mixed.run.skipped).toEqual(plain.run.skipped);
+    const measuredIds = new Set(mixed.records.filter(isMeasured).map((r) => r.strategy));
+    expect([...measuredIds]).toEqual(["rows", "maxrects-bl", "portfolio-k2"]);
+    for (const r of mixed.records.filter(isMeasured)) {
+      expect(r.msRuns).toHaveLength(repeats);
+      expect(r.ms).toBe(median(r.msRuns));
+    }
+    expect(mixed.run.interleave).toBe(true);
+    expect(plain.run).not.toHaveProperty("interleave");
+    expect(summaryMarkdown(mixed.run, mixed.records)).toContain("alternate between the strategies");
+    expect(summaryMarkdown(plain.run, plain.records)).not.toContain("alternate");
+  });
+
+  it("alternates the timed runs of each input between the entries", () => {
+    const inputs = mixed.manifest.inputs.map((e) => e.id);
+    const packs = (input: string): string[] => ids.filter((id) => mixed.records.some((r) => isMeasured(r) && r.strategy === id && r.input === input));
+    const expected = inputs.flatMap((input) => interleavedOrder(packs(input).length, repeats).map((run) => `${packs(input)[run.entry]} ${input} ${run.repeat}`));
+    expect(runOrder(mixed.records)).toEqual(expected);
+    // Without the mode, the runner times each pair to the end, in the order of the strategies and then of the inputs
+    const sequential = plain.records.filter(isMeasured).flatMap((r) => Array.from({ length: repeats }, (_, repeat) => `${r.strategy} ${r.input} ${repeat}`));
+    expect(runOrder(plain.records)).toEqual(sequential);
   });
 });
