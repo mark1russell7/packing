@@ -80,12 +80,15 @@ export {
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
 export { packWith, strategies, strategy } from "./registry.ts";
+export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
+export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export {
   canonicalJson,
   countCell,
   fnv1a32,
   hashInput,
+  outputHash,
   round3,
   toPackInput,
   type CorpusCell,

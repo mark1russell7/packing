@@ -60,6 +60,16 @@ pack(rects, outer, { strategy: "maxrects", rule: "cp" });
 - The move of each rule other than `bl` counts a box when the rule chooses a place that `bl` does not choose.
 - A shape that is not a rectangle gets bands. The option `bandHeight` sets their largest height. The default is the height divided by `MAXRECTS_BANDS`.
 
+Since 0.2.6, `packPortfolio` packs an input with each member and keeps the best output. It is opt-in, and no default uses it.
+
+```ts
+const { output, winner } = packPortfolio(["skyline", "shelf"]).pick(input);
+```
+
+- The pick is `selectBest` of `@mark1russell7/layout-contract` on `PORTFOLIO_LEVELS`: the hard breaks, then `pack.overflow.excessArea`, then `pack.fill`.
+- The trace of the output gets the stage `portfolio` with the measure `move.pick`.
+- `outputHash` gives the hash of the placements of an output, as the bench records have it.
+
 Both functions also work alone, in an outer rectangle with a width that you set. They do not change the width.
 
 A `locked` rectangle keeps its position. `packSkyline` and `packShelf` put the other rectangles around it. `packRows` only keeps its position.

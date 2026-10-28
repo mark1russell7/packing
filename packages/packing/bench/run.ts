@@ -1,9 +1,8 @@
 // The benchmark runner of roadmap item k11. `docs/BENCH.md` tells how to start it in CI.
 // It packs each input of a corpus with each strategy and gives one `layout-record/1` record for each run.
 
-import { createHash } from "node:crypto";
 import {
-  canonicalJson,
+  outputHash,
   checkHard,
   corpus,
   DEFAULT_TOLERANCE,
@@ -28,6 +27,9 @@ import {
 } from "@mark1russell7/packing";
 import { ENTRIES, entry } from "./entries.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
+
+// Since 0.2.6, `outputHash` is in the package, so `packPortfolio` can use it. The runner gives it again for its tests.
+export { outputHash };
 
 /** The file of a corpus in `bench/corpora`: a `layout-corpus/1` manifest with its specs and no inputs. */
 export interface BenchCorpus {
@@ -268,12 +270,6 @@ function traceSum(output: PackOutput, id: string): number {
   return sum;
 }
 
-/** This function gives the `outputHash` of an output: the hash of its placements. The order of the list does not count. */
-export function outputHash(output: PackOutput): string {
-  const sorted = output.placements.toSorted((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  return createHash("sha256").update(canonicalJson(sorted)).digest("hex").slice(0, 16);
-}
-
 /** This function keeps only the finite values of a record of measures. */
 function finite(values: Record<string, number>): Record<string, number> {
   const out: Record<string, number> = {};
@@ -429,7 +425,7 @@ export function recordLines(records: readonly BenchRecord[]): string {
 }
 
 /** The fields of `BenchScreen` in a run */
-const SCREEN_FIELDS = ["fill", "overflow", "outputGroups", "cellGroups", "activation", "ranking"] as const;
+const SCREEN_FIELDS = ["fill", "overflow", "outputGroups", "cellGroups", "activation", "ranking", "portfolio"] as const;
 
 /**
  * This function joins the runs of the jobs of one corpus and one prediction into one run. It throws an `Error` for different runs.

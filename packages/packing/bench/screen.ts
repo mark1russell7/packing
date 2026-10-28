@@ -5,6 +5,7 @@
 import { compareMeasure } from "@mark1russell7/layout-contract";
 import { MEASURE_SPECS, quantile, round3, type MeasureId, type PackOutput } from "@mark1russell7/packing";
 import { basesOf } from "./entries.ts";
+import { portfolioMarkdown, portfolioOf, type BenchPortfolio } from "./portfolio.ts";
 
 /** The id of the characteristic move of each entry. The trace of the entry has the count of the move with this id. */
 export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
@@ -59,6 +60,12 @@ export interface ScreenRecord {
   measures: Record<string, number>;
   outputHash?: string;
   skipped?: string;
+  /** The seed of the input. The portfolio report holds out one seed. */
+  seed?: number;
+  /** The median time of the timed runs, in milliseconds */
+  ms?: number;
+  /** The counts of the hard breaks of `checkHard` */
+  hard?: Record<string, number>;
 }
 
 /** A median of the fill over some records. The median is absent when no record counts. */
@@ -195,6 +202,8 @@ export interface BenchScreen {
   activation: Record<string, BenchActivation>;
   /** The two-step ranking of each container shape: the overflow area above the bound, then the fill on the common clean inputs */
   ranking: Record<string, CellRanking>;
+  /** The portfolio report of k20: the oracle, the best single entry, the greedy sets and the sole wins of each cell */
+  portfolio: BenchPortfolio;
 }
 
 /** This function sums the counts of the moves of the trace of an output, by move id. */
@@ -548,6 +557,7 @@ export function screenMarkdown(screen: Partial<BenchScreen>, strategies: readonl
       }
     }
   }
+  lines.push("", ...portfolioMarkdown(screen.portfolio));
   return lines;
 }
 
@@ -560,7 +570,7 @@ export function screenOf(strategies: readonly string[], records: readonly Screen
   const ids = [...new Set(strategies)];
   const measured = records.filter(isMeasured);
   const allShapes = [...new Set([...shapes.values(), ...records.map((r) => shapeOf(r.input))])];
-  const screen: BenchScreen = { fill: {}, overflow: {}, outputGroups: [], cellGroups: {}, activation: {}, ranking: {} };
+  const screen: BenchScreen = { fill: {}, overflow: {}, outputGroups: [], cellGroups: {}, activation: {}, ranking: {}, portfolio: {} };
   const hashes = hashesOf(ids, measured);
   for (const id of ids) {
     const own = measured.filter((r) => r.strategy === id);
@@ -590,5 +600,7 @@ export function screenOf(strategies: readonly string[], records: readonly Screen
     const ranking = rankingOf(ids, own.filter((r) => shapeOf(r.input) === k), screen.cellGroups[k]!.groups);
     if (ranking.entries.length > 0) screen.ranking[k] = ranking;
   }
+  // The portfolio report of k20 reads the same records, by cell: all the shapes, then each shape
+  screen.portfolio = portfolioOf(ids, own, shapeOf, allShapes);
   return screen;
 }

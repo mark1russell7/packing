@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.6
+
+The portfolio report and `packPortfolio` of roadmap item k20, part 1. This release has no breaking changes.
+
+### New
+
+- `packPortfolio(members, options?)` packs an input with each member and keeps the best output. It is opt-in.
+- The pick is `selectBest` of the contract on `PORTFOLIO_LEVELS`: the hard breaks, `pack.overflow.excessArea` and `pack.fill`.
+- `hardBreaks` gives the sum of `checkHard` with `exactContainer`. It is the level `hard` of the pick.
+- The output of the winner gets the trace stage `portfolio` (`PORTFOLIO_STAGE`) with the measure `move.pick` of `pickMoves`.
+- `outputHash` is now in the package. Its bytes do not change: each hash of the records of 0.2.5 stays the same.
+- The package exports the types `Portfolio`, `PortfolioPick`, `PortfolioTrace`, `MemberTrace` and `SelectLevel` of the contract.
+- The bench has a portfolio report in `run.json` and a section `Portfolio` in `summary.md`. It reads the records only.
+- The report gives the oracle, the best single entry, the greedy sets of 2 and 3 entries, the sole wins and the losers.
+- The report chooses each set on the seeds other than 3. It scores each set on the held-out seed 3.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` is now `^0.2.6`.
+
+### The outputs
+
+- The placements of each strategy do not change. The fixture `bench/fixtures/rect-hashes.json` still pins them.
+- The bench has no new entry.
+
 ## 0.2.5
 
 The MaxRects family of roadmap item k24. This release has no breaking changes.

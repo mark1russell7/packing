@@ -216,6 +216,7 @@ Roadmap item k59 adds these guards to each run. Roadmap item k60 adds the rankin
 | `outputGroups` | The output groups. Each group has its `strategies` and the count of its common `inputs`. |
 | `cellGroups` | For each container shape: its `groups`, and its `pairs`, each with `a`, `b`, `inputs`, `equal` and `share`. |
 | `activation` | For each strategy: `move`, `records`, `fired`, `count`, `label` and `reason`. The field `shapes` has the same values for each container shape. |
+| `portfolio` | For `all` and each container shape: the input counts, the `pool`, the `oracle`, the `best` single entry, the greedy `sets`, the `soleWins` and the `losers`. |
 
 The container shape of an input comes from its cell in `corpus.json`. An input that is not in the manifest gets the shape `unknown`.
 
@@ -309,6 +310,33 @@ A variant that is equal to another entry on each common input is in one output g
 
 The strategies `rows` and `shelf` pack a container that is not a rectangle with the same packer. That packer does not make their moves. Thus they are `not-exercised` on such a shape, and their outputs on it are often in one cell group.
 
+### Portfolio
+
+Roadmap item k20 adds the portfolio report. The code is in `packages/packing/bench/portfolio.ts`. The report reads the records. It does not start a packer again.
+
+The pick rule is `selectBest` of the contract, with the levels `PORTFOLIO_LEVELS` of the package. `packPortfolio` uses the same levels.
+
+| Level | Value | Better | Minimum effect |
+|---|---|---|---|
+| `hard` | The hard breaks with `exactContainer`: the sum of `hard`, with `pack.outsideExact` in place of `in-container` | lower | 0 |
+| `pack.overflow.excessArea` | The overflow area above its bound | lower | 0.005 |
+| `pack.fill` | The fill of the hull | higher | 0.005 |
+
+At each level, `selectBest` keeps each candidate that ties the best value. Then the first candidate that is left wins. A tie is not a chain: with the values 0, 0.004 and 0.008 and the minimum effect 0.005, the filter keeps 0 and 0.004 only.
+
+The report has one cell for all the shapes (`all`) and one cell for each container shape. Each cell has these parts:
+
+- The oracle: the best entry of each input by `selectBest` over all the entries. Each tie goes to the first entry of the run.
+- A set wins an input when its own winner is in the last kept list of the oracle. The fill regret is the fill of the oracle less the fill of the winner.
+- The time of a set is the sum of the `ms` of its members.
+- The report chooses each set on the seeds other than 3. It scores each set on the held-out seed 3.
+- The best single entry has the most wins on the training seeds, then the lowest mean fill regret.
+- The greedy sets of 2 and 3 entries add one entry at a time to the best single entry, with the same order.
+- A sole win is an input of any seed where exactly one entry is in the last kept list of the oracle.
+- A loser is an entry with no sole win. The report gives the losers, and they stay in the pool.
+
+The corpus `smoke-v1` has the seeds 1 and 2 only. Thus its sets have no held-out score, and the summary shows `-`.
+
 ## Read the summary
 
 The summary `summary.md` has these sections:
@@ -322,12 +350,13 @@ The summary `summary.md` has these sections:
 7. `Overflow`: for each strategy and container shape, the records with overflow and the sum of `pack.outsideExact`. It also gives the means and the medians of the overflow measures.
 8. `Distinct outputs`: the output groups, and the cell groups and the pairs of each container shape.
 9. `Activation`: for each strategy and container shape, the count of its move and its label.
-10. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
-11. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
-12. `Stability`: the count of records with the stability measures.
-13. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
+10. `Portfolio`: for `all` and each container shape, the oracle, the best single entry and the greedy sets. Then the sole wins and the losers.
+11. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
+12. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
+13. `Stability`: the count of records with the stability measures.
+14. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
 
-A `run.json` from before k59 has no screen guards. Sections 6 to 9 then show one line that tells it. A `run.json` from before k60 has no ranking, and section 5 shows one line.
+A `run.json` from before k59 has no screen guards. Sections 6 to 9 then show one line that tells it. A `run.json` from before k60 has no ranking, and section 5 shows one line. A `run.json` from before k20 has no portfolio report, and section 10 shows one line.
 
 The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspectError`, `pack.order.inversions`, `pack.overflow` and the 3 stability measures. Lower is better for each guard. The floor is 0.
 
