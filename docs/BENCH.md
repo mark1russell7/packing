@@ -502,6 +502,42 @@ The table of the container shapes gives the same tests for each shape. It is inf
 
 `promotion.md` and `promotion.json` (`timeSource`) name the time source and the CPU models of its records, from the field `env` of each record. When the candidate and the default have different CPU models, `promotion.md` shows a warning. The records of `bench.yml` alone give this warning, because each strategy has its own runner.
 
+## A CPU profile
+
+The workflow `Profile` (`.github/workflows/profile.yml`) finds the functions that use the time of a strategy on its slowest inputs. Start it with the GitHub CLI:
+
+```sh
+gh workflow run profile.yml -f corpus=pack-screen-v1 -f strategy=maxrects-bl -f times_run=40683546461 -f slowest=20
+```
+
+| Input | Default | What it sets |
+|---|---|---|
+| `corpus` | `pack-screen-v1` | The corpus of the time records. The job packs its inputs again. |
+| `strategy` | `maxrects-bl` | The entry to profile. |
+| `times_run` | `40683546461` | The id of a `promotion.yml` run. Its artifact `promotion-time-<strategy>` gives the time records. |
+| `slowest` | `20` | The count of the inputs with the highest time ratio against `rows`. |
+
+The job starts `bench/profile.ts`:
+
+1. It picks the inputs with the highest time ratio `t / max(b, 5 / 1.5)` from the time records.
+2. It times the strategy and `rows` on each input without the profiler, in alternation.
+3. It packs each input 3 times with the strategy under the V8 CPU profiler.
+4. It does steps 2 and 3 again with the flags `--no-turbo-inlining` and `--no-maglev-inlining` of V8.
+
+V8 gives the samples of an inlined function to its caller. The second profile keeps the samples of each function apart, but its times are longer.
+
+The artifact `profile-<strategy>` has `profile.cpuprofile`, `profile.md` and `profile.json`, and the folder `no-inlining` has the files of the second profile. Open `profile.cpuprofile` in the Performance panel of Chrome DevTools. `profile.md` is also in the job summary. It has these tables:
+
+- The times of the strategy and `rows` on each input, with their medians. A small time of `rows` gives a high ratio.
+- The top 25 functions by self time. The rows `(garbage collector)`, `(program)` and `(idle)` stay in this table. The head gives the share of the garbage collector.
+- The top 25 functions by total time, the self time of each file, and the top 25 source lines by samples.
+
+A run on a local computer gives no valid times. Use it only to examine the script on a small corpus:
+
+```sh
+node bench/profile.ts --corpus smoke-v1 --strategy maxrects-bl --inputs <id>,<id> --out bench-out/profile
+```
+
 ## Read the summary
 
 The summary `summary.md` has these sections:
