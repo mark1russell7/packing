@@ -2,7 +2,7 @@
 
 The status of each item of `@mark1russell7/packing`. A live tracker mirrors this file. Change both together.
 
-Status: done, done, waiting, next, done.
+Status: done, done, waiting, Shipped in #99: `pack.bound` and `pack.gap` on each record. Bench 40766464710: the best strategies are 0 to 0.13 above the bound, `rows` 0.02 to 0.20. done, done.
 
 | ID | Item | Area | Status | Needs |
 |---|---|---|---|---|
@@ -11,7 +11,7 @@ Status: done, done, waiting, next, done.
 | k2 | `render-pack` re-exports `@mark1russell7/packing` | move | done | k1 |
 | k3 | The downstream app moves its imports to the new name | move | done | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | done | k2, k3 |
-| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
+| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | Shipped in #97: the compare page runs all 20 entries, and the demo offers all 8 ids. done | |
 | k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
 | k7 | One Packer interface for every strategy | core | done | k0, k18, k35 |
 | k8 | An algebra of measures | theory | done | k6, k7 |
