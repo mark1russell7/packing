@@ -352,7 +352,12 @@ Since 0.2.5 (roadmap item k24), the strategy `maxrects` packs with a list of max
 4. The list loses each part that is in another free rectangle. Thus each free rectangle stays maximal.
 5. The list also loses each part that is too small for the smallest box.
 
-Since roadmap item k64, step 4 compares a part only with the parts and the free rectangles on the same side of the box. The parts go from the largest to the smallest, so a part is compared only with the parts that stay. The outputs did not change: the test `bench/maxrects-fixture.test.ts` compares them with the hashes of the code before k64.
+Since roadmap item k64, step 4 compares a part only with the parts and the free rectangles on the same side of the box. The outputs did not change: the test `bench/maxrects-fixture.test.ts` compares them with the hashes of the code before k64.
+
+- A part stays when no other part of its side holds more than it, and no equal part comes before it.
+- This set does not depend on an order. Thus step 4 does not sort the parts.
+- Each new part goes at once when a part that stays holds it. Else it removes each part that it holds.
+- Only a part that stays gets an object. The new list has the parts that stay in the order of their creation.
 
 The option `rule` chooses the free rectangle. The default is `bssf`. A lower score is better. A tie goes to the higher place, then to the left place.
 
