@@ -83,6 +83,7 @@ Status: done, done, waiting, next, done.
 | k74 | An analysis card for each strategy: its source, its complexity, its guarantee, its measured scaling exponent, and its response to each dimension and parameter (sweeps and Sobol indices). Part 1 (the cards from the code and the catalog) is active. Part 2 (the sweeps) waits for `packSpace`. | measure | active | k13, k68 |
 | k75 | The shape of the items and of the container as a dimension of `packSpace` and of the contracts: rectangle, polygon, circle or free form. Only rectangles have strategies today. | core | next | k68 |
 | k76 | A survey of each published method of packing, as ideas. Each method gets a row of the queue with its gain, its uncertainty and its cost. | theory | next | |
+| k77 | A space between two given items, or one channel, set once. The input names the pair and its gap, and the placement keeps that gap. Today the gap comes from the margins of both boxes, so it doubles. The routing bench of `layout-contract` (L13) asks for it. | core | next | k65 |
 
 ## The queue
 
@@ -104,9 +105,10 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | 12 | k13 | 3 | 3 | 2 | 4.5 |
 | 13 | k10 | 4 | 4 | 4 | 4.0 |
 | 14 | k46 | 4 | 4 | 4 | 4.0 |
-| 15 | k74 | 4 | 3 | 4 | 3.0 |
-| 16 | k52 | 3 | 2 | 2 | 3.0 |
-| 17 | k73 | 4 | 2 | 3 | 2.7 |
+| 15 | k77 | 4 | 3 | 3 | 4.0 |
+| 16 | k74 | 4 | 3 | 4 | 3.0 |
+| 17 | k52 | 3 | 2 | 2 | 3.0 |
+| 18 | k73 | 4 | 2 | 3 | 2.7 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
