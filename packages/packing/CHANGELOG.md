@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.13
+
+A speedup of the strategies `maxrects-*` and `portfolio`, roadmap item k64. This release has no breaking changes. Each output stays byte-equal.
+
+### Changed
+
+- `maxrects`: the cut of the free rectangles keeps the same parts without a sort. A new part goes when a part that stays on its side holds it, else it removes each part that it holds. The fixture `bench/fixtures/maxrects-hashes.json` does not change. In a CPU profile of the 20 slowest inputs of `pack-screen-v1` (1000 items in curved containers), the sort was 35% of the time.
+
 ## 0.2.12
 
 A new opt-in strategy wrapper, `aspectFit`, roadmap item k62. This release has no breaking changes. The default `pack()` and every existing output do not change.
