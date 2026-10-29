@@ -361,14 +361,14 @@ describe("packSpace and the options of the strategies", () => {
       stages: { combine: { option, params, members: [named[member]!] } },
     });
     const want = (id: string, options: Record<string, unknown>, seed = 3): string => outputHash(packWith(id, input, options, seed));
-    // The default member of each search is maxrects-bl
-    for (const id of ["anneal", "genetic", "tabu"]) expect(outputHash(packConfig(input, named[id]!, 3)), id).toBe(want(id, {}));
-    expect(outputHash(packConfig(input, search("anneal", { iterations: 8, temperature: 0.1, cooling: 0.5 }), 3))).toBe(want("anneal", { iterations: 8, temperature: 0.1, cooling: 0.5 }));
-    expect(outputHash(packConfig(input, search("genetic", { iterations: 8, population: 3, mutation: 1 }), 3))).toBe(want("genetic", { iterations: 8, population: 3, mutation: 1 }));
-    expect(outputHash(packConfig(input, search("tabu", { iterations: 8, tenure: 2, neighbors: 3 }), 3))).toBe(want("tabu", { iterations: 8, tenure: 2, neighbors: 3 }));
-    expect(outputHash(packConfig(input, named["anneal-skyline-k16"]!, 3))).toBe(outputHash(packConfig(input, search("anneal", { iterations: 16 }, "skyline"), 3)));
-    const work = packConfig(input, search("tabu", { iterations: 8, limitWork: true, budgetWork: 4000 }), 3);
-    expect(outputHash(work)).toBe(want("tabu", { iterations: 8, budgetWork: 4000 }));
+    // The default member of each search is maxrects-bl. The test of the named configs in `bench/pack-space.test.ts` packs them.
+    for (const id of ["anneal", "genetic", "tabu"]) expect(configId(packSpace, named[id]!), id).toBe(configId(packSpace, search(id, {})));
+    expect(outputHash(packConfig(input, search("anneal", { iterations: 4, temperature: 0.1, cooling: 0.5 }), 3))).toBe(want("anneal", { iterations: 4, temperature: 0.1, cooling: 0.5 }));
+    expect(outputHash(packConfig(input, search("genetic", { iterations: 4, population: 3, mutation: 1 }), 3))).toBe(want("genetic", { iterations: 4, population: 3, mutation: 1 }));
+    expect(outputHash(packConfig(input, search("tabu", { iterations: 4, tenure: 2, neighbors: 3 }), 3))).toBe(want("tabu", { iterations: 4, tenure: 2, neighbors: 3 }));
+    expect(configId(packSpace, named["anneal-skyline-k16"]!)).toBe(configId(packSpace, search("anneal", { iterations: 16 }, "skyline")));
+    const work = packConfig(input, search("tabu", { iterations: 4, limitWork: true, budgetWork: 4000 }), 3);
+    expect(outputHash(work)).toBe(want("tabu", { iterations: 4, budgetWork: 4000 }));
     expect(work.trace!.at(-1)!.measures).toMatchObject({ "work.budget": 4000 });
     expect(() => packConfig(input, search("genetic", { budgetWork: 4000 }), 3)).toThrow(/budgetWork/);
     expect(() => packConfig(input, search("anneal", { iterations: 0 }), 3)).toThrow(/iterations/);
