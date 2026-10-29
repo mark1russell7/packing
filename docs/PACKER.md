@@ -345,7 +345,7 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - The measures read the box that `bbox` places for a shape item: the bounding box of the shape at its place, not `w` by `h` (roadmap item k113).
 - Thus the hull, `pack.fill`, `pack.whitespace`, the overflow measures and `pack.shapeFill` use the same boxes. Each share stays from 0 to 1.
 - In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.
-- Thus `spaceSize` with a shape kind counts the `bbox` configs: 1620 meta configs with 3 levels, and 340 with 1 level. It counts 0 base configs.
+- Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level. It counts 0 base configs.
 
 ## The registry
 
@@ -371,7 +371,8 @@ The code of 0.1.3 builds these adapters. This document gives the contract, and t
 | `packShelf` | `shelf` | `fixed`, `freeHeight`. Obstacles: `fixed`. Order: `free`, `hard`. Each container shape since 0.2.1. The option `fit` since 0.2.4. |
 | `pushCascade` | `push` | `fixed`, `freeHeight`. Obstacles: `free`. Mode: `incremental`. |
 | `packMaxRects` | `maxrects` | Each container size and shape. Obstacles: `fixed`. Order: `free`, `soft`. Rotation: `none`, `quarter`. New in 0.2.5. |
-| `packFree` | the size search `log-sweep` | It wraps `rows`, `skyline`, `shelf` and `maxrects`. `push` moves the items from their start positions, so a size search does not fit it. |
+| `packGuillotine` | `guillotine` | Each container size and shape. Obstacles: `fixed`. Order: `free`, `soft`. Rotation: `none`, `quarter`. New with roadmap item k23. |
+| `packFree` | the size search `log-sweep` | It wraps `rows`, `skyline`, `shelf`, `maxrects` and `guillotine`. `push` moves the items from their start positions, so a size search does not fit it. |
 
 `fromRects(rects, outer)` makes a `PackInput` from the `Rect` objects of 0.1, and `toRects(output, rects, outer)` writes the output back.
 
@@ -557,6 +558,104 @@ The fill of the rules, from the smoke run of 0.2.5:
 - The literature measures a rule by the boxes that fit in one bin. Only `rect-grid.fixed.rect.none.heavyTail.n100/s1` has overflow.
 - On it, the overflow is 45 boxes for `bl`, 51 for `cp`, 55 for `bssf`, 57 for `blsf` and 60 for `baf`.
 - Thus `cp` is second on the measure of the literature. The low fill of `cp` and `blsf` is not a defect of the code.
+
+## The guillotine family
+
+Roadmap item k23 adds the strategy `guillotine`. It packs with the guillotine rules of Jylänki (2010), "A thousand ways to pack the bin: a practical approach to two-dimensional rectangle bin packing". The module is `src/guillotine.ts`.
+
+1. The boxes go in the order `sortOrder`. The default is `height-desc`.
+2. The packer keeps a list of free rectangles. No two free rectangles overlap.
+3. The rule `choice` examines each free rectangle where the box fits. The box goes to the top-left corner of the free rectangle with the best score.
+4. The free rectangle leaves the list. One straight cut of the rule `split` divides the rest of it into two parts.
+5. The two parts go to the end of the list: first the part below the box, then the part on the right.
+
+A free rectangle is `W` by `H`, and the box is `w` by `h`. The leftovers are `W - w` and `H - h`.
+
+The option `choice` chooses the free rectangle. The default is `baf`. A lower score is better.
+
+| `choice` | The score | Catalog |
+|---|---|---|
+| `baf` | The leftover area: `W * H - w * h` | `guillotine-<choice>-<split>` |
+| `bssf` | The smaller leftover side | `guillotine-<choice>-<split>` |
+| `blsf` | The larger leftover side | `guillotine-<choice>-<split>` |
+| `waf` | The score of `baf` times -1 | `guillotine-<choice>-<split>` |
+| `wssf` | The score of `bssf` times -1 | `guillotine-<choice>-<split>` |
+| `wlsf` | The score of `blsf` times -1 | `guillotine-<choice>-<split>` |
+
+- A free rectangle of the exact size of the box wins at once, also with a worst rule. The reference code of the source does the same.
+- A tie goes to the first free rectangle of the list. For one free rectangle, the box without a turn wins a tie.
+
+The option `split` chooses the cut. The default is `sas`.
+
+- A horizontal cut continues the bottom edge of the box. The part below gets the full width `W`, and the part on the right is as high as the box.
+- A vertical cut continues the right edge of the box. The part on the right gets the full height `H`, and the part below is as wide as the box.
+
+| `split` | The name in the source | The cut is horizontal when |
+|---|---|---|
+| `sas` | shorter leftover axis | `W - w <= H - h` |
+| `las` | longer leftover axis | `W - w > H - h` |
+| `sa` | shorter axis | `W <= H` |
+| `la` | longer axis | `W > H` |
+| `minas` | min area | `w * (H - h) > (W - w) * h` |
+| `maxas` | max area | `w * (H - h) <= (W - w) * h` |
+
+The option `merge` (default `false`) gives the rectangle merge of the source.
+
+- After each box, one pass compares each pair of free rectangles. Two rectangles with the same left and right edges join when one is on the top of the other.
+- Two rectangles with the same top and bottom edges join when one is next to the other. The first rectangle grows, and the second rectangle leaves the list.
+- The pass compares the edges exactly. Thus it joins only a common full edge. It does not join three rectangles that only together have a full edge.
+- Without `merge`, a part with less room than the smallest box leaves the list, because a free rectangle never grows. With `merge`, each part stays.
+
+The option `rotate` (default `false`) lets each turnable item that is not locked turn by 90 degrees, as in `maxrects`.
+
+The moves:
+
+- `move.freeChoice` counts a box that goes in a free rectangle that is not the first free rectangle where the box fits.
+- `move.merge` counts each join of the option `merge`. The trace has it only with `merge`.
+
+The containers, the obstacles and the locked items are as in `maxrects`. The function `wallsOf` of `src/maxrects.ts` gives the walls for the two packers.
+
+- The locked items, the obstacles and the bands of a space that is not plain are walls. Each wall cuts the start rectangle into parts that do not overlap.
+- The parts are the full-height parts on the left and on the right of the wall, then the parts above and below it. With `merge`, a merge pass follows.
+- In a space that is not plain, each place also gets the test `fits` of the space. A place that fails the test is not used again for that box.
+- With a fixed size, a box that fits in no free rectangle goes to the overflow.
+- With a free height, the frame is as high as the sum of the box heights. A box with no place goes below all the others, at the left edge.
+- A free width uses the size search `log-sweep`. The margin is part of the item, and the frame gives the gap (decision 3).
+- The packer reads no clock and no random number. Thus the output depends only on the input and the options.
+
+The default `pack()` and `SELECT_TABLE` do not use `guillotine`. The hash tests did not change.
+
+The tests (`src/guillotine.test.ts`):
+
+- A hand case of each rule of `choice` and `split` gives a known place or a known list of free rectangles. Each rule gives another result.
+- A hand case of `merge` makes room for a full-width box. Without `merge`, the box goes to the overflow.
+- `checkHard` with `exactContainer` gives 0 breaks on random sets, on `rect-grid` in 4 shapes and on an input of each generator. Each output is deterministic.
+
+A local small run (not a CI run) packed 80 inputs of `pack-classes-v1`: the counts 20 and 60 of each class, with the seeds 1 and 2.
+
+| Entry | Median `pack.fill` | Median `pack.gap` |
+|---|---|---|
+| `guillotine-baf-sas` | 0.895 | 0.086 |
+| `guillotine-bssf-sas-merge` | 0.907 | 0.081 |
+| `maxrects-bl` | 0.898 | 0.077 |
+| `maxrects-baf` | 0.905 | 0.080 |
+| `skyline` | 0.864 | 0.140 |
+| `shelf-best` | 0.879 | 0.109 |
+
+The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/40801208821) of 2026-10-29 packed all 500 inputs of `pack-classes-v1`. It is the record.
+
+| Entry | Median `pack.fill` | Median `pack.gap` |
+|---|---|---|
+| `guillotine-baf-sas` | 0.9250 | 0.0650 |
+| `guillotine-bssf-sas-merge` | 0.9245 | 0.0640 |
+| `maxrects-bl` | 0.9270 | 0.0610 |
+| `maxrects-baf` | 0.9220 | 0.0645 |
+| `skyline` | 0.8680 | 0.1240 |
+| `shelf-best` | 0.9040 | 0.0820 |
+
+- The 3000 records have 0 hard breaks, and each one is deterministic.
+- The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
+- `merge` gives no gain at the median.
 
 ## The decisions
 

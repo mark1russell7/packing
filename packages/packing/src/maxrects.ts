@@ -214,42 +214,15 @@ function bandWalls(query: (y0: number, y1: number) => FreeSpan[], w: number, top
 }
 
 /**
- * This function packs rectangles with MaxRects, as `packMaxRects` tells. It also gives the free rectangles at the end.
- * The tests read them. The package root does not export this function.
+ * This function gives the height of the frame of a free-rectangle packer and its walls. The walls are the rectangle holes
+ * and the bands of a space that is not plain. `heights` is the sum of the box heights. The guillotine packer also uses it.
  */
-export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRectsOptions = {}): MaxRectsRun<T> {
-  const rule = options.rule ?? "bssf";
-  if (!(MAXRECTS_RULES as readonly string[]).includes(rule)) throw new RangeError(`The rule of maxrects is one of ${MAXRECTS_RULES.join(", ")}, not "${String(rule)}".`);
-  const turned = options.turned;
-  if (turned !== undefined) {
-    for (const r of rects) if (turned.has(r)) r.size.set(r.size.y, r.size.x);
-    turned.clear();
-  }
-  for (const r of rects) if (r.locked) r.wasPacked = true;
-
+export function wallsOf<T>(rects: readonly Rect<T>[], outer: Rect<T>, space: FreeSpace | undefined, heights: number, bandHeight?: number): { H: number; walls: Box[] } {
   const W = outer.size.x;
-  if (!(W > 0)) return { outer, free: [] };
   const ox = outer.position.x;
   const oy = outer.position.y;
   const fixed = outer.fixedSize;
-  const space = options.space;
   const parts = space === undefined ? undefined : spaceParts(space);
-  const turnable = options.turnable;
-  const sorted = rects.toSorted(compareRects(options.sortOrder ?? "height-desc")).filter((r) => !r.wasPacked && r.size.x > 0 && r.size.y > 0);
-
-  // The smallest width and height of the boxes. A turnable box counts its short side for the two. A free rectangle with
-  // less room has no use, thus the list does not keep it.
-  let minW = Infinity;
-  let minH = Infinity;
-  let heights = 0;
-  for (const r of sorted) {
-    const turns = turnable?.has(r) === true;
-    const short = Math.min(r.size.x, r.size.y);
-    minW = Math.min(minW, turns ? short : r.size.x);
-    minH = Math.min(minH, turns ? short : r.size.y);
-    heights += turns ? Math.max(r.size.x, r.size.y) : r.size.y;
-  }
-
   // The rectangle holes: the holes of the space, or the locked rectangles. The bands of another space hold its holes.
   const holes: Box[] = [];
   if (parts !== undefined) for (const h of parts.holes) holes.push({ x0: h.x - ox, y0: h.y - oy, x1: h.x + h.w - ox, y1: h.y + h.h - oy });
@@ -269,14 +242,53 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
   if (space !== undefined && !space.plain) {
     const top = parts === undefined ? H : fixed ? H : Math.min(H, parts.bottom);
     if (top > 0) {
-      const bandHeight = options.bandHeight ?? top / MAXRECTS_BANDS;
-      if (!(bandHeight > 0)) throw new RangeError(`The band height of maxrects is more than 0, not ${String(bandHeight)}.`);
+      const height = bandHeight ?? top / MAXRECTS_BANDS;
+      if (!(height > 0)) throw new RangeError(`The band height of maxrects is more than 0, not ${String(height)}.`);
       const query = parts === undefined ? (y0: number, y1: number) => space.band(y0 + oy, y1 + oy) : (y0: number, y1: number) => parts.bare(y0 + oy, y1 + oy);
       const shifted = (y0: number, y1: number): FreeSpan[] => query(y0, y1).map((s) => ({ start: s.start - ox, end: s.end - ox }));
-      walls.push(...bandWalls(shifted, W, top, bandHeight, parts === undefined ? 0 : Math.max(0, -parts.d), fixed ? H : Infinity));
+      walls.push(...bandWalls(shifted, W, top, height, parts === undefined ? 0 : Math.max(0, -parts.d), fixed ? H : Infinity));
     }
   }
+  return { H, walls };
+}
 
+/**
+ * This function packs rectangles with MaxRects, as `packMaxRects` tells. It also gives the free rectangles at the end.
+ * The tests read them. The package root does not export this function.
+ */
+export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRectsOptions = {}): MaxRectsRun<T> {
+  const rule = options.rule ?? "bssf";
+  if (!(MAXRECTS_RULES as readonly string[]).includes(rule)) throw new RangeError(`The rule of maxrects is one of ${MAXRECTS_RULES.join(", ")}, not "${String(rule)}".`);
+  const turned = options.turned;
+  if (turned !== undefined) {
+    for (const r of rects) if (turned.has(r)) r.size.set(r.size.y, r.size.x);
+    turned.clear();
+  }
+  for (const r of rects) if (r.locked) r.wasPacked = true;
+
+  const W = outer.size.x;
+  if (!(W > 0)) return { outer, free: [] };
+  const ox = outer.position.x;
+  const oy = outer.position.y;
+  const fixed = outer.fixedSize;
+  const space = options.space;
+  const turnable = options.turnable;
+  const sorted = rects.toSorted(compareRects(options.sortOrder ?? "height-desc")).filter((r) => !r.wasPacked && r.size.x > 0 && r.size.y > 0);
+
+  // The smallest width and height of the boxes. A turnable box counts its short side for the two. A free rectangle with
+  // less room has no use, thus the list does not keep it.
+  let minW = Infinity;
+  let minH = Infinity;
+  let heights = 0;
+  for (const r of sorted) {
+    const turns = turnable?.has(r) === true;
+    const short = Math.min(r.size.x, r.size.y);
+    minW = Math.min(minW, turns ? short : r.size.x);
+    minH = Math.min(minH, turns ? short : r.size.y);
+    heights += turns ? Math.max(r.size.x, r.size.y) : r.size.y;
+  }
+
+  const { H, walls } = wallsOf(rects, outer, space, heights, options.bandHeight);
   let free: Box[] = [{ x0: 0, y0: 0, x1: W, y1: H }];
   for (const wall of walls) free = cut(free, wall, minW, minH).free;
 

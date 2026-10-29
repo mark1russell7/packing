@@ -79,7 +79,8 @@ describe("the shared generator rect-scattered v1", () => {
       expect(output.placements.length, s.id).toBeGreaterThan(0);
       packed++;
     }
-    expect(packed).toBe(5);
+    // The guillotine of k23 is the sixth strategy for the scattered obstacles
+    expect(packed).toBe(6);
   });
 });
 

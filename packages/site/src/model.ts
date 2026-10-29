@@ -33,7 +33,7 @@ export type Strategy = string;
 export const STRATEGIES: readonly Strategy[] = DEMO_IDS;
 
 /** The strategies that a free width search of `packFree` wraps. Only these show the chart of the search. */
-export const SEARCH_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects"];
+export const SEARCH_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine"];
 
 /** This constant lists each sort order of the package. */
 export const ORDERS: readonly SortOrder[] = SORT_ORDERS;
@@ -270,6 +270,9 @@ function searchOf(items: readonly Item[], options: Record<string, unknown>, stra
     ...(typeof options["samples"] === "number" ? { samples: options["samples"] } : {}),
     ...(options["fit"] === undefined ? {} : { fit: options["fit"] as "next" }),
     ...(options["rule"] === undefined ? {} : { rule: options["rule"] as "bl" }),
+    ...(options["choice"] === undefined ? {} : { choice: options["choice"] as "baf" }),
+    ...(options["split"] === undefined ? {} : { split: options["split"] as "sas" }),
+    ...(options["merge"] === true ? { merge: true } : {}),
     aspect: target.aspect,
     aspectWeight: target.weight,
   });

@@ -1,7 +1,7 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { composites, MAXRECTS_RULES, RESTART_PERTURBS, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
+import { composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
 /** This constant lists each strategy of the registry: the single strategies, then the composite strategies. */
@@ -22,6 +22,8 @@ export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
   rule: MAXRECTS_RULES,
   fit: SHELF_FITS,
   perturb: RESTART_PERTURBS,
+  choice: GUILLOTINE_CHOICES,
+  split: GUILLOTINE_SPLITS,
 };
 
 /** The known values of an option of one strategy, when they are not the values of `KNOWN_SETS`, by strategy id. */

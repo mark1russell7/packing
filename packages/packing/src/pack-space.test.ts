@@ -30,20 +30,21 @@ describe("packSpace", () => {
     for (const [name, config] of Object.entries(named)) expect(checkConfig(packSpace, config), name).toEqual([]);
   });
 
-  it("has 5 stages and 810 base configs with 3 levels", () => {
+  it("has 5 stages and 2970 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(810n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(2970n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
-  it("gives cell-portfolio one pool entry, and counts 5.52e16 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 3.69e19 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
-    // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 810 base configs
-    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(55171224249681990n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(3230760471442n);
+    // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 2970 base configs. The count is more than the default `maxMeta` of 1e18
+    expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(36862574914409402550n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(13266726236504962n);
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -108,10 +109,10 @@ describe("packSpace and the shape kinds", () => {
     const base3 = spaceSize(packSpace, { levels: 3 }).base;
     const base1 = spaceSize(packSpace, { levels: 1 }).base;
     for (const kind of ["circle", "polygon", "free"] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 1620n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 340n });
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 5940n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 1780n });
     }
-    expect([base3, base1]).toEqual([810n, 170n]);
+    expect([base3, base1]).toEqual([2970n, 890n]);
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"] })).toEqual(spaceSize(packSpace, { levels: 3 }));
   });

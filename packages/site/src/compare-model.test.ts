@@ -104,8 +104,8 @@ describe("the links to the verdicts of the results page", () => {
   });
 
   it("has a verdict for each entry other than the baseline and the entries with no run yet", () => {
-    // The entries of k78, k91 and k22 have no run of the benchmark yet. When a snapshot has them, remove them from this list.
-    const noRunYet = ["restarts-maxrects-bl-k16", "restarts-rows-k16", "restarts-maxrects-bl-shuffle-k16", "bbox-maxrects-bl", "bbox-skyline", "skyline-mw", "skyline-bl-waste", "skyline-mw-waste"];
+    // The entries of k78, k91, k22 and k23 have no run of the benchmark yet. When a snapshot has them, remove them from this list.
+    const noRunYet = ["restarts-maxrects-bl-k16", "restarts-rows-k16", "restarts-maxrects-bl-shuffle-k16", "bbox-maxrects-bl", "bbox-skyline", "skyline-mw", "skyline-bl-waste", "skyline-mw-waste", "guillotine-baf-sas", "guillotine-bssf-sas-merge"];
     for (const e of COMPARE_ENTRIES) {
       if (e.id === "rows") continue;
       if (noRunYet.includes(e.id)) expect(verdictSnapshot(snapshots, e.id), e.id).toBeUndefined();

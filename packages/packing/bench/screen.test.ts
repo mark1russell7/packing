@@ -252,7 +252,8 @@ describe("the screen on smoke-v1", () => {
       // A composite entry also gives the moves of the member that wins, so only its own move is fixed.
       if (isComposite(id)) continue;
       const skyline = e.options["rule"] === "mw" ? ["move.minWaste"] : ["move.lowerWindow"];
-      const own = e.strategy === "maxrects" ? (move === "move.split" ? [move] : [move, "move.split"]) : e.strategy === "skyline" && e.base !== undefined ? [...skyline, "move.wasteFill"].filter((m) => m !== "move.wasteFill" || e.options["wasteMap"] === true) : e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"];
+      const guillotine = e.options["merge"] === true ? ["move.freeChoice", "move.merge"] : ["move.freeChoice"];
+      const own = e.strategy === "guillotine" ? guillotine : e.strategy === "maxrects" ? (move === "move.split" ? [move] : [move, "move.split"]) : e.strategy === "skyline" && e.base !== undefined ? [...skyline, "move.wasteFill"].filter((m) => m !== "move.wasteFill" || e.options["wasteMap"] === true) : e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"];
       expect(Object.keys(counts), id).toEqual(own);
     }
     expect(BASE_OF).toEqual({ ...Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])), ...Object.fromEntries(MAXRECTS_VARIANTS.filter((v) => v.id !== "maxrects-bl").map((v) => [v.id, "maxrects-bl"])), ...Object.fromEntries(PORTFOLIO_ENTRIES.map((e) => [e.id, "maxrects-bl"])),

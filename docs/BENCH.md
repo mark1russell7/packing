@@ -52,6 +52,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `skyline-mw` | `skyline` | `rule: "mw"` | `skyline` |
 | `skyline-bl-waste` | `skyline` | `wasteMap: true` | `skyline` |
 | `skyline-mw-waste` | `skyline` | `rule: "mw"`, `wasteMap: true` | `skyline` |
+| `guillotine-baf-sas` | `guillotine` | `choice: "baf"`, `split: "sas"` | none |
+| `guillotine-bssf-sas-merge` | `guillotine` | `choice: "bssf"`, `split: "sas"`, `merge: true` | none |
 | `portfolio-k2` | `portfolio` | `k: 2` | `maxrects-bl` |
 | `portfolio-k3` | `portfolio` | `k: 3` | `maxrects-bl` |
 | `aspect-fit-maxrects-bl` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bl" }` | `maxrects-bl` |
@@ -66,6 +68,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
 - The 3 entries of roadmap item k22 are the skyline family: the rule `mw` and the waste map. `docs/PACKER.md` ("The skyline family") tells them.
+- The 2 entries of roadmap item k23 are the guillotine family. `docs/PACKER.md` ("The guillotine family") tells the rules. No corpus has turnable items, thus no entry turns.
+- The strategy `guillotine` has no entry of its own, because its defaults are the entry `guillotine-baf-sas`. The two entries have no base.
 - The strategy `maxrects` has no entry of its own, because its defaults are the entry `maxrects-bssf`.
 - The base of a rule is `maxrects-bl`, because the move of each other rule is a place that `bl` does not choose.
 - The base of a variant is the same strategy without the options of the variant. The activation compares the outputs of a variant and its base.
@@ -622,6 +626,8 @@ Each strategy counts its characteristic move, and its trace holds the count. The
 | `skyline-mw` | `move.minWaste` | The rule `mw` puts a box in a place that the rule `bl` does not choose. |
 | `skyline-bl-waste` | `move.wasteFill` | The waste map puts a box in a free rectangle below the skyline. |
 | `skyline-mw-waste` | `move.wasteFill` | The waste map puts a box in a free rectangle below the skyline. |
+| `guillotine-baf-sas` | `move.freeChoice` | The choice rule puts a box in a free rectangle that is not the first free rectangle where it fits. |
+| `guillotine-bssf-sas-merge` | `move.merge` | The merge joins two free rectangles with a common full edge into one. |
 
 The trace of each `maxrects` entry also has `move.split`. The activation reads only the move of the entry.
 

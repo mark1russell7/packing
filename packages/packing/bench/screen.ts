@@ -25,6 +25,8 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "skyline-mw": "move.minWaste",
   "skyline-bl-waste": "move.wasteFill",
   "skyline-mw-waste": "move.wasteFill",
+  "guillotine-baf-sas": "move.freeChoice",
+  "guillotine-bssf-sas-merge": "move.merge",
   "portfolio-k2": "move.pick",
   "portfolio-k3": "move.pick",
   "aspect-fit-maxrects-bl": "move.aspectPick",

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 331 names
+## . (build/index.d.ts): 339 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -66,9 +66,15 @@ type FreeSpan: build/index.d.ts#FreeSpan
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
+GUILLOTINE_CHOICES: build/index.d.ts#GUILLOTINE_CHOICES
+GUILLOTINE_SPLITS: build/index.d.ts#GUILLOTINE_SPLITS
 type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
+type GuillotineChoice: build/index.d.ts#GuillotineChoice
+type GuillotineOptions: build/index.d.ts#GuillotineOptions
+type GuillotineSplit: build/index.d.ts#GuillotineSplit
+type GuillotineStrategyOptions: build/index.d.ts#GuillotineStrategyOptions
 HALF_WIDE_WIDTH: build/index.d.ts#HALF_WIDE_WIDTH
 HOPPER_TURTON_RULES: build/index.d.ts#HOPPER_TURTON_RULES
 type HalfWideParams: build/index.d.ts#HalfWideParams
@@ -248,6 +254,7 @@ galleryFamily: build/index.d.ts#galleryFamily
 gapToOpt: build/index.d.ts#gapToOpt
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
+guillotine: build/index.d.ts#guillotine
 halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
 hardBreaks: build/index.d.ts#hardBreaks
@@ -279,6 +286,7 @@ pack: build/index.d.ts#pack
 packConfig: build/index.d.ts#packConfig
 packDefault: build/index.d.ts#packDefault
 packFree: build/index.d.ts#packFree
+packGuillotine: build/index.d.ts#packGuillotine
 packMaxRects: build/index.d.ts#packMaxRects
 packPortfolio: build/index.d.ts#packPortfolio
 packRows: build/index.d.ts#packRows
@@ -651,6 +659,12 @@ interface FreeWidthTry {
   objective: number;
 }
 
+### build/index.d.ts#GUILLOTINE_CHOICES
+export declare const GUILLOTINE_CHOICES: readonly ["baf", "bssf", "blsf", "waf", "wssf", "wlsf"];
+
+### build/index.d.ts#GUILLOTINE_SPLITS
+export declare const GUILLOTINE_SPLITS: readonly ["sas", "las", "sa", "la", "minas", "maxas"];
+
 ### build/index.d.ts#GeneratedInput
 interface GeneratedInput extends LayoutInput$1 {
   readonly set: string;
@@ -670,6 +684,31 @@ type GeneratorParams = Record<string, string | number>;
 ### build/index.d.ts#GeneratorStamp
 interface GeneratorStamp extends LayoutGenerator {
   readonly params: Readonly<GeneratorParams>;
+}
+
+### build/index.d.ts#GuillotineChoice
+type GuillotineChoice = (typeof GUILLOTINE_CHOICES)[number];
+
+### build/index.d.ts#GuillotineOptions
+interface GuillotineOptions {
+  sortOrder?: SortOrder;
+  space?: FreeSpace;
+  choice?: GuillotineChoice;
+  split?: GuillotineSplit;
+  merge?: boolean;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
+}
+
+### build/index.d.ts#GuillotineSplit
+type GuillotineSplit = (typeof GUILLOTINE_SPLITS)[number];
+
+### build/index.d.ts#GuillotineStrategyOptions
+interface GuillotineStrategyOptions extends LayoutStrategyOptions {
+  choice: GuillotineChoice;
+  split: GuillotineSplit;
+  rotate: boolean;
+  merge: boolean;
 }
 
 ### build/index.d.ts#HALF_WIDE_WIDTH
@@ -885,12 +924,15 @@ interface PackContext {
 
 ### build/index.d.ts#PackLayoutOptions
 interface PackLayoutOptions extends PackOptions {
-  strategy?: "rows" | "skyline" | "shelf" | "maxrects";
+  strategy?: "rows" | "skyline" | "shelf" | "maxrects" | "guillotine";
   fit?: ShelfFit;
   rule?: MaxRectsRule;
   bandHeight?: number;
   skylineRule?: SkylineRule;
   wasteMap?: boolean;
+  choice?: GuillotineChoice;
+  split?: GuillotineSplit;
+  merge?: boolean;
   turnable?: ReadonlySet<unknown>;
   turned?: Set<unknown>;
 }
@@ -1452,6 +1494,9 @@ export declare function generator(name: string, version?: number): CorpusGenerat
 ### build/index.d.ts#generators
 export declare const generators: readonly CorpusGenerator[];
 
+### build/index.d.ts#guillotine
+export declare const guillotine: Strategy<GuillotineStrategyOptions>;
+
 ### build/index.d.ts#halfWide
 export declare const halfWide: CorpusGenerator<HalfWideParams>;
 
@@ -1558,6 +1603,9 @@ export declare function packDefault(input: PackInput, seed?: number): PackOutput
 
 ### build/index.d.ts#packFree
 export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?: FreeWidthOptions): FreeWidthResult<T>;
+
+### build/index.d.ts#packGuillotine
+export declare function packGuillotine<T>(rects: Rect<T>[], outer: Rect<T>, options?: GuillotineOptions): Rect<T>;
 
 ### build/index.d.ts#packMaxRects
 export declare function packMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options?: MaxRectsOptions): Rect<T>;
