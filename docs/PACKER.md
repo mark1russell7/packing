@@ -714,6 +714,42 @@ The counts of `packSpace`:
 - The strata of k115 (`strataOf`): 19 before, 20 after. The new stratum is `overlap-min:1`.
 - The tests that pack each entry on a fixed container now expect `UnsupportedCell` from the entries of `overlap-min`.
 
+### The relax pass (design)
+
+Roadmap item k124 adds the composite strategy `relax` (catalog row `overlap-vpsc`, Dwyer 2006). It is opt-in. No default uses it. This section is the design. The code comes after k123.
+
+A packer of the bottom-left family puts the boxes in the top-left corner of a fixed container. The bottom strip stays empty (k123: the median `pack.balance.sideRange` on fixed containers is 0.66 to 0.91). The pass moves the boxes so that the slack is even, with no overlap and no change of the placed set.
+
+```ts
+const output = packWith("relax", input); // relax over maxrects-bl
+const spread = packWith("relax", input, { member: "rows", strength: 0.5 });
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `member` | `maxrects` with the rule `bl` | A strategy id, or a `PortfolioEntry` with options. The member packs the first layout. |
+| `strength` | 1 | The share of the move to the target, from 0 to 1. With 0, the output is the output of the member. |
+| `rounds` | 2 | The count of the passes over the two axes. A whole number of 1 or more. |
+
+The pass:
+
+1. The member packs the input. Its layout is the first layout.
+2. The pass does one axis at a time: x, then y. A free side has no slack, so the pass does not move the boxes on that axis.
+3. **The target.** A linear map takes the extent of the boxes onto the container less the margins. The target of a box is the map of its center, blended with its center by `strength`.
+4. **The constraints.** For each pair of boxes that overlap on the other axis, the pass keeps their order: "a is before b by at least the sum of the half sizes and the gap". The walls of the container are bounds.
+5. **The solve.** VPSC finds the positions nearest to the targets, by least squares, that keep all the constraints. An obstacle is a box that does not move.
+6. **The guard.** `checkHard` examines the result. On a hard break, the output is the output of the member.
+
+The rules:
+
+- The first layout has no overlap, so the constraints have a solution: the first positions.
+- The x pass keeps the y positions. A pair with no constraint on x stays apart on y. So the x pass makes no overlap. The y pass is the same.
+- The pass does not add or remove a box. So on a fixed side, `pack.fill` and the unplaced count do not change.
+- The pass reads no seed. So `pack.stability.seed` is 0.
+- The scan for the constraints is O(n^2). The solve is O(n log n) for each axis.
+
+The bench (prediction `packing-k124-relax`): rows, maxrects-bl and skyline-bl-waste, each alone and in `relax`, on `pack-screen-v1`. The measures are the balance measures, fill, the order inversions, the time and the hard breaks.
+
 ### The searches over orders
 
 Roadmap item k26 adds three composite strategies that search the order of the items: `anneal`, `genetic` and `tabu`. They are opt-in. No default uses them.
