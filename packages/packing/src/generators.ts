@@ -1315,13 +1315,17 @@ export function generator(name: string, version?: number): CorpusGenerator {
 /** The largest count of the dimension `count` of a family. */
 const MAX_FAMILY_COUNT = 10_000;
 
+/** The count of decimal places of the knobs `margin` and `gap`: the 3 decimals of `round3`. */
+const KNOB_PRECISION = 3;
+
 /**
  * This function gives the knobs of a family: `margin`, `gap` and `shape`. A knob at its default adds no field to the
  * input, so the hash does not change. The generators make rectangle items only, so `shape` supports `rect` only.
  * The registry removes the fields of `invalidates` when a margin or a gap is above 0.
+ * The knobs `margin` and `gap` have the precision 3, because `withKnobs` rounds them with `round3`. Thus a value that rounds to 0 keeps the fields.
  */
 const knobsOf = (invalidates: readonly string[] = []): readonly CorpusDimension[] => {
-  const patch = invalidates.length === 0 ? {} : { invalidates: Object.freeze([...invalidates]) };
+  const patch = { precision: KNOB_PRECISION, ...(invalidates.length === 0 ? {} : { invalidates: Object.freeze([...invalidates]) }) };
   return Object.freeze([
     sharedDimension("margin", patch),
     sharedDimension("gap", patch),

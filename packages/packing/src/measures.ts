@@ -1,6 +1,6 @@
 // The algebra of measures (roadmap item k8). `docs/MEASURES.md` defines each measure. This file computes them.
 
-import { SHAPE_KIND_IDS, type MeasureSpec as ContractMeasureSpec, type Direction } from "@mark1russell7/layout-contract";
+import { boxArea as shapeAreaOf, SHAPE_KIND_IDS, type MeasureSpec as ContractMeasureSpec, type Direction } from "@mark1russell7/layout-contract";
 import { RECORD_EPS, type PackInput, type PackOutput } from "./contract.ts";
 import { aspectError } from "./free.ts";
 import { overflowBound } from "./overflow.ts";
@@ -13,7 +13,7 @@ export type { Direction } from "@mark1russell7/layout-contract";
 export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound";
 
 /** The id of a measure of the packer. The ids are those of `docs/FORMAT.md`, and `highways` uses the same ids. */
-export type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap" | "pack.gapToOpt";
+export type MeasureId = "pack.area" | "pack.fill" | "pack.shapeFill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap" | "pack.gapToOpt";
 
 /**
  * The facts of one measure: its family, its unit, its direction and its range.
@@ -41,6 +41,11 @@ export interface MeasureSpec extends ContractMeasureSpec<MeasureId> {
 export interface LayoutMeasures {
   "pack.area": number;
   "pack.fill": number;
+  /**
+   * The area of the shapes of the boxes divided by the area of the hull. A box of the kind `free` counts with its bounding box.
+   * For a list of only `rect` boxes, it is equal to `pack.fill`.
+   */
+  "pack.shapeFill": number;
   "pack.whitespace": number;
   "pack.aspect": number;
   "pack.aspectError": number;
@@ -115,10 +120,12 @@ const anyShape = (s: MeasureSpec): MeasureSpec => ({ ...s, shapes: SHAPE_KIND_ID
  * - `pack.gapToOpt` has 0.005: half of 1 percent of the known best value.
  * - A measure of the bounding boxes, the positions, the counts or the times supports each shape kind. Its spec has `shapes`.
  * - A measure of the area of the boxes has no `shapes`. Thus it supports only `rect`, and `checkShapes` refuses the other kinds.
+ * - `pack.shapeFill` reads the area of each shape with `boxArea` of the contract. Thus it supports each shape kind.
  */
 export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.freeze({
   "pack.area": anyShape(spec("pack.area", "density", "square units", "lower", 0, Infinity, REL)),
   "pack.fill": spec("pack.fill", "density", "share", "higher", 0, 1, 0.005),
+  "pack.shapeFill": anyShape(spec("pack.shapeFill", "density", "share", "higher", 0, 1, 0.005)),
   "pack.whitespace": spec("pack.whitespace", "density", "share", "lower", 0, 1, 0.005),
   "pack.aspect": anyShape(spec("pack.aspect", "aspect", "ratio", "lower", 1, Infinity, REL)),
   "pack.aspectError": anyShape(spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 })),
@@ -227,6 +234,7 @@ function traceSum(output: PackOutput, id: string): number {
  * record rounds them with `roundMeasures`.
  *
  * - The boxes are the placed items with a width and a height above 0. The hull is the smallest rectangle around them.
+ * - `pack.shapeFill` gives each box the area of `boxArea` of the contract. A box without an exact area counts with `w` by `h`.
  * - An empty layout gives the area 0, the aspect 1 and the aspect error 0. Its fill is 0 and its whitespace is 1.
  * - The time `pack.search.ms` comes from the trace. It is not part of the determinism rule.
  * - The overflow measures count each id once. `pack.overflow.forced` is the lower bound of `overflowBound`.
@@ -246,6 +254,7 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
   const hullArea = hull.w * hull.h;
   const boxArea = boxes.reduce((sum, b) => sum + b.w * b.h, 0);
   const fill = hullArea > 0 ? boxArea / hullArea : 0;
+  const shapeFill = hullArea > 0 ? shapeAreaSum(input, output) / hullArea : 0;
   const empty = boxes.length === 0;
   const target = input.container.aspect ?? 1;
 
@@ -291,6 +300,7 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
   return {
     "pack.area": hullArea,
     "pack.fill": fill,
+    "pack.shapeFill": shapeFill,
     "pack.whitespace": 1 - fill,
     "pack.aspect": empty ? 1 : Math.max(hull.w / hull.h, hull.h / hull.w),
     "pack.aspectError": empty ? 0 : aspectError(hull.w, hull.h, target),
@@ -308,6 +318,20 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
     "pack.search.widths": traceSum(output, "pack.search.widths"),
     "pack.search.ms": traceSum(output, "pack.search.ms"),
   };
+}
+
+/**
+ * This function gives the sum of the shape areas of the placed boxes of `boxesOf`. The area of a box is `boxArea` of the contract.
+ * A box of the kind `free` has no exact area. It counts with its width by its height, as `pack.fill` counts it.
+ */
+function shapeAreaSum(input: PackInput, output: PackOutput): number {
+  const placed = new Set(output.placements.map((p) => p.id));
+  let sum = 0;
+  for (const item of input.items) {
+    if (!placed.has(item.id) || !(item.w > 0 && item.h > 0)) continue;
+    sum += shapeAreaOf(item) ?? item.w * item.h;
+  }
+  return sum;
 }
 
 /** The float noise of `pack.overflow.excessArea`. A difference below 0 by this value or less becomes 0. */

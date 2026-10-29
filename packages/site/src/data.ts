@@ -277,6 +277,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-28",
+    item: "k91",
+    title: "With contract 0.2.16, the strategy space counts the `bbox` configs for shapes. The new measure `pack.shapeFill` gives the share of the hull that the shapes cover.",
+    pr: 127,
+    link: "https://github.com/mark1russell7/packing/pull/127",
+  },
+  {
+    date: "2026-10-28",
     item: "k105",
     title: "The results page shows the space coverage: the share of the cells of strategies and inputs that a model predicts within a tolerance, for each measure.",
     pr: 124,

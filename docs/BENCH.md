@@ -133,6 +133,7 @@ For each strategy and each input of the corpus, the runner does these steps:
 4. It examines the output of the first packing with `checkHard`, and it gets the measures with `measure`.
 5. It adds the count of the move of the strategy from the trace, and `pack.outsideExact`. The section "The screen guards" tells these measures.
    It also adds `pack.bound`, `pack.bound.kind` and `pack.gap` of `boundMeasures`. `docs/MEASURES.md` tells them in the section "Bounds".
+   The measures of `measure` include `pack.shapeFill`, the shape area over the hull. Each corpus has only `rect` items, so it is equal to `pack.fill` there.
 6. It writes one `layout-record/1` line with the measures rounded by `roundMeasures`.
 
 The flag `--interleave` changes only the order of the timed passes. For each input, the runner does the warm-up passes of each strategy. Then, for each repeat, it does one timed pass of each strategy. The records, their order and their format do not change. `run.json` gets `"interleave": true`. The job `time` of the section "The win test" uses this flag.

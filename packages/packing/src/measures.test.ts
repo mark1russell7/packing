@@ -68,6 +68,29 @@ describe("measure", () => {
     expect(m["pack.search.ms"]).toBe(0);
   });
 
+  // Roadmap item k91 with contract 0.2.16: the area of each shape with boxArea, and the bounding box for a free shape
+  it("gives the shape fill: the exact area of a circle and a polygon, and the box of a free shape", () => {
+    const m = measure(twoRows, twoRowsOut);
+    expect(m["pack.shapeFill"]).toBe(m["pack.fill"]);
+    const shaped: PackInput = {
+      container: { w: 100, fixed: "width" },
+      items: [
+        { id: "a", w: 40, h: 20, shape: { kind: "polygon", points: [[0, 0], [40, 0], [0, 20]] } },
+        { id: "b", w: 60, h: 20, shape: { kind: "rect", x: 0, y: 0, w: 30, h: 20 } },
+        { id: "c", w: 50, h: 30, shape: { kind: "ellipse", cx: 25, cy: 15, rx: 25, ry: 15 } },
+        { id: "d", w: 20, h: 20, shape: { kind: "circle", cx: 10, cy: 10, r: 10 } },
+      ],
+    };
+    const placed = out([...twoRowsOut.placements, { id: "d", x: 60, y: 20 }]);
+    const s = measure(shaped, placed);
+    // The hull is 100 by 50. The triangle is 400, the inner rect 600, the ellipse counts as its box 1500, the circle is 100 pi.
+    expect(s["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500 + 100 * Math.PI) / 5000, 12);
+    expect(s["pack.fill"]).toBeCloseTo((800 + 1200 + 1500 + 400) / 5000, 12);
+    // An item that is not placed does not count, and an empty layout gives 0
+    expect(measure(shaped, out(placed.placements.slice(0, 3), { overflow: ["d"] }))["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500) / 5000, 12);
+    expect(measure(shaped, out([]))["pack.shapeFill"]).toBe(0);
+  });
+
   it("measures the aspect error against the target aspect of the container", () => {
     const input: PackInput = { ...twoRows, container: { w: 100, fixed: "width", aspect: 2 } };
     expect(measure(input, twoRowsOut)["pack.aspectError"]).toBe(0);
@@ -307,7 +330,7 @@ describe("MEASURE_SPECS", () => {
       expect(s.id).toBe(id);
       expect(s.min).toBeLessThan(s.max);
     }
-    expect(Object.keys(MEASURE_SPECS)).toHaveLength(24);
+    expect(Object.keys(MEASURE_SPECS)).toHaveLength(25);
   });
 
   it("has the floor and the tolerance of each guard of the floor rule, and no floor for the other measures", () => {

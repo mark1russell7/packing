@@ -605,6 +605,7 @@ type LadderParams = {
 interface LayoutMeasures {
   "pack.area": number;
   "pack.fill": number;
+  "pack.shapeFill": number;
   "pack.whitespace": number;
   "pack.aspect": number;
   "pack.aspectError": number;
@@ -682,7 +683,7 @@ interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound";
 
 ### build/index.d.ts#MeasureId
-type MeasureId = "pack.area" | "pack.fill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap" | "pack.gapToOpt";
+type MeasureId = "pack.area" | "pack.fill" | "pack.shapeFill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap" | "pack.gapToOpt";
 
 ### build/index.d.ts#MeasureOptions
 interface MeasureOptions {

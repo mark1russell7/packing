@@ -332,13 +332,16 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - The member packs one rectangle for each item: the bounding box of its shape (`boundsOf` of the contract). The margin and the other fields stay.
 - The placement of an item is the place of its box minus the offset of the bounding box. Thus each shape is inside its box.
 - Thus no two shapes overlap when no two boxes overlap. `packHard` of the contract tests the bounding boxes, so its count is safe.
+- `PACK_HARD_RULES` of the contract declares `no-overlap` and `in-container` with a safe count on `polygon`, `circle` and `free`. `ruleLevel` gives `safe` for them.
+- `packConfig` checks a `bbox` config with `checkShapes` at the level `safe`. Each other config gets the strict check, so it refuses a shape.
 - A locked item keeps its position. Its box is at the position plus the offset.
 - With `turn`, a turn wins when its box area is smaller, then when its box is lower. A tie keeps the item unturned.
 - A turn of 90 degrees does not change the area of a bounding box. Thus only the lower box decides a turn.
 - Without `turn`, the member decides the turns. A turn of the member turns the shape.
 - An input with no shape and without `turn` gives the output of the member, byte for byte.
-- The area measures stay `rect` only (roadmap item k75). The contract has no area function for a shape, so `packing` has no `pack.shapeFill`.
-- In `packSpace`, the option `combine.bbox` supports each shape kind, and `packConfig` packs a shaped input with it. Its member supports only `rect`.
+- The measures of the box area stay `rect` only (roadmap item k75). The measure `pack.shapeFill` gives the shape area with `boxArea` of the contract.
+- In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.
+- Thus `spaceSize` with a shape kind counts the `bbox` configs: 1620 meta configs with 3 levels, and 340 with 1 level. It counts 0 base configs.
 
 ## The registry
 

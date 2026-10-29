@@ -36,6 +36,7 @@ The functions:
 |---|---|---|---|
 | `pack.area` | square units | lower | 0 or more |
 | `pack.fill` | share | higher | 0 to 1 |
+| `pack.shapeFill` | share | higher | 0 to 1 |
 | `pack.whitespace` | share | lower | 0 to 1 |
 
 **`pack.area`** is the area of the hull.
@@ -45,6 +46,14 @@ The functions:
 **`pack.fill`** is the area of the boxes divided by the area of the hull.
 
 `fill = A / (W * H)`
+
+**`pack.shapeFill`** is the area of the shapes of the boxes divided by the area of the hull (roadmap item k91).
+
+`shapeFill = S / (W * H)`
+
+- `S` is the sum of `boxArea` of the contract over the placed boxes. A circle, a polygon and a `rect` give their exact area.
+- A box of the kind `free`, for example an ellipse, has no exact area in the contract. It counts with its width by its height.
+- A layout of `rect` boxes without a shape gives `shapeFill` equal to `fill`. A shape is inside its box, thus `shapeFill` is not above `fill`.
 
 **`pack.whitespace`** is the part of the hull that no box covers.
 
@@ -444,6 +453,7 @@ Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `Measu
 |---|---|---|
 | `pack.area` | `{ rel: 0.01 }` | An area. The scale changes with the input, thus the effect is relative. |
 | `pack.fill` | 0.005 | A share of an area from 0 to 1. |
+| `pack.shapeFill` | 0.005 | A share of an area from 0 to 1. |
 | `pack.whitespace` | 0.005 | A share of an area from 0 to 1. |
 | `pack.aspect` | `{ rel: 0.01 }` | A ratio of lengths, with no upper limit. |
 | `pack.aspectError` | 0.01 | The tolerance of the guard. |

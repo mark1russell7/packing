@@ -1,4 +1,4 @@
-import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, SHAPE_KIND_IDS, spaceSize, type PackInput } from "@mark1russell7/layout-contract";
+import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, ruleLevel, SHAPE_KIND_IDS, spaceSize, type PackInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   composites,
@@ -97,15 +97,34 @@ describe("packSpace and the shape kinds", () => {
 
   it("declares the shape kind rect on each option of each stage, but bbox", () => {
     for (const s of packSpace.stages) for (const o of s.options) if (o.id !== "bbox") expect(o.supports, `${s.name}.${o.id}`).toEqual({ shape: ["rect"] });
-    // Roadmap item k91: the option bbox supports each kind, and its members support only rect
+    // Roadmap item k91: the option bbox supports each kind, and its members get the bounding boxes (view bounds of contract 0.2.16)
     const bbox = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "bbox")!;
     expect(bbox.supports).toEqual({ shape: [...SHAPE_KIND_IDS] });
+    expect(bbox.members).toEqual({ min: 1, max: 1, ordered: true, view: "bounds" });
   });
 
-  it("counts no config for a circle and the same configs for a rect", () => {
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 0n, meta: 0n });
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["polygon"] }).base).toBe(0n);
+  it("counts only the bbox configs for a shape and the same configs for a rect", () => {
+    // A bbox config has 1 base member and the param turn: 2 times the base configs of the rect space
+    const base3 = spaceSize(packSpace, { levels: 3 }).base;
+    const base1 = spaceSize(packSpace, { levels: 1 }).base;
+    for (const kind of ["circle", "polygon", "free"] as const) {
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 1620n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 340n });
+    }
+    expect([base3, base1]).toEqual([810n, 170n]);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"] })).toEqual(spaceSize(packSpace, { levels: 3 }));
+  });
+
+  it("accepts each bbox config on a shape in checkConfig, and refuses a config without bbox", () => {
+    for (const kind of ["circle", "polygon", "free"] as const) {
+      for (const name of ["bbox", "bbox-maxrects-bl", "bbox-skyline"]) expect(checkConfig(packSpace, named[name]!, { shapes: [kind] }), `${name} ${kind}`).toEqual([]);
+      for (const name of ["rows", "maxrects-bl", "portfolio", "restarts"]) {
+        const breaks = checkConfig(packSpace, named[name]!, { shapes: [kind] });
+        expect(breaks.length, `${name} ${kind}`).toBeGreaterThan(0);
+        expect(breaks.every((b) => b.claim === "shape"), `${name} ${kind}`).toBe(true);
+      }
+    }
   });
 
   it("refuses a polygon item and a circle item with UnsupportedShape", () => {
@@ -143,6 +162,7 @@ describe("packSpace and the shape kinds", () => {
     const any = Object.values(MEASURE_SPECS).filter((s) => s.shapes !== undefined).map((s) => s.id);
     expect(any).toEqual([
       "pack.area",
+      "pack.shapeFill",
       "pack.aspect",
       "pack.aspectError",
       "pack.order.inversions",
@@ -174,6 +194,26 @@ describe("packSpace and the shape kinds", () => {
       "in-container",
     ]);
     expect(checkShapes({ id: "r", boxes: rect.items }, uses)).toEqual([]);
+  });
+
+  // Contract 0.2.16: the hard rules no-overlap and in-container have a safe count on the other kinds
+  it("accepts the safe counts of the hard rules on a shape only at the level safe", () => {
+    for (const kind of ["polygon", "circle", "free"] as const)
+      expect(PACK_HARD_RULES.map((r) => ruleLevel(r, kind)), kind).toEqual(["safe", "safe", "exact", "exact"]);
+    expect(PACK_HARD_RULES.map((r) => ruleLevel(r, "rect"))).toEqual(["exact", "exact", "exact", "exact"]);
+    for (const input of [circle, polygon]) {
+      expect(checkShapes({ id: "s", boxes: input.items }, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])).toEqual(["no-overlap", "in-container"]);
+      expect(checkShapes({ id: "s", boxes: input.items }, PACK_HARD_RULES, { level: "safe" })).toEqual([]);
+    }
+  });
+
+  it("packs a shape input with a bbox config after the safe check of the hard rules", () => {
+    const free: PackInput = { container: { fixed: "none" }, items: [...items, { id: "e", w: 12, h: 6, shape: { kind: "ellipse", cx: 6, cy: 3, rx: 6, ry: 3 } }] };
+    for (const input of [circle, polygon, free]) {
+      const out = packConfig(input, named["bbox"]!, 2);
+      expect(outputHash(out)).toBe(outputHash(packWith("bbox", input, { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } } }, 2)));
+      expect(out.overflow).toEqual([]);
+    }
   });
 });
 

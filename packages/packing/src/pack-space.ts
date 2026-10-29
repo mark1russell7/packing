@@ -12,6 +12,7 @@ import {
   shapeKindsOf,
   STRATEGY_SPACE_SCHEMA,
   type OptionSupports,
+  type ShapeCheck,
   type SpaceParam,
   type SpaceStage,
   type StageChoice,
@@ -79,7 +80,7 @@ const RESTARTS_PARAMS: readonly SpaceParam[] = [
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
 const RECT_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["rect"] as const) });
 
-/** The inputs of the option `bbox` of roadmap item k91: each shape kind. Its member gets only `rect` items. */
+/** The inputs of the option `bbox` of roadmap item k91: each shape kind. Its members have `view: "bounds"`, so they get only `rect` items. */
 const BBOX_ONLY: OptionSupports = Object.freeze({ shape: BBOX_SHAPES });
 
 /** This function gives the stage choice of a param list, without an empty list of params. */
@@ -177,7 +178,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "select", params: [{ name: "table", kind: "enum", values: ["k66"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
       { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "restarts", params: RESTARTS_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
-      { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true }, supports: BBOX_ONLY },
+      { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true, view: "bounds" }, supports: BBOX_ONLY },
     ],
   },
 ];
@@ -211,7 +212,8 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
  * - The named config `aspect-fit` wraps `maxrects`, because the registry strategy needs an inner strategy.
- * - Each option supports only the shape kind `rect`, but `bbox` supports each kind. Its members support only `rect`, so `spaceSize` with other `shapes` gives 0.
+ * - Each option supports only the shape kind `rect`, but `bbox` supports each kind. Its members have `view: "bounds"`, so the checks give them the kind `rect`.
+ * - Thus `spaceSize` with other `shapes` counts only the configs with `bbox`. It gives 0 base configs.
  * - Each option of each strategy is a param, a stage or the members of a meta option. `PACK_SPACE_OPTIONS` tells the place.
  */
 export const packSpace: StrategySpace = Object.freeze({
@@ -336,6 +338,12 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
   "pack.turned": "It is a set that `pack` fills with the turned rectangles. It holds a result, not a choice.",
 });
 
+/**
+ * The level of the shape check of a `bbox` config. A `bbox` output places each bounding box with no overlap and in the container.
+ * Thus the safe counts of `no-overlap` and `in-container` on a shape are 0. A safe count of 0 tells that the rule has no break.
+ */
+const BBOX_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
+
 /** The id of the input in the breaks of `checkShapes`. A `PackInput` has no id. */
 const SHAPE_INPUT_ID = "pack-input";
 
@@ -405,7 +413,8 @@ function combineOf(config: StrategyConfig): string | undefined {
  *
  * - The function checks the config with `checkConfig`. A config with a break causes a `RangeError` with the details of each break.
  * - The function checks the shape kinds of the items with `checkShapes` and `checkConfig`. A break causes `UnsupportedShape`.
- * - A `bbox` config supports each shape kind. Its member gets only `rect` items. The caller checks the measures with `checkShapes`.
+ * - A `bbox` config supports each shape kind. The function checks only the hard rules on it, with `checkShapes` at the level `safe`.
+ * - The caller checks the measures of a `bbox` output with `checkShapes`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
  * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts` or `bbox`.
@@ -414,11 +423,11 @@ function combineOf(config: StrategyConfig): string | undefined {
  */
 export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): PackOutput {
   const boxes = { id: SHAPE_INPUT_ID, boxes: input.items };
-  const bbox = combineOf(config) === "bbox";
-  const found = checkConfig(packSpace, config, bbox ? {} : { shapes: shapeKindsOf(boxes) });
+  const found = checkConfig(packSpace, config, { shapes: shapeKindsOf(boxes) });
   const breaks = found.filter((b) => b.claim !== "shape");
   if (breaks.length > 0) throw new RangeError(`The config is not a config of the space packing: ${breaks.map((b) => b.detail).join("; ")}.`);
-  const shapeBreaks = bbox ? [] : [...checkShapes(boxes, [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES]), ...found];
+  const shapes = combineOf(config) === "bbox" ? checkShapes(boxes, PACK_HARD_RULES, BBOX_CHECK) : checkShapes(boxes, [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES]);
+  const shapeBreaks = [...shapes, ...found];
   if (shapeBreaks.length > 0) throw new UnsupportedShape(itemShapeOf(boxes), shapeBreaks);
   const c = canonicalConfig(packSpace, config);
   const combine = c.stages["combine"];
