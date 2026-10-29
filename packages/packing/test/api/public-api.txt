@@ -4,11 +4,19 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 312 names
+## . (build/index.d.ts): 331 names
 
+ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
+ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
+ANCHOR_STEPS: build/index.d.ts#ANCHOR_STEPS
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
+type AnchorMeasures: build/index.d.ts#AnchorMeasures
+type AnchorStability: build/index.d.ts#AnchorStability
+type AnchorStabilityOptions: build/index.d.ts#AnchorStabilityOptions
+type AnchorStep: build/index.d.ts#AnchorStep
+type AnchorStrategy: build/index.d.ts#AnchorStrategy
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
 BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
@@ -80,6 +88,7 @@ type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
 type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
 type LayoutMeasures: build/index.d.ts#LayoutMeasures
 type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
+type LockWall: build/index.d.ts#LockWall
 MARTELLO_VIGO_BIN: build/index.d.ts#MARTELLO_VIGO_BIN
 MARTELLO_VIGO_TYPES: build/index.d.ts#MARTELLO_VIGO_TYPES
 MAXRECTS_BANDS: build/index.d.ts#MAXRECTS_BANDS
@@ -183,9 +192,15 @@ type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/index.d.ts#UnsupportedCell
 UnsupportedShape: build/index.d.ts#UnsupportedShape
 Vector: build/index.d.ts#Vector
+WALL_LOCKS_MAX: build/index.d.ts#WALL_LOCKS_MAX
+WALL_LOCK_WALLS: build/index.d.ts#WALL_LOCK_WALLS
 WORST_COUNTS: build/index.d.ts#WORST_COUNTS
 WORST_WIDTH: build/index.d.ts#WORST_WIDTH
+type WallLocksParams: build/index.d.ts#WallLocksParams
 type WorstContainer: build/index.d.ts#WorstContainer
+anchorGenerators: build/index.d.ts#anchorGenerators
+anchorStability: build/index.d.ts#anchorStability
+anchorStep: build/index.d.ts#anchorStep
 aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
@@ -240,6 +255,7 @@ hashInput: build/index.d.ts#hashInput
 hopperTurton: build/index.d.ts#hopperTurton
 hopperTurtonFamily: build/index.d.ts#hopperTurtonFamily
 hopperTurtonOf: build/index.d.ts#hopperTurtonOf
+isAnchor: build/index.d.ts#isAnchor
 isDeterministic: build/index.d.ts#isDeterministic
 ladder: build/index.d.ts#ladder
 ladderFamily: build/index.d.ts#ladderFamily
@@ -254,6 +270,7 @@ measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
 medianRatio: build/index.d.ts#medianRatio
 mmvBound: build/index.d.ts#mmvBound
+moveAnchor: build/index.d.ts#moveAnchor
 mulberry32: build/index.d.ts#mulberry32
 objectiveBound: build/index.d.ts#objectiveBound
 objectiveResult: build/index.d.ts#objectiveResult
@@ -315,11 +332,22 @@ turnPoint: @mark1russell7/layout-contract#turnPoint (external)
 turnPort: @mark1russell7/layout-contract#turnPort (external)
 turnRegion: @mark1russell7/layout-contract#turnRegion (external)
 unsupportedOf: build/index.d.ts#unsupportedOf
+wallLocks: build/index.d.ts#wallLocks
+wallLocksFamily: build/index.d.ts#wallLocksFamily
 wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
 
 ## Declarations
+
+### build/index.d.ts#ANCHOR_GAIN_LIMIT
+export declare const ANCHOR_GAIN_LIMIT = 1;
+
+### build/index.d.ts#ANCHOR_MEASURE_IDS
+export declare const ANCHOR_MEASURE_IDS: readonly (keyof AnchorMeasures)[];
+
+### build/index.d.ts#ANCHOR_STEPS
+export declare const ANCHOR_STEPS = 4;
 
 ### build/index.d.ts#ASPECT_FIT_FACTORS
 export declare const ASPECT_FIT_FACTORS: readonly number[];
@@ -329,6 +357,40 @@ export declare const ASPECT_FIT_LEVELS: readonly SelectLevel$1[];
 
 ### build/index.d.ts#ASPECT_FIT_STAGE
 export declare const ASPECT_FIT_STAGE = "aspect-fit";
+
+### build/index.d.ts#AnchorMeasures
+interface AnchorMeasures {
+  "pack.anchor.mean": number;
+  "pack.anchor.max": number;
+  "pack.anchor.moved": number;
+  "pack.anchor.gain": number;
+  "pack.anchor.settled": number;
+}
+
+### build/index.d.ts#AnchorStability
+interface AnchorStability {
+  measures: AnchorMeasures;
+  gains: number[];
+}
+
+### build/index.d.ts#AnchorStabilityOptions
+interface AnchorStabilityOptions {
+  seed?: number;
+  steps?: number;
+  gainLimit?: number;
+}
+
+### build/index.d.ts#AnchorStep
+interface AnchorStep {
+  readonly dx: number;
+  readonly dy: number;
+}
+
+### build/index.d.ts#AnchorStrategy
+interface AnchorStrategy {
+  readonly strategy: string;
+  readonly options?: unknown;
+}
 
 ### build/index.d.ts#AspectFitOptions
 interface AspectFitOptions {
@@ -700,6 +762,9 @@ interface LayoutStrategyOptions {
   samples: number;
   fit?: ShelfFit;
 }
+
+### build/index.d.ts#LockWall
+type LockWall = "top" | "right" | "left" | "bottom";
 
 ### build/index.d.ts#MARTELLO_VIGO_BIN
 export declare const MARTELLO_VIGO_BIN = 100;
@@ -1210,14 +1275,36 @@ export declare class Vector {
   static get Infinity(): Vector;
 }
 
+### build/index.d.ts#WALL_LOCKS_MAX
+export declare const WALL_LOCKS_MAX = 4;
+
+### build/index.d.ts#WALL_LOCK_WALLS
+export declare const WALL_LOCK_WALLS: Readonly<Record<WorstContainer, readonly LockWall[]>>;
+
 ### build/index.d.ts#WORST_COUNTS
 export declare const WORST_COUNTS: readonly number[];
 
 ### build/index.d.ts#WORST_WIDTH
 export declare const WORST_WIDTH = 100;
 
+### build/index.d.ts#WallLocksParams
+type WallLocksParams = {
+  locks: number;
+  containerSize: WorstContainer;
+  count: number;
+};
+
 ### build/index.d.ts#WorstContainer
 type WorstContainer = "fixed" | "freeHeight";
+
+### build/index.d.ts#anchorGenerators
+export declare const anchorGenerators: readonly CorpusGenerator[];
+
+### build/index.d.ts#anchorStability
+export declare function anchorStability(input: PackInput, config: AnchorStrategy, id: string, step: AnchorStep, options?: AnchorStabilityOptions): AnchorStability;
+
+### build/index.d.ts#anchorStep
+export declare function anchorStep(input: PackInput, output: PackOutput, id: string, steps?: number): AnchorStep;
 
 ### build/index.d.ts#aspectError
 export declare function aspectError(width: number, height: number, target?: number): number;
@@ -1390,6 +1477,9 @@ export declare function hopperTurtonOf(seed: number, params?: Partial<HopperTurt
   pieces: CutPiece[];
 };
 
+### build/index.d.ts#isAnchor
+export declare function isAnchor(input: PackInput, id: string): boolean;
+
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
 
@@ -1441,6 +1531,9 @@ export declare function mmvBound(pieces: readonly {
   readonly w: number;
   readonly h: number;
 }[], width: number, integral?: boolean): number;
+
+### build/index.d.ts#moveAnchor
+export declare function moveAnchor(input: PackInput, id: string, dx: number, dy: number): PackInput;
 
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
@@ -1626,6 +1719,12 @@ export declare function unsupportedOf(supports: Supports, cell: Partial<Record<D
   dimension: Dimension;
   value: string;
 } | undefined;
+
+### build/index.d.ts#wallLocks
+export declare const wallLocks: CorpusGenerator<WallLocksParams>;
+
+### build/index.d.ts#wallLocksFamily
+export declare const wallLocksFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#wordCloud
 export declare const wordCloud: CorpusGenerator<UiParams>;

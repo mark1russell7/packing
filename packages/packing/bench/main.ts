@@ -1,6 +1,6 @@
 // The command line of the benchmark runner (`docs/BENCH.md`). The workflows `bench.yml` and `bench-smoke.yml` start it in CI.
 //
-//   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--interleave] [--out dir] [--commit sha]
+//   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--interleave] [--anchor] [--out dir] [--commit sha]
 //   node bench/main.ts list [--strategies a,b|all]
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
@@ -108,6 +108,8 @@ function main(): number {
         warmup: count("--warmup", DEFAULT_WARMUP),
         // The flag --interleave alternates the timed passes of each input between the strategies
         interleave: rest.includes("--interleave"),
+        // The flag --anchor adds the measures pack.anchor.* of roadmap item k111 to each input with a locked item
+        ...(rest.includes("--anchor") ? { anchor: true } : {}),
         env: env(),
         ...(sha !== undefined ? { commit: sha } : {}),
       });
