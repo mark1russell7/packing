@@ -55,9 +55,9 @@ describe("the survey as data (k108)", () => {
   });
 
   it("finds a queue factor that differs from the queue, and a status that the roadmap does not support", () => {
-    expect(checkSurvey(edit("S1", (m) => (m.queue = { gain: 5, uncertainty: 3, cost: 2 })))).toContain("S1: the queue factors of k90 are 4, 3, 2, not 5, 3, 2.");
-    expect(checkSurvey(edit("S1", (m) => (m.status = "built")))).toContain("S1 is built, but its item k90 is not done.");
-    expect(checkSurvey(edit("S1", (m) => (m.status = "not queued")))).toContain("S1 is not queued, but the queue has a row for k90.");
+    expect(checkSurvey(edit("S4", (m) => (m.queue = { gain: 5, uncertainty: 2, cost: 2 })))).toContain("S4: the queue factors of k93 are 4, 2, 2, not 5, 2, 2.");
+    expect(checkSurvey(edit("S4", (m) => (m.status = "built")))).toContain("S4 is built, but its item k93 is not done.");
+    expect(checkSurvey(edit("S4", (m) => (m.status = "not queued")))).toContain("S4 is not queued, but the queue has a row for k93.");
     expect(checkSurvey(edit("R21", (m) => (m.status = "queued")))).toContain("R21 is queued, but the queue has no row for an item of it.");
     expect(checkSurvey(edit("R21", (m) => (m.status = "rejected")))).toContain("R21 is rejected, but it has no reason.");
   });
@@ -95,12 +95,12 @@ describe("the section of the survey on the strategies page", () => {
   const byId = (id: string): SurveyMethod => methods.find((m) => m.id === id)!;
 
   it("gives a row with the status, the item, the sources and the score of the queue", () => {
-    const html = surveyRowHtml(byId("S1"));
+    const html = surveyRowHtml(byId("S4"));
     expect(html).toContain(`data-class="circle" data-status="queued"`);
     expect(html).toContain(`<span class="sv-chip queued"`);
-    expect(html).toContain("<code>k90</code>");
-    expect(html).toMatch(/<abbr title="[^"]+ \(2006\)\. [^"]+">Huang 2006<\/abbr>, <abbr title="[^"]+">Kubach 2009<\/abbr>/);
-    expect(scoreHtml(byId("S1"))).toContain(">6.0<");
+    expect(html).toContain("<code>k93</code>");
+    expect(surveyRowHtml(byId("S1"))).toMatch(/<abbr title="[^"]+ \(2006\)\. [^"]+">Huang 2006<\/abbr>, <abbr title="[^"]+">Kubach 2009<\/abbr>/);
+    expect(scoreHtml(byId("S4"))).toContain(">4.0<");
   });
 
   it("marks a hybrid of this repository and a new idea, and gives a dash for an idea without factors", () => {
@@ -131,7 +131,7 @@ describe("the counts, the filters and the rule of the next round", () => {
   it("filters by class and by status", () => {
     expect(filterMethods(methods, "all", "all")).toHaveLength(methods.length);
     expect(filterMethods(methods, "online", "all").every((m) => m.problemClass === "online")).toBe(true);
-    expect(filterMethods(methods, "circle", "queued").map((m) => m.id)).toEqual(["S1", "S4", "S5", "S11", "S14"]);
+    expect(filterMethods(methods, "circle", "queued").map((m) => m.id)).toEqual(["S4", "S5", "S11", "S14"]);
   });
 
   it("gives the score with one decimal, and tells when the next round is due", () => {
