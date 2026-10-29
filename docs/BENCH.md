@@ -66,6 +66,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `restarts-maxrects-bl-shuffle-k16` | `restarts` | `member: maxrects-bl`, `iterations: 16`, `perturb: "shuffle"` | `maxrects-bl` |
 | `ruin-recreate-maxrects-bl-k64` | `ruin-recreate` | `member: maxrects-bl`, `iterations: 64` | `maxrects-bl` |
 | `ruin-recreate-skyline-k64` | `ruin-recreate` | `member: "skyline"`, `iterations: 64` | `skyline` |
+| `overlap-min-maxrects-bl-k8192` | `overlap-min` | `member: maxrects-bl`, `iterations: 8192` | `maxrects-bl` |
+| `overlap-min-skyline-k8192` | `overlap-min` | `member: "skyline"`, `iterations: 8192` | `skyline` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
@@ -85,6 +87,9 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 3 entries of roadmap item k78 are `RESTARTS_ENTRIES`. Each one packs 16 times with its member, in random orders, and keeps the best output. Its move is `move.restartPick`. `docs/PACKER.md` ("The random restarts") tells it.
 - The 2 entries of roadmap item k79 are `RUIN_RECREATE_ENTRIES`. Each one removes some boxes 64 times, and packs them again with its member. Its move is `move.ruinRecreate`.
 - `docs/PACKER.md` ("The goal-driven ruin and recreate") tells the entries of k79.
+- The 2 entries of roadmap item k80 are `OVERLAP_MIN_ENTRIES`. Each one makes the strip of its member shorter with at most 8192 box moves. Its move is `move.overlapMin`.
+- The entries of k80 pack only a container with a free height or a free width. They skip each other input as `UnsupportedCell`.
+- `docs/PACKER.md` ("The overlap minimization") tells the entries of k80.
 
 ## The jobs
 

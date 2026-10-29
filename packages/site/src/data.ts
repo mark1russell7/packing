@@ -346,6 +346,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k80",
+    title: "The new strategy `overlap-min` makes the strip of a member shorter. It moves the boxes that overlap to their places of least overlap, until no box overlaps.",
+    pr: 0,
+    link: "https://github.com/mark1russell7/packing/pulls",
+  },
+  {
+    date: "2026-10-29",
     item: "k115",
     title: "The space coverage gives the share of each stratum: a strategy family with one count of members. The mean over the strata goes next to the uniform number.",
     pr: 146,

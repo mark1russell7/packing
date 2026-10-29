@@ -82,6 +82,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   bbox: "Bounding boxes",
   "hole-degree": "Hole degree (circles)",
   "ruin-recreate": "Ruin-recreate",
+  "overlap-min": "Overlap min",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
 
@@ -112,6 +113,7 @@ const OPTION_LABELS: Record<string, string> = {
   steps: "Height steps",
   ruin: "Ruin",
   shrink: "Goal shrink",
+  step: "Cut step",
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 

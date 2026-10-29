@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 354 names
+## . (build/index.d.ts): 357 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -115,10 +115,12 @@ type MeasureOptions: build/index.d.ts#MeasureOptions
 type MeasureSpec: build/index.d.ts#MeasureSpec
 type MemberTrace: @mark1russell7/layout-contract#MemberTrace (external)
 type MetricsOptions: build/index.d.ts#MetricsOptions
+OVERLAP_MIN_STAGE: build/index.d.ts#OVERLAP_MIN_STAGE
 type ObjectiveBound: build/index.d.ts#ObjectiveBound
 type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
 type OptionPlace: build/index.d.ts#OptionPlace
+type OverlapMinStrategyOptions: build/index.d.ts#OverlapMinStrategyOptions
 PACK_SPACE_LEFT_OUT: build/index.d.ts#PACK_SPACE_LEFT_OUT
 PACK_SPACE_OPTIONS: build/index.d.ts#PACK_SPACE_OPTIONS
 PORTFOLIO_FRAME_MS: build/index.d.ts#PORTFOLIO_FRAME_MS
@@ -294,6 +296,7 @@ mulberry32: build/index.d.ts#mulberry32
 objectiveBound: build/index.d.ts#objectiveBound
 objectiveResult: build/index.d.ts#objectiveResult
 outputHash: build/index.d.ts#outputHash
+overlapMinStrategy: build/index.d.ts#overlapMinStrategy
 pack: build/index.d.ts#pack
 packConfig: build/index.d.ts#packConfig
 packDefault: build/index.d.ts#packDefault
@@ -902,6 +905,9 @@ interface MetricsOptions {
   rowTolerance?: number;
 }
 
+### build/index.d.ts#OVERLAP_MIN_STAGE
+export declare const OVERLAP_MIN_STAGE = "overlap-min";
+
 ### build/index.d.ts#ObjectiveBound
 interface ObjectiveBound {
   readonly objective: BoundObjective;
@@ -918,6 +924,13 @@ type ObstacleLayout = "none" | "center" | "scattered" | "wall" | "corridors" | "
 
 ### build/index.d.ts#OptionPlace
 type OptionPlace = string | null;
+
+### build/index.d.ts#OverlapMinStrategyOptions
+interface OverlapMinStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  step?: number;
+}
 
 ### build/index.d.ts#PACK_SPACE_LEFT_OUT
 export declare const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>>;
@@ -1653,6 +1666,9 @@ export declare function objectiveResult(input: PackInput, output: PackOutput, bo
 
 ### build/index.d.ts#outputHash
 export declare function outputHash(output: Pick<PackOutput, "placements">): string;
+
+### build/index.d.ts#overlapMinStrategy
+export declare const overlapMinStrategy: Strategy<OverlapMinStrategyOptions>;
 
 ### build/index.d.ts#pack
 export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;

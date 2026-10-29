@@ -107,7 +107,7 @@ const RUIN_RECREATE_PARAMS: readonly SpaceParam[] = [
   { name: "shrink", kind: "real", min: 0.001, max: 0.5, scale: "log", default: 0.005 },
 ];
 
-/** The params of the overlap minimization of roadmap item k80: the largest count of the item moves, and the share of one cut of the strip. */
+/** The params of the overlap minimization of roadmap item k80: the largest count of the moves, and the share of one cut. */
 const OVERLAP_MIN_PARAMS: readonly SpaceParam[] = [
   { name: "iterations", kind: "int", min: 64, max: 65536, scale: "log", default: 8192 },
   { name: "step", kind: "real", min: 0.001, max: 0.5, scale: "log", default: 0.01 },

@@ -201,7 +201,7 @@
     {
       "id": "R6",
       "name": "Overlap minimization for rectangles",
-      "description": "Shrink the strip. Move one box at a time to its place of least overlap, with guided penalties.",
+      "description": "Shrink the strip. Move one box at a time to its place of least overlap, with guided penalties. Built as the strategy `overlap-min` (k80), with the entry `overlap-min-maxrects-bl-k8192`.",
       "published": true,
       "sources": [
         {

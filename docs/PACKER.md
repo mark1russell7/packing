@@ -600,12 +600,110 @@ The counts of `packSpace`:
 - `ENTRIES` of the benchmark: 30 before, 32 after. `composites`: 5 before, 6 after. The meta options of `spaceCounts`: 6 before, 7 after.
 - The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
 
+### The overlap minimization
+
+Roadmap item k80 adds the composite strategy `overlap-min` (catalog row `nest-gls-overlap`, idea R6 of the survey). It is opt-in. No default uses it.
+
+```ts
+const output = packWith("overlap-min", input); // 8192 moves around maxrects-bl
+const strip = packWith("overlap-min", input, { member: "skyline", iterations: 2048, step: 0.02 }, 7);
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `member` | `maxrects` with the rule `bl` | A strategy id, or a `PortfolioEntry` with options. The member packs the first layout. |
+| `iterations` | 8192 | The largest count of the box moves. A whole number of 0 or more. With 0, the output is the output of the member. |
+| `step` | 0.01 | The share by which each cut makes the strip shorter, from 0.001 to 0.5. |
+
+The search:
+
+1. The member packs the input. Its layout is the first layout. The length of the strip is the size of its free side.
+2. A cut makes the strip shorter by `step` of its length. The boxes that stick out move back into the strip.
+3. Each pass takes the boxes that overlap in a random order. Each one moves along the fixed axis, then along the free axis.
+4. A move puts the box at the place of the least weighted overlap on that axis. The weight of a pair is `1 + penalty`.
+5. An exact sweep over the breakpoints of the overlap finds that place, as in Egeblad 2007. A tie keeps the box at its place, then takes the lowest place.
+6. A pass with no move is a local minimum. Then the pair with the largest `overlap / (1 + penalty)` gets a penalty 1 higher.
+7. When no box overlaps, the cut is accepted, and the next cut starts. `checkHard` checks each accepted layout.
+8. The search stops when a cut fails, when the moves reach `iterations`, or when the box area does not fit in a shorter strip.
+9. The output is the last accepted layout, or the output of the member when no cut is accepted.
+
+The rules of the output:
+
+- Only a container with a free height or a free width is supported. A fixed size, `fixed: "none"` and a free area give `UnsupportedCell`.
+- Locked items and obstacles stay at their places. They count in the overlap. A movable obstacle and a group give `UnsupportedCell`.
+- Each box is the box of the frame: the margin, half the gap and the pad of `pairGaps` on each side. Thus the output keeps each gap.
+- A box keeps the turn of the member. A box that does not move keeps the place of the member, byte for byte.
+- A container shape with a free side uses its bounding box. The holes of a polygon become obstacles. Other obstacles use their bounding boxes.
+- The supports are the union of the supports of the 5 placement strategies, with the fixed obstacles and the free or soft order.
+- A free container keeps the overflow of the member. The output is never longer than the output of the member.
+- Cut `t` gets the random numbers `stepRandom(seed, "overlap-min:<t>")` of the contract. The same seed gives the same output, byte for byte.
+- The budget is the count `iterations`. The strategy reads no clock. Thus `overlap-min` has no option `budgetWork`.
+- The output gets the trace stage `overlap-min` (`OVERLAP_MIN_STAGE`). Its measures are in the table below.
+
+| Measure | Value |
+|---|---|
+| `move.overlapMin` | The count of the accepted cuts. 0 means that the output is the output of the member. |
+| `overlap-min.iterations` | The count of the box moves. |
+| `overlap-min.tries` | The count of the cuts that the search tried. |
+| `overlap-min.cuts` | The count of the accepted cuts. |
+| `overlap-min.raises` | The count of the penalty raises at the local minima. |
+| `overlap-min.length` | The length of the output strip divided by the length of the member strip. |
+
+The sources are Egeblad, Nielsen & Odgaard (EJOR 2007), Umetani et al. (EJOR 2009) and Imamichi, Yagiura & Nagamochi (Discrete Optimization 2009).
+The choices of this project that differ from the sources:
+
+- This strategy packs rectangles only. The overlap of two boxes is the product of the overlaps of their spans. The sources pack polygons.
+- The objective is the sum of `(1 + penalty) * overlap` over the pairs, as the weights of Umetani 2009. Egeblad 2007 adds a separate penalty term.
+- The penalties go back to 0 at each cut. Each local minimum raises one pair only.
+- Only the boxes that overlap move. The order of a pass is random. The search has no swap moves and no turn moves.
+- The search stops at the first failed cut. It does not make the strip longer, as the iterated local search of Imamichi 2009 does.
+- The budget is a global count of moves, not a time limit. Thus the output does not depend on the clock.
+- The area bound and the check by `checkHard` of each accepted layout are the choices of this project.
+
+A local comparison (2026-10-28) used 180 inputs of the classes corpus: the counts 20, 40 and 60, with the seeds 1 to 3.
+The inputs are 90 fixed containers and 90 `freeHeight` containers. `overlap-min` refuses the fixed containers.
+The table gives the medians of `pack.fill` and `pack.gap`, and the median time of one pack of a free container. The run had 0 hard breaks.
+
+| Entry | Fill, fixed | Gap, fixed | Fill, free | Gap, free | Time, free (ms) |
+|---|---|---|---|---|---|
+| `maxrects-bl` | 0.9526 | 0.0516 | 0.8751 | 0.1110 | 0.1 |
+| `skyline` | 0.9460 | 0.0588 | 0.7791 | 0.2108 | 0.1 |
+| `restarts-maxrects-bl-k16` | 0.9612 | 0.0443 | 0.8894 | 0.0897 | 2.4 |
+| `ruin-recreate-maxrects-bl-k64` | 0.9580 | 0.0471 | 0.8805 | 0.1075 | 6.2 |
+| `overlap-min-maxrects-bl-k8192` | refused | refused | 0.9038 | 0.0739 | 65 |
+| `overlap-min-skyline-k8192` | refused | refused | 0.8923 | 0.0826 | 68 |
+
+- In `freeHeight` containers, `overlap-min-maxrects-bl-k8192` has the best fill and the smallest gap of the six entries.
+- `overlap-min-skyline-k8192` lifts the fill of `skyline` from 0.779 to 0.892, past `restarts-maxrects-bl-k16`.
+- More moves give more fill: 2048 moves gave 0.8868, 4096 gave 0.8938, and 16384 gave 0.9117, for the member `maxrects-bl`.
+- A `step` of 0.005 or 0.02 gave about the same fill as 0.01.
+- The cost is about 30 times the cost of `restarts-maxrects-bl-k16`.
+
+The counts of `packSpace`:
+
+- `combine` gets the option `overlap-min` with 1 member and the params `iterations` (64 to 65536) and `step` (0.001 to 0.5).
+- The named configs are `overlap-min`, `overlap-min-maxrects-bl-k8192` and `overlap-min-skyline-k8192`. The benchmark has the last two as entries.
+- Each base config gives 9 new meta configs with 3 levels: 3 values of `iterations` and 3 of `step`.
+- With 1 level, each base config gives 1 new meta config. The table gives the counts before k80 and since k80.
+
+| `spaceSize` | Before k80 | Since k80 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 185246197022536573518 | 185246197022536600275 |
+| 1 level | 66707889492006738 | 66707889492007629 |
+| 3 levels, `shapes: ["rect"]` | 184312874572011990510 | 184312874572012017240 |
+| 1 level, `shapes: ["rect"]` | 66333631179349290 | 66333631179350180 |
+
+- The base configs stay 2973 and 891, and 2970 and 890 for `rect`. The counts for the other shape kinds do not change.
+- `ENTRIES` of the benchmark: 32 before, 34 after. `composites`: 6 before, 7 after. The meta options of `spaceCounts`: 7 before, 8 after.
+- The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
+- The tests that pack each entry on a fixed container now expect `UnsupportedCell` from the entries of `overlap-min`.
+
 ## The registry
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
-const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox" and "ruin-recreate"
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate" and "overlap-min"
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```

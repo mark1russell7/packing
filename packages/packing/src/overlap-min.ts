@@ -85,7 +85,7 @@ interface Counts {
  * - A move puts one overlapped item at its place of least weighted overlap along the fixed axis, then along the free axis.
  * - The overlap is linear in parts along one axis. The move reads its value at each break point of the parts.
  * - At a local minimum, the pair with the largest overlap divided by 1 plus its penalty gets 1 more penalty.
- * - With no overlap, the search keeps the strip and cuts again. When `iterations` moves ran, the output is the last strip with no overlap.
+ * - With no overlap, the search keeps the strip and cuts again. After `iterations` moves, the output is the last strip with no overlap.
  * - The container has a free height or a free width. Another container size gives `UnsupportedCell`.
  * - The cut `k` gets the random numbers `stepRandom(seed, "overlap-min:<k>")` of the contract. The strategy reads no clock.
  * - The output gets the trace stage `overlap-min` with `move.overlapMin` and the counts of the search.
@@ -411,7 +411,7 @@ class Strip {
 
   /**
    * This function does the search. Each try cuts the strip by `step`. A try with no overlap left becomes the new strip.
-   * The search stops when the moves run out, when a try fails, or when the area of the boxes is more than the area of the next strip.
+   * The search stops when the moves run out or when a try fails. It also stops when the next strip is too small for the box area.
    * It gives the output of the last strip with no overlap, or `undefined` when no cut succeeded.
    */
   search(iterations: number, step: number, seed: number, counts: Counts): PackOutput | undefined {
