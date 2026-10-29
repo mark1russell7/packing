@@ -1207,8 +1207,8 @@ The script `bench/active.ts` draws the pairs where the model knows least. It mea
 node bench/active.ts --out <folder>/active --records <folder>/records.jsonl --corpus <folder>/corpus.json --n 400 --seed 1 --features input
 ```
 
-1. The script draws a pool of `20 × n` candidate pairs (`--pool 20`). Candidate `c` is in the stratum `c mod 18`, so the strata of the pool are equal, as in k115.
-2. The script checks each candidate with `checkConfig` and does not pack it.
+1. The script draws a pool of `20 × n` candidate pairs (`--pool 20`). Candidate `c` is in the stratum `c mod S`, with the `S` strata of `strataOf`. Thus the strata of the pool are equal, as in k115.
+2. The script checks each candidate with `checkConfig` and does not pack it. `maxOverlapMoves` of k80 also caps the moves of `overlap-min` in the pool.
 3. Each round fits 5 trees of the folds by spec for each measure. The rows are the grid and the measured active pairs.
 4. The score of a candidate is the mean over the measures of its scaled fold spread (`--score spread-iqr`, the default).
 5. The round packs the candidates from the highest score down, with the diversity rule below. A tie goes to the lower candidate index.
@@ -1224,7 +1224,7 @@ The score `spread-iqr` of one measure is the standard deviation of the 5 predict
 
 The diversity rule of a round:
 
-- A stratum gets at most `ceil(quota / 18)` pairs in one round.
+- A stratum gets at most `ceil(quota / S)` pairs in one round. Since k80, `packSpace` has 20 strata.
 - A candidate with the stratum and the generator of an earlier pick of the round waits.
 - When only these candidates are left, the rules give way. Thus each round gets its quota.
 

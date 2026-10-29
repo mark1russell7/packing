@@ -599,7 +599,7 @@ export interface SampleSummary {
 }
 
 /** This function gives a config with the param `iterations` of `overlap-min` at most `cap`. Another config stays the same. */
-function capMoves(config: StrategyConfig, cap: number | undefined): StrategyConfig {
+export function capMoves(config: StrategyConfig, cap: number | undefined): StrategyConfig {
   const combine = config.stages["combine"];
   const moves = combine?.params?.["iterations"];
   if (cap === undefined || combine?.option !== "overlap-min" || typeof moves !== "number" || moves <= cap) return config;

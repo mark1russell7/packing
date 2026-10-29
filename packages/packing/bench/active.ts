@@ -32,6 +32,7 @@ import {
   drawInput,
   drawStratum,
   envOf,
+  capMoves,
   firstPack,
   generateInput,
   MAX_CONFIG_TRIES,
@@ -169,7 +170,7 @@ interface PoolCounts {
  */
 export function candidatePool(
   size: number,
-  options: { readonly seed: number; readonly space: StrategySpace; readonly maxCount: number; readonly knobs: boolean; readonly coverage: CoverageOptions; readonly deadline?: number; readonly maxInputTries?: number },
+  options: { readonly seed: number; readonly space: StrategySpace; readonly maxCount: number; readonly knobs: boolean; readonly coverage: CoverageOptions; readonly deadline?: number; readonly maxInputTries?: number; readonly maxOverlapMoves?: number },
   counts: PoolCounts,
 ): Candidate[] {
   const { seed, space, maxCount, knobs } = options;
@@ -209,7 +210,7 @@ export function candidatePool(
           bump(counts.configReasons, `check:${breaks[0]!.claim}`);
           continue;
         }
-        const canonical = canonicalConfig(space, config);
+        const canonical = capMoves(canonicalConfig(space, config), options.maxOverlapMoves);
         const id = configId(space, canonical);
         const rec = candidateRecord(file, d, canonical, id);
         const { features } = pairFeatures(rec, { ...options.coverage, inputs: new Map([[file.id, input]]) });
@@ -276,13 +277,15 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const score = options.score ?? ACTIVE_SCORE;
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new RangeError(`The score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
   const strataCount = strataOf(space).length;
+  const maxOverlapMoves = options.maxOverlapMoves;
+  if (maxOverlapMoves !== undefined && (!Number.isInteger(maxOverlapMoves) || maxOverlapMoves < 1)) throw new RangeError("The overlap moves are a whole number of 1 or more.");
   if (!Number.isInteger(n) || n < 0) throw new RangeError("The count of the pairs is a whole number of 0 or more.");
   if (!Number.isInteger(rounds) || rounds < 1) throw new RangeError("The count of the rounds is a whole number of 1 or more.");
   if (!Number.isInteger(poolFactor) || poolFactor < 1) throw new RangeError("The pool factor is a whole number of 1 or more.");
   const start = Date.now();
   const deadline = options.maxMinutes === undefined ? undefined : start + options.maxMinutes * 60000;
   const counts: PoolCounts = { configsDrawn: 0, configsRejected: 0, inputsDrawn: 0, inputsRejected: 0, missed: 0, configReasons: {}, inputReasons: {}, strataMissed: {} };
-  const pool = candidatePool(n * poolFactor, { seed, space, maxCount, knobs, coverage, ...(deadline === undefined ? {} : { deadline }), ...(options.maxInputTries === undefined ? {} : { maxInputTries: options.maxInputTries }) }, counts);
+  const pool = candidatePool(n * poolFactor, { seed, space, maxCount, knobs, coverage, ...(deadline === undefined ? {} : { deadline }), ...(options.maxInputTries === undefined ? {} : { maxInputTries: options.maxInputTries }), ...(maxOverlapMoves === undefined ? {} : { maxOverlapMoves }) }, counts);
   const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
   const grid = gridOf(options.records, options.manifest, coverage);
   const inputs = new Map<string, PackInput>(coverage.inputs ?? []);

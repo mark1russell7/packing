@@ -30,11 +30,12 @@ function grid(): { manifest: CoverageManifest; records: CoverageRecord[] } {
 }
 
 describe("the active draw", () => {
-  const base = { n: 4, seed: 20, env: ENV, maxCount: 60, knobs: false, rounds: 2, poolFactor: 3 } as const;
+  // The cap on the moves of overlap-min (k80) keeps each pack fast.
+  const base = { n: 4, seed: 20, env: ENV, maxCount: 60, knobs: false, rounds: 2, poolFactor: 3, maxInputTries: 10, maxOverlapMoves: 256 } as const;
 
   it("draws a stratified pool of inputs and configs that checkConfig accepts, the same for the same seed", () => {
     const counts = () => ({ configsDrawn: 0, configsRejected: 0, inputsDrawn: 0, inputsRejected: 0, missed: 0, configReasons: {}, inputReasons: {}, strataMissed: {} });
-    const opts = { seed: 20, space: packSpace, maxCount: 60, knobs: false, coverage: { features: "input" as const } };
+    const opts = { seed: 20, space: packSpace, maxCount: 60, knobs: false, coverage: { features: "input" as const }, maxInputTries: 10, maxOverlapMoves: 256 };
     const a = candidatePool(36, opts, counts());
     const b = candidatePool(36, opts, counts());
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
@@ -43,6 +44,9 @@ describe("the active draw", () => {
       expect(c.stratum).toBe(strata[c.index % strata.length]);
       expect(c.id).toBe(configId(packSpace, c.config));
       expect(c.features["in.count"]).toBeDefined();
+      // The pool keeps the cap on the moves of overlap-min (k80).
+      const combine = c.config.stages["combine"];
+      if (combine?.option === "overlap-min") expect(combine.params?.["iterations"]).toBeLessThanOrEqual(256);
     }
     expect(a.length).toBeGreaterThan(18);
   });
@@ -69,7 +73,7 @@ describe("the active draw", () => {
       expect(checkConfig(packSpace, rec.config, { shapes: shapeKindsOf({ boxes: input.items }) })).toEqual([]);
       expect(rec.strategy).toBe(`space:${configId(packSpace, rec.config)}`);
     }
-    // A quota of 2 over 18 strata gives a cap of 1 pair for each stratum in a round.
+    // A quota of 2 over the strata of packSpace gives a cap of 1 pair for each stratum in a round.
     const strata = strataOf(packSpace).map((s) => s.id);
     for (const k of [1, 2]) {
       const round = a.records.filter((r) => r.round === k).map((r) => strata[r.candidate % strata.length]);

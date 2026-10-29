@@ -412,7 +412,7 @@ describe("the input features and the active rounds of k116", () => {
   };
   /** This function gives the sampled pairs of a small sample, with a fill and a forced overflow of a known value. */
   const pairs = (knobs: boolean): SampledRecord[] =>
-    sampleSpace({ n: 4, seed: 20, env: { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", cpus: 1 }, maxCount: 60, knobs, clock: (() => { let t = 0; return () => t++; })() }).records.map((r, i) => ({
+    sampleSpace({ n: 4, seed: 20, env: { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", cpus: 1 }, maxCount: 60, knobs, maxOverlapMoves: 256, clock: (() => { let t = 0; return () => t++; })() }).records.map((r, i) => ({
       ...r,
       measures: { ...r.measures, "pack.fill": 0.6, [FORCED_MEASURE]: i % 2 === 0 ? 0.9 : 0 },
     }));
