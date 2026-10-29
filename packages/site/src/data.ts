@@ -277,6 +277,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k114",
+    title: "The knob `margin` does not go on a locked box when the margin goes into an obstacle. Thus each strategy packs `touchObstacles` with no `no-overlap` break.",
+    pr: 136,
+    link: "https://github.com/mark1russell7/packing/pull/136",
+  },
+  {
+    date: "2026-10-29",
     item: "k91",
     title: "With contract 0.2.17, `pack.shapeFill` declares an upper bound on a free shape. `checkShapes` accepts it there only at the level `bound`.",
     pr: 135,
