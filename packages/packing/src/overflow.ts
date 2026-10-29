@@ -2,7 +2,7 @@
 // packer can place in a fixed container. `measure` uses it for `pack.overflow.forced` and `pack.overflow.forcedArea`.
 
 import { boundsOf } from "@mark1russell7/layout-contract";
-import { DEFAULT_TOLERANCE, type Item, type PackInput, type Region } from "./contract.ts";
+import { DEFAULT_TOLERANCE, marginOf, type Item, type PackInput, type Region, type Sides } from "./contract.ts";
 
 /** A rectangle: its top-left corner and its size. */
 interface Box {
@@ -27,7 +27,7 @@ export interface OverflowBound {
   readonly forced: number;
   /** The area that no packer can place. It is a lower bound of the area of the unplaced items. */
   readonly area: number;
-  /** The upper bound of the free area of a fixed container, or `Infinity` when a side is free. */
+  /** The upper bound of the free area of a fixed container for the items with their margins, or `Infinity` when a side is free. */
   readonly free: number;
 }
 
@@ -227,25 +227,54 @@ function itemArea(item: Item): number {
   return item.shape === undefined ? rect : Math.min(rect, blockedArea(item.shape));
 }
 
+/** This function gives the ids of the items of `pairGaps`. A pair gap replaces the margins of its pair, so these items do not grow. */
+export function pairedIds(input: Pick<PackInput, "pairGaps">): ReadonlySet<string> {
+  const ids = new Set<string>();
+  for (const p of input.pairGaps ?? []) {
+    if (p.a === p.b) continue;
+    ids.add(p.a);
+    ids.add(p.b);
+  }
+  return ids;
+}
+
+/** This function gives the margin of an item on each side, with each side below 0 made 0. A smaller margin keeps a bound sound. */
+function sidesOf(item: Item): Sides {
+  const m = marginOf(item);
+  return { top: Math.max(0, m.top), right: Math.max(0, m.right), bottom: Math.max(0, m.bottom), left: Math.max(0, m.left) };
+}
+
 /**
- * This function gives an upper bound of the free area of a container with a fixed size. The bound ignores the gap and
- * the margins, thus it is not too small.
+ * This function tells if the bounds can grow an item by its margin and by the gap. Only a rectangle item that is not in
+ * `pairGaps` grows. A shape counts with its area, and a pair gap replaces the margins of its pair.
+ */
+const grows = (item: Item, paired: ReadonlySet<string>): boolean => item.shape === undefined && !paired.has(item.id);
+
+/**
+ * This function gives an upper bound of the area that the candidates of a fixed container can use with their margins.
  *
  * - The container area is the inner rectangle (the container less the inset). A shape gives the smaller of that and its exact area.
  * - A rectangle container loses the exact union of the fixed rectangle obstacles and the locked items in the inner rectangle.
+ * - A locked rectangle item that is not in `pairGaps` counts with its margin. The hard rule `no-overlap` keeps the margins of two items apart.
  * - A shape loses only the regions that are fully in it and in the inner rectangle, with no common point between their boxes.
  * - An obstacle with `move` can go out of the way. Thus the bound does not subtract it.
+ *
+ * The proof: the hard rules keep each item with its margin in the inner rectangle, and out of each fixed obstacle and each other item with its margin.
+ * The gap does not count, because an item with the gap can go over an obstacle. `overflowBound` uses the gap with the inner rectangle only.
  */
 export function freeAreaBound(input: PackInput): number {
   const bounds = containerBox(input);
   const inset = input.container.inset ?? 0;
   const inner = shrink(bounds, inset);
   if (!(inner.w > 0 && inner.h > 0)) return 0;
+  const paired = pairedIds(input);
   const blocked: Blocked[] = [];
   for (const o of input.obstacles ?? []) if (o.move === undefined) blocked.push({ region: o.region, box: boundsOf(o.region) });
   for (const item of input.items) {
     if (!lockedAt(item)) continue;
-    const box = itemBox(item);
+    const bare = itemBox(item);
+    const m = grows(item, paired) ? sidesOf(item) : { top: 0, right: 0, bottom: 0, left: 0 };
+    const box = { x: bare.x - m.left, y: bare.y - m.top, w: bare.w + m.left + m.right, h: bare.h + m.top + m.bottom };
     blocked.push({ region: { kind: "rect", ...box }, box });
   }
 
@@ -275,15 +304,65 @@ export function freeAreaBound(input: PackInput): number {
   return Math.max(0, free);
 }
 
+/** One candidate of a fixed size: its area, and the areas that one area rule of `overflowBound` reads. */
+interface Need {
+  /** The area of the item: the area of `pack.overflow.area`, or of its shape when that is smaller. */
+  area: number;
+  /** The area of the item with its margin. An item that does not grow keeps its area. */
+  margined: number;
+  /** The area of the item with its margin and the gap. An item that does not grow keeps its area. */
+  gapped: number;
+}
+
+/**
+ * This function gives the drops of one area rule: the sum of `weight` over the placed candidates is at most `room`.
+ *
+ * - `count`: the largest weights go first, until the rest fits. No smaller count of drops makes the rest fit.
+ * - `area`: the least area of a fractional drop of the excess weight. The least area per weight goes first.
+ *   Each whole drop is also a fractional drop, so it drops at least this area.
+ * - When each weight is the area, `area` is the excess itself.
+ */
+function dropsOf(needs: readonly Need[], weight: (n: Need) => number, room: number): { count: number; area: number } {
+  let sum = needs.reduce((s, n) => s + weight(n), 0);
+  const excess = sum - room;
+  if (!(excess > 0)) return { count: 0, area: 0 };
+  let count = 0;
+  // The largest items go first, so the count of the dropped items is the smallest count that fits the area
+  for (const w of needs.map(weight).toSorted((p, q) => q - p)) {
+    if (sum <= room || !(w > 0)) break;
+    sum -= w;
+    count += 1;
+  }
+  if (needs.every((n) => weight(n) === n.area)) return { count, area: excess };
+  const rate = (n: Need): number => n.area / weight(n);
+  let area = 0;
+  let left = excess;
+  for (const n of needs.filter((x) => weight(x) > 0).toSorted((p, q) => rate(p) - rate(q))) {
+    if (!(left > 0)) break;
+    const share = Math.min(1, left / weight(n));
+    area += share * n.area;
+    left -= share * weight(n);
+  }
+  return { count, area };
+}
+
 /**
  * This function gives a lower bound of the overflow of an input: the items that no packer can place, and their area.
  *
  * - The candidates are the items that are not locked at a position.
- * - A fixed side forces each candidate that is longer than the side less the inset, in each turn that the item permits.
- * - A fixed size also forces the fewest other candidates that make the rest fit the free area of `freeAreaBound`. These are the largest ones.
- * - The area of the bound is the area of the long items, plus the part of the area of the rest above the free area.
- * - The margins and the gap do not count. A slack of the overlap tolerance along the edge of each candidate keeps the bound valid.
- * - A container with no fixed side gives 0.
+ * - A fixed side forces each candidate that is longer than the side less the inset, with its margin, in each turn that the item permits.
+ * - A fixed size also forces the drops of 2 area rules. The bound takes the larger count and the larger area of the 2 rules.
+ * - Rule A: the candidates with their margins fit the free area of `freeAreaBound`.
+ * - Rule B, for a gap `g` above 0: the candidates with their margins and the gap fit the inner rectangle grown by `g / 2` on each side.
+ * - An item grows only when it is a rectangle and not in `pairGaps`. Another item counts with its area.
+ * - The area of the bound is the area of the long items, plus the area of the drops. A container with no fixed side gives 0.
+ *
+ * The proof of rule A: the hard rules keep the boxes with their margins in the inner rectangle, out of the obstacles and out of each other.
+ * The proof of rule B: two items are `mA + gap + mB` apart (decision 3 of `docs/PACKER.md`). Thus the boxes grown by `g / 2` more do not overlap.
+ * Each such box is in the inner rectangle grown by `g / 2`. A box with the gap can go over an obstacle, so rule B does not subtract the obstacles.
+ * Rule B holds for each layout that keeps the gap. Each strategy of the package keeps it through its frame.
+ *
+ * The tolerance: two boxes can overlap by `t` on one axis, and a box can go out by `t`. A slack of `2 * t` along the edges keeps each rule valid.
  */
 export function overflowBound(input: PackInput): OverflowBound {
   const { container } = input;
@@ -295,38 +374,47 @@ export function overflowBound(input: PackInput): OverflowBound {
   const inset = container.inset ?? 0;
   const maxW = fixedW ? bounds.w - 2 * inset + 2 * tol : Infinity;
   const maxH = fixedH ? bounds.h - 2 * inset + 2 * tol : Infinity;
+  const paired = pairedIds(input);
+  const gap = Math.max(0, input.gap ?? 0);
 
   let forced = 0;
   let area = 0;
-  let slack = 0;
-  const rest: number[] = [];
+  let slackA = 0;
+  let slackB = 0;
+  const needs: Need[] = [];
   for (const item of input.items) {
     if (lockedAt(item)) continue;
     const box = itemBox(item);
     const w = Math.min(item.w, box.w);
     const h = Math.min(item.h, box.h);
-    const fits = (w <= maxW && h <= maxH) || (item.turnable === true && h <= maxW && w <= maxH);
+    const m = sidesOf(item);
+    const mw = m.left + m.right;
+    const mh = m.top + m.bottom;
+    // The turn moves each side of the margin one side clockwise, so the turned width is h + mh
+    const fits = (w + mw <= maxW && h + mh <= maxH) || (item.turnable === true && h + mh <= maxW && w + mw <= maxH);
     const a = itemArea(item);
     if (!fits) {
       forced += 1;
       area += a;
       continue;
     }
-    rest.push(a);
-    slack += 2 * tol * (Math.max(0, w) + Math.max(0, h));
+    const grow = grows(item, paired);
+    const gw = Math.max(0, w) + (grow ? mw : 0);
+    const gh = Math.max(0, h) + (grow ? mh : 0);
+    needs.push({ area: a, margined: grow ? gw * gh : a, gapped: grow ? (gw + gap) * (gh + gap) : a });
+    slackA += 2 * tol * (gw + gh);
+    slackB += 2 * tol * (gw + gh + (grow ? 2 * gap : 0));
   }
   if (!(fixedW && fixedH)) return { forced, area, free: Infinity };
 
   const free = freeAreaBound(input);
+  const edge = (extra: number): number => 2 * tol * (Math.max(0, bounds.w) + Math.max(0, bounds.h) + 2 * extra);
   // An item can go out of the container by the tolerance, thus the edge of the container adds a slack too
-  const room = free + slack + 2 * tol * (Math.max(0, bounds.w) + Math.max(0, bounds.h));
-  let sum = rest.reduce((s, a) => s + a, 0);
-  area += Math.max(0, sum - room);
-  // The largest items go first, so the count of the dropped items is the smallest count that fits the area
-  for (const a of rest.toSorted((p, q) => q - p)) {
-    if (sum <= room || !(a > 0)) break;
-    sum -= a;
-    forced += 1;
+  const a = dropsOf(needs, (n) => n.margined, free + slackA + edge(0));
+  let b = { count: 0, area: 0 };
+  if (gap > 0 && needs.some((n) => n.gapped !== n.area)) {
+    const inner = shrink(bounds, inset);
+    b = dropsOf(needs, (n) => n.gapped, (inner.w + gap) * (inner.h + gap) + slackB + edge(gap));
   }
-  return { forced, area, free };
+  return { forced: forced + Math.max(a.count, b.count), area: area + Math.max(a.area, b.area), free };
 }

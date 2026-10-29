@@ -4,7 +4,7 @@
 import { boundsOf } from "@mark1russell7/layout-contract";
 import { DEFAULT_TOLERANCE, marginOf, turnItem, type Item, type PackInput, type PackOutput, type Sides } from "./contract.ts";
 import { boxesOf, hullOf } from "./measures.ts";
-import { overflowBound } from "./overflow.ts";
+import { overflowBound, pairedIds } from "./overflow.ts";
 
 /**
  * The objective of a cell. `height` and `width` are the free side of a strip, and `area` is the area of the hull.
@@ -60,7 +60,7 @@ export interface BoundMeasures {
   "pack.bound"?: number;
   /** The code of the kind of the bound: its index in `BOUND_KINDS`. */
   "pack.bound.kind"?: number;
-  /** The distance of the result to its bound. The value 0 tells that the result is the best possible. */
+  /** The share of the bound that the result misses, from 0 to 1 (`boundShare`). The value 0 tells that the result is the best possible. */
   "pack.gap"?: number;
 }
 
@@ -82,6 +82,8 @@ interface Turn {
 interface Candidate {
   id: string;
   turns: Turn[];
+  /** The value `true` tells that the bounds can grow the item by its margin and the gap: a rectangle that is not in `pairGaps`. */
+  grow: boolean;
 }
 
 /** A rectangle of a piece, made smaller by the tolerance. */
@@ -109,15 +111,19 @@ function transpose(t: Turn): Turn {
 
 /** This function gives the items with a width and a height above 0, each with its turns. */
 function candidatesOf(input: PackInput): Candidate[] {
+  const paired = pairedIds(input);
   const out: Candidate[] = [];
   for (const item of input.items) {
     if (!(item.w > 0 && item.h > 0)) continue;
     const turns = [turnOf(item)];
     if (item.turnable === true) turns.push(turnOf(turnItem(item)));
-    out.push({ id: item.id, turns });
+    out.push({ id: item.id, turns, grow: item.shape === undefined && !paired.has(item.id) });
   }
   return out;
 }
+
+/** This function tells if a turn has a margin above 0. */
+const hasMargin = (x: Turn): boolean => x.margin.top + x.margin.right + x.margin.bottom + x.margin.left > 0;
 
 /** This function tells if a margin of an item is below 0. Then a box with its margin is smaller than the box. */
 const negativeMargin = (c: Candidate): boolean => c.turns.some((t) => Math.min(t.margin.top, t.margin.right, t.margin.bottom, t.margin.left) < 0);
@@ -202,19 +208,22 @@ function areaBound(pieces: readonly Piece[], width: number, integral: boolean): 
  * - `strip.mmv`: `mmvBound` of the pieces. An item with 2 turns that fit is not in it. Fewer items do not need more height.
  * - `strip.margin`: the area and `mmv` of the pieces with their margins. Those pieces stay out of each other too.
  *   They go above and below the hull by at most the largest top margin and the largest bottom margin.
+ * - `strip.margin` with a gap `g` above 0: the pieces also grow by `g`, and the strip grows by `g`. The bound is the larger of the 2 values.
+ *   Two items are `mA + g + mB` apart (decision 3), so these pieces stay out of each other. They go out of the hull by `g / 2` more on each side.
+ * - Only a rectangle that is not in `pairGaps` grows. A pair gap replaces the margins of its pair, and a shape counts as its piece.
  * - The tolerance: each piece becomes smaller by `t / 2` on each side. Then the pieces have no common point, and the hull loses `t`.
  * - The bounds round up only with no tolerance and whole sizes. The heights of an optimum are then whole numbers.
  */
-function stripBound(candidates: readonly Candidate[], width: number, inset: number, t: number, objective: "height" | "width", overflow: number): ObjectiveBound | null {
+function stripBound(candidates: readonly Candidate[], width: number, inset: number, t: number, objective: "height" | "width", overflow: number, gap: number): ObjectiveBound | null {
   if (!(width > 0)) return null;
   const limit = width - 2 * inset + 2 * t;
   const room = width - 2 * inset + t;
-  const kept: { id: string; turns: Turn[] }[] = [];
+  const kept: Candidate[] = [];
   let forced = overflow;
   for (const c of candidates) {
     const turns = c.turns.map((x) => (objective === "width" ? transpose(x) : x)).filter((x) => x.bw + x.margin.left + x.margin.right <= limit);
     if (turns.length === 0) forced += 1;
-    else kept.push({ id: c.id, turns });
+    else kept.push({ id: c.id, turns, grow: c.grow });
   }
   if (kept.length === 0 || !(room > 0)) return null;
 
@@ -228,15 +237,24 @@ function stripBound(candidates: readonly Candidate[], width: number, inset: numb
     "strip.mmv": mmvBound(fixedTurn, room, integral) + t,
   };
 
-  const margined = kept.some((c) => c.turns.some((x) => x.margin.top + x.margin.right + x.margin.bottom + x.margin.left > 0));
-  if (margined) {
-    const grown = (x: Turn): Piece => shrunk(x.pw + x.margin.left + x.margin.right, x.ph + x.margin.top + x.margin.bottom);
+  const margined = kept.some((c) => c.turns.some(hasMargin));
+  const gapped = gap > 0 && kept.some((c) => c.grow);
+  if (margined || gapped) {
+    const grown = (c: Candidate, g: number): Piece => {
+      const x = c.turns[0]!;
+      return c.grow ? shrunk(x.pw + x.margin.left + x.margin.right + g, x.ph + x.margin.top + x.margin.bottom + g) : shrunk(x.pw, x.ph);
+    };
     const above = Math.max(...kept.flatMap((c) => c.turns.map((x) => x.margin.top)));
     const below = Math.max(...kept.flatMap((c) => c.turns.map((x) => x.margin.bottom)));
     const grownWhole = integral && kept.every((c) => c.turns.every((x) => [x.margin.top, x.margin.right, x.margin.bottom, x.margin.left].every(whole)));
-    const all = kept.map((c) => grown(c.turns[0]!));
-    const fixed = kept.filter((c) => c.turns.length === 1).map((c) => grown(c.turns[0]!));
-    parts["strip.margin"] = Math.max(areaBound(all, room, grownWhole), mmvBound(fixed, room, grownWhole)) + t - above - below;
+    // The value of the pieces grown by the margins and by `g`, in the strip grown by `g`
+    const valueAt = (g: number): number => {
+      const all = kept.map((c) => grown(c, g));
+      const fixed = kept.filter((c) => c.turns.length === 1).map((c) => grown(c, g));
+      const exact = grownWhole && whole(g);
+      return Math.max(areaBound(all, room + g, exact), mmvBound(fixed, room + g, exact)) + t - above - below - g;
+    };
+    parts["strip.margin"] = gapped ? Math.max(valueAt(0), valueAt(gap)) : valueAt(0);
   }
   const { value, kind } = strongest(parts, "lower");
   return { objective, sense: "lower", value, kind, parts, items: kept.map((c) => c.id), overflow: forced };
@@ -259,9 +277,11 @@ function areaFloor(a: number, b: number, s: number, mx: number, my: number): num
  *   Its long side goes on one of the 2 axes.
  * - `hull.margin`: the pieces with their margins do not overlap. They stay in the hull grown by the largest margins.
  *   `areaFloor` gives the least hull for that.
+ * - `hull.margin` with a gap `g` above 0: the pieces and the growth of the hull also get `g`, as in a strip. The bound is the larger of the 2 values.
+ * - Only a rectangle that is not in `pairGaps` grows, as in a strip.
  * - The tolerance: each piece becomes smaller by `t / 2` on each side, as in a strip.
  */
-function hullBound(candidates: readonly Candidate[], t: number): ObjectiveBound | null {
+function hullBound(candidates: readonly Candidate[], t: number, gap: number): ObjectiveBound | null {
   if (candidates.length === 0) return null;
   let a = 0;
   let b = 0;
@@ -285,14 +305,21 @@ function hullBound(candidates: readonly Candidate[], t: number): ObjectiveBound 
     "hull.extent": long > 0 ? Math.min(Math.max(a, long) * b, a * Math.max(b, long)) : a * b,
   };
   const all = candidates.flatMap((c) => c.turns);
-  if (all.some((x) => x.margin.top + x.margin.right + x.margin.bottom + x.margin.left > 0)) {
+  const gapped = gap > 0 && candidates.some((c) => c.grow);
+  if (all.some(hasMargin) || gapped) {
     const most = (side: keyof Sides): number => Math.max(...all.map((x) => x.margin[side]));
-    let grown = 0;
-    for (const c of candidates) {
-      const x = c.turns[0]!;
-      grown += Math.max(0, x.pw + x.margin.left + x.margin.right - t) * Math.max(0, x.ph + x.margin.top + x.margin.bottom - t);
-    }
-    parts["hull.margin"] = areaFloor(a, b, grown, Math.max(0, most("left") + most("right") - t), Math.max(0, most("top") + most("bottom") - t));
+    // The least hull for the pieces grown by the margins and by `g`, in the hull grown by the margins and by `g`
+    const valueAt = (g: number): number => {
+      let grown = 0;
+      for (const c of candidates) {
+        const x = c.turns[0]!;
+        grown += c.grow
+          ? Math.max(0, x.pw + x.margin.left + x.margin.right + g - t) * Math.max(0, x.ph + x.margin.top + x.margin.bottom + g - t)
+          : Math.max(0, x.pw - t) * Math.max(0, x.ph - t);
+      }
+      return areaFloor(a, b, grown, Math.max(0, most("left") + most("right") + g - t), Math.max(0, most("top") + most("bottom") + g - t));
+    };
+    parts["hull.margin"] = gapped ? Math.max(valueAt(0), valueAt(gap)) : valueAt(0);
   }
   const { value, kind } = strongest(parts, "lower");
   return { objective: "area", sense: "lower", value, kind, parts, items: candidates.map((c) => c.id), overflow: 0 };
@@ -307,7 +334,8 @@ const itemAreaOf = (input: PackInput): number => input.items.reduce((sum, i) => 
  * - A fixed width or a fixed height: a lower bound of the free side of the hull, by `strip.*`.
  * - No fixed side: a lower bound of the area of the hull, by `hull.*`. The aspect term of `freeAspect` is 0 or more, so the bound holds for it too.
  * - A fixed size: an upper bound of the placed share of the item area. `overflowBound` gives the free area, the shapes and the obstacles.
- * - The bounds ignore the obstacles of a free side and the gap. No hard rule needs the gap, and fewer limits do not make the optimum worse.
+ * - The bounds count the margins and the gap of the rectangle items that are not in `pairGaps`. Decision 3 keeps two items `mA + gap + mB` apart.
+ * - The bounds ignore the obstacles of a free side. Fewer limits do not make the optimum worse.
  * - A shaped container counts as its bounding box, as in the hard rules. A margin below 0 gives `null`.
  *
  * @example
@@ -323,13 +351,14 @@ export function objectiveBound(input: PackInput, options: BoundOptions = {}): Ob
   if (candidates.length === 0 || candidates.some(negativeMargin)) return null;
   const box = container.shape === undefined ? { x: 0, y: 0, w: container.w ?? NaN, h: container.h ?? NaN } : boundsOf(container.shape);
   const inset = container.inset ?? 0;
+  const gap = Math.max(0, input.gap ?? 0);
   switch (container.fixed) {
     case "width":
-      return stripBound(candidates, box.w, inset, t, "height", 0);
+      return stripBound(candidates, box.w, inset, t, "height", 0, gap);
     case "height":
-      return stripBound(candidates, box.h, inset, t, "width", 0);
+      return stripBound(candidates, box.h, inset, t, "width", 0, gap);
     case "none":
-      return hullBound(candidates, t);
+      return hullBound(candidates, t, gap);
     case "size": {
       const total = itemAreaOf(input);
       if (!(total > 0)) return null;
@@ -358,10 +387,12 @@ export function objectiveResult(input: PackInput, output: PackOutput, bound: Obj
 }
 
 /**
- * This function gives the distance of a result to its bound. The value 0 tells that the result is the best possible.
+ * This function gives the ratio of a result to its bound, less 1. The value 0 tells that the result is the best possible.
  *
  * - For `lower`, the gap is `result / bound - 1`. For `upper`, it is `bound / result - 1`.
  * - When both values are 0, the gap is 0. When only the divisor is 0, the gap is `Infinity`.
+ * - The ratio has no upper end: a small result over its bound gives a large value. `pack.gap` uses `boundShare` since k118.
+ * - The loss of the adversarial search (k47) uses this ratio, so its corpus stays the same.
  */
 export function boundGap(result: number, bound: number, sense: "lower" | "upper"): number {
   const top = sense === "lower" ? result : bound;
@@ -371,17 +402,35 @@ export function boundGap(result: number, bound: number, sense: "lower" | "upper"
 }
 
 /**
+ * This function gives the share of the better value that a result misses. It is the measure `pack.gap` since roadmap item k118.
+ *
+ * - For `lower`, the share is `1 - bound / result`. For `upper`, it is `1 - result / bound`.
+ * - The share is `g / (1 + g)` of the ratio `g` of `boundGap`. Thus the two forms give the same order of the results.
+ * - When both values are 0, the share is 0. When only the divisor is 0, the bound is wrong, and the share is -1.
+ *
+ * The proof of the range: the bound and the result are 0 or more, so the quotient is 0 or more. Thus the share is at most 1.
+ * The quotient is 1 or less only when the result is not better than the bound. Thus a share below 0 tells that the bound is wrong.
+ */
+export function boundShare(result: number, bound: number, sense: "lower" | "upper"): number {
+  const small = sense === "lower" ? bound : result;
+  const large = sense === "lower" ? result : bound;
+  if (large === 0) return small === 0 ? 0 : -1;
+  return 1 - small / large;
+}
+
+/**
  * This function gives the bound measures of one layout. The values are not rounded. The function `measure` does not give
  * them, so its records stay the same. The bench adds them.
  *
  * - `pack.bound` and `pack.bound.kind` come from `objectiveBound`. A cell with no bound gives no measure.
- * - `pack.gap` comes from `boundGap`. It is absent when the result does not compare.
+ * - `pack.gap` comes from `boundShare`, from 0 to 1. It is absent when the result does not compare.
+ * - Before k118, `pack.gap` was the ratio of `boundGap`, with no upper end.
  */
 export function boundMeasures(input: PackInput, output: PackOutput, options: BoundOptions = {}): BoundMeasures {
   const bound = objectiveBound(input, options);
   if (bound === null) return {};
   const out: BoundMeasures = { "pack.bound": bound.value, "pack.bound.kind": BOUND_KINDS.indexOf(bound.kind) };
   const result = objectiveResult(input, output, bound);
-  if (result !== undefined) out["pack.gap"] = boundGap(result, bound.value, bound.sense);
+  if (result !== undefined) out["pack.gap"] = boundShare(result, bound.value, bound.sense);
   return out;
 }

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { corpusFamilies, generator, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, HOLE_DEGREE_MAX_STEPS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
+import { corpusFamilies, generator, type GeneratedInput, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, HOLE_DEGREE_MAX_STEPS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
 import {
   checkConfig,
   checkSpace,
   configId,
+  createFamilyRegistry,
   dimensionSupports,
   shapeKindsOf,
   stepRandom,
@@ -17,10 +18,14 @@ import {
   drawInput,
   drawParams,
   drawStratum,
+  KNOB_RATIO,
+  knobRatio,
   MAX_STRATUM_MISSES,
+  medianSide,
   memberListCount,
   paramCount,
   pickWeighted,
+  resolveDraw,
   sampleOptions,
   sampleSpace,
   spaceCounts,
@@ -156,6 +161,42 @@ describe("the draw of an input", () => {
     }
   });
 
+  it("draws a relative knob with one random number, so the family, the params and the seed stay those of an absolute draw", () => {
+    const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
+    for (let i = 0; i < 80; i++) {
+      const abs = drawInput(stepRandom(9, `k118-${i}`), corpusFamilies);
+      const rel = drawInput(stepRandom(9, `k118-${i}`), corpusFamilies, { knobScale: "relative" });
+      expect([rel.family, rel.seed]).toEqual([abs.family, abs.seed]);
+      for (const [name, v] of Object.entries(abs.dims)) if (name !== "margin" && name !== "gap") expect(rel.dims[name]).toEqual(v);
+      if (!("margin" in abs.dims)) continue;
+      expect(Object.keys(rel.ratios ?? {}).sort()).toEqual(["gap", "margin"]);
+      const done = resolveDraw(rel, registry);
+      let file: GeneratedInput;
+      try {
+        file = registry.generate(rel.family, rel.seed, { ...rel.dims, margin: 0, gap: 0 }, { version: rel.version, set: "sample-space" });
+      } catch {
+        continue;
+      }
+      const side = medianSide(file.boxes);
+      for (const k of ["margin", "gap"]) {
+        const ratio = rel.ratios![k]!;
+        expect(ratio === 0 || (ratio >= KNOB_RATIO.min && ratio <= KNOB_RATIO.max)).toBe(true);
+        expect(done.dims[k]).toBe(Math.min(32, Math.round(ratio * side * 1000) / 1000));
+      }
+    }
+  });
+
+  it("gives the ratio 0 for a third of the numbers, and a log scale from 0.01 to 0.5 for the rest", () => {
+    expect(knobRatio(0)).toBe(0);
+    expect(knobRatio(0.3333)).toBe(0);
+    expect(knobRatio(1 / 3)).toBe(0.01);
+    expect(knobRatio(2 / 3)).toBeCloseTo(Math.sqrt(0.01 * 0.5), 4);
+    expect(knobRatio(0.999999)).toBeCloseTo(0.5, 3);
+    expect(medianSide([{ w: 2, h: 10 }, { w: 4, h: 6 }])).toBe(5);
+    expect(medianSide([{ w: 3, h: 7 }, { w: 1, h: 1 }, { w: 9, h: 9 }])).toBe(5);
+    expect(medianSide([])).toBe(0);
+  });
+
   it("keeps the knobs at their defaults with knobs false", () => {
     const r = stepRandom(4, "knobs");
     for (let i = 0; i < 50; i++) {
@@ -194,6 +235,9 @@ describe("the sample of pairs", () => {
   it("reads the options of the command line", () => {
     expect(sampleOptions(["--n", "60", "--draw", "option", "--no-knobs", "--max-minutes", "5"], ENV)).toMatchObject({ n: 60, draw: "option", knobs: false, maxMinutes: 5, seed: 1 });
     expect(sampleOptions([], ENV).draw).toBe("uniform");
+    expect(sampleOptions([], ENV).knobScale).toBe("relative");
+    expect(sampleOptions(["--knobs", "absolute"], ENV).knobScale).toBe("absolute");
+    expect(() => sampleOptions(["--knobs", "big"], ENV)).toThrow(/relative or absolute/);
     expect(sampleOptions(["--stratify"], ENV).draw).toBe("stratified");
     expect(sampleOptions(["--draw", "stratified"], ENV).draw).toBe("stratified");
     expect(() => sampleOptions(["--stratify", "--draw", "option"], ENV)).toThrow(/does not go with/);
@@ -208,6 +252,22 @@ describe("the sample of pairs", () => {
     expect(a.summary.draw).toBe("uniform");
     expect("strata" in a.summary).toBe(false);
   });
+});
+
+describe("the range of pack.gap on sampled pairs (k118)", () => {
+  // The share form of pack.gap is at most 1 by its definition, and 0 or more when the bound is sound.
+  for (const knobScale of ["relative", "absolute"] as const) {
+    it(`gives 0 <= pack.gap <= 1 on each pair with ${knobScale} knobs`, () => {
+      const { records } = sampleSpace({ n: 6, seed: 1, env: ENV, maxCount: 40, draw: "stratified", knobScale, clock: fakeClock(), maxInputTries: 20 });
+      const gaps = records.map((r) => r.measures["pack.gap"]).filter((g): g is number => g !== undefined);
+      expect(gaps.length).toBeGreaterThan(0);
+      for (const g of gaps) {
+        expect(g).toBeGreaterThanOrEqual(0);
+        expect(g).toBeLessThanOrEqual(1);
+      }
+      if (knobScale === "relative") for (const r of records) expect(r.knobRatios).toBeDefined();
+    });
+  }
 });
 
 describe("the strata of k115", () => {

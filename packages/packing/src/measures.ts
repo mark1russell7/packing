@@ -158,7 +158,8 @@ export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.fr
   "pack.search.widths": anyShape(spec("pack.search.widths", "speed", "count", "lower", 0, Infinity, 0)),
   "pack.search.ms": anyShape(spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity, undefined)),
   // The distance to the bound of the cell (roadmap item k51). `boundMeasures` of `src/bounds.ts` gives it, not `measure`.
-  "pack.gap": spec("pack.gap", "bound", "ratio", "lower", 0, Infinity, 0.005),
+  // Since k118 it is the share `boundShare`, from 0 to 1.
+  "pack.gap": spec("pack.gap", "bound", "share", "lower", 0, 1, 0.005),
   "pack.gapToOpt": spec("pack.gapToOpt", "density", "ratio", "lower", 0, Infinity, 0.005),
 });
 

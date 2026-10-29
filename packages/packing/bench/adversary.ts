@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  boundMeasures,
+  boundGap,
   checkHard,
   corpusFamilies,
   countCell,
@@ -19,6 +19,8 @@ import {
   hashInput,
   measure,
   mulberry32,
+  objectiveBound,
+  objectiveResult,
   packWith,
   strategy,
   toPackInput,
@@ -29,6 +31,7 @@ import {
   type GeneratorParams,
   type LayoutContainer,
   type PackInput,
+  type PackOutput,
 } from "@mark1russell7/packing";
 import { ENTRIES, entry, isComposite } from "./entries.ts";
 
@@ -91,7 +94,18 @@ export interface AdversaryOptions {
   origins?: readonly string[];
 }
 
-/** The measure of the loss: the fill for a fixed container, the gap to the bound of k51 for the other containers. */
+/**
+ * This function gives the ratio of the result of a layout to its bound of k51, less 1: `boundGap`, the form of `pack.gap` before k118.
+ * The search reads this form, so the corpus `pack-adversary-v1` stays the same. A cell without a bound or a result gives `undefined`.
+ */
+export function ratioGap(input: PackInput, output: PackOutput): number | undefined {
+  const bound = objectiveBound(input);
+  if (bound === null) return undefined;
+  const result = objectiveResult(input, output, bound);
+  return result === undefined ? undefined : boundGap(result, bound.value, bound.sense);
+}
+
+/** The measure of the loss: the fill for a fixed container, the ratio gap to the bound of k51 for the other containers. */
 export type LossMeasure = "fill" | "gap";
 
 /** The score of one candidate. */
@@ -194,7 +208,7 @@ function valueOf(id: string, input: PackInput, cell: CorpusCell, seed: number, k
   try {
     const output = packWith(e.strategy, input, given, seed);
     const hard = Object.values(checkHard(input, output, DEFAULT_TOLERANCE)).reduce((sum, n) => sum + n, 0);
-    const value = kind === "fill" ? measure(input, output)["pack.fill"] : boundMeasures(input, output)["pack.gap"];
+    const value = kind === "fill" ? measure(input, output)["pack.fill"] : ratioGap(input, output);
     return value === undefined || !Number.isFinite(value) ? undefined : { value, hard };
   } catch (error) {
     if (error instanceof UnsupportedCell) return undefined;

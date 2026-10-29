@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { boundMeasures, checkHard, checkInput, DEFAULT_TOLERANCE, generator, hashInput, measure, mulberry32, packWith, strategy, toPackInput, type GeneratedInput } from "@mark1russell7/packing";
+import { checkHard, checkInput, DEFAULT_TOLERANCE, generator, hashInput, measure, mulberry32, packWith, strategy, toPackInput, type GeneratedInput } from "@mark1russell7/packing";
 import {
   ADVERSARY_CORPUS,
   ADVERSARY_FILE,
@@ -13,6 +13,7 @@ import {
   lossOf,
   mutateSizes,
   pairOptions,
+  ratioGap,
   readAdversaryCorpus,
   searchAdversary,
   SINGLE_ENTRIES,
@@ -40,7 +41,7 @@ function hardOf(id: string, file: GeneratedInput): number {
 /** This function gives the value of the loss measure of an entry: the fill for a fixed size, else the gap. */
 function valueOf(id: string, file: GeneratedInput): number {
   const { input, output } = packEntry(id, file);
-  return file.container.fixed === "size" ? measure(input, output)["pack.fill"] : boundMeasures(input, output)["pack.gap"]!;
+  return file.container.fixed === "size" ? measure(input, output)["pack.fill"] : ratioGap(input, output)!;
 }
 
 /** This function tells that a file is a valid `layout-input/1` input of the search, with its hash. */
