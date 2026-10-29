@@ -63,7 +63,7 @@ function unionSupports(): Supports {
 }
 
 /** One item of the order of a member, with the compare key of its sort order */
-interface Keyed {
+export interface Keyed {
   item: Item;
   key: number;
 }
@@ -72,7 +72,7 @@ interface Keyed {
  * This function gives the items in the order of the member: the rank order, then a stable sort by the sort order.
  * The sizes are the sizes of the frame: the margins and the gap are in them. A fixed height turns the axes.
  */
-function memberOrder(input: PackInput, order: SortOrder): Keyed[] {
+export function memberOrder(input: PackInput, order: SortOrder): Keyed[] {
   const half = (input.gap ?? 0) / 2;
   const turned = input.container.fixed === "height";
   const keyed = byRank(input.items).map((item): Keyed => {
@@ -125,7 +125,7 @@ function inOrder(input: PackInput, order: readonly Keyed[]): PackInput {
 }
 
 /** This function puts the placements and the overflow of an output in the rank order of the input. */
-function rankSorted(output: PackOutput, index: ReadonlyMap<string, number>): PackOutput {
+export function rankSorted(output: PackOutput, index: ReadonlyMap<string, number>): PackOutput {
   const at = (id: string): number => index.get(id) ?? Number.MAX_SAFE_INTEGER;
   return { ...output, placements: output.placements.toSorted((a, b) => at(a.id) - at(b.id)), overflow: output.overflow.toSorted((a, b) => at(a) - at(b)) };
 }

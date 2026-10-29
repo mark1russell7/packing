@@ -3,6 +3,7 @@ import { aspectFit } from "./aspect-fit.ts";
 import { bboxStrategy } from "./bbox.ts";
 import { holeDegree } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
+import { annealStrategy, geneticStrategy, tabuStrategy } from "./order-search.ts";
 import { portfolioStrategy } from "./portfolio-strategy.ts";
 import { overlapMinStrategy } from "./overlap-min.ts";
 import { restartsStrategy } from "./restarts.ts";
@@ -65,9 +66,9 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
  * The composite strategies of the registry: each one packs an input with other strategies. They are not in `strategies`.
  * Since 0.2.7, the list has `portfolio` of roadmap item k20. Roadmap item k62 adds `aspect-fit`, and roadmap item k66 adds `select`.
  * Roadmap item k78 adds `restarts`, roadmap item k91 adds `bbox`, and roadmap item k79 adds `ruin-recreate`.
- * Roadmap item k80 adds `overlap-min`.
+ * Roadmap item k80 adds `overlap-min`, and roadmap item k26 adds `anneal`, `genetic` and `tabu`.
  */
-export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy] as Strategy[]);
+export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy] as Strategy[]);
 
 /**
  * This function gives the strategy with an id, also a strategy of `shapeStrategies` and a composite strategy.

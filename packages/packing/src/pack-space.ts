@@ -24,6 +24,7 @@ import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
+import type { AnnealStrategyOptions, GeneticStrategyOptions, TabuStrategyOptions } from "./order-search.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
 import { SKYLINE_RULES } from "./skyline.ts";
 import { MEASURE_SPECS } from "./measures.ts";
@@ -111,6 +112,33 @@ const RUIN_RECREATE_PARAMS: readonly SpaceParam[] = [
 const OVERLAP_MIN_PARAMS: readonly SpaceParam[] = [
   { name: "iterations", kind: "int", min: 64, max: 65536, scale: "log", default: 8192 },
   { name: "step", kind: "real", min: 0.001, max: 0.5, scale: "log", default: 0.01 },
+];
+
+/** The param `iterations` of the searches over orders of roadmap item k26: the count of the packs of the member. */
+const SEARCH_ITERATIONS: SpaceParam = { name: "iterations", kind: "int", min: 1, max: 256, scale: "log", default: 64 };
+
+/** The params of `anneal` of roadmap item k26: the count of the packs, the start temperature and the cooling. Then the work limit follows. */
+const ANNEAL_PARAMS: readonly SpaceParam[] = [
+  SEARCH_ITERATIONS,
+  { name: "temperature", kind: "real", min: 0.0001, max: 1, scale: "log", default: 0.01 },
+  { name: "cooling", kind: "real", min: 0.0001, max: 1, scale: "log", default: 0.01 },
+  ...WORK_PARAMS,
+];
+
+/** The params of `genetic` of roadmap item k26: the count of the packs, the population and the mutation chance. Then the work limit follows. */
+const GENETIC_PARAMS: readonly SpaceParam[] = [
+  SEARCH_ITERATIONS,
+  { name: "population", kind: "int", min: 2, max: 64, scale: "log", default: 8 },
+  { name: "mutation", kind: "real", min: 0, max: 1, default: 0.5 },
+  ...WORK_PARAMS,
+];
+
+/** The params of `tabu` of roadmap item k26: the count of the packs, the tenure and the count of the moves of a step. Then the work limit follows. */
+const TABU_PARAMS: readonly SpaceParam[] = [
+  SEARCH_ITERATIONS,
+  { name: "tenure", kind: "int", min: 0, max: 64, default: 7 },
+  { name: "neighbors", kind: "int", min: 1, max: 64, scale: "log", default: 8 },
+  ...WORK_PARAMS,
 ];
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
@@ -241,6 +269,9 @@ const STAGES: readonly SpaceStage[] = [
       { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true, view: "bounds" }, supports: BBOX_ONLY },
       { id: "ruin-recreate", params: RUIN_RECREATE_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "overlap-min", params: OVERLAP_MIN_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "anneal", params: ANNEAL_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "genetic", params: GENETIC_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "tabu", params: TABU_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
 ];
@@ -280,8 +311,8 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  *
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate` and `overlap-min`.
- * - `restarts`, `bbox`, `ruin-recreate` and `overlap-min` have 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` and `tabu`.
+ * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` and `tabu` have 1 member.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
@@ -329,6 +360,13 @@ export const packSpace: StrategySpace = Object.freeze({
     "overlap-min-maxrects-bl-k8192": metaConfig("overlap-min", [single("maxrects-bl")], { iterations: 8192 }),
     "overlap-min-skyline-k8192": metaConfig("overlap-min", [single("skyline")], { iterations: 8192 }),
     "overlap-min": metaConfig("overlap-min", [single("maxrects-bl")]),
+    "anneal-maxrects-bl-k16": metaConfig("anneal", [single("maxrects-bl")], { iterations: 16 }),
+    "anneal-skyline-k16": metaConfig("anneal", [single("skyline")], { iterations: 16 }),
+    "genetic-maxrects-bl-k16": metaConfig("genetic", [single("maxrects-bl")], { iterations: 16, population: 4 }),
+    "tabu-maxrects-bl-k16": metaConfig("tabu", [single("maxrects-bl")], { iterations: 16, neighbors: 4 }),
+    anneal: metaConfig("anneal", [single("maxrects-bl")]),
+    genetic: metaConfig("genetic", [single("maxrects-bl")]),
+    tabu: metaConfig("tabu", [single("maxrects-bl")]),
   },
 } satisfies StrategySpace);
 
@@ -415,6 +453,27 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     iterations: "combine.overlap-min.iterations",
     step: "combine.overlap-min.step",
   } satisfies Places<OverlapMinStrategyOptions>,
+  anneal: {
+    member: "combine.anneal.members",
+    iterations: "combine.anneal.iterations",
+    budgetWork: "combine.anneal.budgetWork",
+    temperature: "combine.anneal.temperature",
+    cooling: "combine.anneal.cooling",
+  } satisfies Places<AnnealStrategyOptions>,
+  genetic: {
+    member: "combine.genetic.members",
+    iterations: "combine.genetic.iterations",
+    budgetWork: "combine.genetic.budgetWork",
+    population: "combine.genetic.population",
+    mutation: "combine.genetic.mutation",
+  } satisfies Places<GeneticStrategyOptions>,
+  tabu: {
+    member: "combine.tabu.members",
+    iterations: "combine.tabu.iterations",
+    budgetWork: "combine.tabu.budgetWork",
+    tenure: "combine.tabu.tenure",
+    neighbors: "combine.tabu.neighbors",
+  } satisfies Places<TabuStrategyOptions>,
   pack: {
     sortOrder: "order",
     space: null,
@@ -549,8 +608,9 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
  * - The param `limitWork` of a portfolio and of `restarts` gives the option `budgetWork` (roadmap item k117).
+ * - The param `limitWork` of `anneal`, `genetic` and `tabu` gives the option `budgetWork` too (roadmap item k26).
  * - A base config packs with its single strategy of the registry.
- * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate` or `overlap-min`.
+ * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` or `tabu`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  */
@@ -600,6 +660,12 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
     }
     case "overlap-min":
       return packWith("overlap-min", input, { member: entryOf(members[0]!), iterations: params["iterations"], step: params["step"] }, seed);
+    case "anneal":
+      return packWith("anneal", input, { member: entryOf(members[0]!), iterations: params["iterations"], temperature: params["temperature"], cooling: params["cooling"], ...work }, seed);
+    case "genetic":
+      return packWith("genetic", input, { member: entryOf(members[0]!), iterations: params["iterations"], population: params["population"], mutation: params["mutation"], ...work }, seed);
+    case "tabu":
+      return packWith("tabu", input, { member: entryOf(members[0]!), iterations: params["iterations"], tenure: params["tenure"], neighbors: params["neighbors"], ...work }, seed);
     default: {
       const run = runOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);

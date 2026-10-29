@@ -221,11 +221,11 @@ A search changes the input of a fast packer, the "decoder", and keeps the best r
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `search-ga-order` | Genetic algorithm over orders | Keep a population of orders. Cross two orders and change some places. Decode each order with `bl-jakobs` or `blf-hopper`. | Jakobs 1996, Hopper 2001 | density | generations x population x decoder | — | planned | k26 |
+| `search-ga-order` | Genetic algorithm over orders | Keep a population of orders. Cross two orders and change some places. Decode each order with `bl-jakobs` or `blf-hopper`. | Jakobs 1996, Hopper 2001 | density | generations x population x decoder | — | implemented: `genetic`, entry `genetic-maxrects-bl-k16` | k26 |
 | `search-ga-layers` | Genetic algorithm over layers | Encode a layout as layers of boxes. Cross and change the layers. | Bortfeldt 2006 | density | generations x population | — | planned | k26 |
-| `search-sa-order` | Simulated annealing over orders | Swap two boxes in the order. Keep a worse order with a probability that falls with the temperature. | Hopper 2001, Kirkpatrick 1983 | density | steps x decoder | — | planned | k26 |
+| `search-sa-order` | Simulated annealing over orders | Swap two boxes in the order. Keep a worse order with a probability that falls with the temperature. | Hopper 2001, Kirkpatrick 1983 | density | steps x decoder | — | implemented: `anneal`, entries `anneal-maxrects-bl-k16` and `anneal-skyline-k16` | k26 |
 | `search-sa-best-fit` | Annealing with best fit | Place the first boxes with an order that annealing finds. Place the rest with `best-fit-bkw`. | Burke 2009 | density | steps x decoder | — | planned | k26 |
-| `search-tabu` | Tabu search | Move a box from the worst bin or level to another place. Forbid the reverse move for some steps. | Lodi 1999, Iori 2003 | density | steps x decoder | — | planned | k26 |
+| `search-tabu` | Tabu search | Move a box from the worst bin or level to another place. Forbid the reverse move for some steps. | Lodi 1999, Iori 2003 | density | steps x decoder | — | implemented: `tabu`, entry `tabu-maxrects-bl-k16` | k26 |
 | `search-naive-evolution` | Naive evolution | Change the order at random and keep the better order. | Hopper 2001 | density | steps x decoder | — | planned | k26 |
 | `search-grasp` | Reactive GRASP | Build an order with a random greedy rule. Improve it with a local search. Learn the best amount of randomness from the results. | Alvarez-Valdes 2008 | density | starts x decoder | — | planned | k26 |
 | `search-ils` | Local search in three stages | Build an order with a greedy rule. Improve it with a local search that has no randomness. Then do a local search with random changes. | Wei 2016 | density | steps x decoder | — | planned | k26 |

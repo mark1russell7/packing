@@ -108,6 +108,17 @@ export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb
 export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
+export {
+  ANNEAL_STAGE,
+  annealStrategy,
+  GENETIC_STAGE,
+  geneticStrategy,
+  TABU_STAGE,
+  tabuStrategy,
+  type AnnealStrategyOptions,
+  type GeneticStrategyOptions,
+  type TabuStrategyOptions,
+} from "./order-search.ts";
 export { RUIN_KINDS, RUIN_RECREATE_STAGE, ruinRecreateStrategy, type RuinKind, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 export {
   cellKey,

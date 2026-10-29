@@ -407,6 +407,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k26",
+    title: "The new strategies `anneal`, `genetic` and `tabu` search the order of the boxes. A member packs each order, and the result is never worse than the member.",
+    pr: 159,
+    link: "https://github.com/mark1russell7/packing/pull/159",
+  },
+  {
+    date: "2026-10-29",
     item: "k116",
     title: "The space coverage has an active draw: each round measures the pairs where the model disagrees most. The model can also read features of the input itself.",
     pr: 154,

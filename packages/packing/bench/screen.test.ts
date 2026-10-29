@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, OVERLAP_MIN_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
@@ -11,7 +11,8 @@ import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown,
 const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test", cpu: "test", cpus: 1 };
 const smoke = parseCorpus(readFileSync(join(import.meta.dirname, "corpora", "smoke-v1.json"), "utf8"), "smoke-v1");
 // The entries of overlap-min (k80) make 8192 moves on each strip. This test gives them 256 moves, so it stays fast. The checks stay the same.
-const FAST = Object.fromEntries(OVERLAP_MIN_ENTRIES.map((e) => [e.id, { iterations: 256 }]));
+// The searches over orders (k26) pack 16 orders. This test gives them 4 packs.
+const FAST = Object.fromEntries([...OVERLAP_MIN_ENTRIES.map((e) => [e.id, { iterations: 256 }]), ...ORDER_SEARCH_ENTRIES.map((e) => [e.id, { iterations: 4 }])]);
 const full = runBench({ corpus: smoke, prediction: "p-test", repeats: 1, warmup: 0, env: ENV, entryOptions: FAST });
 
 const rec = (strategy: string, input: string, hash: string, measures: Record<string, number> = {}): ScreenRecord => ({ strategy, input, outputHash: hash, measures });
@@ -267,6 +268,7 @@ describe("the screen on smoke-v1", () => {
       ...Object.fromEntries(BBOX_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(RUIN_RECREATE_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(OVERLAP_MIN_ENTRIES.map((e) => [e.id, e.base])),
+      ...Object.fromEntries(ORDER_SEARCH_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(SKYLINE_VARIANTS.map((e) => [e.id, e.base])),
     });
   });

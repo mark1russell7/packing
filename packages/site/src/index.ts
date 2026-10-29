@@ -83,6 +83,9 @@ const STRATEGY_LABELS: Record<string, string> = {
   "hole-degree": "Hole degree (circles)",
   "ruin-recreate": "Ruin-recreate",
   "overlap-min": "Overlap min",
+  anneal: "Annealing",
+  genetic: "Genetic",
+  tabu: "Tabu search",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
 
@@ -114,6 +117,12 @@ const OPTION_LABELS: Record<string, string> = {
   ruin: "Ruin",
   shrink: "Goal shrink",
   step: "Cut step",
+  temperature: "Temperature",
+  cooling: "Cooling",
+  population: "Population",
+  mutation: "Mutation",
+  tenure: "Tabu tenure",
+  neighbors: "Moves per step",
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 

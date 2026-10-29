@@ -50,12 +50,14 @@ describe("packSpace", () => {
     // The ruin and recreate of k79 gives 108 param points with 3 levels and 4 with 1 level, for each base config.
     // The overlap minimization of k80 gives 9 param points for each base config with 3 levels, and 1 with 1 level.
     // Before k80 the counts were 185246197022536573518, 66707889492006738, 184312874572011990510 and 66333631179349290.
+    // Before k26 the counts were 185246197022536600275, 66707889492007629, 184312874572012017240 and 66333631179350180.
+    // The searches over orders of k26 give 135 param points each with 3 levels and 5 each with 1 level, for each base config.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022536600275n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492007629n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572012017240n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179350180n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022537804340n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492020994n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572013220090n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179363530n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -352,10 +354,30 @@ describe("packSpace and the options of the strategies", () => {
     expect(() => packConfig(strip, overlap({ step: 0 }), 3)).toThrow(/step/);
   });
 
+  // Roadmap item k26: the searches over orders
+  it("gives the options of anneal, genetic and tabu with their params, and budgetWork only with limitWork", () => {
+    const search = (option: string, params: Record<string, string | number | boolean>, member = "maxrects-bl"): StrategyConfig => ({
+      space: "packing",
+      stages: { combine: { option, params, members: [named[member]!] } },
+    });
+    const want = (id: string, options: Record<string, unknown>, seed = 3): string => outputHash(packWith(id, input, options, seed));
+    // The default member of each search is maxrects-bl. The test of the named configs in `bench/pack-space.test.ts` packs them.
+    for (const id of ["anneal", "genetic", "tabu"]) expect(configId(packSpace, named[id]!), id).toBe(configId(packSpace, search(id, {})));
+    expect(outputHash(packConfig(input, search("anneal", { iterations: 4, temperature: 0.1, cooling: 0.5 }), 3))).toBe(want("anneal", { iterations: 4, temperature: 0.1, cooling: 0.5 }));
+    expect(outputHash(packConfig(input, search("genetic", { iterations: 4, population: 3, mutation: 1 }), 3))).toBe(want("genetic", { iterations: 4, population: 3, mutation: 1 }));
+    expect(outputHash(packConfig(input, search("tabu", { iterations: 4, tenure: 2, neighbors: 3 }), 3))).toBe(want("tabu", { iterations: 4, tenure: 2, neighbors: 3 }));
+    expect(configId(packSpace, named["anneal-skyline-k16"]!)).toBe(configId(packSpace, search("anneal", { iterations: 16 }, "skyline")));
+    const work = packConfig(input, search("tabu", { iterations: 4, limitWork: true, budgetWork: 4000 }), 3);
+    expect(outputHash(work)).toBe(want("tabu", { iterations: 4, budgetWork: 4000 }));
+    expect(work.trace!.at(-1)!.measures).toMatchObject({ "work.budget": 4000 });
+    expect(() => packConfig(input, search("genetic", { budgetWork: 4000 }), 3)).toThrow(/budgetWork/);
+    expect(() => packConfig(input, search("anneal", { iterations: 0 }), 3)).toThrow(/iterations/);
+  });
+
   // Roadmap item k117: the work limit has the switch param limitWork, as the time limit has limitTime.
   it("gives the option budgetWork with the param limitWork, for a portfolio and for restarts", () => {
     const combine = packSpace.stages.find((s) => s.name === "combine")!;
-    for (const id of ["portfolio", "cell-portfolio", "restarts"]) {
+    for (const id of ["portfolio", "cell-portfolio", "restarts", "anneal", "genetic", "tabu"]) {
       const params = combine.options.find((o) => o.id === id)!.params;
       expect(params.find((p) => p.name === "limitWork"), id).toEqual({ name: "limitWork", kind: "bool", default: false });
       expect(params.find((p) => p.name === "budgetWork"), id).toEqual({ name: "budgetWork", kind: "enum", values: [4000, 16000, 64000, 256000], default: 16000, when: { param: "limitWork", in: [true] } });
