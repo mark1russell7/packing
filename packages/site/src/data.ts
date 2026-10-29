@@ -298,8 +298,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k47",
     title: "A seeded search finds the inputs where one strategy loses most to another. The corpus `pack-adversary-v1` has the worst input of 6 pairs.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pull/0",
+    pr: 143,
+    link: "https://github.com/mark1russell7/packing/pull/143",
   },
   {
     date: "2026-10-29",
