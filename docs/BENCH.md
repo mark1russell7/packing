@@ -386,6 +386,15 @@ A local small run of 2026-10-28 on `pack-anchor-v1`, all 51 inputs. The numbers 
 - `rows` has the smallest medians of `mean` and `max` on the first step. Its loop also jumps, in a later step.
 - An input settles only when each of its locked items settles. At the gain limit 1, few inputs settle.
 
+The CI run [40799160871](https://github.com/mark1russell7/packing/actions/runs/40799160871) of 2026-10-29 packed all 28 entries with `--anchor`. It is the record.
+
+- The 6 entries of the local run give the same medians in CI.
+- The 1377 measured records have 0 hard breaks, and each one is deterministic.
+- `rows`, `shelf`, `shelf-next` and `restarts-rows-k16` have the smallest median `mean`, 0.002.
+- The median gain of each entry is 55 to 100. `aspect-fit-maxrects-bl` and `aspect-fit-portfolio-k2` have the smallest gain, 55.9.
+- A composite entry does not make the jumps smaller. Each portfolio has a median gain of 79 to 83.
+- The largest share settled is 0.196, for `shelf-next`. `maxrects-baf` has no input that settles.
+
 ## The predictions
 
 The file `packages/packing/bench/predictions.jsonl` keeps the predictions of this repository. It starts with no lines. Each line is one JSON object:
