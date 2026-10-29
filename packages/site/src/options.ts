@@ -45,6 +45,11 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   shrink: { min: 0.001, max: 0.5, step: 0.001 },
 };
 
+/** The limits of an option with a number value of one strategy, when they are not the values of `NUMBER_LIMITS`, by strategy id. */
+export const STRATEGY_NUMBER_LIMITS: Readonly<Record<string, Readonly<Record<string, { min: number; max: number; step: number }>>>> = {
+  "overlap-min": { iterations: { min: 0, max: 65536, step: 1 }, step: { min: 0.001, max: 0.5, step: 0.001 } },
+};
+
 /** The entries that a composite strategy can take as a member: the entries that are not composite entries. */
 export const MEMBER_ENTRIES: readonly BenchEntry[] = ENTRIES.filter((e) => !isComposite(e.id));
 
@@ -66,7 +71,10 @@ export type OptionControl =
 /** This function gives the control of one option of the defaults of a strategy, from the type of its default value. */
 export function defaultControl(key: string, value: unknown, id?: string): OptionControl {
   if (typeof value === "boolean") return { key, kind: "flag", value, fromDefaults: true };
-  if (typeof value === "number") return { key, kind: "number", value, ...(NUMBER_LIMITS[key] ?? { min: 0, max: 1000, step: 1 }), fromDefaults: true };
+  if (typeof value === "number") {
+    const limits = (id === undefined ? undefined : STRATEGY_NUMBER_LIMITS[id]?.[key]) ?? NUMBER_LIMITS[key] ?? { min: 0, max: 1000, step: 1 };
+    return { key, kind: "number", value, ...limits, fromDefaults: true };
+  }
   if (typeof value === "string") {
     const values = (id === undefined ? undefined : STRATEGY_SETS[id]?.[key]) ?? KNOWN_SETS[key];
     if (values === undefined || !values.includes(value)) throw new RangeError(`The demo has no list of values for the option "${key}".`);
@@ -105,6 +113,7 @@ function extraControls(id: string): OptionControl[] {
       ];
     case "bbox":
     case "ruin-recreate":
+    case "overlap-min":
       return [{ key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false }];
     default:
       return [];
@@ -135,7 +144,7 @@ const memberOf = (id: string): { id: string; strategy: string; options: Readonly
 /**
  * This function gives the options of `packWith` from the values of the controls. An empty value gives no option. A
  * portfolio with members takes no `k`. The strategy of `aspect-fit` is a named entry with its options.
- * The member of `restarts`, `bbox` and `ruin-recreate` is a named entry.
+ * The member of `restarts`, `bbox`, `ruin-recreate` and `overlap-min` is a named entry.
  */
 export function packOptions(id: string, values: OptionValues): Record<string, unknown> {
   const out: Record<string, unknown> = {};

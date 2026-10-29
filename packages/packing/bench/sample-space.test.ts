@@ -105,7 +105,7 @@ describe("the counts of the configs", () => {
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
     expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64) + HOLE_DEGREE_MAX_STEPS + 1));
-    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate"]);
+    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
 });
@@ -211,7 +211,7 @@ describe("the sample of pairs", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 19 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 20 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -234,6 +234,7 @@ describe("the strata of k115", () => {
       "restarts:1",
       "bbox:1",
       "ruin-recreate:1",
+      "overlap-min:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
     expect(strata.reduce((s, x) => s + x.configs, 0n)).toBe(total);
@@ -257,6 +258,8 @@ describe("the strata of k115", () => {
     expect(of("aspect-fit")).toBe("aspect-fit:1");
     expect(of("restarts-rows-k16")).toBe("restarts:1");
     expect(of("bbox-skyline")).toBe("bbox:1");
+    expect(of("ruin-recreate-skyline-k64")).toBe("ruin-recreate:1");
+    expect(of("overlap-min-skyline-k8192")).toBe("overlap-min:1");
   });
 
   it("draws configs of each stratum of packSpace that checkConfig accepts", () => {
@@ -297,7 +300,8 @@ describe("the strata of k115", () => {
 
   it("gives the same count of pairs to each stratum, and the same pairs for the same seed", () => {
     const strata = strataOf(packSpace).map((s) => s.id);
-    const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), maxInputTries: 10 });
+    // The pair of overlap-min:1 (k80) gets at most 256 moves, so the test stays fast. Its stratum and its config stay the same.
+    const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), maxInputTries: 10, maxOverlapMoves: 256 });
     const a = run();
     expect(a.summary.errors).toEqual([]);
     expect(a.summary.draw).toBe("stratified");
@@ -307,7 +311,10 @@ describe("the strata of k115", () => {
     for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 1] : [id, 1, 0]);
     expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
     expect(a.records).toHaveLength(strata.length - 1);
-    // Pair i takes the stratum i modulo 19.
+    // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
+    const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
+    expect(moves).toEqual([256]);
+    // Pair i takes the stratum i modulo 20.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
     expect(b.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash])).toEqual(a.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash]));

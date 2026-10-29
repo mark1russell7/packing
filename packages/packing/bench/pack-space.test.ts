@@ -1,5 +1,5 @@
 import { checkConfig } from "@mark1russell7/layout-contract";
-import { composites, packConfig, packSpace, packWith, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
+import { composites, packConfig, packSpace, packWith, shapeStrategies, strategies, strategy, type StrategyConfig } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { AREA_KEY, ENTRIES } from "./entries.ts";
 import { result, SPACE_INPUTS, type PackResult } from "./space-inputs.ts";
@@ -8,12 +8,29 @@ import { result, SPACE_INPUTS, type PackResult } from "./space-inputs.ts";
 
 const named = packSpace.named!;
 
+// The configs of overlap-min (k80) make 8192 moves on each strip. This test gives them 256 moves on both sides, so it stays fast.
+const FAST_MOVES = 256;
+
+/** This function gives the named config of a name. A config of overlap-min gets the param iterations FAST_MOVES. */
+function fastConfig(name: string): StrategyConfig {
+  const config = named[name]!;
+  const combine = config.stages["combine"];
+  if (combine?.option !== "overlap-min") return config;
+  return { ...config, stages: { ...config.stages, combine: { ...combine, params: { ...combine.params, iterations: FAST_MOVES } } } };
+}
+
+/** This function gives the options of packWith. The strategy overlap-min gets the option iterations FAST_MOVES. */
+const fastOptions = (id: string, options: Record<string, unknown> | undefined): Record<string, unknown> | undefined =>
+  id === "overlap-min" ? { ...options, iterations: FAST_MOVES } : options;
+
 /** This function compares packConfig of a named config with a reference pack on each input. It gives the count of outputs. */
 function compare(name: string, reference: (i: number) => PackResult): number {
+  // The strategy overlap-min of k80 packs only the 2 inputs with a free height or a free width. It refuses the others.
   let outputs = 0;
+  const config = fastConfig(name);
   for (const [i, input] of SPACE_INPUTS.entries()) {
     const want = reference(i);
-    expect(result(() => packConfig(input, named[name]!, i)), `${name} ${i}`).toEqual(want);
+    expect(result(() => packConfig(input, config, i)), `${name} ${i}`).toEqual(want);
     if (!("error" in want)) outputs++;
   }
   return outputs;
@@ -21,7 +38,7 @@ function compare(name: string, reference: (i: number) => PackResult): number {
 
 describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
-    expect(ENTRIES).toHaveLength(32);
+    expect(ENTRIES).toHaveLength(34);
     // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
     const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...shapeStrategies, ...composites].map((s) => s.id)];
     for (const id of ids) {
@@ -35,7 +52,7 @@ describe("packSpace and the entries of the benchmark", () => {
     for (const e of ENTRIES) {
       // The runner gives the options of an entry over the defaults of its strategy
       const given = Object.keys(e.options).length === 0 ? undefined : { ...(strategy(e.strategy).defaults as object), ...e.options };
-      expect(compare(e.id, (i) => result(() => packWith(e.strategy, SPACE_INPUTS[i]!, given, i))), e.id).toBeGreaterThanOrEqual(3);
+      expect(compare(e.id, (i) => result(() => packWith(e.strategy, SPACE_INPUTS[i]!, fastOptions(e.strategy, given), i))), e.id).toBeGreaterThanOrEqual(e.strategy === "overlap-min" ? 2 : 3);
     }
   });
 
@@ -43,7 +60,7 @@ describe("packSpace and the entries of the benchmark", () => {
     for (const s of [...strategies, ...composites]) {
       // The strategy aspect-fit needs an inner strategy. Its named config wraps maxrects.
       const options = s.id === "aspect-fit" ? { strategy: "maxrects" } : undefined;
-      expect(compare(s.id, (i) => result(() => packWith(s.id, SPACE_INPUTS[i]!, options, i))), s.id).toBeGreaterThanOrEqual(3);
+      expect(compare(s.id, (i) => result(() => packWith(s.id, SPACE_INPUTS[i]!, fastOptions(s.id, options), i))), s.id).toBeGreaterThanOrEqual(s.id === "overlap-min" ? 2 : 3);
     }
     expect(() => packWith("aspect-fit", SPACE_INPUTS[0]!)).toThrow(RangeError);
   });

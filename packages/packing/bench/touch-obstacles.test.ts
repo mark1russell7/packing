@@ -1,6 +1,6 @@
 import { createFamilyRegistry, packHard, type PackHard } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
-import { checkHard, corpusFamilies, DEFAULT_TOLERANCE, packWith, strategies, toPackInput, type GeneratedInput } from "@mark1russell7/packing";
+import { cellOf, checkHard, corpusFamilies, DEFAULT_TOLERANCE, packWith, strategies, strategy, supportsCell, toPackInput, UnsupportedCell, type GeneratedInput, type PackInput } from "@mark1russell7/packing";
 import { ENTRIES } from "./entries.ts";
 
 // Roadmap item k114: the case `touchObstacles` of `edge-cases` with the knobs. Its locked box touches an obstacle.
@@ -19,11 +19,21 @@ const RUNS = [
 const touch = (seed: number, count: number, margin: number, gap: number): GeneratedInput =>
   registry.generate("edge-cases", seed, { case: "touchObstacles", count, margin, gap }, { set: "sample-space" });
 
+/**
+ * This function gives the runs whose strategy supports the cell of the input. The strategy of each other run refuses the input.
+ * The case `touchObstacles` has a container of fixed size, so the strategy `overlap-min` of k80 refuses it.
+ */
+function runsOf(input: PackInput): typeof RUNS {
+  const out = RUNS.filter((run) => supportsCell(strategy(run.strategy).supports, cellOf(input)));
+  for (const run of RUNS.filter((r) => !out.includes(r))) expect(() => packWith(run.strategy, input, run.options), run.id).toThrow(UnsupportedCell);
+  return out;
+}
+
 /** This function gives the breaks of each run that is not clean, by the id of the run. */
 function breaksOf(file: GeneratedInput): Record<string, PackHard> {
   const input = toPackInput(file);
   const out: Record<string, PackHard> = {};
-  for (const run of RUNS) {
+  for (const run of runsOf(input)) {
     const hard = packHard(file, packWith(run.strategy, input, run.options, file.seed), DEFAULT_TOLERANCE.overlap);
     if (Object.values(hard).some((v) => v > 0)) out[run.id] = hard;
   }
@@ -76,6 +86,6 @@ describe("touchObstacles with the knobs (k114)", () => {
   it("keep each rule clean in the form of checkHard too", () => {
     const file = touch(2, 1, 29.924, 0);
     const input = toPackInput(file);
-    for (const run of RUNS) expect(checkHard(input, packWith(run.strategy, input, run.options, file.seed)), run.id).toEqual(CLEAN);
+    for (const run of runsOf(input)) expect(checkHard(input, packWith(run.strategy, input, run.options, file.seed)), run.id).toEqual(CLEAN);
   });
 });

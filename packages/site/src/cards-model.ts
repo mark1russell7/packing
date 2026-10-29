@@ -20,6 +20,7 @@ import {
   type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
   type MaxRectsStrategyOptions,
+  type OverlapMinStrategyOptions,
   type PortfolioStrategyOptions,
   type PushStrategyOptions,
   type RestartsStrategyOptions,
@@ -90,6 +91,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   bbox: { stage: "placement" },
   "hole-degree": { stage: "placement" },
   "ruin-recreate": { stage: "local-search" },
+  "overlap-min": { stage: "local-search" },
 };
 
 // ---- The catalog ----
@@ -237,6 +239,7 @@ type AnyOptions = LayoutStrategyOptions &
   SelectStrategyOptions &
   RestartsStrategyOptions &
   RuinRecreateStrategyOptions &
+  OverlapMinStrategyOptions &
   BboxStrategyOptions &
   GuillotineStrategyOptions &
   HoleDegreeStrategyOptions &
@@ -283,6 +286,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   steps: { type: "number", note: "The count of the halving steps of the height search of `hole-degree`, from 0 to 32." },
   ruin: { type: oneOf(RUIN_KINDS), note: "The ruin: the boxes near a random point, random boxes, a chain of neighbors, or a random pick of the three." },
   shrink: { type: "number", note: "The share by which a met goal makes the free side of the goal box smaller." },
+  step: { type: "number", note: "The share by which each cut of `overlap-min` makes the strip shorter, from 0.001 to 0.5." },
 };
 
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
@@ -292,6 +296,11 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout and each recreate. The default is `maxrects-bl`." },
     iterations: { type: "number", note: "The count of the ruins. Each ruin removes some boxes, and the member packs them again." },
     strength: { type: "number", note: "The largest share of the placed boxes that one ruin removes, from 0 to 1." },
+  },
+  "overlap-min": {
+    member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
+    iterations: { type: "number", note: "The largest count of the box moves. Each move puts one box at its place of least overlap." },
+    step: { type: "number", note: "The share by which each cut makes the strip shorter, from 0.001 to 0.5." },
   },
 };
 
@@ -305,6 +314,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   restarts: ["member", "budgetMs", "budgetWork", "key"] satisfies (keyof RestartsStrategyOptions)[],
   bbox: ["member"] satisfies (keyof BboxStrategyOptions)[],
   "ruin-recreate": ["member"] satisfies (keyof RuinRecreateStrategyOptions)[],
+  "overlap-min": ["member"] satisfies (keyof OverlapMinStrategyOptions)[],
 };
 
 /** One option of a card */

@@ -3,14 +3,16 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, OVERLAP_MIN_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
 
 const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test", cpu: "test", cpus: 1 };
 const smoke = parseCorpus(readFileSync(join(import.meta.dirname, "corpora", "smoke-v1.json"), "utf8"), "smoke-v1");
-const full = runBench({ corpus: smoke, prediction: "p-test", repeats: 1, warmup: 0, env: ENV });
+// The entries of overlap-min (k80) make 8192 moves on each strip. This test gives them 256 moves, so it stays fast. The checks stay the same.
+const FAST = Object.fromEntries(OVERLAP_MIN_ENTRIES.map((e) => [e.id, { iterations: 256 }]));
+const full = runBench({ corpus: smoke, prediction: "p-test", repeats: 1, warmup: 0, env: ENV, entryOptions: FAST });
 
 const rec = (strategy: string, input: string, hash: string, measures: Record<string, number> = {}): ScreenRecord => ({ strategy, input, outputHash: hash, measures });
 const SHAPES = new Map([
@@ -244,9 +246,11 @@ describe("the screen on smoke-v1", () => {
     const input = toPackInput(rectGrid.generate(2, { count: 30 }));
     // The strategy aspect-fit gives its stage only for a container of free size
     const free = toPackInput(rectGrid.generate(2, { count: 30, containerSize: "freeAspect" }));
+    // The strategy overlap-min of k80 packs only a strip: a container with a free height or a free width
+    const strip = toPackInput(rectGrid.generate(2, { count: 30, containerSize: "freeHeight" }));
     for (const [id, move] of Object.entries(MOVE_OF)) {
       const e = entry(id);
-      const on = e.strategy === "aspect-fit" ? free : input;
+      const on = e.strategy === "aspect-fit" ? free : e.strategy === "overlap-min" ? strip : input;
       const counts = moveCounts(packWith(e.strategy, on, Object.keys(e.options).length === 0 ? undefined : e.options));
       expect(Object.keys(counts), id).toContain(move);
       // A composite entry also gives the moves of the member that wins, so only its own move is fixed.
@@ -262,6 +266,7 @@ describe("the screen on smoke-v1", () => {
       ...Object.fromEntries(RESTARTS_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(BBOX_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(RUIN_RECREATE_ENTRIES.map((e) => [e.id, e.base])),
+      ...Object.fromEntries(OVERLAP_MIN_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(SKYLINE_VARIANTS.map((e) => [e.id, e.base])),
     });
   });
@@ -281,7 +286,7 @@ describe("the screen on smoke-v1", () => {
   it("gives the same screen for one run and for the merge of the runs of the jobs of a matrix", () => {
     // The jobs keep the order of the strategies of the full run, and the merge keeps the order of its jobs
     const order = full.run.strategies;
-    const jobs = [order.slice(0, 2), order.slice(2, 3), order.slice(3)].map((s) => runBench({ corpus: smoke, prediction: "p-test", strategies: s, repeats: 1, warmup: 0, env: ENV }));
+    const jobs = [order.slice(0, 2), order.slice(2, 3), order.slice(3)].map((s) => runBench({ corpus: smoke, prediction: "p-test", strategies: s, repeats: 1, warmup: 0, env: ENV, entryOptions: FAST }));
     const records = jobs.flatMap((j) => j.records);
     const merged = mergeRuns(
       jobs.map((j) => j.run),

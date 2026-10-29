@@ -232,6 +232,11 @@ export interface BenchOptions {
    * measures `pack.anchor.*` of `anchorMeasures`. They need more packs. The default is `false`, so the records do not change.
    */
   anchor?: boolean | AnchorStabilityOptions;
+  /**
+   * The options over the options of an entry, by the id of the entry. The default is none. A test uses it to make a slow entry fast.
+   * The records keep the id of the entry, so a run with this field is not a run of the benchmark.
+   */
+  entryOptions?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
 
 /** The result of `runBench`: the facts of the run, the records, the manifest of the corpus and the outputs. */
@@ -352,6 +357,16 @@ export interface PairTimes {
   searchMs: number[];
 }
 
+/** The options over the options of an entry, by the id of the entry */
+type EntryOptions = BenchOptions["entryOptions"];
+
+/** This function gives the entry of an id, with the options of `entryOptions` over its own options. */
+function entryWith(id: string, over: EntryOptions): BenchEntry {
+  const e = entry(id);
+  const more = over?.[id];
+  return more === undefined ? e : { ...e, options: { ...e.options, ...more } };
+}
+
 /** This function gives the options that the runner gives to `packWith` for an entry. An entry of the registry gives none. */
 function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | undefined {
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
@@ -376,13 +391,13 @@ export function timeRuns(pack: () => PackOutput, repeats: number, clock: () => n
  * - An entry that does not support the cell of the input, or that throws, gets no times for that input.
  * - The main loop of `runBench` then packs the pair again. It gives the skip or the error of the pair, as without the mode.
  */
-function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corpus>["inputs"], manifest: CorpusManifest, repeats: number, warmup: number, clock: () => number): Map<string, Map<string, PairTimes>> {
+function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corpus>["inputs"], manifest: CorpusManifest, repeats: number, warmup: number, clock: () => number, over: EntryOptions): Map<string, Map<string, PairTimes>> {
   const out = new Map<string, Map<string, PairTimes>>(ids.map((id) => [id, new Map()]));
   for (const [index, file] of inputs.entries()) {
     const input = toPackInput(file);
     const ready: { id: string; pack: () => PackOutput; times: PairTimes }[] = [];
     for (const id of ids) {
-      const e = entry(id);
+      const e = entryWith(id, over);
       const s = strategy(e.strategy);
       if (unsupportedOf(s.supports, manifest.inputs[index]!.cell) !== undefined) continue;
       const given = givenOf(e, s.defaults);
@@ -485,7 +500,7 @@ export function runBench(options: BenchOptions): BenchResult {
   const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
   // A false claim stops the run before the first packing
   const declared = checkDeclared(options.corpus, inputs.map(toPackInput));
-  const interleaved = options.interleave === true ? interleavedTimes(ids, inputs, manifest, repeats, warmup, clock) : undefined;
+  const interleaved = options.interleave === true ? interleavedTimes(ids, inputs, manifest, repeats, warmup, clock, options.entryOptions) : undefined;
 
   const records: BenchRecord[] = [];
   const skipped: BenchSkip[] = [];
@@ -494,7 +509,7 @@ export function runBench(options: BenchOptions): BenchResult {
   const coverage: Record<string, BenchCoverage> = {};
 
   for (const id of ids) {
-    const e = entry(id);
+    const e = entryWith(id, options.entryOptions);
     const s = strategy(e.strategy);
     // An entry of the registry gives no options to packWith, as the runner before k21 did
     const given = givenOf(e, s.defaults);
