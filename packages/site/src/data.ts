@@ -298,8 +298,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k79",
     title: "The new strategy `ruin-recreate` removes some boxes of a layout and packs them again. A goal box that becomes smaller keeps the search moving.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pull/0",
+    pr: 152,
+    link: "https://github.com/mark1russell7/packing/pull/152",
   },
   {
     date: "2026-10-29",
