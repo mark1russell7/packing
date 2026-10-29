@@ -831,9 +831,15 @@
     {
       "id": "S1",
       "name": "Circles by the maximum hole degree",
-      "description": "Put each circle in the corner place, where it touches two items, with the largest hole degree.",
+      "description": "Put each circle in the corner place, where it touches two items, with the largest hole degree. Built as `hole-degree` (k90).",
       "published": true,
       "sources": [
+        {
+          "key": "Huang 2005",
+          "authors": "W. Q. Huang, Y. Li, H. Akeb, C. M. Li",
+          "year": 2005,
+          "title": "Greedy algorithms for packing unequal circles into a rectangular container"
+        },
         {
           "key": "Huang 2006",
           "authors": "Wen Qi Huang, Yu Li, Chu Min Li, Ru Chu Xu",
