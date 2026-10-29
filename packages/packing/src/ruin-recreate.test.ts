@@ -1,3 +1,4 @@
+import { selectBest } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   checkHard,
@@ -16,6 +17,8 @@ import {
   type PackInput,
   type PackOutput,
 } from "./index.ts";
+import { PORTFOLIO_LEVELS } from "./portfolio.ts";
+import { measureKey } from "./select-key.ts";
 
 // The strategy ruin-recreate of k79. Made-up inputs of the generators only.
 
@@ -37,12 +40,6 @@ function check(input: PackInput, options: Record<string, unknown>, label: string
   return output;
 }
 
-/** This function gives the area of the placed items of an output. */
-function placedArea(input: PackInput, output: PackOutput): number {
-  const at = new Set(output.placements.map((p) => p.id));
-  return input.items.filter((i) => at.has(i.id)).reduce((sum, i) => sum + i.w * i.h, 0);
-}
-
 describe("the strategy ruin-recreate", () => {
   it("is a composite strategy of the registry, with its defaults", () => {
     expect(composites).toContain(ruinRecreateStrategy);
@@ -62,7 +59,10 @@ describe("the strategy ruin-recreate", () => {
     }
   });
 
-  it("is not worse than its member: more placed items in a fixed container, a smaller size in a free one", () => {
+  it("is not worse than its member by the pick key of restarts", () => {
+    const key = measureKey(PORTFOLIO_LEVELS.slice(1));
+    const valuesOf = (input: PackInput, output: PackOutput): Record<string, number> =>
+      Object.fromEntries([["hard", key.hard(input, output)], ...key.levels.map((l) => [l.id, l.value(input, output)] as const)]);
     let better = 0;
     for (let seed = 1; seed <= 8; seed++) {
       for (const containerSize of ["fixed", "freeHeight", "freeWidth", "freeArea"] as const) {
@@ -70,15 +70,9 @@ describe("the strategy ruin-recreate", () => {
         const member = packWith("maxrects", input, { rule: "bl" }, seed);
         const got = check(input, {}, `${containerSize} ${seed}`, seed);
         const s = stageOf(got);
-        if (containerSize === "fixed") {
-          expect(got.placements.length, `${seed}`).toBeGreaterThanOrEqual(member.placements.length);
-          if (got.placements.length === member.placements.length) expect(placedArea(input, got)).toBeGreaterThanOrEqual(placedArea(input, member) - 1e-9);
-        } else {
-          expect(got.overflow).toEqual(member.overflow);
-          if (containerSize === "freeHeight") expect(got.size.h).toBeLessThanOrEqual(member.size.h);
-          if (containerSize === "freeWidth") expect(got.size.w).toBeLessThanOrEqual(member.size.w);
-          if (containerSize === "freeArea") expect(got.size.w * got.size.h).toBeLessThanOrEqual(member.size.w * member.size.h + 1e-9);
-        }
+        const pick = selectBest([{ id: "member", values: valuesOf(input, member) }, { id: "got", values: valuesOf(input, got) }], PORTFOLIO_LEVELS);
+        expect(pick.kept.at(-1), `${containerSize} ${seed}`).toContain("got");
+        if (containerSize !== "fixed") expect(got.overflow).toEqual(member.overflow);
         if (s["move.ruinRecreate"]! > 0) {
           better++;
           expect(s["ruin-recreate.bestAt"]).toBeGreaterThan(0);

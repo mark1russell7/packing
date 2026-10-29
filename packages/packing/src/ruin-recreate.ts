@@ -2,13 +2,13 @@
 // It packs an input with one member, then removes a part of the layout and packs that part again around the rest. A goal
 // keeps the search moving. Nothing default uses it.
 
-import { stepRandom } from "@mark1russell7/layout-contract";
+import { selectBest, stepRandom, type SelectCandidate } from "@mark1russell7/layout-contract";
 import { guillotine, maxrects, rows, shelf, skyline } from "./adapters.ts";
 import { EPS, marginOf, turnItem, type Item, type Obstacle, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 import { byRank, containerBounds, extentOf, type Bounds } from "./frame.ts";
-import { aspectError } from "./free.ts";
-import type { PortfolioEntry } from "./portfolio.ts";
+import { PORTFOLIO_LEVELS, type PortfolioEntry } from "./portfolio.ts";
 import { packWith, strategy } from "./registry.ts";
+import { measureKey } from "./select-key.ts";
 import { assertSupported, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 
 /**
@@ -89,15 +89,13 @@ interface Layout {
   at: Map<string, Placement>;
   unplaced: string[];
   count: number;
-  area: number;
 }
 
-/** This function tells if a layout `a` is better than `b` (`1`), equal (`0`) or worse (`-1`): more placed items, then more placed area. */
-function compare(a: Layout, b: Layout): number {
-  if (a.count !== b.count) return a.count > b.count ? 1 : -1;
-  const tol = EPS * Math.max(1, Math.abs(b.area));
-  return a.area > b.area + tol ? 1 : a.area < b.area - tol ? -1 : 0;
-}
+/**
+ * The key of the pick of `restarts` with its default option `key`: the hard breaks, then the levels of `PORTFOLIO_LEVELS`.
+ * `selectBest` of the contract compares two layouts with it, as `restarts` compares its runs.
+ */
+const KEY = measureKey(PORTFOLIO_LEVELS.slice(1));
 
 /** This function puts the items from `from` to the end in a random order: the Fisher-Yates shuffle. */
 function shuffle<T>(list: T[], r: () => number, from = 0): void {
@@ -117,8 +115,10 @@ const unranked = (item: Item): Item => (item.rank === undefined ? item : (({ ran
  * - The start is the layout of the member. Each iteration removes some items, and packs them and the unplaced items again with the member.
  * - The member packs around the kept items: they are locked items of the input of the recreate. A ruin does not remove a locked item or an obstacle.
  * - A free container gets a goal box that is smaller than the best layout. The items out of the goal box are unplaced.
- * - A recreate that is not worse than the current layout replaces it: more placed items, then more placed area.
- * - When each item is in the goal box, the goal is met: the layout is a candidate, and the goal box shrinks by `shrink`.
+ * - The compare of two layouts is the pick of `restarts`: the hard breaks, then `PORTFOLIO_LEVELS`, with `selectBest` of the contract.
+ * - A recreate that is not worse than the current layout replaces it. A better layout replaces the best layout.
+ * - In a fixed container, the search stops when each item has a place.
+ * - In a free container, the goal is met when each item is in the goal box. Then the goal box shrinks by `shrink`.
  * - Iteration `i` gets the random numbers `stepRandom(seed, "ruin-recreate:<i>")` of the contract. The budget is a count of iterations, not a time.
  * - The output gets the trace stage `ruin-recreate` with `move.ruinRecreate`, `ruin-recreate.iterations`, `.accepted`, `.goalSteps` and `.bestAt`.
  * - The strategy throws a `RangeError` for a member without the option `sortOrder` and for a bad option.
@@ -183,6 +183,8 @@ class Search {
   private readonly holes: Obstacle[];
   /** The least far edges of a free container: the fixed items and the obstacles */
   private readonly floor: { right: number; bottom: number };
+  /** The output of each layout that a compare read. */
+  private readonly outputs = new WeakMap<Layout, PackOutput>();
 
   constructor(input: PackInput, member: PortfolioEntry, seed: number, base: PackOutput) {
     this.input = input;
@@ -211,14 +213,8 @@ class Search {
   /** This function gives the layout of some placements. Each item that is not fixed and has no placement is unplaced, in rank order. */
   private layoutOf(placements: readonly Placement[]): Layout {
     const at = new Map<string, Placement>();
-    let area = 0;
-    for (const p of placements) {
-      if (!this.rank.has(p.id) || at.has(p.id)) continue;
-      at.set(p.id, p);
-      const item = this.items.get(p.id)!;
-      area += item.w * item.h;
-    }
-    return { at, unplaced: [...this.rank.keys()].filter((id) => !at.has(id)), count: at.size, area };
+    for (const p of placements) if (this.rank.has(p.id) && !at.has(p.id)) at.set(p.id, p);
+    return { at, unplaced: [...this.rank.keys()].filter((id) => !at.has(id)), count: at.size };
   }
 
   /** This function sorts ids by their rank. */
@@ -238,12 +234,23 @@ class Search {
     return { w: Number.isFinite(this.bounds.w) ? this.bounds.w : right, h: Number.isFinite(this.bounds.h) ? this.bounds.h : bottom };
   }
 
-  /** This function gives the cost of a size: the free height, the free width, or the objective of `log-sweep` for a free aspect or area. */
-  private cost(size: { w: number; h: number }): number {
-    const c = this.input.container;
-    if (c.fixed === "width") return size.h;
-    if (c.fixed === "height") return size.w;
-    return size.w * size.h * (1 + (c.aspectWeight ?? 1) * aspectError(size.w, size.h, c.aspect ?? 1));
+  /** This function gives a layout as a candidate of `selectBest`: the value of each level of `KEY` on the output of the layout. */
+  private candidateOf(id: string, layout: Layout): SelectCandidate {
+    let output = this.outputs.get(layout);
+    if (output === undefined) {
+      output = this.outputOf(layout);
+      this.outputs.set(layout, output);
+    }
+    const values: Record<string, number> = { hard: KEY.hard(this.input, output) };
+    for (const level of KEY.levels) values[level.id] = level.value(this.input, output);
+    return { id, values };
+  }
+
+  /** This function compares a candidate layout with a baseline layout by the pick rule of `restarts`. A tie keeps the baseline. */
+  private verdict(candidate: Layout, baseline: Layout): "better" | "tie" | "worse" {
+    const pick = selectBest([this.candidateOf("baseline", baseline), this.candidateOf("candidate", candidate)], PORTFOLIO_LEVELS);
+    if (pick.winner === "candidate") return "better";
+    return pick.kept.at(-1)!.includes("candidate") ? "tie" : "worse";
   }
 
   /**
@@ -365,7 +372,6 @@ class Search {
     const result: SearchResult = { improved: 0, ran: 0, accepted: 0, goalSteps: 0, bestAt: 0 };
     let current = this.layoutOf(this.base.placements);
     let best = current;
-    let bestCost = this.cost(this.base.size);
     const target = current.count;
     let goal: Goal | undefined;
     if (this.free) {
@@ -388,30 +394,19 @@ class Search {
       const inserted = new Set(insert);
       const candidate = this.layoutOf([...kept, ...out.placements.filter((p) => inserted.has(p.id))]);
       result.ran++;
-      if (compare(candidate, current) < 0) continue;
+      if (this.verdict(candidate, current) === "worse") continue;
       current = candidate;
       result.accepted++;
-      if (!this.free) {
-        if (compare(current, best) > 0) {
-          if (current.count > best.count) result.goalSteps++;
-          best = current;
-          result.bestAt = i;
-          result.improved++;
-        }
-        continue;
-      }
-      if (current.count < target) continue;
-      // The goal is met: each item is in the goal box
-      result.goalSteps++;
-      const size = this.sizeOf(current);
-      const cost = this.cost(size);
-      if (cost < bestCost - EPS * Math.max(1, bestCost)) {
+      // In a free container, the goal is met when each item is in the goal box
+      if (this.free && current.count < target) continue;
+      if (this.free || current.count > best.count) result.goalSteps++;
+      if (this.verdict(current, best) === "better") {
         best = current;
-        bestCost = cost;
         result.bestAt = i;
         result.improved++;
       }
-      goal = this.nextGoal(size, shrink);
+      if (!this.free) continue;
+      goal = this.nextGoal(this.sizeOf(current), shrink);
       if (goal !== undefined) current = this.clip(current, goal);
     }
     return result.improved === 0 ? result : { ...result, output: this.outputOf(best) };

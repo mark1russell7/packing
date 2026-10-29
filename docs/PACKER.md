@@ -502,16 +502,21 @@ The search:
 4. `adjacent` starts at a random item. Each next item is the item nearest to the last one, by the distance between their boxes.
 5. The recreate packs the removed items and the unplaced items with the member. The kept items are locked items of that input.
 6. The recreate order is the rank order and the `sortOrder` of the member, or a random order with the sort order `input`. Each one has the chance 0.5.
-7. The search accepts a candidate that is not worse than the current layout: more placed items, else the same count and no less placed area.
+7. The search accepts a candidate that is not worse than the current layout. A candidate that is better than the best layout becomes the best layout.
+
+The compare of two layouts is the pick of `restarts`:
+
+- The key is the hard breaks, then the levels of `PORTFOLIO_LEVELS`: `pack.overflow.excessArea`, then `pack.fill`. `selectBest` of the contract compares the two layouts.
+- A tie on each level keeps the current layout or the best layout. Thus a tie is accepted, but it is not a new best layout.
+- The key is the same for each container. A fixed container does not rank by the count of placed items first.
 
 The goal:
 
-- A container of fixed size has no goal box. The goal is to place each item. The search stops when each item is placed.
+- A container of fixed size has no goal box. The search stops early when each item is placed.
 - On a free side, the goal is a box of fixed size. Its first size is the size of the member output, with the free side smaller by `shrink`.
 - The recreate packs into the goal box. An item outside the box is unplaced, and the next ruins try to place it.
-- When each item of the member layout is in the goal box, the goal is met. The search keeps the layout when its cost is lower than the best cost.
+- When each item of the member layout is in the goal box, the goal is met. The search keeps the layout when the key finds it better.
 - Then the free side of the goal box gets smaller by `shrink` again. The items outside the new box become unplaced.
-- The cost is the free side with `fixed: "width"` or `fixed: "height"`. With `fixed: "none"`, it is the area with the aspect weight, as for `logSweep`.
 - With `fixed: "none"`, the goal box shrinks its long side for the target aspect. The search stops when no free side can shrink.
 - A free side does not shrink below the far edges of the locked items and the obstacles.
 
@@ -521,10 +526,11 @@ The rules of the output:
 - The supports are the union of the supports of the 5 placement strategies, with the fixed obstacles and the free or soft order.
 - A cell that the member does not support gives `UnsupportedCell` from the member.
 - In a free container with a polygon shape, the goal box is a rectangle. The holes of the polygon become obstacles of the recreate.
-- A free container keeps the overflow of the member. A fixed container places the same count of items or more.
+- A free container keeps the overflow of the member. In each container, the output is not worse than the output of the member by the key.
 - The output is the output of the member when no candidate is better. Else it is the best layout, with the placements in rank order.
 - Iteration `i` gets the random numbers `stepRandom(seed, "ruin-recreate:<i>")` of the contract. The same seed gives the same output, byte for byte.
 - The budget is the count `iterations`. The strategy reads no clock.
+- `iterations` is already a budget of work with no clock. Thus `ruin-recreate` has no option `budgetWork`.
 - The output gets the trace stage `ruin-recreate` (`RUIN_RECREATE_STAGE`). Its measures are in the table below.
 - The cost of one call is at most `iterations` packs of the member. Each pack has only the removed items and the unplaced items.
 
@@ -533,7 +539,7 @@ The rules of the output:
 | `move.ruinRecreate` | The count of the new best layouts. 0 means that the output is the output of the member. |
 | `ruin-recreate.iterations` | The count of the iterations that ran. The search stops before `iterations` when it has no goal. |
 | `ruin-recreate.accepted` | The count of the accepted candidates. |
-| `ruin-recreate.goalSteps` | The count of the met goals. In a fixed container, the count of the candidates that placed more items than the best. |
+| `ruin-recreate.goalSteps` | The count of the met goals. In a fixed container, the count of the accepted candidates that placed more items than the best. |
 | `ruin-recreate.bestAt` | The iteration of the best layout, or 0 for the member layout. |
 
 The choices of this project that differ from the sources:
@@ -542,8 +548,25 @@ The choices of this project that differ from the sources:
 - Gardeyn & Wauters (EJOR 2022) pack bins of some sizes with guillotine cuts. This strategy packs one container, with no bins and no guillotine rule.
 - Wei, Oon, Zhu & Lim (EJOR 2013) set a goal for bins. This strategy sets a goal box for each free side of one container.
 - The recreate uses the member of the strategy. It does not use a placement rule of the sources.
-- The three ruins, the acceptance rule, the shrink factor and the random recreate order are the choices of this project.
+- The three ruins, the shrink factor and the random recreate order are the choices of this project.
+- The acceptance rule is the pick key of `restarts`, not a rule of the sources.
 - The budget is a count of iterations, not a time limit. Thus the output does not depend on the clock.
+
+A local comparison (2026-10-28) used 180 inputs of the classes corpus: the counts 20, 40 and 60, with the seeds 1 to 3.
+The inputs are 90 fixed containers and 90 `freeHeight` containers. The table gives the medians of `pack.fill` and `pack.gap`, and the mean of `pack.overflow.rate`.
+The CI benchmark measures the entries on the full corpus.
+
+| Entry | Fill, all | Gap, all | Fill, fixed | Gap, fixed | Overflow rate, fixed | Fill, free | Gap, free |
+|---|---|---|---|---|---|---|---|
+| `maxrects-bl` | 0.9025 | 0.0800 | 0.9525 | 0.0515 | 0.6529 | 0.8750 | 0.1110 |
+| `restarts-maxrects-bl-k16` | 0.9230 | 0.0685 | 0.9585 | 0.0460 | 0.6529 | 0.8900 | 0.0895 |
+| `ruin-recreate-maxrects-bl-k64` | 0.9130 | 0.0670 | 0.9595 | 0.0435 | 0.6299 | 0.8775 | 0.1030 |
+| `skyline` | 0.8665 | 0.1375 | 0.9460 | 0.0585 | 0.6677 | 0.7790 | 0.2110 |
+| `ruin-recreate-skyline-k64` | 0.8675 | 0.1300 | 0.9495 | 0.0565 | 0.6584 | 0.7815 | 0.2045 |
+
+- In fixed containers, `ruin-recreate-maxrects-bl-k64` has the best fill, the smallest gap and the lowest overflow rate of the five entries.
+- In `freeHeight` containers, `restarts-maxrects-bl-k16` is better. The goal box of `ruin-recreate` improves the member by a small step only.
+- An earlier rule ranked a fixed container by the count of placed items first. It gave the fill 0.8780 and the gap 0.1415 for fixed containers.
 
 The counts of `packSpace`:
 
