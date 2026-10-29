@@ -296,6 +296,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k23",
+    title: "The new strategy `guillotine` keeps free rectangles that do not overlap. It has 6 rules to choose a free rectangle, 6 rules to cut it, and a merge.",
+    pr: 145,
+    link: "https://github.com/mark1russell7/packing/pull/145",
+  },
+  {
+    date: "2026-10-29",
     item: "k47",
     title: "A seeded search finds the inputs where one strategy loses most to another. The corpus `pack-adversary-v1` has the worst input of 6 pairs.",
     pr: 143,
