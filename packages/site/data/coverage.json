@@ -4,15 +4,15 @@
  "origin": [
   {
    "release": "0.2.17",
-   "commit": "a73bdd2",
+   "commit": "18a4576",
    "date": "2026-10-28",
-   "run": 40789799391,
+   "run": 40795429100,
    "source": "bench.yml, the artifact bench-pack-classes-v1, and bench/coverage.ts"
   }
  ],
  "latest": {
-  "date": "2026-10-28",
-  "run": 40789799391,
+  "date": "2026-10-29",
+  "run": 40795429100,
   "corpus": "pack-classes-v1",
   "records": 13500,
   "inputs": 500,
@@ -113,6 +113,17 @@
      "mae": 0.0287,
      "medianAe": 0.019,
      "share": 0.44
+    },
+    "sampled": {
+     "n": 400,
+     "hits": 17,
+     "share": 0.0425,
+     "low": 0.0267,
+     "high": 0.067,
+     "mae": 0.5159,
+     "medianAe": 0.5525,
+     "baselineMae": 0.517,
+     "baselineMedianAe": 0.5785
     }
    },
    {
@@ -174,6 +185,17 @@
      "mae": 0.0489,
      "medianAe": 0.024,
      "share": 0.3415
+    },
+    "sampled": {
+     "n": 352,
+     "hits": 4,
+     "share": 0.0114,
+     "low": 0.0044,
+     "high": 0.0288,
+     "mae": 28.2331,
+     "medianAe": 0.7508,
+     "baselineMae": 28.2253,
+     "baselineMedianAe": 0.762
     }
    },
    {
@@ -235,6 +257,17 @@
      "mae": 0.0029,
      "medianAe": 0,
      "share": 0.9637
+    },
+    "sampled": {
+     "n": 400,
+     "hits": 220,
+     "share": 0.55,
+     "low": 0.501,
+     "high": 0.598,
+     "mae": 0.3001,
+     "medianAe": 0,
+     "baselineMae": 0.3022,
+     "baselineMedianAe": 0
     }
    },
    {
@@ -242,63 +275,81 @@
     "scale": "log",
     "tolerance": 0.15,
     "n": 13500,
-    "mae": 0.1674,
-    "baselineMae": 0.4853,
-    "medianAe": 0.1179,
-    "baselineMedianAe": 0.3926,
-    "skill": 0.6551,
-    "share": 0.5552,
-    "shareOfMeasured": 0.5552,
+    "mae": 0.1614,
+    "baselineMae": 0.4758,
+    "medianAe": 0.1107,
+    "baselineMedianAe": 0.3829,
+    "skill": 0.6608,
+    "share": 0.5822,
+    "shareOfMeasured": 0.5822,
     "cells": {
      "space": 2700,
      "withRecords": 2700,
-     "covered": 1499
+     "covered": 1572
     },
     "explained": {
-     "strategy": 0.6534,
-     "input": 0.2148,
-     "joint": 0.9624
+     "strategy": 0.6639,
+     "input": 0.2054,
+     "joint": 0.9643
     },
-    "noise": 0.0376,
+    "noise": 0.0357,
     "indices": [
      {
       "feature": "stage.combine",
       "group": "strategy",
-      "index": 0.5725
+      "index": 0.5968
      },
      {
       "feature": "combine.restarts.perturb",
       "group": "strategy",
-      "index": 0.4278
+      "index": 0.449
      },
      {
       "feature": "combine.restarts.iterations",
       "group": "strategy",
-      "index": 0.4257
+      "index": 0.4476
      },
      {
       "feature": "combine.restarts.key",
       "group": "strategy",
-      "index": 0.4257
+      "index": 0.4476
      },
      {
       "feature": "combine.restarts.limitTime",
       "group": "strategy",
-      "index": 0.4257
+      "index": 0.4476
      },
      {
       "feature": "combine.restarts.strength",
       "group": "strategy",
-      "index": 0.4257
+      "index": 0.4476
      }
     ],
     "byInput": {
-     "mae": 0.1321,
-     "medianAe": 0.0855,
-     "share": 0.6493
+     "mae": 0.1193,
+     "medianAe": 0.0744,
+     "share": 0.7033
+    },
+    "sampled": {
+     "n": 400,
+     "hits": 23,
+     "share": 0.0575,
+     "low": 0.0386,
+     "high": 0.0848,
+     "mae": 0.9225,
+     "medianAe": 0.6195,
+     "baselineMae": 1.3077,
+     "baselineMedianAe": 0.9657
     }
    }
-  ]
+  ],
+  "sampled": {
+   "pairs": 400,
+   "seed": 1,
+   "draw": "uniform",
+   "configRejectionRate": 0,
+   "hardPairs": 3
+  }
  },
  "trend": [
   {
@@ -335,6 +386,24 @@
     "pack.gap": 0.5151,
     "pack.overflow.excessArea": 0.7615,
     "ms": 0.8849
+   }
+  },
+  {
+   "date": "2026-10-29",
+   "run": 40795429100,
+   "corpus": "pack-classes-v1",
+   "commit": "18a4576",
+   "shares": {
+    "pack.fill": 0.3626,
+    "pack.gap": 0.29,
+    "pack.overflow.excessArea": 0.8689,
+    "ms": 0.5822
+   },
+   "sharesByInput": {
+    "pack.fill": 0.44,
+    "pack.gap": 0.3415,
+    "pack.overflow.excessArea": 0.9637,
+    "ms": 0.7033
    }
   }
  ]
