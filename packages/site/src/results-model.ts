@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
@@ -334,7 +334,22 @@ export function priorText(s: Pick<CoverageSampled, "prior"> | undefined): string
   const zero = p.zero === 0 ? "" : `, ${p.zero} ${p.zero === 1 ? "pair" : "pairs"} of other families with the weight 0`;
   if (p.share === null) return `${COVERAGE_PRIOR_SCOPE}: no pair of a family of the corpus${zero}`;
   const range = p.low === null || p.high === null ? "" : ` (95% interval ${percentText(p.low)} to ${percentText(p.high)})`;
-  return `${COVERAGE_PRIOR_SCOPE} ${percentText(p.share)}${range}, ${p.weighted} weighted pairs${zero}`;
+  // k119: a snapshot with the kind of the prior also shows the effective count of the pairs.
+  const nEff = p.kind === undefined ? "" : `, ${p.nEff} effective pairs`;
+  return `${COVERAGE_PRIOR_SCOPE} ${percentText(p.share)}${range}${nEff}, ${p.weighted} weighted pairs${zero}`;
+}
+
+/**
+ * This function gives the text of the basis of the family prior (k119), or `null` without it.
+ * The text tells the corpora, the weight of each family, and the families without a weight.
+ */
+export function priorBasisText(b: CoveragePriorBasis | undefined): string | null {
+  if (b === undefined) return null;
+  const from = b.kind === "union" ? `the ${b.inputs} distinct inputs of the ${b.corpora.length} committed corpora` : `the ${b.inputs} inputs of the corpus ${b.corpora.join(", ")}`;
+  const weights = b.families.map((f) => `${f.family} ${percentText(f.weight)}`).join(", ");
+  const absent = b.absent.length === 0 ? "" : ` The sampler families ${b.absent.join(", ")} have no inputs, so their weight is 0.`;
+  const unmapped = b.unmapped.length === 0 ? "" : ` The sampler does not draw ${b.unmapped.map((f) => `${f.family} (${f.inputs} inputs)`).join(", ")}, so these inputs give no weight.`;
+  return `The weights come from ${from}: ${weights}.${absent}${unmapped}`;
 }
 
 /** The label of the forced-overflow split of k116: the pairs where half of the item area or more cannot go in the container */
@@ -357,8 +372,9 @@ export function activeRows(m: Pick<CoverageMeasure, "active">): string {
   const a = m.active;
   if (a === undefined) return "";
   const bar = (share: number): string => `<span class="abar" aria-hidden="true"><i style="width:${Math.round(Math.max(0, Math.min(1, share)) * 1000) / 10}%"></i></span>`;
-  const priorOf = (v: number | null | undefined): string => (v === undefined ? "" : ` <small>${COVERAGE_PRIOR_SCOPE} ${v === null ? "-" : percentText(v)}</small>`);
-  const evalCell = (e: CoverageEval | null): string => (e === null ? `<td class="num">-</td>` : `<td class="num">${percentText(e.share)}${priorOf(e.prior)}${bar(e.share)}</td>`);
+  const priorOf = (v: number | null | undefined, c?: CoveragePriorCount): string =>
+    v === undefined ? "" : ` <small>${COVERAGE_PRIOR_SCOPE} ${v === null ? "-" : percentText(v)}${c === undefined ? "" : ` (${c.nEff} effective pairs)`}</small>`;
+  const evalCell = (e: CoverageEval | null): string => (e === null ? `<td class="num">-</td>` : `<td class="num">${percentText(e.share)}${priorOf(e.prior, e.priorCount)}${bar(e.share)}</td>`);
   const start = `<tr><th scope="row">Grid only</th><td class="num">-</td>${evalCell(a.start)}</tr>`;
   const rows = a.rounds
     .map(

@@ -212,7 +212,7 @@ export interface CoverageSampled {
   prior?: CoveragePrior;
 }
 
-/** The share of the sampled pairs with the family prior: each generator family has its share of the inputs of the corpus as its weight */
+/** The share of the sampled pairs with the family prior: each generator family has its share of the inputs of the corpora as its weight */
 export interface CoveragePrior {
   /** The share with the weights, or `null` without a pair of a family of the corpus */
   share: number | null;
@@ -225,6 +225,27 @@ export interface CoveragePrior {
   zero: number;
   /** The weight of the families of the corpus with pairs */
   covered: number;
+  /** The kind of the prior (k119): `union` of the committed corpora, or `corpus` of the grid. An older snapshot does not have it. */
+  kind?: "union" | "corpus";
+}
+
+/** The effective count of a share with the prior, its weighted pairs and its pairs with the weight 0 (k119) */
+export interface CoveragePriorCount {
+  nEff: number;
+  weighted: number;
+  zero: number;
+}
+
+/** The basis of the family prior (k119): its kind, its corpora, the weight of each sampler family and the families without a weight */
+export interface CoveragePriorBasis {
+  kind: "union" | "corpus";
+  corpora: string[];
+  inputs: number;
+  families: { family: string; inputs: number; weight: number }[];
+  /** The sampler families without an input in the corpora, with the weight 0 */
+  absent: string[];
+  /** The corpus families that the sampler does not draw */
+  unmapped: { family: string; inputs: number }[];
 }
 
 /** The share of a part of the sampled pairs. A part without pairs has the share `null`. */
@@ -241,6 +262,8 @@ export interface CoverageEval {
   equal: number;
   /** The share with the family prior, when the snapshot has it */
   prior?: number | null;
+  /** The effective count and the pairs of the share with the prior (k119), when the snapshot has them */
+  priorCount?: CoveragePriorCount;
 }
 
 /** One round of the active sample for one measure: the hits of its new pairs, and the evaluation sample after the round */
@@ -254,6 +277,8 @@ export interface CoverageActiveRound {
   mae: number;
   /** The share of the new pairs with the family prior, when the snapshot has it */
   prior?: number | null;
+  /** The effective count and the pairs of the share with the prior (k119), when the snapshot has them */
+  priorCount?: CoveragePriorCount;
   after: CoverageEval | null;
 }
 
@@ -329,6 +354,8 @@ export interface CoverageSnapshot {
     uniform?: CoverageUniform;
     /** The facts of the active sample (k116), when the snapshot has them */
     active?: { pairs: number; features: string; score: string | null; pool: number | null; rounds: number; evalPairs: number | null };
+    /** The basis of the family prior (k119), when the snapshot has it */
+    prior?: CoveragePriorBasis;
   };
   trend: CoveragePoint[];
 }
@@ -405,6 +432,13 @@ export interface NewsEntry {
 
 /** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
 export const NEWS: readonly NewsEntry[] = [
+  {
+    date: "2026-10-29",
+    item: "k119",
+    title: "The family prior of the space coverage now comes from all the committed corpora. Each share with the prior shows its effective count of pairs.",
+    pr: 164,
+    link: "https://github.com/mark1russell7/packing/pull/164",
+  },
   {
     date: "2026-10-29",
     item: "k118",
