@@ -25,3 +25,19 @@ jobs:
       contents: read
       security-events: write
       actions: read
+
+  # The one check of this file that the ruleset names (template #81). The scans stay here, not in ci.yml.
+  security-ok:
+    name: Security OK
+    if: always()
+    needs: [security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Each scan passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          case " $RESULTS " in *" failure "*|*" cancelled "*) exit 1 ;; esac
