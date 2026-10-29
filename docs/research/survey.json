@@ -358,18 +358,14 @@
       "item": "k23",
       "itemTitle": "Guillotine: each rule to choose a",
       "related": [],
-      "status": "queued",
+      "status": "built",
       "note": null,
       "survey": {
         "gain": 3,
         "uncertainty": 3,
         "cost": 2
       },
-      "queue": {
-        "gain": 4,
-        "uncertainty": 4,
-        "cost": 3
-      },
+      "queue": null,
       "round": 1
     },
     {
