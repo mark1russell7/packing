@@ -117,7 +117,7 @@ Status: done, done, waiting, next, done.
 | k105 | Space coverage: the share of the space of strategies, options and input dimensions with a fitted model per measure and a held-out error | measure | done | k68, k75 |
 | k106 | Input families from the literature: the 2D strip packing and bin packing benchmark sets, each with dimensions and ranges | corpus | done | k73 |
 | k107 | Input families for the worst case: adversarial inputs and scaling ladders | corpus | done | k73 |
-| k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | later | k76 |
+| k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | done | k76 |
 | k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | later | k51, k105 |
 | k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept | core | later | k6, k7 |
 | k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | done | k6, k7 |
@@ -134,42 +134,41 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | 1 | k115 | 4 | 2 | 1 | 8.0 |
 | 2 | k116 | 5 | 4 | 3 | 6.7 |
 | 3 | k90 | 4 | 3 | 2 | 6.0 |
-| 4 | k108 | 3 | 2 | 1 | 6.0 |
-| 5 | k117 | 4 | 3 | 2 | 6.0 |
-| 6 | k23 | 4 | 4 | 3 | 5.3 |
-| 7 | k79 | 4 | 4 | 3 | 5.3 |
-| 8 | k80 | 4 | 4 | 3 | 5.3 |
-| 9 | k26 | 5 | 4 | 4 | 5.0 |
-| 10 | k25 | 3 | 3 | 2 | 4.5 |
-| 11 | k70 | 3 | 3 | 2 | 4.5 |
-| 12 | k13 | 3 | 3 | 2 | 4.5 |
-| 13 | k92 | 3 | 3 | 2 | 4.5 |
-| 14 | k10 | 4 | 4 | 4 | 4.0 |
-| 15 | k81 | 4 | 3 | 3 | 4.0 |
-| 16 | k82 | 3 | 4 | 3 | 4.0 |
-| 17 | k83 | 3 | 4 | 3 | 4.0 |
-| 18 | k93 | 4 | 2 | 2 | 4.0 |
-| 19 | k94 | 4 | 3 | 3 | 4.0 |
-| 20 | k95 | 4 | 3 | 3 | 4.0 |
-| 21 | k96 | 5 | 4 | 5 | 4.0 |
-| 22 | k97 | 3 | 4 | 3 | 4.0 |
-| 23 | k110 | 4 | 2 | 2 | 4.0 |
-| 24 | k84 | 3 | 5 | 4 | 3.8 |
-| 25 | k74 | 4 | 3 | 4 | 3.0 |
-| 26 | k52 | 3 | 2 | 2 | 3.0 |
-| 27 | k85 | 3 | 3 | 3 | 3.0 |
-| 28 | k86 | 3 | 5 | 5 | 3.0 |
-| 29 | k87 | 3 | 3 | 3 | 3.0 |
-| 30 | k98 | 3 | 2 | 2 | 3.0 |
-| 31 | k109 | 4 | 2 | 3 | 2.7 |
-| 32 | k99 | 3 | 4 | 5 | 2.4 |
-| 33 | k100 | 3 | 3 | 4 | 2.3 |
-| 34 | k88 | 2 | 2 | 2 | 2.0 |
-| 35 | k101 | 4 | 2 | 4 | 2.0 |
-| 36 | k102 | 3 | 2 | 3 | 2.0 |
-| 37 | k103 | 2 | 2 | 2 | 2.0 |
-| 38 | k89 | 2 | 4 | 5 | 1.6 |
-| 39 | k104 | 2 | 3 | 5 | 1.2 |
+| 4 | k117 | 4 | 3 | 2 | 6.0 |
+| 5 | k23 | 4 | 4 | 3 | 5.3 |
+| 6 | k79 | 4 | 4 | 3 | 5.3 |
+| 7 | k80 | 4 | 4 | 3 | 5.3 |
+| 8 | k26 | 5 | 4 | 4 | 5.0 |
+| 9 | k25 | 3 | 3 | 2 | 4.5 |
+| 10 | k70 | 3 | 3 | 2 | 4.5 |
+| 11 | k13 | 3 | 3 | 2 | 4.5 |
+| 12 | k92 | 3 | 3 | 2 | 4.5 |
+| 13 | k10 | 4 | 4 | 4 | 4.0 |
+| 14 | k81 | 4 | 3 | 3 | 4.0 |
+| 15 | k82 | 3 | 4 | 3 | 4.0 |
+| 16 | k83 | 3 | 4 | 3 | 4.0 |
+| 17 | k93 | 4 | 2 | 2 | 4.0 |
+| 18 | k94 | 4 | 3 | 3 | 4.0 |
+| 19 | k95 | 4 | 3 | 3 | 4.0 |
+| 20 | k96 | 5 | 4 | 5 | 4.0 |
+| 21 | k97 | 3 | 4 | 3 | 4.0 |
+| 22 | k110 | 4 | 2 | 2 | 4.0 |
+| 23 | k84 | 3 | 5 | 4 | 3.8 |
+| 24 | k74 | 4 | 3 | 4 | 3.0 |
+| 25 | k52 | 3 | 2 | 2 | 3.0 |
+| 26 | k85 | 3 | 3 | 3 | 3.0 |
+| 27 | k86 | 3 | 5 | 5 | 3.0 |
+| 28 | k87 | 3 | 3 | 3 | 3.0 |
+| 29 | k98 | 3 | 2 | 2 | 3.0 |
+| 30 | k109 | 4 | 2 | 3 | 2.7 |
+| 31 | k99 | 3 | 4 | 5 | 2.4 |
+| 32 | k100 | 3 | 3 | 4 | 2.3 |
+| 33 | k88 | 2 | 2 | 2 | 2.0 |
+| 34 | k101 | 4 | 2 | 4 | 2.0 |
+| 35 | k102 | 3 | 2 | 3 | 2.0 |
+| 36 | k103 | 2 | 2 | 2 | 2.0 |
+| 37 | k89 | 2 | 4 | 5 | 1.6 |
+| 38 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
