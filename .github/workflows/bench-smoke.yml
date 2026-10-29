@@ -6,16 +6,11 @@
 name: Bench smoke
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # ci.yml calls this workflow, so the check CI OK of the ruleset needs it
+  workflow_call:
 
 permissions:
   contents: read
-
-concurrency:
-  group: bench-smoke-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   smoke:
