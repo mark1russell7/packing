@@ -434,6 +434,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k123",
+    title: "Each record has the balance of the pack and its move under a seed change. The compare page shows the fill against the side skew.",
+    pr: 169,
+    link: "https://github.com/mark1russell7/packing/pull/169",
+  },
+  {
+    date: "2026-10-29",
     item: "k58",
     title: "Release 0.3.0: pack() without a strategy uses the table of select for a fixed size. Other containers keep the rows output.",
     pr: 167,
