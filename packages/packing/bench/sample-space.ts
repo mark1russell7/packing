@@ -3,6 +3,7 @@
 //
 //   node bench/sample-space.ts --out <dir> [--n 400] [--seed 1] [--draw uniform|option|stratified|active] [--stratify] [--max-count 1000] [--no-knobs]
 //                              [--knobs relative|absolute] [--repeats 1] [--warmup 0] [--max-minutes <m>] [--prediction <id>] [--commit sha]
+//                              [--timing off|stratum|mixed] [--pairs 16,20]
 //
 // `docs/BENCH.md` ("The whole space, sampled") tells how the draw works. The times of a local run do not count.
 
@@ -50,7 +51,7 @@ import {
   type StrategyConfig,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import { finite, pairValues, timeRuns, type BenchEnv } from "./run.ts";
+import { finite, hasClockLimit, pairValues, timeRuns, type BenchEnv } from "./run.ts";
 
 /** The schema of the summary `sample.json` of a sample. */
 export const SAMPLE_SCHEMA = "packing-sample-space/1";
@@ -318,10 +319,20 @@ export function drawConfig(r: Random, space: StrategySpace, counts: SpaceCounts,
   const weights = mode === "uniform" ? [counts.base, ...counts.meta.map((m) => m.weight)] : [1n, ...counts.meta.map(() => 1n)];
   const top = pickWeighted(r, weights);
   if (top === 0) return drawBase(r, space, counts);
-  const meta = counts.meta[top - 1]!;
+  return metaConfig(r, space, counts, counts.meta[top - 1]!);
+}
+
+/** This function draws the params and the members of one meta option. */
+function metaConfig(r: Random, space: StrategySpace, counts: SpaceCounts, meta: MetaChoice): StrategyConfig {
   const params = drawParams(r, meta.option.params);
   const members = drawMembers(r, space, counts, meta.option.members!);
   return { space: space.engine, stages: { [meta.stage]: { ...choiceOf(meta.option.id, params), members } } };
+}
+
+/** This function draws a config of a meta option. Each meta config of the space has the same chance. It throws a `RangeError` for a space without meta options. */
+export function drawMeta(r: Random, space: StrategySpace, counts: SpaceCounts): StrategyConfig {
+  if (counts.meta.length === 0) throw new RangeError("The space has no meta options.");
+  return metaConfig(r, space, counts, counts.meta[pickWeighted(r, counts.meta.map((m) => m.weight))]!);
 }
 
 // ---- The strata (k115) ----
@@ -352,6 +363,8 @@ export interface Stratum {
   readonly params?: readonly SpaceParam[];
   /** The count of the members of a meta stratum without a `pool`. */
   readonly members?: number;
+  /** The space and the counts of the timing stratum `clock:1` (k121). The stratum draws only configs with a clock limit. */
+  readonly timing?: { readonly space: StrategySpace; readonly counts: SpaceCounts };
 }
 
 /** This function gives the name of the stage that gives the family of a base config. */
@@ -422,12 +435,88 @@ export function stratumOf(space: StrategySpace, config: StrategyConfig): string 
 
 /** This function draws one config of a stratum. Each config of the stratum has the same chance. */
 export function drawStratum(r: Random, space: StrategySpace, counts: SpaceCounts, stratum: Stratum): StrategyConfig {
+  if (stratum.timing !== undefined) return drawMeta(r, stratum.timing.space, stratum.timing.counts);
   if (stratum.meta === undefined) return drawCombo(r, space, stratum.combos!);
   const meta = stratum.meta;
   const params = drawParams(r, stratum.params ?? meta.option.params);
   const rule = meta.option.members!;
   const members = rule.pool !== undefined ? drawMembers(r, space, counts, rule) : drawDistinct(r, space, counts, stratum.members!);
   return { space: space.engine, stages: { [meta.stage]: { ...choiceOf(meta.option.id, params), members } } };
+}
+
+// ---- The clock limits (k121) ----
+
+/** The param that switches on the wall-clock limit `budgetMs` of an option, for example of `portfolio` and `restarts`. */
+export const CLOCK_PARAM = "limitTime";
+
+/** The id of the timing stratum: the configs with a clock limit. Only the timing `stratum` draws it. */
+export const CLOCK_STRATUM = "clock:1";
+
+/**
+ * The clock limits of a sample (k121). A result with a clock limit measures the computer, not the algorithm. Thus no model can cover it.
+ *
+ * - `off`: the draws give no config with a clock limit. This is the default.
+ * - `stratum`: a stratified draw adds the timing stratum `clock:1`. It goes only with the draw `stratified`.
+ * - `mixed`: the draws of k112 to k118 over the whole space. Pair `i` is the pair of a sample before k121.
+ */
+export type Timing = "off" | "stratum" | "mixed";
+
+/** The clock limits of a sample. The first one is the default. */
+export const TIMINGS: readonly Timing[] = Object.freeze(["off", "stratum", "mixed"]);
+
+/** This function gives a space with the param `limitTime` of each option at one value. The param becomes an `enum` with one value. */
+function pinClock(space: StrategySpace, value: boolean, keep: (o: StageOption) => boolean): StrategySpace {
+  const stages = space.stages.map((s) => ({
+    ...s,
+    options: s.options.filter(keep).map((o) => (o.params.some((p) => p.name === CLOCK_PARAM) ? { ...o, params: pinParam(o.params, CLOCK_PARAM, value) } : o)),
+  }));
+  return { ...space, stages };
+}
+
+/** This function gives the space without the configs with a clock limit: the param `limitTime` of each option is always `false`. */
+export function clockFree(space: StrategySpace): StrategySpace {
+  return pinClock(space, false, () => true);
+}
+
+/**
+ * This function gives the space of the timing stratum. Its meta options are the meta options with the param `limitTime`, always at `true`.
+ * The base options stay, because they give the members.
+ */
+export function clockOnly(space: StrategySpace): StrategySpace {
+  return pinClock(space, true, (o) => o.members === undefined || o.params.some((p) => p.name === CLOCK_PARAM));
+}
+
+/** The draw of the configs of a sample: the space of the draws, its counts, the strata of a stratified draw, and the clock limits. */
+export interface DrawPlan {
+  /** The space of the draws. With the timing `off` or `stratum`, it is `clockFree` of the space. */
+  readonly space: StrategySpace;
+  readonly counts: SpaceCounts;
+  /** The strata of a stratified draw, else none. The timing `stratum` adds `clock:1` at the end. */
+  readonly strata: readonly Stratum[];
+  readonly draw: SampleDraw;
+  readonly timing: Timing;
+}
+
+/** This function gives the draw of the configs of a sample. It throws a `RangeError` for the timing `stratum` without the draw `stratified`. */
+export function drawPlan(space: StrategySpace, draw: SampleDraw, timing: Timing = "off"): DrawPlan {
+  if (!TIMINGS.includes(timing)) throw new RangeError(`The timing is ${TIMINGS.join(", ")}, not ${String(timing)}.`);
+  if (timing === "stratum" && draw !== "stratified") throw new RangeError("The timing stratum goes only with the draw stratified.");
+  const drawSpace = timing === "mixed" ? space : clockFree(space);
+  const counts = spaceCounts(drawSpace);
+  const strata: Stratum[] = draw === "stratified" ? strataOf(drawSpace, counts) : [];
+  if (timing === "stratum") {
+    const only = clockOnly(space);
+    const c = spaceCounts(only);
+    const configs = c.meta.reduce((s, m) => s + m.weight, 0n);
+    if (configs > 0n) strata.push({ id: CLOCK_STRATUM, family: "clock", size: "1", configs, timing: { space: only, counts: c } });
+  }
+  return { space: drawSpace, counts, strata, draw, timing };
+}
+
+/** This function draws one config of a plan: from the stratum of a stratified draw, else with the draw mode of the plan. */
+export function drawOf(r: Random, plan: DrawPlan, stratum: Stratum | undefined): StrategyConfig {
+  if (plan.draw === "stratified") return drawStratum(r, plan.space, plan.counts, stratum!);
+  return drawConfig(r, plan.space, plan.counts, plan.draw);
 }
 
 // ---- The draw of an input ----
@@ -582,6 +671,7 @@ export interface SampleRecord {
   readonly measures: Record<string, number>;
   readonly hard: PackHard;
   readonly tolerance: { readonly overlap: number };
+  /** The value `true` when each later pass of the pair gives the output of the first pass. The later passes are the second, warm-up and timed passes. */
   readonly deterministic: boolean;
   readonly prediction: string;
   readonly ms: number;
@@ -591,6 +681,8 @@ export interface SampleRecord {
   commit?: string;
   /** The index of the pair in the sample. */
   readonly pair: number;
+  /** The value of `hasClockLimit` of the config (k121). A pair with a clock limit is outside the coverage and the determinism gate. */
+  readonly clock: boolean;
   /** The canonical config of `packSpace`. */
   readonly config: StrategyConfig;
   /** The generator of the input, with its full params. */
@@ -635,6 +727,13 @@ export interface SampleOptions {
    * The sampler lowers a larger value to this count before the pack, so the record has the config that it packed.
    */
   readonly maxOverlapMoves?: number;
+  /** The clock limits of the draws (k121). The default is `off`: no config has a clock limit. */
+  readonly timing?: Timing;
+  /**
+   * The indexes of the pairs to measure, in place of the pairs 0 to `n - 1` (k121). Each pair has its own random stream, so pair `i` is the pair `i` of the full sample.
+   * A stratum that an earlier pair closed draws again. The default is each pair.
+   */
+  readonly pairs?: readonly number[];
 }
 
 /** The summary of a sample, schema `packing-sample-space/1`. */
@@ -665,6 +764,16 @@ export interface SampleSummary {
   readonly hard: { readonly pairs: number; readonly rules: Readonly<Record<string, number>> };
   /** The count of the pairs with two different outputs of the same seed. */
   readonly nondeterministic: number;
+  /** The pairs of `nondeterministic` with a clock limit (k121). They do not fail the sample. */
+  readonly nondeterministicClock: number;
+  /** The pairs of `nondeterministic` without a clock limit (k121). Each one fails the sample. */
+  readonly nondeterministicPairs: readonly { readonly pair: number; readonly input: string; readonly config: string }[];
+  /** The clock limits of the draws (k121). */
+  readonly timing: Timing;
+  /** The count of the measured pairs with a clock limit (k121). The coverage does not read them. */
+  readonly clockPairs: number;
+  /** The indexes of the pairs that the options asked for, when they are not 0 to `n - 1` (k121). */
+  readonly pairList?: readonly number[];
   readonly errors: readonly { readonly pair: number; readonly input: string; readonly config: string; readonly message: string }[];
   /** `time` when `maxMinutes` stopped the sample before its last pair. */
   readonly stopped?: "time";
@@ -741,11 +850,18 @@ export interface MeasureOptions {
   readonly commit?: string;
 }
 
-/** This function packs a pair a second time for `deterministic`, then `warmup` times, then `repeats` times with a clock. It gives the record of the pair. */
+/**
+ * This function packs a pair a second time for `deterministic`, then `warmup` times, then `repeats` times with a clock. It gives the record of the pair.
+ * Each pass after the first counts for `deterministic` (k121). Thus a sample with 10 repeats compares 11 outputs with the first output.
+ */
 export function measurePair(p: PairToMeasure, o: MeasureOptions): SampleRecord {
   const { input, file, draw: d, config, id, first } = p;
-  const second = packConfig(input, config, file.seed);
-  const pack = (): PackOutput => packConfig(input, config, file.seed);
+  const later: PackOutput[] = [packConfig(input, config, file.seed)];
+  const pack = (): PackOutput => {
+    const output = packConfig(input, config, file.seed);
+    later.push(output);
+    return output;
+  };
   for (let w = 0; w < o.warmup; w++) pack();
   const { msRuns, searchMs } = timeRuns(pack, o.repeats, o.clock);
   const values = pairValues(input, first, searchMs, file.known);
@@ -767,13 +883,14 @@ export function measurePair(p: PairToMeasure, o: MeasureOptions): SampleRecord {
     measures: roundMeasures(finite(values)),
     hard,
     tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
-    deterministic: isDeterministic(first, second),
+    deterministic: later.every((output) => isDeterministic(first, output)),
     prediction: o.prediction,
     ms: round3(medianOf(msRuns)),
     msRuns: msRuns.map(round3),
     outputHash: outputHash(first),
     env: o.env,
     pair: p.pair,
+    clock: hasClockLimit(config),
     config,
     generator: { name: d.family, version: d.version, params },
     cell: generator(d.family, d.version).cell(params as never) as unknown as Record<string, unknown>,
@@ -794,6 +911,7 @@ export function measurePair(p: PairToMeasure, o: MeasureOptions): SampleRecord {
  *
  * Another error goes into `errors`, and the sampler goes on. A stratified pair without an input and config is a miss of its stratum, not an error.
  * After `MAX_STRATUM_MISSES` misses, the stratum closes: its later pairs draw nothing and count as missed.
+ * The configs come from `drawPlan` with the option `timing`. With the default `off`, no config has a clock limit (k121).
  */
 export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; summary: SampleSummary } {
   const n = options.n ?? DEFAULT_PAIRS;
@@ -814,8 +932,13 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   if (!Number.isInteger(maxInputTries) || maxInputTries < 1) throw new RangeError("The input tries are a whole number of 1 or more.");
   const maxOverlapMoves = options.maxOverlapMoves;
   if (maxOverlapMoves !== undefined && (!Number.isInteger(maxOverlapMoves) || maxOverlapMoves < 1)) throw new RangeError("The overlap moves are a whole number of 1 or more.");
-  const counts = spaceCounts(space);
-  const strata = draw === "stratified" ? strataOf(space, counts) : [];
+  const pairList = options.pairs;
+  if (pairList !== undefined && !pairList.every((p) => Number.isInteger(p) && p >= 0)) throw new RangeError("The pairs are whole numbers of 0 or more.");
+  const timing = options.timing ?? "off";
+  // k121: the draws use the space of the plan. The checks, the canonical configs and the ids use the whole space.
+  const plan = drawPlan(space, draw, timing);
+  const counts = plan.counts;
+  const strata = plan.strata;
   if (draw === "stratified" && strata.length === 0) throw new RangeError("The space has no strata.");
   const strataPairs: Record<string, number> = Object.fromEntries(strata.map((s) => [s.id, 0]));
   const strataMissed: Record<string, number> = Object.fromEntries(strata.map((s) => [s.id, 0]));
@@ -834,9 +957,12 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   let inputsRejected = 0;
   let hardPairs = 0;
   let nondeterministic = 0;
+  let nondeterministicClock = 0;
+  let clockPairs = 0;
+  const nondeterministicPairs: SampleSummary["nondeterministicPairs"][number][] = [];
   let stopped: "time" | undefined;
 
-  for (let pair = 0; pair < n; pair++) {
+  for (const pair of pairList ?? Array.from({ length: n }, (_, i) => i)) {
     if (options.maxMinutes !== undefined && Date.now() - start > options.maxMinutes * 60000) {
       stopped = "time";
       break;
@@ -861,7 +987,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
       const input = toPackInput(file);
       const shapes = shapeKindsOf({ boxes: input.items });
       for (let configTry = 0; configTry < MAX_CONFIG_TRIES && !done; configTry++) {
-        const config = draw === "stratified" ? drawStratum(r, space, counts, stratum!) : drawConfig(r, space, counts, draw);
+        const config = drawOf(r, plan, stratum);
         configsDrawn++;
         const breaks = checkConfig(space, config, { shapes });
         if (breaks.length > 0) {
@@ -890,10 +1016,15 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
           const broken = Object.entries(record.hard).filter(([, v]) => v > 0);
           if (broken.length > 0) hardPairs++;
           for (const [rule] of broken) bump(hardRules, rule);
-          if (!record.deterministic) nondeterministic++;
+          if (record.clock) clockPairs++;
+          if (!record.deterministic) {
+            nondeterministic++;
+            if (record.clock) nondeterministicClock++;
+            else nondeterministicPairs.push({ pair, input: file.id, config: id });
+          }
           records.push(record);
           bump(composition, combineOf(canonical));
-          if (draw === "stratified") bump(strataPairs, stratumOf(space, canonical));
+          if (draw === "stratified") bump(strataPairs, stratum!.timing === undefined ? stratumOf(space, canonical) : stratum!.id);
           bump(families, `${d.family}@${d.version}`);
         } catch (error) {
           errors.push({ pair, input: file.id, config: id, message: error instanceof Error ? error.message : String(error) });
@@ -907,7 +1038,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   const summary: SampleSummary = {
     schema: SAMPLE_SCHEMA,
     seed,
-    requested: n,
+    requested: pairList?.length ?? n,
     pairs: records.length,
     draw,
     maxCount,
@@ -922,6 +1053,11 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     families,
     hard: { pairs: hardPairs, rules: hardRules },
     nondeterministic,
+    nondeterministicClock,
+    nondeterministicPairs,
+    timing,
+    clockPairs,
+    ...(pairList === undefined ? {} : { pairList: [...pairList] }),
     errors,
     ...(stopped === undefined ? {} : { stopped }),
     ...(draw === "stratified" ? { strata: Object.fromEntries(strata.map((s) => [s.id, { configs: s.configs.toString(), pairs: strataPairs[s.id] ?? 0, missed: strataMissed[s.id] ?? 0 }])) } : {}),
@@ -995,6 +1131,11 @@ export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOpt
   const prediction = optionOf(argv, "--prediction");
   const knobScale = optionOf(argv, "--knobs") ?? "relative";
   if (!(KNOB_SCALES as readonly string[]).includes(knobScale)) throw new Error(`The option --knobs is relative or absolute, not ${knobScale}.`);
+  const timing = optionOf(argv, "--timing") ?? "off";
+  if (!(TIMINGS as readonly string[]).includes(timing)) throw new Error(`The option --timing is ${TIMINGS.join(", ")}, not ${timing}.`);
+  if (timing === "stratum" && draw !== "stratified") throw new Error("The option --timing stratum goes only with --draw stratified.");
+  const pairsText = optionOf(argv, "--pairs");
+  if (pairsText !== undefined && !/^\d+(,\d+)*$/.test(pairsText)) throw new Error(`The option --pairs is whole numbers with commas, for example 16,20, not ${pairsText}.`);
   return {
     n: wholeOf(argv, "--n", DEFAULT_PAIRS),
     seed: wholeOf(argv, "--seed", 1),
@@ -1005,6 +1146,8 @@ export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOpt
     repeats: wholeOf(argv, "--repeats", 1),
     warmup: wholeOf(argv, "--warmup", 0),
     env,
+    timing: timing as Timing,
+    ...(pairsText === undefined ? {} : { pairs: pairsText.split(",").map(Number) }),
     ...(minutes === undefined ? {} : { maxMinutes: Number(minutes) }),
     ...(prediction === undefined ? {} : { prediction }),
   };
@@ -1031,7 +1174,19 @@ export function sampleMain(argv: readonly string[]): number {
       `Errors: ${summary.errors.length}. Combine: ${parts}.${summary.stopped === "time" ? " The time limit stopped the sample." : ""}`,
   );
   if (summary.strata !== undefined) console.log(`Strata: ${Object.entries(summary.strata).map(([id, s]) => `${id} ${s.pairs}${s.missed > 0 ? ` (${s.missed} missed)` : ""}`).join(", ")}.`);
-  return summary.errors.length > 0 ? 1 : 0;
+  const failed = determinismLines(summary);
+  for (const line of failed) console.log(line);
+  return summary.errors.length > 0 || summary.nondeterministicPairs.length > 0 ? 1 : 0;
+}
+
+/** This function gives the lines of the determinism gate of a sample (k121): the two counts, then each pair that fails the gate. */
+export function determinismLines(summary: Pick<SampleSummary, "timing" | "clockPairs" | "nondeterministicClock" | "nondeterministicPairs">): string[] {
+  const fail = summary.nondeterministicPairs;
+  const lines = [
+    `Timing ${summary.timing}: ${summary.clockPairs} pairs with a clock limit. Not deterministic with a clock limit: ${summary.nondeterministicClock}. Without a clock limit: ${fail.length}.`,
+  ];
+  if (fail.length > 0) lines.push(`The determinism gate (k121) failed: ${fail.map((p) => `pair ${p.pair} (${p.config} on ${p.input})`).join(", ")}.`);
+  return lines;
 }
 
 if (process.argv[1]?.endsWith("sample-space.ts") === true) {

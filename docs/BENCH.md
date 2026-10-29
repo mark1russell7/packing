@@ -919,7 +919,7 @@ The summary `summary.md` has these sections:
 9. `Activation`: for each strategy and container shape, the count of its move and its label.
 10. `Portfolio`: for `all` and each container shape, the held-out scores of the oracle, the best single entry, the sets and the composite entries. Then the scores at each limit, the training scores, the sole wins and the losers.
 11. `Skipped cells`: each reason of the skipped records of a strategy, with the count of its records.
-12. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none.
+12. `Hard breaks and determinism`: each measured record with a hard break or with `deterministic` set to `false`. A good run has none. The section starts with the two counts of the determinism gate (k121).
 13. `Stability`: the count of records with the stability measures.
 14. `Bounds`: for each strategy and objective, the median and the quantile 0.95 of `pack.gap`, and the count of each bound that wins.
 15. `Predictions`: each prediction with the id of the run, the measured value and the result of the comparison.
@@ -1059,12 +1059,13 @@ The relative knobs of roadmap item k118 (`--knobs relative`, the default):
 - Pair `i` reads its own random stream of the seed. Thus the same seed gives the same pairs, and a larger `--n` keeps the first pairs.
 
 The script packs each pair two times, to check that the output does not change, then times it with `--repeats` (1). It measures the pair like `bench run`.
+Since k121, each warm-up pass and each timed pass also counts for `deterministic`.
 It writes `records.jsonl` (`layout-record/1`, with the config and the input of each pair) and `sample.json` (the counts, the rejections and the hard breaks).
 
 The pairs that are not deterministic (the count `nondeterministic` of `sample.json`):
 
 - Only a config with the param `limitTime` set to `true` can give two different outputs. The clock of the time limit cuts a different member on each run.
-- The k112 sample found one such pair. The draw keeps `limitTime`, because the time limit is an opt-in of the space.
+- The k112 sample found one such pair. Since k121, the default draw gives no config with a clock limit ("The determinism gate").
 - Since roadmap item k117, the param `limitWork` gives the work limit `budgetWork` (`docs/PACKER.md`, "The work budget"). It cuts at the same member on each run.
 - The script draws `limitWork` and `budgetWork` like each other param. Each of the 4 values of `budgetWork` counts as one config.
 - Thus 4 of 5 configs of a portfolio or of `restarts` have the work limit, and 1 of 2 configs have the time limit.
@@ -1090,6 +1091,44 @@ Why the two numbers differ:
 - Thus a high grid number with a low whole-space number tells that the records cover the bench, but not the space.
 
 The job `merge` of `bench.yml` starts the sampler with the input `sample` (400). The value 0 turns it off. The sampler stops after 25 minutes with the pairs that it has.
+
+### The determinism gate (k121)
+
+A pair that is not deterministic without a clock limit is a bug. Thus it fails the run.
+
+- `hasClockLimit` of `bench/run.ts` tells if a config has a clock limit: `limitTime` `true` or a `budgetMs`, in the members too.
+- A sampled record has the field `clock` with this value.
+- `bench/main.ts run`, `bench/main.ts merge`, `sample-space.ts`, `active.ts` and `coverage.ts` write their files first.
+- Then each one exits with the code 1 when a record without a clock limit is not deterministic. It shows the pairs that fail.
+- `summary.md`, `sample.json` and `coverage.json` give two counts. `nondeterministic` counts all the pairs that are not deterministic.
+- `nondeterministicClock` counts the pairs of `nondeterministic` with a clock limit. They do not fail the run.
+- `coverage.json` has the section `determinism`: the counts of the grid, of the sample and of the active sample, and `passed`.
+
+Why the clock limits are outside the coverage:
+
+- A clock limit stops a search after a time. The output then depends on the speed and on the load of the computer.
+- Thus a result with a clock limit measures the computer, not the algorithm. No model of the config and the input can predict it.
+- The default sample draws from `clockFree` of `packSpace`: the param `limitTime` is always `false`.
+- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 23 strata stay the same.
+- `packSpace` keeps the clock limits. The option `--timing` of `sample-space.ts` draws them only on request.
+
+The option `--timing`:
+
+- `off` (the default) draws no clock limits.
+- `stratum` adds the timing stratum `clock:1` after the 23 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
+- `stratum` goes only with `--draw stratified`. The coverage does not read the pairs of `clock:1`, and `sampled.clockPairs` counts them.
+- `mixed` draws from the whole space, as before k121. Pair `i` of a sample with `mixed` is pair `i` of the samples of k112 to k118.
+
+The option `--pairs 16,20` measures only those pairs of the sample. Each pair reads its own random stream, so pair 16 is the pair 16 of the full sample.
+
+The pair 16 of the k118 sample (run 40815224148) was not deterministic:
+
+- Its config is `restarts` with `limitTime` `true`, `budgetMs` 2.61 and a work limit of 64000. The input is `ladder@1` with the seed 1019521697.
+- With `limitTime` `false`, 10 packs give one hash. The test `bench/determinism.test.ts` pins it.
+- With a clock limit of 1 to 6 ms, a local computer gave from 1 to 16 restarts, and two hashes in 40 packs. The CI computer is slower.
+- The portfolio of the k116 run with `budgetMs` 2.04 has the same cause.
+
+The test `bench/shuffle.test.ts` packs each bench entry and 24 sampled configs on 3 inputs, 5 times each, in a shuffled order. Each pair gives one hash.
 
 ### The strata
 
@@ -1368,6 +1407,9 @@ The same pairs with the relative knobs:
 - `stratify` true with `draw` `uniform` gives `stratified`, as in k115. `stratify` true with `draw` `option` fails.
 - With `draw` `active`, the sampler measures the sample first, uniform or stratified, for 12 minutes. Then `active.ts` measures the rounds for 12 minutes.
 - The input `features` is `family` (the default) or `input`. It goes to `coverage.ts` and `active.ts`.
+- The input `timing` (k121) is `off` (the default), `stratum` or `mixed`. It goes to `sample-space.ts`. The draw `active` takes only `off`.
+- The input `pairs` (k121) is a list of pair indexes, for example `16` or `16,20`. The sampler then measures only those pairs, each one `repeats` times.
+- To measure pair 16 of the k118 sample again, use `draw` `stratified`, `timing` `mixed`, `pairs` `16` and `repeats` `10`.
 
 #### The weekly trend (a hypothesis)
 

@@ -831,8 +831,11 @@ export interface CoverageSnapshot {
     strategies: string[];
     model: CoverageSummary["model"];
     measures: CoverageSnapshotMeasure[];
-    /** The facts of the sample of the whole space (k112), when the snapshot has it */
-    sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
+    /**
+     * The facts of the sample of the whole space (k112), when the snapshot has it.
+     * Since k121, it also has the pairs that are not deterministic, and those of them with a clock limit.
+     */
+    sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null; nondeterministic?: number | null; nondeterministicClock?: number | null };
     /**
      * The facts of the strata of the sample (k115), when the snapshot has them: the draw and the pairs of each stratum.
      * A stratified sample also gives the count of the configs and of the missed pairs of each stratum.
@@ -1025,6 +1028,8 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
               draw: summary.sampled.sample?.draw ?? null,
               configRejectionRate: summary.sampled.sample?.configRejectionRate ?? null,
               hardPairs: summary.sampled.sample?.hardPairs ?? null,
+              nondeterministic: summary.sampled.sample?.nondeterministic ?? null,
+              nondeterministicClock: summary.sampled.sample?.nondeterministicClock ?? null,
             },
           }),
       ...(summary.strata === undefined ? {} : { strata: { pairs: summary.strata.pairs, draw: summary.strata.draw, strata: summary.strata.strata.map((x) => ({ ...x })) } }),

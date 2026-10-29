@@ -19,7 +19,8 @@ import { corpus, corpusFamilies, packSpace, toPackInput, type CorpusSpec, type G
 import { canonicalConfig, configId, createFamilyRegistry, type StrategyConfig } from "@mark1russell7/layout-contract";
 import { inputFeatures } from "./input-features.ts";
 import { basisLines, DEFAULT_PRIOR, familyKey, PRIOR_KINDS, priorBasis, priorWeights, SAMPLER_FAMILIES, unionPrior, type FamilyPrior, type PriorBasis, type PriorKind } from "./prior.ts";
-import { SAMPLE_SET, strataOf, stratumOf } from "./sample-space.ts";
+import { determinismOf, gateLines, isClockRecord, type DeterminismCounts } from "./run.ts";
+import { CLOCK_STRATUM, SAMPLE_SET, strataOf, stratumOf } from "./sample-space.ts";
 
 /** The schema of the summary of `coverage`. */
 export const COVERAGE_SCHEMA = "packing-coverage/1";
@@ -577,6 +578,20 @@ export interface CoverageSummary {
   readonly active?: ActiveCoverage;
   /** The basis of the family prior (k119): its kind, its corpora and the weight of each family. `--sample` or `--active` gives it. */
   readonly prior?: PriorBasis;
+  /** The determinism gate (k121) over the records of the grid, of the sample and of the active sample. A summary from before k121 does not have it. */
+  readonly determinism?: CoverageDeterminism;
+}
+
+/**
+ * The determinism gate of a coverage (k121). Each part counts its records that are not deterministic, with and without a clock limit.
+ * A record without a clock limit that is not deterministic fails the gate.
+ */
+export interface CoverageDeterminism {
+  readonly grid: DeterminismCounts;
+  readonly sample?: DeterminismCounts;
+  readonly active?: DeterminismCounts;
+  /** The value `true` when no part has a failure. */
+  readonly passed: boolean;
 }
 
 /** This function rounds a value to 4 decimals. The value -0 becomes 0. */
@@ -786,6 +801,8 @@ export interface SampledRecord extends CoverageRecord {
   readonly inputHash?: string;
   /** The round of a pair of an active sample (k116), from 1. */
   readonly round?: number;
+  /** The value `true` for a pair with a clock limit (k121). The held-out test does not read it. A record from before k121 does not have it. */
+  readonly clock?: boolean;
 }
 
 /** The held-out result of one measure on the sampled pairs. */
@@ -822,13 +839,17 @@ export interface SampleFacts {
   readonly inputsRejected: number;
   readonly hardPairs: number;
   readonly nondeterministic: number;
+  /** The pairs of `nondeterministic` with a clock limit (k121). A sample from before k121 does not have it. */
+  readonly nondeterministicClock?: number;
   readonly composition: Readonly<Record<string, number>>;
 }
 
 /** The held-out test on the whole space: the tree of each measure learns on all the rows of the grid and predicts the sampled pairs. */
 export interface SampledCoverage {
-  /** The count of the measured sampled pairs. */
+  /** The count of the measured sampled pairs without a clock limit. */
   readonly pairs: number;
+  /** The count of the measured sampled pairs with a clock limit (k121). They are outside the held-out test. A summary from before k121 does not have it. */
+  readonly clockPairs?: number;
   readonly sample?: SampleFacts;
   readonly measures: readonly SampledMeasure[];
 }
@@ -858,7 +879,7 @@ export function sampledDims(r: SampledRecord): Record<string, string> {
  * 3. A pair is a hit when its absolute error is at the tolerance or below. The share gets a Wilson 95% interval.
  * 4. The baseline predicts the median of all the rows of the grid.
  *
- * A skipped sampled record and a record without a finite value are not pairs.
+ * A skipped sampled record, a record with a clock limit (k121) and a record without a finite value are not pairs.
  */
 export function sampledCoverage(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions = {}, sample?: SampleFacts): SampledCoverage {
   return sampledOf(heldOut(gridOf(records, manifest, options), sampled, options, pairFeaturer(options)), sample, priorOf(manifest, options));
@@ -875,6 +896,8 @@ interface HeldOutMeasure {
 /** The held-out errors of the sampled pairs: the pairs that are not skipped, and the errors of each measure. */
 interface HeldOut {
   readonly pairs: readonly SampledRecord[];
+  /** The count of the measured pairs with a clock limit. They are not in `pairs`. */
+  readonly clock: number;
   readonly measures: readonly HeldOutMeasure[];
 }
 
@@ -923,14 +946,17 @@ function trainRows(grid: Grid, m: CoverageMeasure, train: readonly SampledRecord
 /**
  * This function fits the tree of each measure on all the grid and gives the errors of the sampled pairs, as `sampledCoverage` tells.
  * The pairs of `train` join the rows of the grid before the fit. The baseline stays the median of the grid.
+ * A pair with a clock limit (k121) measures the computer, not the algorithm. Thus it is not a pair to predict, and it does not train.
  */
 function heldOut(grid: Grid, sampled: readonly SampledRecord[], options: CoverageOptions, featuresOf: (r: SampledRecord) => RowFeatures, train: readonly SampledRecord[] = []): HeldOut {
   const measures = options.measures ?? COVERAGE_MEASURES;
   const tree = { ...TREE_DEFAULTS, ...options };
-  const pairs = sampled.filter((r) => r.skipped === undefined);
+  const measured = sampled.filter((r) => r.skipped === undefined);
+  const pairs = measured.filter((r) => !isClockRecord(r));
+  const learn = train.filter((r) => !isClockRecord(r));
   const out: HeldOutMeasure[] = [];
   for (const m of measures) {
-    const rows = trainRows(grid, m, train, featuresOf);
+    const rows = trainRows(grid, m, learn, featuresOf);
     const table = featureTable(rows.features, rows.y);
     const all = Array.from(table.y.keys());
     const fitted = fitTree(table, all, tree);
@@ -947,7 +973,7 @@ function heldOut(grid: Grid, sampled: readonly SampledRecord[], options: Coverag
     });
     out.push({ m, errors, baseErrors, at });
   }
-  return { pairs, measures: out };
+  return { pairs, clock: measured.length - pairs.length, measures: out };
 }
 
 /** The measure that tells the forced overflow of a pair: a lower bound of the share of the item area that no packer can place. */
@@ -1106,7 +1132,7 @@ function sampledOf(h: HeldOut, sample?: SampleFacts, basis?: PriorBasis): Sample
       ...(prior === undefined ? {} : { prior: priorShare(errors.map(hit), at.map((j) => familyOf(h.pairs[j]!)), prior, basis!.kind) }),
     });
   }
-  return { pairs: h.pairs.length, ...(sample === undefined ? {} : { sample }), measures: out };
+  return { pairs: h.pairs.length, clockPairs: h.clock, ...(sample === undefined ? {} : { sample }), measures: out };
 }
 
 // ---- The strata of the whole space (k115) ----
@@ -1221,7 +1247,8 @@ export function strataCoverage(
  */
 function strataFrom(h: HeldOut, sample?: SampleFacts, facts?: SampleStrata): StrataCoverage {
   const of = h.pairs.map((r) => stratumOf(packSpace, r.config));
-  const known = facts === undefined ? PACK_STRATA : Object.keys(facts);
+  // k121: the timing stratum is outside the coverage. Its pairs are not in `h.pairs`, so it gets no row.
+  const known = (facts === undefined ? PACK_STRATA : Object.keys(facts)).filter((id) => id !== CLOCK_STRATUM);
   const ids = [...known, ...[...new Set(of)].filter((id) => !known.includes(id)).sort()];
   const pairs = new Map(ids.map((id) => [id, 0]));
   for (const id of of) pairs.set(id, pairs.get(id)! + 1);
@@ -1260,6 +1287,7 @@ export function sampleFacts(text: string): SampleFacts {
     inputs: { rejected: number };
     hard: { pairs: number };
     nondeterministic: number;
+    nondeterministicClock?: number;
     composition: Record<string, number>;
   };
   return {
@@ -1270,6 +1298,7 @@ export function sampleFacts(text: string): SampleFacts {
     inputsRejected: s.inputs.rejected,
     hardPairs: s.hard.pairs,
     nondeterministic: s.nondeterministic,
+    ...(s.nondeterministicClock === undefined ? {} : { nondeterministicClock: s.nondeterministicClock }),
     composition: s.composition,
   };
 }
@@ -1675,6 +1704,7 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
     ...(sampleDir === undefined ? {} : readSample(rows, manifest, sampleDir, options)),
     ...(activeDir === undefined ? {} : { active: readActive(rows, manifest, activeDir, options, sampleDir) }),
     ...(sampleDir === undefined && activeDir === undefined ? {} : { prior: priorOf(manifest, options) }),
+    determinism: coverageDeterminism(rows, sampleDir === undefined ? undefined : folderRecords(sampleDir), activeDir === undefined ? undefined : folderRecords(activeDir)),
   };
   writeFileSync(path, `${JSON.stringify(summary, null, 1)}\n`);
   for (const m of summary.measures) {
@@ -1712,7 +1742,39 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
     );
   }
   if (summary.active !== undefined) for (const line of activeLines(summary.active)) console.log(line);
+  for (const line of determinismSummaryLines(summary.determinism!)) console.log(line);
   return summary;
 }
 
-if (process.argv[1]?.endsWith("coverage.ts") === true) coverageMain(process.argv.slice(2));
+/** This function gives the records of `records.jsonl` in a folder of a sample, or none when the file is absent. */
+function folderRecords(dir: string): CoverageRecord[] {
+  const file = join(dir, "records.jsonl");
+  return existsSync(file) ? readRecords(readFileSync(file, "utf8")) : [];
+}
+
+/** This function gives the determinism gate of a coverage (k121) from the records of the grid, of the sample and of the active sample. */
+export function coverageDeterminism(grid: readonly CoverageRecord[], sample?: readonly CoverageRecord[], active?: readonly CoverageRecord[]): CoverageDeterminism {
+  const g = determinismOf(grid);
+  const s = sample === undefined ? undefined : determinismOf(sample);
+  const a = active === undefined ? undefined : determinismOf(active);
+  const passed = [g, s, a].every((c) => c === undefined || c.failures.length === 0);
+  return { grid: g, ...(s === undefined ? {} : { sample: s }), ...(a === undefined ? {} : { active: a }), passed };
+}
+
+/** This function gives the lines of the determinism gate of a coverage for the command line: the counts of each part, then each failure. */
+export function determinismSummaryLines(d: CoverageDeterminism): string[] {
+  const parts: [string, DeterminismCounts | undefined][] = [["grid records", d.grid], ["sampled pairs", d.sample], ["active pairs", d.active]];
+  const out: string[] = [];
+  for (const [what, c] of parts) {
+    if (c === undefined) continue;
+    out.push(`Determinism of the ${what}: ${c.failures.length} not deterministic without a clock limit, ${c.nondeterministicClock} with a clock limit.`);
+    out.push(...gateLines(c, what));
+  }
+  return out;
+}
+
+if (process.argv[1]?.endsWith("coverage.ts") === true) {
+  const result = coverageMain(process.argv.slice(2));
+  // k121: the summary is written first. A failure of the determinism gate then gives the exit code 1.
+  if ("determinism" in result && result.determinism?.passed === false) process.exitCode = 1;
+}

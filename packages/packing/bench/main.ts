@@ -22,6 +22,8 @@ import {
   summaryMarkdown,
   DEFAULT_REPEATS,
   DEFAULT_WARMUP,
+  determinismOf,
+  gateLines,
   type BenchEnv,
   type BenchPrediction,
   type BenchRecord,
@@ -88,6 +90,13 @@ function write(out: string, run: BenchRun, records: readonly BenchRecord[], mani
   if (manifest !== undefined) writeFileSync(join(out, "corpus.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
+/** This function shows the failures of the determinism gate (k121), and tells if the gate passed. The caller writes the files before it. */
+function gate(records: readonly BenchRecord[]): boolean {
+  const lines = gateLines(determinismOf(records), "records");
+  for (const line of lines) process.stderr.write(`${line}\n`);
+  return lines.length === 0;
+}
+
 function main(): number {
   switch (command) {
     case "list":
@@ -117,7 +126,8 @@ function main(): number {
       write(out, result.run, result.records, result.manifest);
       const skips = result.records.filter((r) => !isMeasured(r)).length;
       process.stdout.write(`${result.records.length} records, ${skips} of them skipped, and ${result.run.errors.length} errors in ${out}\n`);
-      return result.run.errors.length > 0 ? 1 : 0;
+      const passed = gate(result.records);
+      return result.run.errors.length > 0 || !passed ? 1 : 0;
     }
     case "merge": {
       const out = opt("--out");
@@ -136,7 +146,8 @@ function main(): number {
       write(resolve(out), run, records, manifest);
       const skips = records.filter((r) => !isMeasured(r)).length;
       process.stdout.write(`${records.length} records of ${runs.length} jobs, ${skips} of them skipped, in ${resolve(out)}\n`);
-      return run.errors.length > 0 ? 1 : 0;
+      const passed = gate(records);
+      return run.errors.length > 0 || !passed ? 1 : 0;
     }
     case "check": {
       // The smoke check of the folder of a run. It writes the coverage table, and it exits with the code 1 on a failure.

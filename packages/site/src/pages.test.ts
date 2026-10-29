@@ -29,6 +29,7 @@ import {
   FORCED_LABEL,
   forcedText,
   priorBasisText,
+  determinismText,
   priorText,
   stratumLabel,
   COVERAGE_STRATA_SCOPE,
@@ -172,7 +173,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-20", [], ["1"]],
     ]);
     expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
-    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k119", "k118", "k26", "k116", "k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k121", "k119", "k118", "k26", "k116", "k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
   });
 });
 
@@ -418,6 +419,12 @@ describe("the space coverage of k105", () => {
     const sampled = { ...m.sampled!, forced: { heavy: { n: 30, hits: 0, share: 0 }, rest: { n: 0, hits: 0, share: null } } };
     expect(forcedText({ sampled })).toEqual({ heavy: "0% (0 of 30)", rest: "no pairs" });
     expect(FORCED_LABEL).toContain("half");
+    // k121: the two counts of the determinism gate. A snapshot from before k121 shows no sentence.
+    const facts = { pairs: 400, seed: 1, draw: "stratified", configRejectionRate: 0, hardPairs: 0 };
+    expect(determinismText(undefined)).toBe("");
+    expect(determinismText(facts)).toBe("");
+    expect(determinismText({ ...facts, nondeterministic: 2, nondeterministicClock: null })).toBe(" In the sample, 2 pairs are not deterministic.");
+    expect(determinismText({ ...facts, nondeterministic: 3, nondeterministicClock: 2 })).toContain("1 pairs without a clock limit, and 2 pairs with a clock limit.");
     // The uniform number stays in the tile next to the rounds.
     expect(coverageTile({ ...m, active }, "Fill")).toBe(coverageTile(m, "Fill"));
     // The family prior shows next to the uniform share, and an old snapshot shows no prior.

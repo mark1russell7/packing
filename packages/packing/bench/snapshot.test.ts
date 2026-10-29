@@ -283,7 +283,8 @@ describe("the coverage snapshot (k105)", () => {
     };
     const snap = coverageSnapshot({ ...summary("2026-10-28", 0.5), sampled }, origin);
     expect(snap.latest.measures[0]!.sampled).toEqual({ n: 60, hits: 4, share: 0.0667, low: 0.0262, high: 0.1593, mae: 0.4, medianAe: 0.3, baselineMae: 0.5, baselineMedianAe: 0.4 });
-    expect(snap.latest.sampled).toEqual({ pairs: 60, seed: 1, draw: "uniform", configRejectionRate: 0.02, hardPairs: 1 });
+    // k121: the sample before k121 has no nondeterministicClock, so the snapshot gives null.
+    expect(snap.latest.sampled).toEqual({ pairs: 60, seed: 1, draw: "uniform", configRejectionRate: 0.02, hardPairs: 1, nondeterministic: 0, nondeterministicClock: null });
     expect(snap.trend).toEqual(plain.trend);
     expect(snap.latest.uniform).toEqual({
       date: "2026-10-28",
