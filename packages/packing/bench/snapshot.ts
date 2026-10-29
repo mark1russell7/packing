@@ -33,6 +33,7 @@ import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/l
 import {
   coverage,
   coverageOptions,
+  priorOf,
   readActive,
   readRecords,
   readSample,
@@ -40,6 +41,7 @@ import {
   type CoverageManifest,
   type CoverageSummary,
   type EvalMeasure,
+  type PriorCount,
   type SampledMeasure,
   type StrataMeasure,
 } from "./coverage.ts";
@@ -720,8 +722,10 @@ export interface CoverageSnapshotEval {
   share: number;
   mae: number;
   equal: number;
-  /** The share with the family prior of the corpus (k116), or `null` without a pair of a family of the corpus. An older summary does not have it. */
+  /** The share with the family prior (k116), or `null` without a pair of a family of the prior. An older summary does not have it. */
   prior?: number | null;
+  /** The effective count, the weighted pairs and the pairs with the weight 0 of the share with the prior (k119), when the summary has them */
+  priorCount?: PriorCount;
 }
 
 /** The share of the sampled pairs with the family prior (k116). Each family has its share of the corpus inputs as its weight. */
@@ -738,6 +742,21 @@ export interface CoverageSnapshotPrior {
   zero: number;
   /** The weight of the families of the corpus with pairs, from 0 to 1 */
   covered: number;
+  /** The kind of the prior (k119): `union` of the committed corpora, or `corpus` of the grid. An older summary does not have it. */
+  kind?: "union" | "corpus";
+}
+
+/** The basis of the family prior (k119): its kind, its corpora, the weight of each sampler family and the families without a weight */
+export interface CoverageSnapshotBasis {
+  kind: "union" | "corpus";
+  corpora: string[];
+  /** The count of the distinct inputs of the corpora in a sampler family */
+  inputs: number;
+  families: { family: string; inputs: number; weight: number }[];
+  /** The sampler families without an input in the corpora, with the weight 0 */
+  absent: string[];
+  /** The corpus families that the sampler does not draw */
+  unmapped: { family: string; inputs: number }[];
 }
 
 /** The rounds of the active sample for one measure (k116) */
@@ -745,7 +764,7 @@ export interface CoverageSnapshotActive {
   /** The evaluation sample with the model of the grid only, or `null` without an evaluation sample */
   start: CoverageSnapshotEval | null;
   /** Each round: the hits of its new pairs with the model of the earlier rounds, and the evaluation sample after the round */
-  rounds: { round: number; n: number; hits: number; share: number; low: number; high: number; mae: number; prior?: number | null; after: CoverageSnapshotEval | null }[];
+  rounds: { round: number; n: number; hits: number; share: number; low: number; high: number; mae: number; prior?: number | null; priorCount?: PriorCount; after: CoverageSnapshotEval | null }[];
 }
 
 /** The share of a part of the sampled pairs: its pairs, its hits and its share, or `null` without pairs */
@@ -826,6 +845,8 @@ export interface CoverageSnapshot {
     uniform?: CoverageSnapshotUniform;
     /** The facts of the active sample (k116), when the snapshot has it: its pairs, its feature set, its score, its pool and its rounds */
     active?: { pairs: number; features: string; score: string | null; pool: number | null; rounds: number; evalPairs: number | null };
+    /** The basis of the family prior (k119), when the summary has it */
+    prior?: CoverageSnapshotBasis;
   };
   /** The points of the trend, oldest first. A run has one point. */
   trend: CoveragePoint[];
@@ -882,18 +903,33 @@ const sampledOf = (m: SampledMeasure): CoverageSnapshotSampled => ({
   ...(m.prior === undefined
     ? {}
     : {
-        prior: { share: m.prior.share, low: m.prior.wilson?.low ?? null, high: m.prior.wilson?.high ?? null, nEff: m.prior.nEff, weighted: m.prior.weighted, zero: m.prior.zero, covered: m.prior.covered },
+        prior: {
+          share: m.prior.share,
+          low: m.prior.wilson?.low ?? null,
+          high: m.prior.wilson?.high ?? null,
+          nEff: m.prior.nEff,
+          weighted: m.prior.weighted,
+          zero: m.prior.zero,
+          covered: m.prior.covered,
+          ...(m.prior.kind === undefined ? {} : { kind: m.prior.kind }),
+        },
       }),
 });
 
+/** This function gives the share with the prior and its counts, as the summary has them. */
+const priorPart = (m: { prior?: number | null; priorCount?: PriorCount }): { prior?: number | null; priorCount?: PriorCount } => ({
+  ...(m.prior === undefined ? {} : { prior: m.prior }),
+  ...(m.priorCount === undefined ? {} : { priorCount: { ...m.priorCount } }),
+});
+
 /** This function gives the snapshot form of the evaluation sample with one model. */
-const evalOf = (e: EvalMeasure | undefined): CoverageSnapshotEval | null => (e === undefined ? null : { share: e.share, mae: e.mae, equal: e.equal, ...(e.prior === undefined ? {} : { prior: e.prior }) });
+const evalOf = (e: EvalMeasure | undefined): CoverageSnapshotEval | null => (e === undefined ? null : { share: e.share, mae: e.mae, equal: e.equal, ...priorPart(e) });
 
 /** This function gives the snapshot form of the rounds of the active sample for one measure, or `undefined` when no round has the measure. */
 function activeOf(a: ActiveCoverage, id: string): CoverageSnapshotActive | undefined {
   const rounds = a.rounds.flatMap((r) => {
     const m = r.measures.find((x) => x.id === id);
-    return m === undefined ? [] : [{ round: r.round, n: m.n, hits: m.hits, share: m.share, low: m.wilson.low, high: m.wilson.high, mae: m.mae, ...(m.prior === undefined ? {} : { prior: m.prior }), after: evalOf(m.after) }];
+    return m === undefined ? [] : [{ round: r.round, n: m.n, hits: m.hits, share: m.share, low: m.wilson.low, high: m.wilson.high, mae: m.mae, ...priorPart(m), after: evalOf(m.after) }];
   });
   return rounds.length === 0 ? undefined : { start: evalOf(a.start?.find((s) => s.id === id)), rounds };
 }
@@ -1003,6 +1039,18 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
               pool: summary.active.facts?.pool ?? null,
               rounds: summary.active.rounds.length,
               evalPairs: summary.active.evalPairs,
+            },
+          }),
+      ...(summary.prior === undefined
+        ? {}
+        : {
+            prior: {
+              kind: summary.prior.kind,
+              corpora: [...summary.prior.corpora],
+              inputs: summary.prior.inputs,
+              families: summary.prior.families.map((f) => ({ ...f })),
+              absent: [...summary.prior.absent],
+              unmapped: summary.prior.unmapped.map((f) => ({ ...f })),
             },
           }),
     },
@@ -1130,10 +1178,13 @@ export function snapshotMain(argv: readonly string[]): void {
     const hasSample = existsSync(join(sampleDir, "records.jsonl"));
     // The active sample (k116): the folder `active` of the run, or --active <dir>. The sample above is its evaluation sample.
     const activeDir = optionOf(argv, "--active") ?? join(folder, "active");
+    const hasActive = existsSync(join(activeDir, "records.jsonl"));
     const bySpec = {
       ...grid,
       ...(hasSample ? readSample(records, manifest, sampleDir, options) : {}),
-      ...(existsSync(join(activeDir, "records.jsonl")) ? { active: readActive(records, manifest, activeDir, { ...options, by: "spec" }, hasSample ? sampleDir : undefined) } : {}),
+      ...(hasActive ? { active: readActive(records, manifest, activeDir, { ...options, by: "spec" }, hasSample ? sampleDir : undefined) } : {}),
+      // k119: the basis of the family prior, the union of the committed corpora by default
+      ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
     writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
     return;

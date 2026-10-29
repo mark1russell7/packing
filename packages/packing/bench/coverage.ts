@@ -2,12 +2,14 @@
 // For each measure, it fits a regression tree over the features of the strategy and of the input. Then it gives the
 // held-out error, the first-order sensitivity indices and the share of the cells that the model predicts.
 //
-//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>] [--active <dir>] [--features family|input]
+//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>] [--active <dir>] [--features family|input] [--prior union|corpus] [--corpora <dir>]
 //
 // With `--sample`, the trees learn on all the grid and predict the pairs of `bench/sample-space.ts` (k112).
 // The section `strata` gives the share of each stratum of the pairs and the mean over the strata, each with the same weight (k115).
 // With `--features input`, the input features of `bench/input-features.ts` replace the family id and the params of the spec (k116).
 // With `--active <dir>`, the section `active` gives each round of an active sample of `bench/active.ts` (k116).
+// The family prior of `bench/prior.ts` weights the sampled pairs. Its default is the union of the committed corpora (k119).
+// With `--prior corpus`, the prior uses only the manifest of the grid (k116).
 //
 // `docs/BENCH.md` ("The space coverage") tells how to read the result.
 
@@ -16,6 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { corpus, corpusFamilies, packSpace, toPackInput, type CorpusSpec, type GeneratedInput, type PackInput } from "@mark1russell7/packing";
 import { canonicalConfig, configId, createFamilyRegistry, type StrategyConfig } from "@mark1russell7/layout-contract";
 import { inputFeatures } from "./input-features.ts";
+import { basisLines, DEFAULT_PRIOR, familyKey, PRIOR_KINDS, priorBasis, priorWeights, SAMPLER_FAMILIES, unionPrior, type FamilyPrior, type PriorBasis, type PriorKind } from "./prior.ts";
 import { SAMPLE_SET, strataOf, stratumOf } from "./sample-space.ts";
 
 /** The schema of the summary of `coverage`. */
@@ -544,6 +547,12 @@ export interface CoverageOptions extends TreeOptions {
   readonly features?: FeatureSet;
   /** The inputs by id, for the feature set `input`. The other inputs come from their generators again. Tests give them. */
   readonly inputs?: ReadonlyMap<string, PackInput>;
+  /** The kind of the family prior (k119). The default is `union`, over the committed corpora. */
+  readonly prior?: PriorKind;
+  /** The folder of the corpora of the prior `union`. The default is `bench/corpora`. */
+  readonly corpora?: string;
+  /** A basis of the prior in place of `prior` and `corpora`. Tests give it. */
+  readonly priorBasis?: PriorBasis;
 }
 
 /** The summary of `coverage`, schema `packing-coverage/1`. */
@@ -566,6 +575,8 @@ export interface CoverageSummary {
   readonly strata?: StrataCoverage;
   /** The rounds of an active sample (k116). Only `--active` gives it. */
   readonly active?: ActiveCoverage;
+  /** The basis of the family prior (k119): its kind, its corpora and the weight of each family. `--sample` or `--active` gives it. */
+  readonly prior?: PriorBasis;
 }
 
 /** This function rounds a value to 4 decimals. The value -0 becomes 0. */
@@ -850,7 +861,7 @@ export function sampledDims(r: SampledRecord): Record<string, string> {
  * A skipped sampled record and a record without a finite value are not pairs.
  */
 export function sampledCoverage(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions = {}, sample?: SampleFacts): SampledCoverage {
-  return sampledOf(heldOut(gridOf(records, manifest, options), sampled, options, pairFeaturer(options)), sample, familyPrior(manifest));
+  return sampledOf(heldOut(gridOf(records, manifest, options), sampled, options, pairFeaturer(options)), sample, priorOf(manifest, options));
 }
 
 /** The held-out errors of the sampled pairs for one measure. `at` gives the index of the pair of each error. */
@@ -962,17 +973,38 @@ export function forcedHeavy(r: Pick<CoverageRecord, "measures">): boolean {
   return typeof v === "number" && v >= FORCED_HEAVY;
 }
 
-// ---- The family prior (k116) ----
+// ---- The family prior (k116, k119) ----
 
-/** The weight of each generator family: its share of the inputs of the corpus of the grid. The weights add up to 1. */
-export type FamilyPrior = ReadonlyMap<string, number>;
+export type { FamilyPrior, PriorBasis, PriorKind } from "./prior.ts";
 
-/** This function gives the family prior of a manifest: the count of the inputs of each generator over all the inputs. */
-export function familyPrior(manifest: CoverageManifest): FamilyPrior {
-  const counts = new Map<string, number>();
-  for (const s of manifest.specs) counts.set(s.generator, (counts.get(s.generator) ?? 0) + s.seeds.length);
-  const total = [...counts.values()].reduce((sum, c) => sum + c, 0);
-  return new Map([...counts].map(([f, c]) => [f, total === 0 ? 0 : r4(c / total)]));
+/**
+ * This function gives the family prior of the grid manifest only (k116). The weight of a sampler family is its share of the inputs.
+ * The prior `union` of k119 is the default. `--prior corpus` gives this prior.
+ */
+export function familyPrior(manifest: CoverageManifest, sampler: readonly string[] = SAMPLER_FAMILIES): FamilyPrior {
+  return priorWeights(priorBasis([manifest], "corpus", sampler));
+}
+
+/** This function gives the basis of the prior of the options: the union of the committed corpora, or the manifest of the grid only. */
+export function priorOf(manifest: CoverageManifest, options: CoverageOptions = {}): PriorBasis {
+  if (options.priorBasis !== undefined) return options.priorBasis;
+  return (options.prior ?? DEFAULT_PRIOR) === "corpus" ? priorBasis([manifest], "corpus") : unionPrior(options.corpora);
+}
+
+/** The share of one family of the prior: its weight, its pairs and its hits. A family without pairs does not count in the share. */
+export interface PriorFamilyShare {
+  readonly family: string;
+  /** The weight of the family in the prior, rounded to 4 decimals. */
+  readonly weight: number;
+  readonly pairs: number;
+  readonly hits: number;
+}
+
+/** The effective count of the pairs of a share with the prior, and the pairs with a weight and with the weight 0 (k119). */
+export interface PriorCount {
+  readonly nEff: number;
+  readonly weighted: number;
+  readonly zero: number;
 }
 
 /** The share of a sample with the family prior: each family of the corpus gets its weight, and the other families get 0. */
@@ -989,13 +1021,35 @@ export interface PriorShare {
   readonly zero: number;
   /** The weight of the families of the corpus with pairs. The share divides by it, so a missing family does not count. */
   readonly covered: number;
+  /** The kind of the prior (k119): `union` or `corpus`. A summary from before k119 does not have it. */
+  readonly kind?: PriorKind;
+  /** Each family with a weight above 0, with its pairs and its hits (k119). A summary from before k119 does not have it. */
+  readonly families?: readonly PriorFamilyShare[];
 }
 
 /**
  * This function gives the share of some pairs with the family prior. The pairs of family `f` share the weight `prior(f)`, so each pair has the weight `prior(f) / n(f)`.
  * The share is `Σ prior(f) · share(f)` over the families with pairs, divided by the weight of these families.
+ * With a `kind`, the result also has the kind and each family of the prior with its pairs and its hits.
  */
-export function priorShare(hits: readonly boolean[], families: readonly string[], prior: FamilyPrior): PriorShare {
+export function priorShare(hits: readonly boolean[], families: readonly string[], prior: FamilyPrior, kind?: PriorKind): PriorShare {
+  const base = priorCore(hits, families, prior);
+  if (kind === undefined) return base;
+  const n = new Map<string, number>();
+  const k = new Map<string, number>();
+  families.forEach((f, i) => {
+    n.set(f, (n.get(f) ?? 0) + 1);
+    if (hits[i]) k.set(f, (k.get(f) ?? 0) + 1);
+  });
+  const by = [...prior].filter(([, w]) => w > 0).map(([family, w]): PriorFamilyShare => ({ family, weight: r4(w), pairs: n.get(family) ?? 0, hits: k.get(family) ?? 0 }));
+  return { ...base, kind, families: by };
+}
+
+/** This function gives the effective count, the weighted pairs and the pairs with the weight 0 of a share with the prior. */
+const countOf = (p: PriorShare): PriorCount => ({ nEff: p.nEff, weighted: p.weighted, zero: p.zero });
+
+/** This function gives the share with the prior, without the families: the k116 form. */
+function priorCore(hits: readonly boolean[], families: readonly string[], prior: FamilyPrior): PriorShare {
   const n = new Map<string, number>();
   const k = new Map<string, number>();
   let zero = 0;
@@ -1023,11 +1077,12 @@ export function priorShare(hits: readonly boolean[], families: readonly string[]
   return { share: r4(share), wilson: wilson(share * nEff, nEff), nEff: Math.round(nEff * 10) / 10, weighted, zero, covered: r4(covered) };
 }
 
-/** This function gives the family of the generator of a sampled pair. */
-const familyOf = (r: SampledRecord): string => r.generator.name;
+/** This function gives the family of the generator of a sampled pair: the key `<name>@<version>` of the sampler (k119). */
+export const familyOf = (r: Pick<SampledRecord, "generator">): string => familyKey(r.generator.name, r.generator.version);
 
 /** This function gives the section `sampled` from the held-out errors. With a prior, each measure also has its share with the family prior. */
-function sampledOf(h: HeldOut, sample?: SampleFacts, prior?: FamilyPrior): SampledCoverage {
+function sampledOf(h: HeldOut, sample?: SampleFacts, basis?: PriorBasis): SampledCoverage {
+  const prior = basis === undefined ? undefined : priorWeights(basis);
   const out: SampledMeasure[] = [];
   for (const { m, errors, baseErrors, at } of h.measures) {
     const hit = (e: number): boolean => e <= m.tolerance + 1e-12;
@@ -1048,7 +1103,7 @@ function sampledOf(h: HeldOut, sample?: SampleFacts, prior?: FamilyPrior): Sampl
       medianAe: stats.medianAe,
       baseline: errorStats(baseErrors, m.tolerance),
       forced: { heavy: partOf(forced.filter(hit).length, forced.length), rest: partOf(rest.filter(hit).length, rest.length) },
-      ...(prior === undefined ? {} : { prior: priorShare(errors.map(hit), at.map((j) => familyOf(h.pairs[j]!)), prior) }),
+      ...(prior === undefined ? {} : { prior: priorShare(errors.map(hit), at.map((j) => familyOf(h.pairs[j]!)), prior, basis!.kind) }),
     });
   }
   return { pairs: h.pairs.length, ...(sample === undefined ? {} : { sample }), measures: out };
@@ -1333,8 +1388,10 @@ export interface EvalMeasure {
   readonly mae: number;
   /** The mean of the shares of the strata of the evaluation sample, each with the same weight. */
   readonly equal: number;
-  /** The share with the family prior of the corpus (`priorShare`). No pair of a family of the corpus gives `null`. */
+  /** The share with the family prior (`priorShare`). No pair of a family of the prior gives `null`. */
   readonly prior?: number | null;
+  /** The effective count and the pairs of the share with the prior (k119). A summary from before k119 does not have it. */
+  readonly priorCount?: PriorCount;
 }
 
 /** The held-out result of the pairs of one round for one measure, and of the evaluation sample after the round. */
@@ -1348,8 +1405,10 @@ export interface ActiveRoundMeasure {
   readonly share: number;
   readonly wilson: Interval;
   readonly mae: number;
-  /** The share of the pairs of the round with the family prior of the corpus. No pair of a family of the corpus gives `null`. */
+  /** The share of the pairs of the round with the family prior. No pair of a family of the prior gives `null`. */
   readonly prior?: number | null;
+  /** The effective count and the pairs of the share with the prior (k119). A summary from before k119 does not have it. */
+  readonly priorCount?: PriorCount;
   /** The evaluation sample with the model of the grid and of the rounds up to this round, when the coverage has it. */
   readonly after?: EvalMeasure;
 }
@@ -1397,7 +1456,11 @@ function evalOf(h: HeldOut, prior?: FamilyPrior): EvalMeasure[] {
       share: errors.length === 0 ? 0 : r4(hits / errors.length),
       mae: errorStats(errors, m.tolerance).mae,
       equal: strata.measures[i]!.equal.share,
-      ...(prior === undefined ? {} : { prior: priorShare(errors.map(hit), at.map((j) => familyOf(h.pairs[j]!)), prior).share }),
+      ...((): { prior?: number | null; priorCount?: PriorCount } => {
+        if (prior === undefined) return {};
+        const p = priorShare(errors.map(hit), at.map((j) => familyOf(h.pairs[j]!)), prior);
+        return { prior: p.share, priorCount: countOf(p) };
+      })(),
     };
   });
 }
@@ -1421,7 +1484,7 @@ export function activeCoverage(
 ): ActiveCoverage {
   const grid = gridOf(records, manifest, options);
   const featuresOf = pairFeaturer(options);
-  const prior = familyPrior(manifest);
+  const prior = priorWeights(priorOf(manifest, options));
   const done = active.filter((r) => r.skipped === undefined && r.round !== undefined);
   const ids = [...new Set(done.map((r) => r.round!))].sort((a, b) => a - b);
   const rounds = ids.map((k): ActiveRound => {
@@ -1443,7 +1506,10 @@ export function activeCoverage(
           share: errors.length === 0 ? 0 : r4(hits / errors.length),
           wilson: wilson(hits, errors.length),
           mae: errorStats(errors, m.tolerance).mae,
-          prior: priorShare(errors.map(hit), at.map((j) => familyOf(h.pairs[j]!)), prior).share,
+          ...((): { prior: number | null; priorCount: PriorCount } => {
+            const p = priorShare(errors.map(hit), at.map((j) => familyOf(h.pairs[j]!)), prior);
+            return { prior: p.share, priorCount: countOf(p) };
+          })(),
           ...(after === undefined ? {} : { after: after[i]! }),
         };
       }),
@@ -1495,7 +1561,19 @@ export function coverageOptions(argv: readonly string[]): CoverageOptions {
   if (by !== "input" && by !== "spec") throw new Error(`The option --by is input or spec, not ${by}.`);
   const features = optionOf(argv, "--features") ?? DEFAULT_FEATURES;
   if (!(FEATURE_SETS as readonly string[]).includes(features)) throw new Error(`The option --features is ${FEATURE_SETS.join(" or ")}, not ${features}.`);
-  return { folds, seed, by, features: features as FeatureSet, ...(run === undefined ? {} : { run: Number(run) }), ...(date === undefined ? {} : { date }) };
+  const prior = optionOf(argv, "--prior") ?? DEFAULT_PRIOR;
+  if (!(PRIOR_KINDS as readonly string[]).includes(prior)) throw new Error(`The option --prior is ${PRIOR_KINDS.join(" or ")}, not ${prior}.`);
+  const corpora = optionOf(argv, "--corpora");
+  return {
+    folds,
+    seed,
+    by,
+    features: features as FeatureSet,
+    prior: prior as PriorKind,
+    ...(corpora === undefined ? {} : { corpora: resolve(corpora) }),
+    ...(run === undefined ? {} : { run: Number(run) }),
+    ...(date === undefined ? {} : { date }),
+  };
 }
 
 /**
@@ -1518,7 +1596,7 @@ export function readSample(records: readonly CoverageRecord[], manifest: Coverag
   const text = existsSync(facts) ? readFileSync(facts, "utf8") : undefined;
   const sample = text === undefined ? undefined : sampleFacts(text);
   const h = heldOut(gridOf(records, manifest, options), sampled, options, pairFeaturer(options));
-  return { sampled: sampledOf(h, sample, familyPrior(manifest)), strata: strataFrom(h, sample, text === undefined ? undefined : sampleStrata(text)) };
+  return { sampled: sampledOf(h, sample, priorOf(manifest, options)), strata: strataFrom(h, sample, text === undefined ? undefined : sampleStrata(text)) };
 }
 
 /**
@@ -1535,6 +1613,13 @@ export function readActive(records: readonly CoverageRecord[], manifest: Coverag
   return activeCoverage(records, manifest, read(dir), options, evalDir === undefined ? undefined : read(evalDir), existsSync(facts) ? activeFacts(readFileSync(facts, "utf8")) : undefined);
 }
 
+/** This function gives the note of a share with the prior for the command line. The note has the share, the effective pairs and the counts of the pairs. */
+function priorNote(m: { readonly prior?: number | null; readonly priorCount?: PriorCount }): string {
+  if (m.prior === undefined) return "";
+  const c = m.priorCount;
+  return ` (prior ${m.prior ?? "-"}${c === undefined ? "" : `, effective pairs ${c.nEff}, ${c.weighted} weighted, ${c.zero} with the weight 0`})`;
+}
+
 /** This function gives the lines of the section `active` for the command line: one line for each round of each measure. */
 export function activeLines(a: ActiveCoverage): string[] {
   const out: string[] = [];
@@ -1543,10 +1628,10 @@ export function activeLines(a: ActiveCoverage): string[] {
     const start = a.start?.find((s) => s.id === id);
     const parts = a.rounds.map((r) => {
       const m = r.measures.find((x) => x.id === id)!;
-      const after = m.after === undefined ? "" : `, evaluation share ${m.after.share}${m.after.prior === undefined ? "" : ` (prior ${m.after.prior ?? "-"})`}`;
-      return `round ${r.round}: ${m.hits}/${m.n} new pairs, error ${m.mae}${after}`;
+      const after = m.after === undefined ? "" : `, evaluation share ${m.after.share}${priorNote(m.after)}`;
+      return `round ${r.round}: ${m.hits}/${m.n} new pairs${priorNote(m)}, error ${m.mae}${after}`;
     });
-    out.push(`${id}, active (${a.features} features)${start === undefined ? "" : `: evaluation share ${start.share} before`}. ${parts.join("; ")}`);
+    out.push(`${id}, active (${a.features} features)${start === undefined ? "" : `: evaluation share ${start.share}${priorNote(start)} before`}. ${parts.join("; ")}`);
   }
   return out;
 }
@@ -1589,6 +1674,7 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
     ...grid,
     ...(sampleDir === undefined ? {} : readSample(rows, manifest, sampleDir, options)),
     ...(activeDir === undefined ? {} : { active: readActive(rows, manifest, activeDir, options, sampleDir) }),
+    ...(sampleDir === undefined && activeDir === undefined ? {} : { prior: priorOf(manifest, options) }),
   };
   writeFileSync(path, `${JSON.stringify(summary, null, 1)}\n`);
   for (const m of summary.measures) {
@@ -1615,11 +1701,15 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
     const part = (p: PartShare): string => (p.share === null ? "no pairs" : `${p.share} (${p.hits} of ${p.n})`);
     console.log(`${m.id}, whole space by forced overflow: ${FORCED_MEASURE} ${FORCED_HEAVY} or more ${part(m.forced.heavy)}, the rest ${part(m.forced.rest)}`);
   }
+  if (summary.prior !== undefined) for (const line of basisLines(summary.prior)) console.log(line);
   for (const m of summary.sampled?.measures ?? []) {
     const p = m.prior;
     if (p === undefined) continue;
-    const share = p.share === null ? "no pairs of a family of the corpus" : `share ${p.share} (95% from ${p.wilson!.low} to ${p.wilson!.high}, effective pairs ${p.nEff})`;
-    console.log(`${m.id}, whole space with the family prior: ${share}. ${p.weighted} pairs weighted, ${p.zero} pairs of other families with the weight 0.`);
+    const share = p.share === null ? "no pairs of a family of the prior" : `share ${p.share} (95% from ${p.wilson!.low} to ${p.wilson!.high}, effective pairs ${p.nEff})`;
+    const by = (p.families ?? []).filter((f) => f.pairs > 0).map((f) => `${f.family} ${f.hits}/${f.pairs}`).join(", ");
+    console.log(
+      `${m.id}, whole space with the ${p.kind ?? "corpus"} family prior: ${share}. ${p.weighted} pairs weighted, ${p.zero} pairs of other families with the weight 0.${by === "" ? "" : ` By family: ${by}.`}`,
+    );
   }
   if (summary.active !== undefined) for (const line of activeLines(summary.active)) console.log(line);
   return summary;

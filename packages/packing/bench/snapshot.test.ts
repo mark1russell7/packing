@@ -399,6 +399,31 @@ describe("the coverage snapshot (k105)", () => {
     });
     expect(snap.latest.measures[0]!.sampled!.forced).toEqual({ heavy: { n: 30, hits: 0, share: 0 }, rest: { n: 30, hits: 4, share: 0.1333 } });
     expect(snap.latest.measures[0]!.sampled!.prior).toEqual({ share: 0.08, low: 0.03, high: 0.2, nEff: 41.5, weighted: 50, zero: 10, covered: 1 });
+    expect(snap.latest.prior).toBeUndefined();
     expect(snap.trend).toEqual(plain.trend);
+  });
+
+  it("keeps the basis of the union prior and the counts of each share with the prior (k119)", () => {
+    const basis = { kind: "union" as const, corpora: ["a", "b"], inputs: 5, families: [{ family: "x@1", inputs: 4, weight: 0.8 }, { family: "y@1", inputs: 1, weight: 0.2 }], absent: ["z@1"], unmapped: [{ family: "q@1", inputs: 2 }] };
+    const priorCount = { nEff: 3.2, weighted: 4, zero: 0 };
+    const evalAt = { id: "pack.fill", n: 40, hits: 2, share: 0.05, mae: 0.2, equal: 0.05, prior: 0.04, priorCount };
+    const active = {
+      pairs: 4,
+      features: "family" as const,
+      evalPairs: 40,
+      start: [evalAt],
+      rounds: [{ round: 1, pairs: 4, measures: [{ id: "pack.fill", tolerance: 0.02, n: 4, hits: 1, share: 0.25, wilson: { low: 0, high: 0.6 }, mae: 0.3, prior: 0.3, priorCount, after: evalAt }] }],
+    };
+    const prior = { share: 0.08, wilson: { low: 0.03, high: 0.2 }, nEff: 41.5, weighted: 50, zero: 0, covered: 1, kind: "union" as const, families: [{ family: "x@1", weight: 0.8, pairs: 40, hits: 3 }] };
+    const sampled = {
+      pairs: 50,
+      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n: 50, hits: 4, share: 0.08, wilson: { low: 0.03, high: 0.19 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 }, prior }],
+    };
+    const snap = coverageSnapshot({ ...summary("2026-10-29", 0.5), sampled, active, prior: basis }, origin);
+    expect(snap.latest.prior).toEqual(basis);
+    expect(snap.latest.measures[0]!.sampled!.prior).toEqual({ share: 0.08, low: 0.03, high: 0.2, nEff: 41.5, weighted: 50, zero: 0, covered: 1, kind: "union" });
+    const a = snap.latest.measures[0]!.active!;
+    expect(a.start).toEqual({ share: 0.05, mae: 0.2, equal: 0.05, prior: 0.04, priorCount });
+    expect(a.rounds[0]).toMatchObject({ prior: 0.3, priorCount, after: { prior: 0.04, priorCount } });
   });
 });

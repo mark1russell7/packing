@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { corpus, packSpace, toPackInput } from "@mark1russell7/packing";
 import { inputFeatures } from "./input-features.ts";
+import { unionPrior } from "./prior.ts";
 import { sampleSpace, strataOf } from "./sample-space.ts";
 import {
   ACTIVE_SCORE,
@@ -486,19 +487,38 @@ describe("the input features and the active rounds of k116", () => {
   });
 
   it("weights the families with the prior of the corpus, and reports the families with the weight 0", () => {
-    const prior = familyPrior({ corpus: "c", specs: [{ generator: "a", seeds: [1, 2, 3] }, { generator: "b", seeds: [1] }] });
+    const prior = familyPrior({ corpus: "c", specs: [{ generator: "a", seeds: [1, 2, 3] }, { generator: "b", seeds: [1] }] }, ["a@1", "b@1"]);
     expect([...prior]).toEqual([
-      ["a", 0.75],
-      ["b", 0.25],
+      ["a@1", 0.75],
+      ["b@1", 0.25],
     ]);
     // a: 1 hit of 2, b: 1 hit of 1, c: not in the corpus. The share is 0.75 · 0.5 + 0.25 · 1.
-    const p = priorShare([true, false, true, true], ["a", "a", "b", "c"], prior);
+    const p = priorShare([true, false, true, true], ["a@1", "a@1", "b@1", "c@1"], prior);
     expect(p).toMatchObject({ share: 0.625, weighted: 3, zero: 1, covered: 1 });
     // The weights are 0.375, 0.375 and 0.25, so the effective count is 1 / 0.34375.
     expect(p.nEff).toBe(2.9);
     // A missing family of the corpus does not count: the share divides by the weight of the families with pairs.
-    expect(priorShare([true], ["b"], prior)).toMatchObject({ share: 1, covered: 0.25, weighted: 1, zero: 0 });
-    expect(priorShare([true], ["c"], prior)).toEqual({ share: null, wilson: null, nEff: 0, weighted: 0, zero: 1, covered: 0 });
+    expect(priorShare([true], ["b@1"], prior)).toMatchObject({ share: 1, covered: 0.25, weighted: 1, zero: 0 });
+    expect(priorShare([true], ["c@1"], prior)).toEqual({ share: null, wilson: null, nEff: 0, weighted: 0, zero: 1, covered: 0 });
+    // With a kind, the share also tells each family of the prior with its pairs and its hits (k119).
+    expect(priorShare([true, false, true, true], ["a@1", "a@1", "b@1", "c@1"], prior, "corpus")).toMatchObject({
+      kind: "corpus",
+      families: [
+        { family: "a@1", weight: 0.75, pairs: 2, hits: 1 },
+        { family: "b@1", weight: 0.25, pairs: 1, hits: 1 },
+      ],
+    });
+  });
+
+  it("weights the sampled pairs with the union prior by default, and with the grid manifest for the prior corpus", () => {
+    const { manifest, records } = real();
+    const sampled = pairs(false);
+    const union = sampledCoverage(records, manifest, sampled, { measures: [fill] });
+    expect(union.measures[0]!.prior).toMatchObject({ kind: "union", weighted: sampled.length, zero: 0 });
+    expect(union.measures[0]!.prior!.families!.length).toBe(unionPrior().families.length);
+    // The grid manifest has only rect-grid@1, so the prior corpus gives it the weight 1.
+    const own = sampledCoverage(records, manifest, sampled, { measures: [fill], prior: "corpus" });
+    expect(own.measures[0]!.prior!.families).toEqual([expect.objectContaining({ family: "rect-grid@1", weight: 1 })]);
   });
 
   it("gives the share of each round with the earlier rounds, and the evaluation sample after each round", () => {
@@ -514,6 +534,10 @@ describe("the input features and the active rounds of k116", () => {
     const r1 = out.rounds[0]!.measures[0]!;
     expect(r1.n).toBe(2);
     expect(r1.share).toBe(r4(r1.hits / 2));
+    // k119: each share with the union prior has its effective count and its pairs.
+    expect(r1.priorCount).toMatchObject({ weighted: 2, zero: 0 });
+    expect(out.start![0]!.priorCount).toMatchObject({ weighted: 4, zero: 0 });
+    expect(activeLines(out)[0]).toMatch(/\(prior [\d.-]+, effective pairs [\d.]+, 4 weighted, 0 with the weight 0\) before/);
     // After round 2, the model has learned on the pairs of the evaluation sample, so it predicts them at least as well as at the start.
     const after = out.rounds[1]!.measures[0]!.after!;
     expect(after.n).toBe(4);
@@ -534,7 +558,9 @@ describe("the command line", () => {
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   it("reads the options and refuses a bad value", () => {
-    expect(coverageOptions(["--run", "12", "--date", "2026-10-28", "--by", "spec"])).toEqual({ folds: 5, seed: 1, by: "spec", features: "family", run: 12, date: "2026-10-28" });
+    expect(coverageOptions(["--run", "12", "--date", "2026-10-28", "--by", "spec"])).toEqual({ folds: 5, seed: 1, by: "spec", features: "family", prior: "union", run: 12, date: "2026-10-28" });
+    expect(coverageOptions(["--prior", "corpus"]).prior).toBe("corpus");
+    expect(() => coverageOptions(["--prior", "flat"])).toThrow(/union or corpus/);
     expect(() => coverageOptions(["--by", "seed"])).toThrow(/input or spec/);
     expect(() => coverageOptions(["--folds", "1"])).toThrow(/2 or more/);
     expect(() => coverageOptions(["--date", "28.10.2026"])).toThrow(/YYYY-MM-DD/);

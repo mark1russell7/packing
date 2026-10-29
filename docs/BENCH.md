@@ -1205,17 +1205,53 @@ Each measure has the split, `pack.gapToBound` too.
 #### The family prior
 
 The section `sampled` gives two shares of each measure. The field `share` gives each pair the same weight, as the sampler draws them.
-The field `prior` gives each generator family its share of the inputs of the grid corpus as its weight.
+The field `prior` gives each generator family a weight. `bench/prior.ts` computes the weights.
 
 - The weight of family `f` is `prior(f)`. Its pairs share it, so each pair has the weight `prior(f) / n(f)`.
 - The share is `Σ prior(f) · share(f)`, divided by the weight of the families with pairs (`covered`).
-- A family outside the corpus gets the weight 0. The field `zero` gives the count of its pairs.
+- A sampler family without a weight gets the weight 0. The field `zero` gives the count of its pairs.
 - The interval is the Wilson interval with the effective count of Kish, `(Σw)² / Σw²` (`nEff`).
-- No pair of a family of the corpus gives the share `null`.
+- No pair of a family with a weight gives the share `null`.
+- The field `families` gives each family with a weight: its weight, its pairs and its hits.
 - The rounds of the active draw and the evaluation sample after each round also give the share with the prior.
+- Their field `priorCount` gives `nEff`, `weighted` and `zero` of that share.
 
-The weights of `pack-classes-v1` are `berkey-wang` 0.6 (300 inputs) and `martello-vigo` 0.4 (200 inputs).
-Thus the other 17 families of `packSpace` get the weight 0. In the 378 pairs of the first stratified run, 342 pairs have the weight 0.
+The effective count `nEff` tells the precision of the share. A share with the prior and `nEff` 30 is approximately as precise as a uniform share of 30 pairs.
+The sampler draws each family with the same chance. A family with a large weight and few pairs thus makes `nEff` small.
+
+##### The union of the corpora (k119)
+
+The default prior `union` uses all the committed corpora of `bench/corpora`. The option `--prior corpus` gives the k116 prior of the grid manifest only.
+
+1. Each corpus gives its inputs: each spec with each seed, or each input with its generator.
+2. The union keeps each distinct input one time. Two inputs are the same when their family, params and seed are the same.
+3. The key of a family is `<name>@<version>`, as the sampler counts its pairs. Thus `rect-grid@1` and `rect-grid@2` are 2 families.
+4. `samplerFamilyOf` maps each corpus family to the sampler family with the same key. `PRIOR_ALIASES` gives the exceptions.
+5. The weight of a family is its count of inputs over the inputs of all the sampler families.
+
+- The order of the corpora does not change the weights.
+- A sampler family without inputs in the corpora gets the weight 0. The field `absent` of the basis lists it.
+- A corpus family that the sampler does not draw gives no weight. The field `unmapped` of the basis lists it.
+- The inputs of `pack-adversary-v1` are searched worst cases, not draws of their origin family. Thus `adversary@1` is unmapped.
+
+The field `prior` of `coverage.json` keeps the basis: its kind, its corpora, its inputs and the weight of each family. The job summary shows it too.
+
+On 2026-10-29, the union has 12 corpora: `pack-adversary-v1`, `pack-anchor-v1`, `pack-classes-v1`, `pack-free-v1`, `pack-holdout-v1`, `pack-known-v1`, `pack-screen-v1`, `pack-select-v1`, `pack-select-v2`, `pack-strip-v1`, `pack-worst-v1` and `smoke-v1`.
+They give 8316 distinct inputs. Each of the 20 sampler families has inputs, so no family has the weight 0.
+
+| Family | Inputs | Weight |
+|---|---|---|
+| `rect-grid@1` | 4290 | 0.5159 |
+| `rect-grid@2` | 2160 | 0.2597 |
+| `berkey-wang@1` | 300 | 0.0361 |
+| `hopper-turton@1` | 252 | 0.0303 |
+| `perfect-cut@1` | 216 | 0.026 |
+| `martello-vigo@1` | 200 | 0.0241 |
+| `burke-kendall-whitwell@1` | 156 | 0.0188 |
+| `beasley-gcut@1` | 120 | 0.0144 |
+| The other 12 families | 622 | 0.0748 |
+
+The grid families have 78% of the weight. Thus the pairs of `rect-grid` decide the share with the prior, and `nEff` stays small.
 
 #### The active draw
 
@@ -1367,7 +1403,8 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The large numbers come from the folds by spec, the stricter test.
 - The small numbers "by input" come from the folds by input.
 - Each tile shows the number "bench grid" and the number "whole space (sampled)" with its 95% interval.
-- Under the number of the whole space, the tile shows the number "family prior", with its pairs of the weight 0.
+- Under the number of the whole space, the tile shows the number "family prior", with its effective pairs and its pairs of the weight 0.
+- The note under the tiles gives the corpora of the prior and the weight of each family (k119).
 - The command `snapshot.ts coverage` reads the folder `sample` of the run, or `--sample <dir>`. Without a sample, the tile shows "not measured yet".
 - The number "whole space (sampled)" always comes from the last uniform sample. The note under the tiles gives its run and its date.
 - With strata, each tile also shows the number "equal weight over strata" with its 95% interval, under the uniform number.

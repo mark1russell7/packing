@@ -28,6 +28,7 @@ import {
   activeRows,
   FORCED_LABEL,
   forcedText,
+  priorBasisText,
   priorText,
   stratumLabel,
   COVERAGE_STRATA_SCOPE,
@@ -171,7 +172,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-20", [], ["1"]],
     ]);
     expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
-    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k118", "k26", "k116", "k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k119", "k118", "k26", "k116", "k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
   });
 });
 
@@ -429,6 +430,16 @@ describe("the space coverage of k105", () => {
     const withPrior = activeRows({ active: { ...active, start: { ...active.start, prior: 0.06 }, rounds: [{ ...active.rounds[0]!, after: { ...active.rounds[0]!.after!, prior: null } }] } });
     expect(withPrior).toContain("4% <small>family prior 6%</small>");
     expect(withPrior).toContain("10% <small>family prior -</small>");
+    // k119: the union prior shows its effective pairs, and the note gives the basis of the weights.
+    expect(priorText({ prior: { ...prior, kind: "union" } })).toBe("family prior 8% (95% interval 3% to 20%), 41.5 effective pairs, 50 weighted pairs, 10 pairs of other families with the weight 0");
+    const counted = activeRows({ active: { ...active, start: { ...active.start, prior: 0.06, priorCount: { nEff: 30.6, weighted: 37, zero: 0 } } } });
+    expect(counted).toContain("4% <small>family prior 6% (30.6 effective pairs)</small>");
+    expect(priorBasisText(undefined)).toBeNull();
+    const basis = { kind: "union" as const, corpora: ["a", "b"], inputs: 5, families: [{ family: "x@1", inputs: 4, weight: 0.8 }, { family: "y@1", inputs: 1, weight: 0.2 }], absent: ["z@1"], unmapped: [{ family: "q@1", inputs: 2 }] };
+    expect(priorBasisText(basis)).toBe(
+      "The weights come from the 5 distinct inputs of the 2 committed corpora: x@1 80%, y@1 20%. The sampler families z@1 have no inputs, so their weight is 0. The sampler does not draw q@1 (2 inputs), so these inputs give no weight.",
+    );
+    expect(priorBasisText({ ...basis, kind: "corpus", corpora: ["a"], absent: [], unmapped: [] })).toBe("The weights come from the 5 inputs of the corpus a: x@1 80%, y@1 20%.");
     expect(COVERAGE_LABELS["pack.gapToBound"]!.label).toBe("Fill below its bound");
   });
 
