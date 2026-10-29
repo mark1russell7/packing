@@ -392,6 +392,8 @@ describe("the bounds on the corpus", () => {
 
   // The kinds of the bounds that the tests of the 2 corpora find
   const kinds = new Set<string>();
+  // The searches over orders of k26 get 4 iterations, as in the fast screen. Thus each test stays short.
+  const SEARCHES: ReadonlySet<string> = new Set(["anneal", "genetic", "tabu"]);
   // Each input of smoke-v1, and each 24th input of pack-free-v1 in 2 halves of 15 inputs: the index k with k % 48 of 0 or of 24
   const parts: readonly { name: string; keep: (k: number) => boolean; label: string }[] = [
     { name: "smoke-v1", keep: () => true, label: "each input" },
@@ -407,7 +409,8 @@ describe("the bounds on the corpus", () => {
           if (!supportsCell(s.supports, cellOf(input))) continue;
           let output;
           try {
-            output = packWith(s.id, input, undefined, file.seed);
+            const given = SEARCHES.has(s.id) ? { ...(s.defaults as Record<string, unknown>), iterations: 4 } : undefined;
+            output = packWith(s.id, input, given, file.seed);
           } catch (error) {
             if (error instanceof UnsupportedCell) continue;
             throw error;

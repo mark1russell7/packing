@@ -1269,6 +1269,34 @@ The bounds:
 - The test of `bench/sample-space.test.ts` checks `0 <= pack.gap <= 1` on sampled pairs of `packSpace`. Thus it also finds a strategy of the space that ignores the gap.
 - `overlap-min` of k80 grows each item by its margin and by half the gap, as the frame does. Thus it keeps the gap too.
 
+The CI record of k118: the run 40815224148 of `bench.yml` on `pack-classes-v1`, with `maxrects-bl`, `restarts-maxrects-bl-k16` and `skyline`.
+The sample has 400 stratified pairs with the relative knobs.
+
+The corpus has 1500 records of 500 inputs. Its `pack.gap` is from 0 to 0.304. The table gives the medians.
+
+| Container | Strategy | `pack.gap` | `pack.fill` | Time (ms) |
+|---|---|---|---|---|
+| fixed | `maxrects-bl` | 0.034 | 0.968 | 0.1 |
+| fixed | `restarts-maxrects-bl-k16` | 0.031 | 0.973 | 1.5 |
+| fixed | `skyline` | 0.046 | 0.960 | 0.1 |
+| free height | `maxrects-bl` | 0.079 | 0.887 | 0.1 |
+| free height | `restarts-maxrects-bl-k16` | 0.069 | 0.896 | 4.4 |
+| free height | `skyline` | 0.168 | 0.781 | 0.1 |
+
+The sample:
+
+- The sampler measured 380 of the 400 pairs. 372 pairs have a `pack.gap`.
+- `pack.gap` is from 0 to 0.966, with the median 0.178. No pair is above 1.
+- No pair has a hard break. 1 pair is not deterministic.
+- The share of the coverage of `pack.gapToBound` is 0.090 with the uniform weights: 33 of 366, Wilson interval 0.065 to 0.124.
+- With the family prior, the share is 0.147 (`nEff` 30.6).
+
+The results:
+
+- The bounds are sound on each record. No `pack.gap` is below 0 or above 1.
+- The order of the corpus is `restarts-maxrects-bl-k16`, then `maxrects-bl`, then `skyline`. It is the same on the 2 kinds of container.
+- The stratum `hole-degree:1` (33 configs) got 0 of its 20 pairs. A later item examines it.
+
 A later item: the bound of a fixed size with the gap is loose. It counts only the area.
 
 - Four squares of 4 with the margin 1 and the gap 2 in a box of 12: each square needs 8 by 8 of a box of 14 by 14.

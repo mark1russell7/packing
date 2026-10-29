@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 366 names
+## . (build/index.d.ts): 367 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -241,6 +241,7 @@ blTrap: build/index.d.ts#blTrap
 blTrapFamily: build/index.d.ts#blTrapFamily
 boundGap: build/index.d.ts#boundGap
 boundMeasures: build/index.d.ts#boundMeasures
+boundShare: build/index.d.ts#boundShare
 burkeKendallWhitwell: build/index.d.ts#burkeKendallWhitwell
 burkeKendallWhitwellFamily: build/index.d.ts#burkeKendallWhitwellFamily
 burkeKendallWhitwellOf: build/index.d.ts#burkeKendallWhitwellOf
@@ -1513,6 +1514,9 @@ export declare function boundGap(result: number, bound: number, sense: "lower" |
 
 ### build/index.d.ts#boundMeasures
 export declare function boundMeasures(input: PackInput, output: PackOutput, options?: BoundOptions): BoundMeasures;
+
+### build/index.d.ts#boundShare
+export declare function boundShare(result: number, bound: number, sense: "lower" | "upper"): number;
 
 ### build/index.d.ts#burkeKendallWhitwell
 export declare const burkeKendallWhitwell: CorpusGenerator<BurkeKendallWhitwellParams>;
