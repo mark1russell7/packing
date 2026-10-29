@@ -32,7 +32,7 @@ Status: done, done, waiting, next, done.
 | k20 | A selector: measure the choice of a strategy for each input. Part 1 is the portfolio report and `packPortfolio` ([#52](https://github.com/mark1russell7/packing/pull/52)). Part 2 is the per-cell portfolio and `pack-holdout-v1` ([#55](https://github.com/mark1russell7/packing/pull/55)). On new seeds, `portfolio-k2` has a fill regret of 0.009, against 0.021 for the best single strategy. | measure | done | k9, k11 |
 | k21 | Shelf family: next fit, first fit and best fit by decreasing height, and the input order | strategies | done | k6, k7 |
 | k22 | Skyline variants: bottom-left, minimum waste, with a waste map | strategies | done | k6, k7 |
-| k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | next | k6, k7 |
+| k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | done | k6, k7 |
 | k24 | MaxRects: best short side, best long side, best area, bottom-left, contact point | strategies | done | k6, k7 |
 | k25 | Bottom-left fill: Baker, Chazelle and the lowest-gap variants | strategies | later | k6, k7 |
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | later | k6, k7 |
@@ -135,40 +135,39 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | 2 | k116 | 5 | 4 | 3 | 6.7 |
 | 3 | k90 | 4 | 3 | 2 | 6.0 |
 | 4 | k117 | 4 | 3 | 2 | 6.0 |
-| 5 | k23 | 4 | 4 | 3 | 5.3 |
-| 6 | k79 | 4 | 4 | 3 | 5.3 |
-| 7 | k80 | 4 | 4 | 3 | 5.3 |
-| 8 | k26 | 5 | 4 | 4 | 5.0 |
-| 9 | k25 | 3 | 3 | 2 | 4.5 |
-| 10 | k70 | 3 | 3 | 2 | 4.5 |
-| 11 | k13 | 3 | 3 | 2 | 4.5 |
-| 12 | k92 | 3 | 3 | 2 | 4.5 |
-| 13 | k10 | 4 | 4 | 4 | 4.0 |
-| 14 | k81 | 4 | 3 | 3 | 4.0 |
-| 15 | k82 | 3 | 4 | 3 | 4.0 |
-| 16 | k83 | 3 | 4 | 3 | 4.0 |
-| 17 | k93 | 4 | 2 | 2 | 4.0 |
-| 18 | k94 | 4 | 3 | 3 | 4.0 |
-| 19 | k95 | 4 | 3 | 3 | 4.0 |
-| 20 | k96 | 5 | 4 | 5 | 4.0 |
-| 21 | k97 | 3 | 4 | 3 | 4.0 |
-| 22 | k110 | 4 | 2 | 2 | 4.0 |
-| 23 | k84 | 3 | 5 | 4 | 3.8 |
-| 24 | k74 | 4 | 3 | 4 | 3.0 |
-| 25 | k52 | 3 | 2 | 2 | 3.0 |
-| 26 | k85 | 3 | 3 | 3 | 3.0 |
-| 27 | k86 | 3 | 5 | 5 | 3.0 |
-| 28 | k87 | 3 | 3 | 3 | 3.0 |
-| 29 | k98 | 3 | 2 | 2 | 3.0 |
-| 30 | k109 | 4 | 2 | 3 | 2.7 |
-| 31 | k99 | 3 | 4 | 5 | 2.4 |
-| 32 | k100 | 3 | 3 | 4 | 2.3 |
-| 33 | k88 | 2 | 2 | 2 | 2.0 |
-| 34 | k101 | 4 | 2 | 4 | 2.0 |
-| 35 | k102 | 3 | 2 | 3 | 2.0 |
-| 36 | k103 | 2 | 2 | 2 | 2.0 |
-| 37 | k89 | 2 | 4 | 5 | 1.6 |
-| 38 | k104 | 2 | 3 | 5 | 1.2 |
+| 5 | k79 | 4 | 4 | 3 | 5.3 |
+| 6 | k80 | 4 | 4 | 3 | 5.3 |
+| 7 | k26 | 5 | 4 | 4 | 5.0 |
+| 8 | k25 | 3 | 3 | 2 | 4.5 |
+| 9 | k70 | 3 | 3 | 2 | 4.5 |
+| 10 | k13 | 3 | 3 | 2 | 4.5 |
+| 11 | k92 | 3 | 3 | 2 | 4.5 |
+| 12 | k10 | 4 | 4 | 4 | 4.0 |
+| 13 | k81 | 4 | 3 | 3 | 4.0 |
+| 14 | k82 | 3 | 4 | 3 | 4.0 |
+| 15 | k83 | 3 | 4 | 3 | 4.0 |
+| 16 | k93 | 4 | 2 | 2 | 4.0 |
+| 17 | k94 | 4 | 3 | 3 | 4.0 |
+| 18 | k95 | 4 | 3 | 3 | 4.0 |
+| 19 | k96 | 5 | 4 | 5 | 4.0 |
+| 20 | k97 | 3 | 4 | 3 | 4.0 |
+| 21 | k110 | 4 | 2 | 2 | 4.0 |
+| 22 | k84 | 3 | 5 | 4 | 3.8 |
+| 23 | k74 | 4 | 3 | 4 | 3.0 |
+| 24 | k52 | 3 | 2 | 2 | 3.0 |
+| 25 | k85 | 3 | 3 | 3 | 3.0 |
+| 26 | k86 | 3 | 5 | 5 | 3.0 |
+| 27 | k87 | 3 | 3 | 3 | 3.0 |
+| 28 | k98 | 3 | 2 | 2 | 3.0 |
+| 29 | k109 | 4 | 2 | 3 | 2.7 |
+| 30 | k99 | 3 | 4 | 5 | 2.4 |
+| 31 | k100 | 3 | 3 | 4 | 2.3 |
+| 32 | k88 | 2 | 2 | 2 | 2.0 |
+| 33 | k101 | 4 | 2 | 4 | 2.0 |
+| 34 | k102 | 3 | 2 | 3 | 2.0 |
+| 35 | k103 | 2 | 2 | 2 | 2.0 |
+| 36 | k89 | 2 | 4 | 5 | 1.6 |
+| 37 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
