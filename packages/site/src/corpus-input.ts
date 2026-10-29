@@ -69,6 +69,11 @@ export const DIMENSION_LABELS: Readonly<Record<string, string>> = {
   excess: "Excess width",
   axis: "Axis",
   rung: "Rung",
+  cut: "Cut",
+  category: "Category",
+  problem: "Problem",
+  instance: "Instance",
+  side: "Stock side",
 };
 
 /**
