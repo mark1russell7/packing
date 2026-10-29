@@ -323,8 +323,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k115",
     title: "The space coverage gives the share of each stratum: a strategy family with one count of members. The mean over the strata goes next to the uniform number.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pulls",
+    pr: 146,
+    link: "https://github.com/mark1russell7/packing/pull/146",
   },
   {
     date: "2026-10-29",
