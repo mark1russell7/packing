@@ -679,6 +679,21 @@ The table gives the medians of `pack.fill` and `pack.gap`, and the median time o
 - A `step` of 0.005 or 0.02 gave about the same fill as 0.01.
 - The cost is about 30 times the cost of `restarts-maxrects-bl-k16`.
 
+The CI record (2026-10-29, run 40810164430) used the 500 inputs of `pack-classes-v1`: 250 fixed and 250 `freeHeight` containers.
+The table gives the medians. The run had 0 hard breaks, and each record was deterministic. Both entries of `overlap-min` refused the 250 fixed containers.
+
+| Entry | Fill, fixed | Gap, fixed | Fill, free | Gap, free | Time, free (ms) |
+|---|---|---|---|---|---|
+| `maxrects-bl` | 0.9680 | 0.0350 | 0.8870 | 0.0850 | 0.1 |
+| `skyline` | 0.9600 | 0.0490 | 0.7810 | 0.2030 | 0.1 |
+| `restarts-maxrects-bl-k16` | 0.9730 | 0.0310 | 0.8960 | 0.0750 | 2.9 |
+| `overlap-min-maxrects-bl-k8192` | refused | refused | 0.9070 | 0.0660 | 177 |
+| `overlap-min-skyline-k8192` | refused | refused | 0.8920 | 0.0830 | 187 |
+
+- In `freeHeight` containers, `overlap-min-maxrects-bl-k8192` has the smallest gap: 0.066, against 0.075 for `restarts-maxrects-bl-k16` and 0.085 for its member.
+- `overlap-min-skyline-k8192` cuts the gap of `skyline` from 0.203 to 0.083.
+- The cost in CI is about 60 times the cost of `restarts-maxrects-bl-k16`.
+
 The counts of `packSpace`:
 
 - `combine` gets the option `overlap-min` with 1 member and the params `iterations` (64 to 65536) and `step` (0.001 to 0.5).
