@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 339 names
+## . (build/index.d.ts): 345 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -76,8 +76,11 @@ type GuillotineOptions: build/index.d.ts#GuillotineOptions
 type GuillotineSplit: build/index.d.ts#GuillotineSplit
 type GuillotineStrategyOptions: build/index.d.ts#GuillotineStrategyOptions
 HALF_WIDE_WIDTH: build/index.d.ts#HALF_WIDE_WIDTH
+HOLE_DEGREE_MAX_STEPS: build/index.d.ts#HOLE_DEGREE_MAX_STEPS
+HOLE_DEGREE_STAGE: build/index.d.ts#HOLE_DEGREE_STAGE
 HOPPER_TURTON_RULES: build/index.d.ts#HOPPER_TURTON_RULES
 type HalfWideParams: build/index.d.ts#HalfWideParams
+type HoleDegreeStrategyOptions: build/index.d.ts#HoleDegreeStrategyOptions
 type HopperTurtonCategory: build/index.d.ts#HopperTurtonCategory
 type HopperTurtonParams: build/index.d.ts#HopperTurtonParams
 type HopperTurtonRule: build/index.d.ts#HopperTurtonRule
@@ -233,6 +236,7 @@ cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
+circleOverlaps: build/index.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
 compareRects: build/index.d.ts#compareRects
 composites: build/index.d.ts#composites
@@ -259,6 +263,7 @@ halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
 hardBreaks: build/index.d.ts#hardBreaks
 hashInput: build/index.d.ts#hashInput
+holeDegree: build/index.d.ts#holeDegree
 hopperTurton: build/index.d.ts#hopperTurton
 hopperTurtonFamily: build/index.d.ts#hopperTurtonFamily
 hopperTurtonOf: build/index.d.ts#hopperTurtonOf
@@ -320,6 +325,7 @@ rows: build/index.d.ts#rows
 selectFeatures: build/index.d.ts#selectFeatures
 selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
+shapeStrategies: build/index.d.ts#shapeStrategies
 shelf: build/index.d.ts#shelf
 skyline: build/index.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
@@ -714,6 +720,12 @@ interface GuillotineStrategyOptions extends LayoutStrategyOptions {
 ### build/index.d.ts#HALF_WIDE_WIDTH
 export declare const HALF_WIDE_WIDTH = 200;
 
+### build/index.d.ts#HOLE_DEGREE_MAX_STEPS
+export declare const HOLE_DEGREE_MAX_STEPS = 32;
+
+### build/index.d.ts#HOLE_DEGREE_STAGE
+export declare const HOLE_DEGREE_STAGE = "hole-degree";
+
 ### build/index.d.ts#HOPPER_TURTON_RULES
 export declare const HOPPER_TURTON_RULES: Readonly<Record<HopperTurtonCategory, HopperTurtonRule>>;
 
@@ -723,6 +735,11 @@ type HalfWideParams = {
   containerSize: WorstContainer;
   count: number;
 };
+
+### build/index.d.ts#HoleDegreeStrategyOptions
+interface HoleDegreeStrategyOptions {
+  steps: number;
+}
 
 ### build/index.d.ts#HopperTurtonCategory
 type HopperTurtonCategory = "C1" | "C2" | "C3" | "C4" | "C5" | "C6" | "C7";
@@ -1431,6 +1448,9 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 ### build/index.d.ts#checkSelectTable
 export declare function checkSelectTable(table: SelectNode, members: number): void;
 
+### build/index.d.ts#circleOverlaps
+export declare function circleOverlaps(input: PackInput, output: Pick<PackOutput, "placements">, tolerance?: number): number;
+
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
 
@@ -1508,6 +1528,9 @@ export declare function hardBreaks(input: PackInput, output: PackOutput): number
 
 ### build/index.d.ts#hashInput
 export declare function hashInput(file: LayoutInput$1): string;
+
+### build/index.d.ts#holeDegree
+export declare const holeDegree: Strategy<HoleDegreeStrategyOptions>;
 
 ### build/index.d.ts#hopperTurton
 export declare const hopperTurton: CorpusGenerator<HopperTurtonParams>;
@@ -1713,6 +1736,9 @@ export declare function selectLeaf(features: SelectFeatures, table?: SelectNode)
 
 ### build/index.d.ts#selectStrategy
 export declare const selectStrategy: Strategy<SelectStrategyOptions>;
+
+### build/index.d.ts#shapeStrategies
+export declare const shapeStrategies: readonly Strategy[];
 
 ### build/index.d.ts#shelf
 export declare const shelf: Strategy<LayoutStrategyOptions>;

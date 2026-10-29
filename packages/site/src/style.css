@@ -491,6 +491,11 @@ select {
   min-width: 0;
 }
 
+/* A long option name must not widen the page on a phone. The select gets narrower than its longest option. */
+.order select {
+  min-width: 0;
+}
+
 .canvas {
   width: 100%;
   min-width: 0;
@@ -621,7 +626,7 @@ select {
   cursor: pointer;
 }
 
-.item rect {
+.item :is(rect, circle) {
   stroke: var(--item-line);
   stroke-width: 1.5;
 }
@@ -633,11 +638,11 @@ select {
   pointer-events: none;
 }
 
-.item:hover rect {
+.item:hover :is(rect, circle) {
   filter: brightness(1.06) saturate(1.1);
 }
 
-.item.sel rect {
+.item.sel :is(rect, circle) {
   stroke: var(--sel);
   stroke-width: 3;
 }
@@ -646,7 +651,7 @@ select {
   outline: none;
 }
 
-.item:focus-visible rect {
+.item:focus-visible :is(rect, circle) {
   stroke: var(--accent);
   stroke-width: 3;
 }

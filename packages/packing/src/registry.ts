@@ -1,6 +1,7 @@
 import { guillotine, maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { aspectFit } from "./aspect-fit.ts";
 import { bboxStrategy } from "./bbox.ts";
+import { holeDegree } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { portfolioStrategy } from "./portfolio-strategy.ts";
 import { restartsStrategy } from "./restarts.ts";
@@ -9,6 +10,12 @@ import { createContext, type PackContext, type Strategy, type Supports } from ".
 
 /** Each single strategy of the package. The benchmark starts each one on each input of the corpus. */
 export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects, guillotine] as Strategy[]);
+
+/**
+ * The single strategies of one shape kind that is not `rect`. Roadmap item k90 adds `hole-degree` for circles.
+ * Each corpus of the benchmark has only `rect` items. Thus these strategies are not in `strategies`, and the benchmark does not start them.
+ */
+export const shapeStrategies: readonly Strategy[] = Object.freeze([holeDegree] as Strategy[]);
 
 /** The options of the strategy `aspect-fit` */
 export interface AspectFitStrategyOptions {
@@ -59,9 +66,12 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
  */
 export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy] as Strategy[]);
 
-/** This function gives the strategy with an id, also a composite strategy. It throws a `RangeError` for an id that the registry does not have. */
+/**
+ * This function gives the strategy with an id, also a strategy of `shapeStrategies` and a composite strategy.
+ * It throws a `RangeError` for an id that the registry does not have.
+ */
 export function strategy(id: string): Strategy {
-  const found = strategies.find((s) => s.id === id) ?? composites.find((s) => s.id === id);
+  const found = strategies.find((s) => s.id === id) ?? shapeStrategies.find((s) => s.id === id) ?? composites.find((s) => s.id === id);
   if (found === undefined) throw new RangeError(`The registry has no strategy "${id}".`);
   return found;
 }

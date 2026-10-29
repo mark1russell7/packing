@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { corpusFamilies, generator, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
+import { corpusFamilies, generator, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, HOLE_DEGREE_MAX_STEPS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
 import {
   checkConfig,
   checkSpace,
@@ -86,9 +86,10 @@ describe("the counts of the configs", () => {
     expect(small.meta.map((m) => [m.option.id, m.weight])).toEqual([["m", 9n]]);
     expect(memberListCount(4n, { min: 2, max: 2, ordered: false })).toBe(6n);
     const counts = spaceCounts(packSpace);
-    // The orders, then the samples 12 to 192 of log-sweep with rows, skyline, shelf, maxrects or guillotine, or push with 64 values of maxShovesPerItem
+    // The orders, then the samples 12 to 192 of log-sweep with rows, skyline, shelf, maxrects or guillotine, or push with 64 values of maxShovesPerItem.
+    // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
-    expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64)));
+    expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64) + HOLE_DEGREE_MAX_STEPS + 1));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });

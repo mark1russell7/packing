@@ -2,7 +2,7 @@
 // A new strategy, entry or option that a page does not offer fails this test.
 
 import { readFileSync } from "node:fs";
-import { composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, strategies, strategy } from "@mark1russell7/packing";
+import { composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
@@ -32,8 +32,8 @@ describe("the compare page", () => {
 });
 
 describe("the demo", () => {
-  it("offers each strategy of the registry, also the composite strategies", () => {
-    const registry = [...strategies, ...composites].map((s) => s.id);
+  it("offers each strategy of the registry, also the strategies of one shape kind and the composite strategies", () => {
+    const registry = [...strategies, ...shapeStrategies, ...composites].map((s) => s.id);
     expect(DEMO_IDS).toEqual(registry);
     expect(STRATEGIES).toEqual(registry);
   });

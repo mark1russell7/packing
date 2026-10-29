@@ -1,7 +1,7 @@
 // The page of the strategy cards (roadmap item k74, part 1): one card for each strategy of the registry. The page builds
 // each card at build time from the registry, the entries of the benchmark, the catalog and the committed snapshots.
 
-import { composites, strategies } from "@mark1russell7/packing";
+import { composites, shapeStrategies, strategies } from "@mark1russell7/packing";
 import { ENTRIES } from "@mark1russell7/packing/bench/entries";
 import catalogText from "../../../docs/research/CATALOG.md?raw";
 import screenJson from "../data/strategies-pack-screen-v1.json?raw";
@@ -45,7 +45,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const CATALOG_URL = "https://github.com/mark1russell7/packing/blob/main/docs/research/CATALOG.md";
 const catalog = parseCatalog(catalogText);
 const snapshots = [test2Json, test1Json, screenJson, freeJson].map((t) => parseSnapshot(t, "strategies"));
-const cards = buildCards({ strategies, composites, entries: ENTRIES, catalog, snapshots });
+const cards = buildCards({ strategies: [...strategies, ...shapeStrategies], composites, entries: ENTRIES, catalog, snapshots });
 
 mountChrome($("links"), "strategies");
 

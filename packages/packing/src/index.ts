@@ -86,7 +86,7 @@ export {
   type PushStrategyOptions,
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { aspectFitStrategy, composites, DEFAULT_STRATEGY, packDefault, packWith, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+export { aspectFitStrategy, composites, DEFAULT_STRATEGY, packDefault, packWith, shapeStrategies, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
 export {
   ANCHOR_GAIN_LIMIT,
   ANCHOR_MEASURE_IDS,
@@ -101,6 +101,7 @@ export {
   type AnchorStep,
   type AnchorStrategy,
 } from "./anchor.ts";
+export { circleOverlaps, HOLE_DEGREE_MAX_STEPS, HOLE_DEGREE_STAGE, holeDegree, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
 export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb, type RestartsStrategyOptions } from "./restarts.ts";

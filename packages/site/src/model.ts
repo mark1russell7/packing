@@ -1,10 +1,12 @@
 import {
+  cellOf,
   measure,
   packFree,
   packingMetrics,
   packWith,
   Rect,
   SORT_ORDERS,
+  strategy as registryStrategy,
   UnsupportedCell,
   type FreeWidthTry,
   type Item as PackItem,
@@ -19,11 +21,13 @@ import {
 import { DEMO_IDS, packOptions, type OptionValues } from "./options.ts";
 import { regionBounds } from "./region.ts";
 
-/** An item of the demo. `key` identifies it. Its place in the list is its input rank. */
+/** An item of the demo. `key` identifies it. Its place in the list is its input rank. A circle has the same width and height. */
 export interface Item {
   key: number;
   w: number;
   h: number;
+  /** The value `true` when the item is a circle in its box. */
+  circle?: boolean;
 }
 
 /** The id of a strategy of the registry. */
@@ -105,6 +109,8 @@ export interface Placed {
   w: number;
   h: number;
   packed: boolean;
+  /** The value `true` when the item is a circle in its box. */
+  circle?: boolean;
 }
 
 /** The result of one packing. */
@@ -159,6 +165,8 @@ export interface Preset {
   hint: string;
   /** This function makes the size of one item. */
   size: (rng: () => number) => { w: number; h: number };
+  /** The shape of each item. A missing shape is a rectangle. */
+  shape?: "circle";
 }
 
 /** The presets of the demo. All of the data is made up. */
@@ -192,6 +200,16 @@ export const PRESETS: readonly Preset[] = [
     hint: "Short items in a ranked order. Set the sort order to input, and the rows keep the ranks.",
     size: (rng) => ({ w: between(rng, 80, 260, 20), h: between(rng, 30, 60, 10) }),
   },
+  {
+    id: "circles",
+    label: "Circles",
+    hint: "Circles of different diameters. Only the strategies for circles pack them: hole degree and bbox.",
+    size: (rng) => {
+      const d = between(rng, 24, 120, 8);
+      return { w: d, h: d };
+    },
+    shape: "circle",
+  },
 ];
 
 /** This function finds a preset by its id. An unknown id gives the first preset. */
@@ -203,13 +221,51 @@ export function presetOf(id: string): Preset {
 export function makeItems(presetId: string, count: number, seed: number): Item[] {
   const preset = presetOf(presetId);
   const rng = random(seed);
-  return Array.from({ length: count }, (_, key) => ({ key, ...preset.size(rng) }));
+  return Array.from({ length: count }, (_, key) => ({ key, ...preset.size(rng), ...(preset.shape === "circle" ? { circle: true } : {}) }));
 }
 
 /** This function makes one more item of a preset. The seed and the key select its size. */
 export function makeItem(presetId: string, seed: number, key: number): Item {
   const rng = random((seed * 7919 + key * 104729) >>> 0);
-  return { key, ...presetOf(presetId).size(rng) };
+  const preset = presetOf(presetId);
+  return { key, ...preset.size(rng), ...(preset.shape === "circle" ? { circle: true } : {}) };
+}
+
+/** This function gives an item a new size from 4 to 2000. A circle keeps the same width and height: the changed side sets both. */
+export function resizeItem(item: Item, w: number, h: number): void {
+  const nw = Math.min(2000, Math.max(4, Math.round(w)));
+  const nh = Math.min(2000, Math.max(4, Math.round(h)));
+  if (item.circle === true) {
+    const d = nw === item.w ? nh : nw;
+    item.w = d;
+    item.h = d;
+    return;
+  }
+  item.w = nw;
+  item.h = nh;
+}
+
+/** This function gives the id of each strategy of the demo that supports the shape kind of the items. */
+export function offeredStrategies(items: readonly Item[], scene?: Scene): string[] {
+  if (items.length === 0) return [...STRATEGIES];
+  const kind = cellOf(inputOf(items, 640, "fixed", DEFAULT_TARGET, scene)).itemShape;
+  return STRATEGIES.filter((id) => registryStrategy(id).supports.itemShape.includes(kind));
+}
+
+/** The strategies that each layout takes first when its strategy does not support the items: layout A, then layout B. */
+const FIRST_CHOICES: readonly (readonly string[])[] = [
+  ["rows", "hole-degree"],
+  ["skyline", "bbox"],
+];
+
+/**
+ * This function gives the strategy of a layout for the offered strategies. A strategy that supports the items stays. Else the
+ * layout takes its first choice, or the first offered strategy that the other layout does not use.
+ */
+export function strategyFor(current: string, offered: readonly string[], index: number, other: string): string {
+  if (offered.includes(current)) return current;
+  const first = (FIRST_CHOICES[index] ?? []).find((id) => offered.includes(id));
+  return first ?? offered.find((id) => id !== other) ?? offered[0] ?? current;
 }
 
 /**
@@ -245,10 +301,17 @@ export function inputOf(items: readonly Item[], width: number, mode: WidthMode |
   const free = { fixed: "none", aspect: target.aspect, aspectWeight: target.weight } as const;
   const base: PackInput = {
     container: mode === "free" ? free : (scene?.container ?? { fixed: "width", w: width }),
-    items: items.map((item) => ({ ...scene?.extra.get(item.key), id: String(item.key), w: item.w, h: item.h })),
+    items: items.map((item) => ({ ...scene?.extra.get(item.key), ...circleOf(item), id: String(item.key), w: item.w, h: item.h })),
   };
   if (scene === undefined) return base;
   return { ...base, ...(scene.obstacles === undefined ? {} : { obstacles: scene.obstacles }), ...(scene.gap === undefined ? {} : { gap: scene.gap }) };
+}
+
+/** This function gives the circle shape of a circle item, in its box. An item that is not a circle gives no field. */
+function circleOf(item: Item): Pick<PackItem, "shape"> {
+  if (item.circle !== true) return {};
+  const r = Math.min(item.w, item.h) / 2;
+  return { shape: { kind: "circle", cx: item.w / 2, cy: item.h / 2, r } };
 }
 
 /** This function gives the text of an error of a strategy. */
@@ -317,7 +380,8 @@ export function runPacking(
   const placed = items.map((item, i) => {
     const p = at.get(String(item.key));
     const turned = p?.turn === 90;
-    return { key: item.key, rank: i + 1, x: p?.x ?? 0, y: p?.y ?? 0, w: turned ? item.h : item.w, h: turned ? item.w : item.h, packed: p !== undefined };
+    const box = { key: item.key, rank: i + 1, x: p?.x ?? 0, y: p?.y ?? 0, w: turned ? item.h : item.w, h: turned ? item.w : item.h, packed: p !== undefined };
+    return item.circle === true ? { ...box, circle: true } : box;
   });
   const rects = placed.filter((p) => p.packed).map((p) => {
     const r = new Rect<number>();

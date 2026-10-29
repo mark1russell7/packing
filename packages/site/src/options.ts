@@ -1,11 +1,11 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
+import { composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, shapeStrategies, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
-/** This constant lists each strategy of the registry: the single strategies, then the composite strategies. */
-export const DEMO_STRATEGIES: readonly Strategy[] = [...strategies, ...composites];
+/** This constant lists each strategy of the registry: the single strategies, the strategies of one shape kind, then the composite strategies. */
+export const DEMO_STRATEGIES: readonly Strategy[] = [...strategies, ...shapeStrategies, ...composites];
 
 /** This constant lists the id of each strategy of the demo. */
 export const DEMO_IDS: readonly string[] = DEMO_STRATEGIES.map((s) => s.id);
@@ -39,6 +39,7 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   iterations: { min: 1, max: 256, step: 1 },
   strength: { min: 0, max: 1, step: 0.01 },
   budgetMs: { min: 0, max: 2000, step: 1 },
+  steps: { min: 0, max: 32, step: 1 },
 };
 
 /** The entries that a composite strategy can take as a member: the entries that are not composite entries. */
