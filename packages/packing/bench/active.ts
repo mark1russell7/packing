@@ -164,10 +164,11 @@ interface PoolCounts {
  */
 export function candidatePool(
   size: number,
-  options: { readonly seed: number; readonly space: StrategySpace; readonly maxCount: number; readonly knobs: boolean; readonly coverage: CoverageOptions; readonly deadline?: number },
+  options: { readonly seed: number; readonly space: StrategySpace; readonly maxCount: number; readonly knobs: boolean; readonly coverage: CoverageOptions; readonly deadline?: number; readonly maxInputTries?: number },
   counts: PoolCounts,
 ): Candidate[] {
   const { seed, space, maxCount, knobs } = options;
+  const maxInputTries = options.maxInputTries ?? MAX_INPUT_TRIES;
   const sc = spaceCounts(space);
   const strata = strataOf(space, sc);
   if (strata.length === 0) throw new RangeError("The space has no strata.");
@@ -183,7 +184,7 @@ export function candidatePool(
       continue;
     }
     let found: Candidate | undefined;
-    for (let inputTry = 0; inputTry < MAX_INPUT_TRIES && found === undefined; inputTry++) {
+    for (let inputTry = 0; inputTry < maxInputTries && found === undefined; inputTry++) {
       const d = drawInput(r, corpusFamilies, { knobs });
       counts.inputsDrawn++;
       const file = generateInput(d, registry, maxCount);
@@ -248,7 +249,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const start = Date.now();
   const deadline = options.maxMinutes === undefined ? undefined : start + options.maxMinutes * 60000;
   const counts: PoolCounts = { configsDrawn: 0, configsRejected: 0, inputsDrawn: 0, inputsRejected: 0, missed: 0, configReasons: {}, inputReasons: {}, strataMissed: {} };
-  const pool = candidatePool(n * poolFactor, { seed, space, maxCount, knobs, coverage, ...(deadline === undefined ? {} : { deadline }) }, counts);
+  const pool = candidatePool(n * poolFactor, { seed, space, maxCount, knobs, coverage, ...(deadline === undefined ? {} : { deadline }), ...(options.maxInputTries === undefined ? {} : { maxInputTries: options.maxInputTries }) }, counts);
   const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
   const grid = gridOf(options.records, options.manifest, coverage);
   const inputs = new Map<string, PackInput>(coverage.inputs ?? []);
