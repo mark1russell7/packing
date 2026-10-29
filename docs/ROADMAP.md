@@ -129,7 +129,7 @@ Status: done, done, waiting, next, done.
 | k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | next | k116, k119 |
 | k121 | Determinism as a gate: the bench fails on a pair that is not deterministic and has no clock limit, a repeat test runs each entry in a shuffled order, and the source of the 2 bad pairs is found | measure | done | k116, k118 |
 | k122 | The prior as a parameter: union, family-flat or tempered (union weights to a power in the space). The headline is family-flat, with union beside it and the effective count of each. The adversary family is its own stratum | measure | later | k119 |
-| k123 | Balance and stability on each record: the gap spread, the offset of the slack centroid, the empty share per side, and the move under an input change and a seed change. Compare shows compact against spread as a front | measure | next | k118 |
+| k123 | Balance and stability on each record: the gap spread, the offset of the slack centroid, the empty share per side, and the move under an input change and a seed change. Compare shows compact against spread as a front | measure | done | k118 |
 | k124 | A relax pass after any packer: it spreads the slack evenly with no overlap, by constrained stress or by separation constraints | strategies | next | k123 |
 | k125 | Packers by forces: boxes push each other and the container walls, with an overlap removal pass at the end | strategies | next | k123, k124 |
 
@@ -139,41 +139,40 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | k123 | 4 | 3 | 2 | 6.0 |
-| 2 | k124 | 5 | 4 | 3 | 6.7 |
-| 3 | k125 | 4 | 4 | 3 | 5.3 |
-| 4 | k120 | 4 | 3 | 2 | 6.0 |
-| 5 | k25 | 3 | 3 | 2 | 4.5 |
-| 6 | k70 | 3 | 3 | 2 | 4.5 |
-| 7 | k13 | 3 | 3 | 2 | 4.5 |
-| 8 | k92 | 3 | 3 | 2 | 4.5 |
-| 9 | k10 | 4 | 4 | 4 | 4.0 |
-| 10 | k81 | 4 | 3 | 3 | 4.0 |
-| 11 | k82 | 3 | 4 | 3 | 4.0 |
-| 12 | k83 | 3 | 4 | 3 | 4.0 |
-| 13 | k93 | 4 | 2 | 2 | 4.0 |
-| 14 | k94 | 4 | 3 | 3 | 4.0 |
-| 15 | k95 | 4 | 3 | 3 | 4.0 |
-| 16 | k96 | 5 | 4 | 5 | 4.0 |
-| 17 | k97 | 3 | 4 | 3 | 4.0 |
-| 18 | k110 | 4 | 2 | 2 | 4.0 |
-| 19 | k84 | 3 | 5 | 4 | 3.8 |
-| 20 | k74 | 4 | 3 | 4 | 3.0 |
-| 21 | k52 | 3 | 2 | 2 | 3.0 |
-| 22 | k85 | 3 | 3 | 3 | 3.0 |
-| 23 | k86 | 3 | 5 | 5 | 3.0 |
-| 24 | k87 | 3 | 3 | 3 | 3.0 |
-| 25 | k98 | 3 | 2 | 2 | 3.0 |
-| 26 | k122 | 2 | 3 | 2 | 3.0 |
-| 27 | k109 | 4 | 2 | 3 | 2.7 |
-| 28 | k99 | 3 | 4 | 5 | 2.4 |
-| 29 | k100 | 3 | 3 | 4 | 2.3 |
-| 30 | k88 | 2 | 2 | 2 | 2.0 |
-| 31 | k101 | 4 | 2 | 4 | 2.0 |
-| 32 | k102 | 3 | 2 | 3 | 2.0 |
-| 33 | k103 | 2 | 2 | 2 | 2.0 |
-| 34 | k89 | 2 | 4 | 5 | 1.6 |
-| 35 | k104 | 2 | 3 | 5 | 1.2 |
+| 1 | k124 | 5 | 4 | 3 | 6.7 |
+| 2 | k125 | 4 | 4 | 3 | 5.3 |
+| 3 | k120 | 4 | 3 | 2 | 6.0 |
+| 4 | k25 | 3 | 3 | 2 | 4.5 |
+| 5 | k70 | 3 | 3 | 2 | 4.5 |
+| 6 | k13 | 3 | 3 | 2 | 4.5 |
+| 7 | k92 | 3 | 3 | 2 | 4.5 |
+| 8 | k10 | 4 | 4 | 4 | 4.0 |
+| 9 | k81 | 4 | 3 | 3 | 4.0 |
+| 10 | k82 | 3 | 4 | 3 | 4.0 |
+| 11 | k83 | 3 | 4 | 3 | 4.0 |
+| 12 | k93 | 4 | 2 | 2 | 4.0 |
+| 13 | k94 | 4 | 3 | 3 | 4.0 |
+| 14 | k95 | 4 | 3 | 3 | 4.0 |
+| 15 | k96 | 5 | 4 | 5 | 4.0 |
+| 16 | k97 | 3 | 4 | 3 | 4.0 |
+| 17 | k110 | 4 | 2 | 2 | 4.0 |
+| 18 | k84 | 3 | 5 | 4 | 3.8 |
+| 19 | k74 | 4 | 3 | 4 | 3.0 |
+| 20 | k52 | 3 | 2 | 2 | 3.0 |
+| 21 | k85 | 3 | 3 | 3 | 3.0 |
+| 22 | k86 | 3 | 5 | 5 | 3.0 |
+| 23 | k87 | 3 | 3 | 3 | 3.0 |
+| 24 | k98 | 3 | 2 | 2 | 3.0 |
+| 25 | k122 | 2 | 3 | 2 | 3.0 |
+| 26 | k109 | 4 | 2 | 3 | 2.7 |
+| 27 | k99 | 3 | 4 | 5 | 2.4 |
+| 28 | k100 | 3 | 3 | 4 | 2.3 |
+| 29 | k88 | 2 | 2 | 2 | 2.0 |
+| 30 | k101 | 4 | 2 | 4 | 2.0 |
+| 31 | k102 | 3 | 2 | 3 | 2.0 |
+| 32 | k103 | 2 | 2 | 2 | 2.0 |
+| 33 | k89 | 2 | 4 | 5 | 1.6 |
+| 34 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) are P1 work outside the queue.
 
