@@ -164,6 +164,7 @@ const { output, winner, trace } = p.pick(input);
 - The bench gives the portfolio report from the records (`docs/BENCH.md`, "Portfolio"). The report tells which sets to try.
 - Since 0.2.7, `members` can also be a function `(input) => members`. The contract checks the list of each input.
 - `packPortfolio` has no default `budgetMs`. A default that reads the clock gives two layouts for one input on two computers.
+- Since roadmap item k117, the option `budgetWork` is a work limit. It cuts at the same member on each computer ("The work budget").
 
 ### The per-cell portfolio
 
@@ -208,6 +209,7 @@ The options of the strategy `portfolio`:
 | `k` | none | 2 or 3. With `k`, each of the `k` members of the cell runs. |
 | `maxMembers` | `defaultMembers` of the cell | The largest count of the members that run. Without `k`, the members come from the set of 3. |
 | `budgetMs` | none | An opt-in time limit of the contract. The first member always runs. A cut member makes the output depend on the clock. |
+| `budgetWork` | none | An opt-in work limit in work units ("The work budget"). The first member always runs. A cut is the same on each computer. |
 | `members` | none | A fixed list of members for each input, in place of the set of the cell. It refuses `k`. |
 | `key` | `pack.overflow.excessArea`, `pack.fill` | The measure ids of the pick after the hard breaks, in order. Each id is in `MEASURE_SPECS`. |
 
@@ -304,6 +306,7 @@ const rows = packWith("restarts", input, { member: "rows", iterations: 32, pertu
 | `strength` | 0.1 | The share of the positions that move, from 0 to 1. |
 | `key` | the key of `PORTFOLIO_LEVELS` | The measure ids of the key after the hard breaks, as for `packPortfolio`. |
 | `limitTime`, `budgetMs` | `false`, none | With `limitTime`, the time limit `budgetMs` cuts the later restarts. Restart 0 always starts. |
+| `budgetWork` | none | The work limit in work units ("The work budget"). Restart 0 always starts. A cut is the same on each computer. |
 
 - Restart 0 is the member with its options. Thus the result is not worse than the member on the key. A tie keeps the earlier restart.
 - The order of the member is the rank order of the items, then a stable sort by its `sortOrder`. The sizes have the margins and the gap.
@@ -314,6 +317,58 @@ const rows = packWith("restarts", input, { member: "rows", iterations: 32, pertu
 - Restart `i` gets the random numbers `stepRandom(seed, "restarts:<i>")` of the contract. The same seed gives the same output and the same trace measures.
 - The output gets the trace stage `restarts` (`RESTARTS_STAGE`). Its measures are `move.restartPick`, `restarts.run` (the index of the pick) and `restarts.runs`.
 - The cost of one call is `iterations` packs of the member, and the key of each output.
+
+### The work budget
+
+Roadmap item k117 adds a work limit to `packPortfolio`, the strategy `portfolio` and the strategy `restarts`. It is opt-in. No default uses it.
+
+```ts
+const output = packWith("restarts", input, { budgetWork: 16000 }); // the same restarts on each computer
+const pick = packPortfolio(["rows", "skyline"], { budgetWork: 5000 }).pick(input);
+```
+
+The time limit `budgetMs` reads the clock. Thus a cut by it can give a different output on a different computer. The work limit counts work units, not milliseconds. Thus the output is a function of the input, the config and the seed.
+
+The work unit is one item in one pack of a single strategy. `packWork(input, output)` gives the work of one output:
+
+- The work is the item count of the input, at least 1, times the count of the packs.
+- The count of the packs is 1, plus the measure `pack.search.widths` of each trace stage. Thus the size search `log-sweep` counts each width that it tried.
+- An output with the measure `work.spent` comes from a composite with a work limit. Then `packWork` gives that value.
+
+Why this unit:
+
+- Each member reports it with no new code: the item count is in the input, and `pack.search.widths` is in the trace of each output.
+- It follows the cost. A pack of a free container tries some 60 widths, so it costs some 60 times more than a pack of a fixed container.
+- A count of the placements that each strategy tried needs a new counter in each strategy. The item count of each pack is a good enough estimate for a limit.
+
+The stop rule:
+
+1. Member 0 (restart 0) always runs. A member that starts always finishes.
+2. Before member `i` above 0 starts, the composite compares the work of the members that ran with `budgetWork`. When the work is equal to `budgetWork` or more, member `i` and each later member get the status `cut`.
+3. A member that throws costs its item count, at least 1.
+4. The pick uses only the members that ran, with the same key and the same tie rules as with the time limit. A tie keeps the earlier member.
+
+- With `budgetMs` too, the limit that ends first cuts. When the work limit cuts first, the flag `deterministic` of the trace stays `true`.
+- A large `budgetWork` gives the output of the run with no limit. A small `budgetWork` gives the same partial output on each call.
+- With `budgetWork`, the trace stage `portfolio` or `restarts` also has `work.spent`, `work.budget` and `work.stopped`. The value of `work.stopped` is 1 when the limit cut a member.
+- The option `budgetWork` is a whole number of 0 or more. Another value causes a `RangeError`.
+- A composite member with no work limit counts only the packs of its winner. Only a member with `budgetWork` reports its full work.
+
+In `packSpace`, the options `portfolio`, `cell-portfolio` and `restarts` have the switch param `limitWork` (default `false`) and the param `budgetWork`. The param `budgetWork` is an enum of the 4 values 4000, 16000, 64000 and 256000, with the default 16000. The option `budgetWork` of a strategy takes each whole number. Thus no default config has a work limit.
+
+The counts of `spaceSize` changed with k117. Only the meta configs changed:
+
+| `spaceSize` | Before k117 | Since k117 |
+|---|---:|---:|
+| `base`, 3 levels and 1 level | 2973 and 891 | 2973 and 891 |
+| `meta`, 3 levels | 37049239404514333362 | 185246197022536252434 |
+| `meta`, 1 level | 13341577899037878 | 66707889492003174 |
+| `meta` for `rect`, 3 levels | 36862574914409402550 | 184312874572011669750 |
+| `meta` for `rect`, 1 level | 13266726236504962 | 66333631179345730 |
+| `meta` for `circle` or `polygon`, 3 levels and 1 level | 5940 and 1780 | 5940 and 1780 |
+
+- The work limit gives 5 param points at each level count: no limit, then the 4 values of `budgetWork`. The options `bbox`, `select` and `aspect-fit` do not change.
+- The meta count with 3 levels is more than `10n ** 20n`. Thus `spaceSize` gives it only with a `maxMeta` of `10n ** 21n` or more.
 
 ### Shapes by their bounding boxes
 
@@ -345,7 +400,82 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - The measures read the box that `bbox` places for a shape item: the bounding box of the shape at its place, not `w` by `h` (roadmap item k113).
 - Thus the hull, `pack.fill`, `pack.whitespace`, the overflow measures and `pack.shapeFill` use the same boxes. Each share stays from 0 to 1.
 - In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.
-- Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level. It counts 0 base configs.
+- Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level.
+- With `polygon` or `free` it counts 0 base configs. With `circle` it counts the base configs of `hole-degree` (roadmap item k90).
+
+### Circles by the maximum hole degree
+
+Roadmap item k90 adds the single strategy `hole-degree` (catalog row `circle-hole-degree`, idea S1 of the survey). It packs circle items directly, not their bounding boxes. It is opt-in. No default uses it.
+
+```ts
+const output = packWith("hole-degree", input); // 8 halving steps of the height
+const strip = packWith("hole-degree", input, { steps: 0 }); // the open strip only
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `steps` | 8 | The count of the halving steps of the height search, from 0 to 32. A container of fixed size does not read it. |
+
+The rule is A1.0 of Huang, Li, Akeb and Li 2005 (`Huang 2005` in [`CATALOG.md`](research/CATALOG.md)):
+
+1. A corner place of a circle touches two items: two placed circles, a placed circle and a side, or two sides. It overlaps no item.
+2. The hole degree of a corner place is `1 - d / R`. `R` is the radius of the circle. `d` is the least distance to the other items and the sides.
+3. The "other items" are each item but the two items of the corner. Thus a hole degree of 1 tells that a third item also touches the circle.
+4. At each step, the strategy examines each corner place of each unplaced circle. The place with the largest hole degree wins.
+5. The run stops when each circle has a place, or when no circle has a corner place. A circle with no place goes to the overflow.
+
+The rest is a choice of this project:
+
+- A tie of the hole degree goes to the larger circle, then to the lower `y`, then to the lower `x`, then to the earlier item of the input.
+- The first step has only the corner places of two sides. Thus the first circle goes into a corner of the container.
+- For a container of free height, the first run has an open bottom. Its height is the high bound of a search.
+- The low bound is the largest diameter, or the circle area over the width when that is more. Each step halves the range.
+- A step that places each circle sets the high bound, else the low bound. The output is the lowest run that placed each circle.
+- `R` is the radius plus the largest side of the margin plus half the gap. Thus two circles are `mA + gap + mB` apart, as in decision 3.
+- A pair of `pairGaps` has its centers apart by the two radii and its gap, or by the two `R` when that is more.
+- The sides of the container are the container less the inset, grown by half the gap. Thus a circle is apart from a side by its margin and the inset.
+- The placement of an item is the center of the circle minus the center of the shape in the box. The output never turns an item.
+- The strategy reads no random number and no clock. The trace has the time of the run and the count of the runs, `holeDegree.runs`.
+
+The checks:
+
+- `circleOverlaps(input, output)` counts the pairs of circles that overlap, by the distance of their centers. Its count is exact.
+- `packHard` of the contract tests the bounding boxes. Two circles that touch on a diagonal have boxes that overlap. Thus its `no-overlap` count on circles is only safe.
+- The count `in-container` of `packHard` is exact for a circle in a rectangle. Its bounding box touches the sides at the same points.
+- `packConfig` checks a `hole-degree` config with `checkShapes` at the level `safe`, as a `bbox` config.
+
+In `packSpace`, the option `placement.hole-degree` has the param `steps` and supports only `circle`. Constraints keep the order `input` and the size search `none` with it.
+The order `input` and the options `none` support `rect` and `circle`. The count changes:
+
+| Count | Before k90 | After k90 |
+|---|---|---|
+| Base configs, 3 levels | 2970 | 2973 |
+| Base configs, 1 level | 890 | 891 |
+| Meta configs, 3 levels | 36862574914409402550 | 37049239404514333362 |
+| Meta configs, 1 level | 13266726236504962 | 13341577899037878 |
+| Base and meta configs for `circle`, 3 levels | 0 and 5940 | 3 and 5940 |
+| Base and meta configs for `rect`, 3 levels | 2970 and 36862574914409402550 | the same |
+
+The meta counts with 3 levels are more than the default `maxMeta` of 1e18. Thus `spaceSize` gives them only with a larger `maxMeta`, for example `10n ** 20n`. Since k117, the count needs `10n ** 21n` ("The work budget").
+The size search `none` goes only with `push` and `hole-degree`. Each other placement, `guillotine` too, needs `log-sweep`, as before k90.
+
+The limits:
+
+- It supports only circle items. An item with no shape is a rectangle. A rect, a polygon or a free shape throws `UnsupportedCell`.
+- It supports only a rectangle container of fixed size or of fixed width. Obstacles and locked items throw `UnsupportedCell`.
+- The margin of a circle is a ring with the largest side of its margin. A margin with different sides is larger than the item asks.
+- It has no look-ahead step (A1.5 of the paper) and one start only. It does not try other first circles.
+- The cost of one run grows with about the cube of the count of circles. The height search makes `steps + 1` runs.
+- `strategies` does not have it, because each corpus of the benchmark has only rect items. `shapeStrategies` has it, and `strategy(id)` finds it.
+
+The circle family of `bench/shape-inputs.ts` (seeds 1 to 5, 30 circles) gives this mean `pack.shapeFill` (`bench/hole-degree.test.ts`):
+
+| Container | `hole-degree` | `bbox-maxrects-bl` | `bbox-skyline` |
+|---|---|---|---|
+| Free height | 0.816 | 0.692 | 0.631 |
+| Square of fixed size | 0.673 | 0.692 | 0.631 |
+
+On a square, `hole-degree` fills the 4 corners first. Thus its hull is the full square, and the hull of a `bbox` member is smaller.
 
 ### The goal-driven ruin and recreate
 
@@ -419,9 +549,17 @@ The counts of `packSpace`:
 
 - `combine` gets the option `ruin-recreate` with 1 member and the params `iterations`, `ruin`, `strength` and `shrink`.
 - The named configs are `ruin-recreate`, `ruin-recreate-maxrects-bl-k64` and `ruin-recreate-skyline-k64`. The benchmark has the last two as entries.
-- `spaceSize` with 3 levels: 36862574914409402550 meta configs before, 36862574914409723310 after. The new 320760 configs are 2970 base configs times 108 param points.
-- `spaceSize` with 1 level: 13266726236504962 meta configs before, 13266726236508522 after. The new 3560 configs are 890 base configs times 4 values of `ruin`.
-- The base configs stay 2970 and 890. The counts for the shape kinds other than `rect` do not change.
+- Each base config gives 108 new meta configs with 3 levels: 3 values of `iterations`, 4 of `ruin`, 3 of `strength` and 3 of `shrink`.
+- With 1 level, each base config gives 4 new meta configs, one for each value of `ruin`. The table gives the counts before k79 and since k79.
+
+| `spaceSize` | Before k79 | Since k79 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 185246197022536252434 | 185246197022536573518 |
+| 1 level | 66707889492003174 | 66707889492006738 |
+| 3 levels, `shapes: ["rect"]` | 184312874572011669750 | 184312874572011990510 |
+| 1 level, `shapes: ["rect"]` | 66333631179345730 | 66333631179349290 |
+
+- The base configs stay 2973 and 891, and 2970 and 890 for `rect`. The counts for the other shape kinds do not change.
 - `ENTRIES` of the benchmark: 30 before, 32 after. `composites`: 5 before, 6 after. The meta options of `spaceCounts`: 6 before, 7 after.
 - The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
 
@@ -429,6 +567,7 @@ The counts of `packSpace`:
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
+const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
 const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox" and "ruin-recreate"
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 344 names
+## . (build/index.d.ts): 354 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -76,8 +76,11 @@ type GuillotineOptions: build/index.d.ts#GuillotineOptions
 type GuillotineSplit: build/index.d.ts#GuillotineSplit
 type GuillotineStrategyOptions: build/index.d.ts#GuillotineStrategyOptions
 HALF_WIDE_WIDTH: build/index.d.ts#HALF_WIDE_WIDTH
+HOLE_DEGREE_MAX_STEPS: build/index.d.ts#HOLE_DEGREE_MAX_STEPS
+HOLE_DEGREE_STAGE: build/index.d.ts#HOLE_DEGREE_STAGE
 HOPPER_TURTON_RULES: build/index.d.ts#HOPPER_TURTON_RULES
 type HalfWideParams: build/index.d.ts#HalfWideParams
+type HoleDegreeStrategyOptions: build/index.d.ts#HoleDegreeStrategyOptions
 type HopperTurtonCategory: build/index.d.ts#HopperTurtonCategory
 type HopperTurtonParams: build/index.d.ts#HopperTurtonParams
 type HopperTurtonRule: build/index.d.ts#HopperTurtonRule
@@ -204,6 +207,9 @@ UnsupportedShape: build/index.d.ts#UnsupportedShape
 Vector: build/index.d.ts#Vector
 WALL_LOCKS_MAX: build/index.d.ts#WALL_LOCKS_MAX
 WALL_LOCK_WALLS: build/index.d.ts#WALL_LOCK_WALLS
+WORK_BUDGET: build/index.d.ts#WORK_BUDGET
+WORK_SPENT: build/index.d.ts#WORK_SPENT
+WORK_STOPPED: build/index.d.ts#WORK_STOPPED
 WORST_COUNTS: build/index.d.ts#WORST_COUNTS
 WORST_WIDTH: build/index.d.ts#WORST_WIDTH
 type WallLocksParams: build/index.d.ts#WallLocksParams
@@ -237,6 +243,7 @@ cellOf: build/index.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
+circleOverlaps: build/index.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
 compareRects: build/index.d.ts#compareRects
 composites: build/index.d.ts#composites
@@ -263,6 +270,7 @@ halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
 hardBreaks: build/index.d.ts#hardBreaks
 hashInput: build/index.d.ts#hashInput
+holeDegree: build/index.d.ts#holeDegree
 hopperTurton: build/index.d.ts#hopperTurton
 hopperTurtonFamily: build/index.d.ts#hopperTurtonFamily
 hopperTurtonOf: build/index.d.ts#hopperTurtonOf
@@ -298,6 +306,7 @@ packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
 packSpace: build/index.d.ts#packSpace
 packWith: build/index.d.ts#packWith
+packWork: build/index.d.ts#packWork
 packingMetrics: build/index.d.ts#packingMetrics
 pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
@@ -325,6 +334,7 @@ ruinRecreateStrategy: build/index.d.ts#ruinRecreateStrategy
 selectFeatures: build/index.d.ts#selectFeatures
 selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
+shapeStrategies: build/index.d.ts#shapeStrategies
 shelf: build/index.d.ts#shelf
 skyline: build/index.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
@@ -719,6 +729,12 @@ interface GuillotineStrategyOptions extends LayoutStrategyOptions {
 ### build/index.d.ts#HALF_WIDE_WIDTH
 export declare const HALF_WIDE_WIDTH = 200;
 
+### build/index.d.ts#HOLE_DEGREE_MAX_STEPS
+export declare const HOLE_DEGREE_MAX_STEPS = 32;
+
+### build/index.d.ts#HOLE_DEGREE_STAGE
+export declare const HOLE_DEGREE_STAGE = "hole-degree";
+
 ### build/index.d.ts#HOPPER_TURTON_RULES
 export declare const HOPPER_TURTON_RULES: Readonly<Record<HopperTurtonCategory, HopperTurtonRule>>;
 
@@ -728,6 +744,11 @@ type HalfWideParams = {
   containerSize: WorstContainer;
   count: number;
 };
+
+### build/index.d.ts#HoleDegreeStrategyOptions
+interface HoleDegreeStrategyOptions {
+  steps: number;
+}
 
 ### build/index.d.ts#HopperTurtonCategory
 type HopperTurtonCategory = "C1" | "C2" | "C3" | "C4" | "C5" | "C6" | "C7";
@@ -953,6 +974,7 @@ interface PackPortfolioOptions {
   id?: string;
   seed?: number;
   budgetMs?: number;
+  budgetWork?: number;
   maxMembers?: number;
   now?: () => number;
   key?: readonly string[];
@@ -1036,6 +1058,7 @@ interface PortfolioStrategyOptions {
   k?: 2 | 3;
   maxMembers?: number;
   budgetMs?: number;
+  budgetWork?: number;
   members?: readonly (string | PortfolioEntry)[];
   key?: readonly string[];
 }
@@ -1127,6 +1150,7 @@ interface RestartsStrategyOptions {
   key?: readonly string[];
   limitTime?: boolean;
   budgetMs?: number;
+  budgetWork?: number;
 }
 
 ### build/index.d.ts#RuinKind
@@ -1346,6 +1370,15 @@ export declare const WALL_LOCKS_MAX = 4;
 ### build/index.d.ts#WALL_LOCK_WALLS
 export declare const WALL_LOCK_WALLS: Readonly<Record<WorstContainer, readonly LockWall[]>>;
 
+### build/index.d.ts#WORK_BUDGET
+export declare const WORK_BUDGET = "work.budget";
+
+### build/index.d.ts#WORK_SPENT
+export declare const WORK_SPENT = "work.spent";
+
+### build/index.d.ts#WORK_STOPPED
+export declare const WORK_STOPPED = "work.stopped";
+
 ### build/index.d.ts#WORST_COUNTS
 export declare const WORST_COUNTS: readonly number[];
 
@@ -1454,6 +1487,9 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 ### build/index.d.ts#checkSelectTable
 export declare function checkSelectTable(table: SelectNode, members: number): void;
 
+### build/index.d.ts#circleOverlaps
+export declare function circleOverlaps(input: PackInput, output: Pick<PackOutput, "placements">, tolerance?: number): number;
+
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
 
@@ -1531,6 +1567,9 @@ export declare function hardBreaks(input: PackInput, output: PackOutput): number
 
 ### build/index.d.ts#hashInput
 export declare function hashInput(file: LayoutInput$1): string;
+
+### build/index.d.ts#holeDegree
+export declare const holeDegree: Strategy<HoleDegreeStrategyOptions>;
 
 ### build/index.d.ts#hopperTurton
 export declare const hopperTurton: CorpusGenerator<HopperTurtonParams>;
@@ -1651,6 +1690,9 @@ export declare const packSpace: StrategySpace$1;
 ### build/index.d.ts#packWith
 export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 
+### build/index.d.ts#packWork
+export declare function packWork(input: PackInput, output: PackOutput): number;
+
 ### build/index.d.ts#packingMetrics
 export declare function packingMetrics(rects: readonly Rect[], options?: MetricsOptions): PackingMetrics;
 
@@ -1739,6 +1781,9 @@ export declare function selectLeaf(features: SelectFeatures, table?: SelectNode)
 
 ### build/index.d.ts#selectStrategy
 export declare const selectStrategy: Strategy<SelectStrategyOptions>;
+
+### build/index.d.ts#shapeStrategies
+export declare const shapeStrategies: readonly Strategy[];
 
 ### build/index.d.ts#shelf
 export declare const shelf: Strategy<LayoutStrategyOptions>;

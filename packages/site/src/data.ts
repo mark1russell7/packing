@@ -303,6 +303,13 @@ export const NEWS: readonly NewsEntry[] = [
   },
   {
     date: "2026-10-29",
+    item: "k117",
+    title: "The composites `portfolio` and `restarts` take a work limit `budgetWork`: one unit is one box in one pack. A cut by it is the same on each computer.",
+    pr: 148,
+    link: "https://github.com/mark1russell7/packing/pull/148",
+  },
+  {
+    date: "2026-10-29",
     item: "k23",
     title: "The new strategy `guillotine` keeps free rectangles that do not overlap. It has 6 rules to choose a free rectangle, 6 rules to cut it, and a merge.",
     pr: 145,
@@ -342,6 +349,13 @@ export const NEWS: readonly NewsEntry[] = [
     title: "The knob `margin` does not go on a locked box when the margin goes into an obstacle. Thus each strategy packs `touchObstacles` with no `no-overlap` break.",
     pr: 136,
     link: "https://github.com/mark1russell7/packing/pull/136",
+  },
+  {
+    date: "2026-10-29",
+    item: "k90",
+    title: "The strategy `hole-degree` packs circles by the maximum hole degree of Huang 2005. On 30 circles, its `pack.shapeFill` is 0.816, and `bbox-maxrects-bl` gives 0.692.",
+    pr: 142,
+    link: "https://github.com/mark1russell7/packing/pull/142",
   },
   {
     date: "2026-10-29",

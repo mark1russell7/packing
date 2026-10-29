@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { composites, strategies } from "@mark1russell7/packing";
+import { composites, shapeStrategies, strategies } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { ENTRIES } from "@mark1russell7/packing/bench/entries";
 import {
@@ -25,8 +25,9 @@ const snapshot = (name: string): StrategySnapshot => parseSnapshot(readFileSync(
 const snapshots = ["strategies-pack-select-v2", "strategies-pack-select-v1", "strategies-pack-screen-v1", "strategies-pack-free-v1"].map(snapshot);
 // This line checks that the type of `ENTRIES` fits the cards.
 const entries: readonly EntryLike[] = ENTRIES;
-const registry = [...strategies, ...composites];
-const cards = buildCards({ strategies, composites, entries, catalog, snapshots });
+const singles = [...strategies, ...shapeStrategies];
+const registry = [...singles, ...composites];
+const cards = buildCards({ strategies: singles, composites, entries, catalog, snapshots });
 
 describe("the sync of the cards with the code and the catalog", () => {
   it("has a stage for each strategy of the registry, and no stage for an id outside it", () => {

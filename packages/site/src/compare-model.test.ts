@@ -1,15 +1,18 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { circleOverlaps } from "@mark1russell7/packing";
 import {
   bestIds,
   boardInput,
   COMPARE_ENTRIES,
   COMPARE_FAMILIES,
   drawingSvg,
+  entriesFor,
   MAX_COMPARE_COUNT,
   presetInput,
   runAll,
   runEntry,
+  SHAPE_ENTRIES,
   sortResults,
   valueText,
   type EntryResult,
@@ -111,5 +114,29 @@ describe("the links to the verdicts of the results page", () => {
       if (noRunYet.includes(e.id)) expect(verdictSnapshot(snapshots, e.id), e.id).toBeUndefined();
       else expect(verdictSnapshot(snapshots, e.id), e.id).toBeDefined();
     }
+  });
+});
+
+describe("the circle preset on the compare page", () => {
+  const input = presetInput("circles", 20, 640, 4).input;
+
+  it("adds hole degree after the entries of ENTRIES, only for circles", () => {
+    expect(SHAPE_ENTRIES.map((e) => e.id)).toEqual(["hole-degree"]);
+    expect(COMPARE_ENTRIES.map((e) => e.id)).not.toContain("hole-degree");
+    expect(entriesFor(input).map((e) => e.id)).toEqual([...COMPARE_ENTRIES.map((e) => e.id), "hole-degree"]);
+    expect(entriesFor(presetInput("mixed", 20, 640, 4).input)).toBe(COMPARE_ENTRIES);
+  });
+
+  it("packs the circles with hole degree and bbox, with no overlap of two circles, and draws circles", () => {
+    const results = runAll(input);
+    expect(results.map((r) => r.index)).toEqual(results.map((_, i) => i));
+    for (const id of ["hole-degree", "bbox-maxrects-bl", "bbox-skyline"]) {
+      const r = results.find((x) => x.entry.id === id)!;
+      expect(r.error, id).toBeUndefined();
+      expect(r.output!.placements, id).toHaveLength(20);
+      expect(circleOverlaps(input, r.output!), id).toBe(0);
+      expect(drawingSvg(input, r.output!, id)).toContain("<circle");
+    }
+    expect(results.find((x) => x.entry.id === "rows")?.unsupported).toBe(true);
   });
 });

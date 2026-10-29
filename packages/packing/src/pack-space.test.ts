@@ -11,6 +11,7 @@ import {
   packWith,
   PORTFOLIO_SETS,
   rectGrid,
+  shapeStrategies,
   strategies,
   toPackInput,
   UnsupportedCell,
@@ -30,21 +31,29 @@ describe("packSpace", () => {
     for (const [name, config] of Object.entries(named)) expect(checkConfig(packSpace, config), name).toEqual([]);
   });
 
-  it("has 5 stages and 2970 base configs with 3 levels", () => {
+  // Roadmap item k90 adds 3 base configs with 3 levels: hole-degree with 3 levels of steps. Before k90 the count was 2970.
+  it("has 5 stages and 2973 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(2970n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(2973n);
+    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(891n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
-  it("gives cell-portfolio one pool entry, and counts 3.69e19 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 1.85e20 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
-    // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 2970 base configs. The count is more than the default `maxMeta` of 1e18
+    // The option portfolio gives nearly all of the count: 800 param points for each ordered list of 2 to 5 of the 2973 base configs. The count is more than the default `maxMeta` of 1e18
+    // Before k90 the counts were 36862574914409402550 and 13266726236504962. Before k117 they were 37049239404514333362 and 13341577899037878.
+    // The work limit of k117 gives 5 param points: no limit, then 4 values of budgetWork. The rect counts before k117 were 36862574914409402550 and 13266726236504962.
+    // The ruin and recreate of k79 gives 108 param points with 3 levels and 4 with 1 level, for each base config.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(36862574914409723310n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(13266726236508522n);
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022536573518n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492006738n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572011990510n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179349290n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -96,25 +105,36 @@ describe("packSpace and the shape kinds", () => {
   const circle: PackInput = { container: { fixed: "none" }, items: [...items, { id: "c", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] };
   const polygon: PackInput = { container: { fixed: "none" }, items: [...items, { id: "p", w: 10, h: 10, shape: { kind: "polygon", points: [[0, 0], [10, 0], [5, 10]] } }] };
 
-  it("declares the shape kind rect on each option of each stage, but bbox", () => {
-    for (const s of packSpace.stages) for (const o of s.options) if (o.id !== "bbox") expect(o.supports, `${s.name}.${o.id}`).toEqual({ shape: ["rect"] });
+  it("declares the shape kind rect on each option of each stage, but bbox and the options of hole-degree", () => {
+    // Roadmap item k90: hole-degree supports only circle. The order input and the options none also support circle.
+    const circleToo = ["order.input", "size-search.none", "local-search.none"];
+    for (const s of packSpace.stages)
+      for (const o of s.options) {
+        const at = `${s.name}.${o.id}`;
+        if (o.id === "bbox") continue;
+        const want = at === "placement.hole-degree" ? ["circle"] : circleToo.includes(at) ? ["rect", "circle"] : ["rect"];
+        expect(o.supports, at).toEqual({ shape: want });
+      }
     // Roadmap item k91: the option bbox supports each kind, and its members get the bounding boxes (view bounds of contract 0.2.16)
     const bbox = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "bbox")!;
     expect(bbox.supports).toEqual({ shape: [...SHAPE_KIND_IDS] });
     expect(bbox.members).toEqual({ min: 1, max: 1, ordered: true, view: "bounds" });
   });
 
-  it("counts only the bbox configs for a shape and the same configs for a rect", () => {
+  it("counts the bbox configs for a shape, the hole-degree configs for a circle, and the rect configs for a rect", () => {
     // A bbox config has 1 base member and the param turn: 2 times the base configs of the rect space
-    const base3 = spaceSize(packSpace, { levels: 3 }).base;
-    const base1 = spaceSize(packSpace, { levels: 1 }).base;
-    for (const kind of ["circle", "polygon", "free"] as const) {
+    const base3 = spaceSize(packSpace, { levels: 3, shapes: ["rect"] }).base;
+    const base1 = spaceSize(packSpace, { levels: 1, shapes: ["rect"] }).base;
+    for (const kind of ["polygon", "free"] as const) {
       expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 5940n });
       expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 1780n });
     }
+    // Roadmap item k90: a circle input also gets the base configs of hole-degree, 1 for each level of steps
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 3n, meta: 5940n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 1n, meta: 1780n });
     expect([base3, base1]).toEqual([2970n, 890n]);
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"] })).toEqual(spaceSize(packSpace, { levels: 3 }));
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 3n);
   });
 
   it("accepts each bbox config on a shape in checkConfig, and refuses a config without bbox", () => {
@@ -264,7 +284,7 @@ describe("packSpace and the options of the strategies", () => {
   });
 
   it("has a record for each strategy of the registry, with each key of its defaults", () => {
-    for (const s of [...strategies, ...composites]) {
+    for (const s of [...strategies, ...shapeStrategies, ...composites]) {
       expect(PACK_SPACE_OPTIONS, s.id).toHaveProperty([s.id]);
       for (const key of Object.keys(s.defaults as object)) expect(PACK_SPACE_OPTIONS[s.id], `${s.id}.${key}`).toHaveProperty([key]);
     }
@@ -311,5 +331,34 @@ describe("packSpace and the options of the strategies", () => {
     );
     expect(outputHash(packConfig(input, named["ruin-recreate-skyline-k64"]!, 3))).toBe(outputHash(packConfig(input, ruin({ iterations: 64 }, "skyline"), 3)));
     expect(() => packConfig(input, ruin({ iterations: 0 }), 3)).toThrow(/iterations/);
+  });
+
+  // Roadmap item k117: the work limit has the switch param limitWork, as the time limit has limitTime.
+  it("gives the option budgetWork with the param limitWork, for a portfolio and for restarts", () => {
+    const combine = packSpace.stages.find((s) => s.name === "combine")!;
+    for (const id of ["portfolio", "cell-portfolio", "restarts"]) {
+      const params = combine.options.find((o) => o.id === id)!.params;
+      expect(params.find((p) => p.name === "limitWork"), id).toEqual({ name: "limitWork", kind: "bool", default: false });
+      expect(params.find((p) => p.name === "budgetWork"), id).toEqual({ name: "budgetWork", kind: "enum", values: [4000, 16000, 64000, 256000], default: 16000, when: { param: "limitWork", in: [true] } });
+    }
+    const pool = named["portfolio"]!.stages["combine"]!.members!;
+    const cell = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "cell-portfolio", params, members: pool } } });
+    expect(outputHash(packConfig(input, cell({ limitWork: true, budgetWork: 4000 }), 2))).toBe(outputHash(packWith("portfolio", input, { budgetWork: 4000 }, 2)));
+    const list: StrategyConfig = { space: "packing", stages: { combine: { option: "portfolio", params: { limitWork: true, budgetWork: 4000 }, members: [named["rows"]!, named["maxrects"]!] } } };
+    expect(outputHash(packConfig(input, list))).toBe(outputHash(packWith("portfolio", input, { members: ["rows", "maxrects"], budgetWork: 4000 })));
+    const restarts = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "restarts", params, members: [named["maxrects-bl"]!] } } });
+    const work = packConfig(input, restarts({ limitWork: true, budgetWork: 4000 }), 3);
+    expect(outputHash(work)).toBe(outputHash(packWith("restarts", input, { budgetWork: 4000 }, 3)));
+    expect(work.trace!.at(-1)!.measures).toMatchObject({ "work.budget": 4000, "work.stopped": 1 });
+    // With the two limits on, the config gives the two options
+    expect(outputHash(packConfig(input, restarts({ limitWork: true, budgetWork: 16000, limitTime: true, budgetMs: 2000 }), 3))).toBe(
+      outputHash(packWith("restarts", input, { budgetWork: 16000, limitTime: true, budgetMs: 2000 }, 3)),
+    );
+    // Without the switch param, the output does not change, and checkConfig refuses budgetWork
+    expect(outputHash(packConfig(input, restarts({ limitWork: false }), 3))).toBe(outputHash(packWith("restarts", input, {}, 3)));
+    expect(() => packConfig(input, restarts({ budgetWork: 4000 }), 3)).toThrow(/budgetWork/);
+    // A value that is not in the list breaks the config, but the option of the strategy takes it
+    expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 500 }), 3)).toThrow(/budgetWork/);
+    expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 5000 }), 3)).toThrow(/budgetWork/);
   });
 });

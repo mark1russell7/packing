@@ -1,5 +1,5 @@
 import { checkConfig } from "@mark1russell7/layout-contract";
-import { composites, packConfig, packSpace, packWith, strategies, strategy } from "@mark1russell7/packing";
+import { composites, packConfig, packSpace, packWith, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { AREA_KEY, ENTRIES } from "./entries.ts";
 import { result, SPACE_INPUTS, type PackResult } from "./space-inputs.ts";
@@ -22,7 +22,8 @@ function compare(name: string, reference: (i: number) => PackResult): number {
 describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
     expect(ENTRIES).toHaveLength(32);
-    const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...composites].map((s) => s.id)];
+    // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
+    const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...shapeStrategies, ...composites].map((s) => s.id)];
     for (const id of ids) {
       expect(named, id).toHaveProperty([id]);
       expect(checkConfig(packSpace, named[id]!), id).toEqual([]);

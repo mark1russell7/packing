@@ -1,10 +1,12 @@
-// The compare page: one input, packed with each entry of `ENTRIES` of the benchmark, side by side. The entries pack one
-// at a time, so the page stays responsive. The hash of the URL keeps the input and the sort.
+// The compare page: one input, packed with each entry of `ENTRIES` of the benchmark, side by side. A circle input also
+// packs with the strategies for circles. The entries pack one at a time, so the page stays responsive. The hash of the URL
+// keeps the input and the sort.
 
 import screenJson from "../data/strategies-pack-screen-v1.json?raw";
 import freeJson from "../data/strategies-pack-free-v1.json?raw";
 import test1Json from "../data/strategies-pack-select-v1.json?raw";
 import test2Json from "../data/strategies-pack-select-v2.json?raw";
+import type { BenchEntry } from "@mark1russell7/packing/bench/entries";
 import { mountChrome } from "./chrome.ts";
 import {
   bestIds,
@@ -12,6 +14,7 @@ import {
   COMPARE_ENTRIES,
   COMPARE_MEASURES,
   drawingSvg,
+  entriesFor,
   presetInput,
   runEntry,
   sortResults,
@@ -211,6 +214,8 @@ $("measure-notes").innerHTML = [
 let input: CompareInput | undefined;
 let inputError: string | undefined;
 let results: EntryResult[] = [];
+/** The entries of the input: `COMPARE_ENTRIES`, and the shape entries that support it. */
+let entries: readonly BenchEntry[] = COMPARE_ENTRIES;
 let token = 0;
 
 /** This function makes the input of the state. A bad parameter gives the text of the error. */
@@ -231,6 +236,7 @@ function start(): void {
   sortEl.value = state.sort;
   makeInput();
   drawInputNote();
+  entries = input === undefined ? COMPARE_ENTRIES : entriesFor(input.input);
   results = [];
   const mine = ++token;
   drawCards();
@@ -239,11 +245,11 @@ function start(): void {
   let next = 0;
   const step = (): void => {
     if (mine !== token) return;
-    const entry = COMPARE_ENTRIES[next++];
+    const entry = entries[next++];
     if (entry === undefined) return;
     results.push(runEntry(entry, current.input, state.packSeed));
     drawCards();
-    if (next < COMPARE_ENTRIES.length) setTimeout(step, 0);
+    if (next < entries.length) setTimeout(step, 0);
   };
   setTimeout(step, 0);
 }
@@ -276,7 +282,7 @@ function verdictLink(id: string): string {
 
 function drawCards(): void {
   const done = results.length;
-  const total = COMPARE_ENTRIES.length;
+  const total = entries.length;
   $("progress").textContent = input === undefined ? "" : done < total ? `Packing ${done + 1} of ${total} strategies.` : `${total} strategies packed.`;
   const unsupported = results.filter((r) => r.unsupported).length;
   const failed = results.filter((r) => r.error !== undefined && !r.unsupported).length;
@@ -290,7 +296,7 @@ function drawCards(): void {
     <div class="tile better"><b>${best?.measures?.["pack.fill"] === undefined ? "–" : valueText(fillM, best.measures["pack.fill"])}</b><span>best fill${fillBest.size > 0 ? `: ${[...fillBest].map((x) => `<code>${esc(x)}</code>`).join(", ")}` : ""}</span></div>`;
 
   const bests = new Map<string, Set<string>>([...COMPARE_MEASURES.map((m) => [m.id, bestIds(results, m.id)] as const), ["ms", bestIds(results, "ms")]]);
-  const pending = COMPARE_ENTRIES.slice(done).map((e) => `<li class="ccard pending"><header><code>${esc(e.id)}</code></header><p class="hint">Waiting to pack.</p></li>`);
+  const pending = entries.slice(done).map((e) => `<li class="ccard pending"><header><code>${esc(e.id)}</code></header><p class="hint">Waiting to pack.</p></li>`);
   const cards = sortResults(results, state.sort).map((r) => card(r, bests));
   $("cards").innerHTML = [...cards, ...pending].join("");
 }

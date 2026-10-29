@@ -14,6 +14,7 @@ import {
   SORT_ORDERS,
   type AspectFitStrategyOptions,
   type BboxStrategyOptions,
+  type HoleDegreeStrategyOptions,
   type Dimension,
   type DimensionValue,
   type GuillotineStrategyOptions,
@@ -87,6 +88,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     cost: "one pack of the member for each restart: 16 packs by default",
   },
   bbox: { stage: "placement" },
+  "hole-degree": { stage: "placement" },
   "ruin-recreate": { stage: "local-search" },
 };
 
@@ -237,6 +239,7 @@ type AnyOptions = LayoutStrategyOptions &
   RuinRecreateStrategyOptions &
   BboxStrategyOptions &
   GuillotineStrategyOptions &
+  HoleDegreeStrategyOptions &
   Omit<SkylineStrategyOptions, "rule">;
 
 /** The type and the note of an option */
@@ -260,6 +263,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   k: { type: "2 | 3", note: "The size of the set of the cell." },
   maxMembers: { type: "number", note: "The largest count of the members that the strategy starts." },
   budgetMs: { type: "number", note: "A time limit in milliseconds. A cut member makes the result depend on the clock." },
+  budgetWork: { type: "number", note: "A work limit: one unit is one box in one pack. A cut is the same on each computer." },
   members: { type: "(string | PortfolioEntry)[]", note: "The members for each input, in place of the default members." },
   key: { type: "string[]", note: "The measure ids of the key after the hard breaks." },
   strategy: { type: "string", note: "The id of the wrapped strategy of the registry. The option is necessary." },
@@ -276,6 +280,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   choice: { type: oneOf(GUILLOTINE_CHOICES), note: "The rule of `guillotine` to choose a free rectangle: the best or the worst fit by area, short side or long side." },
   split: { type: oneOf(GUILLOTINE_SPLITS), note: "The rule of `guillotine` to cut the rest of a free rectangle: by the leftover axis, the axis or the area." },
   merge: { type: "boolean", note: "The value `true` joins two free rectangles of `guillotine` with a common full edge after each box." },
+  steps: { type: "number", note: "The count of the halving steps of the height search of `hole-degree`, from 0 to 32." },
   ruin: { type: oneOf(RUIN_KINDS), note: "The ruin: the boxes near a random point, random boxes, a chain of neighbors, or a random pick of the three." },
   shrink: { type: "number", note: "The share by which a met goal makes the free side of the goal box smaller." },
 };
@@ -294,10 +299,10 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
 export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOptions)[]>> = {
   shelf: ["fit"] satisfies (keyof LayoutStrategyOptions)[],
   maxrects: ["bandHeight"] satisfies (keyof MaxRectsStrategyOptions)[],
-  portfolio: ["k", "maxMembers", "budgetMs", "members", "key"] satisfies (keyof PortfolioStrategyOptions)[],
+  portfolio: ["k", "maxMembers", "budgetMs", "budgetWork", "members", "key"] satisfies (keyof PortfolioStrategyOptions)[],
   "aspect-fit": ["strategy", "options", "targetAspect"] satisfies (keyof AspectFitStrategyOptions)[],
   select: ["members", "table"] satisfies (keyof SelectStrategyOptions)[],
-  restarts: ["member", "budgetMs", "key"] satisfies (keyof RestartsStrategyOptions)[],
+  restarts: ["member", "budgetMs", "budgetWork", "key"] satisfies (keyof RestartsStrategyOptions)[],
   bbox: ["member"] satisfies (keyof BboxStrategyOptions)[],
   "ruin-recreate": ["member"] satisfies (keyof RuinRecreateStrategyOptions)[],
 };

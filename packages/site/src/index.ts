@@ -7,11 +7,14 @@ import {
   DEFAULT_TARGET,
   makeItem,
   makeItems,
+  offeredStrategies,
   PRESETS,
   presetOf,
+  resizeItem,
   runPacking,
   sceneOf,
   searchChart,
+  strategyFor,
   WIDTH_MODES,
   type FreeTarget,
   type Item,
@@ -77,6 +80,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   select: "Select",
   restarts: "Restarts",
   bbox: "Bounding boxes",
+  "hole-degree": "Hole degree (circles)",
   "ruin-recreate": "Ruin-recreate",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
@@ -103,7 +107,9 @@ const OPTION_LABELS: Record<string, string> = {
   strength: "Strength",
   limitTime: "Time limit",
   budgetMs: "Limit (ms)",
+  budgetWork: "Work limit",
   turn: "Turn shapes",
+  steps: "Height steps",
   ruin: "Ruin",
   shrink: "Goal shrink",
 };
@@ -267,6 +273,19 @@ function regenerate(): void {
   } else state.items = makeItems(state.preset, state.count, state.seed);
   state.nextKey = state.items.length;
   state.selected = undefined;
+  fitSettings();
+}
+
+/** This function gives each layout a strategy that supports the shape of the items. The circles take hole degree and bbox. */
+function fitSettings(): void {
+  const offered = offeredStrategies(state.items, state.scene);
+  for (const [i, setting] of state.settings.entries()) {
+    const other = state.settings[1 - i]!.strategy;
+    const next = strategyFor(setting.strategy, offered, i, other);
+    if (next === setting.strategy) continue;
+    setting.strategy = next;
+    setting.options = startValues(next);
+  }
 }
 
 // ---- The text of the page ----
@@ -556,8 +575,14 @@ function drawPanel(panel: Panel, run: Run): void {
     const isSel = p.key === state.selected;
     const font = 13 / s;
     const showLabel = Math.min(p.w, p.h) * s >= 18;
-    const g = `<g class="item${isSel ? " sel" : ""}" data-key="${p.key}" tabindex="0" role="button" aria-pressed="${isSel}" aria-label="Item ${p.rank}, ${num.format(p.w)} by ${num.format(p.h)}">
-      <rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${3 / s}" style="fill:${fillOf(p.rank, count)}" vector-effect="non-scaling-stroke" />
+    const size = p.circle === true ? `a circle of diameter ${num.format(p.w)}` : `${num.format(p.w)} by ${num.format(p.h)}`;
+    const fill = `style="fill:${fillOf(p.rank, count)}" vector-effect="non-scaling-stroke"`;
+    // A circle item shows its circle. Its box is not on the layout.
+    const body = p.circle === true
+      ? `<circle cx="${p.x + p.w / 2}" cy="${p.y + p.h / 2}" r="${Math.min(p.w, p.h) / 2}" ${fill} />`
+      : `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${3 / s}" ${fill} />`;
+    const g = `<g class="item${isSel ? " sel" : ""}" data-key="${p.key}" tabindex="0" role="button" aria-pressed="${isSel}" aria-label="Item ${p.rank}, ${size}">
+      ${body}
       ${showLabel ? `<text x="${p.x + p.w / 2}" y="${p.y + p.h / 2}" font-size="${font}" dominant-baseline="central" text-anchor="middle">${p.rank}</text>` : ""}
     </g>`;
     // The selected item goes last, so its outline and its handle are on top
@@ -758,8 +783,11 @@ function wireCanvas(panel: Panel, index: number): void {
     const item = itemOf(drag.key);
     if (!item) return;
     const s = panels[index]!.scale;
-    item.w = clamp(Math.round(drag.w0 + (e.clientX - drag.x0) / s), 4, 2000);
-    item.h = clamp(Math.round(drag.h0 + (e.clientY - drag.y0) / s), 4, 2000);
+    const dx = (e.clientX - drag.x0) / s;
+    const dy = (e.clientY - drag.y0) / s;
+    // A circle takes the larger move as its change of diameter
+    const both = item.circle === true ? (Math.abs(dx) >= Math.abs(dy) ? dx : dy) : undefined;
+    resizeItem(item, drag.w0 + (both ?? dx), drag.h0 + (both ?? dy));
     schedule();
   });
   const end = (e: PointerEvent): void => {
@@ -800,8 +828,7 @@ function wireCanvas(panel: Panel, index: number): void {
 
 function resize(item: Item, dw: number, dh: number): void {
   state.selected = item.key;
-  item.w = clamp(item.w + dw, 4, 2000);
-  item.h = clamp(item.h + dh, 4, 2000);
+  resizeItem(item, item.w + dw, item.h + dh);
   render();
 }
 
@@ -852,7 +879,7 @@ for (const [el, dim] of [[selW, "w"], [selH, "h"]] as const) {
     const item = itemOf(state.selected);
     const v = Number.parseInt(el.value, 10);
     if (!item || !Number.isFinite(v) || v < 4) return;
-    item[dim] = clamp(v, 4, 2000);
+    resizeItem(item, dim === "w" ? v : item.w, dim === "h" ? v : item.h);
     render();
   });
 }
@@ -980,7 +1007,10 @@ function render(): void {
   stagesEl.classList.toggle("two", state.compare);
   panels[1]!.root.hidden = !state.compare;
   let base: Run | undefined;
+  const offered = new Set(offeredStrategies(state.items, state.scene));
   for (const [i, panel] of active.entries()) {
+    // The select offers only the strategies that support the shape of the items
+    for (const o of panel.strategy.options) o.disabled = !offered.has(o.value);
     const setting = state.settings[i]!;
     const run = runPacking(state.items, state.width, setting, undefined, state.target, 0, state.scene);
     panel.run = run;
