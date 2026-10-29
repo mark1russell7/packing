@@ -231,18 +231,14 @@
       "item": "k80",
       "itemTitle": "Overlap minimization for rectangles",
       "related": [],
-      "status": "queued",
+      "status": "built",
       "note": null,
       "survey": {
         "gain": 4,
         "uncertainty": 4,
         "cost": 3
       },
-      "queue": {
-        "gain": 4,
-        "uncertainty": 4,
-        "cost": 3
-      },
+      "queue": null,
       "round": 1
     },
     {
