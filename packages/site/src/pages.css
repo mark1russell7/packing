@@ -1340,3 +1340,47 @@
     grid-column: 1 / -1;
   }
 }
+/* The front of compact against spread on the compare page (roadmap item k123) */
+.front {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.fchart svg {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+}
+.front figcaption {
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.faxis {
+  stroke: var(--rule);
+}
+.ftick,
+.flabel {
+  fill: var(--muted);
+  font-size: 10px;
+}
+.fline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.fpoint circle {
+  fill: var(--muted);
+  opacity: 0.45;
+}
+.fpoint.on circle {
+  fill: var(--accent);
+  opacity: 1;
+}
+.fname {
+  fill: var(--ink);
+  font-size: 9px;
+}

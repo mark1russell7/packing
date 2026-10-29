@@ -173,7 +173,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-20", [], ["1"]],
     ]);
     expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
-    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k58", "k121", "k119", "k118", "k26", "k116", "k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k123", "k58", "k121", "k119", "k118", "k26", "k116", "k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
   });
 });
 

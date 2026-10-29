@@ -265,7 +265,7 @@ describe("measureChange", () => {
   });
 
   it("gives 0 for the same layout, and counts a turn as a move", () => {
-    expect(measureChange(base, twoRowsOut, base, twoRowsOut)).toEqual({ "pack.stability.moved": 0, "pack.stability.mean": 0, "pack.stability.q95": 0 });
+    expect(measureChange(base, twoRowsOut, base, twoRowsOut)).toEqual({ "pack.stability.moved": 0, "pack.stability.mean": 0, "pack.stability.q95": 0, "pack.stability.procrustes": 0 });
     const turned = out([{ id: "a", x: 0, y: 0, turn: 90 }, ...twoRowsOut.placements.slice(1)]);
     expect(measureChange(base, twoRowsOut, base, turned)["pack.stability.moved"]).toBeCloseTo(1 / 3, 12);
   });
@@ -279,10 +279,11 @@ describe("measureChange", () => {
 
   it("gives 0 when no item stays, and uses the input unit for a width of 0", () => {
     const other: PackInput = { container: { w: 100, fixed: "width" }, items: [{ id: "x", w: 10, h: 10 }] };
-    expect(measureChange(base, twoRowsOut, other, out([{ id: "x", x: 0, y: 0 }]))).toEqual({ "pack.stability.moved": 0, "pack.stability.mean": 0, "pack.stability.q95": 0 });
+    expect(measureChange(base, twoRowsOut, other, out([{ id: "x", x: 0, y: 0 }]))).toEqual({ "pack.stability.moved": 0, "pack.stability.mean": 0, "pack.stability.q95": 0, "pack.stability.procrustes": 0 });
     const zero = out([{ id: "a", x: 0, y: 0 }], { size: { w: 0, h: 0 } });
     const m = measureChange(base, zero, base, out([{ id: "a", x: 3, y: 4 }], { size: { w: 0, h: 0 } }));
-    expect(m).toEqual({ "pack.stability.moved": 1, "pack.stability.mean": 5, "pack.stability.q95": 5 });
+    // One shared box: the alignment removes its move, so procrustesOf gives 0
+    expect(m).toEqual({ "pack.stability.moved": 1, "pack.stability.mean": 5, "pack.stability.q95": 5, "pack.stability.procrustes": 0 });
   });
 });
 
@@ -358,7 +359,7 @@ describe("MEASURE_SPECS", () => {
       expect(s.id).toBe(id);
       expect(s.min).toBeLessThan(s.max);
     }
-    expect(Object.keys(MEASURE_SPECS)).toHaveLength(25);
+    expect(Object.keys(MEASURE_SPECS)).toHaveLength(34);
   });
 
   it("has the floor and the tolerance of each guard of the floor rule, and no floor for the other measures", () => {
@@ -369,6 +370,9 @@ describe("MEASURE_SPECS", () => {
       "pack.stability.mean": { floor: 0, tol: 0.005 },
       "pack.stability.q95": { floor: 0, tol: 0.01 },
       "pack.stability.moved": { floor: 0, tol: 0.02 },
+      // The stability specs of the contract (k123)
+      "pack.stability.procrustes": { floor: 0, tol: 0.005 },
+      "pack.stability.seed": { floor: 0, tol: 0.005 },
     };
     for (const [id, s] of Object.entries(MEASURE_SPECS)) {
       const guard = guards[id as MeasureId];
@@ -381,7 +385,7 @@ describe("MEASURE_SPECS", () => {
       expect("floor" in s, id).toBe(guard !== undefined);
       expect("tol" in s, id).toBe(guard !== undefined);
     }
-    expect(Object.values(MEASURE_SPECS).filter((s) => s.floor !== undefined)).toHaveLength(6);
+    expect(Object.values(MEASURE_SPECS).filter((s) => s.floor !== undefined)).toHaveLength(8);
   });
 
   it("gives the deprecated alias forcedAreaMin the spec of forcedArea, except the id", () => {

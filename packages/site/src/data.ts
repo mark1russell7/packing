@@ -434,6 +434,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k123",
+    title: "Each record has the balance of the pack and its move under a seed change. The compare page shows the fill against the side skew.",
+    pr: 169,
+    link: "https://github.com/mark1russell7/packing/pull/169",
+  },
+  {
+    date: "2026-10-29",
     item: "k58",
     title: "Release 0.3.0: pack() without a strategy uses the table of select for a fixed size. Other containers keep the rows output.",
     pr: 167,
@@ -682,6 +689,12 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
   "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container that a better packer can place. Less is better.", share: true },
   "pack.raggedness": { label: "Ragged edge", note: "The longest row less the shortest row, as a share of the hull width. Less is better.", share: true },
   "pack.overflow": { label: "Not placed", note: "The count of boxes that the packer did not place. Less is better.", share: false },
+};
+
+/** The names and the notes of the measures of the compare page: the measures of the results page, and the side skew (k123) */
+export const COMPARE_LABELS: Record<string, { label: string; note: string; share: boolean }> = {
+  ...MEASURE_LABELS,
+  "pack.balance.sideRange": { label: "Side skew", note: "The emptiest side strip less the fullest side strip. A pack in one corner has a high skew. Less is better.", share: true },
 };
 
 /** The names and the notes of the measures of the coverage snapshot */

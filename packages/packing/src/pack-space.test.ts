@@ -201,8 +201,19 @@ describe("packSpace and the shape kinds", () => {
       "pack.deterministic",
       "pack.search.widths",
       "pack.search.ms",
+      "pack.balance.gapCv",
+      "pack.balance.centroidOffset",
+      "pack.balance.side.top",
+      "pack.balance.side.right",
+      "pack.balance.side.bottom",
+      "pack.balance.side.left",
+      "pack.balance.sideRange",
+      "pack.stability.procrustes",
+      "pack.stability.seed",
     ]);
-    for (const s of Object.values(MEASURE_SPECS)) if (s.shapes !== undefined && s.id !== "pack.shapeFill") expect(s.shapes, s.id).toEqual(SHAPE_KIND_IDS);
+    // The balance specs of the contract (k123) read the area of each box, so they declare only rect
+    const rectOnly = (id: string): boolean => id.startsWith("pack.balance.");
+    for (const s of Object.values(MEASURE_SPECS)) if (s.shapes !== undefined && s.id !== "pack.shapeFill") expect(s.shapes, s.id).toEqual(rectOnly(s.id) ? ["rect"] : SHAPE_KIND_IDS);
     // Contract 0.2.17: pack.shapeFill is exact on rect, polygon and circle, and an upper bound on free
     expect(MEASURE_SPECS["pack.shapeFill"].shapes).toEqual(["rect", "polygon", "circle"]);
     expect(MEASURE_SPECS["pack.shapeFill"].bound).toEqual({ shapes: ["free"], side: "upper" });
@@ -219,6 +230,13 @@ describe("packSpace and the shape kinds", () => {
       "pack.overflow.excessArea",
       "pack.gap",
       "pack.gapToOpt",
+      "pack.balance.gapCv",
+      "pack.balance.centroidOffset",
+      "pack.balance.side.top",
+      "pack.balance.side.right",
+      "pack.balance.side.bottom",
+      "pack.balance.side.left",
+      "pack.balance.sideRange",
       "no-overlap",
       "in-container",
     ]);

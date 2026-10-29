@@ -6,8 +6,11 @@ import {
   boardInput,
   COMPARE_ENTRIES,
   COMPARE_FAMILIES,
+  COMPARE_MEASURES,
   drawingSvg,
   entriesFor,
+  frontPoints,
+  frontSvg,
   MAX_COMPARE_COUNT,
   presetInput,
   runAll,
@@ -138,5 +141,27 @@ describe("the circle preset on the compare page", () => {
       expect(drawingSvg(input, r.output!, id)).toContain("<circle");
     }
     expect(results.find((x) => x.entry.id === "rows")?.unsupported).toBe(true);
+  });
+});
+
+describe("the front of compact against spread (k123)", () => {
+  const result = (id: string, fill: number, skew: number): EntryResult => ({ entry: { id, strategy: id, options: {} }, index: 0, ms: 0, measures: { "pack.fill": fill, "pack.balance.sideRange": skew } });
+
+  it("keeps on the front only the points that no other point beats on both values", () => {
+    const points = frontPoints([result("a", 0.9, 0.4), result("b", 0.8, 0.1), result("c", 0.7, 0.3), result("d", 0.9, 0.4)]);
+    expect(points.map((p) => [p.id, p.front])).toEqual([["a", true], ["b", true], ["c", false], ["d", true]]);
+  });
+
+  it("leaves out a result without a value, and draws a line through the front", () => {
+    const failed: EntryResult = { entry: { id: "x", strategy: "x", options: {} }, index: 0, ms: 0, error: "no" };
+    const points = frontPoints([result("a", 0.9, 0.4), result("b", 0.8, 0.1), failed]);
+    expect(points).toHaveLength(2);
+    const svg = frontSvg(points);
+    expect(svg).toContain('class="fline"');
+    expect(svg.match(/class="fpoint on"/g)).toHaveLength(2);
+  });
+
+  it("measures the side skew on each compare run", () => {
+    expect(COMPARE_MEASURES.map((m) => m.id)).toContain("pack.balance.sideRange");
   });
 });

@@ -14,6 +14,8 @@ import {
   COMPARE_ENTRIES,
   COMPARE_MEASURES,
   drawingSvg,
+  frontPoints,
+  frontSvg,
   entriesFor,
   presetInput,
   runEntry,
@@ -299,6 +301,18 @@ function drawCards(): void {
   const pending = entries.slice(done).map((e) => `<li class="ccard pending"><header><code>${esc(e.id)}</code></header><p class="hint">Waiting to pack.</p></li>`);
   const cards = sortResults(results, state.sort).map((r) => card(r, bests));
   $("cards").innerHTML = [...cards, ...pending].join("");
+  drawFront();
+}
+
+/** This function draws the front of compact against spread (roadmap item k123), when two or more strategies have both values. */
+function drawFront(): void {
+  const points = frontPoints(results);
+  const el = $("front");
+  el.hidden = points.length < 2;
+  if (el.hidden) return;
+  const on = points.filter((p) => p.front).toSorted((a, b) => b.fill - a.fill);
+  $("front-chart").innerHTML = frontSvg(points.map((p) => ({ ...p, id: esc(p.id) })));
+  $("front-note").innerHTML = `<b>Compact or spread.</b> A strategy on the line has no other strategy with more fill and less skew. On the line: ${on.map((p) => `<code>${esc(p.id)}</code>`).join(", ")}.`;
 }
 
 function card(r: EntryResult, bests: Map<string, Set<string>>): string {

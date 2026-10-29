@@ -309,6 +309,12 @@ The names are lowercase, with a dot after the stage. This table is the short lis
 | `pack.stability.moved` | 0 to 1 | lower | The part of the boxes that moved, against the run on the base input. |
 | `pack.stability.mean` | 0 or more | lower | The mean movement of a box against the base run, divided by the width of the container. |
 | `pack.stability.q95` | 0 or more | lower | The quantile 0.95 of the movement of a box against the base run, divided by the width of the container. |
+| `pack.stability.procrustes` | 0 or more | lower | The move of the box centers against the base run after the best alignment, in `W`, divided by the change share. |
+| `pack.stability.seed` | 0 or more | lower | The move of the box centers between the outputs of two seeds, after the best alignment, in `W`. |
+| `pack.balance.gapCv` | ratio | lower | The standard deviation of the nearest-neighbour gaps divided by their mean. |
+| `pack.balance.centroidOffset` | 0 to 1 | lower | The distance from the centroid of the free area to the center of the container, in half diagonals. |
+| `pack.balance.side.top`, `.right`, `.bottom`, `.left` | 0 to 1 | lower | The empty share of the strip at that side of the container. |
+| `pack.balance.sideRange` | 0 to 1 | lower | The largest side value minus the smallest. A pack in one corner gives a high value. |
 
 Each measure moves when the placement changes. The router measures (`route.*`) and the joint measures (`joint.*`) are in the twin document.
 
