@@ -207,7 +207,7 @@ importers:
     dependencies:
       '@mark1russell7/layout-contract':
         specifier: ^0.2.17
-        version: 0.2.17
+        version: 0.2.18
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -229,7 +229,7 @@ importers:
     dependencies:
       '@mark1russell7/layout-contract':
         specifier: ^0.2.17
-        version: 0.2.17
+        version: 0.2.18
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing
@@ -472,8 +472,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@0.2.17':
-    resolution: {integrity: sha512-Nag4x8IB/LMPLbSZfJXCAY3bOfPj2GcyXu8NmgOcdhAjjTMK/vS2PlVWKkK9qbjCHN21JDwbSCjU9hca8Q9PrA==}
+  '@mark1russell7/layout-contract@0.2.18':
+    resolution: {integrity: sha512-j45gn5Ikf5L28VwJ0rrsRCf0U/GS+ooI5caOyYSjCd/oXi3/lEYr7vmw4J9nCqXYpqKGmCHQ88kQ9dZMVU+xSA==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/ste-lint@0.1.1':
@@ -1646,7 +1646,7 @@ snapshots:
 
   '@mark1russell7/cue@1.0.2': {}
 
-  '@mark1russell7/layout-contract@0.2.17': {}
+  '@mark1russell7/layout-contract@0.2.18': {}
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:
