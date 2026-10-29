@@ -9,5 +9,6 @@ How much of the space of strategies and inputs can we predict? A model learns ea
 - The mean error shows the outliers. The median error shows a usual record.
 - A cell is one strategy with one value of each dimension of a family. A cell is covered when its mean error is at the tolerance or below.
 - The share is the covered cells over all the cells of the space. A cell without records is not covered.
+- The number "bench grid" is that share. The number "whole space (sampled)" is the share of random pairs of a config and an input that the model predicts within the tolerance.
 
 The index of a feature is the part of the variance of the measure that the feature explains alone. A high index tells that the feature changes the measure much.

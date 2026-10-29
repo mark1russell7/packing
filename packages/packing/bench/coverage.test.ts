@@ -1,7 +1,8 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { packSpace } from "@mark1russell7/packing";
 import {
   coverage,
   coverageMain,
@@ -12,12 +13,17 @@ import {
   fitTree,
   foldsOf,
   inputDims,
+  levelPosition,
   medianOf,
+  predictFeatures,
   predictTree,
   readRecords,
+  sampledCoverage,
   strategyFeatures,
+  wilson,
   type CoverageManifest,
   type CoverageRecord,
+  type SampledRecord,
 } from "./coverage.ts";
 
 // The space coverage of roadmap item k105, on made-up records. The test reads no time of a run.
@@ -188,6 +194,56 @@ describe("the coverage", () => {
   });
 });
 
+describe("the held-out test on the whole space of k112", () => {
+  const { manifest, records } = madeUp();
+  const fill = { id: "pack.fill", tolerance: 0.02, scale: "linear" } as const;
+
+  /** This function gives a made-up sampled pair of a named strategy and an input of the toy family. */
+  const pair = (strategy: string, size: string, count: number, fillValue: number): SampledRecord => ({
+    strategy: `space:${strategy}`,
+    input: `sample-space/toy/${size}.${count}`,
+    measures: { "pack.fill": fillValue },
+    ms: 1,
+    config: packSpace.named![strategy]!,
+    generator: { name: "toy", version: 1, params: { size, count } },
+    cell: { mode: "offline", size },
+  });
+
+  it("gives the Wilson interval of known shares", () => {
+    expect(wilson(5, 10)).toEqual({ low: 0.2366, high: 0.7634 });
+    expect(wilson(0, 10)).toEqual({ low: 0, high: 0.2775 });
+    expect(wilson(10, 10)).toEqual({ low: 0.7225, high: 1 });
+    expect(wilson(4, 60)).toEqual({ low: 0.0262, high: 0.1593 });
+    expect(wilson(0, 0)).toEqual({ low: 0, high: 1 });
+  });
+
+  it("gives the position of a new value, and the value of predictTree for a row of the table", () => {
+    const f = featureOf("count", "input", ["10", "100", "1000"]);
+    expect(levelPosition(f, "100")).toBe(1);
+    expect(levelPosition(f, "500")).toBe(1.5);
+    expect(levelPosition(f, "5")).toBe(-0.5);
+    expect(levelPosition(f, "x")).toBeUndefined();
+    expect(levelPosition(featureOf("size", "input", ["a", "b"]), "c")).toBeUndefined();
+    const rows = Array.from({ length: 40 }, (_, i) => ({ features: { a: i < 20 ? "x" : "y", c: String(i % 4) }, group: {} }));
+    const table = featureTable(rows, rows.map((_, i) => (i < 20 ? 1 : 5) + (i % 4)));
+    const tree = fitTree(table, rows.map((_, i) => i));
+    rows.forEach((r, i) => expect(predictFeatures(tree, table, r.features)).toBe(predictTree(tree, table, i)));
+  });
+
+  it("predicts made-up pairs from the grid, also with a count that the grid does not have", () => {
+    const sampled = [pair("rows", "a", 10, 0.702), pair("maxrects-bl", "b", 100, 0.803), pair("rows", "b", 500, 0.6), pair("maxrects-bl", "a", 1000, 0.5), { ...pair("rows", "a", 10, 0.7), skipped: "unsupported" }];
+    const out = sampledCoverage(records, manifest, sampled, { measures: [fill] });
+    expect(out.pairs).toBe(4);
+    expect(out.sample).toBeUndefined();
+    const m = out.measures[0]!;
+    // The tree predicts the first 3 pairs within the tolerance. The fourth pair has a made-up fill far from its prediction of 0.9.
+    expect(m).toMatchObject({ id: "pack.fill", n: 4, hits: 3, share: 0.75, wilson: wilson(3, 4) });
+    expect(m.mae).toBeGreaterThan(0.09);
+    expect(m.baseline.mae).toBeGreaterThan(m.mae);
+    expect(sampledCoverage(records, manifest, sampled, { measures: [fill] })).toEqual(out);
+  });
+});
+
 describe("the command line", () => {
   const dir = mkdtempSync(join(tmpdir(), "coverage-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -208,6 +264,24 @@ describe("the command line", () => {
     expect(JSON.parse(readFileSync(out, "utf8"))).toEqual(JSON.parse(JSON.stringify(summary)));
     expect(readRecords("\n{\"strategy\":\"a\",\"input\":\"b\"}\n\n")).toHaveLength(1);
     expect(() => coverageMain(["--records", "x"])).toThrow(/--corpus/);
+  });
+
+  it("adds the section sampled with --sample, and keeps the summary without it", () => {
+    const { manifest, records } = madeUp();
+    writeFileSync(join(dir, "records.jsonl"), `${records.map((r) => JSON.stringify(r)).join("\n")}\n`);
+    writeFileSync(join(dir, "corpus.json"), JSON.stringify(manifest));
+    const sample = join(dir, "sample");
+    mkdirSync(sample, { recursive: true });
+    const one: SampledRecord = { strategy: "space:rows", input: "x", measures: { "pack.fill": 0.7 }, ms: 1, config: packSpace.named!["rows"]!, generator: { name: "toy", version: 1, params: { size: "a", count: 10 } }, cell: { mode: "offline", size: "a" } };
+    writeFileSync(join(sample, "records.jsonl"), `${JSON.stringify(one)}\n`);
+    const facts = { seed: 1, draw: "uniform", requested: 1, configs: { rate: 0 }, inputs: { rejected: 0 }, hard: { pairs: 0 }, nondeterministic: 0, composition: { none: 1 } };
+    writeFileSync(join(sample, "sample.json"), JSON.stringify(facts));
+    const base = ["--records", join(dir, "records.jsonl"), "--corpus", join(dir, "corpus.json"), "--out", join(dir, "s.json"), "--date", "2026-10-28"];
+    const plain = coverageMain(base);
+    const withSample = coverageMain([...base, "--sample", sample]);
+    expect("sampled" in plain).toBe(false);
+    expect(withSample).toMatchObject({ ...JSON.parse(JSON.stringify(plain)), sampled: { pairs: 1, sample: { seed: 1, draw: "uniform", configRejectionRate: 0, hardPairs: 0 } } });
+    expect(() => coverageMain([...base, "--sample", join(dir, "none")])).toThrow(/no records.jsonl/);
   });
 
   it("writes a note and no error for a run with fewer records than --min-records", () => {

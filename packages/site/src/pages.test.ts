@@ -3,7 +3,27 @@ import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
 import { byDate, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
-import { divergingAt, errorText, errorWidth, gapAt, gapRanking, gapScale, gapShade, gapTable, gapText, niceCeil, percentText, pickHolds, rankStrategies, ratioAt, stepText, trendChart } from "./results-model.ts";
+import {
+  COVERAGE_SCOPES,
+  coverageTile,
+  divergingAt,
+  errorText,
+  errorWidth,
+  gapAt,
+  gapRanking,
+  gapScale,
+  gapShade,
+  gapTable,
+  gapText,
+  niceCeil,
+  percentText,
+  pickHolds,
+  rankStrategies,
+  ratioAt,
+  sampledText,
+  stepText,
+  trendChart,
+} from "./results-model.ts";
 
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
@@ -140,7 +160,8 @@ describe("the calculations of the pages", () => {
       ["2026-10-20", [], ["1"]],
     ]);
     expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
-    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k114", "k91", "k46", "k113"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k112", "k114", "k91", "k46", "k113"]);
+    expect(NEWS[0]).toMatchObject({ item: "k112", link: `https://github.com/mark1russell7/packing/pull/${NEWS[0]!.pr}` });
   });
 });
 
@@ -237,6 +258,25 @@ describe("the space coverage of k105", () => {
     expect(errorWidth(0.05, 0.2)).toBe(25);
     expect(errorWidth(0.3, 0.2)).toBe(100);
     expect(errorWidth(0.1, 0)).toBe(0);
+  });
+
+  it("shows the bench grid and the whole space (sampled) of k112, and not measured yet without the sampled section", () => {
+    expect(snap.latest.sampled).toBeUndefined();
+    const m = snap.latest.measures[0]!;
+    expect(m.sampled).toBeUndefined();
+    expect(sampledText(m)).toEqual({ share: "not measured yet", interval: null, pairs: null });
+    const without = coverageTile(m, "Fill");
+    expect(without).toContain(`>${COVERAGE_SCOPES.grid}<`);
+    expect(without).toContain(`>${COVERAGE_SCOPES.space}<`);
+    expect(COVERAGE_SCOPES).toEqual({ grid: "bench grid", space: "whole space (sampled)" });
+    expect(without).toContain("not measured yet");
+    expect(without).not.toContain("95% interval");
+    const sampled = { n: 60, hits: 4, share: 0.0667, low: 0.0262, high: 0.1593, mae: 0.4, medianAe: 0.3, baselineMae: 0.5, baselineMedianAe: 0.4 };
+    expect(sampledText({ sampled })).toEqual({ share: "7%", interval: "3% to 16%", pairs: "4 of 60 pairs" });
+    const withSample = coverageTile({ ...m, sampled }, "Fill");
+    expect(withSample).toContain("95% interval 3% to 16%, 4 of 60 pairs");
+    expect(withSample).not.toContain("not measured yet");
+    expect(withSample).toContain(percentText(m.share));
   });
 
   it("places the points of the trend by date and share", () => {

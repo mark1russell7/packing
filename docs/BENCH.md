@@ -819,7 +819,7 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `releases.json` | `node bench/snapshot.ts releases` | The releases of `CHANGELOG.md`, with the date, the commit and the pull request of each tag. |
 | `gaps-pack-select-v2.json` | `node bench/snapshot.ts gaps <folder of 40766464710> --run 40766464710 --measure pack.gap --release 0.2.17` | `pack.gap` of 6 strategies on `pack-select-v2`, by cell, with the kinds of the bounds (k51). |
 | `gaps-pack-known-v1.json` | `node bench/snapshot.ts gaps <folder of 40768140939> --run 40768140939 --measure pack.gapToOpt --release 0.2.17` | `pack.gapToOpt` of 6 strategies on `pack-known-v1`, by cell (k45). |
-| `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. |
+| `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
 
 - A strategy snapshot gives the result of `verdict()` of `@mark1russell7/layout-contract` for each measure, by family, at the level 0.05. The tie of each measure is its `minEffect`.
 - The command `select` stops with an error when the training wins differ from `SELECT_LEAF_WINS`. Thus a change of the table also changes the pinned counts and their test.
@@ -842,7 +842,9 @@ The options `--folds` (5), `--seed` (1) and `--by input|spec` (`input`) change t
 With `--min-records <n>`, a run with fewer measured records gives a note in the output file. The script then stops without an error.
 
 The job `merge` of `bench.yml` starts the script after the merge, with `--by spec` and `--min-records 50`. It writes `coverage.json` into the artifact `bench-<corpus>`.
-The step does not fail the job at any time. Its lines also go into the summary of the job.
+Its lines also go into the summary of the job. A merged folder without records gives a note, and the step stops without an error.
+
+With `--sample <dir>`, the script adds the section `sampled`: the held-out test on the whole space. [The whole space (sampled)](#the-whole-space-sampled) tells more.
 
 ### The features
 
@@ -891,10 +893,61 @@ A skipped record and a value that is not finite count as missing.
 - An outlier changes the mean error and the indices much. Compare `medianAe` and `mae` before you trust a low index.
 - `pack.gap` has a long tail. Its median error is much lower than its mean error.
 
+### The whole space (sampled)
+
+The share of the cells is a share of the bench grid: the named entries of `bench/entries.ts` on the inputs of one corpus. That grid is a very small part of the space (k112).
+The script `bench/sample-space.ts` draws random pairs of a config of `packSpace` and an input. Then `coverage.ts --sample` tests the grid model on these pairs.
+
+```sh
+node bench/sample-space.ts --out <folder>/sample --n 400 --seed 1
+node bench/coverage.ts --records <folder>/records.jsonl --corpus <folder>/corpus.json --out coverage.json --by spec --sample <folder>/sample
+```
+
+The draw of a pair:
+
+1. The family is uniform over `corpusFamilies`. Each active dimension is uniform over its supported values or its range, on the scale of the dimension.
+2. The knobs `margin` and `gap` are uniform from 0 to 32. The option `--no-knobs` keeps them at 0.
+3. An input with more boxes than `--max-count` (1000) goes back. An input that its generator refuses also goes back.
+4. The config is uniform over all configs of `packSpace`. The script counts the configs of each option exactly, with big integers, and picks in proportion.
+5. Each value of a discrete param counts as one config. A real param counts as one config, and its value is uniform on its scale.
+6. A config goes back when `checkConfig` refuses it for the shapes of the input, or when the packer refuses its cell. The script then draws a new config.
+
+- Step 6 is rejection sampling. Thus the draw is uniform over the configs that the input accepts.
+- After 20 configs that go back, the script draws a new input. `sample.json` gives the rejection rates and their reasons.
+- With `--draw option`, each top option (the base configs and each meta option) gets the same chance. The draw in each option stays uniform.
+- Most configs of `packSpace` are portfolios with 5 members. Thus a uniform draw gives almost only portfolios. The option `option` gives the other meta options a chance.
+- Pair `i` reads its own random stream of the seed. Thus the same seed gives the same pairs, and a larger `--n` keeps the first pairs.
+
+The script packs each pair two times, to check that the output does not change, then times it with `--repeats` (1). It measures the pair like `bench run`.
+It writes `records.jsonl` (`layout-record/1`, with the config and the input of each pair) and `sample.json` (the counts, the rejections and the hard breaks).
+
+The held-out test:
+
+- The tree of each measure learns on all the records of the grid. The baseline is the median of the grid.
+- The features of a sampled pair come from its config and its input, the same as the features of the grid. The grid has no knobs. Thus the tree ignores them.
+- A new value of a numeric feature falls between the levels of the grid. Another new value goes to the side "no" of each split.
+- A pair is a hit when its error is at the tolerance or below. `share` is the hits over the pairs with a finite value.
+
+The Wilson interval:
+
+- `wilson` gives the Wilson score 95% interval of the share, with `k` hits of `n` pairs and `z` 1.96.
+- The interval stays from 0 to 1. It is correct for a share near 0 or near 1, and for a small `n`. A normal interval is not.
+- 400 pairs give a half width of approximately 0.05 or less. No pair gives the interval from 0 to 1.
+
+Why the two numbers differ:
+
+- The grid number tests new specs of the corpus, but only with the named entries. The whole space tests new configs, new families and new param values.
+- The grid number is a share of cells. The whole-space number is a share of pairs, and each pair has the same weight.
+- Thus a high grid number with a low whole-space number tells that the records cover the bench, but not the space.
+
+The job `merge` of `bench.yml` starts the sampler with the input `sample` (400). The value 0 turns it off. The sampler stops after 25 minutes with the pairs that it has.
+
 ### The site
 
 The section `#coverage` of the results page reads `packages/site/data/coverage.json`. The command `snapshot.ts coverage` computes the coverage two times.
 
 - The large numbers come from the folds by spec, the stricter test.
 - The small numbers "by input" come from the folds by input.
+- Each tile shows the number "bench grid" and the number "whole space (sampled)" with its 95% interval.
+- The command `snapshot.ts coverage` reads the folder `sample` of the run, or `--sample <dir>`. Without a sample, the tile shows "not measured yet".
 - The error bars show the mean error and the median error of the model against the baseline.

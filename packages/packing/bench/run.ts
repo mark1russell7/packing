@@ -339,7 +339,7 @@ export function interleavedOrder(entries: number, repeats: number): TimedRun[] {
 }
 
 /** The times of the timed passes of one pair, in their order. Each pass gives the time of the whole pack and the time of the search. */
-interface PairTimes {
+export interface PairTimes {
   msRuns: number[];
   searchMs: number[];
 }
@@ -349,8 +349,8 @@ function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | un
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
 }
 
-/** This function times `repeats` passes of one pair, one after the other. */
-function timeRuns(pack: () => PackOutput, repeats: number, clock: () => number): PairTimes {
+/** This function times `repeats` passes of one pair, one after the other. The sampler of the whole space (k112) uses it. */
+export function timeRuns(pack: () => PackOutput, repeats: number, clock: () => number): PairTimes {
   const out: PairTimes = { msRuns: [], searchMs: [] };
   for (let r = 0; r < repeats; r++) {
     const start = clock();
@@ -403,6 +403,25 @@ function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corp
   return out;
 }
 
+/**
+ * This function gives the measures of one packed pair, before the rounding. The runner and the sampler of the whole space (k112) use it.
+ *
+ * - The measures are the values of `measure`, the search time, the counts of the moves and the boxes out of the true outline.
+ * - The bound measures follow. With `known`, the distance from the best value follows.
+ */
+export function pairValues(input: PackInput, first: PackOutput, searchMs: readonly number[], known: Parameters<typeof gapToOpt>[2] | undefined): Record<string, number> {
+  const values: Record<string, number> = { ...measure(input, first) };
+  values["pack.search.ms"] = median(searchMs);
+  // The counts of the characteristic moves, and the boxes out of the true outline of the container
+  Object.assign(values, moveCounts(first));
+  values[OUTSIDE_EXACT] = checkHard(input, first, DEFAULT_TOLERANCE, { exactContainer: true })["in-container"];
+  // The bound of the cell and the distance of the result to it (roadmap item k51)
+  Object.assign(values, boundMeasures(input, first));
+  // Only an input with a known best value (roadmap item k45) gets the distance from that value
+  if (known !== undefined) values["pack.gapToOpt"] = gapToOpt(input, first, known);
+  return values;
+}
+
 /** This function sums one measure over the stages of a trace. */
 function traceSum(output: PackOutput, id: string): number {
   let sum = 0;
@@ -410,8 +429,8 @@ function traceSum(output: PackOutput, id: string): number {
   return sum;
 }
 
-/** This function keeps only the finite values of a record of measures. */
-function finite(values: Record<string, number>): Record<string, number> {
+/** This function keeps only the finite values of a record of measures. The sampler of the whole space (k112) uses it. */
+export function finite(values: Record<string, number>): Record<string, number> {
   const out: Record<string, number> = {};
   for (const [id, v] of Object.entries(values)) if (Number.isFinite(v)) out[id] = v;
   return out;
@@ -504,15 +523,7 @@ export function runBench(options: BenchOptions): BenchResult {
         }
         const { msRuns, searchMs } = times;
 
-        const values: Record<string, number> = { ...measure(input, first) };
-        values["pack.search.ms"] = median(searchMs);
-        // The counts of the characteristic moves, and the boxes out of the true outline of the container
-        Object.assign(values, moveCounts(first));
-        values[OUTSIDE_EXACT] = checkHard(input, first, DEFAULT_TOLERANCE, { exactContainer: true })["in-container"];
-        // The bound of the cell and the distance of the result to it (roadmap item k51)
-        Object.assign(values, boundMeasures(input, first));
-        // Only an input with a known best value (roadmap item k45) gets the distance from that value
-        if (file.known !== undefined) values["pack.gapToOpt"] = gapToOpt(input, first, file.known);
+        const values = pairValues(input, first, searchMs, file.known);
         const base = file.base === undefined ? undefined : done.get(file.base);
         if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
         done.set(file.id, { input, output: first });

@@ -2,12 +2,14 @@
 // For each measure, it fits a regression tree over the features of the strategy and of the input. Then it gives the
 // held-out error, the first-order sensitivity indices and the share of the cells that the model predicts.
 //
-//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec]
+//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>]
+//
+// With `--sample`, the trees learn on all the grid and predict the pairs of `bench/sample-space.ts` (k112).
 //
 // `docs/BENCH.md` ("The space coverage") tells how to read the result.
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { packSpace } from "@mark1russell7/packing";
 import { canonicalConfig, configId, type StrategyConfig } from "@mark1russell7/layout-contract";
 
@@ -131,7 +133,15 @@ function addStages(out: Record<string, string>, config: StrategyConfig): void {
 export function strategyFeatures(strategy: string): Record<string, string> {
   const named = packSpace.named?.[strategy];
   if (named === undefined) return { strategy };
-  const c = canonicalConfig(packSpace, named);
+  return configFeatures(named);
+}
+
+/**
+ * This function gives the features of a config of `packSpace`, as `strategyFeatures` gives them for a named config.
+ * The held-out test of the whole space (k112) uses it for each sampled config. It throws an `Error` for a config with a break.
+ */
+export function configFeatures(config: StrategyConfig): Record<string, string> {
+  const c = canonicalConfig(packSpace, config);
   const out: Record<string, string> = {};
   const combine = c.stages["combine"];
   out["stage.combine"] = combine?.option ?? "none";
@@ -301,6 +311,58 @@ export function predictTree(tree: TreeNode, table: FeatureTable, row: number): n
   return node.value;
 }
 
+/**
+ * This function gives the position of a value among the levels of a feature, for a row that is not in the table.
+ * A known level gives its index. A new number of an ordinal feature gives the count of the lower levels less 0.5.
+ * Another new value gives `undefined`.
+ */
+export function levelPosition(feature: Feature, value: string): number | undefined {
+  const at = feature.levels.indexOf(value);
+  if (at >= 0) return at;
+  if (!feature.ordinal || value === ABSENT || value.trim() === "" || !Number.isFinite(Number(value))) return undefined;
+  const v = Number(value);
+  return feature.levels.filter((l) => Number(l) < v).length - 0.5;
+}
+
+/**
+ * This function gives the value of a tree for a row of text features that is not in the table, for example a sampled pair.
+ * A missing feature has the value `-`. A value without a position goes to the side `no` of each split.
+ * For a row of the table, it gives the value of `predictTree`.
+ */
+export function predictFeatures(tree: TreeNode, table: FeatureTable, features: Readonly<Record<string, string>>): number {
+  let node = tree;
+  while (!("value" in node)) {
+    const f = table.features[node.feature]!;
+    const at = levelPosition(f, features[f.name] ?? ABSENT);
+    const yes = at === undefined ? false : f.ordinal ? at <= node.level : at === node.level;
+    node = yes ? node.yes : node.no;
+  }
+  return node.value;
+}
+
+/** The two ends of an interval. */
+export interface Interval {
+  readonly low: number;
+  readonly high: number;
+}
+
+/** The z value of a 95% interval of the normal distribution. */
+const Z95 = 1.959964;
+
+/**
+ * This function gives the Wilson score interval of a share: `k` hits of `n` trials. The default `z` gives a 95% interval.
+ * The ends are from 0 to 1, with 4 decimals. No trial gives the interval from 0 to 1.
+ */
+export function wilson(k: number, n: number, z = Z95): Interval {
+  if (n === 0) return { low: 0, high: 1 };
+  const p = k / n;
+  const z2 = z * z;
+  const denominator = 1 + z2 / n;
+  const center = (p + z2 / (2 * n)) / denominator;
+  const half = (z / denominator) * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n));
+  return { low: r4(Math.max(0, center - half)), high: r4(Math.min(1, center + half)) };
+}
+
 // ---- The folds and the indices ----
 
 /** This function gives a random number generator of 32 bits from a seed, with values from 0 to 1. */
@@ -430,6 +492,8 @@ export interface CoverageSummary {
   readonly features: { readonly strategy: readonly string[]; readonly input: readonly string[] };
   readonly model: { readonly kind: "regression-tree"; readonly maxDepth: number; readonly minLeaf: number; readonly folds: number; readonly seed: number; readonly by: FoldUnit };
   readonly measures: readonly MeasureCoverage[];
+  /** The held-out test on the pairs of the whole space (k112). Only `--sample` gives it. */
+  readonly sampled?: SampledCoverage;
 }
 
 /** This function rounds a value to 4 decimals. The value -0 becomes 0. */
@@ -448,6 +512,38 @@ function valueOf(r: CoverageRecord, m: CoverageMeasure): number | undefined {
   const raw = m.id === "ms" ? r.ms : r.measures?.[m.id];
   if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
   return m.scale === "log" ? Math.log10(Math.max(raw, LOG_FLOOR)) : raw;
+}
+
+/** One row of the grid: a measured record, the dimensions of its input and its value on the scale of the measure. */
+interface GridRow {
+  readonly r: CoverageRecord;
+  readonly d: InputDims;
+  readonly v: number;
+}
+
+/** This function gives the text features of a row and the group of each feature. It throws an `Error` when a strategy feature is also a dimension. */
+function rowFeatures(dims: Readonly<Record<string, string>>, sf: Readonly<Record<string, string>>, strategy: string): { features: Record<string, string>; group: Record<string, Feature["group"]> } {
+  const group: Record<string, Feature["group"]> = {};
+  for (const k of Object.keys(dims)) group[k] = "input";
+  for (const k of Object.keys(sf)) {
+    if (group[k] !== undefined) throw new Error(`The feature ${k} of the strategy ${strategy} is also a dimension of the input.`);
+    group[k] = "strategy";
+  }
+  return { features: { ...dims, ...sf }, group };
+}
+
+/** This function gives the rows of the grid with a finite value of a measure, and their table of features. */
+function gridTable(measured: readonly CoverageRecord[], dims: ReadonlyMap<string, InputDims>, sFeatures: ReadonlyMap<string, Record<string, string>>, m: CoverageMeasure): { rows: GridRow[]; table: FeatureTable } {
+  const rows: GridRow[] = [];
+  for (const r of measured) {
+    const v = valueOf(r, m);
+    if (v !== undefined) rows.push({ r, d: dims.get(r.input)!, v });
+  }
+  const table = featureTable(
+    rows.map(({ r, d }) => rowFeatures(d.dims, sFeatures.get(r.strategy)!, r.strategy)),
+    rows.map((x) => x.v),
+  );
+  return { rows, table };
 }
 
 /**
@@ -483,24 +579,7 @@ export function coverage(records: readonly CoverageRecord[], manifest: CoverageM
   const out: MeasureCoverage[] = [];
   const seen = { strategy: new Set<string>(), input: new Set<string>() };
   for (const m of measures) {
-    const rows: { r: CoverageRecord; d: InputDims; v: number }[] = [];
-    for (const r of measured) {
-      const v = valueOf(r, m);
-      if (v !== undefined) rows.push({ r, d: dims.get(r.input)!, v });
-    }
-    const table = featureTable(
-      rows.map(({ r, d }) => {
-        const sf = sFeatures.get(r.strategy)!;
-        const group: Record<string, Feature["group"]> = {};
-        for (const k of Object.keys(d.dims)) group[k] = "input";
-        for (const k of Object.keys(sf)) {
-          if (group[k] !== undefined) throw new Error(`The feature ${k} of the strategy ${r.strategy} is also a dimension of the input.`);
-          group[k] = "strategy";
-        }
-        return { features: { ...d.dims, ...sf }, group };
-      }),
-      rows.map((x) => x.v),
-    );
+    const { rows, table } = gridTable(measured, dims, sFeatures, m);
     for (const f of table.features) seen[f.group].add(f.name);
 
     // The held-out predictions of the tree and of the baseline
@@ -587,6 +666,148 @@ export function coverage(records: readonly CoverageRecord[], manifest: CoverageM
   };
 }
 
+// ---- The held-out test on the whole space (k112) ----
+
+/** The parts of a record of `bench/sample-space.ts` that the held-out test reads: a coverage record with its config and its input. */
+export interface SampledRecord extends CoverageRecord {
+  readonly config: StrategyConfig;
+  readonly generator: { readonly name: string; readonly version: number; readonly params: Readonly<Record<string, unknown>> };
+  readonly cell: Readonly<Record<string, unknown>>;
+  readonly knobs?: { readonly margin: number; readonly gap: number };
+}
+
+/** The held-out result of one measure on the sampled pairs. */
+export interface SampledMeasure {
+  readonly id: string;
+  readonly scale: CoverageMeasure["scale"];
+  readonly tolerance: number;
+  /** The count of the sampled pairs with a finite value. */
+  readonly n: number;
+  /** The count of the pairs with an error at the tolerance or below. */
+  readonly hits: number;
+  /** The hits over the pairs. */
+  readonly share: number;
+  /** The Wilson 95% interval of the share. */
+  readonly wilson: Interval;
+  /** The mean absolute error of the model. */
+  readonly mae: number;
+  /** The median absolute error of the model. */
+  readonly medianAe: number;
+  /** The error of the baseline: the median of all the rows of the grid. */
+  readonly baseline: ErrorStats;
+}
+
+/** The facts of the draw, from `sample.json` of the sampler. */
+export interface SampleFacts {
+  readonly seed: number;
+  readonly draw: string;
+  readonly requested: number;
+  readonly configRejectionRate: number;
+  readonly inputsRejected: number;
+  readonly hardPairs: number;
+  readonly nondeterministic: number;
+  readonly composition: Readonly<Record<string, number>>;
+}
+
+/** The held-out test on the whole space: the tree of each measure learns on all the rows of the grid and predicts the sampled pairs. */
+export interface SampledCoverage {
+  /** The count of the measured sampled pairs. */
+  readonly pairs: number;
+  readonly sample?: SampleFacts;
+  readonly measures: readonly SampledMeasure[];
+}
+
+/**
+ * This function gives the dimensions of a sampled pair, in the feature space of `inputDims`. These are the cell, the family and the params of the generator.
+ * The knobs `margin` and `gap` follow. The grid has no knobs, so the tree does not read them.
+ */
+export function sampledDims(r: SampledRecord): Record<string, string> {
+  const family = `${r.generator.name}@${r.generator.version}`;
+  const dims: Record<string, string> = {};
+  for (const [k, v] of Object.entries(r.cell)) dims[k] = textOf(v);
+  dims["family"] = family;
+  for (const [k, v] of Object.entries(r.generator.params)) dims[k] = textOf(v);
+  if (r.knobs !== undefined) {
+    dims["margin"] = textOf(r.knobs.margin);
+    dims["gap"] = textOf(r.knobs.gap);
+  }
+  return dims;
+}
+
+/**
+ * This function gives the held-out test of the grid on the sampled pairs of the whole space (k112). For each measure:
+ *
+ * 1. The tree learns on all the rows of the grid, with the features of `coverage`.
+ * 2. The tree predicts each sampled pair from its features: `configFeatures` of its config and `sampledDims` of its input.
+ * 3. A pair is a hit when its absolute error is at the tolerance or below. The share gets a Wilson 95% interval.
+ * 4. The baseline predicts the median of all the rows of the grid.
+ *
+ * A skipped sampled record and a record without a finite value are not pairs.
+ */
+export function sampledCoverage(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions = {}, sample?: SampleFacts): SampledCoverage {
+  const measures = options.measures ?? COVERAGE_MEASURES;
+  const tree = { ...TREE_DEFAULTS, ...options };
+  const dims = inputDims(manifest);
+  const measured = records.filter((r) => r.skipped === undefined && dims.has(r.input));
+  const sFeatures = new Map([...new Set(measured.map((r) => r.strategy))].map((s) => [s, strategyFeatures(s)]));
+  const pairs = sampled.filter((r) => r.skipped === undefined);
+  const features = pairs.map((r) => rowFeatures(sampledDims(r), configFeatures(r.config), r.strategy).features);
+  const out: SampledMeasure[] = [];
+  for (const m of measures) {
+    const { table } = gridTable(measured, dims, sFeatures, m);
+    const all = Array.from(table.y.keys());
+    const fitted = fitTree(table, all, tree);
+    const median = medianOf(table.y);
+    const errors: number[] = [];
+    const baseErrors: number[] = [];
+    pairs.forEach((r, i) => {
+      const v = valueOf(r, m);
+      if (v === undefined) return;
+      errors.push(Math.abs((all.length === 0 ? 0 : predictFeatures(fitted, table, features[i]!)) - v));
+      baseErrors.push(Math.abs(median - v));
+    });
+    const hits = errors.filter((e) => e <= m.tolerance + 1e-12).length;
+    const stats = errorStats(errors, m.tolerance);
+    out.push({
+      id: m.id,
+      scale: m.scale,
+      tolerance: m.tolerance,
+      n: errors.length,
+      hits,
+      share: errors.length === 0 ? 0 : r4(hits / errors.length),
+      wilson: wilson(hits, errors.length),
+      mae: stats.mae,
+      medianAe: stats.medianAe,
+      baseline: errorStats(baseErrors, m.tolerance),
+    });
+  }
+  return { pairs: pairs.length, ...(sample === undefined ? {} : { sample }), measures: out };
+}
+
+/** This function gives the facts of the draw from the text of `sample.json`. */
+export function sampleFacts(text: string): SampleFacts {
+  const s = JSON.parse(text) as {
+    seed: number;
+    draw: string;
+    requested: number;
+    configs: { rate: number };
+    inputs: { rejected: number };
+    hard: { pairs: number };
+    nondeterministic: number;
+    composition: Record<string, number>;
+  };
+  return {
+    seed: s.seed,
+    draw: s.draw,
+    requested: s.requested,
+    configRejectionRate: s.configs.rate,
+    inputsRejected: s.inputs.rejected,
+    hardPairs: s.hard.pairs,
+    nondeterministic: s.nondeterministic,
+    composition: s.composition,
+  };
+}
+
 // ---- The command line ----
 
 /** This function gives the records of the text of a `records.jsonl` file. An empty line is not a record. */
@@ -616,6 +837,18 @@ export function coverageOptions(argv: readonly string[]): CoverageOptions {
   if (!Number.isInteger(seed)) throw new Error("The option --seed is a whole number.");
   if (by !== "input" && by !== "spec") throw new Error(`The option --by is input or spec, not ${by}.`);
   return { folds, seed, by, ...(run === undefined ? {} : { run: Number(run) }), ...(date === undefined ? {} : { date }) };
+}
+
+/**
+ * This function gives the held-out test on the sample in a folder of `bench/sample-space.ts`: its `records.jsonl` and, when present, its `sample.json`.
+ * It throws an `Error` when the folder has no `records.jsonl`.
+ */
+export function readSampled(records: readonly CoverageRecord[], manifest: CoverageManifest, dir: string, options: CoverageOptions = {}): SampledCoverage {
+  const file = join(dir, "records.jsonl");
+  if (!existsSync(file)) throw new Error(`The sample folder ${dir} has no records.jsonl. Start bench/sample-space.ts first.`);
+  const sampled = readRecords(readFileSync(file, "utf8")) as SampledRecord[];
+  const facts = join(dir, "sample.json");
+  return sampledCoverage(records, manifest, sampled, options, existsSync(facts) ? sampleFacts(readFileSync(facts, "utf8")) : undefined);
 }
 
 /** The note of `coverageMain` when a run has too few records for a summary */
@@ -648,12 +881,20 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
     console.log(note.note);
     return note;
   }
-  const summary = coverage(rows, manifest, coverageOptions(argv));
+  const options = coverageOptions(argv);
+  const grid = coverage(rows, manifest, options);
+  const sampleDir = optionOf(argv, "--sample");
+  const summary: CoverageSummary = sampleDir === undefined ? grid : { ...grid, sampled: readSampled(rows, manifest, sampleDir, options) };
   writeFileSync(path, `${JSON.stringify(summary, null, 1)}\n`);
   for (const m of summary.measures) {
     const top = m.indices.slice(0, 3).map((x) => `${x.feature} ${x.index}`).join(", ");
     console.log(
       `${m.id}: error ${m.model.mae} against ${m.baseline.mae}, median error ${m.model.medianAe} against ${m.baseline.medianAe}, share ${m.share} (${m.cells.covered} of ${m.cells.space} cells), top ${top}`,
+    );
+  }
+  for (const m of summary.sampled?.measures ?? []) {
+    console.log(
+      `${m.id}, whole space (sampled): share ${m.share} (${m.hits} of ${m.n} pairs, 95% from ${m.wilson.low} to ${m.wilson.high}), error ${m.mae} against ${m.baseline.mae}, median error ${m.medianAe} against ${m.baseline.medianAe}`,
     );
   }
   return summary;

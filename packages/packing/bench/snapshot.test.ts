@@ -257,4 +257,19 @@ describe("the coverage snapshot (k105)", () => {
     expect(snap.trend[0]).toMatchObject({ shares: { "pack.fill": 0.5 }, sharesByInput: { "pack.fill": 0.6 } });
     expect(coverageSnapshot(strict, origin).latest.measures[0]!.byInput).toBeUndefined();
   });
+
+  it("keeps the held-out numbers of the whole space (k112) when the summary has them", () => {
+    const plain = coverageSnapshot(summary("2026-10-28", 0.5), origin);
+    expect(plain.latest.measures[0]!.sampled).toBeUndefined();
+    expect("sampled" in plain.latest).toBe(false);
+    const sampled = {
+      pairs: 60,
+      sample: { seed: 1, draw: "uniform", requested: 60, configRejectionRate: 0.02, inputsRejected: 3, hardPairs: 1, nondeterministic: 0, composition: { portfolio: 60 } },
+      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n: 60, hits: 4, share: 0.0667, wilson: { low: 0.0262, high: 0.1593 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 } }],
+    };
+    const snap = coverageSnapshot({ ...summary("2026-10-28", 0.5), sampled }, origin);
+    expect(snap.latest.measures[0]!.sampled).toEqual({ n: 60, hits: 4, share: 0.0667, low: 0.0262, high: 0.1593, mae: 0.4, medianAe: 0.3, baselineMae: 0.5, baselineMedianAe: 0.4 });
+    expect(snap.latest.sampled).toEqual({ pairs: 60, seed: 1, draw: "uniform", configRejectionRate: 0.02, hardPairs: 1 });
+    expect(snap.trend).toEqual(plain.trend);
+  });
 });
