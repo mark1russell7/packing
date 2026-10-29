@@ -25,6 +25,9 @@ import {
   countText,
   strataRows,
   strataText,
+  activeRows,
+  FORCED_LABEL,
+  forcedText,
   stratumLabel,
   COVERAGE_STRATA_SCOPE,
   COVERAGE_POOLED_SCOPE,
@@ -167,7 +170,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-20", [], ["1"]],
     ]);
     expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
-    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k116", "k80", "k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
   });
 });
 
@@ -385,6 +388,36 @@ describe("the space coverage of k105", () => {
     expect(stratumLabel("cell-portfolio:cell")).toBe("cell-portfolio, members from the cell");
     expect(stratumLabel("aspect-fit:1")).toBe("aspect-fit");
     expect(stratumLabel("odd")).toBe("odd");
+  });
+
+  it("shows the active rounds and the forced-overflow split of k116, and keeps an old snapshot without them", () => {
+    // The data of the site has no rounds yet. The test uses made-up rounds.
+    const m = snap.latest.measures[0]!;
+    expect(snap.latest.active).toBeUndefined();
+    expect(m.active).toBeUndefined();
+    expect(activeRows(m)).toBe("");
+    expect(forcedText(m)).toBeNull();
+    const active = {
+      start: { share: 0.04, mae: 0.3, equal: 0.05 },
+      rounds: [
+        { round: 1, n: 15, hits: 1, share: 0.0667, low: 0.0119, high: 0.2983, mae: 0.4, after: { share: 0.1, mae: 0.25, equal: 0.12 } },
+        { round: 2, n: 15, hits: 3, share: 0.2, low: 0.0705, high: 0.4519, mae: 0.3, after: null },
+      ],
+    };
+    const rows = activeRows({ active });
+    expect(rows.match(/<tr/g)).toHaveLength(4);
+    expect(rows).toContain("<th scope=\"row\">Grid only</th><td class=\"num\">-</td><td class=\"num\">4%");
+    expect(rows).toContain("7% <small>(1 of 15)</small>");
+    expect(rows).toContain('<i style="width:10%"></i>');
+    // A round without the evaluation sample shows a dash, not 0.
+    expect(rows).toMatch(/20% <small>\(3 of 15\)<\/small><\/td><td class="num">-<\/td>/);
+    // The table has 3 columns, so it fits a phone without a scroll.
+    expect(rows.match(/<th scope="col"/g)).toHaveLength(3);
+    const sampled = { ...m.sampled!, forced: { heavy: { n: 30, hits: 0, share: 0 }, rest: { n: 0, hits: 0, share: null } } };
+    expect(forcedText({ sampled })).toEqual({ heavy: "0% (0 of 30)", rest: "no pairs" });
+    expect(FORCED_LABEL).toContain("half");
+    // The uniform number stays in the tile next to the rounds.
+    expect(coverageTile({ ...m, active }, "Fill")).toBe(coverageTile(m, "Fill"));
   });
 
   it("places the points of the trend by date and share", () => {

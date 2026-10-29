@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { CoverageMeasure, CoveragePoint, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
@@ -312,6 +312,39 @@ export function coverageTile(m: CoverageMeasure, label: string, space: CoverageS
         <small class="cscope">${COVERAGE_SCOPES.space}</small>
         ${spaceHtml}${strata}${pooled}
       </div>`;
+}
+
+// ---- The active sample of k116 ----
+
+/** The label of the forced-overflow split of k116: the pairs where half of the item area or more cannot go in the container */
+export const FORCED_LABEL = "forced overflow of half the item area or more";
+
+/** This function gives the text of the forced-overflow split of a measure, or `null` when the measure does not have it. */
+export function forcedText(m: Pick<CoverageMeasure, "sampled">): { heavy: string; rest: string } | null {
+  const f = m.sampled?.forced;
+  if (f === undefined) return null;
+  const part = (p: CoveragePart): string => (p.share === null ? "no pairs" : `${percentText(p.share)} (${p.hits} of ${p.n})`);
+  return { heavy: part(f.heavy), rest: part(f.rest) };
+}
+
+/**
+ * This function gives the HTML of the table of the rounds of the active sample of one measure, or an empty text without rounds.
+ * Each row shows the hits of the new pairs of a round, and the share of the evaluation sample after the round.
+ * The first row shows the evaluation sample with the grid only. The table has 3 narrow columns, so it fits a phone.
+ */
+export function activeRows(m: Pick<CoverageMeasure, "active">): string {
+  const a = m.active;
+  if (a === undefined) return "";
+  const bar = (share: number): string => `<span class="abar" aria-hidden="true"><i style="width:${Math.round(Math.max(0, Math.min(1, share)) * 1000) / 10}%"></i></span>`;
+  const evalCell = (e: CoverageEval | null): string => (e === null ? `<td class="num">-</td>` : `<td class="num">${percentText(e.share)}${bar(e.share)}</td>`);
+  const start = `<tr><th scope="row">Grid only</th><td class="num">-</td>${evalCell(a.start)}</tr>`;
+  const rows = a.rounds
+    .map(
+      (r) =>
+        `<tr title="${esc(`Round ${r.round}: ${r.hits} of ${r.n} new pairs within the tolerance, 95% interval ${percentText(r.low)} to ${percentText(r.high)}`)}"><th scope="row">Round ${r.round}</th><td class="num">${percentText(r.share)} <small>(${r.hits} of ${r.n})</small></td>${evalCell(r.after)}</tr>`,
+    )
+    .join("");
+  return `<thead><tr><th scope="col">Training</th><th scope="col" class="num">New pairs hit</th><th scope="col" class="num">Sample after</th></tr></thead><tbody>${start}${rows}</tbody>`;
 }
 
 /** This function gives the width of the bar of an error of the model, as a percent of the baseline error. It is from 0 to 100. */
