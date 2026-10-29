@@ -52,7 +52,7 @@ Status: done, done, waiting, next, done.
 | k43 | The ways to give items to the parts: greedy in reading order, assignment, and a flow that keeps the reading order | strategies | later | k41 |
 | k44 | The measures of pack-around: fill of each part, slivers, order breaks across parts, stability when an obstacle moves | measure | later | k8, k41 |
 | k45 | Inputs with a known best answer: perfect cuts that are shuffled, and the consecutive squares | measure | done | k19 |
-| k46 | The published benchmark sets for strip packing and nesting | measure | later | k19 |
+| k46 | The published benchmark sets for strip packing and nesting | measure | done | k19 |
 | k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | next | k19, k9 |
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
@@ -128,45 +128,44 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
 | 1 | k112 | 4 | 4 | 2 | 8.0 |
-| 2 | k46 | 4 | 3 | 2 | 6.0 |
-| 3 | k90 | 4 | 3 | 2 | 6.0 |
-| 4 | k108 | 3 | 2 | 1 | 6.0 |
-| 5 | k111 | 4 | 3 | 2 | 6.0 |
-| 6 | k23 | 4 | 4 | 3 | 5.3 |
-| 7 | k47 | 4 | 4 | 3 | 5.3 |
-| 8 | k79 | 4 | 4 | 3 | 5.3 |
-| 9 | k80 | 4 | 4 | 3 | 5.3 |
-| 10 | k26 | 5 | 4 | 4 | 5.0 |
-| 11 | k25 | 3 | 3 | 2 | 4.5 |
-| 12 | k70 | 3 | 3 | 2 | 4.5 |
-| 13 | k13 | 3 | 3 | 2 | 4.5 |
-| 14 | k92 | 3 | 3 | 2 | 4.5 |
-| 15 | k10 | 4 | 4 | 4 | 4.0 |
-| 16 | k81 | 4 | 3 | 3 | 4.0 |
-| 17 | k82 | 3 | 4 | 3 | 4.0 |
-| 18 | k83 | 3 | 4 | 3 | 4.0 |
-| 19 | k93 | 4 | 2 | 2 | 4.0 |
-| 20 | k94 | 4 | 3 | 3 | 4.0 |
-| 21 | k95 | 4 | 3 | 3 | 4.0 |
-| 22 | k96 | 5 | 4 | 5 | 4.0 |
-| 23 | k97 | 3 | 4 | 3 | 4.0 |
-| 24 | k110 | 4 | 2 | 2 | 4.0 |
-| 25 | k84 | 3 | 5 | 4 | 3.8 |
-| 26 | k74 | 4 | 3 | 4 | 3.0 |
-| 27 | k52 | 3 | 2 | 2 | 3.0 |
-| 28 | k85 | 3 | 3 | 3 | 3.0 |
-| 29 | k86 | 3 | 5 | 5 | 3.0 |
-| 30 | k87 | 3 | 3 | 3 | 3.0 |
-| 31 | k98 | 3 | 2 | 2 | 3.0 |
-| 32 | k109 | 4 | 2 | 3 | 2.7 |
-| 33 | k99 | 3 | 4 | 5 | 2.4 |
-| 34 | k100 | 3 | 3 | 4 | 2.3 |
-| 35 | k88 | 2 | 2 | 2 | 2.0 |
-| 36 | k101 | 4 | 2 | 4 | 2.0 |
-| 37 | k102 | 3 | 2 | 3 | 2.0 |
-| 38 | k103 | 2 | 2 | 2 | 2.0 |
-| 39 | k89 | 2 | 4 | 5 | 1.6 |
-| 40 | k104 | 2 | 3 | 5 | 1.2 |
+| 2 | k90 | 4 | 3 | 2 | 6.0 |
+| 3 | k108 | 3 | 2 | 1 | 6.0 |
+| 4 | k111 | 4 | 3 | 2 | 6.0 |
+| 5 | k23 | 4 | 4 | 3 | 5.3 |
+| 6 | k47 | 4 | 4 | 3 | 5.3 |
+| 7 | k79 | 4 | 4 | 3 | 5.3 |
+| 8 | k80 | 4 | 4 | 3 | 5.3 |
+| 9 | k26 | 5 | 4 | 4 | 5.0 |
+| 10 | k25 | 3 | 3 | 2 | 4.5 |
+| 11 | k70 | 3 | 3 | 2 | 4.5 |
+| 12 | k13 | 3 | 3 | 2 | 4.5 |
+| 13 | k92 | 3 | 3 | 2 | 4.5 |
+| 14 | k10 | 4 | 4 | 4 | 4.0 |
+| 15 | k81 | 4 | 3 | 3 | 4.0 |
+| 16 | k82 | 3 | 4 | 3 | 4.0 |
+| 17 | k83 | 3 | 4 | 3 | 4.0 |
+| 18 | k93 | 4 | 2 | 2 | 4.0 |
+| 19 | k94 | 4 | 3 | 3 | 4.0 |
+| 20 | k95 | 4 | 3 | 3 | 4.0 |
+| 21 | k96 | 5 | 4 | 5 | 4.0 |
+| 22 | k97 | 3 | 4 | 3 | 4.0 |
+| 23 | k110 | 4 | 2 | 2 | 4.0 |
+| 24 | k84 | 3 | 5 | 4 | 3.8 |
+| 25 | k74 | 4 | 3 | 4 | 3.0 |
+| 26 | k52 | 3 | 2 | 2 | 3.0 |
+| 27 | k85 | 3 | 3 | 3 | 3.0 |
+| 28 | k86 | 3 | 5 | 5 | 3.0 |
+| 29 | k87 | 3 | 3 | 3 | 3.0 |
+| 30 | k98 | 3 | 2 | 2 | 3.0 |
+| 31 | k109 | 4 | 2 | 3 | 2.7 |
+| 32 | k99 | 3 | 4 | 5 | 2.4 |
+| 33 | k100 | 3 | 3 | 4 | 2.3 |
+| 34 | k88 | 2 | 2 | 2 | 2.0 |
+| 35 | k101 | 4 | 2 | 4 | 2.0 |
+| 36 | k102 | 3 | 2 | 3 | 2.0 |
+| 37 | k103 | 2 | 2 | 2 | 2.0 |
+| 38 | k89 | 2 | 4 | 5 | 1.6 |
+| 39 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
