@@ -27,12 +27,14 @@ const names = (f: { dimensions: readonly { name: string }[] }): string[] => f.di
 const KNOBS = ["margin", "gap", "shape"];
 // The families of roadmap item k107 have their own dimensions and counts. The file worst.test.ts tests them.
 const WORST = ["tall-row", "skyline-gap", "bl-trap", "half-wide", "ladder"];
+// The families of roadmap item k46 have their own dimensions and counts. The file strip.test.ts tests them.
+const STRIP = ["hopper-turton", "burke-kendall-whitwell", "beasley-gcut"];
 
 describe("the corpus families", () => {
   it("have the parameters of their generator, then the knobs", () => {
     expect(names(rectGridFamily)).toEqual(["containerSize", "containerShape", "obstacles", "sizes", "count", ...KNOBS]);
     expect(names(rectGridV2Family)).toEqual(["containerSize", "containerShape", "obstacles", "sizes", "order", "count", ...KNOBS]);
-    for (const f of corpusFamilies.filter((x) => !["rect-grid", "edge-cases", "perfect-cut", "berkey-wang", "martello-vigo", ...WORST].includes(x.name))) expect(names(f), f.name).toEqual(["containerSize", "count", ...KNOBS]);
+    for (const f of corpusFamilies.filter((x) => !["rect-grid", "edge-cases", "perfect-cut", "berkey-wang", "martello-vigo", ...WORST, ...STRIP].includes(x.name))) expect(names(f), f.name).toEqual(["containerSize", "count", ...KNOBS]);
     expect(names(edgeCasesFamily)).toEqual(["case", "count", ...KNOBS]);
     expect(names(perfectCutFamily)).toEqual(["cut", "containerSize", "count", ...KNOBS]);
     for (const f of [berkeyWangFamily, martelloVigoFamily]) expect(names(f)).toEqual(["class", "containerSize", "count", ...KNOBS]);
@@ -59,7 +61,7 @@ describe("the corpus families", () => {
   });
 
   it("give count a log scale to 10000 with the sweep 1, 10, 100, 1000 and 10000", () => {
-    for (const f of corpusFamilies.filter((x) => x !== berkeyWangFamily && x !== martelloVigoFamily && !WORST.includes(x.name))) {
+    for (const f of corpusFamilies.filter((x) => x !== berkeyWangFamily && x !== martelloVigoFamily && !WORST.includes(x.name) && !STRIP.includes(x.name))) {
       const count = f.dimensions.find((d) => d.name === "count")!;
       // The generators of known-best inputs need a box or more.
       const min = f.name === "perfect-cut" || f.name === "consecutive-squares" ? 1 : 0;
@@ -142,7 +144,7 @@ describe("the knobs margin and gap", () => {
   it("declare invalidates only on the families with a known best value", () => {
     for (const f of corpusFamilies) {
       const knobs = f.dimensions.filter((d) => d.name === "margin" || d.name === "gap");
-      const want = ["perfect-cut", "consecutive-squares"].includes(f.name) ? ["known"] : undefined;
+      const want = ["perfect-cut", "consecutive-squares", "hopper-turton", "burke-kendall-whitwell"].includes(f.name) ? ["known"] : undefined;
       for (const d of knobs) expect(d.invalidates, `${f.name} ${d.name}`).toEqual(want);
     }
     expect(registry.generate("gallery", 1, { margin: 1 }).invalidated).toBeUndefined();

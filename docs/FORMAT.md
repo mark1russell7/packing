@@ -181,6 +181,9 @@ The package exports each generator below, with `generators`, `generator(name)` a
 | `bl-trap` | `stages` 3, `containerSize` `freeHeight`, `count` 120 | `fixed` and `freeHeight`: items of one height, the narrow items first (k107, `docs/BENCH.md`) |
 | `half-wide` | `excess` 2, `containerSize` `freeHeight`, `count` 120 | `fixed` and `freeHeight`: items just over half and a quarter of the width (k107, `docs/BENCH.md`) |
 | `ladder` | `axis` `count`, `rung` 3, `count` 100 | `freeHeight`: the count 10 to 2560, or the side ratio 1 to 256 (k107, `docs/BENCH.md`) |
+| `hopper-turton` | `category` `C1`, `problem` 1, `cut` `guillotine`, `containerSize` `freeHeight` | `fixed` and `freeHeight`: the categories C1 to C7 of Hopper 2001, with a known optimum (k46, `docs/BENCH.md`) |
+| `burke-kendall-whitwell` | `instance` `N1`, `cut` `guillotine`, `containerSize` `freeHeight` | `fixed` and `freeHeight`: the problems N1 to N13 of Burke 2004, with a known optimum (k46, `docs/BENCH.md`) |
+| `beasley-gcut` | `side` 250, `containerSize` `freeHeight`, `count` 10 | `fixed` and `freeHeight`: the problems gcut of Beasley 1985b (k46, `docs/BENCH.md`) |
 
 The parameter `containerSize` of `rect-grid` and of the families of a user interface has the values `fixed`, `freeHeight`, `freeWidth`, `freeAspect` and `freeArea`.
 

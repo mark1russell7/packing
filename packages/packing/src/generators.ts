@@ -1286,15 +1286,220 @@ export const ladder: CorpusGenerator<LadderParams> = defineGenerator<LadderParam
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The published sets of strip packing (roadmap item k46): the categories C1 to C7 of Hopper and Turton 2001, the problems
+// N1 to N13 of Burke, Kendall and Whitwell 2004, and the problems gcut of Beasley 1985b. The generators use the published
+// rules: the width of the strip, the count and the rule of the sizes. They copy no published instance file. Each size is a whole number.
+
+/** The container sizes of a published strip set: the object of the set, or a strip of its width with a free height. */
+export type StripContainer = "fixed" | "freeHeight";
+
+/** The values of `containerSize` of the strip generators. */
+const STRIP_SIZES: readonly StripContainer[] = ["fixed", "freeHeight"];
+
+/** The kind of cut of a perfect strip set: guillotine cuts, or a first pinwheel cut that is not a guillotine cut. */
+export type StripCut = "guillotine" | "free";
+
+/** The values of `cut` of the strip generators. */
+const STRIP_CUTS: readonly StripCut[] = ["guillotine", "free"];
+
+/** The categories of Hopper and Turton 2001. */
+export type HopperTurtonCategory = "C1" | "C2" | "C3" | "C4" | "C5" | "C6" | "C7";
+
+/** The problems of Burke, Kendall and Whitwell 2004. */
+export type BurkeKendallWhitwellProblem = "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | "N7" | "N8" | "N9" | "N10" | "N11" | "N12" | "N13";
+
+/** The rule of a perfect strip problem: the object `w` by `h`, and the count of the pieces. The best height is `h`. */
+export interface PerfectStripRule {
+  readonly w: number;
+  readonly h: number;
+  readonly count: number;
+}
+
+/** The rule of a category of Hopper and Turton: the object `w` by `h`, and the piece count of each of its 3 problems. */
+export interface HopperTurtonRule {
+  readonly w: number;
+  readonly h: number;
+  readonly counts: readonly [number, number, number];
+}
+
+/**
+ * The rules of the categories of Hopper and Turton 2001. A cut of the object `w` by `h` gives the pieces of a problem.
+ * The best height of the strip of the width `w` is `h`.
+ */
+export const HOPPER_TURTON_RULES: Readonly<Record<HopperTurtonCategory, HopperTurtonRule>> = Object.freeze({
+  C1: { w: 20, h: 20, counts: [16, 17, 16] },
+  C2: { w: 40, h: 15, counts: [25, 25, 25] },
+  C3: { w: 60, h: 30, counts: [28, 29, 28] },
+  C4: { w: 60, h: 60, counts: [49, 49, 49] },
+  C5: { w: 60, h: 90, counts: [73, 73, 73] },
+  C6: { w: 80, h: 120, counts: [97, 97, 97] },
+  C7: { w: 160, h: 240, counts: [196, 197, 196] },
+});
+
+/**
+ * The rules of the problems of Burke, Kendall and Whitwell 2004. A cut of the object `w` by `h` gives `count` pieces.
+ * The best height of the strip of the width `w` is `h`.
+ */
+export const BURKE_KENDALL_WHITWELL_RULES: Readonly<Record<BurkeKendallWhitwellProblem, PerfectStripRule>> = Object.freeze({
+  N1: { w: 40, h: 40, count: 10 },
+  N2: { w: 30, h: 50, count: 20 },
+  N3: { w: 30, h: 50, count: 30 },
+  N4: { w: 80, h: 80, count: 40 },
+  N5: { w: 100, h: 100, count: 50 },
+  N6: { w: 50, h: 100, count: 60 },
+  N7: { w: 80, h: 100, count: 70 },
+  N8: { w: 100, h: 80, count: 80 },
+  N9: { w: 50, h: 150, count: 100 },
+  N10: { w: 70, h: 150, count: 200 },
+  N11: { w: 70, h: 150, count: 300 },
+  N12: { w: 100, h: 300, count: 500 },
+  N13: { w: 640, h: 960, count: 3152 },
+});
+
+/** The parameters of `hopper-turton`. */
+export type HopperTurtonParams = { category: HopperTurtonCategory; problem: number; cut: StripCut; containerSize: StripContainer };
+
+/** The parameters of `burke-kendall-whitwell`. */
+export type BurkeKendallWhitwellParams = { instance: BurkeKendallWhitwellProblem; cut: StripCut; containerSize: StripContainer };
+
+/** The parameters of `beasley-gcut`. */
+export type BeasleyGcutParams = { side: number; containerSize: StripContainer; count: number };
+
+/** The values of `category` of `hopper-turton`. */
+const HT_CATEGORIES = Object.keys(HOPPER_TURTON_RULES) as HopperTurtonCategory[];
+/** The values of `instance` of `burke-kendall-whitwell`. */
+const BKW_PROBLEMS = Object.keys(BURKE_KENDALL_WHITWELL_RULES) as BurkeKendallWhitwellProblem[];
+
+/**
+ * This function cuts the object `w` by `h` into `count` pieces with the cut of `perfect-cut`. It gives the pieces at
+ * their places in a random order. The pieces tile the object with no free space.
+ */
+function stripPieces(seed: number, cut: StripCut, count: number, w: number, h: number): CutPiece[] {
+  const cuts = cutsOf(stepRandom(seed, "boxes"), cut, count, w, h);
+  return shuffled(stepRandom(seed, "order"), cuts).map((c, i) => ({ id: `b${i}`, ...c }));
+}
+
+/** This function gives the parts of a perfect strip input: the object or its strip, the pieces, and the known optimum. */
+function perfectStripParts(pieces: readonly CutPiece[], w: number, h: number, size: StripContainer, source: string): Parts {
+  const known: KnownBest = { kind: "optimum", area: w * h, ...(size === "freeHeight" ? { height: h } : {}), source };
+  return { container: containerOf(size, w, h), obstacles: [], boxes: pieces.map(({ id, w: bw, h: bh }) => ({ id, w: bw, h: bh })), known };
+}
+
+/**
+ * This function gives the object and the pieces of an input of `hopper-turton`, at their places in the cut. The pieces
+ * are in the order of the boxes of the input, with the ids of the boxes.
+ */
+export function hopperTurtonOf(seed: number, params: Partial<HopperTurtonParams> = {}): { w: number; h: number; pieces: CutPiece[] } {
+  const p = hopperTurton.withDefaults(params);
+  const rule = HOPPER_TURTON_RULES[p.category];
+  return { w: rule.w, h: rule.h, pieces: stripPieces(seed, p.cut, rule.counts[p.problem - 1]!, rule.w, rule.h) };
+}
+
+/**
+ * This function gives the object and the pieces of an input of `burke-kendall-whitwell`, at their places in the cut.
+ * The pieces are in the order of the boxes of the input, with the ids of the boxes.
+ */
+export function burkeKendallWhitwellOf(seed: number, params: Partial<BurkeKendallWhitwellParams> = {}): { w: number; h: number; pieces: CutPiece[] } {
+  const p = burkeKendallWhitwell.withDefaults(params);
+  const rule = BURKE_KENDALL_WHITWELL_RULES[p.instance];
+  return { w: rule.w, h: rule.h, pieces: stripPieces(seed, p.cut, rule.count, rule.w, rule.h) };
+}
+
+/**
+ * The generator `hopper-turton`, version 1: the categories C1 to C7 of Hopper and Turton 2001. Each category has an
+ * object, a strip width and 3 problems with their counts. A cut of the object gives the pieces, so the best height is known.
+ *
+ * - With `guillotine`, each cut is a straight line across one piece, as in the published categories.
+ * - With `free`, the first cut is a pinwheel. Thus a guillotine packer cannot reach the best height.
+ * - With `fixed`, the container is the object. With `freeHeight`, it is a strip of the width of the object.
+ */
+export const hopperTurton: CorpusGenerator<HopperTurtonParams> = defineGenerator<HopperTurtonParams>({
+  name: "hopper-turton",
+  version: 1,
+  set: "strip-v1",
+  defaults: { category: "C1", problem: 1, cut: "guillotine", containerSize: "freeHeight" },
+  values: { category: HT_CATEGORIES, cut: STRIP_CUTS, containerSize: STRIP_SIZES },
+  ranges: { problem: [1, 3] },
+  family: (p) => `hopper-turton.${p.category}.p${p.problem}.${p.cut}.${p.containerSize}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", HOPPER_TURTON_RULES[p.category].counts[p.problem - 1]!),
+  build(seed, p) {
+    const { w, h, pieces } = hopperTurtonOf(seed, p);
+    return perfectStripParts(pieces, w, h, p.containerSize, `hopper-turton.${p.category}.${p.cut}`);
+  },
+});
+
+/**
+ * The generator `burke-kendall-whitwell`, version 1: the problems N1 to N13 of Burke, Kendall and Whitwell 2004. Each
+ * problem has an object and a count. A cut of the object gives the pieces, so the best height is known.
+ *
+ * - The cut `guillotine` and the cut `free` are the cuts of `hopper-turton`.
+ * - With `fixed`, the container is the object. With `freeHeight`, it is a strip of the width of the object.
+ */
+export const burkeKendallWhitwell: CorpusGenerator<BurkeKendallWhitwellParams> = defineGenerator<BurkeKendallWhitwellParams>({
+  name: "burke-kendall-whitwell",
+  version: 1,
+  set: "strip-v1",
+  defaults: { instance: "N1", cut: "guillotine", containerSize: "freeHeight" },
+  values: { instance: BKW_PROBLEMS, cut: STRIP_CUTS, containerSize: STRIP_SIZES },
+  family: (p) => `burke-kendall-whitwell.${p.instance}.${p.cut}.${p.containerSize}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", BURKE_KENDALL_WHITWELL_RULES[p.instance].count),
+  build(seed, p) {
+    const { w, h, pieces } = burkeKendallWhitwellOf(seed, p);
+    return perfectStripParts(pieces, w, h, p.containerSize, `burke-kendall-whitwell.${p.instance}.${p.cut}`);
+  },
+});
+
+/** The sides of the square stock of the problems gcut 1 to 12 of Beasley 1985b: 250, 500 and 1000. */
+export const BEASLEY_GCUT_SIDES: readonly number[] = Object.freeze([250, 500, 1000]);
+
+/** The counts of the pieces of the problems gcut 1 to 12 of Beasley 1985b, for each side: 10, 20, 30 and 50. */
+export const BEASLEY_GCUT_COUNTS: readonly number[] = Object.freeze([10, 20, 30, 50]);
+
+/** This function gives the range of each side of a piece of `beasley-gcut`: a quarter to three quarters of the stock side, both included. */
+export function beasleyGcutRange(side: number): readonly [number, number] {
+  return [Math.ceil(side / 4), Math.floor((3 * side) / 4)];
+}
+
+/**
+ * The generator `beasley-gcut`, version 1: the problems gcut of Beasley 1985b. The stock is a square of the side `side`.
+ * Each width and each height is uniform in a quarter to three quarters of the side.
+ *
+ * - With `fixed`, the container is the stock. Not all pieces fit, so the measure is the placed share.
+ * - With `freeHeight`, the container is a strip of the width `side`, as in the strip tests of Martello 2003.
+ */
+export const beasleyGcut: CorpusGenerator<BeasleyGcutParams> = defineGenerator<BeasleyGcutParams>({
+  name: "beasley-gcut",
+  version: 1,
+  set: "strip-v1",
+  defaults: { side: 250, containerSize: "freeHeight", count: 10 },
+  values: { containerSize: STRIP_SIZES },
+  ranges: { side: [4, 10_000] },
+  family: (p) => `beasley-gcut.s${p.side}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", p.count),
+  build(seed, p) {
+    const [lo, hi] = beasleyGcutRange(p.side);
+    const r = stepRandom(seed, "boxes");
+    const sizes = Array.from({ length: p.count }, (): [number, number] => {
+      const w = int(r, lo, hi);
+      return [w, int(r, lo, hi)];
+    });
+    return { container: containerOf(p.containerSize, p.side, p.side), obstacles: [], boxes: itemsOf(sizes) };
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder,hopperTurton, burkeKendallWhitwell, beasleyGcut] as CorpusGenerator[]);
 
 /** The generators of the classes of the literature (roadmap item k106). */
 export const classGenerators: readonly CorpusGenerator[] = Object.freeze([berkeyWang, martelloVigo] as CorpusGenerator[]);
 
 /** The generators of the inputs for the worst case (roadmap item k107). */
 export const worstGenerators: readonly CorpusGenerator[] = Object.freeze([tallRow, skylineGap, blTrap, halfWide, ladder] as CorpusGenerator[]);
+
+/** The generators of the published sets of strip packing (roadmap item k46). */
+export const stripGenerators: readonly CorpusGenerator[] = Object.freeze([hopperTurton, burkeKendallWhitwell, beasleyGcut] as CorpusGenerator[]);
 
 /**
  * This function gives the generator with a name and a version. Without a version, it gives the first generator of the name
@@ -1600,6 +1805,58 @@ export const ladderFamily: CorpusFamily<GeneratedInput> = familyOf(ladder, {
   seeding: "stepRandom(seed, boxes) gives the sides of the items. The container is the strip of the width 1024.",
 });
 
+/** The seeding of the perfect strip families: one step for the cut, and one step for the order of the input. */
+const PERFECT_STRIP_SEEDING = "stepRandom(seed, boxes) gives the cuts of the object. stepRandom(seed, order) gives the order of the pieces. The rule gives the container.";
+
+/** This function gives the dimension `containerSize` of a published strip family. */
+const stripSizeDimension = (): CorpusDimension => ({
+  ...enumDimension("containerSize", STRIP_SIZES, "freeHeight"),
+  meaning: "The container: the object of the problem (fixed), or a strip of its width with a free height (freeHeight).",
+});
+
+/** This function gives the dimension `cut` of a perfect strip family. */
+const stripCutDimension = (): CorpusDimension =>
+  ownerDimension("cut", { kind: "enum", values: STRIP_CUTS, default: "guillotine", meaning: "The kind of cut: guillotine cuts, or a first pinwheel cut that is not a guillotine cut.", engines: ["packing"] });
+
+/** The family of `hopperTurton`: the categories C1 to C7 of Hopper and Turton 2001, with a known optimum. */
+export const hopperTurtonFamily: CorpusFamily<GeneratedInput> = familyOf(hopperTurton, {
+  meaning: "The categories C1 to C7 of Hopper and Turton 2001: a cut of a known object. The best height is the height of the object.",
+  dimensions: [
+    ownerDimension("category", { kind: "enum", values: HT_CATEGORIES, default: "C1", meaning: "The category of Hopper and Turton: the object and the counts of its problems.", engines: ["packing"] }),
+    intDimension("problem", 1, 3, 1, [1, 2, 3], "The problem of the category, from 1 to 3. It sets the count of the pieces."),
+    stripCutDimension(),
+    stripSizeDimension(),
+  ],
+  crossEngine: "exact",
+  seeding: PERFECT_STRIP_SEEDING,
+  invalidates: ["known"],
+});
+
+/** The family of `burkeKendallWhitwell`: the problems N1 to N13 of Burke, Kendall and Whitwell 2004, with a known optimum. */
+export const burkeKendallWhitwellFamily: CorpusFamily<GeneratedInput> = familyOf(burkeKendallWhitwell, {
+  meaning: "The problems N1 to N13 of Burke, Kendall and Whitwell 2004: a cut of a known object, with 10 to 3152 pieces.",
+  dimensions: [
+    ownerDimension("instance", { kind: "enum", values: BKW_PROBLEMS, default: "N1", meaning: "The problem of Burke, Kendall and Whitwell: the object and the count of the pieces.", engines: ["packing"] }),
+    stripCutDimension(),
+    stripSizeDimension(),
+  ],
+  crossEngine: "exact",
+  seeding: PERFECT_STRIP_SEEDING,
+  invalidates: ["known"],
+});
+
+/** The family of `beasleyGcut`: the problems gcut of Beasley 1985b. */
+export const beasleyGcutFamily: CorpusFamily<GeneratedInput> = familyOf(beasleyGcut, {
+  meaning: "The problems gcut of Beasley 1985b: sides uniform in a quarter to three quarters of a square stock, or of a strip.",
+  dimensions: [
+    intDimension("side", 4, 10_000, 250, BEASLEY_GCUT_SIDES, "The side of the square stock, and the width of the strip.", "log"),
+    stripSizeDimension(),
+    countDimension(10, { min: 1, levels: BEASLEY_GCUT_COUNTS }),
+  ],
+  crossEngine: "exact",
+  seeding: "stepRandom(seed, boxes) gives the sides of the pieces. The side gives the container, so the container takes no random numbers.",
+});
+
 /**
  * Each corpus family of the package, for `createFamilyRegistry` of `layout-contract`. An import registers nothing.
  * The family `rect-scattered` is not in the list: `RECT_SCATTERED` of `layout-contract` is its shared copy.
@@ -1621,4 +1878,7 @@ export const corpusFamilies: readonly CorpusFamily<GeneratedInput>[] = Object.fr
   blTrapFamily,
   halfWideFamily,
   ladderFamily,
+  hopperTurtonFamily,
+  burkeKendallWhitwellFamily,
+  beasleyGcutFamily,
 ]);

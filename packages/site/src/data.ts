@@ -277,6 +277,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k46",
+    title: "The families `hopper-turton`, `burke-kendall-whitwell` and `beasley-gcut` make the published strip sets by their rules. The corpus `pack-strip-v1` has 528 inputs.",
+    pr: 130,
+    link: "https://github.com/mark1russell7/packing/pull/130",
+  },
+  {
+    date: "2026-10-29",
     item: "k113",
     title: "The measures of a `bbox` output read the bounding box of each shape at its place. Thus `pack.fill` and `pack.shapeFill` stay from 0 to 1.",
     pr: 129,

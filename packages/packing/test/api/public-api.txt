@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 289 names
+## . (build/index.d.ts): 312 names
 
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
@@ -12,11 +12,15 @@ ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
 BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
+BEASLEY_GCUT_COUNTS: build/index.d.ts#BEASLEY_GCUT_COUNTS
+BEASLEY_GCUT_SIDES: build/index.d.ts#BEASLEY_GCUT_SIDES
 BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
 BL_TRAP_WIDTH: build/index.d.ts#BL_TRAP_WIDTH
 BL_TRAP_WIDTHS: build/index.d.ts#BL_TRAP_WIDTHS
 BOUND_KINDS: build/index.d.ts#BOUND_KINDS
+BURKE_KENDALL_WHITWELL_RULES: build/index.d.ts#BURKE_KENDALL_WHITWELL_RULES
 type BboxStrategyOptions: build/index.d.ts#BboxStrategyOptions
+type BeasleyGcutParams: build/index.d.ts#BeasleyGcutParams
 type BerkeyWangClass: build/index.d.ts#BerkeyWangClass
 type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
 type BerkeyWangRule: build/index.d.ts#BerkeyWangRule
@@ -25,6 +29,8 @@ type BoundKind: build/index.d.ts#BoundKind
 type BoundMeasures: build/index.d.ts#BoundMeasures
 type BoundObjective: build/index.d.ts#BoundObjective
 type BoundOptions: build/index.d.ts#BoundOptions
+type BurkeKendallWhitwellParams: build/index.d.ts#BurkeKendallWhitwellParams
+type BurkeKendallWhitwellProblem: build/index.d.ts#BurkeKendallWhitwellProblem
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/index.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
@@ -56,7 +62,11 @@ type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 HALF_WIDE_WIDTH: build/index.d.ts#HALF_WIDE_WIDTH
+HOPPER_TURTON_RULES: build/index.d.ts#HOPPER_TURTON_RULES
 type HalfWideParams: build/index.d.ts#HalfWideParams
+type HopperTurtonCategory: build/index.d.ts#HopperTurtonCategory
+type HopperTurtonParams: build/index.d.ts#HopperTurtonParams
+type HopperTurtonRule: build/index.d.ts#HopperTurtonRule
 type Item: @mark1russell7/layout-contract#Item (external)
 type KnownBest: build/index.d.ts#KnownBest
 LADDER_RUNGS: build/index.d.ts#LADDER_RUNGS
@@ -106,6 +116,7 @@ type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
 type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
 type PackingMetrics: build/index.d.ts#PackingMetrics
 type PerfectCutParams: build/index.d.ts#PerfectCutParams
+type PerfectStripRule: build/index.d.ts#PerfectStripRule
 type Placement: @mark1russell7/layout-contract#Placement (external)
 type Port: @mark1russell7/layout-contract#Port (external)
 type Portfolio: @mark1russell7/layout-contract#Portfolio (external)
@@ -162,6 +173,8 @@ type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/index.d.ts#Strategy
 type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
 type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
+type StripContainer: build/index.d.ts#StripContainer
+type StripCut: build/index.d.ts#StripCut
 type Supports: build/index.d.ts#Supports
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type TallRowParams: build/index.d.ts#TallRowParams
@@ -178,6 +191,9 @@ aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
 assertSupported: build/index.d.ts#assertSupported
 bboxStrategy: build/index.d.ts#bboxStrategy
+beasleyGcut: build/index.d.ts#beasleyGcut
+beasleyGcutFamily: build/index.d.ts#beasleyGcutFamily
+beasleyGcutRange: build/index.d.ts#beasleyGcutRange
 berkeyWang: build/index.d.ts#berkeyWang
 berkeyWangFamily: build/index.d.ts#berkeyWangFamily
 binCountBound: build/index.d.ts#binCountBound
@@ -185,6 +201,9 @@ blTrap: build/index.d.ts#blTrap
 blTrapFamily: build/index.d.ts#blTrapFamily
 boundGap: build/index.d.ts#boundGap
 boundMeasures: build/index.d.ts#boundMeasures
+burkeKendallWhitwell: build/index.d.ts#burkeKendallWhitwell
+burkeKendallWhitwellFamily: build/index.d.ts#burkeKendallWhitwellFamily
+burkeKendallWhitwellOf: build/index.d.ts#burkeKendallWhitwellOf
 canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
 cardsFamily: build/index.d.ts#cardsFamily
@@ -218,6 +237,9 @@ halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
 hardBreaks: build/index.d.ts#hardBreaks
 hashInput: build/index.d.ts#hashInput
+hopperTurton: build/index.d.ts#hopperTurton
+hopperTurtonFamily: build/index.d.ts#hopperTurtonFamily
+hopperTurtonOf: build/index.d.ts#hopperTurtonOf
 isDeterministic: build/index.d.ts#isDeterministic
 ladder: build/index.d.ts#ladder
 ladderFamily: build/index.d.ts#ladderFamily
@@ -281,6 +303,7 @@ spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
+stripGenerators: build/index.d.ts#stripGenerators
 supportsCell: build/index.d.ts#supportsCell
 tailShare: build/index.d.ts#tailShare
 tallRow: build/index.d.ts#tallRow
@@ -322,6 +345,12 @@ interface AspectFitStrategyOptions {
 ### build/index.d.ts#BBOX_SHAPES
 export declare const BBOX_SHAPES: readonly ShapeKind[];
 
+### build/index.d.ts#BEASLEY_GCUT_COUNTS
+export declare const BEASLEY_GCUT_COUNTS: readonly number[];
+
+### build/index.d.ts#BEASLEY_GCUT_SIDES
+export declare const BEASLEY_GCUT_SIDES: readonly number[];
+
 ### build/index.d.ts#BERKEY_WANG_RULES
 export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>>;
 
@@ -334,11 +363,21 @@ export declare const BL_TRAP_WIDTHS: Readonly<Record<2 | 3, readonly number[]>>;
 ### build/index.d.ts#BOUND_KINDS
 export declare const BOUND_KINDS: readonly BoundKind[];
 
+### build/index.d.ts#BURKE_KENDALL_WHITWELL_RULES
+export declare const BURKE_KENDALL_WHITWELL_RULES: Readonly<Record<BurkeKendallWhitwellProblem, PerfectStripRule>>;
+
 ### build/index.d.ts#BboxStrategyOptions
 interface BboxStrategyOptions {
   member?: string | PortfolioEntry;
   turn?: boolean;
 }
+
+### build/index.d.ts#BeasleyGcutParams
+type BeasleyGcutParams = {
+  side: number;
+  containerSize: StripContainer;
+  count: number;
+};
 
 ### build/index.d.ts#BerkeyWangClass
 type BerkeyWangClass = "I" | "II" | "III" | "IV" | "V" | "VI";
@@ -381,6 +420,16 @@ type BoundObjective = "height" | "width" | "area" | "placed";
 interface BoundOptions {
   readonly tolerance?: number;
 }
+
+### build/index.d.ts#BurkeKendallWhitwellParams
+type BurkeKendallWhitwellParams = {
+  instance: BurkeKendallWhitwellProblem;
+  cut: StripCut;
+  containerSize: StripContainer;
+};
+
+### build/index.d.ts#BurkeKendallWhitwellProblem
+type BurkeKendallWhitwellProblem = "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | "N7" | "N8" | "N9" | "N10" | "N11" | "N12" | "N13";
 
 ### build/index.d.ts#CLASS_COUNTS
 export declare const CLASS_COUNTS: readonly number[];
@@ -564,12 +613,33 @@ interface GeneratorStamp extends LayoutGenerator {
 ### build/index.d.ts#HALF_WIDE_WIDTH
 export declare const HALF_WIDE_WIDTH = 200;
 
+### build/index.d.ts#HOPPER_TURTON_RULES
+export declare const HOPPER_TURTON_RULES: Readonly<Record<HopperTurtonCategory, HopperTurtonRule>>;
+
 ### build/index.d.ts#HalfWideParams
 type HalfWideParams = {
   excess: number;
   containerSize: WorstContainer;
   count: number;
 };
+
+### build/index.d.ts#HopperTurtonCategory
+type HopperTurtonCategory = "C1" | "C2" | "C3" | "C4" | "C5" | "C6" | "C7";
+
+### build/index.d.ts#HopperTurtonParams
+type HopperTurtonParams = {
+  category: HopperTurtonCategory;
+  problem: number;
+  cut: StripCut;
+  containerSize: StripContainer;
+};
+
+### build/index.d.ts#HopperTurtonRule
+interface HopperTurtonRule {
+  readonly w: number;
+  readonly h: number;
+  readonly counts: readonly [number, number, number];
+}
 
 ### build/index.d.ts#KnownBest
 interface KnownBest {
@@ -796,6 +866,13 @@ type PerfectCutParams = {
   containerSize: "fixed" | "freeHeight" | "freeArea";
   count: number;
 };
+
+### build/index.d.ts#PerfectStripRule
+interface PerfectStripRule {
+  readonly w: number;
+  readonly h: number;
+  readonly count: number;
+}
 
 ### build/index.d.ts#PortfolioCell
 interface PortfolioCell {
@@ -1067,6 +1144,12 @@ interface Strategy<O = unknown> {
   pack(input: PackInput, options: O, context: PackContext): PackOutput;
 }
 
+### build/index.d.ts#StripContainer
+type StripContainer = "fixed" | "freeHeight";
+
+### build/index.d.ts#StripCut
+type StripCut = "guillotine" | "free";
+
 ### build/index.d.ts#Supports
 type Supports = {
   containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
@@ -1151,6 +1234,15 @@ export declare function assertSupported(supports: Supports, input: PackInput): v
 ### build/index.d.ts#bboxStrategy
 export declare const bboxStrategy: Strategy<BboxStrategyOptions>;
 
+### build/index.d.ts#beasleyGcut
+export declare const beasleyGcut: CorpusGenerator<BeasleyGcutParams>;
+
+### build/index.d.ts#beasleyGcutFamily
+export declare const beasleyGcutFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#beasleyGcutRange
+export declare function beasleyGcutRange(side: number): readonly [number, number];
+
 ### build/index.d.ts#berkeyWang
 export declare const berkeyWang: CorpusGenerator<BerkeyWangParams>;
 
@@ -1175,6 +1267,19 @@ export declare function boundGap(result: number, bound: number, sense: "lower" |
 
 ### build/index.d.ts#boundMeasures
 export declare function boundMeasures(input: PackInput, output: PackOutput, options?: BoundOptions): BoundMeasures;
+
+### build/index.d.ts#burkeKendallWhitwell
+export declare const burkeKendallWhitwell: CorpusGenerator<BurkeKendallWhitwellParams>;
+
+### build/index.d.ts#burkeKendallWhitwellFamily
+export declare const burkeKendallWhitwellFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#burkeKendallWhitwellOf
+export declare function burkeKendallWhitwellOf(seed: number, params?: Partial<BurkeKendallWhitwellParams>): {
+  w: number;
+  h: number;
+  pieces: CutPiece[];
+};
 
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
@@ -1271,6 +1376,19 @@ export declare function hardBreaks(input: PackInput, output: PackOutput): number
 
 ### build/index.d.ts#hashInput
 export declare function hashInput(file: LayoutInput$1): string;
+
+### build/index.d.ts#hopperTurton
+export declare const hopperTurton: CorpusGenerator<HopperTurtonParams>;
+
+### build/index.d.ts#hopperTurtonFamily
+export declare const hopperTurtonFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#hopperTurtonOf
+export declare function hopperTurtonOf(seed: number, params?: Partial<HopperTurtonParams>): {
+  w: number;
+  h: number;
+  pieces: CutPiece[];
+};
 
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
@@ -1478,6 +1596,9 @@ export declare const strategies: readonly Strategy[];
 
 ### build/index.d.ts#strategy
 export declare function strategy(id: string): Strategy;
+
+### build/index.d.ts#stripGenerators
+export declare const stripGenerators: readonly CorpusGenerator[];
 
 ### build/index.d.ts#supportsCell
 export declare function supportsCell(supports: Supports, cell: Partial<Record<Dimension, string>>): boolean;
