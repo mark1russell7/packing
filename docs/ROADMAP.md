@@ -88,7 +88,7 @@ Status: done, done, waiting, next, done.
 | k76 | A survey of each published method of packing, as ideas. Each method gets a row of the queue with its gain, its uncertainty and its cost. | theory | done | |
 | k77 | A space between two given items, or one channel, set once. The input names the pair and its gap, and the placement keeps that gap. Today the gap comes from the margins of both boxes, so it doubles. The routing bench of `layout-contract` (L13) asks for it. | core | done | k65 |
 | k78 | Random restarts around each strategy (idea R1 of the survey) | strategies | done | k6, k7 |
-| k79 | Goal-driven ruin and recreate (idea R5 of the survey) | strategies | later | k6, k7 |
+| k79 | Goal-driven ruin and recreate (idea R5 of the survey) | strategies | done | k6, k7 |
 | k80 | Overlap minimization for rectangles (idea R6 of the survey) | strategies | later | k6, k7 |
 | k81 | Binary search on the height (idea R10 of the survey) | strategies | later | k6, k7 |
 | k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
@@ -133,39 +133,38 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | --- | --- | --- | --- | --- | --- |
 | 1 | k115 | 4 | 2 | 1 | 8.0 |
 | 2 | k116 | 5 | 4 | 3 | 6.7 |
-| 3 | k79 | 4 | 4 | 3 | 5.3 |
-| 4 | k80 | 4 | 4 | 3 | 5.3 |
-| 5 | k26 | 5 | 4 | 4 | 5.0 |
-| 6 | k25 | 3 | 3 | 2 | 4.5 |
-| 7 | k70 | 3 | 3 | 2 | 4.5 |
-| 8 | k13 | 3 | 3 | 2 | 4.5 |
-| 9 | k92 | 3 | 3 | 2 | 4.5 |
-| 10 | k10 | 4 | 4 | 4 | 4.0 |
-| 11 | k81 | 4 | 3 | 3 | 4.0 |
-| 12 | k82 | 3 | 4 | 3 | 4.0 |
-| 13 | k83 | 3 | 4 | 3 | 4.0 |
-| 14 | k93 | 4 | 2 | 2 | 4.0 |
-| 15 | k94 | 4 | 3 | 3 | 4.0 |
-| 16 | k95 | 4 | 3 | 3 | 4.0 |
-| 17 | k96 | 5 | 4 | 5 | 4.0 |
-| 18 | k97 | 3 | 4 | 3 | 4.0 |
-| 19 | k110 | 4 | 2 | 2 | 4.0 |
-| 20 | k84 | 3 | 5 | 4 | 3.8 |
-| 21 | k74 | 4 | 3 | 4 | 3.0 |
-| 22 | k52 | 3 | 2 | 2 | 3.0 |
-| 23 | k85 | 3 | 3 | 3 | 3.0 |
-| 24 | k86 | 3 | 5 | 5 | 3.0 |
-| 25 | k87 | 3 | 3 | 3 | 3.0 |
-| 26 | k98 | 3 | 2 | 2 | 3.0 |
-| 27 | k109 | 4 | 2 | 3 | 2.7 |
-| 28 | k99 | 3 | 4 | 5 | 2.4 |
-| 29 | k100 | 3 | 3 | 4 | 2.3 |
-| 30 | k88 | 2 | 2 | 2 | 2.0 |
-| 31 | k101 | 4 | 2 | 4 | 2.0 |
-| 32 | k102 | 3 | 2 | 3 | 2.0 |
-| 33 | k103 | 2 | 2 | 2 | 2.0 |
-| 34 | k89 | 2 | 4 | 5 | 1.6 |
-| 35 | k104 | 2 | 3 | 5 | 1.2 |
+| 3 | k80 | 4 | 4 | 3 | 5.3 |
+| 4 | k26 | 5 | 4 | 4 | 5.0 |
+| 5 | k25 | 3 | 3 | 2 | 4.5 |
+| 6 | k70 | 3 | 3 | 2 | 4.5 |
+| 7 | k13 | 3 | 3 | 2 | 4.5 |
+| 8 | k92 | 3 | 3 | 2 | 4.5 |
+| 9 | k10 | 4 | 4 | 4 | 4.0 |
+| 10 | k81 | 4 | 3 | 3 | 4.0 |
+| 11 | k82 | 3 | 4 | 3 | 4.0 |
+| 12 | k83 | 3 | 4 | 3 | 4.0 |
+| 13 | k93 | 4 | 2 | 2 | 4.0 |
+| 14 | k94 | 4 | 3 | 3 | 4.0 |
+| 15 | k95 | 4 | 3 | 3 | 4.0 |
+| 16 | k96 | 5 | 4 | 5 | 4.0 |
+| 17 | k97 | 3 | 4 | 3 | 4.0 |
+| 18 | k110 | 4 | 2 | 2 | 4.0 |
+| 19 | k84 | 3 | 5 | 4 | 3.8 |
+| 20 | k74 | 4 | 3 | 4 | 3.0 |
+| 21 | k52 | 3 | 2 | 2 | 3.0 |
+| 22 | k85 | 3 | 3 | 3 | 3.0 |
+| 23 | k86 | 3 | 5 | 5 | 3.0 |
+| 24 | k87 | 3 | 3 | 3 | 3.0 |
+| 25 | k98 | 3 | 2 | 2 | 3.0 |
+| 26 | k109 | 4 | 2 | 3 | 2.7 |
+| 27 | k99 | 3 | 4 | 5 | 2.4 |
+| 28 | k100 | 3 | 3 | 4 | 2.3 |
+| 29 | k88 | 2 | 2 | 2 | 2.0 |
+| 30 | k101 | 4 | 2 | 4 | 2.0 |
+| 31 | k102 | 3 | 2 | 3 | 2.0 |
+| 32 | k103 | 2 | 2 | 2 | 2.0 |
+| 33 | k89 | 2 | 4 | 5 | 1.6 |
+| 34 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
