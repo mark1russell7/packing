@@ -212,7 +212,8 @@ describe("the portfolio report: the composite entries", () => {
     expect(COMPOSITE_IDS).toEqual(new Set(["portfolio-k2", "portfolio-k3", "aspect-fit-maxrects-bl", "aspect-fit-maxrects-bssf", "aspect-fit-portfolio-k2", "portfolio-area-rows-bl", "select-rows-bl",
       "restarts-maxrects-bl-k16", "restarts-rows-k16", "restarts-maxrects-bl-shuffle-k16", "bbox-maxrects-bl", "bbox-skyline", "ruin-recreate-maxrects-bl-k64", "ruin-recreate-skyline-k64",
       "overlap-min-maxrects-bl-k8192", "overlap-min-skyline-k8192",
-      "anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16"]));
+      "anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16",
+      "relax-rows", "relax-maxrects-bl", "relax-skyline-bl-waste"]));
     expect(cell.pool).toEqual(["A", "B"]);
     expect(Object.keys(cell.soleWins)).toEqual(["A", "B"]);
     expect(cell.losers).not.toContain("portfolio-k2");

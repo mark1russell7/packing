@@ -47,7 +47,7 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 
 // The pins of k121 come from the code: the first 4 uniform configs of the seed 20 without clock limits, and the meta counts with and without a clock limit.
 const DEFAULT_UNIFORM_IDS = ["ce6d8bf386fbb8a6", "58da5ef5c70859cc", "fb834701df83f8be", "da3d8a993a6a894c"];
-const CLOCK_FREE_META = 19192758499731626817662756144n;
+const CLOCK_FREE_META = 19192758499731626817662916682n;
 const CLOCK_CONFIGS = 19192758499731625913230514340n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
@@ -122,7 +122,7 @@ describe("the counts of the configs", () => {
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
     expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64) + HOLE_DEGREE_MAX_STEPS + 1));
-    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu"]);
+    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
 });
@@ -316,7 +316,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 23 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 24 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -343,6 +343,7 @@ describe("the strata of k115", () => {
       "anneal:1",
       "genetic:1",
       "tabu:1",
+      "relax:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
     expect(strata.reduce((s, x) => s + x.configs, 0n)).toBe(total);

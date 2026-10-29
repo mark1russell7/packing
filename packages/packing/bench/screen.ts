@@ -45,6 +45,9 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "anneal-skyline-k16": "move.anneal",
   "genetic-maxrects-bl-k16": "move.genetic",
   "tabu-maxrects-bl-k16": "move.tabu",
+  "relax-rows": "move.relax",
+  "relax-maxrects-bl": "move.relax",
+  "relax-skyline-bl-waste": "move.relax",
 });
 
 /** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */

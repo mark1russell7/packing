@@ -123,6 +123,7 @@ export {
   type GeneticStrategyOptions,
   type TabuStrategyOptions,
 } from "./order-search.ts";
+export { RELAX_MAX_CONSTRAINTS, RELAX_STAGE, relaxStrategy, type RelaxStrategyOptions } from "./relax.ts";
 export { RUIN_KINDS, RUIN_RECREATE_STAGE, ruinRecreateStrategy, type RuinKind, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 export {
   cellKey,

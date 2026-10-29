@@ -72,6 +72,9 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `anneal-skyline-k16` | `anneal` | `member: "skyline"`, `iterations: 16` | `skyline` |
 | `genetic-maxrects-bl-k16` | `genetic` | `member: maxrects-bl`, `iterations: 16`, `population: 4` | `maxrects-bl` |
 | `tabu-maxrects-bl-k16` | `tabu` | `member: maxrects-bl`, `iterations: 16`, `neighbors: 4` | `maxrects-bl` |
+| `relax-rows` | `relax` | `member: "rows"` | `rows` |
+| `relax-maxrects-bl` | `relax` | `member: maxrects-bl` | `maxrects-bl` |
+| `relax-skyline-bl-waste` | `relax` | `member: skyline-bl-waste` | `skyline-bl-waste` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
@@ -1109,13 +1112,13 @@ Why the clock limits are outside the coverage:
 - A clock limit stops a search after a time. The output then depends on the speed and on the load of the computer.
 - Thus a result with a clock limit measures the computer, not the algorithm. No model of the config and the input can predict it.
 - The default sample draws from `clockFree` of `packSpace`: the param `limitTime` is always `false`.
-- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 23 strata stay the same.
+- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 24 strata stay the same.
 - `packSpace` keeps the clock limits. The option `--timing` of `sample-space.ts` draws them only on request.
 
 The option `--timing`:
 
 - `off` (the default) draws no clock limits.
-- `stratum` adds the timing stratum `clock:1` after the 23 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
+- `stratum` adds the timing stratum `clock:1` after the 24 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
 - `stratum` goes only with `--draw stratified`. The coverage does not read the pairs of `clock:1`, and `sampled.clockPairs` counts them.
 - `mixed` draws from the whole space, as before k121. Pair `i` of a sample with `mixed` is pair `i` of the samples of k112 to k118.
 
@@ -1139,9 +1142,9 @@ A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `ben
 - A meta option of the stage `combine` is its own family. Its size is its count of members.
 - `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
 - `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
-- `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` and `tabu` have 1 member.
+- `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu` and `relax` have 1 member.
 - Each one is one stratum. The family of their member does not count.
-- Thus `packSpace` has 23 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- Thus `packSpace` has 24 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
 - A new option of `placement` or `combine` gives new strata.
 
 ```sh

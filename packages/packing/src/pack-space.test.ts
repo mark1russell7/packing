@@ -52,12 +52,14 @@ describe("packSpace", () => {
     // Before k80 the counts were 185246197022536573518, 66707889492006738, 184312874572011990510 and 66333631179349290.
     // Before k26 the counts were 185246197022536600275, 66707889492007629, 184312874572012017240 and 66333631179350180.
     // The searches over orders of k26 give 135 param points each with 3 levels and 5 each with 1 level, for each base config.
+    // Before k124 the counts were 185246197022537804340, 66707889492020994, 184312874572013220090 and 66333631179363530.
+    // The relax pass of k124 gives 3 param points for each base config with 3 levels, and 1 with 1 level.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022537804340n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492020994n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572013220090n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179363530n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022537813259n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492021885n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572013229000n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179364420n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
