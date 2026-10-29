@@ -2,6 +2,8 @@
 // It packs each input of a corpus with each strategy and gives one `layout-record/1` record for each run.
 
 import {
+  anchorStability,
+  anchorStep,
   outputHash,
   boundMeasures,
   BOUND_KINDS,
@@ -21,6 +23,7 @@ import {
   toPackInput,
   UnsupportedCell,
   unsupportedOf,
+  type AnchorStabilityOptions,
   type CorpusManifest,
   type CorpusSpec,
   type MeasureId,
@@ -224,6 +227,11 @@ export interface BenchOptions {
    * Then the time ratio of two entries compares passes on the same computer at nearly the same moment. The default is `false`.
    */
   interleave?: boolean;
+  /**
+   * The stability when an anchor moves (roadmap item k111). With `true` or options, each input with a locked item gets the
+   * measures `pack.anchor.*` of `anchorMeasures`. They need more packs. The default is `false`, so the records do not change.
+   */
+  anchor?: boolean | AnchorStabilityOptions;
 }
 
 /** The result of `runBench`: the facts of the run, the records, the manifest of the corpus and the outputs. */
@@ -422,6 +430,25 @@ export function pairValues(input: PackInput, first: PackOutput, searchMs: readon
   return values;
 }
 
+/**
+ * This function gives the measures `pack.anchor.*` of one input, or none when the input has no locked item with a position.
+ * It moves each locked item with `anchorStep`, one at a time. The record keeps the mean of `mean` and `moved` over
+ * the locked items, the largest `max` and `gain`, and the smallest `settled`.
+ */
+export function anchorMeasures(input: PackInput, first: PackOutput, strategyId: string, options: unknown, seed: number, given: AnchorStabilityOptions = {}): Record<string, number> {
+  const locks = input.items.filter((i) => i.locked === true && Number.isFinite(i.x) && Number.isFinite(i.y));
+  if (locks.length === 0) return {};
+  const all = locks.map((lock) => anchorStability(input, { strategy: strategyId, options }, lock.id, anchorStep(input, first, lock.id, given.steps), { ...given, seed }).measures);
+  const mean = (id: keyof (typeof all)[number]): number => all.reduce((sum, m) => sum + m[id], 0) / all.length;
+  return {
+    "pack.anchor.mean": mean("pack.anchor.mean"),
+    "pack.anchor.max": Math.max(...all.map((m) => m["pack.anchor.max"])),
+    "pack.anchor.moved": mean("pack.anchor.moved"),
+    "pack.anchor.gain": Math.max(...all.map((m) => m["pack.anchor.gain"])),
+    "pack.anchor.settled": Math.min(...all.map((m) => m["pack.anchor.settled"])),
+  };
+}
+
 /** This function sums one measure over the stages of a trace. */
 function traceSum(output: PackOutput, id: string): number {
   let sum = 0;
@@ -444,6 +471,7 @@ export function finite(values: Record<string, number>): Record<string, number> {
  * - The runner packs each pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock.
  * - With `interleave`, the timed passes of each input alternate between the entries. The records and their order do not change.
  * - An input with a `base` in the corpus gets the stability measures of `measureChange` against the run on its base.
+ * - With `anchor`, an input with a locked item gets the measures `pack.anchor.*` of `anchorMeasures`.
  * - An error other than `UnsupportedCell` goes into `errors`, and the runner goes on.
  */
 export function runBench(options: BenchOptions): BenchResult {
@@ -526,6 +554,10 @@ export function runBench(options: BenchOptions): BenchResult {
         const values = pairValues(input, first, searchMs, file.known);
         const base = file.base === undefined ? undefined : done.get(file.base);
         if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
+        // Only a run that asks for it gets the stability when an anchor moves (roadmap item k111)
+        if (options.anchor !== undefined && options.anchor !== false) {
+          Object.assign(values, anchorMeasures(input, first, e.strategy, given, file.seed, options.anchor === true ? {} : options.anchor));
+        }
         done.set(file.id, { input, output: first });
         kept.set(file.id, first);
 

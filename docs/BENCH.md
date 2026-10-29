@@ -158,6 +158,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
+| `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -328,7 +329,71 @@ Version 2 of `rect-grid` adds the parameter `order`. With `soft`, each item gets
 
 The name `screen-v1` is the screen set of the router `highways`. Thus the packer uses the name `pack-screen-v1`, and a joint reader of the records sees no conflict.
 
+The flag `--anchor` adds the measures `pack.anchor.*` of roadmap item k111. The section "Stability when an anchor moves" tells them. Without the flag, the records do not change.
+
 No generator of the package makes an input with a `base` and a `change` yet. Thus no record has the stability measures. When the corpus has change pairs, the runner adds the measures of `measureChange` against the run on the base input.
+
+## Stability when an anchor moves
+
+The measures `pack.anchor.*` of `docs/MEASURES.md` need `k + 1` packs for each locked item. Thus the runner computes them only when a run asks for them.
+
+```sh
+node bench/main.ts run --corpus pack-anchor-v1 --prediction <id> --anchor
+node bench/anchor.ts --report --strategies rows,skyline,maxrects-bl
+```
+
+- The flag `--anchor` of `run`, or the option `anchor` of `runBench`, adds the measures to each input with a locked item that has a position.
+- The other inputs get no new measure. Without the flag, each record is the same, byte for byte. A test pins this.
+- The runner moves each locked item, one at a time, with the step of `anchorStep`. Each pack has the seed of the input.
+- The record keeps the mean of `mean` and `moved` over the locked items, the largest `max` and `gain`, and the smallest `settled`.
+- `bench/anchor.ts --report` packs `pack-anchor-v1` with the option and writes the medians for each strategy. It reads no time.
+- The workflow `bench.yml` has no input for the option yet. Start the report on a local computer with a small corpus.
+
+The step of the bench, `anchorStep(input, output, id)`:
+
+- An anchor on the top or the bottom wall, or on no wall, moves in `x`. An anchor on only a side wall moves in `y`.
+- The length is 1% of the container width, rounded, and 1 or more. The default loop has 4 steps.
+- The step goes to the right or down. It goes to the left or up when 4 steps go out of a fixed side.
+
+The corpus `pack-anchor-v1` has 17 specs and 51 inputs. All data is made up.
+
+- `wall-locks` version 1 has the `locks` 1 to 4, the containers `fixed` and `freeHeight`, the counts 20 and 40, and the seeds 1 to 3. It has 48 inputs.
+- The case `touchObstacles` of `edge-cases`, with the count 12 and the seeds 1 to 3, adds 3 inputs. Each one has one locked item on an obstacle.
+- The corpus has 123 locked items. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 24 and `shaped` 0.
+- The builder `bench/anchor.ts` writes the file. `node bench/anchor.ts --check` and a test compare the file with the builder.
+
+The rules of `wall-locks`:
+
+| Part | Rule |
+|---|---|
+| The container | The width is 300 to 600. The reference height is the item area over 55% of the width, and 240 or more. A `fixed` box has this height. |
+| The free items | `count` items, 20 to 60 wide and 15 to 50 high, with the ids `b0` and on. |
+| The locks | 24 to 40 wide and 16 to 32 high, with the ids `l0` to `l3`. Each one has a free length of 8 units or more along its wall. |
+| The walls | `fixed`: top, right, left, bottom. `freeHeight` has no bottom wall, so its fourth lock is on the top wall. |
+
+A local small run of 2026-10-28 on `pack-anchor-v1`, all 51 inputs. The numbers read no time, but a local run is not the record of CI.
+
+| Strategy | Median `mean` | Median `max` | Median `moved` | Median `gain` | Share settled |
+|---|---|---|---|---|---|
+| `rows` | 0.002 | 0.01 | 0.2 | 80.599 | 0.176 |
+| `skyline` | 0.054 | 0.657 | 0.365 | 75.56 | 0.039 |
+| `maxrects-bl` | 0.049 | 0.537 | 0.341 | 82.2 | 0.039 |
+| `shelf-best` | 0.015 | 0.711 | 0.214 | 88.56 | 0.118 |
+| `restarts-maxrects-bl-k16` | 0.049 | 0.573 | 0.429 | 80.909 | 0.039 |
+| `select-rows-bl` | 0.021 | 0.536 | 0.238 | 82.2 | 0.118 |
+
+- Each strategy has a median gain near 80. A step of 1% of the width sends an item to another row or another free rectangle.
+- `rows` has the smallest medians of `mean` and `max` on the first step. Its loop also jumps, in a later step.
+- An input settles only when each of its locked items settles. At the gain limit 1, few inputs settle.
+
+The CI run [40799160871](https://github.com/mark1russell7/packing/actions/runs/40799160871) of 2026-10-29 packed all 28 entries with `--anchor`. It is the record.
+
+- The 6 entries of the local run give the same medians in CI.
+- The 1377 measured records have 0 hard breaks, and each one is deterministic.
+- `rows`, `shelf`, `shelf-next` and `restarts-rows-k16` have the smallest median `mean`, 0.002.
+- The median gain of each entry is 55 to 100. `aspect-fit-maxrects-bl` and `aspect-fit-portfolio-k2` have the smallest gain, 55.9.
+- A composite entry does not make the jumps smaller. Each portfolio has a median gain of 79 to 83.
+- The largest share settled is 0.196, for `shelf-next`. `maxrects-baf` has no input that settles.
 
 ## The predictions
 

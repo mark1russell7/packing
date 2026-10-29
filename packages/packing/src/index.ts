@@ -84,6 +84,20 @@ export {
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
 export { aspectFitStrategy, composites, DEFAULT_STRATEGY, packDefault, packWith, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+export {
+  ANCHOR_GAIN_LIMIT,
+  ANCHOR_MEASURE_IDS,
+  ANCHOR_STEPS,
+  anchorStability,
+  anchorStep,
+  isAnchor,
+  moveAnchor,
+  type AnchorMeasures,
+  type AnchorStability,
+  type AnchorStabilityOptions,
+  type AnchorStep,
+  type AnchorStrategy,
+} from "./anchor.ts";
 export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
 export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb, type RestartsStrategyOptions } from "./restarts.ts";
@@ -225,6 +239,13 @@ export {
   burkeKendallWhitwellFamily,
   beasleyGcutFamily,
   stripGenerators,
+  wallLocks,
+  wallLocksFamily,
+  anchorGenerators,
+  WALL_LOCK_WALLS,
+  WALL_LOCKS_MAX,
+  type WallLocksParams,
+  type LockWall,
   HOPPER_TURTON_RULES,
   BURKE_KENDALL_WHITWELL_RULES,
   BEASLEY_GCUT_SIDES,

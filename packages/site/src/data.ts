@@ -296,6 +296,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k111",
+    title: "The measures `pack.anchor.*` move one locked item a small step and measure how far the other items move. The corpus `pack-anchor-v1` has 51 inputs.",
+    pr: 140,
+    link: "https://github.com/mark1russell7/packing/pull/140",
+  },
+  {
+    date: "2026-10-29",
     item: "k108",
     title: "The survey is data: 60 ideas in `survey.json`, with 25 new ideas for online packing, bins, the knapsack and circles. The strategies page shows them.",
     pr: 138,

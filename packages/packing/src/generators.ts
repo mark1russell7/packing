@@ -1490,12 +1490,88 @@ export const beasleyGcut: CorpusGenerator<BeasleyGcutParams> = defineGenerator<B
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The inputs with locked items on the walls (roadmap item k111). The measure `anchorStability` moves one locked item
+// along its wall and measures how far the other items move. The data is made up.
+
+/** The parameters of `wall-locks`. */
+export type WallLocksParams = { locks: number; containerSize: WorstContainer; count: number };
+
+/** The wall of a locked item of `wall-locks`. */
+export type LockWall = "top" | "right" | "left" | "bottom";
+
+/**
+ * The walls of the locked items of `wall-locks`, in the order of the locks. A strip with a free height has no bottom
+ * wall, so its fourth lock is on the top wall.
+ */
+export const WALL_LOCK_WALLS: Readonly<Record<WorstContainer, readonly LockWall[]>> = Object.freeze({
+  fixed: Object.freeze(["top", "right", "left", "bottom"] as const),
+  freeHeight: Object.freeze(["top", "right", "left", "top"] as const),
+});
+
+/** The largest count of the locked items of `wall-locks`. */
+export const WALL_LOCKS_MAX = 4;
+
+/** The smallest reference height of `wall-locks`. The locks of the side walls and of the bottom wall do not touch. */
+const WALL_LOCKS_MIN_HEIGHT = 240;
+
+/**
+ * The generator `wall-locks`, version 1: 1 to 4 locked items on the walls of a box, and `count` free items.
+ *
+ * - The width is 300 to 600. The free items are 20 to 60 wide and 15 to 50 high.
+ * - The reference height is the item area over 55% of the width, and 240 or more. A `fixed` box has this height.
+ * - The locks are 24 to 40 wide and 16 to 32 high, with the ids `l0` to `l3`. The free items have the ids `b0` and on.
+ * - The walls of the locks are in `WALL_LOCK_WALLS`. A lock on a side wall is at 25% to 60% of the reference height.
+ * - Each lock has a free length of 8 units or more along its wall, in the direction of `x` or of `y`.
+ */
+export const wallLocks: CorpusGenerator<WallLocksParams> = defineGenerator<WallLocksParams>({
+  name: "wall-locks",
+  version: 1,
+  set: "anchor-v1",
+  defaults: { locks: 2, containerSize: "fixed", count: 40 },
+  values: { containerSize: WORST_SIZES },
+  ranges: { locks: [1, WALL_LOCKS_MAX] },
+  family: (p) => `wall-locks.l${p.locks}.${p.containerSize}.n${p.count}`,
+  cell: (p) => cellWith(p.containerSize, "rect", "none", "uniform", p.count + p.locks, true),
+  build(seed, p) {
+    if (p.count < 1) throw new RangeError(`The generator "wall-locks" needs a count of 1 or more.`);
+    const w = int(stepRandom(seed, "container"), 300, 600);
+    const r = stepRandom(seed, "boxes");
+    const sizes = Array.from({ length: p.count }, (): [number, number] => {
+      const bw = int(r, 20, 60);
+      return [bw, int(r, 15, 50)];
+    });
+    const area = sizes.reduce((s, [bw, bh]) => s + bw * bh, 0);
+    const h = Math.max(WALL_LOCKS_MIN_HEIGHT, Math.ceil(area / (0.55 * w)));
+    const l = stepRandom(seed, "locks");
+    const locks: Item[] = WALL_LOCK_WALLS[p.containerSize].slice(0, p.locks).map((wall, i) => {
+      const lw = int(l, 24, 40);
+      const lh = int(l, 16, 32);
+      const side = (): number => span(l, h * 0.25, h * 0.6);
+      // The fourth lock is on the right part of its wall
+      const along = (): number => (i === 3 ? span(l, w * 0.65, w * 0.85 - lw) : span(l, w * 0.2, w * 0.6 - lw));
+      const at: Record<LockWall, () => { x: number; y: number }> = {
+        top: () => ({ x: along(), y: 0 }),
+        right: () => ({ x: w - lw, y: side() }),
+        left: () => ({ x: 0, y: side() }),
+        bottom: () => ({ x: along(), y: h - lh }),
+      };
+      return { id: `l${i}`, w: lw, h: lh, ...at[wall](), locked: true };
+    });
+    const boxes: Item[] = [...locks, ...sizes.map(([bw, bh], i) => ({ id: `b${i}`, w: bw, h: bh }))];
+    return { container: containerOf(p.containerSize, w, h), obstacles: [], boxes };
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder,hopperTurton, burkeKendallWhitwell, beasleyGcut] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder,hopperTurton, burkeKendallWhitwell, beasleyGcut, wallLocks] as CorpusGenerator[]);
 
 /** The generators of the classes of the literature (roadmap item k106). */
 export const classGenerators: readonly CorpusGenerator[] = Object.freeze([berkeyWang, martelloVigo] as CorpusGenerator[]);
+
+/** The generators of the inputs with locked items on the walls (roadmap item k111). */
+export const anchorGenerators: readonly CorpusGenerator[] = Object.freeze([wallLocks] as CorpusGenerator[]);
 
 /** The generators of the inputs for the worst case (roadmap item k107). */
 export const worstGenerators: readonly CorpusGenerator[] = Object.freeze([tallRow, skylineGap, blTrap, halfWide, ladder] as CorpusGenerator[]);
@@ -1870,6 +1946,21 @@ export const beasleyGcutFamily: CorpusFamily<GeneratedInput> = familyOf(beasleyG
   seeding: "stepRandom(seed, boxes) gives the sides of the pieces. The side gives the container, so the container takes no random numbers.",
 });
 
+/** The family of `wallLocks`: 1 to 4 locked items on the walls of a box (roadmap item k111). */
+export const wallLocksFamily: CorpusFamily<GeneratedInput> = familyOf(wallLocks, {
+  meaning: "Locked items on the walls of a box, and free items. The measure anchorStability moves one locked item along its wall.",
+  dimensions: [
+    intDimension("locks", 1, WALL_LOCKS_MAX, 2, [1, 2, 3, 4], "The count of the locked items on the walls, from 1 to 4."),
+    {
+      ...enumDimension("containerSize", WORST_SIZES, "fixed"),
+      meaning: "The container: a box of a fixed size (fixed), or a strip of a fixed width with a free height (freeHeight).",
+    },
+    countDimension(40, { min: 1, levels: Object.freeze([10, 20, 40, 80]) }),
+  ],
+  crossEngine: "exact",
+  seeding: "stepRandom(seed, container) gives the width. stepRandom(seed, boxes) gives the free items. stepRandom(seed, locks) gives the locked items.",
+});
+
 /**
  * Each corpus family of the package, for `createFamilyRegistry` of `layout-contract`. An import registers nothing.
  * The family `rect-scattered` is not in the list: `RECT_SCATTERED` of `layout-contract` is its shared copy.
@@ -1894,4 +1985,5 @@ export const corpusFamilies: readonly CorpusFamily<GeneratedInput>[] = Object.fr
   hopperTurtonFamily,
   burkeKendallWhitwellFamily,
   beasleyGcutFamily,
+  wallLocksFamily,
 ]);
