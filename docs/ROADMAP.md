@@ -64,7 +64,7 @@ Status: done, done, waiting, next, done.
 | k55 | Component packing: polyominoes and the placement of the parts of a graph | strategies | later | k6, k7 |
 | k56 | Labels and word clouds: greedy, annealing, four places, and the spiral | strategies | later | k6, k7 |
 | k57 | The types of packing fit `@mark1russell7/layout-contract`, then packing uses them | core | done | k7 |
-| k58 | Promotion: a winner of the catalog becomes the default or a rule of the selector, by the shared promotion rule. The first part is the win test of `docs/PROMOTION.md` on the records of two entries. | measure | active | k11, k20 |
+| k58 | Promotion: a winner of the catalog becomes the default or a rule of the selector, by the shared promotion rule. The first part is the win test of `docs/PROMOTION.md` on the records of two entries. | measure | done | k11, k20 |
 | k59 | Screen guards: overflow measures with a forced bound, an exact container test, fill ranked without overflow, distinct strategies, activation | measure | done | k11, k37 |
 | k60 | Overflow excess by area, and fill ranked on shared clean records | measure | done | k59 |
 | k61 | DEFAULT-CANDIDATE: `portfolio-k2` and `maxrects-bl` against the default `rows`, each by the promotion rule. Screen 7 (run 40675490363): both fail. Both gain 12% fill and pass the median time, but fail the tails of area, aspect and order, and the time tail. `rows` stays the default. | measure | done | k58, k20 |
@@ -175,7 +175,7 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | 34 | k89 | 2 | 4 | 5 | 1.6 |
 | 35 | k104 | 2 | 3 | 5 | 1.2 |
 
-The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
+The items of the site (k71, k72, k73) are P1 work outside the queue.
 
 ## Rules
 
