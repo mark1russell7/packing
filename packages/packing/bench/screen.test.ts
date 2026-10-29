@@ -10,7 +10,9 @@ import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown,
 
 const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test", cpu: "test", cpus: 1 };
 const smoke = parseCorpus(readFileSync(join(import.meta.dirname, "corpora", "smoke-v1.json"), "utf8"), "smoke-v1");
-const full = runBench({ corpus: smoke, prediction: "p-test", repeats: 1, warmup: 0, env: ENV });
+// The entries of overlap-min (k80) make 8192 moves on each strip. This test gives them 256 moves, so it stays fast. The checks stay the same.
+const FAST = Object.fromEntries(OVERLAP_MIN_ENTRIES.map((e) => [e.id, { iterations: 256 }]));
+const full = runBench({ corpus: smoke, prediction: "p-test", repeats: 1, warmup: 0, env: ENV, entryOptions: FAST });
 
 const rec = (strategy: string, input: string, hash: string, measures: Record<string, number> = {}): ScreenRecord => ({ strategy, input, outputHash: hash, measures });
 const SHAPES = new Map([
@@ -284,7 +286,7 @@ describe("the screen on smoke-v1", () => {
   it("gives the same screen for one run and for the merge of the runs of the jobs of a matrix", () => {
     // The jobs keep the order of the strategies of the full run, and the merge keeps the order of its jobs
     const order = full.run.strategies;
-    const jobs = [order.slice(0, 2), order.slice(2, 3), order.slice(3)].map((s) => runBench({ corpus: smoke, prediction: "p-test", strategies: s, repeats: 1, warmup: 0, env: ENV }));
+    const jobs = [order.slice(0, 2), order.slice(2, 3), order.slice(3)].map((s) => runBench({ corpus: smoke, prediction: "p-test", strategies: s, repeats: 1, warmup: 0, env: ENV, entryOptions: FAST }));
     const records = jobs.flatMap((j) => j.records);
     const merged = mergeRuns(
       jobs.map((j) => j.run),
