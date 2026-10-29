@@ -157,6 +157,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
+| `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -254,6 +255,74 @@ The ladder is on the strip of the width 1024. Each side is a whole number, unifo
 - The axis `count` has `10 * 2^rung` items, 10 to 2560, with the sides 64 to 256.
 - The axis `ratio` has 100 items, with the sides `256 / 2^rung` to 256. The ratio of the largest side to the smallest side goes from 1 to 256.
 - The ladder shows how the gap and the time of a strategy grow along one axis.
+
+The corpus `pack-strip-v1` has 160 specs and 528 inputs. It has the published sets of strip packing of the literature. It has no published instance file. The generators make each input by the published rule of its set, with the random numbers of `stepRandom(seed, step)`.
+
+- `hopper-turton` has each category C1 to C7, each problem 1 to 3, the cuts `guillotine` and `free`, and the seeds 1 to 3. It has 252 inputs.
+- `burke-kendall-whitwell` has each problem N1 to N13, the cuts `guillotine` and `free`, and the seeds 1 to 3. It has 156 inputs. The problem N13 has 3152 items.
+- `beasley-gcut` has the sides 250, 500 and 1000, the counts 10, 20, 30 and 50, and the seeds 1 to 5. It has 120 inputs.
+- Each spec has the containers `fixed` (the object or the stock) and `freeHeight` (a strip of its width).
+- It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 264 and `shaped` 0.
+- The builder `bench/strip.ts` writes the file. `node bench/strip.ts --check` and a test compare the file with the builder.
+
+### The categories of Hopper and Turton
+
+Source: E. Hopper and B. C. H. Turton, 2001, "An empirical investigation of meta-heuristic and heuristic algorithms for a 2D packing problem".
+
+The rule: each category has an object of the width `W` and the height `H`. A cut of the object gives the pieces of a problem, with no free space. The strip has the width `W`, so the best height is `H`.
+
+| Category | Object `W` x `H` | Pieces of the problems 1, 2 and 3 |
+|---|---|---|
+| C1 | 20 x 20 | 16, 17 and 16 |
+| C2 | 40 x 15 | 25 |
+| C3 | 60 x 30 | 28, 29 and 28 |
+| C4 | 60 x 60 | 49 |
+| C5 | 60 x 90 | 73 |
+| C6 | 80 x 120 | 97 |
+| C7 | 160 x 240 | 196, 197 and 196 |
+
+- The paper gives the objects, the counts and the guillotine cut. We chose the positions of the cuts: the cut of `perfect-cut`.
+- The cut `free` starts with a pinwheel cut. Then the best height is not a guillotine layout. This cut is not in the paper.
+- Why it matters: these categories are the most frequent test of strip packing. A known optimum gives `pack.gapToOpt` for each input.
+
+### The problems of Burke, Kendall and Whitwell
+
+Source: E. K. Burke, G. Kendall and G. Whitwell, 2004, "A new placement heuristic for the orthogonal stock-cutting problem".
+
+The rule: each problem has an object and a count of pieces. A cut of the object gives the pieces, with no free space. The best height is the height of the object.
+
+| Problem | Object `W` x `H` | Pieces |
+|---|---|---|
+| N1 | 40 x 40 | 10 |
+| N2 | 30 x 50 | 20 |
+| N3 | 30 x 50 | 30 |
+| N4 | 80 x 80 | 40 |
+| N5 | 100 x 100 | 50 |
+| N6 | 50 x 100 | 60 |
+| N7 | 80 x 100 | 70 |
+| N8 | 100 x 80 | 80 |
+| N9 | 50 x 150 | 100 |
+| N10 | 70 x 150 | 200 |
+| N11 | 70 x 150 | 300 |
+| N12 | 100 x 300 | 500 |
+| N13 | 640 x 960 | 3152 |
+
+- The paper gives the objects and the counts. We chose the cut: the cut of `perfect-cut`, `guillotine` or `free`.
+- Why it matters: the counts go from 10 to 3152 at a known optimum. Thus the gap and the time of a strategy show along the count.
+
+### The problems gcut of Beasley
+
+Source: J. E. Beasley, 1985, "Algorithms for unconstrained two-dimensional guillotine cutting" (Beasley 1985b).
+
+The rule: the stock is a square of the side `S`. Each width and each height is a whole number, uniform from `ceil(S / 4)` to `floor(3S / 4)`.
+
+- The problems gcut 1 to 12 have the sides 250, 500 and 1000, each with 10, 20, 30 and 50 pieces.
+- With `fixed`, the container is the stock. Not all pieces fit, so the measure is the placed share. With `freeHeight`, the strip has the width `S`, as in the strip tests of Martello 2003.
+- The problems have no known optimum. `pack.bound` gives the bound of the strip.
+- Why it matters: the pieces are large against the width. Thus each row holds 1 to 3 pieces, and the order of the pieces changes the height much.
+- The paper gives a value for each piece. The packer has no values, so the generator ignores them.
+
+Nesting has no family in this corpus. The published nesting sets are fixed drawings, not rules. Thus a generator cannot make them without a copy of the published data.
 
 Version 2 of `rect-grid` adds the parameter `order`. With `soft`, each item gets a `rank` from a permutation of the seed. Version 1 does not change.
 
