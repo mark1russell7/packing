@@ -327,9 +327,9 @@ describe("the strata of the whole space of k115", () => {
     expect(out.pairs).toBe(4);
     expect(out.draw).toBeNull();
     expect(out.strata.map((s) => s.id).slice(0, 7)).toEqual(["rows:1", "skyline:1", "shelf:1", "maxrects:1", "guillotine:1", "push:1", "hole-degree:1"]);
-    // Without the strata of sample.json, the section has the 19 strata of packSpace.
-    expect(out.strata).toHaveLength(19);
-    expect(out.strata.at(-1)!.id).toBe("ruin-recreate:1");
+    // Without the strata of sample.json, the section has the 20 strata of packSpace. Roadmap item k80 adds overlap-min:1.
+    expect(out.strata).toHaveLength(20);
+    expect(out.strata.at(-1)!.id).toBe("overlap-min:1");
     expect(out.strata.filter((s) => s.pairs > 0)).toEqual([
       { id: "rows:1", pairs: 2 },
       { id: "maxrects:1", pairs: 2 },

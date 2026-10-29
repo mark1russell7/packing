@@ -211,7 +211,7 @@ describe("the sample of pairs", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 19 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 20 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -234,6 +234,7 @@ describe("the strata of k115", () => {
       "restarts:1",
       "bbox:1",
       "ruin-recreate:1",
+      "overlap-min:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
     expect(strata.reduce((s, x) => s + x.configs, 0n)).toBe(total);
@@ -257,6 +258,8 @@ describe("the strata of k115", () => {
     expect(of("aspect-fit")).toBe("aspect-fit:1");
     expect(of("restarts-rows-k16")).toBe("restarts:1");
     expect(of("bbox-skyline")).toBe("bbox:1");
+    expect(of("ruin-recreate-skyline-k64")).toBe("ruin-recreate:1");
+    expect(of("overlap-min-skyline-k8192")).toBe("overlap-min:1");
   });
 
   it("draws configs of each stratum of packSpace that checkConfig accepts", () => {
@@ -307,7 +310,7 @@ describe("the strata of k115", () => {
     for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 1] : [id, 1, 0]);
     expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
     expect(a.records).toHaveLength(strata.length - 1);
-    // Pair i takes the stratum i modulo 19.
+    // Pair i takes the stratum i modulo 20.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
     expect(b.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash])).toEqual(a.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash]));

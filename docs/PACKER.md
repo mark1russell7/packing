@@ -696,6 +696,7 @@ The counts of `packSpace`:
 - The base configs stay 2973 and 891, and 2970 and 890 for `rect`. The counts for the other shape kinds do not change.
 - `ENTRIES` of the benchmark: 32 before, 34 after. `composites`: 6 before, 7 after. The meta options of `spaceCounts`: 7 before, 8 after.
 - The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
+- The strata of k115 (`strataOf`): 19 before, 20 after. The new stratum is `overlap-min:1`.
 - The tests that pack each entry on a fixed container now expect `UnsupportedCell` from the entries of `overlap-min`.
 
 ## The registry
