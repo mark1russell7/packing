@@ -7,6 +7,7 @@ import {
   coverage,
   coverageMain,
   coverageOptions,
+  equalWeight,
   featureOf,
   featureTable,
   firstOrderIndex,
@@ -19,9 +20,12 @@ import {
   predictTree,
   readRecords,
   sampledCoverage,
+  sampleFacts,
+  strataCoverage,
   strategyFeatures,
   wilson,
   type CoverageManifest,
+  type CoverageSummary,
   type CoverageRecord,
   type SampledRecord,
 } from "./coverage.ts";
@@ -244,6 +248,64 @@ describe("the held-out test on the whole space of k112", () => {
   });
 });
 
+describe("the strata of the whole space of k115", () => {
+  const { manifest, records } = madeUp();
+  const fill = { id: "pack.fill", tolerance: 0.02, scale: "linear" } as const;
+  const pair = (strategy: string, size: string, count: number, fillValue: number): SampledRecord => ({
+    strategy: `space:${strategy}`,
+    input: `sample-space/toy/${size}.${count}`,
+    measures: { "pack.fill": fillValue },
+    ms: 1,
+    config: packSpace.named![strategy]!,
+    generator: { name: "toy", version: 1, params: { size, count } },
+    cell: { mode: "offline", size },
+  });
+
+  it("gives the mean of the strata with the same weight, and its interval, on hand cases", () => {
+    // One stratum gives the Agresti-Coull interval. For a share of 0.5, it is the Wilson interval.
+    expect(equalWeight([{ hits: 5, n: 10 }])).toEqual({ strata: 1, share: 0.5, se: 0.1344, interval: wilson(5, 10) });
+    // 0 of 10 and 10 of 10: the adjusted shares are 1.92 / 13.84 and 11.92 / 13.84. Each variance is p (1 - p) / 13.84.
+    const z2 = 1.959964 ** 2;
+    const p = z2 / 2 / (10 + z2);
+    const se = Math.sqrt((2 * p * (1 - p)) / (10 + z2)) / 2;
+    const two = equalWeight([
+      { hits: 0, n: 10 },
+      { hits: 10, n: 10 },
+    ]);
+    expect(two.share).toBe(0.5);
+    expect(two.se).toBeCloseTo(se, 4);
+    expect(two.interval).toEqual({ low: 0.3712, high: 0.6288 });
+    expect(two.interval.low).toBeCloseTo(0.5 - 1.959964 * se, 4);
+    // A stratum without pairs is not in the mean. Equal shares give that share.
+    expect(equalWeight([{ hits: 1, n: 4 }, { hits: 0, n: 0 }, { hits: 25, n: 100 }]).share).toBe(0.25);
+    expect(equalWeight([{ hits: 1, n: 4 }, { hits: 0, n: 0 }]).strata).toBe(1);
+    expect(equalWeight([])).toEqual({ strata: 0, share: 0, se: 0, interval: { low: 0, high: 1 } });
+    // A small stratum has a large weight: 1 of 1 and 0 of 99 give 0.5, not 0.01.
+    expect(equalWeight([{ hits: 1, n: 1 }, { hits: 0, n: 99 }]).share).toBe(0.5);
+  });
+
+  it("gives the share of each stratum of the pairs with the errors of the section sampled", () => {
+    const sampled = [pair("rows", "a", 10, 0.702), pair("maxrects-bl", "b", 100, 0.803), pair("rows", "b", 500, 0.6), pair("maxrects-bl", "a", 1000, 0.5), { ...pair("rows", "a", 10, 0.7), skipped: "unsupported" }];
+    const out = strataCoverage(records, manifest, sampled, { measures: [fill] });
+    expect(out.pairs).toBe(4);
+    expect(out.draw).toBeNull();
+    expect(out.strata.map((s) => s.id).slice(0, 5)).toEqual(["rows:1", "skyline:1", "shelf:1", "maxrects:1", "push:1"]);
+    expect(out.strata).toHaveLength(16);
+    expect(out.strata.filter((s) => s.pairs > 0)).toEqual([
+      { id: "rows:1", pairs: 2 },
+      { id: "maxrects:1", pairs: 2 },
+    ]);
+    const m = out.measures[0]!;
+    expect(m.strata.find((s) => s.stratum === "rows:1")).toEqual({ stratum: "rows:1", n: 2, hits: 2, share: 1, wilson: wilson(2, 2) });
+    expect(m.strata.find((s) => s.stratum === "maxrects:1")).toEqual({ stratum: "maxrects:1", n: 2, hits: 1, share: 0.5, wilson: wilson(1, 2) });
+    expect(m.strata.find((s) => s.stratum === "push:1")).toEqual({ stratum: "push:1", n: 0, hits: 0, share: 0, wilson: { low: 0, high: 1 } });
+    expect(m.equal).toEqual(equalWeight([{ hits: 2, n: 2 }, { hits: 1, n: 2 }]));
+    expect(m.equal.share).toBe(0.75);
+    // The hits of the strata sum to the hits of the section sampled.
+    expect(m.strata.reduce((s, x) => s + x.hits, 0)).toBe(sampledCoverage(records, manifest, sampled, { measures: [fill] }).measures[0]!.hits);
+  });
+});
+
 describe("the command line", () => {
   const dir = mkdtempSync(join(tmpdir(), "coverage-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -280,7 +342,16 @@ describe("the command line", () => {
     const plain = coverageMain(base);
     const withSample = coverageMain([...base, "--sample", sample]);
     expect("sampled" in plain).toBe(false);
+    expect("strata" in plain).toBe(false);
     expect(withSample).toMatchObject({ ...JSON.parse(JSON.stringify(plain)), sampled: { pairs: 1, sample: { seed: 1, draw: "uniform", configRejectionRate: 0, hardPairs: 0 } } });
+    // The section sampled is the same as before k115. The section strata goes next to it.
+    const s = withSample as CoverageSummary;
+    expect(JSON.stringify(s.sampled)).toBe(JSON.stringify(sampledCoverage(records, manifest, [one], {}, sampleFacts(JSON.stringify(facts)))));
+    expect(Object.keys(s.sampled!)).toEqual(["pairs", "sample", "measures"]);
+    expect(s.strata).toMatchObject({ pairs: 1, draw: "uniform" });
+    expect(s.strata!.strata.find((x) => x.id === "rows:1")).toEqual({ id: "rows:1", pairs: 1 });
+    // The pair has only a fill and a time. A measure without a value has no stratum with pairs.
+    expect(s.strata!.measures.map((m) => m.equal.strata)).toEqual([1, 0, 0, 1]);
     expect(() => coverageMain([...base, "--sample", join(dir, "none")])).toThrow(/no records.jsonl/);
   });
 
