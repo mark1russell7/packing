@@ -164,7 +164,8 @@ Sparrow had 20 minutes and 3 threads for each set. The sets `dighe1` and `dighe2
 The items are circles, in a circle, a square, a rectangle or a strip.
 
 - The quasi-physical methods treat each overlap as an energy (Wang 2002, Huang 2011b). Basin hopping changes the layout and solves it again (Addis 2008a, Grosso 2010).
-- The greedy methods put each circle in the corner place with the largest hole degree (Huang 2006, Kubach 2009).
+- The greedy methods put each circle in the corner place with the largest hole degree (Huang 2005, Huang 2006, Kubach 2009).
+- The strategy `hole-degree` of k90 does the rule A1.0 of Huang 2005. On 30 made-up circles of free height, its mean `pack.shapeFill` is 0.816. `bbox-maxrects-bl` gives 0.692.
 - Lai 2022 improves 136 best known packings of equal circles in a circle, up to 320 circles, and equals 175.
 - Lai 2025 improves 69 of the 96 hardest of these inputs. Zhou 2025 improves 116 of 239 inputs of unequal circles, and equals the rest.
 - Fu 2013 improves 13 of 18 best results for circles in a strip.
@@ -226,7 +227,7 @@ Each idea is one step that a later item can do. The factors and the score use th
 
 | Rank | Idea | Description | Families | Gain | Uncertainty | Cost | Score | Sources | Item |
 |---|---|---|---|---|---|---|---|---|---|
-| S1 | Circles by the maximum hole degree | Put each circle in the corner place, where it touches two items, with the largest hole degree. | circles | 4 | 3 | 2 | 6.0 | Huang 2006, Kubach 2009 | k39 |
+| S1 | Circles by the maximum hole degree | Put each circle in the corner place, where it touches two items, with the largest hole degree. Built as `hole-degree` (k90). | circles | 4 | 3 | 2 | 6.0 | Huang 2005, Huang 2006, Kubach 2009 | k39, k90 (built) |
 | S2 | Shapes by their bounding boxes | Pack the bounding rectangle of each polygon or circle with the strategies of today. This is the baseline of each shape. | nesting, circles | 3 | 2 | 1 | 6.0 | an idea of this project, near Yang 2023 | k39 |
 | S3 | A raster no-fit for free forms | Put each shape on a grid of cells. Place it bottom-left on the free cells, and search the order. | nesting | 3 | 3 | 2 | 4.5 | Mundim 2017, Sato 2019 | k39 |
 | S4 | Front chain and enclosing circle | Pack the circles of a group against the front chain. The smallest enclosing circle gives the parent. | circles, treemaps | 4 | 2 | 2 | 4.0 | Wang 2006, Welzl 1991, d3-hierarchy | k27, k39 |

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { packFree, Rect } from "@mark1russell7/packing";
+import { packFree, Rect, strategy as registryStrategy } from "@mark1russell7/packing";
 import { chosenTry, makeItem, makeItems, ORDERS, PRESETS, random, runPacking, SEARCH_STRATEGIES, searchChart, STRATEGIES, type Placed } from "./model.ts";
+
+// The demo items are rectangles. A strategy of one other shape kind (`hole-degree` of k90) refuses them.
+const RECT_STRATEGIES = STRATEGIES.filter((id) => registryStrategy(id).supports.itemShape.includes("rect"));
 
 const overlaps = (a: Placed, b: Placed): boolean =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -37,7 +40,7 @@ describe("makeItems", () => {
 describe("runPacking", () => {
   it("packs each item in the width, with no overlap, for each strategy and sort order", () => {
     const items = makeItems("mixed", 30, 3);
-    for (const strategy of STRATEGIES) {
+    for (const strategy of RECT_STRATEGIES) {
       for (const order of ORDERS) {
         const run = runPacking(items, 640, { strategy, options: { sortOrder: order } });
         expect(run.placed).toHaveLength(30);
@@ -162,6 +165,13 @@ describe("runPacking with a free width", () => {
       expect(run.free!.objective).toBe(expected.objective);
       expect(run.free!.tried.length).toBeGreaterThan(0);
     }
+  });
+
+  it("tells that a strategy of circles does not support the rectangles of the demo", () => {
+    expect(STRATEGIES.filter((id) => !RECT_STRATEGIES.includes(id))).toEqual(["hole-degree"]);
+    const run = runPacking(makeItems("mixed", 10, 3), 640, { strategy: "hole-degree" });
+    expect(run.unsupported).toBe(true);
+    expect(run.error).toContain("itemShape");
   });
 
   it("gives the chart of the search for each strategy of packFree, with the width of the packing", () => {

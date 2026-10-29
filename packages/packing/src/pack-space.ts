@@ -21,6 +21,7 @@ import {
 } from "@mark1russell7/layout-contract";
 import type { GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
+import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
@@ -84,6 +85,12 @@ const RECT_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["rect"] 
 /** The inputs of the option `bbox` of roadmap item k91: each shape kind. Its members have `view: "bounds"`, so they get only `rect` items. */
 const BBOX_ONLY: OptionSupports = Object.freeze({ shape: BBOX_SHAPES });
 
+/** The inputs of the option `hole-degree` of roadmap item k90: only the shape kind `circle`. */
+const CIRCLE_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["circle"] as const) });
+
+/** The inputs of the options that a `hole-degree` config shares with the rect configs: `rect` and `circle`. */
+const RECT_OR_CIRCLE: OptionSupports = Object.freeze({ shape: Object.freeze(["rect", "circle"] as const) });
+
 /** This function gives the stage choice of a param list, without an empty list of params. */
 const choice = (option: string, params: Record<string, string | number | boolean> = {}): StageChoice =>
   Object.keys(params).length === 0 ? { option } : { option, params };
@@ -94,6 +101,11 @@ const choice = (option: string, params: Record<string, string | number | boolean
  */
 export function baseConfig(id: string, options: Readonly<Record<string, unknown>> = {}): StrategyConfig {
   const o = { ...(strategy(id).defaults as Record<string, unknown>), ...options };
+  if (id === "hole-degree") {
+    for (const key of Object.keys(o)) if (key !== "steps") throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
+    const placement = choice("hole-degree", { steps: o["steps"] as number });
+    return { space: ENGINE, stages: { order: choice("input"), "size-search": choice("none"), placement, "local-search": choice("none") } };
+  }
   const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap", "choice", "split", "merge"];
   for (const key of Object.keys(o)) if (!known.includes(key) || (key === "fit" && id !== "shelf")) throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
   const stages: Record<string, StageChoice | null> = { order: choice(String(o["sortOrder"])), "local-search": choice("none") };
@@ -131,12 +143,12 @@ const pool: readonly StrategyConfig[] = Object.values(POOL);
 
 /** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
 const STAGES: readonly SpaceStage[] = [
-  { name: "order", options: SORT_ORDERS.map((id) => ({ id, params: [], supports: RECT_ONLY })) },
+  { name: "order", options: SORT_ORDERS.map((id) => ({ id, params: [], supports: id === "input" ? RECT_OR_CIRCLE : RECT_ONLY })) },
   {
     name: "size-search",
     options: [
       { id: "log-sweep", params: [{ name: "samples", kind: "int", min: 12, max: 192, scale: "log", default: 48 }], supports: RECT_ONLY },
-      { id: "none", params: [], supports: RECT_ONLY },
+      { id: "none", params: [], supports: RECT_OR_CIRCLE },
     ],
   },
   {
@@ -174,9 +186,10 @@ const STAGES: readonly SpaceStage[] = [
         supports: RECT_ONLY,
       },
       { id: "push", params: [{ name: "maxShovesPerItem", kind: "int", min: 1, max: 64, scale: "log", default: 8 }], supports: RECT_ONLY },
+      { id: "hole-degree", params: [{ name: "steps", kind: "int", min: 0, max: HOLE_DEGREE_MAX_STEPS, default: 8 }], supports: CIRCLE_ONLY },
     ],
   },
-  { name: "local-search", options: [{ id: "none", params: [], supports: RECT_ONLY }] },
+  { name: "local-search", options: [{ id: "none", params: [], supports: RECT_OR_CIRCLE }] },
   {
     name: "combine",
     optional: true,
@@ -196,6 +209,12 @@ const STAGES: readonly SpaceStage[] = [
   },
 ];
 
+/** The placements that do their own size search, or none: only they go with the size search `none`. */
+const NO_SIZE_SEARCH: readonly string[] = ["push", "hole-degree"];
+
+/** The id of each option of the stage `placement`. */
+const placementIds: readonly string[] = STAGES.find((s) => s.name === "placement")!.options.map((o) => o.id);
+
 /** The named single configs: each single entry of the benchmark, then `maxrects` of the registry. */
 const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   rows: baseConfig("rows"),
@@ -214,6 +233,7 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "guillotine-baf-sas": baseConfig("guillotine"),
   "guillotine-bssf-sas-merge": baseConfig("guillotine", { choice: "bssf", merge: true }),
   guillotine: baseConfig("guillotine"),
+  "hole-degree": baseConfig("hole-degree"),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;
@@ -222,14 +242,17 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * The strategy space of `packing`, schema `strategy-space/1`. It has 5 stages: `order`, `size-search`, `placement`,
  * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
  *
- * - `size-search` acts only on a container of free size. The option `none` goes with `push` only.
+ * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
+ * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
  * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts` and `bbox`. `restarts` and `bbox` have 1 member.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
  * - The named config `aspect-fit` wraps `maxrects`, because the registry strategy needs an inner strategy.
- * - Each option supports only the shape kind `rect`, but `bbox` supports each kind. Its members have `view: "bounds"`, so the checks give them the kind `rect`.
- * - Thus `spaceSize` with other `shapes` counts only the configs with `bbox`. It gives 0 base configs.
+ * - Each option supports the shape kind `rect`, but `hole-degree` supports only `circle`. `bbox` supports each kind.
+ * - The order `input` and the options `none` support `rect` and `circle`. Thus a `hole-degree` config supports `circle`.
+ * - The members of `bbox` have `view: "bounds"`, so the checks give them the kind `rect`.
+ * - Thus `spaceSize` with `polygon` or `free` counts only the configs with `bbox`. With `circle` it also counts the `hole-degree` base configs.
  * - Each option of each strategy is a param, a stage or the members of a meta option. `PACK_SPACE_OPTIONS` tells the place.
  */
 export const packSpace: StrategySpace = Object.freeze({
@@ -239,7 +262,10 @@ export const packSpace: StrategySpace = Object.freeze({
   stages: STAGES,
   constraints: [
     { if: { stage: "placement", option: "push" }, then: { stage: "size-search", option: "none" } },
-    { if: { stage: "size-search", option: "none" }, then: { stage: "placement", option: "push" } },
+    { if: { stage: "placement", option: "hole-degree" }, then: { stage: "size-search", option: "none" } },
+    { if: { stage: "placement", option: "hole-degree" }, then: { stage: "order", option: "input" } },
+    // The size search `none` goes only with the placements of `NO_SIZE_SEARCH`. Each other placement (rows to guillotine) needs `log-sweep`.
+    ...placementIds.filter((option) => !NO_SIZE_SEARCH.includes(option)).map((option) => ({ if: { stage: "size-search", option: "none" }, then: { not: { stage: "placement", option } } })),
   ],
   named: {
     ...SINGLE,
@@ -314,6 +340,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     merge: "placement.guillotine.merge",
   } satisfies Places<GuillotineStrategyOptions>,
   push: { sortOrder: "order", maxShovesPerItem: "placement.push.maxShovesPerItem" } satisfies Places<PushStrategyOptions>,
+  "hole-degree": { steps: "placement.hole-degree.steps" } satisfies Places<HoleDegreeStrategyOptions>,
   portfolio: PORTFOLIO_PLACES,
   "aspect-fit": {
     strategy: "combine.aspect-fit.members",
@@ -371,6 +398,12 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
  */
 const BBOX_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
 
+/**
+ * The level of the shape check of a `hole-degree` config. The hard rules of the contract test the bounding boxes. Two circles that
+ * touch have bounding boxes that overlap. Thus the check uses the level `safe`, and `circleOverlaps` gives the exact count.
+ */
+const CIRCLE_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
+
 /** The id of the input in the breaks of `checkShapes`. A `PackInput` has no id. */
 const SHAPE_INPUT_ID = "pack-input";
 
@@ -400,6 +433,7 @@ function runOf(config: StrategyConfig): Run {
   const place = s["placement"]!;
   const p = place.params ?? {};
   if (place.option === "push") return { strategy: "push", options: { sortOrder, maxShovesPerItem: p["maxShovesPerItem"] } };
+  if (place.option === "hole-degree") return { strategy: "hole-degree", options: { steps: p["steps"] } };
   const options: Record<string, unknown> = { sortOrder, samples: s["size-search"]!.params?.["samples"] };
   if (place.option === "shelf" && p["fit"] !== "none") options["fit"] = p["fit"];
   if (place.option === "skyline") {
@@ -441,6 +475,12 @@ function combineOf(config: StrategyConfig): string | undefined {
   return typeof c?.option === "string" ? c.option : undefined;
 }
 
+/** This function gives the option of the stage `placement` of a config, or `undefined`. It reads a config that is not checked. */
+function placementOf(config: StrategyConfig): string | undefined {
+  const c = (config as { stages?: Record<string, { option?: unknown } | null> }).stages?.["placement"];
+  return typeof c?.option === "string" ? c.option : undefined;
+}
+
 /**
  * This function packs an input with a config of `packSpace` and a seed. The default seed is 0.
  *
@@ -448,6 +488,7 @@ function combineOf(config: StrategyConfig): string | undefined {
  * - The function checks the shape kinds of the items with `checkShapes` and `checkConfig`. A break causes `UnsupportedShape`.
  * - A `bbox` config supports each shape kind. The function checks only the hard rules on it, with `checkShapes` at the level `safe`.
  * - The caller checks the measures of a `bbox` output with `checkShapes`.
+ * - A `hole-degree` config supports only circles. The function checks only the hard rules on it, at the level `safe`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
  * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts` or `bbox`.
@@ -459,7 +500,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
   const found = checkConfig(packSpace, config, { shapes: shapeKindsOf(boxes) });
   const breaks = found.filter((b) => b.claim !== "shape");
   if (breaks.length > 0) throw new RangeError(`The config is not a config of the space packing: ${breaks.map((b) => b.detail).join("; ")}.`);
-  const shapes = combineOf(config) === "bbox" ? checkShapes(boxes, PACK_HARD_RULES, BBOX_CHECK) : checkShapes(boxes, [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES]);
+  const level = combineOf(config) === "bbox" ? BBOX_CHECK : placementOf(config) === "hole-degree" ? CIRCLE_CHECK : undefined;
+  const shapes = level === undefined ? checkShapes(boxes, [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES]) : checkShapes(boxes, PACK_HARD_RULES, level);
   const shapeBreaks = [...shapes, ...found];
   if (shapeBreaks.length > 0) throw new UnsupportedShape(itemShapeOf(boxes), shapeBreaks);
   const c = canonicalConfig(packSpace, config);

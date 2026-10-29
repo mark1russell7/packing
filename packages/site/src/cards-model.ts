@@ -13,6 +13,7 @@ import {
   SORT_ORDERS,
   type AspectFitStrategyOptions,
   type BboxStrategyOptions,
+  type HoleDegreeStrategyOptions,
   type Dimension,
   type DimensionValue,
   type GuillotineStrategyOptions,
@@ -85,6 +86,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     cost: "one pack of the member for each restart: 16 packs by default",
   },
   bbox: { stage: "placement" },
+  "hole-degree": { stage: "placement" },
 };
 
 // ---- The catalog ----
@@ -233,6 +235,7 @@ type AnyOptions = LayoutStrategyOptions &
   RestartsStrategyOptions &
   BboxStrategyOptions &
   GuillotineStrategyOptions &
+  HoleDegreeStrategyOptions &
   Omit<SkylineStrategyOptions, "rule">;
 
 /** The type and the note of an option */
@@ -272,6 +275,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   choice: { type: oneOf(GUILLOTINE_CHOICES), note: "The rule of `guillotine` to choose a free rectangle: the best or the worst fit by area, short side or long side." },
   split: { type: oneOf(GUILLOTINE_SPLITS), note: "The rule of `guillotine` to cut the rest of a free rectangle: by the leftover axis, the axis or the area." },
   merge: { type: "boolean", note: "The value `true` joins two free rectangles of `guillotine` with a common full edge after each box." },
+  steps: { type: "number", note: "The count of the halving steps of the height search of `hole-degree`, from 0 to 32." },
 };
 
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
