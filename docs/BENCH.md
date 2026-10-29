@@ -944,7 +944,8 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 - The cell of a gap snapshot is the family up to its container size, for example `perfect-cut.guillotine.fixed`. A record without a finite value counts as missing.
 - The commits of the two gap runs come after the tag `v0.2.17`. Thus `--release 0.2.17` gives the release of their packers.
 - After a new release, start the command `releases` again. After a new bench run, start the command of its corpus again.
-- The command `coverage` keeps the earlier points of `coverage.json`. A point with the same date and corpus replaces the earlier point.
+- The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
+- The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
 
 ## The space coverage
 
@@ -1134,7 +1135,9 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The small numbers "by input" come from the folds by input.
 - Each tile shows the number "bench grid" and the number "whole space (sampled)" with its 95% interval.
 - The command `snapshot.ts coverage` reads the folder `sample` of the run, or `--sample <dir>`. Without a sample, the tile shows "not measured yet".
+- The number "whole space (sampled)" always comes from the last uniform sample. The note under the tiles gives its run and its date.
 - With strata, each tile also shows the number "equal weight over strata" with its 95% interval, under the uniform number.
+- A stratified sample also gives the number "pooled over strata": the share of all its pairs. It is not a uniform share.
 - The chart "The whole space by stratum" shows the share of each stratum of the selected measure, with its interval and the mean.
 - A stratum without pairs shows "no pairs" and its count of configs, and no share. It is not in the mean.
 - An old snapshot without strata stays readable. The chart then shows a note.

@@ -266,8 +266,22 @@ export interface CoverageSnapshot {
     sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
     /** The facts of the strata of the sample (k115), when the snapshot has them */
     strata?: { pairs: number; draw: string | null; strata: CoverageStratumPairs[] };
+    /** The last sample with a uniform draw (k115), with its run and its date. A stratified run keeps it. */
+    uniform?: CoverageUniform;
   };
   trend: CoveragePoint[];
+}
+
+/** The last sample of the whole space with a uniform draw: its run, its facts and the result of each measure */
+export interface CoverageUniform {
+  date: string;
+  run: number | null;
+  commit: string;
+  pairs: number;
+  seed: number | null;
+  configRejectionRate: number | null;
+  hardPairs: number | null;
+  measures: Record<string, CoverageSampled>;
 }
 
 /** Each kind of snapshot */

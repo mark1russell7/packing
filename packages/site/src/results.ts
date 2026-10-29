@@ -22,6 +22,7 @@ import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.
 import {
   COVERAGE_SCOPES,
   COVERAGE_STRATA_SCOPE,
+  COVERAGE_POOLED_SCOPE,
   coverageTile,
   divergingAt,
   errorText,
@@ -40,6 +41,7 @@ import {
   ratioAt,
   scaleOf,
   stepText,
+  spaceOf,
   strataRows,
   strataText,
   trendChart,
@@ -387,15 +389,21 @@ function mountCoverage(): void {
   $("coverage-text").innerHTML = marked.parse(coverageText, { async: false });
   $("coverage-note").innerHTML = `The data: ${dataLine(cover.origin)}. The corpus <code>${esc(l.corpus)}</code>: ${l.records} records of ${l.strategies.length} strategies on ${l.inputs} inputs. The model: a regression tree, ${l.model.folds} parts by ${esc(l.model.by)}, the seed ${l.model.seed}. The small number "by input" is the less strict test.`;
   $("coverage-origin").innerHTML = originHtml(cover.origin);
-  $("coverage-tiles").innerHTML = l.measures.map((m) => coverageTile(m, coverLabel(m.id))).join("");
+  $("coverage-tiles").innerHTML = l.measures.map((m) => coverageTile(m, coverLabel(m.id), spaceOf(l, m))).join("");
   const sample = l.sampled;
+  const stratified = sample?.draw === "stratified";
+  const uniform = l.uniform ?? (sample === undefined || stratified ? undefined : { pairs: sample.pairs, run: l.run, date: l.date });
+  const runText = (run: number | null, date: string): string => (run === null ? `on ${esc(date)}` : `of the run ${run} on ${esc(date)}`);
   $("coverage-sampled").innerHTML =
-    sample === undefined
-      ? `The number of the ${COVERAGE_SCOPES.space} tests the model on random pairs of a config and an input, outside the bench grid. It is not measured yet.`
-      : `The number of the ${COVERAGE_SCOPES.space} tests the model on ${sample.pairs} random pairs of a config and an input, outside the bench grid. The range is its 95% interval.` +
-        (l.strata === undefined
-          ? ""
-          : ` The number "${COVERAGE_STRATA_SCOPE}" is the mean of the shares of the strata. Each stratum has the same weight. The draw of the sample is ${esc(l.strata.draw ?? "not known")}.`);
+    (uniform === undefined
+      ? `The number of the ${COVERAGE_SCOPES.space} tests the model on uniform random pairs of a config and an input, outside the bench grid. It is not measured yet.`
+      : `The number of the ${COVERAGE_SCOPES.space} tests the model on ${uniform.pairs} uniform random pairs of a config and an input, outside the bench grid. The pairs are ${runText(uniform.run, uniform.date)}. The range is its 95% interval.`) +
+    (l.strata === undefined
+      ? ""
+      : ` The number "${COVERAGE_STRATA_SCOPE}" is the mean of the shares of the strata. Each stratum has the same weight. The draw of the sample is ${esc(l.strata.draw ?? "not known")}.`) +
+    (stratified && sample !== undefined
+      ? ` The number "${COVERAGE_POOLED_SCOPE}" is the share of all the ${sample.pairs} pairs of the stratified sample ${runText(l.run, l.date)}. It is not a uniform share.`
+      : "");
   $("coverage-errors").innerHTML = l.measures
     .map((m) => {
       const skill = m.skill === null ? "" : `, ${percentText(m.skill)} less error`;
