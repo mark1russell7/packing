@@ -14,7 +14,7 @@ export const GAP_TO_BOUND = "pack.gapToBound";
  * 2. The upper bound of the fill is the area of the placed boxes over that hull area, at most 1.
  * 3. A hull bound of 0, or no bound (a margin below 0), gives the upper bound 1. Each fill is at most 1.
  *
- * The bound of the hull does not count the gap between the items, as the bounds of k51 do not.
+ * The bound of the hull counts the margins and, since roadmap item k118, the gap between the items.
  */
 export function fillUpperBound(input: PackInput, output: PackOutput, boxArea: number): number | undefined {
   const placed = new Set(output.placements.map((p) => p.id));

@@ -2,7 +2,7 @@
 // family. It packs each pair and measures it as the bench runner does. `bench/coverage.ts --sample` scores the pairs.
 //
 //   node bench/sample-space.ts --out <dir> [--n 400] [--seed 1] [--draw uniform|option|stratified|active] [--stratify] [--max-count 1000] [--no-knobs]
-//                              [--repeats 1] [--warmup 0] [--max-minutes <m>] [--prediction <id>] [--commit sha]
+//                              [--knobs relative|absolute] [--repeats 1] [--warmup 0] [--max-minutes <m>] [--prediction <id>] [--commit sha]
 //
 // `docs/BENCH.md` ("The whole space, sampled") tells how the draw works. The times of a local run do not count.
 
@@ -438,12 +438,33 @@ export interface InputDraw {
   readonly version: number;
   readonly dims: Readonly<Record<string, ParamValue>>;
   readonly seed: number;
+  /** The ratios of the relative knobs to the median side of the items. `resolveDraw` turns them into the values of `dims`. */
+  readonly ratios?: Readonly<Record<string, number>>;
 }
+
+/**
+ * The scale of the knobs `margin` and `gap` (roadmap item k118).
+ *
+ * - `absolute`: the value of the dimension, from 0 to 32, whatever the size of the items. This is the draw of k112.
+ * - `relative`: a ratio to the median side of the items. `resolveDraw` gives the value of the dimension.
+ */
+export type KnobScale = "absolute" | "relative";
+
+/** The scales of the knobs. */
+export const KNOB_SCALES: readonly KnobScale[] = Object.freeze(["absolute", "relative"]);
+
+/**
+ * The ratios of a relative knob: the chance of the value 0, and the range of a ratio above 0 on a log scale.
+ * A ratio of 0.5 of the median side is a wide margin. A ratio of 0.01 is a thin line.
+ */
+export const KNOB_RATIO = Object.freeze({ zero: 1 / 3, min: 0.01, max: 0.5 });
 
 /** The options of the draw of an input. */
 export interface InputDrawOptions {
   /** With `false`, the knobs `margin` and `gap` keep their defaults. The default is `true`. */
   readonly knobs?: boolean;
+  /** The scale of the knobs. The default is `absolute`. A relative draw puts the ratios in `ratios` and 0 in `dims`. */
+  readonly knobScale?: KnobScale;
 }
 
 /** The knobs of a family that `--no-knobs` keeps at their defaults. */
@@ -482,12 +503,63 @@ export function drawDimension(r: Random, d: CorpusDimension): ParamValue {
 export function drawInput(r: Random, families: readonly CorpusFamily<GeneratedInput>[], options: InputDrawOptions = {}): InputDraw {
   const f = families[Number(uniformBig(r, BigInt(families.length)))]!;
   const dims: Record<string, ParamValue> = {};
+  const ratios: Record<string, number> = {};
   for (const d of f.dimensions) {
     if (!paramActive(d, dims)) continue;
     if (options.knobs === false && KNOBS.includes(d.name)) continue;
+    if (options.knobScale === "relative" && KNOBS.includes(d.name)) {
+      // A relative knob takes one random number, as an absolute knob does. Thus the seed and the configs of a pair stay the same.
+      ratios[d.name] = knobRatio(r());
+      dims[d.name] = 0;
+      continue;
+    }
     dims[d.name] = drawDimension(r, d);
   }
-  return { family: f.name, version: f.version, dims, seed: Math.floor(r() * 2147483648) };
+  const seed = Math.floor(r() * 2147483648);
+  return { family: f.name, version: f.version, dims, seed, ...(Object.keys(ratios).length === 0 ? {} : { ratios }) };
+}
+
+/** This function gives the ratio of a relative knob for a random number `u` from 0 to 1. The ratio keeps 4 decimals. */
+export function knobRatio(u: number): number {
+  if (u < KNOB_RATIO.zero) return 0;
+  const at = (u - KNOB_RATIO.zero) / (1 - KNOB_RATIO.zero);
+  return Math.round(KNOB_RATIO.min * (KNOB_RATIO.max / KNOB_RATIO.min) ** at * 1e4) / 1e4;
+}
+
+/** This function gives the median of the sides of the items: each width and each height counts one time. */
+export function medianSide(boxes: readonly { readonly w: number; readonly h: number }[]): number {
+  const sides = boxes.flatMap((b) => [b.w, b.h]).sort((a, b) => a - b);
+  if (sides.length === 0) return 0;
+  const mid = sides.length >> 1;
+  return sides.length % 2 === 1 ? sides[mid]! : (sides[mid - 1]! + sides[mid]!) / 2;
+}
+
+/**
+ * This function turns the ratios of a relative draw into the values of its knobs: the ratio times the median side of the items.
+ * The value keeps the 3 decimals of the knob, and stays in the supported range of the dimension.
+ * The knobs do not change the boxes of a generator, so the function generates the input with the knobs at 0 to get the sides.
+ * A draw without ratios, or a draw that the generator refuses, comes back the same.
+ */
+export function resolveDraw(draw: InputDraw, registry: FamilyRegistry, families: readonly CorpusFamily<GeneratedInput>[] = corpusFamilies): InputDraw {
+  if (draw.ratios === undefined) return draw;
+  let side: number;
+  try {
+    side = medianSide(registry.generate(draw.family, draw.seed, draw.dims, { version: draw.version, set: SAMPLE_SET }).boxes);
+  } catch (error) {
+    if (error instanceof RangeError) return draw;
+    throw error;
+  }
+  const f = families.find((x) => x.name === draw.family && x.version === draw.version);
+  const dims: Record<string, ParamValue> = { ...draw.dims };
+  for (const [name, ratio] of Object.entries(draw.ratios)) {
+    const d = f?.dimensions.find((x) => x.name === name);
+    const s = d?.supported;
+    const range = s === undefined || Array.isArray(s) ? {} : (s as { min?: number; max?: number });
+    const max = range.max ?? d?.max ?? Infinity;
+    const min = range.min ?? d?.min ?? 0;
+    dims[name] = Math.min(max, Math.max(min, round3(ratio * side)));
+  }
+  return { ...draw, dims };
 }
 
 // ---- The pairs ----
@@ -527,6 +599,8 @@ export interface SampleRecord {
   readonly cell: Readonly<Record<string, unknown>>;
   /** The knobs of the family: `margin` and `gap`. */
   readonly knobs: { readonly margin: number; readonly gap: number };
+  /** The ratios of the relative knobs to the median side of the items, when the scale is `relative`. */
+  readonly knobRatios?: { readonly margin: number; readonly gap: number };
 }
 
 /** The options of `sampleSpace`. */
@@ -540,6 +614,8 @@ export interface SampleOptions {
   /** The largest count of the items of an input. The default is 1000. */
   readonly maxCount?: number;
   readonly knobs?: boolean;
+  /** The scale of the knobs `margin` and `gap`. The default is `relative` since roadmap item k118. */
+  readonly knobScale?: KnobScale;
   /** The timed passes of each pair. The default is 1. */
   readonly repeats?: number;
   /** The passes of each pair before the timed passes. The default is 0. */
@@ -572,6 +648,7 @@ export interface SampleSummary {
   readonly draw: SampleDraw;
   readonly maxCount: number;
   readonly knobs: boolean;
+  readonly knobScale: KnobScale;
   readonly repeats: number;
   readonly warmup: number;
   /** The exact counts of the configs of the space, as decimal text. */
@@ -701,6 +778,7 @@ export function measurePair(p: PairToMeasure, o: MeasureOptions): SampleRecord {
     generator: { name: d.family, version: d.version, params },
     cell: generator(d.family, d.version).cell(params as never) as unknown as Record<string, unknown>,
     knobs: { margin: Number(d.dims["margin"] ?? 0), gap: Number(d.dims["gap"] ?? 0) },
+    ...(d.ratios === undefined ? {} : { knobRatios: { margin: d.ratios["margin"] ?? 0, gap: d.ratios["gap"] ?? 0 } }),
   };
   if (o.commit !== undefined) record.commit = o.commit;
   return record;
@@ -723,6 +801,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   const draw = options.draw ?? "uniform";
   const maxCount = options.maxCount ?? DEFAULT_MAX_COUNT;
   const knobs = options.knobs ?? true;
+  const knobScale = options.knobScale ?? "relative";
   const repeats = options.repeats ?? 1;
   const warmup = options.warmup ?? 0;
   const space = options.space ?? packSpace;
@@ -771,7 +850,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     }
     let done = false;
     for (let inputTry = 0; inputTry < maxInputTries && !done; inputTry++) {
-      const d = drawInput(r, corpusFamilies, { knobs });
+      const d = resolveDraw(drawInput(r, corpusFamilies, { knobs, knobScale }), registry);
       inputsDrawn++;
       const file = generateInput(d, registry, maxCount);
       if (typeof file === "string") {
@@ -833,6 +912,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     draw,
     maxCount,
     knobs,
+    knobScale,
     repeats,
     warmup,
     space: { base: counts.base.toString(), meta: Object.fromEntries(counts.meta.map((m) => [m.option.id, m.weight.toString()])) },
@@ -913,12 +993,15 @@ export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOpt
   const minutes = optionOf(argv, "--max-minutes");
   if (minutes !== undefined && !(Number(minutes) > 0)) throw new Error(`The option --max-minutes is a number above 0, not ${minutes}.`);
   const prediction = optionOf(argv, "--prediction");
+  const knobScale = optionOf(argv, "--knobs") ?? "relative";
+  if (!(KNOB_SCALES as readonly string[]).includes(knobScale)) throw new Error(`The option --knobs is relative or absolute, not ${knobScale}.`);
   return {
     n: wholeOf(argv, "--n", DEFAULT_PAIRS),
     seed: wholeOf(argv, "--seed", 1),
     draw,
     maxCount: wholeOf(argv, "--max-count", DEFAULT_MAX_COUNT),
     knobs: !argv.includes("--no-knobs"),
+    knobScale: knobScale as KnobScale,
     repeats: wholeOf(argv, "--repeats", 1),
     warmup: wholeOf(argv, "--warmup", 0),
     env,

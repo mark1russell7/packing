@@ -6,6 +6,7 @@ import {
   BOUND_KINDS,
   boundGap,
   boundMeasures,
+  boundShare,
   cellOf,
   corpus,
   measure,
@@ -73,42 +74,64 @@ function fits(shapes: readonly Shape[], W: number, H: number): boolean {
   return search(0, shapes.length, W * H, need);
 }
 
-/** This function gives the turns of an item, grown by a margin on each side. */
-const shapeOf = (item: Item, margin = 0): Shape => {
-  const w = item.w + 2 * margin;
-  const h = item.h + 2 * margin;
+/**
+ * This function gives the turns of an item, grown by a margin on each side and by half the gap on each side.
+ * Two items are `mA + gap + mB` apart (decision 3), so these shapes do not overlap, and each optimum of the shapes is a layout.
+ */
+const shapeOf = (item: Item, margin = 0, gap = 0): Shape => {
+  const w = item.w + 2 * margin + gap;
+  const h = item.h + 2 * margin + gap;
   return item.turnable === true && w !== h ? [[w, h], [h, w]] : [[w, h]];
 };
 
-/** This function gives the least height of a strip of the width `W`. */
-function stripOptimum(items: readonly Item[], W: number, margin = 0): number {
-  const shapes = items.map((i) => shapeOf(i, margin));
-  for (let H = 1; ; H++) if (fits(shapes, W, H)) return H - 2 * margin;
+/** This function gives the least height of a strip of the width `W`. The shapes with the gap use a strip that is wider by the gap. */
+function stripOptimum(items: readonly Item[], W: number, margin = 0, gap = 0): number {
+  const shapes = items.map((i) => shapeOf(i, margin, gap));
+  for (let H = 1; ; H++) if (fits(shapes, W + gap, H)) return H - 2 * margin - gap;
 }
 
 /** This function gives the least area of a hull, with no fixed side. */
-function areaOptimum(items: readonly Item[], margin = 0): number {
-  const shapes = items.map((i) => shapeOf(i, margin));
-  const most = items.reduce((sum, i) => sum + Math.max(i.w, i.h) + 2 * margin, 0);
+function areaOptimum(items: readonly Item[], margin = 0, gap = 0): number {
+  const shapes = items.map((i) => shapeOf(i, margin, gap));
+  const grow = 2 * margin + gap;
+  const most = items.reduce((sum, i) => sum + Math.max(i.w, i.h) + grow, 0);
   const sizes: [number, number][] = [];
   for (let w = 1; w <= most; w++) for (let h = 1; h <= most; h++) sizes.push([w, h]);
-  const inner = ([w, h]: [number, number]): number => (w - 2 * margin) * (h - 2 * margin);
+  const inner = ([w, h]: [number, number]): number => (w - grow) * (h - grow);
   sizes.sort((p, q) => inner(p) - inner(q));
-  for (const s of sizes) if (s[0] > 2 * margin && s[1] > 2 * margin && fits(shapes, s[0], s[1])) return inner(s);
+  for (const s of sizes) if (s[0] > grow && s[1] > grow && fits(shapes, s[0], s[1])) return inner(s);
   throw new Error("No size fits.");
 }
 
-/** This function gives the largest placed share of the item area in a fixed container. */
-function placedOptimum(items: readonly Item[], W: number, H: number): number {
+/** This function gives the largest placed share of the item area in a fixed container. The shapes with the gap use a container that is larger by the gap. */
+function placedOptimum(items: readonly Item[], W: number, H: number, margin = 0, gap = 0): number {
   const total = items.reduce((sum, i) => sum + i.w * i.h, 0);
   let best = 0;
   for (let mask = 0; mask < 1 << items.length; mask++) {
     const chosen = items.filter((_, k) => (mask & (1 << k)) !== 0);
     const area = chosen.reduce((sum, i) => sum + i.w * i.h, 0);
-    if (area > best && fits(chosen.map((i) => shapeOf(i)), W, H)) best = area;
+    if (area > best && fits(chosen.map((i) => shapeOf(i, margin, gap)), W + gap, H + gap)) best = area;
   }
   return best / total;
 }
+
+/** This function gives the least count of the items that do not fit a fixed container. */
+function leastOverflow(items: readonly Item[], W: number, H: number, margin = 0, gap = 0): number {
+  let least = items.length;
+  for (let mask = 0; mask < 1 << items.length; mask++) {
+    const chosen = items.filter((_, k) => (mask & (1 << k)) !== 0);
+    if (fits(chosen.map((i) => shapeOf(i, margin, gap)), W + gap, H + gap)) least = Math.min(least, items.length - chosen.length);
+  }
+  return least;
+}
+
+/** The margins and the gaps of the property tests of k118: a margin, a gap, and both. */
+const KNOBS: readonly { margin: number; gap: number }[] = [
+  { margin: 1, gap: 0 },
+  { margin: 0, gap: 1 },
+  { margin: 0, gap: 2 },
+  { margin: 1, gap: 1 },
+];
 
 /** This function makes `n` items with whole sizes from 1 to `max`. */
 function itemsOf(r: () => number, n: number, maxW: number, maxH: number, turns: boolean): Item[] {
@@ -147,6 +170,21 @@ describe("the strip bounds", () => {
       const bound = objectiveBound(strip(items, W), { tolerance: 0 })!;
       expect(bound.parts["strip.margin"]).toBeDefined();
       for (const [kind, v] of Object.entries(bound.parts)) expect(v, `${trial} ${kind}`).toBeLessThanOrEqual(best + 1e-9);
+    }
+  });
+
+  it("are at most the optimum with the margins and the gap of k118, with and without the tolerance", () => {
+    const r = mulberry32(118);
+    for (let trial = 0; trial < 24; trial++) {
+      const { margin, gap } = KNOBS[trial % KNOBS.length]!;
+      const W = 6 + Math.floor(r() * 3);
+      const items = itemsOf(r, 2 + Math.floor(r() * 3), 3, 3, trial % 3 === 0).map((i) => (margin > 0 ? { ...i, margin } : i));
+      const best = stripOptimum(items, W, margin, gap);
+      for (const tolerance of [0, 0.001]) {
+        const bound = objectiveBound(strip(items, W, gap > 0 ? { gap } : {}), { tolerance })!;
+        expect(bound.parts["strip.margin"]).toBeDefined();
+        for (const [kind, v] of Object.entries(bound.parts)) expect(v, `${trial} ${kind} m${margin} g${gap}`).toBeLessThanOrEqual(best + 1e-9);
+      }
     }
   });
 
@@ -214,6 +252,18 @@ describe("the hull bounds", () => {
     }
   });
 
+  it("are at most the optimum with the margins and the gap of k118", () => {
+    const r = mulberry32(1180);
+    for (let trial = 0; trial < 12; trial++) {
+      const { margin, gap } = KNOBS[trial % KNOBS.length]!;
+      const items = itemsOf(r, 2, 3, 3, false).map((i) => (margin > 0 ? { ...i, margin } : i));
+      const best = areaOptimum(items, margin, gap);
+      const bound = objectiveBound({ container: { fixed: "none", aspectWeight: 0 }, items, ...(gap > 0 ? { gap } : {}) }, { tolerance: 0 })!;
+      expect(bound.parts["hull.margin"]).toBeDefined();
+      for (const [kind, v] of Object.entries(bound.parts)) expect(v, `${trial} ${kind} m${margin} g${gap}`).toBeLessThanOrEqual(best + 1e-9);
+    }
+  });
+
   it("is tight on a perfect tiling, and gives the extent of a long item", () => {
     const tiles = Array.from({ length: 9 }, (_, k) => ({ id: `t${k}`, w: 1, h: 1 }));
     expect(objectiveBound({ container: { fixed: "none" }, items: tiles }, { tolerance: 0 })!.value).toBe(9);
@@ -234,13 +284,34 @@ describe("the bound of a fixed container", () => {
       const bound = objectiveBound({ container: { w: W, h: H, fixed: "size" }, items })!;
       expect(bound.sense).toBe("upper");
       expect(bound.value).toBeGreaterThanOrEqual(placedOptimum(items, W, H) - 1e-9);
-      let least = items.length;
-      for (let mask = 0; mask < 1 << items.length; mask++) {
-        const chosen = items.filter((_, k) => (mask & (1 << k)) !== 0);
-        if (fits(chosen.map((i) => shapeOf(i)), W, H)) least = Math.min(least, items.length - chosen.length);
-      }
-      expect(bound.overflow).toBeLessThanOrEqual(least);
+      expect(bound.overflow).toBeLessThanOrEqual(leastOverflow(items, W, H));
     }
+  });
+
+  it("stays sound with the margins and the gap of k118: at least the best share, and an overflow of at most the least", () => {
+    const r = mulberry32(11800);
+    for (let trial = 0; trial < 24; trial++) {
+      const { margin, gap } = KNOBS[trial % KNOBS.length]!;
+      const W = 4 + Math.floor(r() * 3);
+      const H = 4 + Math.floor(r() * 3);
+      const items = itemsOf(r, 2 + Math.floor(r() * 3), 3, 3, false).map((i) => (margin > 0 ? { ...i, margin } : i));
+      const bound = objectiveBound({ container: { w: W, h: H, fixed: "size" }, items, ...(gap > 0 ? { gap } : {}) })!;
+      expect(bound.value, `${trial} m${margin} g${gap}`).toBeGreaterThanOrEqual(placedOptimum(items, W, H, margin, gap) - 1e-9);
+      expect(bound.overflow, `${trial} m${margin} g${gap}`).toBeLessThanOrEqual(leastOverflow(items, W, H, margin, gap));
+    }
+  });
+
+  it("counts the margins and the gap: 4 squares of 4 with the margin 1 fill a box of 12, and the gap 2 sends 1 out", () => {
+    const items = Array.from({ length: 4 }, (_, k) => ({ id: `s${k}`, w: 4, h: 4, margin: 1 }));
+    // Each square with its margin is 6 by 6, so 4 fit a box of 12 by 12: the bound is 1.
+    expect(objectiveBound({ container: { w: 12, h: 12, fixed: "size" }, items }, { tolerance: 0 })!.value).toBe(1);
+    // With the gap 2, a square needs 8 by 8 of a box of 14 by 14. The area 196 holds 3 of 64, so 1 square goes.
+    const gapped = objectiveBound({ container: { w: 12, h: 12, fixed: "size" }, items, gap: 2 })!;
+    expect(gapped.overflow).toBe(1);
+    // The area needs 60 more, and 60 of the grown area is 15 of the item area, out of 64: a part of a square counts.
+    expect(gapped.value).toBeCloseTo(1 - 15 / 64, 2);
+    // The area bound is weak here: only 1 square fits, and the bound stays above that optimum.
+    expect(placedOptimum(items, 12, 12, 1, 2)).toBe(0.25);
   });
 
   it("subtracts a fixed obstacle from the free area", () => {
@@ -258,10 +329,20 @@ describe("objectiveBound", () => {
     expect(objectiveBound({ container: { fixed: "none" }, items: [{ id: "a", w: 4, h: 4, margin: -1 }] })).toBeNull();
   });
 
-  it("ignores the gap, the obstacles of a free side and a circle container: the bound gets weaker, not wrong", () => {
+  it("counts the gap: 4 squares of 5 with the gap 4 stack in a strip of 10, and the bound is that height", () => {
+    const items = Array.from({ length: 4 }, (_, k) => ({ id: `s${k}`, w: 5, h: 5 }));
+    // 5 + 4 + 5 is more than 10, so the squares stack: 4 * 5 + 3 * 4 = 32. Each piece of 9 is wider than half the strip of 14.
+    const bound = objectiveBound(strip(items, 10, { gap: 4 }), { tolerance: 0 })!;
+    expect(bound.value).toBe(32);
+    expect(bound.kind).toBe("strip.margin");
+    // A square in pairGaps does not grow, so the bound with 4 paired squares is the bound without the gap.
+    const pairs = [{ a: "s0", b: "s1", gap: 0 }, { a: "s2", b: "s3", gap: 0 }];
+    expect(objectiveBound(strip(items, 10, { gap: 4, pairGaps: pairs }), { tolerance: 0 })!.value).toBe(10);
+  });
+
+  it("ignores the obstacles of a free side and a circle container: the bound gets weaker, not wrong", () => {
     const items = Array.from({ length: 4 }, (_, k) => ({ id: `s${k}`, w: 5, h: 5 }));
     const plain = objectiveBound(strip(items, 10), { tolerance: 0 })!.value;
-    expect(objectiveBound(strip(items, 10, { gap: 4 }), { tolerance: 0 })!.value).toBe(plain);
     const obstacles = [{ id: "o", region: { kind: "circle" as const, cx: 5, cy: 5, r: 2 } }];
     expect(objectiveBound(strip(items, 10, { obstacles }), { tolerance: 0 })!.value).toBe(plain);
     const circle = { container: { fixed: "width" as const, shape: { kind: "circle" as const, cx: 5, cy: 5, r: 5 } }, items };
@@ -279,20 +360,57 @@ describe("boundGap", () => {
   });
 });
 
+describe("boundShare", () => {
+  it("is 0 at the bound, at most 1 for each result, and g / (1 + g) of the ratio g", () => {
+    expect(boundShare(10, 10, "lower")).toBe(0);
+    expect(boundShare(12, 10, "lower")).toBeCloseTo(1 / 6, 9);
+    expect(boundShare(0.5, 1, "upper")).toBe(0.5);
+    // A tiny placed share: the ratio is 999, the share stays below 1
+    expect(boundGap(0.001, 1, "upper")).toBeCloseTo(999, 6);
+    expect(boundShare(0.001, 1, "upper")).toBeCloseTo(0.999, 9);
+    expect(boundShare(0, 1, "upper")).toBe(1);
+    expect(boundShare(0, 0, "lower")).toBe(0);
+    expect(boundShare(0, 0, "upper")).toBe(0);
+    // A result better than its bound gives a share below 0: the bound is wrong
+    expect(boundShare(8, 10, "lower")).toBeLessThan(0);
+    expect(boundShare(0.5, 0, "upper")).toBe(-1);
+    const r = mulberry32(6);
+    for (let k = 0; k < 200; k++) {
+      const bound = r() * 10;
+      const result = bound * (1 + r() * 50);
+      const g = boundGap(result, bound, "lower");
+      const s = boundShare(result, bound, "lower");
+      expect(s).toBeGreaterThanOrEqual(0);
+      expect(s).toBeLessThanOrEqual(1);
+      expect(s).toBeCloseTo(g / (1 + g), 9);
+    }
+  });
+});
+
 describe("the bounds on the corpus", () => {
   const specsOf = (name: string): CorpusSpec[] => (JSON.parse(readFileSync(new URL(`../bench/corpora/${name}.json`, import.meta.url), "utf8")) as { specs: CorpusSpec[] }).specs;
 
-  it("are at most the result of each strategy, and the measure adds no field to measure", () => {
-    const kinds = new Set<string>();
-    for (const name of ["smoke-v1", "pack-free-v1"]) {
-      const inputs = corpus(name, specsOf(name)).inputs.filter((_, k) => name === "smoke-v1" || k % 24 === 0);
+  // The kinds of the bounds that the tests of the 2 corpora find
+  const kinds = new Set<string>();
+  // The searches over orders of k26 get 4 iterations, as in the fast screen. Thus each test stays short.
+  const SEARCHES: ReadonlySet<string> = new Set(["anneal", "genetic", "tabu"]);
+  // Each input of smoke-v1, and each 24th input of pack-free-v1 in 2 halves of 15 inputs: the index k with k % 48 of 0 or of 24
+  const parts: readonly { name: string; keep: (k: number) => boolean; label: string }[] = [
+    { name: "smoke-v1", keep: () => true, label: "each input" },
+    { name: "pack-free-v1", keep: (k) => k % 48 === 0, label: "k % 48 = 0" },
+    { name: "pack-free-v1", keep: (k) => k % 48 === 24, label: "k % 48 = 24" },
+  ];
+  for (const { name, keep, label } of parts) {
+    it(`are at most the result of each strategy on ${name} (${label}), from 0 to 1, and the measure adds no field to measure`, () => {
+      const inputs = corpus(name, specsOf(name)).inputs.filter((_, k) => keep(k));
       for (const file of inputs) {
         const input = toPackInput(file);
         for (const s of strategies) {
           if (!supportsCell(s.supports, cellOf(input))) continue;
           let output;
           try {
-            output = packWith(s.id, input, undefined, file.seed);
+            const given = SEARCHES.has(s.id) ? { ...(s.defaults as Record<string, unknown>), iterations: 4 } : undefined;
+            output = packWith(s.id, input, given, file.seed);
           } catch (error) {
             if (error instanceof UnsupportedCell) continue;
             throw error;
@@ -302,11 +420,15 @@ describe("the bounds on the corpus", () => {
           if (m["pack.gap"] === undefined) continue;
           kinds.add(BOUND_KINDS[m["pack.bound.kind"]!]!);
           expect(m["pack.gap"], `${s.id} ${file.id}`).toBeGreaterThanOrEqual(-1e-9);
+          expect(m["pack.gap"], `${s.id} ${file.id}`).toBeLessThanOrEqual(1);
         }
       }
-    }
+    }, 120_000);
+  }
+
+  it("find a bound of each kind of container on the 2 corpora", () => {
     expect([...kinds].some((k) => k.startsWith("strip."))).toBe(true);
     expect([...kinds].some((k) => k.startsWith("hull."))).toBe(true);
     expect(kinds.has("placed.free")).toBe(true);
-  }, 120_000);
+  });
 });

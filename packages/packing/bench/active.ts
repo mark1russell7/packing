@@ -2,7 +2,7 @@
 // The pairs that it measures join the training rows before the next round. Thus the model learns the region of the space where it is weak.
 //
 //   node bench/active.ts --out <dir> --records <records.jsonl> --corpus <corpus.json> [--n 400] [--seed 1] [--rounds 4] [--pool 20]
-//                        [--features family|input] [--by input|spec] [--score spread-iqr|fold-spread] [--max-count 1000] [--no-knobs]
+//                        [--features family|input] [--by input|spec] [--score spread-iqr|fold-spread] [--max-count 1000] [--no-knobs] [--knobs relative|absolute]
 //                        [--repeats 1] [--warmup 0] [--max-minutes <m>]
 //
 // `node bench/sample-space.ts --draw active` starts this file. `docs/BENCH.md` ("The active draw") tells how the draw works.
@@ -40,6 +40,7 @@ import {
   MAX_STRATUM_MISSES,
   measurePair,
   optionOf,
+  resolveDraw,
   sampleOptions,
   spaceCounts,
   strataOf,
@@ -48,6 +49,7 @@ import {
   DEFAULT_PAIRS,
   SAMPLE_SCHEMA,
   type InputDraw,
+  type KnobScale,
   type SampleOptions,
   type SampleRecord,
   type SampleSummary,
@@ -170,10 +172,11 @@ interface PoolCounts {
  */
 export function candidatePool(
   size: number,
-  options: { readonly seed: number; readonly space: StrategySpace; readonly maxCount: number; readonly knobs: boolean; readonly coverage: CoverageOptions; readonly deadline?: number; readonly maxInputTries?: number; readonly maxOverlapMoves?: number },
+  options: { readonly seed: number; readonly space: StrategySpace; readonly maxCount: number; readonly knobs: boolean; readonly knobScale?: KnobScale; readonly coverage: CoverageOptions; readonly deadline?: number; readonly maxInputTries?: number; readonly maxOverlapMoves?: number },
   counts: PoolCounts,
 ): Candidate[] {
   const { seed, space, maxCount, knobs } = options;
+  const knobScale = options.knobScale ?? "relative";
   const maxInputTries = options.maxInputTries ?? MAX_INPUT_TRIES;
   const sc = spaceCounts(space);
   const strata = strataOf(space, sc);
@@ -191,7 +194,7 @@ export function candidatePool(
     }
     let found: Candidate | undefined;
     for (let inputTry = 0; inputTry < maxInputTries && found === undefined; inputTry++) {
-      const d = drawInput(r, corpusFamilies, { knobs });
+      const d = resolveDraw(drawInput(r, corpusFamilies, { knobs, knobScale }), registry);
       counts.inputsDrawn++;
       const file = generateInput(d, registry, maxCount);
       if (typeof file === "string") {
@@ -268,6 +271,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const poolFactor = options.poolFactor ?? DEFAULT_POOL_FACTOR;
   const maxCount = options.maxCount ?? DEFAULT_MAX_COUNT;
   const knobs = options.knobs ?? true;
+  const knobScale = options.knobScale ?? "relative";
   const repeats = options.repeats ?? 1;
   const warmup = options.warmup ?? 0;
   const space = options.space ?? packSpace;
@@ -285,7 +289,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const start = Date.now();
   const deadline = options.maxMinutes === undefined ? undefined : start + options.maxMinutes * 60000;
   const counts: PoolCounts = { configsDrawn: 0, configsRejected: 0, inputsDrawn: 0, inputsRejected: 0, missed: 0, configReasons: {}, inputReasons: {}, strataMissed: {} };
-  const pool = candidatePool(n * poolFactor, { seed, space, maxCount, knobs, coverage, ...(deadline === undefined ? {} : { deadline }), ...(options.maxInputTries === undefined ? {} : { maxInputTries: options.maxInputTries }), ...(maxOverlapMoves === undefined ? {} : { maxOverlapMoves }) }, counts);
+  const pool = candidatePool(n * poolFactor, { seed, space, maxCount, knobs, knobScale, coverage, ...(deadline === undefined ? {} : { deadline }), ...(options.maxInputTries === undefined ? {} : { maxInputTries: options.maxInputTries }), ...(maxOverlapMoves === undefined ? {} : { maxOverlapMoves }) }, counts);
   const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
   const grid = gridOf(options.records, options.manifest, coverage);
   const inputs = new Map<string, PackInput>(coverage.inputs ?? []);
@@ -379,6 +383,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
     draw: "active",
     maxCount,
     knobs,
+    knobScale,
     repeats,
     warmup,
     space: { base: sc.base.toString(), meta: Object.fromEntries(sc.meta.map((m) => [m.option.id, m.weight.toString()])) },

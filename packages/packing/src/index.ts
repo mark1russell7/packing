@@ -164,6 +164,7 @@ export {
   BOUND_KINDS,
   boundGap,
   boundMeasures,
+  boundShare,
   mmvBound,
   objectiveBound,
   objectiveResult,
