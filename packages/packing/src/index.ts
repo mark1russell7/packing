@@ -105,6 +105,7 @@ export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, typ
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
 export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb, type RestartsStrategyOptions } from "./restarts.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
+export { RUIN_KINDS, RUIN_RECREATE_STAGE, ruinRecreateStrategy, type RuinKind, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 export {
   cellKey,
   PORTFOLIO_FRAME_MS,
