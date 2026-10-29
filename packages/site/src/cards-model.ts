@@ -23,6 +23,7 @@ import {
   type LayoutStrategyOptions,
   type MaxRectsStrategyOptions,
   type OverlapMinStrategyOptions,
+  type RelaxStrategyOptions,
   type PortfolioStrategyOptions,
   type PushStrategyOptions,
   type RestartsStrategyOptions,
@@ -95,6 +96,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   "hole-degree": { stage: "placement" },
   "ruin-recreate": { stage: "local-search" },
   "overlap-min": { stage: "local-search" },
+  relax: { stage: "local-search" },
   anneal: {
     stage: "local-search",
     rule: "Change the order with swaps and moves. Keep a worse order with a chance that falls as the temperature falls.",
@@ -258,6 +260,7 @@ type AnyOptions = LayoutStrategyOptions &
   RestartsStrategyOptions &
   RuinRecreateStrategyOptions &
   OverlapMinStrategyOptions &
+  RelaxStrategyOptions &
   AnnealStrategyOptions &
   GeneticStrategyOptions &
   TabuStrategyOptions &
@@ -341,6 +344,10 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
     member: { type: "string | PortfolioEntry", note: "The member that packs each order. The default is `maxrects-bl`." },
     iterations: { type: "number", note: "The count of the packs of the member, the member order included." },
   },
+  relax: {
+    member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
+    strength: { type: "number", note: "The share of the move to the even spread, from 0 to 1. With 0, the output is the member output." },
+  },
 };
 
 /** The options of each strategy that have no default. The types of the package make sure that each name is an option of the strategy. */
@@ -357,6 +364,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   anneal: ["member", "budgetWork"] satisfies (keyof AnnealStrategyOptions)[],
   genetic: ["member", "budgetWork"] satisfies (keyof GeneticStrategyOptions)[],
   tabu: ["member", "budgetWork"] satisfies (keyof TabuStrategyOptions)[],
+  relax: ["member"] satisfies (keyof RelaxStrategyOptions)[],
 };
 
 /** One option of a card */

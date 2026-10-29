@@ -86,6 +86,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   anneal: "Annealing",
   genetic: "Genetic",
   tabu: "Tabu search",
+  relax: "Relax",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
 
