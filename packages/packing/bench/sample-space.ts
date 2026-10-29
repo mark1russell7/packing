@@ -553,6 +553,11 @@ export interface SampleOptions {
   readonly space?: StrategySpace;
   /** The largest count of the draws of an input for one pair. The default is `MAX_INPUT_TRIES`, 200. A test gives a smaller count. */
   readonly maxInputTries?: number;
+  /**
+   * The largest param `iterations` of a config of `overlap-min` (roadmap item k80). The default is none. A test gives a small count.
+   * The sampler lowers a larger value to this count before the pack, so the record has the config that it packed.
+   */
+  readonly maxOverlapMoves?: number;
 }
 
 /** The summary of a sample, schema `packing-sample-space/1`. */
@@ -590,6 +595,14 @@ export interface SampleSummary {
    * `missed` is the count of the pairs without an input and config. The pairs of a closed stratum count as `missed`.
    */
   readonly strata?: Readonly<Record<string, { readonly configs: string; readonly pairs: number; readonly missed: number }>>;
+}
+
+/** This function gives a config with the param `iterations` of `overlap-min` at most `cap`. Another config stays the same. */
+function capMoves(config: StrategyConfig, cap: number | undefined): StrategyConfig {
+  const combine = config.stages["combine"];
+  const moves = combine?.params?.["iterations"];
+  if (cap === undefined || combine?.option !== "overlap-min" || typeof moves !== "number" || moves <= cap) return config;
+  return { ...config, stages: { ...config.stages, combine: { ...combine, params: { ...combine.params, iterations: cap } } } };
 }
 
 /** This function adds one to a count of a record. */
@@ -639,6 +652,8 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   if (!Number.isInteger(repeats) || repeats < 1) throw new RangeError("The repeats are a whole number of 1 or more.");
   if (!Number.isInteger(warmup) || warmup < 0) throw new RangeError("The warm-up runs are a whole number of 0 or more.");
   if (!Number.isInteger(maxInputTries) || maxInputTries < 1) throw new RangeError("The input tries are a whole number of 1 or more.");
+  const maxOverlapMoves = options.maxOverlapMoves;
+  if (maxOverlapMoves !== undefined && (!Number.isInteger(maxOverlapMoves) || maxOverlapMoves < 1)) throw new RangeError("The overlap moves are a whole number of 1 or more.");
   const counts = spaceCounts(space);
   const strata = draw === "stratified" ? strataOf(space, counts) : [];
   if (draw === "stratified" && strata.length === 0) throw new RangeError("The space has no strata.");
@@ -694,7 +709,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
           bump(configReasons, `check:${breaks[0]!.claim}`);
           continue;
         }
-        const canonical = canonicalConfig(space, config);
+        const canonical = capMoves(canonicalConfig(space, config), maxOverlapMoves);
         const id = configId(space, canonical);
         let first: PackOutput;
         try {

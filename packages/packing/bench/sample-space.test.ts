@@ -300,7 +300,8 @@ describe("the strata of k115", () => {
 
   it("gives the same count of pairs to each stratum, and the same pairs for the same seed", () => {
     const strata = strataOf(packSpace).map((s) => s.id);
-    const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), maxInputTries: 10 });
+    // The pair of overlap-min:1 (k80) gets at most 256 moves, so the test stays fast. Its stratum and its config stay the same.
+    const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), maxInputTries: 10, maxOverlapMoves: 256 });
     const a = run();
     expect(a.summary.errors).toEqual([]);
     expect(a.summary.draw).toBe("stratified");
@@ -310,6 +311,9 @@ describe("the strata of k115", () => {
     for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 1] : [id, 1, 0]);
     expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
     expect(a.records).toHaveLength(strata.length - 1);
+    // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
+    const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
+    expect(moves).toEqual([256]);
     // Pair i takes the stratum i modulo 20.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
