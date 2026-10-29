@@ -795,12 +795,12 @@ The rules:
 
 - The pass does not add or remove a box. So the placed set, the unplaced count and the output size do not change.
 - The start, the forces and the sweeps read no seed, and each loop visits the boxes in the order of the member output. So the output is the same for each seed, and `pack.stability.seed` is 0.
-- The force step and the graph are O(n^2) for each step. The cost is `iterations` x n^2 plus `rounds` x n^2 for the sweeps, for each try. Above `FORCE_MAX_BOXES` (1000) boxes, the output is the output of the member.
+- The force step and the graph are O(n^2) for each step. The cost is `iterations` x n^2 plus `rounds` x n^2 for the sweeps, for each try. With n moving boxes and f fixed boxes (the obstacles and the locked items), a step costs n x (n + f). So two caps bound the two counts: above `FORCE_MAX_BOXES` (1000) moving boxes or `FORCE_MAX_FIXED` (1000) fixed boxes, the output is the output of the member, and its trace has `force.capped` 1. Before the fix of k125, the cap counted the fixed boxes too, so the inputs of 1000 boxes with obstacles kept the member output with no mark.
 - Dense inputs are the reason for the tries. On 120 made-up inputs of 10 to 50 boxes in a container of 120 x 120 (3 members), the forces with `g` leave overlaps that PRISM and VPSC cannot remove on 13 inputs. With the tries, 107 inputs end on the first try, 6 on the second and 7 on the third, with no fallback. The median `pack.balance.sideRange` is 0.32 (member 0.73, `relax` 0.26), and the median `pack.balance.gapCv` is 0.29 (`relax` 0.50).
 - On the same inputs, the rounds of PRISM change little: the median `pack.balance.sideRange` is 0.335 with no round and 0.321 with 10.
 - PRISM uses the edges of a Delaunay triangulation and then a scan for the overlaps that the graph does not hold. This pass uses the pairs with a clearance below `g` in place of both, because the pairs are already O(n^2).
 - The step of VPSC is the code of `relax`. It moves into `src/separation.ts`, with no change of the output of `relax`.
-- The trace stage `force` has `move.force` (the moved boxes), `force.gap`, `force.tries` (1 to 3), `force.overlaps` (the overlaps after the forces of the last try), `force.rounds`, `force.vpsc` (1 when the last pass ran) and `force.fallback`.
+- The trace stage `force` has `move.force` (the moved boxes), `force.gap`, `force.tries` (1 to 3), `force.overlaps` (the overlaps after the forces of the last try), `force.rounds`, `force.capped` (1 when a cap stopped the pass), `force.vpsc` (1 when the last pass ran) and `force.fallback`.
 
 The counts of `packSpace`:
 

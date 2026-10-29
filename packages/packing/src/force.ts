@@ -14,8 +14,11 @@ import { assertSupported, type PackContext, type Strategy, type Supports } from 
 /** The id of the trace stage of `force`. */
 export const FORCE_STAGE = "force";
 
-/** The largest count of the boxes of one input. On a larger input, `force` gives the layout of the member. */
+/** The largest count of the boxes that `force` moves. On a larger input, `force` gives the layout of the member. */
 export const FORCE_MAX_BOXES = 1000;
+
+/** The largest count of the fixed boxes: the obstacles and the locked items. On a larger input, `force` gives the layout of the member. */
+export const FORCE_MAX_FIXED = 1000;
 
 /** The options of the strategy `force` */
 export interface ForceStrategyOptions {
@@ -290,6 +293,7 @@ function hardSum(input: PackInput, output: PackOutput): number {
  *
  * When the pass fails or gives more hard breaks than the member, the output is the output of the member. The trace
  * stage `force` has `move.force`, `force.gap`, `force.tries`, `force.overlaps`, `force.rounds`, `force.vpsc` and `force.fallback`.
+ * The measure `force.capped` is 1 when `FORCE_MAX_BOXES` or `FORCE_MAX_FIXED` stops the pass.
  */
 export const forceStrategy: Strategy<ForceStrategyOptions> = {
   id: "force",
@@ -304,11 +308,13 @@ export const forceStrategy: Strategy<ForceStrategyOptions> = {
     const iterations = options.iterations ?? 60;
     const rounds = options.rounds ?? 10;
     const base = packWith(member.strategy, input, member.options, context.seed);
-    const measures: Record<string, number> = { "move.force": 0, "force.gap": 0, "force.tries": 0, "force.overlaps": 0, "force.rounds": 0, "force.vpsc": 0, "force.fallback": 0 };
-    const keep = (fallback: number): PackOutput => ({ ...base, trace: [...(base.trace ?? []), { id: FORCE_STAGE, measures: { ...measures, "force.fallback": fallback } }] });
+    const measures: Record<string, number> = { "move.force": 0, "force.gap": 0, "force.tries": 0, "force.overlaps": 0, "force.rounds": 0, "force.vpsc": 0, "force.fallback": 0, "force.capped": 0 };
+    const keep = (fallback: number, capped = 0): PackOutput => ({ ...base, trace: [...(base.trace ?? []), { id: FORCE_STAGE, measures: { ...measures, "force.fallback": fallback, "force.capped": capped } }] });
     if (iterations === 0 || base.placements.length === 0) return keep(0);
     const start = framed(input, base);
-    if (start.n === 0 || start.pos[0].length > FORCE_MAX_BOXES || !start.clean()) return keep(1);
+    // Each cap bounds the work that it counts: the moving boxes, and the fixed boxes that each moving box examines
+    if (start.n > FORCE_MAX_BOXES || start.pos[0].length - start.n > FORCE_MAX_FIXED) return keep(1, 1);
+    if (start.n === 0 || !start.clean()) return keep(1);
     const gap = targetGap(start);
     measures["force.gap"] = gap;
     // The tries: the full gap, then half of the gap, then the blocked steps. A blocked step makes no overlap.

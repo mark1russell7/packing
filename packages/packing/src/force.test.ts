@@ -67,6 +67,28 @@ describe("force", () => {
     const out = packWith("force", input);
     expect(hard(input, out)).toBe(0);
     expect(stage(out)?.["force.fallback"]).toBe(0);
+    expect(stage(out)?.["force.capped"]).toBe(0);
+  });
+
+  it("does not count the obstacles in the cap of the moving boxes, and marks a capped result", () => {
+    const random = mulberry32(9);
+    const items = Array.from({ length: 1001 }, (_, i) => ({ id: `b${i}`, w: 2 + Math.floor(random() * 4), h: 2 + Math.floor(random() * 4) }));
+    const obstacles = [{ id: "o1", region: { kind: "rect" as const, x: 0, y: 0, w: 10, h: 10 } }];
+    const input: PackInput = { container: { w: 300, h: 300, fixed: "size" }, items, obstacles };
+    expect(stage(packWith("force", input, { member: "rows", iterations: 1, rounds: 0 }))?.["force.capped"]).toBe(1);
+    const under: PackInput = { ...input, items: items.slice(0, 1000) };
+    const out = packWith("force", under, { member: "rows", iterations: 1, rounds: 0 });
+    expect(stage(out)?.["force.capped"]).toBe(0);
+    expect(hard(under, out)).toBe(0);
+  });
+
+  it("keeps the member output and marks the result when the fixed boxes pass the cap", () => {
+    const obstacles = Array.from({ length: 1001 }, (_, i) => ({ id: `o${i}`, region: { kind: "rect" as const, x: (i % 40) * 10, y: 200 + Math.floor(i / 40) * 10, w: 1, h: 1 } }));
+    const input: PackInput = { container: { w: 400, h: 500, fixed: "size" }, items: scattered(7, 10).items, obstacles };
+    const base = packWith("rows", input);
+    const out = packWith("force", input, { member: "rows" });
+    expect(out.placements).toEqual(base.placements);
+    expect(stage(out)?.["force.capped"]).toBe(1);
   });
 
   it("is deterministic and does not read the seed", () => {

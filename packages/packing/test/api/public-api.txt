@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 381 names
+## . (build/index.d.ts): 382 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -64,6 +64,7 @@ EPS: @mark1russell7/layout-contract#EPS (external)
 type EdgeCase: build/index.d.ts#EdgeCase
 type EdgeCaseParams: build/index.d.ts#EdgeCaseParams
 FORCE_MAX_BOXES: build/index.d.ts#FORCE_MAX_BOXES
+FORCE_MAX_FIXED: build/index.d.ts#FORCE_MAX_FIXED
 FORCE_STAGE: build/index.d.ts#FORCE_STAGE
 type ForceStrategyOptions: build/index.d.ts#ForceStrategyOptions
 type FreeSpace: build/index.d.ts#FreeSpace
@@ -672,6 +673,9 @@ type EdgeCaseParams = {
 
 ### build/index.d.ts#FORCE_MAX_BOXES
 export declare const FORCE_MAX_BOXES = 1e3;
+
+### build/index.d.ts#FORCE_MAX_FIXED
+export declare const FORCE_MAX_FIXED = 1e3;
 
 ### build/index.d.ts#FORCE_STAGE
 export declare const FORCE_STAGE = "force";
