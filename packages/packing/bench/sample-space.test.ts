@@ -12,7 +12,21 @@ import {
   type SpaceParam,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import { drawConfig, drawInput, drawParams, memberListCount, paramCount, pickWeighted, sampleOptions, sampleSpace, spaceCounts, uniformBig } from "./sample-space.ts";
+import {
+  drawConfig,
+  drawInput,
+  drawParams,
+  drawStratum,
+  memberListCount,
+  paramCount,
+  pickWeighted,
+  sampleOptions,
+  sampleSpace,
+  spaceCounts,
+  strataOf,
+  stratumOf,
+  uniformBig,
+} from "./sample-space.ts";
 
 // The sampler of the whole space of roadmap item k112. The tests use a fake clock, so they read no time of a run.
 
@@ -178,7 +192,115 @@ describe("the sample of pairs", () => {
 
   it("reads the options of the command line", () => {
     expect(sampleOptions(["--n", "60", "--draw", "option", "--no-knobs", "--max-minutes", "5"], ENV)).toMatchObject({ n: 60, draw: "option", knobs: false, maxMinutes: 5, seed: 1 });
-    expect(() => sampleOptions(["--draw", "grid"], ENV)).toThrow(/uniform or option/);
+    expect(sampleOptions([], ENV).draw).toBe("uniform");
+    expect(sampleOptions(["--stratify"], ENV).draw).toBe("stratified");
+    expect(sampleOptions(["--draw", "stratified"], ENV).draw).toBe("stratified");
+    expect(() => sampleOptions(["--stratify", "--draw", "option"], ENV)).toThrow(/does not go with/);
+    expect(() => sampleOptions(["--draw", "grid"], ENV)).toThrow(/uniform, option or stratified/);
     expect(() => sampleOptions(["--n", "-1"], ENV)).toThrow(/whole number/);
+  });
+
+  it("keeps the uniform draw: the same configs as before k115, and no strata in the summary", () => {
+    // The config ids of the first 4 pairs of the seed 3 come from the sampler of k112, before the strata.
+    const a = sampleSpace({ ...options, clock: fakeClock() });
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["50cf6ffc8363c2de", "9f3715be79611b96", "3bdec5ffce877adc", "b9f2480fcf4f4f8f"]);
+    expect(a.summary.draw).toBe("uniform");
+    expect("strata" in a.summary).toBe(false);
+  });
+});
+
+describe("the strata of k115", () => {
+  it("gives 16 strata of packSpace, and their counts sum to the count of the space", () => {
+    const counts = spaceCounts(packSpace);
+    const strata = strataOf(packSpace, counts);
+    expect(strata.map((s) => s.id)).toEqual([
+      "rows:1",
+      "skyline:1",
+      "shelf:1",
+      "maxrects:1",
+      "push:1",
+      "portfolio:2",
+      "portfolio:3",
+      "portfolio:4",
+      "portfolio:5",
+      "cell-portfolio:cell",
+      "cell-portfolio:2",
+      "cell-portfolio:3",
+      "select:2",
+      "aspect-fit:1",
+      "restarts:1",
+      "bbox:1",
+    ]);
+    const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
+    expect(strata.reduce((s, x) => s + x.configs, 0n)).toBe(total);
+    expect(strata.filter((s) => s.meta === undefined).reduce((s, x) => s + x.configs, 0n)).toBe(counts.base);
+  });
+
+  it("gives the stratum of each named config", () => {
+    const of = (name: string): string => stratumOf(packSpace, packSpace.named![name]!);
+    expect(of("rows")).toBe("rows:1");
+    expect(of("push")).toBe("push:1");
+    expect(of("shelf-best")).toBe("shelf:1");
+    expect(of("maxrects-bl")).toBe("maxrects:1");
+    expect(of("skyline-mw-waste")).toBe("skyline:1");
+    expect(of("portfolio")).toBe("cell-portfolio:cell");
+    expect(of("portfolio-k2")).toBe("cell-portfolio:2");
+    expect(of("aspect-fit-portfolio-k2")).toBe("cell-portfolio:2");
+    expect(of("portfolio-area-rows-bl")).toBe("portfolio:2");
+    expect(of("select-rows-bl")).toBe("select:2");
+    expect(of("aspect-fit")).toBe("aspect-fit:1");
+    expect(of("restarts-rows-k16")).toBe("restarts:1");
+    expect(of("bbox-skyline")).toBe("bbox:1");
+  });
+
+  it("draws configs of each stratum of packSpace that checkConfig accepts", () => {
+    const counts = spaceCounts(packSpace);
+    const r = stepRandom(9, "strata");
+    for (const s of strataOf(packSpace, counts))
+      for (let i = 0; i < 6; i++) {
+        const c = drawStratum(r, packSpace, counts, s);
+        expect(checkConfig(packSpace, c)).toEqual([]);
+        expect(stratumOf(packSpace, c)).toBe(s.id);
+      }
+  });
+
+  it("draws each config of a stratum of a small space with the same chance", () => {
+    // The small space has no stage placement, so the stage a gives the family.
+    const counts = spaceCounts(SMALL);
+    const strata = strataOf(SMALL, counts);
+    expect(strata.map((s) => [s.id, s.configs])).toEqual([
+      ["x:1", 2n],
+      ["y:1", 1n],
+      ["m:1", 3n],
+      ["m:2", 6n],
+    ]);
+    const r = stepRandom(13, "small strata");
+    for (const s of strata) {
+      const seen = new Map<string, number>();
+      const draws = 600 * Number(s.configs);
+      for (let i = 0; i < draws; i++) {
+        const c = drawStratum(r, SMALL, counts, s);
+        expect(stratumOf(SMALL, c)).toBe(s.id);
+        const id = configId(SMALL, c);
+        seen.set(id, (seen.get(id) ?? 0) + 1);
+      }
+      expect(seen.size).toBe(Number(s.configs));
+      for (const n of seen.values()) expect(Math.abs(n - 600)).toBeLessThan(90);
+    }
+  });
+
+  it("gives the same count of pairs to each stratum, and the same pairs for the same seed", () => {
+    const strata = strataOf(packSpace).map((s) => s.id);
+    const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: 2 * strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock() });
+    const a = run();
+    expect(a.summary.errors).toEqual([]);
+    expect(a.summary.draw).toBe("stratified");
+    expect(Object.keys(a.summary.strata!)).toEqual(strata);
+    for (const s of Object.values(a.summary.strata!)) expect(s.pairs).toBe(2);
+    expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
+    // Pair i takes the stratum i modulo 16.
+    a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
+    const b = run();
+    expect(b.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash])).toEqual(a.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash]));
   });
 });
