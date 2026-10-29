@@ -5,15 +5,15 @@
 # With the input times_run, the job time does not pack: the job promotion downloads the time records of that earlier run.
 # The job promotion gives the verdict of the guard set of the input guards, and the verdicts of v1 and v2 side by side.
 # A pull request runs the guards once on screen 6 (pack-holdout-v1), and the job time on the small corpus smoke-v1.
+# This file is a gate: it starts on each pull request and each push to main, with no paths filter. The job changes
+# examines the changed files, and the jobs time and promotion run only when a tool of the win test changed.
+# The job "Promotion OK" is the check of the ruleset (CI.md of the template, "The check of the ruleset").
 name: Promotion
 
 on:
   pull_request:
-    paths:
-      - packages/packing/bench/promote.ts
-      - packages/packing/bench/run.ts
-      - packages/packing/bench/main.ts
-      - .github/workflows/promotion.yml
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       run:
@@ -53,9 +53,39 @@ permissions:
   contents: read
 
 jobs:
+  # A manual run always runs the win test. A pull request or a push runs it only when a tool of the win test changed.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      win: ${{ steps.paths.outputs.win }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Examine the changed files
+        id: paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "win=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files="$(git diff --name-only "$BASE" "$GITHUB_SHA")"
+          if grep -qxE 'packages/packing/bench/(promote|run|main)\.ts|\.github/workflows/promotion\.yml' <<<"$files"; then
+            echo "win=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "win=false" >> "$GITHUB_OUTPUT"
+            echo "No tool of the win test changed, so the jobs time and promotion are skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   time:
+    needs: changes
     # An earlier run gives the time records, so this job does not pack
-    if: ${{ !inputs.times_run }}
+    if: ${{ needs.changes.outputs.win == 'true' && !inputs.times_run }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -100,9 +130,9 @@ jobs:
           if-no-files-found: error
 
   promotion:
-    needs: time
+    needs: [changes, time]
     # The job time is skipped when the input times_run gives the time records
-    if: ${{ !cancelled() && (needs.time.result == 'success' || (needs.time.result == 'skipped' && inputs.times_run)) }}
+    if: ${{ !cancelled() && needs.changes.outputs.win == 'true' && (needs.time.result == 'success' || (needs.time.result == 'skipped' && inputs.times_run)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -160,3 +190,19 @@ jobs:
         with:
           name: promotion-${{ env.CANDIDATE }}
           path: ${{ runner.temp }}/promotion
+
+  # The check of the ruleset. It fails when a job of needs failed or was cancelled. A skipped job does not fail it.
+  promotion-ok:
+    name: Promotion OK
+    if: always()
+    needs: [changes, time, promotion]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Each job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          case " $RESULTS " in *" failure "*|*" cancelled "*) exit 1 ;; esac
