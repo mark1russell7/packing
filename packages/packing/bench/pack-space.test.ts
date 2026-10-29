@@ -38,7 +38,7 @@ function compare(name: string, reference: (i: number) => PackResult): number {
 
 describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
-    expect(ENTRIES).toHaveLength(34);
+    expect(ENTRIES).toHaveLength(38);
     // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
     const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...shapeStrategies, ...composites].map((s) => s.id)];
     for (const id of ids) {
@@ -48,20 +48,20 @@ describe("packSpace and the entries of the benchmark", () => {
     expect(Object.keys(named).toSorted()).toEqual([...new Set(ids)].toSorted());
   });
 
-  it("gives the output of the run of each entry", () => {
-    for (const e of ENTRIES) {
-      // The runner gives the options of an entry over the defaults of its strategy
-      const given = Object.keys(e.options).length === 0 ? undefined : { ...(strategy(e.strategy).defaults as object), ...e.options };
-      expect(compare(e.id, (i) => result(() => packWith(e.strategy, SPACE_INPUTS[i]!, fastOptions(e.strategy, given), i))), e.id).toBeGreaterThanOrEqual(e.strategy === "overlap-min" ? 2 : 3);
-    }
+  // One test for each entry and each id: the searches over orders of k26 pack many times, and one test for all of them is slow on the CI runner.
+  it.each(ENTRIES.map((e) => [e.id, e] as const))("gives the output of the run of the entry %s", (id, e) => {
+    // The runner gives the options of an entry over the defaults of its strategy
+    const given = Object.keys(e.options).length === 0 ? undefined : { ...(strategy(e.strategy).defaults as object), ...e.options };
+    expect(compare(id, (i) => result(() => packWith(e.strategy, SPACE_INPUTS[i]!, fastOptions(e.strategy, given), i))), id).toBeGreaterThanOrEqual(e.strategy === "overlap-min" ? 2 : 3);
   });
 
-  it("gives the output of packWith for each id of the registry", () => {
-    for (const s of [...strategies, ...composites]) {
-      // The strategy aspect-fit needs an inner strategy. Its named config wraps maxrects.
-      const options = s.id === "aspect-fit" ? { strategy: "maxrects" } : undefined;
-      expect(compare(s.id, (i) => result(() => packWith(s.id, SPACE_INPUTS[i]!, fastOptions(s.id, options), i))), s.id).toBeGreaterThanOrEqual(s.id === "overlap-min" ? 2 : 3);
-    }
+  it.each([...strategies, ...composites].map((s) => s.id))("gives the output of packWith for the id %s of the registry", (id) => {
+    // The strategy aspect-fit needs an inner strategy. Its named config wraps maxrects.
+    const options = id === "aspect-fit" ? { strategy: "maxrects" } : undefined;
+    expect(compare(id, (i) => result(() => packWith(id, SPACE_INPUTS[i]!, fastOptions(id, options), i))), id).toBeGreaterThanOrEqual(id === "overlap-min" ? 2 : 3);
+  });
+
+  it("refuses aspect-fit with no inner strategy", () => {
     expect(() => packWith("aspect-fit", SPACE_INPUTS[0]!)).toThrow(RangeError);
   });
 

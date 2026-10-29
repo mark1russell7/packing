@@ -41,6 +41,10 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "ruin-recreate-skyline-k64": "move.ruinRecreate",
   "overlap-min-maxrects-bl-k8192": "move.overlapMin",
   "overlap-min-skyline-k8192": "move.overlapMin",
+  "anneal-maxrects-bl-k16": "move.anneal",
+  "anneal-skyline-k16": "move.anneal",
+  "genetic-maxrects-bl-k16": "move.genetic",
+  "tabu-maxrects-bl-k16": "move.tabu",
 });
 
 /** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */

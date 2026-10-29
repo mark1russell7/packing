@@ -140,8 +140,19 @@ export const OVERLAP_MIN_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "overlap-min-skyline-k8192", strategy: "overlap-min", options: { member: "skyline", iterations: 8192 }, base: "skyline" },
 ]);
 
+/**
+ * The composite entries of roadmap item k26: the searches over orders. They are not in the pool of the oracle. Each one has 16 packs of its member.
+ * The base is that member. The moves are `move.anneal`, `move.genetic` and `move.tabu`.
+ */
+export const ORDER_SEARCH_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "anneal-maxrects-bl-k16", strategy: "anneal", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16 }, base: "maxrects-bl" },
+  { id: "anneal-skyline-k16", strategy: "anneal", options: { member: "skyline", iterations: 16 }, base: "skyline" },
+  { id: "genetic-maxrects-bl-k16", strategy: "genetic", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, population: 4 }, base: "maxrects-bl" },
+  { id: "tabu-maxrects-bl-k16", strategy: "tabu", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, neighbors: 4 }, base: "maxrects-bl" },
+]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES, ...OVERLAP_MIN_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES, ...OVERLAP_MIN_ENTRIES, ...ORDER_SEARCH_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -165,6 +176,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...BBOX_ENTRIES,
   ...RUIN_RECREATE_ENTRIES,
   ...OVERLAP_MIN_ENTRIES,
+  ...ORDER_SEARCH_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

@@ -105,7 +105,7 @@ describe("the counts of the configs", () => {
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
     expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64) + HOLE_DEGREE_MAX_STEPS + 1));
-    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min"]);
+    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
 });
@@ -211,7 +211,7 @@ describe("the sample of pairs", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 20 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 23 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -235,6 +235,9 @@ describe("the strata of k115", () => {
       "bbox:1",
       "ruin-recreate:1",
       "overlap-min:1",
+      "anneal:1",
+      "genetic:1",
+      "tabu:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
     expect(strata.reduce((s, x) => s + x.configs, 0n)).toBe(total);
@@ -314,7 +317,7 @@ describe("the strata of k115", () => {
     // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
     const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
     expect(moves).toEqual([256]);
-    // Pair i takes the stratum i modulo 20.
+    // Pair i takes the stratum i modulo 23.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
     expect(b.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash])).toEqual(a.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash]));
