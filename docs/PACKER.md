@@ -642,6 +642,21 @@ A local small run (not a CI run) packed 80 inputs of `pack-classes-v1`: the coun
 | `skyline` | 0.864 | 0.140 |
 | `shelf-best` | 0.879 | 0.109 |
 
+The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/40801208821) of 2026-10-29 packed all 500 inputs of `pack-classes-v1`. It is the record.
+
+| Entry | Median `pack.fill` | Median `pack.gap` |
+|---|---|---|
+| `guillotine-baf-sas` | 0.9250 | 0.0650 |
+| `guillotine-bssf-sas-merge` | 0.9245 | 0.0640 |
+| `maxrects-bl` | 0.9270 | 0.0610 |
+| `maxrects-baf` | 0.9220 | 0.0645 |
+| `skyline` | 0.8680 | 0.1240 |
+| `shelf-best` | 0.9040 | 0.0820 |
+
+- The 3000 records have 0 hard breaks, and each one is deterministic.
+- The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
+- `merge` gives no gain at the median.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.
