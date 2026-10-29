@@ -352,6 +352,21 @@ export function priorBasisText(b: CoveragePriorBasis | undefined): string | null
   return `The weights come from ${from}: ${weights}.${absent}${unmapped}`;
 }
 
+/**
+ * This function gives the sentence of the determinism of a sample (k121): the pairs that are not deterministic, without and with a clock limit.
+ * A snapshot from before k121 does not have the counts, so the sentence is empty.
+ */
+export function determinismText(sample: CoverageSnapshot["latest"]["sampled"]): string {
+  const all = sample?.nondeterministic;
+  if (sample === undefined || all === undefined || all === null) return "";
+  const clock = sample.nondeterministicClock;
+  if (clock === undefined || clock === null) return ` In the sample, ${all} pairs are not deterministic.`;
+  return (
+    ` Not deterministic in the sample: ${all - clock} pairs without a clock limit, and ${clock} pairs with a clock limit.` +
+    " A pair with a clock limit depends on the speed of the computer. Thus only the pairs without a clock limit fail the determinism gate."
+  );
+}
+
 /** The label of the forced-overflow split of k116: the pairs where half of the item area or more cannot go in the container */
 export const FORCED_LABEL = "forced overflow of half the item area or more";
 

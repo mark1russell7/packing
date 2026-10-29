@@ -51,6 +51,15 @@ on:
         type: choice
         options: [family, input]
         default: family
+      pairs:
+        description: "Only these sample pairs, by index, for example 16 or 16,20 (k121). Each pair packs repeats times. Empty means each pair."
+        type: string
+        default: ""
+      timing:
+        description: "The clock limits of the sample (k121): off has none, stratum adds the stratum clock:1, mixed is the draw before k121."
+        type: choice
+        options: ["off", stratum, mixed]
+        default: "off"
 
 permissions:
   contents: read
@@ -88,6 +97,8 @@ jobs:
           STRATIFY: ${{ inputs.stratify }}
           DRAW: ${{ inputs.draw }}
           FEATURES: ${{ inputs.features }}
+          PAIRS: ${{ inputs.pairs }}
+          TIMING: ${{ inputs.timing }}
         run: |
           [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
           [[ "$SAMPLE" =~ ^[0-9]+$ ]] || { echo "sample must be a number of 0 or more, not '$SAMPLE'"; exit 1; }
@@ -96,6 +107,13 @@ jobs:
           # k116: stratify true goes with the draw uniform (the old default), stratified or active. With active, it stratifies the sample.
           if [ "$STRATIFY" = "true" ] && [ "$DRAW" = "option" ]; then echo "stratify true does not go with the draw option"; exit 1; fi
           if [ "$DRAW" = "active" ] && [ "$SAMPLE" -eq 0 ]; then echo "the draw active needs a sample above 0"; exit 1; fi
+          # k121: pairs is a list of pair indexes with commas. timing stratum needs a stratified sample. The active draw has no clock limits.
+          [[ "$PAIRS" =~ ^([0-9]+(,[0-9]+)*)?$ ]] || { echo "pairs must be numbers with commas, for example 16,20, not '$PAIRS'"; exit 1; }
+          [[ "$TIMING" =~ ^(off|stratum|mixed)$ ]] || { echo "timing must be off, stratum or mixed, not '$TIMING'"; exit 1; }
+          if [ -n "$PAIRS" ] && [ "$SAMPLE" -eq 0 ]; then echo "pairs needs a sample above 0"; exit 1; fi
+          if [ -n "$PAIRS" ] && [ "$DRAW" = "active" ]; then echo "pairs does not go with the draw active"; exit 1; fi
+          if [ "$TIMING" != "off" ] && [ "$DRAW" = "active" ]; then echo "the draw active takes only timing off"; exit 1; fi
+          if [ "$TIMING" = "stratum" ] && [ "$DRAW" != "stratified" ] && [ "$STRATIFY" != "true" ]; then echo "timing stratum needs the draw stratified"; exit 1; fi
           [ -f "packages/packing/bench/corpora/$CORPUS.json" ] || { echo "packages/packing/bench/corpora/$CORPUS.json does not exist"; exit 1; }
           [[ "$PREDICTION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "prediction must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$PREDICTION'"; exit 1; }
           [[ "$REPEATS" =~ ^[1-9][0-9]*$ ]] || { echo "repeats must be a number of 1 or more, not '$REPEATS'"; exit 1; }
@@ -167,6 +185,9 @@ jobs:
       STRATIFY: ${{ inputs.stratify }}
       DRAW: ${{ inputs.draw }}
       FEATURES: ${{ inputs.features }}
+      PAIRS: ${{ inputs.pairs }}
+      TIMING: ${{ inputs.timing }}
+      REPEATS: ${{ inputs.repeats }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -218,9 +239,12 @@ jobs:
             if [ "$STRATIFY" = "true" ]; then sample_draw=stratified; fi
             minutes=12
           fi
+          # k121: timing gives the clock limits of the sample. pairs measures only those pairs, each one repeats times.
+          chosen=()
+          if [ -n "$PAIRS" ]; then chosen=(--pairs "$PAIRS" --repeats "$REPEATS"); fi
           if [ "$SAMPLE" -gt 0 ]; then
             node packages/packing/bench/sample-space.ts --out "$out/sample" --n "$SAMPLE" --seed 1 --max-minutes "$minutes" --draw "$sample_draw" \
-              > "$RUNNER_TEMP/sample.txt" 2>&1 || status=$?
+              --timing "$TIMING" "${chosen[@]}" > "$RUNNER_TEMP/sample.txt" 2>&1 || status=$?
             if [ -f "$out/sample/records.jsonl" ]; then sample=(--sample "$out/sample"); fi
           fi
           if [ "$draw" = "active" ]; then

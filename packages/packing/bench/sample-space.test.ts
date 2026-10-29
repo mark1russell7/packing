@@ -13,10 +13,17 @@ import {
   type SpaceParam,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
+import { hasClockLimit } from "./run.ts";
 import {
+  CLOCK_STRATUM,
+  clockFree,
+  clockOnly,
+  determinismLines,
   drawConfig,
   drawInput,
+  drawOf,
   drawParams,
+  drawPlan,
   drawStratum,
   KNOB_RATIO,
   knobRatio,
@@ -37,6 +44,11 @@ import {
 // The sampler of the whole space of roadmap item k112. The tests use a fake clock, so they read no time of a run.
 
 const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", cpus: 1 };
+
+// The pins of k121 come from the code: the first 4 uniform configs of the seed 20 without clock limits, and the meta counts with and without a clock limit.
+const DEFAULT_UNIFORM_IDS = ["ce6d8bf386fbb8a6", "58da5ef5c70859cc", "fb834701df83f8be", "da3d8a993a6a894c"];
+const CLOCK_FREE_META = 19192758499731626817662756144n;
+const CLOCK_CONFIGS = 19192758499731625913230514340n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -245,12 +257,45 @@ describe("the sample of pairs", () => {
     expect(() => sampleOptions(["--n", "-1"], ENV)).toThrow(/whole number/);
   });
 
-  it("keeps the uniform draw: the same configs as before k115, and no strata in the summary", () => {
+  it("keeps the uniform draw of the timing mixed: the same configs as before k115, and no strata in the summary", () => {
     // The config ids of the first 4 pairs of the seed 20 come from the sampler of main before k115, with k23, k90, k117 and k79.
-    const a = sampleSpace({ ...options, clock: fakeClock() });
+    const a = sampleSpace({ ...options, timing: "mixed", clock: fakeClock() });
     expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["ce6d8bf386fbb8a6", "58da5ef5c70859cc", "c2b0e4f380f82b0d", "d49ccb0bd735314d"]);
     expect(a.summary.draw).toBe("uniform");
+    expect(a.summary.timing).toBe("mixed");
     expect("strata" in a.summary).toBe(false);
+  });
+
+  it("gives the uniform draw without clock limits by default (k121)", () => {
+    const a = sampleSpace({ ...options, clock: fakeClock() });
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(DEFAULT_UNIFORM_IDS);
+    expect(a.summary.timing).toBe("off");
+    expect(a.summary.clockPairs).toBe(0);
+    for (const r of a.records) {
+      expect(r.clock).toBe(false);
+      expect(hasClockLimit(r.config)).toBe(false);
+    }
+  });
+
+  it("measures only the asked pairs with the option pairs, and each one is the pair of the full sample (k121)", () => {
+    const full = sampleSpace({ ...options, clock: fakeClock() });
+    const some = sampleSpace({ ...options, pairs: [3, 1], clock: fakeClock() });
+    expect(some.records.map((r) => r.pair)).toEqual([3, 1]);
+    expect(some.records.map((r) => r.outputHash)).toEqual([full.records[3]!.outputHash, full.records[1]!.outputHash]);
+    expect(some.summary.requested).toBe(2);
+    expect(some.summary.pairList).toEqual([3, 1]);
+    expect("pairList" in full.summary).toBe(false);
+    expect(() => sampleSpace({ ...options, pairs: [-1], clock: fakeClock() })).toThrow(/whole numbers/);
+  });
+
+  it("reads the options timing and pairs of the command line (k121)", () => {
+    expect(sampleOptions([], ENV).timing).toBe("off");
+    expect(sampleOptions(["--timing", "mixed"], ENV).timing).toBe("mixed");
+    expect(sampleOptions(["--draw", "stratified", "--timing", "stratum"], ENV).timing).toBe("stratum");
+    expect(() => sampleOptions(["--timing", "stratum"], ENV)).toThrow(/only with --draw stratified/);
+    expect(() => sampleOptions(["--timing", "fast"], ENV)).toThrow(/off, stratum, mixed/);
+    expect(sampleOptions(["--pairs", "16,20"], ENV).pairs).toEqual([16, 20]);
+    expect(() => sampleOptions(["--pairs", "16;20"], ENV)).toThrow(/whole numbers with commas/);
   });
 });
 
@@ -406,5 +451,67 @@ describe("the strata of k115", () => {
     expect(one.summary.inputs.drawn).toBeGreaterThanOrEqual(tries);
     expect(three.summary.inputs.drawn - one.summary.inputs.drawn).toBeLessThan(2 * tries);
     expect(three.records.some((r) => stratumOf(space, r.config) === "hole-degree:1")).toBe(false);
+  });
+});
+
+describe("the clock limits of k121", () => {
+  it("draws no config with a clock limit in a default stratified sample of 40 configs", () => {
+    const plan = drawPlan(packSpace, "stratified");
+    expect(plan.timing).toBe("off");
+    for (let i = 0; i < 40; i++) {
+      const config = drawOf(stepRandom(1, `pair-${i}`), plan, plan.strata[i % plan.strata.length]);
+      expect(hasClockLimit(config)).toBe(false);
+      expect(checkConfig(packSpace, config)).toEqual([]);
+    }
+  });
+
+  it("draws no config with a clock limit in a default uniform or option draw", () => {
+    for (const draw of ["uniform", "option"] as const) {
+      const plan = drawPlan(packSpace, draw);
+      for (let i = 0; i < 40; i++) expect(hasClockLimit(drawOf(stepRandom(1, `pair-${i}`), plan, undefined))).toBe(false);
+    }
+  });
+
+  it("keeps the strata of packSpace without the configs with a clock limit, and adds clock:1 only with the timing stratum", () => {
+    const off = drawPlan(packSpace, "stratified");
+    const stratum = drawPlan(packSpace, "stratified", "stratum");
+    expect(off.strata.map((s) => s.id)).toEqual(strataOf(packSpace).map((s) => s.id));
+    expect(stratum.strata.map((s) => s.id)).toEqual([...off.strata.map((s) => s.id), CLOCK_STRATUM]);
+    expect(stratum.strata.at(-1)!.configs).toBe(CLOCK_CONFIGS);
+    // The configs without a clock limit and the configs with a clock limit sum to the meta configs of packSpace.
+    const all = spaceCounts(packSpace).meta.reduce((s, m) => s + m.weight, 0n);
+    const free = spaceCounts(clockFree(packSpace)).meta.reduce((s, m) => s + m.weight, 0n);
+    expect(free).toBe(CLOCK_FREE_META);
+    expect(free + CLOCK_CONFIGS).toBe(all);
+    expect(spaceCounts(clockFree(packSpace)).base).toBe(spaceCounts(packSpace).base);
+    expect(spaceCounts(clockOnly(packSpace)).meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "restarts"]);
+    expect(() => drawPlan(packSpace, "uniform", "stratum")).toThrow(/only with the draw stratified/);
+  });
+
+  it("draws only configs with a clock limit from the stratum clock:1, and checkConfig accepts them", () => {
+    const plan = drawPlan(packSpace, "stratified", "stratum");
+    const clock = plan.strata.at(-1)!;
+    for (let i = 0; i < 20; i++) {
+      const config = drawOf(stepRandom(1, `pair-${i}`), plan, clock);
+      expect(hasClockLimit(config)).toBe(true);
+      expect(checkConfig(packSpace, config)).toEqual([]);
+    }
+  });
+
+  it("gives the same configs as before k121 with the timing mixed", () => {
+    const plan = drawPlan(packSpace, "stratified", "mixed");
+    const counts = spaceCounts(packSpace);
+    const strata = strataOf(packSpace, counts);
+    for (let i = 0; i < 23; i++) {
+      expect(drawOf(stepRandom(1, `pair-${i}`), plan, plan.strata[i % plan.strata.length])).toEqual(drawStratum(stepRandom(1, `pair-${i}`), packSpace, counts, strata[i % strata.length]!));
+    }
+  });
+
+  it("tells the two counts, and names each pair that fails the gate", () => {
+    const pass = determinismLines({ timing: "off", clockPairs: 0, nondeterministicClock: 0, nondeterministicPairs: [] });
+    expect(pass).toEqual(["Timing off: 0 pairs with a clock limit. Not deterministic with a clock limit: 0. Without a clock limit: 0."]);
+    const fail = determinismLines({ timing: "mixed", clockPairs: 3, nondeterministicClock: 1, nondeterministicPairs: [{ pair: 16, input: "ladder-a", config: "abc" }] });
+    expect(fail).toHaveLength(2);
+    expect(fail[1]).toBe("The determinism gate (k121) failed: pair 16 (abc on ladder-a).");
   });
 });

@@ -346,8 +346,8 @@ export interface CoverageSnapshot {
     /** The model. `features` (k116) is the feature set of the inputs. An older snapshot has no `features`, which is `family`. */
     model: { kind: string; maxDepth: number; minLeaf: number; folds: number; seed: number; by: "input" | "spec"; features?: "family" | "input" };
     measures: CoverageMeasure[];
-    /** The facts of the sample of the whole space (k112), when the snapshot has it */
-    sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
+    /** The facts of the sample of the whole space (k112). Since k121, they count the pairs that are not deterministic, without and with a clock limit. */
+    sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null; nondeterministic?: number | null; nondeterministicClock?: number | null };
     /** The facts of the strata of the sample (k115), when the snapshot has them */
     strata?: { pairs: number; draw: string | null; strata: CoverageStratumPairs[] };
     /** The last sample with a uniform draw (k115), with its run and its date. A stratified run keeps it. */
@@ -432,6 +432,13 @@ export interface NewsEntry {
 
 /** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
 export const NEWS: readonly NewsEntry[] = [
+  {
+    date: "2026-10-29",
+    item: "k121",
+    title: "Determinism is a gate. A pair without a clock limit that is not deterministic fails the bench, and the sample draws no clock limits by default.",
+    pr: 165,
+    link: "https://github.com/mark1russell7/packing/pull/165",
+  },
   {
     date: "2026-10-29",
     item: "k119",

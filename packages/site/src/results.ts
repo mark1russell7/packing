@@ -26,6 +26,7 @@ import {
   COVERAGE_PRIOR_SCOPE,
   priorBasisText,
   coverageTile,
+  determinismText,
   divergingAt,
   errorText,
   errorWidth,
@@ -431,7 +432,8 @@ function mountCoverage(): void {
       ? l.prior === undefined
         ? ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs of the corpus as its weight. A family outside the corpus gets the weight 0.`
         : ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs as its weight. ${esc(priorBasisText(l.prior) ?? "")} The effective pairs are the count of uniform pairs with the same precision.`
-      : "");
+      : "") +
+    determinismText(sample);
   $("coverage-errors").innerHTML = l.measures
     .map((m) => {
       const skill = m.skill === null ? "" : `, ${percentText(m.skill)} less error`;

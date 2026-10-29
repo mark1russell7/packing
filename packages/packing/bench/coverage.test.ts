@@ -596,12 +596,36 @@ describe("the command line", () => {
     // The section sampled is the same as before k115. The section strata goes next to it.
     const s = withSample as CoverageSummary;
     expect(JSON.stringify(s.sampled)).toBe(JSON.stringify(sampledCoverage(records, manifest, [one], {}, sampleFacts(JSON.stringify(facts)))));
-    expect(Object.keys(s.sampled!)).toEqual(["pairs", "sample", "measures"]);
+    expect(Object.keys(s.sampled!)).toEqual(["pairs", "clockPairs", "sample", "measures"]);
     expect(s.strata).toMatchObject({ pairs: 1, draw: "uniform" });
     expect(s.strata!.strata.find((x) => x.id === "rows:1")).toEqual({ id: "rows:1", pairs: 1 });
     // The pair has only a fill and a time. A measure without a value has no stratum with pairs.
     expect(s.strata!.measures.map((m) => m.equal.strata)).toEqual([0, 1, 0, 0, 1]);
     expect(() => coverageMain([...base, "--sample", join(dir, "none")])).toThrow(/no records.jsonl/);
+  });
+
+  it("keeps the pairs with a clock limit out of the held-out test, and fails the determinism gate only without a clock limit (k121)", () => {
+    const { manifest, records } = madeUp();
+    writeFileSync(join(dir, "records.jsonl"), `${records.map((r) => JSON.stringify(r)).join("\n")}\n`);
+    writeFileSync(join(dir, "corpus.json"), JSON.stringify(manifest));
+    const sample = join(dir, "clock-sample");
+    mkdirSync(sample, { recursive: true });
+    const base = { strategy: "space:rows", input: "x", measures: { "pack.fill": 0.7 }, ms: 1, generator: { name: "toy", version: 1, params: { size: "a", count: 10 } }, cell: { mode: "offline", size: "a" } };
+    const free = { ...base, config: packSpace.named!["rows"]!, deterministic: true, clock: false, pair: 0 };
+    const clock = { ...base, input: "y", config: packSpace.named!["rows"]!, deterministic: false, clock: true, pair: 1 };
+    writeFileSync(join(sample, "records.jsonl"), `${[free, clock].map((r) => JSON.stringify(r)).join("\n")}\n`);
+    const facts = { seed: 1, draw: "stratified", requested: 2, configs: { rate: 0 }, inputs: { rejected: 0 }, hard: { pairs: 0 }, nondeterministic: 1, nondeterministicClock: 1, composition: { none: 2 }, strata: { "rows:1": { configs: "1", pairs: 1, missed: 0 }, "clock:1": { configs: "1", pairs: 1, missed: 0 } } };
+    writeFileSync(join(sample, "sample.json"), JSON.stringify(facts));
+    const args = ["--records", join(dir, "records.jsonl"), "--corpus", join(dir, "corpus.json"), "--out", join(dir, "c.json"), "--date", "2026-10-28", "--sample", sample];
+    const s = coverageMain(args) as CoverageSummary;
+    expect(s.sampled).toMatchObject({ pairs: 1, clockPairs: 1, sample: { nondeterministic: 1, nondeterministicClock: 1 } });
+    expect(s.strata!.strata.map((x) => x.id)).toEqual(["rows:1"]);
+    expect(s.determinism).toEqual({ grid: { nondeterministic: 0, nondeterministicClock: 0, failures: [] }, sample: { nondeterministic: 1, nondeterministicClock: 1, failures: [] }, passed: true });
+    // The same pair without a clock limit fails the gate.
+    writeFileSync(join(sample, "records.jsonl"), `${[free, { ...clock, clock: false }].map((r) => JSON.stringify(r)).join("\n")}\n`);
+    const failed = coverageMain(args) as CoverageSummary;
+    expect(failed.determinism).toMatchObject({ sample: { nondeterministic: 1, nondeterministicClock: 0, failures: [{ strategy: "space:rows", input: "y", pair: 1 }] }, passed: false });
+    expect(JSON.parse(readFileSync(join(dir, "c.json"), "utf8")).determinism.passed).toBe(false);
   });
 
   it("writes a note and no error for a run with fewer records than --min-records", () => {

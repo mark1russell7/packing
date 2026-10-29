@@ -475,6 +475,89 @@ function traceSum(output: PackOutput, id: string): number {
   return sum;
 }
 
+/**
+ * This function tells if a config or the options of a strategy have a wall-clock limit (roadmap item k121).
+ * It examines the whole tree, the members included.
+ *
+ * - A limit is a key `limitTime` with the value `true`, or a key `budgetMs` with a value.
+ * - A result with a wall-clock limit depends on the speed of the computer, so it is not deterministic by design.
+ * - Each other config packs the same output for the same input and seed. A work limit of `budgetWork` is not a clock.
+ */
+export function hasClockLimit(config: unknown): boolean {
+  if (Array.isArray(config)) return config.some(hasClockLimit);
+  if (config === null || typeof config !== "object") return false;
+  const o = config as Record<string, unknown>;
+  if (o["limitTime"] === true || (o["budgetMs"] !== undefined && o["budgetMs"] !== null)) return true;
+  return Object.values(o).some(hasClockLimit);
+}
+
+/** A record for the determinism gate of k121: a bench record or a sampled record. A record without `deterministic` counts as deterministic. */
+export interface GateRecord {
+  readonly strategy: string;
+  readonly input: string;
+  readonly deterministic?: boolean;
+  readonly skipped?: string;
+  /** The value of `hasClockLimit` of a sampled record. A record without it gets the value from `config` or `options`. */
+  readonly clock?: boolean;
+  readonly config?: unknown;
+  readonly options?: unknown;
+  readonly pair?: number;
+}
+
+/** A record that is not deterministic and has no wall-clock limit: a failure of the determinism gate. */
+export interface GateFailure {
+  readonly strategy: string;
+  readonly input: string;
+  readonly pair?: number;
+}
+
+/**
+ * The counts of the determinism gate of k121.
+ *
+ * - `nondeterministic` counts each measured record that is not deterministic, as before k121.
+ * - `nondeterministicClock` counts the records of `nondeterministic` with a wall-clock limit. They do not fail a run.
+ * - `failures` lists the other records of `nondeterministic`. Each one fails the run.
+ */
+export interface DeterminismCounts {
+  readonly nondeterministic: number;
+  readonly nondeterministicClock: number;
+  readonly failures: readonly GateFailure[];
+}
+
+/** This function tells if a gate record has a wall-clock limit: its field `clock`, else `hasClockLimit` of its config or its options. */
+export const isClockRecord = (r: Pick<GateRecord, "clock" | "config" | "options">): boolean => r.clock ?? hasClockLimit(r.config ?? r.options);
+
+/** This function gives the counts of the determinism gate of some records. A skipped record does not count. */
+export function determinismOf(records: readonly GateRecord[]): DeterminismCounts {
+  let nondeterministic = 0;
+  let nondeterministicClock = 0;
+  const failures: GateFailure[] = [];
+  for (const r of records) {
+    if (r.skipped !== undefined || r.deterministic !== false) continue;
+    nondeterministic++;
+    if (isClockRecord(r)) nondeterministicClock++;
+    else failures.push({ strategy: r.strategy, input: r.input, ...(r.pair === undefined ? {} : { pair: r.pair }) });
+  }
+  return { nondeterministic, nondeterministicClock, failures };
+}
+
+/** This function gives the Markdown lines of the counts of the determinism gate: the two counts, then the result of the gate. */
+export function determinismMarkdown(counts: DeterminismCounts): string[] {
+  const fail = counts.failures.length;
+  return [
+    `- Not deterministic without a clock limit (\`nondeterministic\` less \`nondeterministicClock\`): ${fail}. Each one fails the run.`,
+    `- Not deterministic with a clock limit (\`nondeterministicClock\`): ${counts.nondeterministicClock}. A clock limit depends on the computer, so they do not fail the run.`,
+    `- The determinism gate (k121): ${fail === 0 ? "passed" : "failed"}.`,
+  ];
+}
+
+/** This function gives the lines of a gate failure for the command line, or no lines when the gate passes. */
+export function gateLines(counts: DeterminismCounts, what: string): string[] {
+  if (counts.failures.length === 0) return [];
+  const list = counts.failures.slice(0, 20).map((f) => `${f.pair === undefined ? "" : `pair ${f.pair}: `}${f.strategy} on ${f.input}`);
+  return [`The determinism gate (k121) failed: ${counts.failures.length} ${what} without a clock limit are not deterministic.`, ...list];
+}
+
 /** This function keeps only the finite values of a record of measures. The sampler of the whole space (k112) uses it. */
 export function finite(values: Record<string, number>): Record<string, number> {
   const out: Record<string, number> = {};
@@ -561,7 +644,13 @@ export function runBench(options: BenchOptions): BenchResult {
       try {
         const first = packWith(e.strategy, input, given, file.seed);
         const second = packWith(e.strategy, input, given, file.seed);
-        const pack = (): PackOutput => packWith(e.strategy, input, given, file.seed);
+        // k121: each later pass counts for `deterministic` too, so a run with 10 repeats compares 11 outputs with the first
+        const later: PackOutput[] = [second];
+        const pack = (): PackOutput => {
+          const output = packWith(e.strategy, input, given, file.seed);
+          later.push(output);
+          return output;
+        };
         // The interleaved mode did the warm-up passes and the timed passes before this loop
         let times = interleaved?.get(id)?.get(file.id);
         if (times === undefined) {
@@ -585,7 +674,7 @@ export function runBench(options: BenchOptions): BenchResult {
           measures: roundMeasures(finite(values)),
           hard: checkHard(input, first, DEFAULT_TOLERANCE),
           tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
-          deterministic: isDeterministic(first, second),
+          deterministic: later.every((output) => isDeterministic(first, output)),
           prediction: options.prediction,
           ms: round3(median(msRuns)),
           msRuns: msRuns.map(round3),
@@ -854,11 +943,11 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
   }
 
   const broken = measured.filter((r) => breaksOf(r) > 0 || !r.deterministic);
-  lines.push("", "## Hard breaks and determinism", "");
+  lines.push("", "## Hard breaks and determinism", "", ...determinismMarkdown(determinismOf(measured)), "");
   if (broken.length === 0) lines.push("Each measured record has 0 hard breaks, and each measured pair is deterministic.");
   else {
-    lines.push("| strategy | input | hard | deterministic |", "|---|---|---|---|");
-    for (const r of broken.slice(0, 50)) lines.push(`| ${r.strategy} | ${r.input} | \`${JSON.stringify(r.hard)}\` | ${r.deterministic} |`);
+    lines.push("| strategy | input | hard | deterministic | clock limit |", "|---|---|---|---|---|");
+    for (const r of broken.slice(0, 50)) lines.push(`| ${r.strategy} | ${r.input} | \`${JSON.stringify(r.hard)}\` | ${r.deterministic} | ${isClockRecord(r) ? "yes" : "no"} |`);
     if (broken.length > 50) lines.push("", `The table shows 50 of ${broken.length} records. \`records.jsonl\` has each one.`);
   }
 

@@ -30,7 +30,9 @@ import {
 import {
   commitOf,
   drawInput,
+  drawPlan,
   drawStratum,
+  determinismLines,
   envOf,
   capMoves,
   firstPack,
@@ -42,8 +44,6 @@ import {
   optionOf,
   resolveDraw,
   sampleOptions,
-  spaceCounts,
-  strataOf,
   wholeOf,
   DEFAULT_MAX_COUNT,
   DEFAULT_PAIRS,
@@ -81,8 +81,8 @@ export interface ActiveRecord extends SampleRecord {
   readonly candidate: number;
 }
 
-/** The options of `activeSample`. */
-export interface ActiveOptions extends Omit<SampleOptions, "draw"> {
+/** The options of `activeSample`. The active draw is always without clock limits (k121), so it has no `timing` and no `pairs`. */
+export interface ActiveOptions extends Omit<SampleOptions, "draw" | "timing" | "pairs"> {
   /** The records of the grid run, as `bench/coverage.ts` reads them. */
   readonly records: readonly CoverageRecord[];
   /** The manifest `corpus.json` of the grid run. */
@@ -169,6 +169,7 @@ interface PoolCounts {
  * This function draws the candidate pool of an active sample. Candidate `c` has its own random stream `stepRandom(seed, candidate-<c>)`.
  * Candidate `c` takes the stratum `c` modulo the count of the strata, as the stratified draw of k115 does.
  * A candidate is an input and a config that `checkConfig` accepts. The pool does not pack the candidates.
+ * The configs come from `drawPlan` with the timing `off`, so no candidate has a clock limit (k121).
  */
 export function candidatePool(
   size: number,
@@ -178,8 +179,9 @@ export function candidatePool(
   const { seed, space, maxCount, knobs } = options;
   const knobScale = options.knobScale ?? "relative";
   const maxInputTries = options.maxInputTries ?? MAX_INPUT_TRIES;
-  const sc = spaceCounts(space);
-  const strata = strataOf(space, sc);
+  const plan = drawPlan(space, "stratified", "off");
+  const sc = plan.counts;
+  const strata = plan.strata;
   if (strata.length === 0) throw new RangeError("The space has no strata.");
   const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
   const pool: Candidate[] = [];
@@ -205,7 +207,7 @@ export function candidatePool(
       const input = toPackInput(file);
       const shapes = shapeKindsOf({ boxes: input.items });
       for (let configTry = 0; configTry < MAX_CONFIG_TRIES; configTry++) {
-        const config = drawStratum(r, space, sc, stratum);
+        const config = drawStratum(r, plan.space, sc, stratum);
         counts.configsDrawn++;
         const breaks = checkConfig(space, config, { shapes });
         if (breaks.length > 0) {
@@ -280,7 +282,8 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const coverage: CoverageOptions = { by: "spec", ...options.coverage };
   const score = options.score ?? ACTIVE_SCORE;
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new RangeError(`The score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
-  const strataCount = strataOf(space).length;
+  const plan = drawPlan(space, "stratified", "off");
+  const strataCount = plan.strata.length;
   const maxOverlapMoves = options.maxOverlapMoves;
   if (maxOverlapMoves !== undefined && (!Number.isInteger(maxOverlapMoves) || maxOverlapMoves < 1)) throw new RangeError("The overlap moves are a whole number of 1 or more.");
   if (!Number.isInteger(n) || n < 0) throw new RangeError("The count of the pairs is a whole number of 0 or more.");
@@ -298,11 +301,14 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const composition: Record<string, number> = {};
   const families: Record<string, number> = {};
   const hardRules: Record<string, number> = {};
-  const strataPairs: Record<string, number> = Object.fromEntries(strataOf(space).map((s) => [s.id, 0]));
+  const strataPairs: Record<string, number> = Object.fromEntries(plan.strata.map((s) => [s.id, 0]));
   const taken = new Set<number>();
   const perRound: ActiveRoundFacts[] = [];
   let hardPairs = 0;
   let nondeterministic = 0;
+  let nondeterministicClock = 0;
+  let clockPairs = 0;
+  const nondeterministicPairs: SampleSummary["nondeterministicPairs"][number][] = [];
   let stopped: "time" | undefined;
   const late = (): boolean => deadline !== undefined && Date.now() > deadline;
 
@@ -349,7 +355,12 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
         const broken = Object.entries(record.hard).filter(([, v]) => v > 0);
         if (broken.length > 0) hardPairs++;
         for (const [rule] of broken) bump(hardRules, rule);
-        if (!record.deterministic) nondeterministic++;
+        if (record.clock) clockPairs++;
+        if (!record.deterministic) {
+          nondeterministic++;
+          if (record.clock) nondeterministicClock++;
+          else nondeterministicPairs.push({ pair, input: file.id, config: c.id });
+        }
         records.push({ ...record, round: k, score: r4(s), candidate: c.index });
         inputs.set(file.id, input);
         bump(composition, record.config.stages["combine"]?.option ?? "none");
@@ -374,7 +385,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
     });
   }
 
-  const sc = spaceCounts(space);
+  const sc = plan.counts;
   const summary: ActiveSummary = {
     schema: SAMPLE_SCHEMA,
     seed,
@@ -393,9 +404,13 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
     families,
     hard: { pairs: hardPairs, rules: hardRules },
     nondeterministic,
+    nondeterministicClock,
+    nondeterministicPairs,
+    timing: "off",
+    clockPairs,
     errors,
     ...(stopped === undefined ? {} : { stopped }),
-    strata: Object.fromEntries(strataOf(space, sc).map((s) => [s.id, { configs: s.configs.toString(), pairs: strataPairs[s.id] ?? 0, missed: counts.strataMissed[s.id] ?? 0 }])),
+    strata: Object.fromEntries(plan.strata.map((s) => [s.id, { configs: s.configs.toString(), pairs: strataPairs[s.id] ?? 0, missed: counts.strataMissed[s.id] ?? 0 }])),
     active: {
       rounds,
       pool: pool.length,
@@ -415,6 +430,8 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   if (argv.includes("--stratify")) throw new Error("The option --stratify does not go with --draw active. The active pool is always stratified.");
   const at = argv.indexOf("--draw");
   const rest = at < 0 ? [...argv] : [...argv.slice(0, at), ...argv.slice(at + 2)];
+  if (argv.includes("--pairs")) throw new Error("The option --pairs does not go with --draw active.");
+  if ((optionOf(argv, "--timing") ?? "off") !== "off") throw new Error("The active draw has no clock limits. It takes only --timing off.");
   const base = sampleOptions(rest, env);
   const features = optionOf(argv, "--features") ?? DEFAULT_FEATURES;
   if (!(FEATURE_SETS as readonly string[]).includes(features)) throw new Error(`The option --features is ${FEATURE_SETS.join(" or ")}, not ${features}.`);
@@ -422,7 +439,7 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   if (by !== "input" && by !== "spec") throw new Error(`The option --by is input or spec, not ${by}.`);
   const score = optionOf(argv, "--score") ?? ACTIVE_SCORE;
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new Error(`The option --score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
-  const { draw: _draw, ...kept } = base;
+  const { draw: _draw, timing: _timing, pairs: _pairs, ...kept } = base;
   return {
     ...kept,
     rounds: wholeOf(argv, "--rounds", DEFAULT_ROUNDS),
@@ -456,7 +473,8 @@ export function activeMain(argv: readonly string[]): number {
   for (const r of summary.active.perRound) {
     console.log(`Round ${r.round}: ${r.pairs} of ${r.quota} pairs, ${r.rejected} went back. Score of the pairs ${r.scoreMean} (largest ${r.scoreMax}), of the pool ${r.poolMean}.`);
   }
-  return summary.errors.length > 0 ? 1 : 0;
+  for (const line of determinismLines(summary)) console.log(line);
+  return summary.errors.length > 0 || summary.nondeterministicPairs.length > 0 ? 1 : 0;
 }
 
 if (process.argv[1]?.endsWith("active.ts") === true) {
