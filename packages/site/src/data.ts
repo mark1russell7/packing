@@ -348,8 +348,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k80",
     title: "The new strategy `overlap-min` makes the strip of a member shorter. It moves the boxes that overlap to their places of least overlap, until no box overlaps.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pulls",
+    pr: 157,
+    link: "https://github.com/mark1russell7/packing/pull/157",
   },
   {
     date: "2026-10-29",
