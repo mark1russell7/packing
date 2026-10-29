@@ -1,3 +1,6 @@
+| k117 | A work budget for composites: count placements, not milliseconds, so each result is a pure function of the input and the config. Wall-clock stays an opt-in | core | next | k112 |
+| k116 | Coverage that rises by design: active sampling where the held-out error is largest, and a model on input features, not family ids | measure | next | k112, k115 |
+| k115 | Coverage by stratum: the sampled share for each strategy family and each portfolio size, with equal weight, next to the uniform number | measure | next | k112 |
 # Roadmap
 
 The status of each item of `@mark1russell7/packing`. A live tracker mirrors this file. Change both together.
@@ -128,44 +131,47 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | k90 | 4 | 3 | 2 | 6.0 |
-| 2 | k108 | 3 | 2 | 1 | 6.0 |
-| 3 | k111 | 4 | 3 | 2 | 6.0 |
-| 4 | k23 | 4 | 4 | 3 | 5.3 |
-| 5 | k47 | 4 | 4 | 3 | 5.3 |
-| 6 | k79 | 4 | 4 | 3 | 5.3 |
-| 7 | k80 | 4 | 4 | 3 | 5.3 |
-| 8 | k26 | 5 | 4 | 4 | 5.0 |
-| 9 | k25 | 3 | 3 | 2 | 4.5 |
-| 10 | k70 | 3 | 3 | 2 | 4.5 |
-| 11 | k13 | 3 | 3 | 2 | 4.5 |
-| 12 | k92 | 3 | 3 | 2 | 4.5 |
-| 13 | k10 | 4 | 4 | 4 | 4.0 |
-| 14 | k81 | 4 | 3 | 3 | 4.0 |
-| 15 | k82 | 3 | 4 | 3 | 4.0 |
-| 16 | k83 | 3 | 4 | 3 | 4.0 |
-| 17 | k93 | 4 | 2 | 2 | 4.0 |
-| 18 | k94 | 4 | 3 | 3 | 4.0 |
-| 19 | k95 | 4 | 3 | 3 | 4.0 |
-| 20 | k96 | 5 | 4 | 5 | 4.0 |
-| 21 | k97 | 3 | 4 | 3 | 4.0 |
-| 22 | k110 | 4 | 2 | 2 | 4.0 |
-| 23 | k84 | 3 | 5 | 4 | 3.8 |
-| 24 | k74 | 4 | 3 | 4 | 3.0 |
-| 25 | k52 | 3 | 2 | 2 | 3.0 |
-| 26 | k85 | 3 | 3 | 3 | 3.0 |
-| 27 | k86 | 3 | 5 | 5 | 3.0 |
-| 28 | k87 | 3 | 3 | 3 | 3.0 |
-| 29 | k98 | 3 | 2 | 2 | 3.0 |
-| 30 | k109 | 4 | 2 | 3 | 2.7 |
-| 31 | k99 | 3 | 4 | 5 | 2.4 |
-| 32 | k100 | 3 | 3 | 4 | 2.3 |
-| 33 | k88 | 2 | 2 | 2 | 2.0 |
-| 34 | k101 | 4 | 2 | 4 | 2.0 |
-| 35 | k102 | 3 | 2 | 3 | 2.0 |
-| 36 | k103 | 2 | 2 | 2 | 2.0 |
-| 37 | k89 | 2 | 4 | 5 | 1.6 |
-| 38 | k104 | 2 | 3 | 5 | 1.2 |
+| 1 | k115 | 4 | 2 | 1 | 8.0 |
+| 2 | k116 | 5 | 4 | 3 | 6.7 |
+| 3 | k90 | 4 | 3 | 2 | 6.0 |
+| 4 | k108 | 3 | 2 | 1 | 6.0 |
+| 5 | k111 | 4 | 3 | 2 | 6.0 |
+| 6 | k117 | 4 | 3 | 2 | 6.0 |
+| 7 | k23 | 4 | 4 | 3 | 5.3 |
+| 8 | k47 | 4 | 4 | 3 | 5.3 |
+| 9 | k79 | 4 | 4 | 3 | 5.3 |
+| 10 | k80 | 4 | 4 | 3 | 5.3 |
+| 11 | k26 | 5 | 4 | 4 | 5.0 |
+| 12 | k25 | 3 | 3 | 2 | 4.5 |
+| 13 | k70 | 3 | 3 | 2 | 4.5 |
+| 14 | k13 | 3 | 3 | 2 | 4.5 |
+| 15 | k92 | 3 | 3 | 2 | 4.5 |
+| 16 | k10 | 4 | 4 | 4 | 4.0 |
+| 17 | k81 | 4 | 3 | 3 | 4.0 |
+| 18 | k82 | 3 | 4 | 3 | 4.0 |
+| 19 | k83 | 3 | 4 | 3 | 4.0 |
+| 20 | k93 | 4 | 2 | 2 | 4.0 |
+| 21 | k94 | 4 | 3 | 3 | 4.0 |
+| 22 | k95 | 4 | 3 | 3 | 4.0 |
+| 23 | k96 | 5 | 4 | 5 | 4.0 |
+| 24 | k97 | 3 | 4 | 3 | 4.0 |
+| 25 | k110 | 4 | 2 | 2 | 4.0 |
+| 26 | k84 | 3 | 5 | 4 | 3.8 |
+| 27 | k74 | 4 | 3 | 4 | 3.0 |
+| 28 | k52 | 3 | 2 | 2 | 3.0 |
+| 29 | k85 | 3 | 3 | 3 | 3.0 |
+| 30 | k86 | 3 | 5 | 5 | 3.0 |
+| 31 | k87 | 3 | 3 | 3 | 3.0 |
+| 32 | k98 | 3 | 2 | 2 | 3.0 |
+| 33 | k109 | 4 | 2 | 3 | 2.7 |
+| 34 | k99 | 3 | 4 | 5 | 2.4 |
+| 35 | k100 | 3 | 3 | 4 | 2.3 |
+| 36 | k88 | 2 | 2 | 2 | 2.0 |
+| 37 | k101 | 4 | 2 | 4 | 2.0 |
+| 38 | k102 | 3 | 2 | 3 | 2.0 |
+| 39 | k103 | 2 | 2 | 2 | 2.0 |
+| 40 | k89 | 2 | 4 | 5 | 1.6 |
+| 41 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
