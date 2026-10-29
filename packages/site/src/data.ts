@@ -684,6 +684,12 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
   "pack.overflow": { label: "Not placed", note: "The count of boxes that the packer did not place. Less is better.", share: false },
 };
 
+/** The names and the notes of the measures of the compare page: the measures of the results page, and the side skew (k123) */
+export const COMPARE_LABELS: Record<string, { label: string; note: string; share: boolean }> = {
+  ...MEASURE_LABELS,
+  "pack.balance.sideRange": { label: "Side skew", note: "The emptiest side strip less the fullest side strip. A pack in one corner has a high skew. Less is better.", share: true },
+};
+
 /** The names and the notes of the measures of the coverage snapshot */
 export const COVERAGE_LABELS: Record<string, { label: string; note: string }> = {
   "pack.gapToBound": { label: "Fill below its bound", note: "The part of the best fill of the placed items that the layout misses, from 0 to 1." },

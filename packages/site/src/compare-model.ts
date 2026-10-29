@@ -5,7 +5,7 @@ import type { CorpusFamily, LayoutInput } from "@mark1russell7/layout-contract";
 import { cellOf, measure, MEASURE_SPECS, packWith, shapeStrategies, type MeasureId, type PackInput, type PackOutput } from "@mark1russell7/packing";
 import { ENTRIES, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 import { generateInput, MAX_SITE_COUNT, SITE_FAMILIES, type DimensionValues } from "./corpus-input.ts";
-import { MEASURE_LABELS } from "./data.ts";
+import { COMPARE_LABELS } from "./data.ts";
 import { errorText, inputOf, makeItems } from "./model.ts";
 import { regionBounds, regionSvg } from "./region.ts";
 
@@ -69,10 +69,10 @@ export interface CompareMeasure {
   share: boolean;
 }
 
-/** The measures of the compare page: the measures of the results page, then the ragged edge and the boxes not placed. */
+/** The measures of the compare page: the measures of the results page, the ragged edge, the boxes not placed and the side skew. */
 export const COMPARE_MEASURES: readonly CompareMeasure[] = (
-  ["pack.fill", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.raggedness", "pack.overflow"] as const
-).map((id) => ({ id, label: MEASURE_LABELS[id]!.label, note: MEASURE_LABELS[id]!.note, share: MEASURE_LABELS[id]!.share, direction: MEASURE_SPECS[id].direction }));
+  ["pack.fill", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.raggedness", "pack.overflow", "pack.balance.sideRange"] as const
+).map((id) => ({ id, label: COMPARE_LABELS[id]!.label, note: COMPARE_LABELS[id]!.note, share: COMPARE_LABELS[id]!.share, direction: MEASURE_SPECS[id].direction }));
 
 /** This function gives the text of the value of a measure. */
 export function valueText(m: Pick<CompareMeasure, "share" | "id">, v: number): string {
@@ -157,6 +157,62 @@ export function bestIds(results: readonly EntryResult[], key: Exclude<SortKey, "
   if (scored.length < 2) return new Set();
   const best = Math.min(...scored.map((x) => x.s));
   return new Set(scored.filter((x) => Math.abs(x.s - best) <= 1e-9 * Math.max(1, Math.abs(best))).map((x) => x.id));
+}
+
+/** One point of the front of compact against spread (roadmap item k123): an entry, its fill and its side skew. */
+export interface FrontPoint {
+  id: string;
+  fill: number;
+  skew: number;
+  /** The value `true` when no other point beats this point. To beat it, a point has more fill and no more skew, or less skew and no less fill. */
+  front: boolean;
+}
+
+/** This function gives the points of the front of compact against spread. A result without both values has no point. */
+export function frontPoints(results: readonly EntryResult[]): FrontPoint[] {
+  const points = results.flatMap((r) => {
+    const fill = r.measures?.["pack.fill"];
+    const skew = r.measures?.["pack.balance.sideRange"];
+    return fill === undefined || skew === undefined || !Number.isFinite(fill) || !Number.isFinite(skew) ? [] : [{ id: r.entry.id, fill, skew }];
+  });
+  const beats = (a: { fill: number; skew: number }, b: { fill: number; skew: number }): boolean => a.fill >= b.fill && a.skew <= b.skew && (a.fill > b.fill || a.skew < b.skew);
+  return points.map((p) => ({ ...p, front: !points.some((q) => beats(q, p)) }));
+}
+
+/**
+ * This function gives an SVG chart of the front: the side skew on the x axis, the fill on the y axis. The front points
+ * have a line and their names. A point that is not on the front is small and gray.
+ */
+export function frontSvg(points: readonly FrontPoint[]): string {
+  const W = 320;
+  const H = 200;
+  const pad = { l: 40, r: 12, t: 12, b: 32 };
+  const maxSkew = Math.max(0.05, ...points.map((p) => p.skew));
+  const minFill = Math.min(0.5, ...points.map((p) => p.fill));
+  const x = (v: number): number => pad.l + (v / maxSkew) * (W - pad.l - pad.r);
+  const y = (v: number): number => pad.t + ((1 - v) / Math.max(1e-9, 1 - minFill)) * (H - pad.t - pad.b);
+  const front = points.filter((p) => p.front).toSorted((a, b) => a.skew - b.skew || b.fill - a.fill);
+  const line = front.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.skew).toFixed(1)} ${y(p.fill).toFixed(1)}`).join(" ");
+  const pct = (v: number): string => `${Math.round(v * 100)}%`;
+  const axes = [
+    `<line class="faxis" x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" />`,
+    `<line class="faxis" x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H - pad.b}" />`,
+    `<text class="ftick" x="${pad.l}" y="${H - pad.b + 14}" text-anchor="middle">0%</text>`,
+    `<text class="ftick" x="${W - pad.r}" y="${H - pad.b + 14}" text-anchor="end">${pct(maxSkew)}</text>`,
+    `<text class="ftick" x="${pad.l - 4}" y="${pad.t + 4}" text-anchor="end">100%</text>`,
+    `<text class="ftick" x="${pad.l - 4}" y="${H - pad.b}" text-anchor="end">${pct(minFill)}</text>`,
+    `<text class="flabel" x="${(pad.l + W - pad.r) / 2}" y="${H - 4}" text-anchor="middle">Side skew, less is better</text>`,
+    `<text class="flabel" x="10" y="${(pad.t + H - pad.b) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(pad.t + H - pad.b) / 2})">Fill</text>`,
+  ];
+  const dots = points
+    .toSorted((a, b) => Number(a.front) - Number(b.front))
+    .map((p) => {
+      const title = `<title>${p.id}: fill ${(p.fill * 100).toFixed(1)}%, side skew ${(p.skew * 100).toFixed(1)}%</title>`;
+      const name = p.front ? `<text class="fname" x="${(x(p.skew) + 6).toFixed(1)}" y="${(y(p.fill) - 6).toFixed(1)}">${p.id}</text>` : "";
+      return `<g class="${p.front ? "fpoint on" : "fpoint"}"><circle cx="${x(p.skew).toFixed(1)}" cy="${y(p.fill).toFixed(1)}" r="${p.front ? 4.5 : 3}">${title}</circle>${name}</g>`;
+    });
+  const path = front.length > 1 ? `<path class="fline" d="${line}" />` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="The fill against the side skew of each strategy. ${front.length} strategies are on the front.">${axes.join("")}${path}${dots.join("")}</svg>`;
 }
 
 /**

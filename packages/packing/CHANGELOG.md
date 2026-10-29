@@ -1,12 +1,32 @@
 # Changelog
 
+## 0.4.0
+
+The balance and the stability by alignment, roadmap item k123. The contract `@mark1russell7/layout-contract` 0.2.19 computes them, so the joint records get the same values.
+
+### Breaking changes
+
+- `MeasureId` and `LayoutMeasures` have the 7 balance ids. A `Record<MeasureId, ...>` of a caller needs the new keys. `ChangeMeasures` has `pack.stability.procrustes`.
+
+### Added
+
+- Each record has `pack.balance.gapCv`, `pack.balance.centroidOffset`, the four `pack.balance.side.*` values and `pack.balance.sideRange`. The specs of these ids declare only `rect`.
+- A change pair has `pack.stability.procrustes`: the aligned move of the box centers, in `W`, divided by the change share.
+- Each bench record has `pack.stability.seed`: the aligned move between the outputs of the seed and the seed plus 1.
+- The new functions `balanceContainerOf`, `stabilityUnitOf` and `measureSeed`, and the type `PackBalanceId`.
+- The compare page of the site shows the fill against the side skew, with the front of the strategies that no other strategy beats.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` is `^0.2.19`.
+
 ## 0.3.0
 
 The default `pack()` reads the table of `select` for a fixed size (step A of roadmap item k58), with the strategies, measures and input families since 0.2.17. This release has three breaking changes.
 
 ### Breaking changes
 
-- `pack()` without `options.strategy`: a container of fixed size now uses the pick of `SELECT_TABLE`, `packRows` or `packMaxRects` with the rule `bl`. A free size, a fixed width and a fixed height keep `packRows`, byte for byte. An explicit `strategy` does not change. `select` passed the win test against `rows` on two fresh-seed corpora (roadmap item k66).
+- `pack()` without `options.strategy`: a container of fixed size now uses the pick of `SELECT_TABLE`, `packRows` or `packMaxRects` with the rule `bl`. A free size, a fixed width and a fixed height keep `packRows`, byte for byte. A caller that needs the old output passes `strategy: "rows"`. An explicit `strategy` does not change. `select` passed the win test against `rows` on two fresh-seed corpora (roadmap item k66).
 - The cell `itemShape` is `itemShapeOf` of the contract: `rect`, `polygon`, `circle`, `free` or `mixed`. The value `convex` becomes `polygon`, and an ellipse item is `free` (roadmap item k91).
 - The measure `pack.gap` is a share from 0 to 1 since roadmap item k118: `1 - bound / result`. Before, it was a ratio with no upper limit. Its bounds count the margins and the gap.
 

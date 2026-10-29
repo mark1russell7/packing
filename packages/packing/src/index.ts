@@ -12,14 +12,17 @@ export { pushCascade, type PushOptions } from "./push.ts";
 export { packingMetrics, type MetricsOptions, type PackingMetrics } from "./metrics.ts";
 export {
   MEASURE_SPECS,
+  balanceContainerOf,
   gapToOpt,
   isDeterministic,
   measure,
   measureChange,
+  measureSeed,
   medianRatio,
   pairedRatio,
   quantile,
   roundMeasures,
+  stabilityUnitOf,
   tailShare,
   type ChangeMeasures,
   type Direction,
@@ -28,6 +31,7 @@ export {
   type MeasureId,
   type MeasureOptions,
   type MeasureSpec,
+  type PackBalanceId,
 } from "./measures.ts";
 export {
   DEFAULT_TOLERANCE,

@@ -232,6 +232,15 @@ describe("the minimum effects", () => {
     "pack.search.ms": undefined,
     "pack.gap": 0.005,
     "pack.gapToOpt": 0.005,
+    "pack.balance.gapCv": 0.01,
+    "pack.balance.centroidOffset": 0.01,
+    "pack.balance.side.top": undefined,
+    "pack.balance.side.right": undefined,
+    "pack.balance.side.bottom": undefined,
+    "pack.balance.side.left": undefined,
+    "pack.balance.sideRange": 0.02,
+    "pack.stability.procrustes": 0.005,
+    "pack.stability.seed": 0.005,
   };
 
   it("has the minimum effect of the table in docs/MEASURES.md, and the tolerance for each guard", () => {

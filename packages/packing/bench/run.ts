@@ -15,6 +15,7 @@ import {
   isDeterministic,
   measure,
   measureChange,
+  measureSeed,
   packWith,
   quantile,
   round3,
@@ -660,6 +661,8 @@ export function runBench(options: BenchOptions): BenchResult {
         const { msRuns, searchMs } = times;
 
         const values = pairValues(input, first, searchMs, file.known);
+        // k123: the move between the outputs of two seeds, after the best alignment. A strategy that does not read the seed gives 0.
+        Object.assign(values, measureSeed(input, first, packWith(e.strategy, input, given, file.seed + 1)));
         const base = file.base === undefined ? undefined : done.get(file.base);
         if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
         // Only a run that asks for it gets the stability when an anchor moves (roadmap item k111)

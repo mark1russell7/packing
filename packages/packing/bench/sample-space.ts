@@ -17,6 +17,7 @@ import {
   DEFAULT_TOLERANCE,
   generator,
   isDeterministic,
+  measureSeed,
   outputHash,
   packConfig,
   packSpace,
@@ -865,6 +866,8 @@ export function measurePair(p: PairToMeasure, o: MeasureOptions): SampleRecord {
   for (let w = 0; w < o.warmup; w++) pack();
   const { msRuns, searchMs } = timeRuns(pack, o.repeats, o.clock);
   const values = pairValues(input, first, searchMs, file.known);
+  // k123: the move between the outputs of two seeds of the config
+  Object.assign(values, measureSeed(input, first, packConfig(input, config, file.seed + 1)));
   const hard = checkHard(input, first, DEFAULT_TOLERANCE);
   const params = file.generator?.params ?? {};
   const record: SampleRecord = {

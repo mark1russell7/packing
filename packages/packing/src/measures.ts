@@ -1,7 +1,20 @@
 // The algebra of measures (roadmap item k8). `docs/MEASURES.md` defines each measure. This file computes them.
 
-import { boundsOf, boxArea as shapeAreaOf, SHAPE_KIND_IDS, type MeasureSpec as ContractMeasureSpec, type Direction } from "@mark1russell7/layout-contract";
-import { RECORD_EPS, turnItem, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
+import {
+  balanceMeasures,
+  balanceMeasureSpecs,
+  balanceOf,
+  boundsOf,
+  boxArea as shapeAreaOf,
+  perChange,
+  procrustesOf,
+  SHAPE_KIND_IDS,
+  type BalanceMeasureSuffix,
+  type MeasureSpec as ContractMeasureSpec,
+  type Direction,
+  type PlacedBox,
+} from "@mark1russell7/layout-contract";
+import { marginOf, RECORD_EPS, turnItem, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 import { aspectError } from "./free.ts";
 import { overflowBound } from "./overflow.ts";
 import { round3, type KnownBest } from "./layout-input.ts";
@@ -10,10 +23,13 @@ import { round3, type KnownBest } from "./layout-input.ts";
 export type { Direction } from "@mark1russell7/layout-contract";
 
 /** The family of a measure. Each family has a section in `docs/MEASURES.md`. */
-export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound";
+export type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound" | "balance";
 
 /** The id of a measure of the packer. The ids are those of `docs/FORMAT.md`, and `highways` uses the same ids. */
-export type MeasureId = "pack.area" | "pack.fill" | "pack.shapeFill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap" | "pack.gapToOpt";
+export type MeasureId = "pack.area" | "pack.fill" | "pack.shapeFill" | "pack.whitespace" | "pack.aspect" | "pack.aspectError" | "pack.order.inversions" | "pack.order.breaks" | "pack.raggedness" | "pack.overflow" | "pack.overflow.rate" | "pack.overflow.area" | "pack.overflow.forced" | "pack.overflow.forcedArea" | "pack.overflow.excess" | "pack.overflow.forcedAreaMin" | "pack.overflow.excessArea" | "pack.stability.moved" | "pack.stability.mean" | "pack.stability.q95" | "pack.deterministic" | "pack.search.widths" | "pack.search.ms" | "pack.gap" | "pack.gapToOpt" | PackBalanceId;
+
+/** The id of a balance or stability measure of roadmap item k123: a suffix of `BALANCE_MEASURE_SUFFIXES` of the contract with the prefix `pack`. */
+export type PackBalanceId = `pack.${BalanceMeasureSuffix}`;
 
 /**
  * The facts of one measure: its family, its unit, its direction and its range.
@@ -69,6 +85,14 @@ export interface LayoutMeasures {
   "pack.overflow.excessArea": number;
   "pack.search.widths": number;
   "pack.search.ms": number;
+  /** The balance of the layout (roadmap item k123): `balanceOf` of the contract on the placed boxes and the container. */
+  "pack.balance.gapCv": number;
+  "pack.balance.centroidOffset": number;
+  "pack.balance.side.top": number;
+  "pack.balance.side.right": number;
+  "pack.balance.side.bottom": number;
+  "pack.balance.side.left": number;
+  "pack.balance.sideRange": number;
 }
 
 /** The stability measures of a change pair, by id. `measureChange` gives them. The values are not rounded. */
@@ -76,6 +100,8 @@ export interface ChangeMeasures {
   "pack.stability.moved": number;
   "pack.stability.mean": number;
   "pack.stability.q95": number;
+  /** The move of `procrustesOf` of the contract in `W`, divided by the change share with `perChange` (roadmap item k123). */
+  "pack.stability.procrustes": number;
 }
 
 /** The options of `measure`. */
@@ -161,6 +187,8 @@ export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.fr
   // Since k118 it is the share `boundShare`, from 0 to 1.
   "pack.gap": spec("pack.gap", "bound", "share", "lower", 0, 1, 0.005),
   "pack.gapToOpt": spec("pack.gapToOpt", "density", "ratio", "lower", 0, Infinity, 0.005),
+  // The balance and stability measures of roadmap item k123. The contract gives the specs, so the joint bench has the same ones.
+  ...(Object.fromEntries(balanceMeasureSpecs("pack").map((s) => [s.id, s])) as Record<PackBalanceId, MeasureSpec>),
 });
 
 /** A placed box: the rectangle of an item at its position, with its rank. */
@@ -372,7 +400,63 @@ function measureView(given: PackInput, view: { input: PackInput; output: PackOut
     "pack.overflow.excessArea": excessAreaOf(overflowArea, forcedArea),
     "pack.search.widths": traceSum(output, "pack.search.widths"),
     "pack.search.ms": traceSum(output, "pack.search.ms"),
-  };
+    ...balanceMeasures("pack", balanceOf(boxes, balanceContainerOf(input, output))),
+  } as LayoutMeasures;
+}
+
+/**
+ * This function gives the container of the balance measures. A fixed side keeps its length. A free side has the length of the output size.
+ * The container starts at 0, 0, as the placements do.
+ */
+export function balanceContainerOf(input: PackInput, output: PackOutput): { x: number; y: number; w: number; h: number } {
+  const c = input.container;
+  const w = (c.fixed === "size" || c.fixed === "width") && c.w !== undefined ? c.w : output.size.w;
+  const h = (c.fixed === "size" || c.fixed === "height") && c.h !== undefined ? c.h : output.size.h;
+  return { x: 0, y: 0, w, h };
+}
+
+/**
+ * This function gives the unit `W` of the stability measures `pack.stability.procrustes` and `pack.stability.seed`.
+ *
+ * - A container of fixed size or fixed width gives its width.
+ * - Another container gives the width of the bounding box of the placed boxes with their margins.
+ * - A width of 0 gives 1.
+ */
+export function stabilityUnitOf(input: PackInput, output: PackOutput): number {
+  const c = input.container;
+  if ((c.fixed === "size" || c.fixed === "width") && c.w !== undefined && c.w > 0) return c.w;
+  const margins = new Map(input.items.map((i) => [i.id, marginOf(i)] as const));
+  let left = Infinity;
+  let right = -Infinity;
+  for (const b of placedBoxesOf(input, output)) {
+    const m = margins.get(b.id);
+    left = Math.min(left, b.x - (m?.left ?? 0));
+    right = Math.max(right, b.x + b.w + (m?.right ?? 0));
+  }
+  return right > left ? right - left : 1;
+}
+
+/** This function gives the placed boxes of an output with their ids, for `procrustesOf`. A box is the box of `boxesOf`. */
+function placedBoxesOf(input: PackInput, output: PackOutput): PlacedBox[] {
+  const { input: view, output: out } = boxView(input, output);
+  const placements = new Map<string, PackOutput["placements"][number]>();
+  for (const p of out.placements) if (!placements.has(p.id)) placements.set(p.id, p);
+  const boxes: PlacedBox[] = [];
+  for (const item of view.items) {
+    const p = placements.get(item.id);
+    if (p === undefined || !(item.w > 0 && item.h > 0)) continue;
+    const turned = p.turn === 90;
+    boxes.push({ id: item.id, x: p.x, y: p.y, w: turned ? item.h : item.w, h: turned ? item.w : item.h });
+  }
+  return boxes;
+}
+
+/**
+ * This function gives `pack.stability.seed` (roadmap item k123). It is the move of `procrustesOf` between the outputs of two seeds
+ * of one input, in `W` of the first output. A strategy that does not read the seed gives 0.
+ */
+export function measureSeed(input: PackInput, first: PackOutput, second: PackOutput): { "pack.stability.seed": number } {
+  return { "pack.stability.seed": procrustesOf(placedBoxesOf(input, first), placedBoxesOf(input, second), { unit: stabilityUnitOf(input, first) }) };
 }
 
 /**
@@ -476,12 +560,27 @@ export function measureChange(baseInput: PackInput, baseOutput: PackOutput, chan
     if (Math.abs(dx) > RECORD_EPS || Math.abs(dy) > RECORD_EPS || (p.turn ?? 0) !== (q.turn ?? 0)) moved += 1;
     distances.push(Math.hypot(dx, dy) / unit);
   }
-  if (distances.length === 0) return { "pack.stability.moved": 0, "pack.stability.mean": 0, "pack.stability.q95": 0 };
+  if (distances.length === 0) return { "pack.stability.moved": 0, "pack.stability.mean": 0, "pack.stability.q95": 0, "pack.stability.procrustes": 0 };
+  const move = procrustesOf(placedBoxesOf(baseInput, baseOutput), placedBoxesOf(changeInput, changeOutput), { unit: stabilityUnitOf(baseInput, baseOutput) });
   return {
     "pack.stability.moved": moved / distances.length,
     "pack.stability.mean": distances.reduce((sum, d) => sum + d, 0) / distances.length,
     "pack.stability.q95": quantile(distances, 0.95),
+    "pack.stability.procrustes": perChange(move, changedCount(baseInput, changeInput), Math.max(1, baseInput.items.length)),
   };
+}
+
+/** This function counts the changed items of a change pair. These are the dropped or resized items of the base, and each new item. */
+function changedCount(baseInput: PackInput, changeInput: PackInput): number {
+  const after = new Map(changeInput.items.map((i) => [i.id, i] as const));
+  const before = new Set(baseInput.items.map((i) => i.id));
+  let changed = 0;
+  for (const item of baseInput.items) {
+    const next = after.get(item.id);
+    if (next === undefined || next.w !== item.w || next.h !== item.h) changed += 1;
+  }
+  for (const item of changeInput.items) if (!before.has(item.id)) changed += 1;
+  return changed;
 }
 
 /**

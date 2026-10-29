@@ -347,6 +347,48 @@ A change pair is the run on a base input and the run on its variant. The variant
 - The quantile uses linear interpolation. The position in the sorted list is `(n - 1) * q`. `quantile` gives it.
 - The unit is the larger width of the two runs. Thus the measures are the same when the two runs change places.
 
+## Balance
+
+Roadmap item k123. A compact pack can put all its boxes in one corner. These measures show that skew. The contract `@mark1russell7/layout-contract` computes them with `balanceOf`, so the joint bench gets the same values. Its `docs/BALANCE.md` gives the definitions.
+
+| Id | Unit | Direction | Range |
+|---|---|---|---|
+| `pack.balance.gapCv` | ratio | lower | 0 or more |
+| `pack.balance.centroidOffset` | half diagonals | lower | 0 to 1 |
+| `pack.balance.side.top`, `.right`, `.bottom`, `.left` | share | lower | 0 to 1 |
+| `pack.balance.sideRange` | share | lower | 0 to 1 |
+
+- **The boxes** are the boxes of `boxesOf`: the bounding box of each placed item.
+- **The container** starts at 0, 0. A fixed side keeps its length. A free side has the length of the output size (`balanceContainerOf`).
+- **The free area** is the container less the boxes.
+
+**`pack.balance.gapCv`** is the standard deviation of the gaps over their mean. The gap of a box is the distance to the nearest other box.
+
+**`pack.balance.centroidOffset`** is the distance from the centroid of the free area to the center of the container, over half of the diagonal.
+
+**`pack.balance.side.<side>`** is the empty share of the strip at that side. The strip has the depth `BALANCE_SIDE_DEPTH`, 0.25 of the container.
+
+**`pack.balance.sideRange`** is the largest side value less the smallest side value. It is the skew measure of the front of compact against spread.
+
+- The balance measures read the area of each box, so their specs declare only `rect`.
+- With a low fill, the centroid offset gets small. Read `pack.balance.sideRange` then.
+
+## Stability by alignment
+
+Roadmap item k123. `procrustesOf` of the contract aligns the box centers of two layouts with the best move and rotation. It gives the root mean square of the distances that stay.
+
+| Id | Unit | Direction | Range |
+|---|---|---|---|
+| `pack.stability.procrustes` | `W` for each change share | lower | 0 or more |
+| `pack.stability.seed` | `W` | lower | 0 or more |
+
+- **The unit** `W` is the width of the container for a fixed size or a fixed width. Else, it is the width of the placed boxes with their margins (`stabilityUnitOf`).
+- **The change share** is the count of the changed items over the count of the base items, and at least 1 item. A changed item is a dropped, resized or new item.
+
+**`pack.stability.procrustes`** is the aligned move of a change pair, divided by the change share. Only a record with a base has it.
+
+**`pack.stability.seed`** is the aligned move between the outputs of the seed and the seed plus 1 of one input. A strategy that does not read the seed gives 0.
+
 ## Stability when an anchor moves
 
 Roadmap item k111 measures how far the other items move when one anchor moves. The function `anchorStability` of `src/anchor.ts` gives the measures. `measure` does not give them, because they need more packs.
