@@ -30,7 +30,7 @@ import {
   type SelectNode,
 } from "@mark1russell7/packing";
 import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/layout-contract";
-import { coverage, coverageOptions, readRecords, readSampled, type CoverageManifest, type CoverageSummary, type SampledMeasure } from "./coverage.ts";
+import { coverage, coverageOptions, readRecords, readSample, type CoverageManifest, type CoverageSummary, type SampledMeasure, type StrataMeasure } from "./coverage.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 
 /** The schema of each snapshot file */
@@ -697,6 +697,21 @@ export interface CoverageSnapshotMeasure {
   byInput?: { mae: number; medianAe: number; share: number };
   /** The held-out test on the sampled pairs of the whole space (k112), when the snapshot has it */
   sampled?: CoverageSnapshotSampled;
+  /** The same test by stratum, with the mean over the strata (k115), when the snapshot has it */
+  strata?: CoverageSnapshotStrata;
+}
+
+/** The held-out result of one measure by stratum: the mean over the strata with the same weight, and each stratum */
+export interface CoverageSnapshotStrata {
+  /** The mean of the shares of the strata with pairs */
+  share: number;
+  /** The 95% interval of the mean */
+  low: number;
+  high: number;
+  /** The count of the strata with pairs */
+  strata: number;
+  /** Each stratum: its pairs, its hits, its share and the Wilson 95% interval. A stratum without pairs has `null`, not 0. */
+  rows: { stratum: string; n: number; hits: number; share: number | null; low: number | null; high: number | null }[];
 }
 
 /** The held-out result of one measure on the sampled pairs of the whole space */
@@ -741,9 +756,48 @@ export interface CoverageSnapshot {
     measures: CoverageSnapshotMeasure[];
     /** The facts of the sample of the whole space (k112), when the snapshot has it */
     sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
+    /**
+     * The facts of the strata of the sample (k115), when the snapshot has them: the draw and the pairs of each stratum.
+     * A stratified sample also gives the count of the configs and of the missed pairs of each stratum.
+     */
+    strata?: { pairs: number; draw: string | null; strata: { id: string; pairs: number; configs?: string; missed?: number }[] };
+    /**
+     * The last sample with a uniform draw, with its run and its date, when a snapshot had one.
+     * A stratified sample does not change it. Thus `sampled` of a stratified run is only the share pooled over the strata.
+     */
+    uniform?: CoverageSnapshotUniform;
   };
-  /** The points of the trend, oldest first. A date has one point for each corpus. */
+  /** The points of the trend, oldest first. A run has one point. */
   trend: CoveragePoint[];
+}
+
+/** The last sample of the whole space with a uniform draw: its run, its facts and the held-out result of each measure */
+export interface CoverageSnapshotUniform {
+  date: string;
+  run: number | null;
+  commit: string;
+  pairs: number;
+  seed: number | null;
+  configRejectionRate: number | null;
+  hardPairs: number | null;
+  /** The held-out result of each measure on the pairs, by the id of the measure */
+  measures: Record<string, CoverageSnapshotSampled>;
+}
+
+/** This function tells if the draw of a sample is uniform. A sample without a draw is from before k115, and it is uniform. */
+const isUniform = (draw: string | null | undefined): boolean => draw === undefined || draw === null || draw === "uniform";
+
+/**
+ * This function gives the last uniform sample of an earlier snapshot. A snapshot from before `uniform` gives its own `sampled` section, if the draw is uniform.
+ */
+function uniformOf(earlier: CoverageSnapshot | undefined): CoverageSnapshotUniform | undefined {
+  if (earlier === undefined) return undefined;
+  if (earlier.latest.uniform !== undefined) return earlier.latest.uniform;
+  const s = earlier.latest.sampled;
+  if (s === undefined || !isUniform(s.draw)) return undefined;
+  const measures = Object.fromEntries(earlier.latest.measures.flatMap((m) => (m.sampled === undefined ? [] : [[m.id, { ...m.sampled }]])));
+  const commit = earlier.trend.find((p) => p.run === earlier.latest.run && p.date === earlier.latest.date)?.commit ?? earlier.origin[0]?.commit ?? "";
+  return { date: earlier.latest.date, run: earlier.latest.run, commit, pairs: s.pairs, seed: s.seed, configRejectionRate: s.configRejectionRate, hardPairs: s.hardPairs, measures };
 }
 
 /** This function gives the snapshot form of the held-out result of one measure on the sampled pairs. */
@@ -759,14 +813,26 @@ const sampledOf = (m: SampledMeasure): CoverageSnapshotSampled => ({
   baselineMedianAe: m.baseline.medianAe,
 });
 
+/** This function gives the snapshot form of the held-out result of one measure by stratum. */
+const strataOf = (m: StrataMeasure): CoverageSnapshotStrata => ({
+  share: m.equal.share,
+  low: m.equal.interval.low,
+  high: m.equal.interval.high,
+  strata: m.equal.strata,
+  rows: m.strata.map((x) => ({ stratum: x.stratum, n: x.n, hits: x.hits, share: x.share, low: x.wilson?.low ?? null, high: x.wilson?.high ?? null })),
+});
+
 /**
  * This function gives the coverage snapshot of a summary of `coverage`. The trend keeps each point of the earlier
- * snapshot, and the new point takes the place of a point with the same date and corpus.
+ * snapshot, and the new point takes the place of a point of the same run. A point without a run replaces a point with the same date and corpus.
  * The optional `byInput` is a second summary of the same records with the folds by input. Its numbers go next to the first numbers.
+ *
+ * A uniform sample of the summary gives `uniform`. Another summary keeps the `uniform` of the earlier snapshot.
  */
 export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
+  const strata = new Map((summary.strata?.measures ?? []).map((m) => [m.id, m]));
   const point: CoveragePoint = {
     date: summary.date,
     run: summary.run,
@@ -775,7 +841,24 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
     shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
     ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
   };
-  const trend = [...(earlier?.trend ?? []).filter((p) => p.date !== point.date || p.corpus !== point.corpus), point].sort((a, b) => a.date.localeCompare(b.date) || a.corpus.localeCompare(b.corpus));
+  const same = (p: CoveragePoint): boolean => (point.run === null ? p.date === point.date && p.corpus === point.corpus : p.run === point.run);
+  const trend = [...(earlier?.trend ?? []).filter((p) => !same(p)), point].sort(
+    (a, b) => a.date.localeCompare(b.date) || a.corpus.localeCompare(b.corpus) || (a.run ?? 0) - (b.run ?? 0),
+  );
+  const s = summary.sampled;
+  const uniform: CoverageSnapshotUniform | undefined =
+    s !== undefined && isUniform(s.sample?.draw)
+      ? {
+          date: summary.date,
+          run: summary.run,
+          commit: origin.commit,
+          pairs: s.pairs,
+          seed: s.sample?.seed ?? null,
+          configRejectionRate: s.sample?.configRejectionRate ?? null,
+          hardPairs: s.sample?.hardPairs ?? null,
+          measures: Object.fromEntries(s.measures.map((m) => [m.id, sampledOf(m)])),
+        }
+      : uniformOf(earlier);
   return {
     schema: SNAPSHOT_SCHEMA,
     kind: "coverage",
@@ -806,6 +889,7 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
         indices: m.indices.slice(0, COVERAGE_TOP).map((x) => ({ ...x })),
         ...(second.has(m.id) ? { byInput: { mae: second.get(m.id)!.model.mae, medianAe: second.get(m.id)!.model.medianAe, share: second.get(m.id)!.share } } : {}),
         ...(sampled.has(m.id) ? { sampled: sampledOf(sampled.get(m.id)!) } : {}),
+        ...(strata.has(m.id) ? { strata: strataOf(strata.get(m.id)!) } : {}),
       })),
       ...(summary.sampled === undefined
         ? {}
@@ -818,6 +902,8 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
               hardPairs: summary.sampled.sample?.hardPairs ?? null,
             },
           }),
+      ...(summary.strata === undefined ? {} : { strata: { pairs: summary.strata.pairs, draw: summary.strata.draw, strata: summary.strata.strata.map((x) => ({ ...x })) } }),
+      ...(uniform === undefined ? {} : { uniform }),
     },
     trend,
   };
@@ -940,7 +1026,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const byInput = coverage(records, manifest, { ...options, by: "input" });
     // The sample of the whole space (k112): the folder `sample` of the run, or --sample <dir>
     const sampleDir = optionOf(argv, "--sample") ?? join(folder, "sample");
-    const bySpec = existsSync(join(sampleDir, "records.jsonl")) ? { ...grid, sampled: readSampled(records, manifest, sampleDir, options) } : grid;
+    const bySpec = existsSync(join(sampleDir, "records.jsonl")) ? { ...grid, ...readSample(records, manifest, sampleDir, options) } : grid;
     writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
     return;
   }

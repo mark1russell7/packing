@@ -1,7 +1,7 @@
 // The sampler of the whole space of roadmap item k112. It draws pairs of a config of `packSpace` and an input of a corpus
 // family. It packs each pair and measures it as the bench runner does. `bench/coverage.ts --sample` scores the pairs.
 //
-//   node bench/sample-space.ts --out <dir> [--n 400] [--seed 1] [--draw uniform|option] [--max-count 1000] [--no-knobs]
+//   node bench/sample-space.ts --out <dir> [--n 400] [--seed 1] [--draw uniform|option|stratified] [--stratify] [--max-count 1000] [--no-knobs]
 //                              [--repeats 1] [--warmup 0] [--max-minutes <m>] [--prediction <id>] [--commit sha]
 //
 // `docs/BENCH.md` ("The whole space, sampled") tells how the draw works. The times of a local run do not count.
@@ -66,8 +66,14 @@ export const DEFAULT_MAX_COUNT = 1000;
 /** The largest count of the draws of a config for one input. Then the sampler draws a new input. */
 const MAX_CONFIG_TRIES = 20;
 
-/** The largest count of the draws of an input for one pair. Then the pair is an error. */
-const MAX_INPUT_TRIES = 200;
+/** The default largest count of the draws of an input for one pair. Then the pair is an error, or a miss of its stratum. */
+export const MAX_INPUT_TRIES = 200;
+
+/**
+ * The count of the misses that close a stratum of a stratified draw (k115). A miss is a pair that finds no input and config.
+ * The later pairs of a closed stratum draw nothing. Thus a stratum costs at most `maxInputTries` inputs (200) and 4000 configs without a pair.
+ */
+export const MAX_STRATUM_MISSES = 1;
 
 // ---- The random numbers ----
 
@@ -259,15 +265,23 @@ export function spaceCounts(space: StrategySpace): SpaceCounts {
 /** The ways to draw a config: `uniform` gives each config the same chance, `option` first picks the base or one meta option. */
 export type DrawMode = "uniform" | "option";
 
+/** The ways to draw the configs of a sample: a `DrawMode`, or `stratified` with the same count of pairs for each stratum (k115). */
+export type SampleDraw = DrawMode | "stratified";
+
 /** This function gives the stage choice of an option and its params, without an empty list of params. */
 const choiceOf = (option: string, params: Record<string, ParamValue>): StageChoice => (Object.keys(params).length === 0 ? { option } : { option, params });
 
-/** This function draws a base config. Each base config has the same chance. */
-export function drawBase(r: Random, space: StrategySpace, counts: SpaceCounts): StrategyConfig {
-  const combo = counts.combos[pickWeighted(r, counts.combos.map((c) => c.weight))]!;
+/** This function draws a base config from some combinations. Each base config of the combinations has the same chance. */
+function drawCombo(r: Random, space: StrategySpace, combos: readonly BaseCombo[]): StrategyConfig {
+  const combo = combos[pickWeighted(r, combos.map((c) => c.weight))]!;
   const stages: Record<string, StageChoice> = {};
   for (const [stage, o] of combo.options) if (o !== null) stages[stage] = choiceOf(o.id, drawParams(r, o.params));
   return { space: space.engine, stages };
+}
+
+/** This function draws a base config. Each base config has the same chance. */
+export function drawBase(r: Random, space: StrategySpace, counts: SpaceCounts): StrategyConfig {
+  return drawCombo(r, space, counts.combos);
 }
 
 /** This function draws the members of a meta option: a pool entry, or a list of distinct base configs. Each list has the same chance. */
@@ -275,7 +289,11 @@ function drawMembers(r: Random, space: StrategySpace, counts: SpaceCounts, rule:
   if (rule.pool !== undefined) return [...rule.pool[Number(uniformBig(r, BigInt(rule.pool.length)))]!];
   const sizes: number[] = [];
   for (let m = rule.min; m <= rule.max; m++) sizes.push(m);
-  const m = sizes[pickWeighted(r, sizes.map((k) => lists(counts.base, k, rule.ordered)))]!;
+  return drawDistinct(r, space, counts, sizes[pickWeighted(r, sizes.map((k) => lists(counts.base, k, rule.ordered)))]!);
+}
+
+/** This function draws an ordered list of `m` distinct base configs. Each list has the same chance. */
+function drawDistinct(r: Random, space: StrategySpace, counts: SpaceCounts, m: number): StrategyConfig[] {
   const out: StrategyConfig[] = [];
   const ids = new Set<string>();
   // A member that is already in the list goes back. Thus each ordered list of distinct members has the same chance.
@@ -302,6 +320,112 @@ export function drawConfig(r: Random, space: StrategySpace, counts: SpaceCounts,
   const meta = counts.meta[top - 1]!;
   const params = drawParams(r, meta.option.params);
   const members = drawMembers(r, space, counts, meta.option.members!);
+  return { space: space.engine, stages: { [meta.stage]: { ...choiceOf(meta.option.id, params), members } } };
+}
+
+// ---- The strata (k115) ----
+
+/** The stage that gives the family of a base config. A space without this stage uses its first stage. */
+export const FAMILY_STAGE = "placement";
+
+/** The param of a meta option with a `pool` that gives its size, for example `k` of `cell-portfolio`. */
+export const POOL_SIZE_PARAM = "k";
+
+/**
+ * One stratum of a space: a strategy family with one size. The id is `<family>:<size>`, for example `portfolio:3`.
+ *
+ * - A base config has the family of its option of the stage `placement`, and the size 1.
+ * - A meta option is its own family. Its size is its count of members, for example 2 to 5 for `portfolio`.
+ * - A meta option with a `pool` gets one stratum for each value of its param `k`, for example `cell-portfolio:cell`.
+ */
+export interface Stratum {
+  readonly id: string;
+  readonly family: string;
+  readonly size: string;
+  /** The exact count of the configs of the stratum. */
+  readonly configs: bigint;
+  /** The base combinations of a base stratum, or the meta option of a meta stratum. */
+  readonly combos?: readonly BaseCombo[];
+  readonly meta?: MetaChoice;
+  /** The params of the meta option, with the param `k` at one value for a `pool`. */
+  readonly params?: readonly SpaceParam[];
+  /** The count of the members of a meta stratum without a `pool`. */
+  readonly members?: number;
+}
+
+/** This function gives the name of the stage that gives the family of a base config. */
+const familyStageOf = (space: StrategySpace): string => (space.stages.some((s) => s.name === FAMILY_STAGE) ? FAMILY_STAGE : space.stages[0]!.name);
+
+/** This function gives a param value as text. */
+const valueText = (v: ParamValue | undefined): string => String(v);
+
+/** This function gives the params of an option with one param at one value. The param becomes an `enum` with one value. */
+const pinParam = (params: readonly SpaceParam[], name: string, value: ParamValue): SpaceParam[] =>
+  params.map((p): SpaceParam => (p.name === name ? { name: p.name, kind: "enum", values: [value as string | number], default: value, ...(p.when === undefined ? {} : { when: p.when }) } : p));
+
+/**
+ * This function gives the strata of a space, in the order of the stages and of their options. A stratum without configs is not in the list.
+ * For `packSpace`, it gives 19 strata: 7 base families, then `portfolio:2` to `portfolio:5`, the 3 values of `k` of `cell-portfolio`, and the other meta options.
+ */
+export function strataOf(space: StrategySpace, counts: SpaceCounts = spaceCounts(space)): Stratum[] {
+  const out: Stratum[] = [];
+  const stage = familyStageOf(space);
+  for (const o of space.stages.find((s) => s.name === stage)!.options) {
+    if (o.members !== undefined) continue;
+    const combos = counts.combos.filter((c) => c.options.get(stage)?.id === o.id);
+    const configs = combos.reduce((s, c) => s + c.weight, 0n);
+    if (configs > 0n) out.push({ id: `${o.id}:1`, family: o.id, size: "1", configs, combos });
+  }
+  for (const meta of counts.meta) {
+    const rule = meta.option.members!;
+    const family = meta.option.id;
+    if (rule.pool !== undefined) {
+      const k = meta.option.params.find((p) => p.name === POOL_SIZE_PARAM);
+      const values = k === undefined ? null : discreteValues(k);
+      if (values === null) {
+        out.push({ id: `${family}:${rule.pool[0]?.length ?? 0}`, family, size: String(rule.pool[0]?.length ?? 0), configs: meta.weight, meta, params: meta.option.params });
+        continue;
+      }
+      for (const v of values) {
+        const params = pinParam(meta.option.params, POOL_SIZE_PARAM, v);
+        const configs = paramCount(params) * meta.lists;
+        if (configs > 0n) out.push({ id: `${family}:${valueText(v)}`, family, size: valueText(v), configs, meta, params });
+      }
+      continue;
+    }
+    for (let m = rule.min; m <= rule.max; m++) {
+      const configs = meta.params * lists(counts.base, m, rule.ordered);
+      if (configs > 0n) out.push({ id: `${family}:${m}`, family, size: String(m), configs, meta, params: meta.option.params, members: m });
+    }
+  }
+  return out;
+}
+
+/**
+ * This function gives the stratum id of a config of a space, as `strataOf` makes it. It reads a canonical config or a config with omitted defaults.
+ * A config with an unknown meta option gives the option and its count of members.
+ */
+export function stratumOf(space: StrategySpace, config: StrategyConfig): string {
+  for (const s of space.stages) {
+    const choice = config.stages[s.name];
+    if (choice === null || choice === undefined) continue;
+    const option = s.options.find((o) => o.id === choice.option);
+    if (option?.members === undefined) continue;
+    const members = choice.members?.length ?? 0;
+    if (option.members.pool === undefined) return `${option.id}:${members}`;
+    const k = option.params.find((p) => p.name === POOL_SIZE_PARAM);
+    return `${option.id}:${k === undefined ? members : valueText(choice.params?.[POOL_SIZE_PARAM] ?? k.default)}`;
+  }
+  return `${config.stages[familyStageOf(space)]?.option ?? "none"}:1`;
+}
+
+/** This function draws one config of a stratum. Each config of the stratum has the same chance. */
+export function drawStratum(r: Random, space: StrategySpace, counts: SpaceCounts, stratum: Stratum): StrategyConfig {
+  if (stratum.meta === undefined) return drawCombo(r, space, stratum.combos!);
+  const meta = stratum.meta;
+  const params = drawParams(r, stratum.params ?? meta.option.params);
+  const rule = meta.option.members!;
+  const members = rule.pool !== undefined ? drawMembers(r, space, counts, rule) : drawDistinct(r, space, counts, stratum.members!);
   return { space: space.engine, stages: { [meta.stage]: { ...choiceOf(meta.option.id, params), members } } };
 }
 
@@ -410,7 +534,8 @@ export interface SampleOptions {
   readonly n?: number;
   /** The seed of the sample. The default is 1. */
   readonly seed?: number;
-  readonly draw?: DrawMode;
+  /** The draw of the configs. The default is `uniform`. With `stratified`, pair `i` takes the stratum `i` modulo the count of the strata. */
+  readonly draw?: SampleDraw;
   /** The largest count of the items of an input. The default is 1000. */
   readonly maxCount?: number;
   readonly knobs?: boolean;
@@ -426,6 +551,8 @@ export interface SampleOptions {
   readonly clock?: () => number;
   /** The space of the configs. The default is `packSpace`. A test gives a small space. */
   readonly space?: StrategySpace;
+  /** The largest count of the draws of an input for one pair. The default is `MAX_INPUT_TRIES`, 200. A test gives a smaller count. */
+  readonly maxInputTries?: number;
 }
 
 /** The summary of a sample, schema `packing-sample-space/1`. */
@@ -436,7 +563,7 @@ export interface SampleSummary {
   readonly requested: number;
   /** The count of the measured pairs. */
   readonly pairs: number;
-  readonly draw: DrawMode;
+  readonly draw: SampleDraw;
   readonly maxCount: number;
   readonly knobs: boolean;
   readonly repeats: number;
@@ -458,6 +585,11 @@ export interface SampleSummary {
   readonly errors: readonly { readonly pair: number; readonly input: string; readonly config: string; readonly message: string }[];
   /** `time` when `maxMinutes` stopped the sample before its last pair. */
   readonly stopped?: "time";
+  /**
+   * The strata of a stratified draw. `configs` is the exact count of the configs, as decimal text. `pairs` is the count of the measured pairs.
+   * `missed` is the count of the pairs without an input and config. The pairs of a closed stratum count as `missed`.
+   */
+  readonly strata?: Readonly<Record<string, { readonly configs: string; readonly pairs: number; readonly missed: number }>>;
 }
 
 /** This function adds one to a count of a record. */
@@ -488,7 +620,8 @@ function inputOf(draw: InputDraw, registry: ReturnType<typeof createFamilyRegist
  * 3. After 20 configs that go back, it draws a new input. Thus the draw is uniform over the configs that the input accepts.
  * 4. It packs the pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock, as `runBench` does.
  *
- * Another error goes into `errors`, and the sampler goes on.
+ * Another error goes into `errors`, and the sampler goes on. A stratified pair without an input and config is a miss of its stratum, not an error.
+ * After `MAX_STRATUM_MISSES` misses, the stratum closes: its later pairs draw nothing and count as missed.
  */
 export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; summary: SampleSummary } {
   const n = options.n ?? DEFAULT_PAIRS;
@@ -499,12 +632,18 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   const repeats = options.repeats ?? 1;
   const warmup = options.warmup ?? 0;
   const space = options.space ?? packSpace;
+  const maxInputTries = options.maxInputTries ?? MAX_INPUT_TRIES;
   const clock = options.clock ?? (() => performance.now());
   const prediction = options.prediction ?? "k112-whole-space";
   if (!Number.isInteger(n) || n < 0) throw new RangeError("The count of the pairs is a whole number of 0 or more.");
   if (!Number.isInteger(repeats) || repeats < 1) throw new RangeError("The repeats are a whole number of 1 or more.");
   if (!Number.isInteger(warmup) || warmup < 0) throw new RangeError("The warm-up runs are a whole number of 0 or more.");
+  if (!Number.isInteger(maxInputTries) || maxInputTries < 1) throw new RangeError("The input tries are a whole number of 1 or more.");
   const counts = spaceCounts(space);
+  const strata = draw === "stratified" ? strataOf(space, counts) : [];
+  if (draw === "stratified" && strata.length === 0) throw new RangeError("The space has no strata.");
+  const strataPairs: Record<string, number> = Object.fromEntries(strata.map((s) => [s.id, 0]));
+  const strataMissed: Record<string, number> = Object.fromEntries(strata.map((s) => [s.id, 0]));
   const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
   const start = Date.now();
   const records: SampleRecord[] = [];
@@ -528,8 +667,14 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
       break;
     }
     const r = stepRandom(seed, `pair-${pair}`);
+    const stratum = strata[pair % Math.max(1, strata.length)];
+    // A closed stratum draws nothing: each of its pairs is a miss.
+    if (stratum !== undefined && strataMissed[stratum.id]! >= MAX_STRATUM_MISSES) {
+      bump(strataMissed, stratum.id);
+      continue;
+    }
     let done = false;
-    for (let inputTry = 0; inputTry < MAX_INPUT_TRIES && !done; inputTry++) {
+    for (let inputTry = 0; inputTry < maxInputTries && !done; inputTry++) {
       const d = drawInput(r, corpusFamilies, { knobs });
       inputsDrawn++;
       const file = inputOf(d, registry, maxCount);
@@ -541,7 +686,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
       const input = toPackInput(file);
       const shapes = shapeKindsOf({ boxes: input.items });
       for (let configTry = 0; configTry < MAX_CONFIG_TRIES && !done; configTry++) {
-        const config = drawConfig(r, space, counts, draw);
+        const config = draw === "stratified" ? drawStratum(r, space, counts, stratum!) : drawConfig(r, space, counts, draw);
         configsDrawn++;
         const breaks = checkConfig(space, config, { shapes });
         if (breaks.length > 0) {
@@ -614,13 +759,15 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
           if (options.commit !== undefined) record.commit = options.commit;
           records.push(record);
           bump(composition, combineOf(canonical));
+          if (draw === "stratified") bump(strataPairs, stratumOf(space, canonical));
           bump(families, `${d.family}@${d.version}`);
         } catch (error) {
           errors.push({ pair, input: file.id, config: id, message: error instanceof Error ? error.message : String(error) });
         }
       }
     }
-    if (!done) errors.push({ pair, input: "-", config: "-", message: `The pair found no input and config after ${MAX_INPUT_TRIES} inputs.` });
+    if (!done && stratum !== undefined) bump(strataMissed, stratum.id);
+    else if (!done) errors.push({ pair, input: "-", config: "-", message: `The pair found no input and config after ${maxInputTries} inputs.` });
   }
 
   const summary: SampleSummary = {
@@ -642,6 +789,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     nondeterministic,
     errors,
     ...(stopped === undefined ? {} : { stopped }),
+    ...(draw === "stratified" ? { strata: Object.fromEntries(strata.map((s) => [s.id, { configs: s.configs.toString(), pairs: strataPairs[s.id] ?? 0, missed: strataMissed[s.id] ?? 0 }])) } : {}),
   };
   return { records, summary };
 }
@@ -702,8 +850,10 @@ function commitOf(argv: readonly string[]): string | undefined {
 
 /** This function gives the options of `sampleSpace` from the command line. It throws an `Error` for a bad value. */
 export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOptions {
-  const draw = optionOf(argv, "--draw") ?? "uniform";
-  if (draw !== "uniform" && draw !== "option") throw new Error(`The option --draw is uniform or option, not ${draw}.`);
+  const stratify = argv.includes("--stratify");
+  const draw = optionOf(argv, "--draw") ?? (stratify ? "stratified" : "uniform");
+  if (draw !== "uniform" && draw !== "option" && draw !== "stratified") throw new Error(`The option --draw is uniform, option or stratified, not ${draw}.`);
+  if (stratify && draw !== "stratified") throw new Error(`The option --stratify does not go with --draw ${draw}.`);
   const minutes = optionOf(argv, "--max-minutes");
   if (minutes !== undefined && !(Number(minutes) > 0)) throw new Error(`The option --max-minutes is a number above 0, not ${minutes}.`);
   const prediction = optionOf(argv, "--prediction");
@@ -741,6 +891,7 @@ export function sampleMain(argv: readonly string[]): number {
       `Inputs: ${summary.inputs.rejected} of ${summary.inputs.drawn} went back. Hard breaks: ${summary.hard.pairs} pairs. Not deterministic: ${summary.nondeterministic}. ` +
       `Errors: ${summary.errors.length}. Combine: ${parts}.${summary.stopped === "time" ? " The time limit stopped the sample." : ""}`,
   );
+  if (summary.strata !== undefined) console.log(`Strata: ${Object.entries(summary.strata).map(([id, s]) => `${id} ${s.pairs}${s.missed > 0 ? ` (${s.missed} missed)` : ""}`).join(", ")}.`);
   return summary.errors.length > 0 ? 1 : 0;
 }
 

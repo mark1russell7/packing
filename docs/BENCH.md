@@ -944,7 +944,8 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 - The cell of a gap snapshot is the family up to its container size, for example `perfect-cut.guillotine.fixed`. A record without a finite value counts as missing.
 - The commits of the two gap runs come after the tag `v0.2.17`. Thus `--release 0.2.17` gives the release of their packers.
 - After a new release, start the command `releases` again. After a new bench run, start the command of its corpus again.
-- The command `coverage` keeps the earlier points of `coverage.json`. A point with the same date and corpus replaces the earlier point.
+- The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
+- The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
 
 ## The space coverage
 
@@ -1068,6 +1069,66 @@ Why the two numbers differ:
 
 The job `merge` of `bench.yml` starts the sampler with the input `sample` (400). The value 0 turns it off. The sampler stops after 25 minutes with the pairs that it has.
 
+### The strata
+
+A uniform draw gives almost only portfolios with 5 members. Thus its share tells little about the other families (k115).
+A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `bench/sample-space.ts` make the strata from the config.
+
+- A base config has the family of its option of the stage `placement`, and the size 1. The 7 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push` and `hole-degree`.
+- A meta option of the stage `combine` is its own family. Its size is its count of members.
+- `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
+- `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
+- `select` has 2 members. `aspect-fit`, `restarts`, `bbox` and `ruin-recreate` have 1 member. Each one is one stratum. The family of their member does not count.
+- Thus `packSpace` has 19 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- A new option of `placement` or `combine` gives new strata.
+
+```sh
+node bench/sample-space.ts --out <folder>/sample --n 400 --seed 1 --stratify
+```
+
+The stratified draw:
+
+1. Pair `i` takes the stratum `i` modulo 19. Thus the counts of the strata differ by 1 or less, also after the time limit.
+2. The config is uniform over the configs of its stratum. The draw of the input and the rejections stay as in the uniform draw.
+3. A rejected config goes back, and the script draws a new config of the same stratum.
+4. The same seed gives the same pairs. `--draw stratified` is the same as `--stratify`. The default draw stays `uniform`.
+5. A pair tries 200 inputs and 20 configs for each input. A pair that finds no input and config is a miss of its stratum, not an error.
+6. One miss closes the stratum (`MAX_STRATUM_MISSES` is 1). The later pairs of a closed stratum draw nothing and count as missed.
+
+The cap keeps the cost of a stratum that no sampled input accepts to 200 inputs and 4000 configs.
+For example, `hole-degree` packs only circles, and no corpus family gives circles. Thus `hole-degree:1` gets no pairs.
+A stratum that some inputs accept gets a miss only when 200 inputs in a sequence refuse it.
+
+`sample.json` of a stratified sample has `draw: "stratified"` and the field `strata`.
+Each stratum has the exact count of the configs (`configs`), the measured pairs (`pairs`) and the missed pairs (`missed`).
+
+The script `coverage.ts --sample` adds the section `strata` next to the section `sampled`. The section `sampled` does not change.
+
+- `stratumOf` gives the stratum of each pair from its config. Thus a uniform sample also gets strata, but most of them have few pairs.
+- Each stratum gets its hits, its share and its Wilson 95% interval, with the errors of the section `sampled`.
+- A stratum without pairs has the share `null` and the interval `null`, not 0. It is not in the mean.
+- With the strata of `sample.json`, each stratum of the section also has its `configs` and its `missed` pairs.
+- With the strata of `sample.json`, the section has only those strata. A stratum that the code added after the run gets no row.
+- For example, the CI run `40805165103` came before `ruin-recreate:1` of k79. Thus its section has 18 strata.
+- `equal` is the mean of the shares of the strata with pairs. Each stratum has the weight `1/k`.
+
+The interval of the mean:
+
+- For the variance, each stratum gets the adjusted share `p = (hits + z²/2) / (n + z²)` of Agresti and Coull, with `z` 1.96.
+- The variance of the mean is the sum of `p (1 - p) / (n + z²)` over the strata, divided by `k²`. The standard error `se` is its square root.
+- The interval is the mean of the shares (`equal.share`), plus and minus `z` standard errors, from 0 to 1. Thus `low <= share <= high` always.
+- The adjustment gives a variance above 0 to a share of 0 or 1. It does not move the center of the interval.
+- Before the fix of k115, the center was the mean of the adjusted shares. Each stratum added approximately `1.92 / (n + 3.84)` to it.
+- Thus with 22 pairs for each stratum, the old interval of a small share started above the share.
+- 400 pairs give 21 or 22 pairs for each stratum. The half width of the mean is then approximately 0.05 or less.
+
+Why the two numbers differ:
+
+- The uniform number weights each config the same. Thus it is approximately the share of `portfolio:5`.
+- The mean over the strata weights each family and size the same. A low mean with a high uniform number tells that the grid misses the small families.
+
+The input `stratify` of `bench.yml` (default `false`) adds `--stratify` to the sampler.
+
 ### The site
 
 The section `#coverage` of the results page reads `packages/site/data/coverage.json`. The command `snapshot.ts coverage` computes the coverage two times.
@@ -1076,4 +1137,10 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The small numbers "by input" come from the folds by input.
 - Each tile shows the number "bench grid" and the number "whole space (sampled)" with its 95% interval.
 - The command `snapshot.ts coverage` reads the folder `sample` of the run, or `--sample <dir>`. Without a sample, the tile shows "not measured yet".
+- The number "whole space (sampled)" always comes from the last uniform sample. The note under the tiles gives its run and its date.
+- With strata, each tile also shows the number "equal weight over strata" with its 95% interval, under the uniform number.
+- A stratified sample also gives the number "pooled over strata": the share of all its pairs. It is not a uniform share.
+- The chart "The whole space by stratum" shows the share of each stratum of the selected measure, with its interval and the mean.
+- A stratum without pairs shows "no pairs" and its count of configs, and no share. It is not in the mean.
+- An old snapshot without strata stays readable. The chart then shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.

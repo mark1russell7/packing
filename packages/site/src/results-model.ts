@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { CoverageMeasure, CoveragePoint, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { CoverageMeasure, CoveragePoint, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
@@ -171,6 +171,97 @@ export const errorText = (m: Pick<CoverageMeasure, "scale">, error: number): str
 /** The labels of the two numbers of each measure of the coverage */
 export const COVERAGE_SCOPES = { grid: "bench grid", space: "whole space (sampled)" } as const;
 
+/** The label of the mean over the strata of k115 */
+export const COVERAGE_STRATA_SCOPE = "equal weight over strata";
+
+/** The label of the share of all the pairs of a stratified sample. It is not a uniform share. */
+export const COVERAGE_POOLED_SCOPE = "pooled over strata";
+
+/** The numbers of the whole space of one measure: the last uniform sample, and the pooled share of a stratified sample */
+export interface CoverageSpace {
+  /** The result of the last sample with a uniform draw, or `undefined` without one */
+  uniform?: CoverageSampled;
+  /** The result of all the pairs of the latest sample when its draw is stratified, or `undefined` */
+  pooled?: CoverageSampled;
+}
+
+/**
+ * This function gives the numbers of the whole space of a measure. The `uniform` section of the snapshot gives the uniform result.
+ * A snapshot without it gives `sampled` of the measure, but only for a uniform draw. A stratified draw gives the pooled share.
+ */
+export function spaceOf(latest: Pick<CoverageSnapshot["latest"], "sampled" | "uniform">, m: Pick<CoverageMeasure, "id" | "sampled">): CoverageSpace {
+  const stratified = latest.sampled?.draw === "stratified";
+  const uniform = latest.uniform === undefined ? (stratified ? undefined : m.sampled) : latest.uniform.measures[m.id];
+  return { ...(uniform === undefined ? {} : { uniform }), ...(stratified && m.sampled !== undefined ? { pooled: m.sampled } : {}) };
+}
+
+/**
+ * This function gives the name of a stratum `<family>:<size>`. The size 1 gives only the family.
+ * The size `cell` gives "members from the cell", and another size gives its count of members.
+ */
+export function stratumLabel(id: string): string {
+  const at = id.lastIndexOf(":");
+  if (at < 0) return id;
+  const family = id.slice(0, at);
+  const size = id.slice(at + 1);
+  if (size === "1") return family;
+  if (size === "cell") return `${family}, members from the cell`;
+  return `${family}, ${size} members`;
+}
+
+/** The text of the mean over the strata of one measure: the share, its interval and the count of the strata */
+export interface StrataText {
+  share: string;
+  interval: string;
+  strata: string;
+}
+
+/** This function gives the text of the mean over the strata of a measure, or `null` when the measure has no strata. */
+export function strataText(m: Pick<CoverageMeasure, "strata">): StrataText | null {
+  const s = m.strata;
+  if (s === undefined) return null;
+  return { share: percentText(s.share), interval: `${percentText(s.low)} to ${percentText(s.high)}`, strata: `${s.strata} ${s.strata === 1 ? "stratum" : "strata"}` };
+}
+
+/** This function gives a whole number in decimal text with a comma for each 3 digits, for example `1,234`. */
+export const countText = (n: string): string => n.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+/**
+ * This function gives the HTML of the rows of the strata chart of one measure. Each row shows the share of a stratum and its 95% interval.
+ * The line in each bar is the mean over the strata. A stratum without pairs shows "no pairs" and no share.
+ * With the strata of a stratified sample, a stratum without pairs also shows its count of configs.
+ */
+export function strataRows(m: Pick<CoverageMeasure, "strata">, facts: readonly CoverageStratumPairs[] = []): string {
+  const s = m.strata;
+  if (s === undefined) return "";
+  const pct = (v: number): number => Math.round(Math.max(0, Math.min(1, v)) * 1000) / 10;
+  return s.rows
+    .map((x: CoverageStratum) => {
+      const name = stratumLabel(x.stratum);
+      const fact = facts.find((f) => f.id === x.stratum);
+      const configs = fact?.configs === undefined ? "" : `${countText(fact.configs)} ${fact.configs === "1" ? "config" : "configs"}`;
+      const unrun = fact !== undefined && fact.pairs === 0 && (fact.missed ?? 0) > 0;
+      const share = x.share ?? 0;
+      const low = x.low ?? 0;
+      const high = x.high ?? 0;
+      const value = x.n === 0 ? `no pairs${configs === "" ? "" : ` <small>(${configs})</small>`}` : `${percentText(share)} <small>(${x.hits} of ${x.n})</small>`;
+      const title =
+        x.n === 0
+          ? `${name}: no pairs${configs === "" ? "" : `, ${configs}`}.${unrun ? " No sampled input accepts this stratum." : ""} It is not in the mean.`
+          : `${name}: ${x.hits} of ${x.n} pairs, 95% interval ${percentText(low)} to ${percentText(high)}`;
+      const bar =
+        x.n === 0
+          ? `<span class="smean" style="left:${pct(s.share)}%"></span>`
+          : `<span class="srange" style="left:${pct(low)}%;width:${pct(high - low)}%"></span><span class="smean" style="left:${pct(s.share)}%"></span><span class="sdot" style="left:${pct(share)}%"></span>`;
+      return `<li class="irow srow${x.n === 0 ? " empty" : ""}" title="${esc(title)}">
+        <span class="iname"><code>${esc(name)}</code></span>
+        <span class="ibar sbar" aria-hidden="true">${bar}</span>
+        <span class="ival">${value}</span>
+      </li>`;
+    })
+    .join("");
+}
+
 /** The text of the number of the whole space of one measure: the share, its interval and the pairs, or a note */
 export interface SampledText {
   share: string;
@@ -189,17 +280,29 @@ export function sampledText(m: Pick<CoverageMeasure, "sampled">): SampledText {
 
 /**
  * This function gives the HTML of the tile of one measure of the coverage. The tile shows the share of the bench grid.
- * Under it, the tile shows the share of the whole space with its interval, or `not measured yet`.
+ * Under it, the tile shows the uniform share of the whole space with its interval, or `not measured yet`.
+ * The optional `space` gives the uniform share and the pooled share. Without it, the tile uses `sampled` of the measure.
  */
-export function coverageTile(m: CoverageMeasure, label: string): string {
-  const s = sampledText(m);
-  const low = m.sampled?.low ?? 0;
-  const high = m.sampled?.high ?? 0;
-  const space =
+export function coverageTile(m: CoverageMeasure, label: string, space: CoverageSpace = m.sampled === undefined ? {} : { uniform: m.sampled }): string {
+  const s = sampledText(space.uniform === undefined ? {} : { sampled: space.uniform });
+  const low = space.uniform?.low ?? 0;
+  const high = space.uniform?.high ?? 0;
+  const spaceHtml =
     s.interval === null
       ? `<b class="none">${esc(s.share)}</b>`
       : `<b>${esc(s.share)} <small class="alt">95% interval ${esc(s.interval)}, ${esc(s.pairs ?? "")}</small></b>
         <span class="cmeter space" aria-hidden="true"><i style="width:${low * 100}%"></i><i class="range" style="width:${(high - low) * 100}%"></i></span>`;
+  const t = strataText(m);
+  const strata =
+    t === null
+      ? ""
+      : `
+        <small class="cscope">${COVERAGE_STRATA_SCOPE}</small>
+        <b>${esc(t.share)} <small class="alt">95% interval ${esc(t.interval)}, ${esc(t.strata)}</small></b>
+        <span class="cmeter space" aria-hidden="true"><i style="width:${m.strata!.low * 100}%"></i><i class="range" style="width:${(m.strata!.high - m.strata!.low) * 100}%"></i></span>`;
+  const p = space.pooled;
+  const pooled = p === undefined ? "" : `
+        <small class="alt">${COVERAGE_POOLED_SCOPE} ${percentText(p.share)}, ${p.hits} of ${p.n} pairs</small>`;
   return `<div class="tile cover">
         <span>${esc(label)}</span>
         <small class="cscope">${COVERAGE_SCOPES.grid}</small>
@@ -207,7 +310,7 @@ export function coverageTile(m: CoverageMeasure, label: string): string {
         <span class="cmeter" aria-hidden="true"><i style="width:${m.share * 100}%"></i></span>
         <small>${m.cells.covered} of ${m.cells.space} cells within ${esc(errorText(m, m.tolerance))}</small>
         <small class="cscope">${COVERAGE_SCOPES.space}</small>
-        ${space}
+        ${spaceHtml}${strata}${pooled}
       </div>`;
 }
 

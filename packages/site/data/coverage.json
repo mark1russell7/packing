@@ -4,17 +4,17 @@
  "origin": [
   {
    "release": "0.2.17",
-   "commit": "18a4576",
+   "commit": "e939842",
    "date": "2026-10-28",
-   "run": 40795429100,
+   "run": 40805165103,
    "source": "bench.yml, the artifact bench-pack-classes-v1, and bench/coverage.ts"
   }
  ],
  "latest": {
   "date": "2026-10-29",
-  "run": 40795429100,
+  "run": 40805165103,
   "corpus": "pack-classes-v1",
-  "records": 13500,
+  "records": 14500,
   "inputs": 500,
   "strategies": [
    "aspect-fit-maxrects-bl",
@@ -22,6 +22,8 @@
    "aspect-fit-portfolio-k2",
    "bbox-maxrects-bl",
    "bbox-skyline",
+   "guillotine-baf-sas",
+   "guillotine-bssf-sas-merge",
    "maxrects-baf",
    "maxrects-bl",
    "maxrects-blsf",
@@ -58,63 +60,1030 @@
     "id": "pack.fill",
     "scale": "linear",
     "tolerance": 0.02,
-    "n": 13500,
-    "mae": 0.0374,
-    "baselineMae": 0.0741,
+    "n": 14500,
+    "mae": 0.0371,
+    "baselineMae": 0.0731,
     "medianAe": 0.023,
-    "baselineMedianAe": 0.061,
-    "skill": 0.4953,
-    "share": 0.3626,
-    "shareOfMeasured": 0.3626,
+    "baselineMedianAe": 0.06,
+    "skill": 0.4925,
+    "share": 0.3617,
+    "shareOfMeasured": 0.3617,
     "cells": {
-     "space": 2700,
-     "withRecords": 2700,
-     "covered": 979
+     "space": 2900,
+     "withRecords": 2900,
+     "covered": 1049
     },
     "explained": {
-     "strategy": 0.158,
-     "input": 0.457,
-     "joint": 0.8874
+     "strategy": 0.1526,
+     "input": 0.4622,
+     "joint": 0.8869
     },
-    "noise": 0.1126,
+    "noise": 0.1131,
     "indices": [
      {
       "feature": "containerSize",
       "group": "input",
-      "index": 0.2996
+      "index": 0.2865
      },
      {
       "feature": "stage.placement",
       "group": "strategy",
-      "index": 0.0641
-     },
-     {
-      "feature": "placement.skyline.rule",
-      "group": "strategy",
-      "index": 0.0607
-     },
-     {
-      "feature": "stage.combine",
-      "group": "strategy",
-      "index": 0.0547
+      "index": 0.0631
      },
      {
       "feature": "count",
       "group": "input",
-      "index": 0.0527
+      "index": 0.0594
+     },
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.0594
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.0454
+     },
+     {
+      "feature": "class",
+      "group": "input",
+      "index": 0.0453
+     }
+    ],
+    "byInput": {
+     "mae": 0.0278,
+     "medianAe": 0.019,
+     "share": 0.4528
+    },
+    "sampled": {
+     "n": 378,
+     "hits": 15,
+     "share": 0.0397,
+     "low": 0.0242,
+     "high": 0.0644,
+     "mae": 0.5328,
+     "medianAe": 0.59,
+     "baselineMae": 0.543,
+     "baselineMedianAe": 0.609
+    },
+    "strata": {
+     "share": 0.0395,
+     "low": 0.0109,
+     "high": 0.0681,
+     "strata": 17,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 23,
+       "hits": 2,
+       "share": 0.087,
+       "low": 0.0242,
+       "high": 0.268
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 23,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1431
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 23,
+       "hits": 2,
+       "share": 0.087,
+       "low": 0.0242,
+       "high": 0.268
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 23,
+       "hits": 1,
+       "share": 0.0435,
+       "low": 0.0077,
+       "high": 0.2099
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 22,
+       "hits": 1,
+       "share": 0.0455,
+       "low": 0.0081,
+       "high": 0.218
+      },
+      {
+       "stratum": "push:1",
+       "n": 22,
+       "hits": 1,
+       "share": 0.0455,
+       "low": 0.0081,
+       "high": 0.218
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 22,
+       "hits": 3,
+       "share": 0.1364,
+       "low": 0.0475,
+       "high": 0.3333
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 22,
+       "hits": 1,
+       "share": 0.0455,
+       "low": 0.0081,
+       "high": 0.218
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 22,
+       "hits": 3,
+       "share": 0.1364,
+       "low": 0.0475,
+       "high": 0.3333
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "select:2",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 22,
+       "hits": 1,
+       "share": 0.0455,
+       "low": 0.0081,
+       "high": 0.218
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      }
+     ]
+    }
+   },
+   {
+    "id": "pack.gap",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 14500,
+    "mae": 0.0555,
+    "baselineMae": 0.0896,
+    "medianAe": 0.028,
+    "baselineMedianAe": 0.049,
+    "skill": 0.3806,
+    "share": 0.2952,
+    "shareOfMeasured": 0.2952,
+    "cells": {
+     "space": 2900,
+     "withRecords": 2900,
+     "covered": 856
+    },
+    "explained": {
+     "strategy": 0.1698,
+     "input": 0.1995,
+     "joint": 0.8131
+    },
+    "noise": 0.1869,
+    "indices": [
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.0603
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0563
+     },
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.0562
      },
      {
       "feature": "placement.maxrects.rule",
       "group": "strategy",
-      "index": 0.0471
+      "index": 0.0505
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.0401
+     },
+     {
+      "feature": "placement.shelf.fit",
+      "group": "strategy",
+      "index": 0.0374
      }
     ],
     "byInput": {
-     "mae": 0.0287,
-     "medianAe": 0.019,
-     "share": 0.44
+     "mae": 0.0484,
+     "medianAe": 0.025,
+     "share": 0.3234
     },
     "sampled": {
+     "n": 335,
+     "hits": 6,
+     "share": 0.0179,
+     "low": 0.0082,
+     "high": 0.0385,
+     "mae": 25.516,
+     "medianAe": 1.1005,
+     "baselineMae": 25.5224,
+     "baselineMedianAe": 1.102
+    },
+    "strata": {
+     "share": 0.0192,
+     "low": 0,
+     "high": 0.0484,
+     "strata": 17,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 21,
+       "hits": 1,
+       "share": 0.0476,
+       "low": 0.0085,
+       "high": 0.2267
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 20,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1611
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 23,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1431
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 21,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1546
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 20,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1611
+      },
+      {
+       "stratum": "push:1",
+       "n": 20,
+       "hits": 1,
+       "share": 0.05,
+       "low": 0.0089,
+       "high": 0.2361
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 17,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1843
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 17,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1843
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 17,
+       "hits": 1,
+       "share": 0.0588,
+       "low": 0.0105,
+       "high": 0.2698
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 20,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1611
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 20,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1611
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 20,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1611
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 17,
+       "hits": 2,
+       "share": 0.1176,
+       "low": 0.0329,
+       "high": 0.3434
+      },
+      {
+       "stratum": "select:2",
+       "n": 21,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1546
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 19,
+       "hits": 1,
+       "share": 0.0526,
+       "low": 0.0094,
+       "high": 0.2464
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 20,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1611
+      }
+     ]
+    }
+   },
+   {
+    "id": "pack.overflow.excessArea",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 14500,
+    "mae": 0.0073,
+    "baselineMae": 0.0079,
+    "medianAe": 0,
+    "baselineMedianAe": 0,
+    "skill": 0.0759,
+    "share": 0.8693,
+    "shareOfMeasured": 0.8693,
+    "cells": {
+     "space": 2900,
+     "withRecords": 2900,
+     "covered": 2521
+    },
+    "explained": {
+     "strategy": 0.0296,
+     "input": 0.7329,
+     "joint": 0.8887
+    },
+    "noise": 0.1113,
+    "indices": [
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.1507
+     },
+     {
+      "feature": "class",
+      "group": "input",
+      "index": 0.0794
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.0521
+     },
+     {
+      "feature": "placement.shelf.fit",
+      "group": "strategy",
+      "index": 0.0209
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0174
+     },
+     {
+      "feature": "stage.order",
+      "group": "strategy",
+      "index": 0.0135
+     }
+    ],
+    "byInput": {
+     "mae": 0.003,
+     "medianAe": 0,
+     "share": 0.9641
+    },
+    "sampled": {
+     "n": 378,
+     "hits": 205,
+     "share": 0.5423,
+     "low": 0.4919,
+     "high": 0.5919,
+     "mae": 0.303,
+     "medianAe": 0,
+     "baselineMae": 0.3048,
+     "baselineMedianAe": 0
+    },
+    "strata": {
+     "share": 0.5427,
+     "low": 0.4968,
+     "high": 0.5886,
+     "strata": 17,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 23,
+       "hits": 11,
+       "share": 0.4783,
+       "low": 0.2924,
+       "high": 0.6704
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 23,
+       "hits": 13,
+       "share": 0.5652,
+       "low": 0.3681,
+       "high": 0.7437
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 23,
+       "hits": 13,
+       "share": 0.5652,
+       "low": 0.3681,
+       "high": 0.7437
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 23,
+       "hits": 10,
+       "share": 0.4348,
+       "low": 0.2563,
+       "high": 0.6319
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 22,
+       "hits": 9,
+       "share": 0.4091,
+       "low": 0.2326,
+       "high": 0.6127
+      },
+      {
+       "stratum": "push:1",
+       "n": 22,
+       "hits": 9,
+       "share": 0.4091,
+       "low": 0.2326,
+       "high": 0.6127
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 22,
+       "hits": 9,
+       "share": 0.4091,
+       "low": 0.2326,
+       "high": 0.6127
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 22,
+       "hits": 11,
+       "share": 0.5,
+       "low": 0.3072,
+       "high": 0.6928
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 22,
+       "hits": 14,
+       "share": 0.6364,
+       "low": 0.4295,
+       "high": 0.8027
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 22,
+       "hits": 14,
+       "share": 0.6364,
+       "low": 0.4295,
+       "high": 0.8027
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 22,
+       "hits": 11,
+       "share": 0.5,
+       "low": 0.3072,
+       "high": 0.6928
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 22,
+       "hits": 14,
+       "share": 0.6364,
+       "low": 0.4295,
+       "high": 0.8027
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 22,
+       "hits": 14,
+       "share": 0.6364,
+       "low": 0.4295,
+       "high": 0.8027
+      },
+      {
+       "stratum": "select:2",
+       "n": 22,
+       "hits": 13,
+       "share": 0.5909,
+       "low": 0.3873,
+       "high": 0.7674
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 22,
+       "hits": 12,
+       "share": 0.5455,
+       "low": 0.3466,
+       "high": 0.7308
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 22,
+       "hits": 15,
+       "share": 0.6818,
+       "low": 0.4732,
+       "high": 0.8364
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 22,
+       "hits": 13,
+       "share": 0.5909,
+       "low": 0.3873,
+       "high": 0.7674
+      }
+     ]
+    }
+   },
+   {
+    "id": "ms",
+    "scale": "log",
+    "tolerance": 0.15,
+    "n": 14500,
+    "mae": 0.1701,
+    "baselineMae": 0.4756,
+    "medianAe": 0.12,
+    "baselineMedianAe": 0.3757,
+    "skill": 0.6423,
+    "share": 0.5459,
+    "shareOfMeasured": 0.5459,
+    "cells": {
+     "space": 2900,
+     "withRecords": 2900,
+     "covered": 1583
+    },
+    "explained": {
+     "strategy": 0.6634,
+     "input": 0.209,
+     "joint": 0.9645
+    },
+    "noise": 0.0355,
+    "indices": [
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.5881
+     },
+     {
+      "feature": "combine.restarts.perturb",
+      "group": "strategy",
+      "index": 0.4565
+     },
+     {
+      "feature": "combine.restarts.iterations",
+      "group": "strategy",
+      "index": 0.4557
+     },
+     {
+      "feature": "combine.restarts.key",
+      "group": "strategy",
+      "index": 0.4557
+     },
+     {
+      "feature": "combine.restarts.limitTime",
+      "group": "strategy",
+      "index": 0.4557
+     },
+     {
+      "feature": "combine.restarts.limitWork",
+      "group": "strategy",
+      "index": 0.4557
+     }
+    ],
+    "byInput": {
+     "mae": 0.14,
+     "medianAe": 0.0918,
+     "share": 0.6238
+    },
+    "sampled": {
+     "n": 378,
+     "hits": 40,
+     "share": 0.1058,
+     "low": 0.0787,
+     "high": 0.1409,
+     "mae": 1.0593,
+     "medianAe": 0.822,
+     "baselineMae": 1.0482,
+     "baselineMedianAe": 0.852
+    },
+    "strata": {
+     "share": 0.1053,
+     "low": 0.0723,
+     "high": 0.1384,
+     "strata": 17,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 23,
+       "hits": 4,
+       "share": 0.1739,
+       "low": 0.0698,
+       "high": 0.3714
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 23,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1431
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 23,
+       "hits": 6,
+       "share": 0.2609,
+       "low": 0.1255,
+       "high": 0.4647
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 23,
+       "hits": 4,
+       "share": 0.1739,
+       "low": 0.0698,
+       "high": 0.3714
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 22,
+       "hits": 6,
+       "share": 0.2727,
+       "low": 0.1315,
+       "high": 0.4815
+      },
+      {
+       "stratum": "push:1",
+       "n": 22,
+       "hits": 9,
+       "share": 0.4091,
+       "low": 0.2326,
+       "high": 0.6127
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 22,
+       "hits": 2,
+       "share": 0.0909,
+       "low": 0.0253,
+       "high": 0.2781
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 22,
+       "hits": 1,
+       "share": 0.0455,
+       "low": 0.0081,
+       "high": 0.218
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "select:2",
+       "n": 22,
+       "hits": 1,
+       "share": 0.0455,
+       "low": 0.0081,
+       "high": 0.218
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 22,
+       "hits": 4,
+       "share": 0.1818,
+       "low": 0.0731,
+       "high": 0.3852
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 22,
+       "hits": 0,
+       "share": 0,
+       "low": 0,
+       "high": 0.1487
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 22,
+       "hits": 3,
+       "share": 0.1364,
+       "low": 0.0475,
+       "high": 0.3333
+      }
+     ]
+    }
+   }
+  ],
+  "sampled": {
+   "pairs": 378,
+   "seed": 1,
+   "draw": "stratified",
+   "configRejectionRate": 0.8949,
+   "hardPairs": 1
+  },
+  "strata": {
+   "pairs": 378,
+   "draw": "stratified",
+   "strata": [
+    {
+     "id": "rows:1",
+     "pairs": 23,
+     "configs": "905",
+     "missed": 0
+    },
+    {
+     "id": "skyline:1",
+     "pairs": 23,
+     "configs": "7240",
+     "missed": 0
+    },
+    {
+     "id": "shelf:1",
+     "pairs": 23,
+     "configs": "3620",
+     "missed": 0
+    },
+    {
+     "id": "maxrects:1",
+     "pairs": 23,
+     "configs": "18100",
+     "missed": 0
+    },
+    {
+     "id": "guillotine:1",
+     "pairs": 22,
+     "configs": "130320",
+     "missed": 0
+    },
+    {
+     "id": "push:1",
+     "pairs": 22,
+     "configs": "320",
+     "missed": 0
+    },
+    {
+     "id": "hole-degree:1",
+     "pairs": 0,
+     "configs": "33",
+     "missed": 22
+    },
+    {
+     "id": "portfolio:2",
+     "pairs": 22,
+     "configs": "9278024006160",
+     "missed": 0
+    },
+    {
+     "id": "portfolio:3",
+     "pairs": 22,
+     "configs": "1489456861852901760",
+     "missed": 0
+    },
+    {
+     "id": "portfolio:4",
+     "pairs": 22,
+     "configs": "239109957317555584041600",
+     "missed": 0
+    },
+    {
+     "id": "portfolio:5",
+     "pairs": 22,
+     "configs": "38385277888016468128534214400",
+     "missed": 0
+    },
+    {
+     "id": "cell-portfolio:cell",
+     "pairs": 22,
+     "configs": "360",
+     "missed": 0
+    },
+    {
+     "id": "cell-portfolio:2",
+     "pairs": 22,
+     "configs": "360",
+     "missed": 0
+    },
+    {
+     "id": "cell-portfolio:3",
+     "pairs": 22,
+     "configs": "360",
+     "missed": 0
+    },
+    {
+     "id": "select:2",
+     "pairs": 22,
+     "configs": "25772288906",
+     "missed": 0
+    },
+    {
+     "id": "aspect-fit:1",
+     "pairs": 22,
+     "configs": "321076",
+     "missed": 0
+    },
+    {
+     "id": "restarts:1",
+     "pairs": 22,
+     "configs": "2465863680",
+     "missed": 0
+    },
+    {
+     "id": "bbox:1",
+     "pairs": 22,
+     "configs": "321076",
+     "missed": 0
+    }
+   ]
+  },
+  "uniform": {
+   "date": "2026-10-29",
+   "run": 40795429100,
+   "commit": "18a4576",
+   "pairs": 400,
+   "seed": 1,
+   "configRejectionRate": 0,
+   "hardPairs": 3,
+   "measures": {
+    "pack.fill": {
      "n": 400,
      "hits": 17,
      "share": 0.0425,
@@ -124,69 +1093,8 @@
      "medianAe": 0.5525,
      "baselineMae": 0.517,
      "baselineMedianAe": 0.5785
-    }
-   },
-   {
-    "id": "pack.gap",
-    "scale": "linear",
-    "tolerance": 0.02,
-    "n": 13500,
-    "mae": 0.0569,
-    "baselineMae": 0.0923,
-    "medianAe": 0.028,
-    "baselineMedianAe": 0.05,
-    "skill": 0.3835,
-    "share": 0.29,
-    "shareOfMeasured": 0.29,
-    "cells": {
-     "space": 2700,
-     "withRecords": 2700,
-     "covered": 783
     },
-    "explained": {
-     "strategy": 0.1693,
-     "input": 0.1994,
-     "joint": 0.8147
-    },
-    "noise": 0.1853,
-    "indices": [
-     {
-      "feature": "containerSize",
-      "group": "input",
-      "index": 0.0601
-     },
-     {
-      "feature": "placement.skyline.rule",
-      "group": "strategy",
-      "index": 0.0594
-     },
-     {
-      "feature": "stage.placement",
-      "group": "strategy",
-      "index": 0.0537
-     },
-     {
-      "feature": "placement.maxrects.rule",
-      "group": "strategy",
-      "index": 0.0534
-     },
-     {
-      "feature": "stage.combine",
-      "group": "strategy",
-      "index": 0.049
-     },
-     {
-      "feature": "placement.shelf.fit",
-      "group": "strategy",
-      "index": 0.0366
-     }
-    ],
-    "byInput": {
-     "mae": 0.0489,
-     "medianAe": 0.024,
-     "share": 0.3415
-    },
-    "sampled": {
+    "pack.gap": {
      "n": 352,
      "hits": 4,
      "share": 0.0114,
@@ -196,69 +1104,8 @@
      "medianAe": 0.7508,
      "baselineMae": 28.2253,
      "baselineMedianAe": 0.762
-    }
-   },
-   {
-    "id": "pack.overflow.excessArea",
-    "scale": "linear",
-    "tolerance": 0.02,
-    "n": 13500,
-    "mae": 0.0073,
-    "baselineMae": 0.0079,
-    "medianAe": 0,
-    "baselineMedianAe": 0,
-    "skill": 0.0759,
-    "share": 0.8689,
-    "shareOfMeasured": 0.8689,
-    "cells": {
-     "space": 2700,
-     "withRecords": 2700,
-     "covered": 2346
     },
-    "explained": {
-     "strategy": 0.0318,
-     "input": 0.7282,
-     "joint": 0.893
-    },
-    "noise": 0.107,
-    "indices": [
-     {
-      "feature": "containerSize",
-      "group": "input",
-      "index": 0.1512
-     },
-     {
-      "feature": "class",
-      "group": "input",
-      "index": 0.0796
-     },
-     {
-      "feature": "count",
-      "group": "input",
-      "index": 0.0515
-     },
-     {
-      "feature": "placement.shelf.fit",
-      "group": "strategy",
-      "index": 0.0227
-     },
-     {
-      "feature": "stage.placement",
-      "group": "strategy",
-      "index": 0.0187
-     },
-     {
-      "feature": "stage.order",
-      "group": "strategy",
-      "index": 0.0145
-     }
-    ],
-    "byInput": {
-     "mae": 0.0029,
-     "medianAe": 0,
-     "share": 0.9637
-    },
-    "sampled": {
+    "pack.overflow.excessArea": {
      "n": 400,
      "hits": 220,
      "share": 0.55,
@@ -268,69 +1115,8 @@
      "medianAe": 0,
      "baselineMae": 0.3022,
      "baselineMedianAe": 0
-    }
-   },
-   {
-    "id": "ms",
-    "scale": "log",
-    "tolerance": 0.15,
-    "n": 13500,
-    "mae": 0.1614,
-    "baselineMae": 0.4758,
-    "medianAe": 0.1107,
-    "baselineMedianAe": 0.3829,
-    "skill": 0.6608,
-    "share": 0.5822,
-    "shareOfMeasured": 0.5822,
-    "cells": {
-     "space": 2700,
-     "withRecords": 2700,
-     "covered": 1572
     },
-    "explained": {
-     "strategy": 0.6639,
-     "input": 0.2054,
-     "joint": 0.9643
-    },
-    "noise": 0.0357,
-    "indices": [
-     {
-      "feature": "stage.combine",
-      "group": "strategy",
-      "index": 0.5968
-     },
-     {
-      "feature": "combine.restarts.perturb",
-      "group": "strategy",
-      "index": 0.449
-     },
-     {
-      "feature": "combine.restarts.iterations",
-      "group": "strategy",
-      "index": 0.4476
-     },
-     {
-      "feature": "combine.restarts.key",
-      "group": "strategy",
-      "index": 0.4476
-     },
-     {
-      "feature": "combine.restarts.limitTime",
-      "group": "strategy",
-      "index": 0.4476
-     },
-     {
-      "feature": "combine.restarts.strength",
-      "group": "strategy",
-      "index": 0.4476
-     }
-    ],
-    "byInput": {
-     "mae": 0.1193,
-     "medianAe": 0.0744,
-     "share": 0.7033
-    },
-    "sampled": {
+    "ms": {
      "n": 400,
      "hits": 23,
      "share": 0.0575,
@@ -342,13 +1128,6 @@
      "baselineMedianAe": 0.9657
     }
    }
-  ],
-  "sampled": {
-   "pairs": 400,
-   "seed": 1,
-   "draw": "uniform",
-   "configRejectionRate": 0,
-   "hardPairs": 3
   }
  },
  "trend": [
@@ -404,6 +1183,24 @@
     "pack.gap": 0.3415,
     "pack.overflow.excessArea": 0.9637,
     "ms": 0.7033
+   }
+  },
+  {
+   "date": "2026-10-29",
+   "run": 40805165103,
+   "corpus": "pack-classes-v1",
+   "commit": "e939842",
+   "shares": {
+    "pack.fill": 0.3617,
+    "pack.gap": 0.2952,
+    "pack.overflow.excessArea": 0.8693,
+    "ms": 0.5459
+   },
+   "sharesByInput": {
+    "pack.fill": 0.4528,
+    "pack.gap": 0.3234,
+    "pack.overflow.excessArea": 0.9641,
+    "ms": 0.6238
    }
   }
  ]

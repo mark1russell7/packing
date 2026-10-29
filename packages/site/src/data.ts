@@ -183,6 +183,8 @@ export interface CoverageMeasure {
   byInput?: { mae: number; medianAe: number; share: number };
   /** The held-out test on the sampled pairs of the whole space (k112): the share, its Wilson 95% interval and the errors */
   sampled?: CoverageSampled;
+  /** The same test by stratum (k115): the mean over the strata with the same weight, and each stratum */
+  strata?: CoverageStrata;
   cells: { space: number; withRecords: number; covered: number };
   explained: { strategy: number; input: number; joint: number };
   noise: number;
@@ -202,6 +204,38 @@ export interface CoverageSampled {
   medianAe: number;
   baselineMae: number;
   baselineMedianAe: number;
+}
+
+/** One stratum of the sample for one measure: its pairs, its hits, its share and the Wilson 95% interval */
+export interface CoverageStratum {
+  /** The id `<family>:<size>`, for example `portfolio:3` */
+  stratum: string;
+  n: number;
+  hits: number;
+  /** The share and its interval. A stratum without pairs has `null`, not 0. An older snapshot has 0. */
+  share: number | null;
+  low: number | null;
+  high: number | null;
+}
+
+/** One stratum of the sample: its measured pairs and, for a stratified sample, its count of configs and of missed pairs */
+export interface CoverageStratumPairs {
+  id: string;
+  pairs: number;
+  /** The exact count of the configs of the stratum, as decimal text */
+  configs?: string;
+  /** The pairs of the stratum that found no input and config */
+  missed?: number;
+}
+
+/** The held-out result of one measure by stratum: the mean over the strata with the same weight, its 95% interval and each stratum */
+export interface CoverageStrata {
+  share: number;
+  low: number;
+  high: number;
+  /** The count of the strata with pairs */
+  strata: number;
+  rows: CoverageStratum[];
 }
 
 /** One point of the trend of the coverage */
@@ -230,8 +264,24 @@ export interface CoverageSnapshot {
     measures: CoverageMeasure[];
     /** The facts of the sample of the whole space (k112), when the snapshot has it */
     sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
+    /** The facts of the strata of the sample (k115), when the snapshot has them */
+    strata?: { pairs: number; draw: string | null; strata: CoverageStratumPairs[] };
+    /** The last sample with a uniform draw (k115), with its run and its date. A stratified run keeps it. */
+    uniform?: CoverageUniform;
   };
   trend: CoveragePoint[];
+}
+
+/** The last sample of the whole space with a uniform draw: its run, its facts and the result of each measure */
+export interface CoverageUniform {
+  date: string;
+  run: number | null;
+  commit: string;
+  pairs: number;
+  seed: number | null;
+  configRejectionRate: number | null;
+  hardPairs: number | null;
+  measures: Record<string, CoverageSampled>;
 }
 
 /** Each kind of snapshot */
@@ -294,6 +344,13 @@ export interface NewsEntry {
 
 /** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
 export const NEWS: readonly NewsEntry[] = [
+  {
+    date: "2026-10-29",
+    item: "k115",
+    title: "The space coverage gives the share of each stratum: a strategy family with one count of members. The mean over the strata goes next to the uniform number.",
+    pr: 146,
+    link: "https://github.com/mark1russell7/packing/pull/146",
+  },
   {
     date: "2026-10-29",
     item: "k79",

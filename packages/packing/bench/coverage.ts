@@ -5,6 +5,7 @@
 //   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>]
 //
 // With `--sample`, the trees learn on all the grid and predict the pairs of `bench/sample-space.ts` (k112).
+// The section `strata` gives the share of each stratum of the pairs and the mean over the strata, each with the same weight (k115).
 //
 // `docs/BENCH.md` ("The space coverage") tells how to read the result.
 
@@ -12,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { packSpace } from "@mark1russell7/packing";
 import { canonicalConfig, configId, type StrategyConfig } from "@mark1russell7/layout-contract";
+import { strataOf, stratumOf } from "./sample-space.ts";
 
 /** The schema of the summary of `coverage`. */
 export const COVERAGE_SCHEMA = "packing-coverage/1";
@@ -494,6 +496,8 @@ export interface CoverageSummary {
   readonly measures: readonly MeasureCoverage[];
   /** The held-out test on the pairs of the whole space (k112). Only `--sample` gives it. */
   readonly sampled?: SampledCoverage;
+  /** The held-out test of the same pairs, by stratum, with the mean over the strata (k115). Only `--sample` gives it. */
+  readonly strata?: StrataCoverage;
 }
 
 /** This function rounds a value to 4 decimals. The value -0 becomes 0. */
@@ -745,6 +749,25 @@ export function sampledDims(r: SampledRecord): Record<string, string> {
  * A skipped sampled record and a record without a finite value are not pairs.
  */
 export function sampledCoverage(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions = {}, sample?: SampleFacts): SampledCoverage {
+  return sampledOf(heldOut(records, manifest, sampled, options), sample);
+}
+
+/** The held-out errors of the sampled pairs for one measure. `at` gives the index of the pair of each error. */
+interface HeldOutMeasure {
+  readonly m: CoverageMeasure;
+  readonly errors: readonly number[];
+  readonly baseErrors: readonly number[];
+  readonly at: readonly number[];
+}
+
+/** The held-out errors of the sampled pairs: the pairs that are not skipped, and the errors of each measure. */
+interface HeldOut {
+  readonly pairs: readonly SampledRecord[];
+  readonly measures: readonly HeldOutMeasure[];
+}
+
+/** This function fits the tree of each measure on all the grid and gives the errors of the sampled pairs, as `sampledCoverage` tells. */
+function heldOut(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions): HeldOut {
   const measures = options.measures ?? COVERAGE_MEASURES;
   const tree = { ...TREE_DEFAULTS, ...options };
   const dims = inputDims(manifest);
@@ -752,7 +775,7 @@ export function sampledCoverage(records: readonly CoverageRecord[], manifest: Co
   const sFeatures = new Map([...new Set(measured.map((r) => r.strategy))].map((s) => [s, strategyFeatures(s)]));
   const pairs = sampled.filter((r) => r.skipped === undefined);
   const features = pairs.map((r) => rowFeatures(sampledDims(r), configFeatures(r.config), r.strategy).features);
-  const out: SampledMeasure[] = [];
+  const out: HeldOutMeasure[] = [];
   for (const m of measures) {
     const { table } = gridTable(measured, dims, sFeatures, m);
     const all = Array.from(table.y.keys());
@@ -760,12 +783,23 @@ export function sampledCoverage(records: readonly CoverageRecord[], manifest: Co
     const median = medianOf(table.y);
     const errors: number[] = [];
     const baseErrors: number[] = [];
+    const at: number[] = [];
     pairs.forEach((r, i) => {
       const v = valueOf(r, m);
       if (v === undefined) return;
       errors.push(Math.abs((all.length === 0 ? 0 : predictFeatures(fitted, table, features[i]!)) - v));
       baseErrors.push(Math.abs(median - v));
+      at.push(i);
     });
+    out.push({ m, errors, baseErrors, at });
+  }
+  return { pairs, measures: out };
+}
+
+/** This function gives the section `sampled` from the held-out errors. */
+function sampledOf(h: HeldOut, sample?: SampleFacts): SampledCoverage {
+  const out: SampledMeasure[] = [];
+  for (const { m, errors, baseErrors } of h.measures) {
     const hits = errors.filter((e) => e <= m.tolerance + 1e-12).length;
     const stats = errorStats(errors, m.tolerance);
     out.push({
@@ -781,7 +815,148 @@ export function sampledCoverage(records: readonly CoverageRecord[], manifest: Co
       baseline: errorStats(baseErrors, m.tolerance),
     });
   }
-  return { pairs: pairs.length, ...(sample === undefined ? {} : { sample }), measures: out };
+  return { pairs: h.pairs.length, ...(sample === undefined ? {} : { sample }), measures: out };
+}
+
+// ---- The strata of the whole space (k115) ----
+
+/** The share of one stratum for one measure. */
+export interface StratumShare {
+  readonly stratum: string;
+  /** The count of the pairs of the stratum with a finite value. */
+  readonly n: number;
+  readonly hits: number;
+  /** The hits over the pairs. A stratum without pairs has no share: `null`, not 0. */
+  readonly share: number | null;
+  /** The Wilson 95% interval of the share, or `null` without pairs. */
+  readonly wilson: Interval | null;
+}
+
+/** One stratum of the sample: its count of measured pairs and, from `sample.json`, its count of configs and of missed pairs. */
+export interface StratumPairs {
+  readonly id: string;
+  readonly pairs: number;
+  /** The exact count of the configs of the stratum, as decimal text. */
+  readonly configs?: string;
+  /** The pairs of the stratum that found no input and config. A stratum that no sampled input accepts has only missed pairs. */
+  readonly missed?: number;
+}
+
+/** The strata of a stratified sample, from `sample.json`: the count of the configs, the measured pairs and the missed pairs. */
+export type SampleStrata = Readonly<Record<string, { readonly configs: string; readonly pairs: number; readonly missed?: number }>>;
+
+/** The mean of the shares of the strata, each stratum with the same weight. */
+export interface EqualWeight {
+  /** The count of the strata with pairs. A stratum without pairs is not in the mean. */
+  readonly strata: number;
+  /** The mean of the shares of the strata with pairs. */
+  readonly share: number;
+  /** The standard error of the adjusted mean. */
+  readonly se: number;
+  /** The 95% interval: the adjusted mean, 1.96 standard errors on each side, from 0 to 1. */
+  readonly interval: Interval;
+}
+
+/** The held-out result of one measure by stratum. */
+export interface StrataMeasure {
+  readonly id: string;
+  readonly tolerance: number;
+  /** The share of each stratum, in the order of `strataOf`. */
+  readonly strata: readonly StratumShare[];
+  readonly equal: EqualWeight;
+}
+
+/** The held-out test of the sampled pairs by stratum (k115). */
+export interface StrataCoverage {
+  /** The count of the measured sampled pairs. */
+  readonly pairs: number;
+  /** The draw of the sample: `uniform`, `option`, `stratified`, or `null` without `sample.json`. */
+  readonly draw: string | null;
+  /** Each stratum and its count of pairs, in the order of `strataOf` of `packSpace`. An unknown stratum comes last. */
+  readonly strata: readonly StratumPairs[];
+  readonly measures: readonly StrataMeasure[];
+}
+
+/** The ids of the strata of `packSpace`, in their order. */
+const PACK_STRATA: readonly string[] = strataOf(packSpace).map((s) => s.id);
+
+/**
+ * This function gives the mean of the shares of some strata, each with the same weight `1/k`, and its 95% interval.
+ *
+ * - `share` is the mean of `hits / n` over the `k` strata with pairs.
+ * - For the variance, each stratum gets the adjusted share `p = (hits + z²/2) / (n + z²)` of Agresti and Coull. Thus a share of 0 or 1 has a variance above 0.
+ * - The variance is the sum of `p (1 - p) / (n + z²)`, divided by `k²`.
+ * - The interval is `share`, plus and minus `z` standard errors, from 0 to 1. Thus `low <= share <= high` always.
+ *
+ * The adjusted shares give only the variance, not the center. Their mean moves a small share up by approximately `z²/2 / (n + z²)`.
+ * No stratum with pairs gives the share 0 and the interval from 0 to 1.
+ */
+export function equalWeight(strata: readonly { readonly hits: number; readonly n: number }[], z = Z95): EqualWeight {
+  const used = strata.filter((s) => s.n > 0);
+  const k = used.length;
+  if (k === 0) return { strata: 0, share: 0, se: 0, interval: { low: 0, high: 1 } };
+  const z2 = z * z;
+  let sum = 0;
+  let variance = 0;
+  for (const s of used) {
+    sum += s.hits / s.n;
+    const n = s.n + z2;
+    const p = (s.hits + z2 / 2) / n;
+    variance += (p * (1 - p)) / n;
+  }
+  const share = sum / k;
+  const se = Math.sqrt(variance) / k;
+  return { strata: k, share: r4(share), se: r4(se), interval: { low: r4(Math.max(0, share - z * se)), high: r4(Math.min(1, share + z * se)) } };
+}
+
+/**
+ * This function gives the held-out test of the sampled pairs by stratum (k115). The errors are the errors of `sampledCoverage`.
+ * `stratumOf` gives the stratum of each pair from its config. Each stratum gets its share and its Wilson interval, and `equalWeight` gives the mean.
+ */
+export function strataCoverage(
+  records: readonly CoverageRecord[],
+  manifest: CoverageManifest,
+  sampled: readonly SampledRecord[],
+  options: CoverageOptions = {},
+  sample?: SampleFacts,
+  strata?: SampleStrata,
+): StrataCoverage {
+  return strataFrom(heldOut(records, manifest, sampled, options), sample, strata);
+}
+
+/**
+ * This function gives the section `strata` from the held-out errors. The strata of `sample.json` add their counts of configs and of missed pairs.
+ * With the strata of `sample.json`, the section has only those strata. Thus a stratum that the code added after the run gets no row.
+ */
+function strataFrom(h: HeldOut, sample?: SampleFacts, facts?: SampleStrata): StrataCoverage {
+  const of = h.pairs.map((r) => stratumOf(packSpace, r.config));
+  const known = facts === undefined ? PACK_STRATA : Object.keys(facts);
+  const ids = [...known, ...[...new Set(of)].filter((id) => !known.includes(id)).sort()];
+  const pairs = new Map(ids.map((id) => [id, 0]));
+  for (const id of of) pairs.set(id, pairs.get(id)! + 1);
+  const measures = h.measures.map(({ m, errors, at }): StrataMeasure => {
+    const count = new Map(ids.map((id) => [id, { n: 0, hits: 0 }]));
+    errors.forEach((e, j) => {
+      const c = count.get(of[at[j]!]!)!;
+      c.n++;
+      if (e <= m.tolerance + 1e-12) c.hits++;
+    });
+    const strata = ids.map((id): StratumShare => {
+      const c = count.get(id)!;
+      return { stratum: id, n: c.n, hits: c.hits, share: c.n === 0 ? null : r4(c.hits / c.n), wilson: c.n === 0 ? null : wilson(c.hits, c.n) };
+    });
+    return { id: m.id, tolerance: m.tolerance, strata, equal: equalWeight(strata) };
+  });
+  const row = (id: string): StratumPairs => {
+    const f = facts?.[id];
+    return f === undefined ? { id, pairs: pairs.get(id)! } : { id, pairs: pairs.get(id)!, configs: f.configs, missed: f.missed ?? 0 };
+  };
+  return { pairs: h.pairs.length, draw: sample?.draw ?? null, strata: ids.map(row), measures };
+}
+
+/** This function gives the strata of the text of `sample.json`, or `undefined` for a sample without strata. */
+export function sampleStrata(text: string): SampleStrata | undefined {
+  return (JSON.parse(text) as { strata?: SampleStrata }).strata;
 }
 
 /** This function gives the facts of the draw from the text of `sample.json`. */
@@ -844,11 +1019,22 @@ export function coverageOptions(argv: readonly string[]): CoverageOptions {
  * It throws an `Error` when the folder has no `records.jsonl`.
  */
 export function readSampled(records: readonly CoverageRecord[], manifest: CoverageManifest, dir: string, options: CoverageOptions = {}): SampledCoverage {
+  return readSample(records, manifest, dir, options).sampled;
+}
+
+/**
+ * This function gives the sections `sampled` and `strata` of the sample in a folder, as `readSampled` reads it. The trees learn one time for both.
+ * It throws an `Error` when the folder has no `records.jsonl`.
+ */
+export function readSample(records: readonly CoverageRecord[], manifest: CoverageManifest, dir: string, options: CoverageOptions = {}): { sampled: SampledCoverage; strata: StrataCoverage } {
   const file = join(dir, "records.jsonl");
   if (!existsSync(file)) throw new Error(`The sample folder ${dir} has no records.jsonl. Start bench/sample-space.ts first.`);
   const sampled = readRecords(readFileSync(file, "utf8")) as SampledRecord[];
   const facts = join(dir, "sample.json");
-  return sampledCoverage(records, manifest, sampled, options, existsSync(facts) ? sampleFacts(readFileSync(facts, "utf8")) : undefined);
+  const text = existsSync(facts) ? readFileSync(facts, "utf8") : undefined;
+  const sample = text === undefined ? undefined : sampleFacts(text);
+  const h = heldOut(records, manifest, sampled, options);
+  return { sampled: sampledOf(h, sample), strata: strataFrom(h, sample, text === undefined ? undefined : sampleStrata(text)) };
 }
 
 /** The note of `coverageMain` when a run has too few records for a summary */
@@ -884,7 +1070,7 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
   const options = coverageOptions(argv);
   const grid = coverage(rows, manifest, options);
   const sampleDir = optionOf(argv, "--sample");
-  const summary: CoverageSummary = sampleDir === undefined ? grid : { ...grid, sampled: readSampled(rows, manifest, sampleDir, options) };
+  const summary: CoverageSummary = sampleDir === undefined ? grid : { ...grid, ...readSample(rows, manifest, sampleDir, options) };
   writeFileSync(path, `${JSON.stringify(summary, null, 1)}\n`);
   for (const m of summary.measures) {
     const top = m.indices.slice(0, 3).map((x) => `${x.feature} ${x.index}`).join(", ");
@@ -896,6 +1082,14 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
     console.log(
       `${m.id}, whole space (sampled): share ${m.share} (${m.hits} of ${m.n} pairs, 95% from ${m.wilson.low} to ${m.wilson.high}), error ${m.mae} against ${m.baseline.mae}, median error ${m.medianAe} against ${m.baseline.medianAe}`,
     );
+  }
+  for (const m of summary.strata?.measures ?? []) {
+    const parts = m.strata.filter((s) => s.n > 0).map((s) => `${s.stratum} ${s.hits}/${s.n}`).join(", ");
+    console.log(`${m.id}, equal weight over ${m.equal.strata} strata: share ${m.equal.share} (95% from ${m.equal.interval.low} to ${m.equal.interval.high}). By stratum: ${parts}`);
+  }
+  const empty = (summary.strata?.strata ?? []).filter((s) => s.pairs === 0).map((s) => (s.configs === undefined ? s.id : `${s.id} (${s.configs} configs)`));
+  if (empty.length > 0) {
+    console.log(`No pairs, not in the mean: ${empty.join(", ")}.`);
   }
   return summary;
 }

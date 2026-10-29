@@ -22,6 +22,13 @@ import {
   ratioAt,
   sampledText,
   stepText,
+  countText,
+  strataRows,
+  strataText,
+  stratumLabel,
+  COVERAGE_STRATA_SCOPE,
+  COVERAGE_POOLED_SCOPE,
+  spaceOf,
   trendChart,
 } from "./results-model.ts";
 
@@ -160,7 +167,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-20", [], ["1"]],
     ]);
     expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
-    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
   });
 });
 
@@ -232,8 +239,9 @@ describe("the distance to the best", () => {
 describe("the space coverage of k105", () => {
   const snap = parseSnapshot(read("coverage.json"), "coverage") as CoverageSnapshot;
 
-  it("has the k22 run, the first CI coverage run and the k112 run as points, and a share from 0 to 1 for each measure", () => {
-    expect(snap.trend.map((p) => p.run).sort()).toEqual([40783923164, 40789799391, 40795429100]);
+  it("has the k22 run, the first CI coverage run, the k112 run and the stratified run of k115 as points, and a share from 0 to 1 for each measure", () => {
+    // The trend has one point for each run. Thus the k112 run and the stratified run of the same date both stay.
+    expect(snap.trend.map((p) => p.run).sort()).toEqual([40783923164, 40789799391, 40795429100, 40805165103]);
     expect(snap.latest.measures.map((m) => m.id)).toEqual(["pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
     for (const m of snap.latest.measures) {
       expect(m.share).toBeGreaterThanOrEqual(0);
@@ -247,7 +255,7 @@ describe("the space coverage of k105", () => {
     }
     expect(snap.latest.model.by).toBe("spec");
     expect(Object.keys(snap.trend[0]!.sharesByInput!)).toEqual(Object.keys(snap.trend[0]!.shares));
-    expect(snap.origin[0]).toMatchObject({ release: "0.2.17", commit: "18a4576", run: 40795429100 });
+    expect(snap.origin[0]).toMatchObject({ release: "0.2.17", commit: "e939842", run: 40805165103 });
   });
 
   it("gives the texts and the widths of the errors", () => {
@@ -260,12 +268,26 @@ describe("the space coverage of k105", () => {
   });
 
   it("shows the bench grid and the whole space (sampled) of k112, and not measured yet without the sampled section", () => {
-    expect(snap.latest.sampled).toMatchObject({ pairs: 400, seed: 1, draw: "uniform", hardPairs: 3 });
+    expect(snap.latest.sampled).toMatchObject({ pairs: 378, seed: 1, draw: "stratified", hardPairs: 1 });
     const m = snap.latest.measures[0]!;
-    expect(m.sampled).toMatchObject({ n: 400, hits: 17, share: 0.0425 });
-    expect(sampledText(m)).toEqual({ share: "4%", interval: "3% to 7%", pairs: "17 of 400 pairs" });
-    expect(coverageTile(m, "Fill")).toContain("95% interval 3% to 7%, 17 of 400 pairs");
-    const { sampled: _s, ...rest } = m;
+    // The measure keeps the pooled share of the stratified run. The uniform section keeps the k112 run.
+    expect(m.sampled).toMatchObject({ n: 378, hits: 15, share: 0.0397 });
+    expect(snap.latest.uniform).toMatchObject({ run: 40795429100, date: "2026-10-29", commit: "18a4576", pairs: 400, seed: 1, hardPairs: 3 });
+    expect(snap.latest.uniform!.measures["pack.fill"]).toMatchObject({ n: 400, hits: 17, share: 0.0425, low: 0.0267, high: 0.067 });
+    const space = spaceOf(snap.latest, m);
+    expect(space).toEqual({ uniform: snap.latest.uniform!.measures["pack.fill"], pooled: m.sampled });
+    expect(sampledText({ sampled: space.uniform! })).toEqual({ share: "4%", interval: "3% to 7%", pairs: "17 of 400 pairs" });
+    const tile = coverageTile(m, "Fill", space);
+    expect(tile).toContain("95% interval 3% to 7%, 17 of 400 pairs");
+    expect(tile).toContain(`${COVERAGE_POOLED_SCOPE} 4%, 15 of 378 pairs`);
+    expect(tile).not.toContain("15 of 378 pairs</small></b>");
+    expect(tile.indexOf(COVERAGE_STRATA_SCOPE)).toBeLessThan(tile.indexOf(COVERAGE_POOLED_SCOPE));
+    // A stratified snapshot without the uniform section has no uniform share. A uniform snapshot without it gives its own sample.
+    expect(spaceOf({ sampled: snap.latest.sampled! }, m)).toEqual({ pooled: m.sampled });
+    expect(coverageTile(m, "Fill", spaceOf({ sampled: snap.latest.sampled! }, m))).toContain("not measured yet");
+    expect(spaceOf({ sampled: { ...snap.latest.sampled!, draw: "uniform" } }, m)).toEqual({ uniform: m.sampled });
+    expect(spaceOf({}, m)).toEqual({ uniform: m.sampled });
+    const { sampled: _s, strata: _t, ...rest } = m;
     const bare: CoverageSnapshot["latest"]["measures"][number] = rest;
     expect(sampledText(bare)).toEqual({ share: "not measured yet", interval: null, pairs: null });
     const without = coverageTile(bare, "Fill");
@@ -280,6 +302,89 @@ describe("the space coverage of k105", () => {
     expect(withSample).toContain("95% interval 3% to 16%, 4 of 60 pairs");
     expect(withSample).not.toContain("not measured yet");
     expect(withSample).toContain(percentText(m.share));
+  });
+
+  it("shows the strata of k115 when a measure has them, and keeps an old snapshot without them", () => {
+    // The data of the site has the strata of the stratified run 40805165103.
+    const l = snap.latest.strata!;
+    expect(l).toMatchObject({ pairs: 378, draw: "stratified" });
+    // The run came before ruin-recreate:1 of k79. The snapshot keeps its 18 strata, and the site shows only them.
+    expect(l.strata).toHaveLength(18);
+    expect(l.strata.some((s) => s.id === "ruin-recreate:1")).toBe(false);
+    expect(snap.latest.measures[0]!.strata!.rows.some((r) => r.stratum === "ruin-recreate:1")).toBe(false);
+    expect(strataRows(snap.latest.measures[0]!, l.strata)).not.toContain("ruin-recreate");
+    expect(l.strata.find((s) => s.id === "hole-degree:1")).toEqual({ id: "hole-degree:1", pairs: 0, configs: "33", missed: 22 });
+    for (const x of snap.latest.measures) {
+      expect(x.strata!.strata).toBe(17);
+      expect(x.strata!.low).toBeLessThanOrEqual(x.strata!.share);
+      expect(x.strata!.share).toBeLessThanOrEqual(x.strata!.high);
+    }
+    const fill = snap.latest.measures[0]!;
+    expect(strataText(fill)).toEqual({ share: "4%", interval: "1% to 7%", strata: "17 strata" });
+    expect(strataRows(fill, l.strata)).toContain("no pairs <small>(33 configs)</small>");
+    expect(strataRows(fill, l.strata).match(/<li /g)).toHaveLength(18);
+
+    // An old snapshot has no strata. The test then uses made-up strata.
+    const { strata: _old, ...old } = fill;
+    const m: CoverageSnapshot["latest"]["measures"][number] = old;
+    expect(m.strata).toBeUndefined();
+    expect(strataText(m)).toBeNull();
+    expect(strataRows(m)).toBe("");
+    expect(coverageTile(m, "Fill")).not.toContain(COVERAGE_STRATA_SCOPE);
+
+    const strata = {
+      share: 0.4375,
+      low: 0.3041,
+      high: 0.5709,
+      strata: 2,
+      rows: [
+        { stratum: "rows:1", n: 16, hits: 12, share: 0.75, low: 0.5049, high: 0.8983 },
+        { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, low: 0.0349, high: 0.36 },
+        { stratum: "cell-portfolio:cell", n: 0, hits: 0, share: null, low: null, high: null },
+        { stratum: "hole-degree:1", n: 0, hits: 0, share: null, low: null, high: null },
+      ],
+    };
+    const withStrata = { ...m, strata };
+    expect(strataText(withStrata)).toEqual({ share: "44%", interval: "30% to 57%", strata: "2 strata" });
+    expect(strataText({ strata: { ...strata, strata: 1 } })!.strata).toBe("1 stratum");
+    const tile = coverageTile(withStrata, "Fill");
+    expect(tile).toContain(`>${COVERAGE_STRATA_SCOPE}<`);
+    expect(tile).toContain("95% interval 30% to 57%, 2 strata");
+    // The uniform number stays in the tile, before the mean over the strata.
+    expect(tile.indexOf(COVERAGE_SCOPES.space)).toBeLessThan(tile.indexOf(COVERAGE_STRATA_SCOPE));
+    expect(tile).toContain("95% interval 2% to 6%, 15 of 378 pairs");
+
+    const rows = strataRows(withStrata);
+    expect(rows.match(/<li /g)).toHaveLength(4);
+    expect(rows).toContain("<code>rows</code>");
+    expect(rows).toContain("<code>portfolio, 5 members</code>");
+    expect(rows).toContain("75% <small>(12 of 16)</small>");
+    expect(rows).toContain('class="srange" style="left:50.5%;width:39.3%"');
+    expect(rows).toContain('class="sdot" style="left:75%"');
+    expect(rows).toContain('class="smean" style="left:43.8%"');
+    expect(rows).toContain('class="irow srow empty"');
+    expect(rows).toContain("no pairs");
+    expect(rows).not.toContain("0% <small>");
+    expect(rows).not.toContain("configs");
+
+    // A stratified sample gives the count of the configs. A stratum that no sampled input accepts shows no pairs and its count.
+    const facts = [
+      { id: "rows:1", pairs: 16, configs: "905", missed: 0 },
+      { id: "hole-degree:1", pairs: 0, configs: "33", missed: 2 },
+      { id: "portfolio:5", pairs: 16, configs: "38385277888016468128534214400", missed: 0 },
+    ];
+    const counted = strataRows(withStrata, facts);
+    expect(counted).toContain("no pairs <small>(33 configs)</small>");
+    expect(counted).toContain('title="hole-degree: no pairs, 33 configs. No sampled input accepts this stratum. It is not in the mean."');
+    expect(counted).toContain("75% <small>(12 of 16)</small>");
+    expect(countText("38385277888016468128534214400")).toBe("38,385,277,888,016,468,128,534,214,400");
+    expect(countText("905")).toBe("905");
+
+    expect(stratumLabel("rows:1")).toBe("rows");
+    expect(stratumLabel("portfolio:3")).toBe("portfolio, 3 members");
+    expect(stratumLabel("cell-portfolio:cell")).toBe("cell-portfolio, members from the cell");
+    expect(stratumLabel("aspect-fit:1")).toBe("aspect-fit");
+    expect(stratumLabel("odd")).toBe("odd");
   });
 
   it("places the points of the trend by date and share", () => {

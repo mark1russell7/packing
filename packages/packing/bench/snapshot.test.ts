@@ -211,10 +211,10 @@ describe("the coverage snapshot (k105)", () => {
     share,
     shareOfMeasured: 0.75,
   });
-  const summary = (date: string, share: number): CoverageSummary => ({
+  const summary = (date: string, share: number, run: number | null = 7): CoverageSummary => ({
     schema: "packing-coverage/1",
     date,
-    run: 7,
+    run,
     corpus: "c",
     records: 10,
     inputs: 5,
@@ -234,19 +234,33 @@ describe("the coverage snapshot (k105)", () => {
     expect(snap.trend).toEqual([{ date: "2026-10-28", run: 7, corpus: "c", commit: "abc1234", shares: { "pack.fill": 0.6 } }]);
   });
 
-  it("adds a point to the trend, and replaces the point of the same date and corpus", () => {
-    const first = coverageSnapshot(summary("2026-10-28", 0.6), origin);
-    const second = coverageSnapshot(summary("2026-11-04", 0.7), origin, first);
-    expect(second.trend.map((p) => [p.date, p.shares["pack.fill"]])).toEqual([
-      ["2026-10-28", 0.6],
-      ["2026-11-04", 0.7],
+  it("adds a point to the trend, and replaces the point of the same run", () => {
+    const first = coverageSnapshot(summary("2026-10-28", 0.6, 7), origin);
+    const second = coverageSnapshot(summary("2026-11-04", 0.7, 8), origin, first);
+    expect(second.trend.map((p) => [p.date, p.run, p.shares["pack.fill"]])).toEqual([
+      ["2026-10-28", 7, 0.6],
+      ["2026-11-04", 8, 0.7],
     ]);
-    const again = coverageSnapshot(summary("2026-10-28", 0.65), origin, second);
-    expect(again.trend.map((p) => [p.date, p.shares["pack.fill"]])).toEqual([
-      ["2026-10-28", 0.65],
-      ["2026-11-04", 0.7],
+    const again = coverageSnapshot(summary("2026-10-28", 0.65, 7), origin, second);
+    expect(again.trend.map((p) => [p.date, p.run, p.shares["pack.fill"]])).toEqual([
+      ["2026-10-28", 7, 0.65],
+      ["2026-11-04", 8, 0.7],
     ]);
     expect(again.latest.date).toBe("2026-10-28");
+    // A second run on the same date and corpus keeps the first point.
+    const twice = coverageSnapshot(summary("2026-10-28", 0.5, 9), origin, again);
+    expect(twice.trend.map((p) => [p.date, p.run])).toEqual([
+      ["2026-10-28", 7],
+      ["2026-10-28", 9],
+      ["2026-11-04", 8],
+    ]);
+    // A point without a run replaces the point of the same date and corpus.
+    const local = coverageSnapshot(summary("2026-11-04", 0.4, null), origin, twice);
+    expect(local.trend.map((p) => [p.date, p.run])).toEqual([
+      ["2026-10-28", 7],
+      ["2026-10-28", 9],
+      ["2026-11-04", null],
+    ]);
   });
 
   it("keeps the median errors, and puts the numbers of the folds by input next to the first numbers", () => {
@@ -270,6 +284,84 @@ describe("the coverage snapshot (k105)", () => {
     const snap = coverageSnapshot({ ...summary("2026-10-28", 0.5), sampled }, origin);
     expect(snap.latest.measures[0]!.sampled).toEqual({ n: 60, hits: 4, share: 0.0667, low: 0.0262, high: 0.1593, mae: 0.4, medianAe: 0.3, baselineMae: 0.5, baselineMedianAe: 0.4 });
     expect(snap.latest.sampled).toEqual({ pairs: 60, seed: 1, draw: "uniform", configRejectionRate: 0.02, hardPairs: 1 });
+    expect(snap.trend).toEqual(plain.trend);
+    expect(snap.latest.uniform).toEqual({
+      date: "2026-10-28",
+      run: 7,
+      commit: "abc1234",
+      pairs: 60,
+      seed: 1,
+      configRejectionRate: 0.02,
+      hardPairs: 1,
+      measures: { "pack.fill": snap.latest.measures[0]!.sampled },
+    });
+  });
+
+  it("keeps the last uniform sample (k115) after a stratified sample, and a later uniform sample replaces it", () => {
+    const sample = (draw: string, n: number, hits: number) => ({
+      pairs: n,
+      sample: { seed: 1, draw, requested: n, configRejectionRate: 0.5, inputsRejected: 0, hardPairs: 0, nondeterministic: 0, composition: {} },
+      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n, hits, share: hits / n, wilson: { low: 0, high: 1 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 } }],
+    });
+    const first = coverageSnapshot({ ...summary("2026-10-28", 0.5, 7), sampled: sample("uniform", 400, 17) }, origin);
+    const strat = coverageSnapshot({ ...summary("2026-10-29", 0.5, 8), sampled: sample("stratified", 378, 15) }, { ...origin, commit: "def5678" }, first);
+    // The measure keeps the share pooled over the strata. The uniform sample keeps its run and its date.
+    expect(strat.latest.measures[0]!.sampled).toMatchObject({ n: 378, hits: 15 });
+    expect(strat.latest.sampled!.draw).toBe("stratified");
+    expect(strat.latest.uniform).toEqual(first.latest.uniform);
+    expect(strat.latest.uniform).toMatchObject({ run: 7, date: "2026-10-28", commit: "abc1234", pairs: 400, measures: { "pack.fill": { n: 400, hits: 17 } } });
+    // A summary without a sample also keeps it.
+    expect(coverageSnapshot(summary("2026-10-30", 0.5, 9), origin, strat).latest.uniform).toEqual(first.latest.uniform);
+    const later = coverageSnapshot({ ...summary("2026-11-04", 0.5, 10), sampled: sample("uniform", 200, 9) }, origin, strat);
+    expect(later.latest.uniform).toMatchObject({ run: 10, date: "2026-11-04", pairs: 200, measures: { "pack.fill": { n: 200, hits: 9 } } });
+
+    // A snapshot from before k115 has no uniform section. Its own uniform sample gives the section.
+    const { uniform: _u, ...old } = first.latest;
+    const fromOld = coverageSnapshot({ ...summary("2026-10-29", 0.5, 8), sampled: sample("stratified", 378, 15) }, origin, { ...first, latest: old });
+    expect(fromOld.latest.uniform).toEqual(first.latest.uniform);
+    // A stratified sample is never the uniform section.
+    expect(coverageSnapshot({ ...summary("2026-10-29", 0.5, 8), sampled: sample("stratified", 378, 15) }, origin).latest.uniform).toBeUndefined();
+  });
+
+  it("keeps the strata (k115) when the summary has them, and has no strata without them", () => {
+    const plain = coverageSnapshot(summary("2026-10-28", 0.5), origin);
+    expect(plain.latest.measures[0]!.strata).toBeUndefined();
+    expect("strata" in plain.latest).toBe(false);
+    const strata = {
+      pairs: 32,
+      draw: "stratified",
+      strata: [
+        { id: "rows:1", pairs: 16, configs: "905", missed: 0 },
+        { id: "portfolio:5", pairs: 16, configs: "38385277888016468128534214400", missed: 0 },
+        { id: "hole-degree:1", pairs: 0, configs: "33", missed: 2 },
+      ],
+      measures: [
+        {
+          id: "pack.fill",
+          tolerance: 0.02,
+          strata: [
+            { stratum: "rows:1", n: 16, hits: 12, share: 0.75, wilson: { low: 0.5049, high: 0.8983 } },
+            { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, wilson: { low: 0.0349, high: 0.36 } },
+            { stratum: "hole-degree:1", n: 0, hits: 0, share: null, wilson: null },
+          ],
+          equal: { strata: 2, share: 0.4375, se: 0.0681, interval: { low: 0.3041, high: 0.5709 } },
+        },
+      ],
+    };
+    const snap = coverageSnapshot({ ...summary("2026-10-28", 0.5), strata }, origin);
+    expect(snap.latest.strata).toEqual({ pairs: 32, draw: "stratified", strata: strata.strata });
+    expect(snap.latest.measures[0]!.strata).toEqual({
+      share: 0.4375,
+      low: 0.3041,
+      high: 0.5709,
+      strata: 2,
+      rows: [
+        { stratum: "rows:1", n: 16, hits: 12, share: 0.75, low: 0.5049, high: 0.8983 },
+        { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, low: 0.0349, high: 0.36 },
+        // A stratum without pairs keeps null, not a share of 0.
+        { stratum: "hole-degree:1", n: 0, hits: 0, share: null, low: null, high: null },
+      ],
+    });
     expect(snap.trend).toEqual(plain.trend);
   });
 });
