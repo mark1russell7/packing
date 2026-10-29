@@ -360,12 +360,15 @@ The counts of `spaceSize` changed with k117. Only the meta configs changed:
 
 | `spaceSize` | Before k117 | Since k117 |
 |---|---:|---:|
-| `base`, 3 levels | 810 | 810 |
-| `meta`, 3 levels | 55171224249681990 | 275856121245769350 |
-| `meta`, 1 level | 3230760471442 | 16153802239570 |
-| `meta` of one shape kind, 3 levels and 1 level | 1620 and 340 | 1620 and 340 |
+| `base`, 3 levels and 1 level | 2973 and 891 | 2973 and 891 |
+| `meta`, 3 levels | 37049239404514333362 | 185246197022536252434 |
+| `meta`, 1 level | 13341577899037878 | 66707889492003174 |
+| `meta` for `rect`, 3 levels | 36862574914409402550 | 184312874572011669750 |
+| `meta` for `rect`, 1 level | 13266726236504962 | 66333631179345730 |
+| `meta` for `circle` or `polygon`, 3 levels and 1 level | 5940 and 1780 | 5940 and 1780 |
 
 - The work limit gives 5 param points at each level count: no limit, then the 4 values of `budgetWork`. The options `bbox`, `select` and `aspect-fit` do not change.
+- The meta count with 3 levels is more than `10n ** 20n`. Thus `spaceSize` gives it only with a `maxMeta` of `10n ** 21n` or more.
 
 ### Shapes by their bounding boxes
 
@@ -453,7 +456,7 @@ The order `input` and the options `none` support `rect` and `circle`. The count 
 | Base and meta configs for `circle`, 3 levels | 0 and 5940 | 3 and 5940 |
 | Base and meta configs for `rect`, 3 levels | 2970 and 36862574914409402550 | the same |
 
-The meta counts with 3 levels are more than the default `maxMeta` of 1e18. Thus `spaceSize` gives them only with a larger `maxMeta`, for example `10n ** 20n`.
+The meta counts with 3 levels are more than the default `maxMeta` of 1e18. Thus `spaceSize` gives them only with a larger `maxMeta`, for example `10n ** 20n`. Since k117, the count needs `10n ** 21n` ("The work budget").
 The size search `none` goes only with `push` and `hole-degree`. Each other placement, `guillotine` too, needs `log-sweep`, as before k90.
 
 The limits:
