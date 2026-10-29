@@ -166,8 +166,57 @@ export interface GapSnapshot {
   strategies: GapStrategy[];
 }
 
+/** One measure of the coverage snapshot: the held-out error of the model, the share of the cells and the top indices */
+export interface CoverageMeasure {
+  id: string;
+  scale: "linear" | "log";
+  tolerance: number;
+  n: number;
+  mae: number;
+  baselineMae: number;
+  medianAe: number;
+  baselineMedianAe: number;
+  skill: number | null;
+  share: number;
+  shareOfMeasured: number;
+  /** The errors and the share of the folds by input, a less strict test */
+  byInput?: { mae: number; medianAe: number; share: number };
+  cells: { space: number; withRecords: number; covered: number };
+  explained: { strategy: number; input: number; joint: number };
+  noise: number;
+  indices: { feature: string; group: "strategy" | "input"; index: number }[];
+}
+
+/** One point of the trend of the coverage */
+export interface CoveragePoint {
+  date: string;
+  run: number | null;
+  corpus: string;
+  commit: string;
+  shares: Record<string, number>;
+  sharesByInput?: Record<string, number>;
+}
+
+/** The snapshot of the space coverage of k105: the last summary and the trend of the shares, oldest first */
+export interface CoverageSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "coverage";
+  origin: Origin[];
+  latest: {
+    date: string;
+    run: number | null;
+    corpus: string;
+    records: number;
+    inputs: number;
+    strategies: string[];
+    model: { kind: string; maxDepth: number; minLeaf: number; folds: number; seed: number; by: "input" | "spec" };
+    measures: CoverageMeasure[];
+  };
+  trend: CoveragePoint[];
+}
+
 /** Each kind of snapshot */
-export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot | GapSnapshot;
+export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot | GapSnapshot | CoverageSnapshot;
 
 /** This function tells if a value is a plain object. */
 const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -197,7 +246,8 @@ export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K)
   if (value["kind"] !== kind) throw new Error(`The snapshot has the kind ${String(value["kind"])}, not ${kind}.`);
   const origin = value["origin"];
   if (!Array.isArray(origin) || origin.length === 0 || !origin.every(isOrigin)) throw new Error("Each origin of a snapshot has a release, a commit, a date, a run and a source.");
-  const list = kind === "strategies" || kind === "gaps" ? value["strategies"] : kind === "paired" ? value["classes"] : kind === "select" ? value["leaves"] : value["releases"];
+  const lists: Record<Snapshot["kind"], unknown> = { strategies: value["strategies"], gaps: value["strategies"], paired: value["classes"], select: value["leaves"], releases: value["releases"], coverage: value["trend"] };
+  const list = lists[kind];
   if (!Array.isArray(list) || list.length === 0) throw new Error(`The snapshot of the kind ${kind} has no entries.`);
   return value as unknown as Extract<Snapshot, { kind: K }>;
 }
@@ -225,6 +275,13 @@ export interface NewsEntry {
 
 /** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
 export const NEWS: readonly NewsEntry[] = [
+  {
+    date: "2026-10-28",
+    item: "k105",
+    title: "The results page shows the space coverage: the share of the cells of strategies and inputs that a model predicts within a tolerance, for each measure.",
+    pr: 124,
+    link: "https://github.com/mark1russell7/packing/pull/124",
+  },
   {
     date: "2026-10-28",
     item: "k107",
@@ -321,4 +378,12 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
   "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container that a better packer can place. Less is better.", share: true },
   "pack.raggedness": { label: "Ragged edge", note: "The longest row less the shortest row, as a share of the hull width. Less is better.", share: true },
   "pack.overflow": { label: "Not placed", note: "The count of boxes that the packer did not place. Less is better.", share: false },
+};
+
+/** The names and the notes of the measures of the coverage snapshot */
+export const COVERAGE_LABELS: Record<string, { label: string; note: string }> = {
+  "pack.fill": { label: "Fill", note: "The share of the hull that the boxes cover." },
+  "pack.gap": { label: "Gap to a bound", note: "The distance of each result from a bound of its cell." },
+  "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container above its bound." },
+  ms: { label: "Time", note: "The median time of one pack, on a log scale." },
 };

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { SELECT_TABLE } from "@mark1russell7/packing";
 import {
+  COVERAGE_TOP,
+  coverageSnapshot,
   familyOfInput,
   gapCellOf,
   gapSnapshot,
@@ -18,6 +20,7 @@ import {
   type SnapshotRecord,
 } from "./snapshot.ts";
 import { SLOW_SET, type PairedRecord } from "./paired.ts";
+import type { CoverageSummary } from "./coverage.ts";
 
 // The snapshots of the site (k32). Made-up records only.
 
@@ -189,5 +192,69 @@ describe("the gap snapshot", () => {
     const records = [gap("rows", "c/k.fixed.n10/s1", { "pack.gapToOpt": 0.1 }), gap("rows", "c/k.fixed.n10/s2", { "pack.gapToOpt": Infinity })];
     const snap = gapSnapshot(records, { corpus: "c", origin, measure: "pack.gapToOpt", cellOf: () => "one" });
     expect(snap.strategies[0]!.cells).toEqual([{ cell: "one", n: 1, q1: 0.1, median: 0.1, q3: 0.1, below0: 0, missing: 1 }]);
+  });
+});
+
+describe("the coverage snapshot (k105)", () => {
+  const measure = (id: string, share: number): CoverageSummary["measures"][number] => ({
+    id,
+    scale: "linear",
+    tolerance: 0.02,
+    n: 10,
+    model: { mae: 0.01, medianAe: 0.005, withinTolerance: 0.9 },
+    baseline: { mae: 0.1, medianAe: 0.08, withinTolerance: 0.1 },
+    skill: 0.9,
+    explained: { strategy: 0.2, input: 0.5, joint: 0.9 },
+    noise: 0.1,
+    indices: Array.from({ length: 9 }, (_, i) => ({ feature: `f${i}`, group: "input" as const, index: 0.9 - i * 0.1 })),
+    cells: { space: 10, withRecords: 8, covered: 6 },
+    share,
+    shareOfMeasured: 0.75,
+  });
+  const summary = (date: string, share: number): CoverageSummary => ({
+    schema: "packing-coverage/1",
+    date,
+    run: 7,
+    corpus: "c",
+    records: 10,
+    inputs: 5,
+    strategies: ["a", "b"],
+    features: { strategy: ["stage.placement"], input: ["size"] },
+    model: { kind: "regression-tree", maxDepth: 12, minLeaf: 3, folds: 5, seed: 1, by: "input" },
+    measures: [measure("pack.fill", share)],
+  });
+  const origin = { release: "0.0.1", commit: "abc1234", date: "2026-10-28", run: 7, source: "made up" };
+
+  it("keeps the errors, the shares and the top indices of each measure", () => {
+    const snap = coverageSnapshot(summary("2026-10-28", 0.6), origin);
+    expect(snap.kind).toBe("coverage");
+    const m = snap.latest.measures[0]!;
+    expect(m).toMatchObject({ id: "pack.fill", mae: 0.01, baselineMae: 0.1, share: 0.6, cells: { space: 10, withRecords: 8, covered: 6 } });
+    expect(m.indices).toHaveLength(COVERAGE_TOP);
+    expect(snap.trend).toEqual([{ date: "2026-10-28", run: 7, corpus: "c", commit: "abc1234", shares: { "pack.fill": 0.6 } }]);
+  });
+
+  it("adds a point to the trend, and replaces the point of the same date and corpus", () => {
+    const first = coverageSnapshot(summary("2026-10-28", 0.6), origin);
+    const second = coverageSnapshot(summary("2026-11-04", 0.7), origin, first);
+    expect(second.trend.map((p) => [p.date, p.shares["pack.fill"]])).toEqual([
+      ["2026-10-28", 0.6],
+      ["2026-11-04", 0.7],
+    ]);
+    const again = coverageSnapshot(summary("2026-10-28", 0.65), origin, second);
+    expect(again.trend.map((p) => [p.date, p.shares["pack.fill"]])).toEqual([
+      ["2026-10-28", 0.65],
+      ["2026-11-04", 0.7],
+    ]);
+    expect(again.latest.date).toBe("2026-10-28");
+  });
+
+  it("keeps the median errors, and puts the numbers of the folds by input next to the first numbers", () => {
+    const strict = summary("2026-10-28", 0.5);
+    const loose = summary("2026-10-28", 0.6);
+    const snap = coverageSnapshot(strict, origin, undefined, loose);
+    expect(snap.latest.measures[0]).toMatchObject({ medianAe: 0.005, baselineMedianAe: 0.08, share: 0.5, byInput: { mae: 0.01, medianAe: 0.005, share: 0.6 } });
+    expect(snap.trend[0]).toMatchObject({ shares: { "pack.fill": 0.5 }, sharesByInput: { "pack.fill": 0.6 } });
+    expect(coverageSnapshot(strict, origin).latest.measures[0]!.byInput).toBeUndefined();
   });
 });

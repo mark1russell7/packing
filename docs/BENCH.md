@@ -749,6 +749,7 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `releases.json` | `node bench/snapshot.ts releases` | The releases of `CHANGELOG.md`, with the date, the commit and the pull request of each tag. |
 | `gaps-pack-select-v2.json` | `node bench/snapshot.ts gaps <folder of 40766464710> --run 40766464710 --measure pack.gap --release 0.2.17` | `pack.gap` of 6 strategies on `pack-select-v2`, by cell, with the kinds of the bounds (k51). |
 | `gaps-pack-known-v1.json` | `node bench/snapshot.ts gaps <folder of 40768140939> --run 40768140939 --measure pack.gapToOpt --release 0.2.17` | `pack.gapToOpt` of 6 strategies on `pack-known-v1`, by cell (k45). |
+| `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. |
 
 - A strategy snapshot gives the result of `verdict()` of `@mark1russell7/layout-contract` for each measure, by family, at the level 0.05. The tie of each measure is its `minEffect`.
 - The command `select` stops with an error when the training wins differ from `SELECT_LEAF_WINS`. Thus a change of the table also changes the pinned counts and their test.
@@ -756,3 +757,74 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 - The cell of a gap snapshot is the family up to its container size, for example `perfect-cut.guillotine.fixed`. A record without a finite value counts as missing.
 - The commits of the two gap runs come after the tag `v0.2.17`. Thus `--release 0.2.17` gives the release of their packers.
 - After a new release, start the command `releases` again. After a new bench run, start the command of its corpus again.
+- The command `coverage` keeps the earlier points of `coverage.json`. A point with the same date and corpus replaces the earlier point.
+
+## The space coverage
+
+The script `bench/coverage.ts` tells how much of the space of strategies and inputs a regression tree can predict (k105). It reads the records and the manifest of one run.
+
+```sh
+node bench/coverage.ts --records <folder>/records.jsonl --corpus <folder>/corpus.json --out coverage.json --run <id> --date YYYY-MM-DD
+```
+
+The options `--folds` (5), `--seed` (1) and `--by input|spec` (`input`) change the held-out test. The script prints one line for each measure.
+
+With `--min-records <n>`, a run with fewer measured records gives a note in the output file. The script then stops without an error.
+
+The job `merge` of `bench.yml` starts the script after the merge, with `--by spec` and `--min-records 50`. It writes `coverage.json` into the artifact `bench-<corpus>`.
+The step does not fail the job at any time. Its lines also go into the summary of the job.
+
+### The features
+
+- The strategy features come from the named config of `packSpace`. Each stage gives its option, and each param of the option gives one feature.
+- A meta option gives `stage.combine`, its params, and the stages of its one member. A meta option with more members gives `combine.members`.
+- The input features are the cell of the input, its family (`generator@version`) and each param of its spec.
+- A feature with more than 8 numeric levels goes into 4 bins. Each bin holds the same count of levels. The bins make the cells.
+
+### The model
+
+- The model of each measure is a regression tree. It splits a numeric feature at a threshold and another feature at one value.
+- Each split gives the largest drop of the squared error. Each leaf gives the median of its records. The depth is 12 or less, and each leaf has 3 records or more.
+- The baseline gives the median of the training records to each record.
+- The test is k-fold. A seeded shuffle puts each input into one of 5 parts. The tree learns on 4 parts and predicts the fifth part.
+- With `--by spec`, each spec goes into one part with all its seeds. This test is stricter, because the model sees no seed of the spec.
+- The same records and the same seed give the same summary.
+
+### The tolerances
+
+These are the current values. A change of a tolerance changes the shares of all later points of the trend.
+
+| Measure | Scale | Tolerance |
+|---|---|---|
+| `pack.fill` | linear | 0.02 |
+| `pack.gap` | linear | 0.02 |
+| `pack.overflow.excessArea` | linear | 0.02 |
+| `ms` | `log10`, from 0.001 ms | 0.15, a factor of 1.41 |
+
+A skipped record and a value that is not finite count as missing.
+
+### The summary
+
+- `model` and `baseline` give the mean absolute error, the median absolute error and the share of records within the tolerance. The values are raw, with no transform.
+- `skill` is 1 minus the model error over the baseline error. A skill of 0.7 tells that the model removes 70% of the error.
+- `indices` give the first-order index of each feature: the variance of the means of its levels over the full variance.
+- `explained` gives the same index for the strategy, the input spec and the two together. `noise` is 1 minus the joint index. The seeds cause it.
+- A cell is one strategy with one bin of each dimension of a family. The space is the sum, over the families, of the products of their bin counts, times the strategy count.
+- A cell is covered when it has records and the mean held-out error of its records is at the tolerance or below.
+- `share` is the covered cells over the space. `shareOfMeasured` is the covered cells over the cells with records.
+
+### Read it
+
+- A high share tells that the records predict the measure on most of the space. A new run in a covered cell tells little new.
+- A low share tells where to measure next. Look at the features with high indices first.
+- A high `noise` tells that the seed changes the measure much. More seeds help, but a better model does not.
+- An outlier changes the mean error and the indices much. Compare `medianAe` and `mae` before you trust a low index.
+- `pack.gap` has a long tail. Its median error is much lower than its mean error.
+
+### The site
+
+The section `#coverage` of the results page reads `packages/site/data/coverage.json`. The command `snapshot.ts coverage` computes the coverage two times.
+
+- The large numbers come from the folds by spec, the stricter test.
+- The small numbers "by input" come from the folds by input.
+- The error bars show the mean error and the median error of the model against the baseline.

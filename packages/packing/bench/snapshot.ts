@@ -6,12 +6,13 @@
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
 //   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--out <file>]
+//   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -29,6 +30,7 @@ import {
   type SelectNode,
 } from "@mark1russell7/packing";
 import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/layout-contract";
+import { coverage, coverageOptions, readRecords, type CoverageManifest, type CoverageSummary } from "./coverage.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 
 /** The schema of each snapshot file */
@@ -664,6 +666,119 @@ export function gapSnapshot(records: readonly SnapshotRecord[], options: GapSnap
   };
 }
 
+// ---- The space coverage (k105) ----
+
+/** The count of the indices of each measure in the coverage snapshot */
+export const COVERAGE_TOP = 6;
+
+/** One measure of the coverage snapshot */
+export interface CoverageSnapshotMeasure {
+  id: string;
+  scale: "linear" | "log";
+  tolerance: number;
+  n: number;
+  /** The held-out mean absolute error of the model */
+  mae: number;
+  /** The held-out mean absolute error of the median of the training rows */
+  baselineMae: number;
+  /** The held-out median absolute error of the model */
+  medianAe: number;
+  /** The held-out median absolute error of the median of the training rows */
+  baselineMedianAe: number;
+  skill: number | null;
+  share: number;
+  shareOfMeasured: number;
+  cells: { space: number; withRecords: number; covered: number };
+  explained: { strategy: number; input: number; joint: number };
+  noise: number;
+  /** The highest first-order indices, `COVERAGE_TOP` or fewer */
+  indices: { feature: string; group: "strategy" | "input"; index: number }[];
+  /** The errors and the share of the folds by input, when the snapshot has them. This test is less strict. */
+  byInput?: { mae: number; medianAe: number; share: number };
+}
+
+/** One point of the trend of the coverage: the share of each measure on one date */
+export interface CoveragePoint {
+  date: string;
+  run: number | null;
+  corpus: string;
+  commit: string;
+  /** The share of each measure, with the folds of the summary */
+  shares: Record<string, number>;
+  /** The share of each measure with the folds by input, when the snapshot has them */
+  sharesByInput?: Record<string, number>;
+}
+
+/** The snapshot of the space coverage: the last summary and the trend of the shares */
+export interface CoverageSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "coverage";
+  origin: SnapshotOrigin[];
+  latest: {
+    date: string;
+    run: number | null;
+    corpus: string;
+    records: number;
+    inputs: number;
+    strategies: string[];
+    model: CoverageSummary["model"];
+    measures: CoverageSnapshotMeasure[];
+  };
+  /** The points of the trend, oldest first. A date has one point for each corpus. */
+  trend: CoveragePoint[];
+}
+
+/**
+ * This function gives the coverage snapshot of a summary of `coverage`. The trend keeps each point of the earlier
+ * snapshot, and the new point takes the place of a point with the same date and corpus.
+ * The optional `byInput` is a second summary of the same records with the folds by input. Its numbers go next to the first numbers.
+ */
+export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary): CoverageSnapshot {
+  const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
+  const point: CoveragePoint = {
+    date: summary.date,
+    run: summary.run,
+    corpus: summary.corpus,
+    commit: origin.commit,
+    shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
+    ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
+  };
+  const trend = [...(earlier?.trend ?? []).filter((p) => p.date !== point.date || p.corpus !== point.corpus), point].sort((a, b) => a.date.localeCompare(b.date) || a.corpus.localeCompare(b.corpus));
+  return {
+    schema: SNAPSHOT_SCHEMA,
+    kind: "coverage",
+    origin: [origin],
+    latest: {
+      date: summary.date,
+      run: summary.run,
+      corpus: summary.corpus,
+      records: summary.records,
+      inputs: summary.inputs,
+      strategies: [...summary.strategies],
+      model: summary.model,
+      measures: summary.measures.map((m) => ({
+        id: m.id,
+        scale: m.scale,
+        tolerance: m.tolerance,
+        n: m.n,
+        mae: m.model.mae,
+        baselineMae: m.baseline.mae,
+        medianAe: m.model.medianAe,
+        baselineMedianAe: m.baseline.medianAe,
+        skill: m.skill,
+        share: m.share,
+        shareOfMeasured: m.shareOfMeasured,
+        cells: { ...m.cells },
+        explained: { ...m.explained },
+        noise: m.noise,
+        indices: m.indices.slice(0, COVERAGE_TOP).map((x) => ({ ...x })),
+        ...(second.has(m.id) ? { byInput: { mae: second.get(m.id)!.model.mae, medianAe: second.get(m.id)!.model.medianAe, share: second.get(m.id)!.share } } : {}),
+      })),
+    },
+    trend,
+  };
+}
+
 // ---- The command line ----
 
 /** This function gives the value of an option of the command line, or `undefined`. */
@@ -767,6 +882,21 @@ export function snapshotMain(argv: readonly string[]): void {
     writeSnapshot(out ?? new URL(`gaps-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
     return;
   }
+  if (kind === "coverage" && folder !== undefined) {
+    const options = coverageOptions(argv);
+    if (options.run === undefined || options.date === undefined) throw new Error("The snapshot coverage needs --run <id> and --date YYYY-MM-DD.");
+    const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
+    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string };
+    const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as CoverageManifest;
+    const origin = originOf(run.commit, options.run, `bench.yml, the artifact bench-${run.corpus}, and bench/coverage.ts`, optionOf(argv, "--release"));
+    const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
+    const earlier = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as CoverageSnapshot) : undefined;
+    // The site shows the folds by spec, the stricter test. The folds by input give the second number.
+    const bySpec = coverage(records, manifest, { ...options, by: "spec" });
+    const byInput = coverage(records, manifest, { ...options, by: "input" });
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
+    return;
+  }
   if (kind === "paired" && folder !== undefined) {
     const run = Number(optionOf(argv, "--run"));
     const commit = optionOf(argv, "--commit");
@@ -819,7 +949,7 @@ export function snapshotMain(argv: readonly string[]): void {
     writeSnapshot(out ?? new URL("releases.json", SNAPSHOT_DIR), { schema: SNAPSHOT_SCHEMA, kind: "releases", origin: [origin], releases } satisfies ReleasesSnapshot);
     return;
   }
-  throw new Error("Start a snapshot with: node bench/snapshot.ts strategies|paired|select|releases|gaps ... (see the head of bench/snapshot.ts)");
+  throw new Error("Start a snapshot with: node bench/snapshot.ts strategies|paired|select|releases|gaps|coverage ... (see the head of bench/snapshot.ts)");
 }
 
 if (process.argv[1]?.endsWith("snapshot.ts") === true) snapshotMain(process.argv.slice(2));
