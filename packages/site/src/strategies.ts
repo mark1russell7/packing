@@ -29,6 +29,9 @@ import {
 import { mountChrome } from "./chrome.ts";
 import { CORPUS_LABELS, MEASURE_LABELS, parseSnapshot } from "./data.ts";
 import { LABEL_LOOK } from "./format.ts";
+import surveyJson from "../../../docs/research/survey.json?raw";
+import { mountSurvey } from "./survey-section.ts";
+import { parseSurvey } from "./survey-model.ts";
 import "./style.css";
 import "./pages.css";
 import "./cards.css";
@@ -260,5 +263,13 @@ function follow(): void {
 }
 
 apply();
+mountSurvey(parseSurvey(surveyJson), {
+  lead: $("sv-lead"),
+  tiles: $("sv-tiles"),
+  classes: $("sv-classes"),
+  statuses: $("sv-statuses"),
+  count: $("sv-count"),
+  rows: $("sv-rows"),
+});
 window.addEventListener("hashchange", follow);
 follow();

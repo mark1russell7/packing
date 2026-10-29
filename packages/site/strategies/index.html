@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>packing: the strategy cards</title>
-    <meta name="description" content="One card for each packing strategy: its methods in the literature, its sources, cost, guarantee, stage, options, cells and verdicts on each corpus." />
+    <meta name="description" content="One card for each packing strategy: its methods in the literature, its sources, cost, guarantee, stage, options, cells and verdicts on each corpus. The survey of the published methods, as ideas." />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23202a44'/%3E%3Crect x='5' y='5' width='13' height='9' rx='1' fill='%235b8def'/%3E%3Crect x='20' y='5' width='7' height='14' rx='1' fill='%23e9a23b'/%3E%3Crect x='5' y='16' width='13' height='11' rx='1' fill='%23a77fe0'/%3E%3Crect x='20' y='21' width='7' height='6' rx='1' fill='%2348b59a'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -41,6 +41,32 @@
 
       <div id="cards"></div>
       <p class="hint empty-note" id="empty" hidden>No strategy has this family and this stage. Select "All" to show each card.</p>
+
+      <section class="panel sv" id="survey" aria-labelledby="survey-h">
+        <div class="prose">
+          <h2 id="survey-h">The survey: each published method as an idea</h2>
+          <p id="sv-lead"></p>
+        </div>
+        <div class="tiles" id="sv-tiles"></div>
+        <div class="controls">
+          <span class="label" id="sv-class-label">Class</span>
+          <div class="seg" role="radiogroup" aria-labelledby="sv-class-label" id="sv-classes"></div>
+        </div>
+        <div class="controls">
+          <span class="label" id="sv-status-label">Status</span>
+          <div class="seg" role="radiogroup" aria-labelledby="sv-status-label" id="sv-statuses"></div>
+        </div>
+        <p class="hint" id="sv-count" aria-live="polite"></p>
+        <div class="scroll">
+          <table class="vtable sv-table">
+            <caption class="sr">The ideas of the survey, with their class, family, sources, roadmap item, status and score</caption>
+            <thead>
+              <tr><th scope="col">Id</th><th scope="col">Idea</th><th scope="col">Class</th><th scope="col">Family</th><th scope="col">Sources</th><th scope="col">Item</th><th scope="col">Status</th><th scope="col">Score</th></tr>
+            </thead>
+            <tbody id="sv-rows"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
 
     <footer class="foot">

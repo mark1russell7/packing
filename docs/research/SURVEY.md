@@ -6,6 +6,44 @@ This survey is roadmap item k76. It reads the published work on packing, from th
 - The names of the problems come from the [taxonomy](TAXONOMY.md).
 - The scores use the scale of the queue in [`docs/ROADMAP.md`](../ROADMAP.md#the-queue).
 
+## The survey as data
+
+Roadmap item k108 keeps the survey as data. The file [`survey.json`](survey.json) is the source. It has the schema `packing-survey/1` and one record for each idea of this file.
+
+Each record has these fields:
+
+| Field | Content |
+|---|---|
+| `id`, `name`, `description` | The id, the name and the description of the tables of this file. `R` is for rectangles, and `S` is for other shapes. |
+| `published`, `sources` | The value `false` marks an idea of this repository. Each source has the key, the authors, the year and the title of the bibliography of the catalog. |
+| `problemClass`, `shapes`, `family` | The class of the problem, the shapes of the items and the family of the method. |
+| `item`, `itemTitle`, `related` | The roadmap item that holds the idea, the start of its title, and the other items that touch it. |
+| `status`, `note` | `built`, `queued`, `not queued` or `rejected`. A rejected idea gives its reason in `note`. |
+| `survey`, `queue` | The factors of this file, and the factors of the queue of the roadmap. Each is `null` when its table gives none. |
+| `round` | 1 for the ideas of k76, 2 for the ideas of k108. |
+
+The check `node packages/site/scripts/survey-check.ts --check` compares the data with this file, the roadmap and the catalog. A test of the site starts it, so CI fails on a difference. The check finds these problems:
+
+- An idea of this file that is not in the data, or a record of the data that is not in this file.
+- A name, a description, a factor or a score that differs from its table.
+- A source that is not in the bibliography, or a source with other authors, another year or another title.
+- An item that is not in the roadmap, or an item with a title that does not start with `itemTitle`.
+- Queue factors that differ from the queue table. An idea is `queued` only when its item has a row of the queue.
+- An idea that is `built`, but its item is not done.
+
+To add a method:
+
+1. Add its source to the bibliography of the catalog, with the authors, the year, the title and a DOI.
+2. Add a row to a table of this file, with a new id.
+3. Add a record to `survey.json` with the status `not queued`. Do not write factors that the queue does not give.
+4. Start the check, and correct each problem.
+
+When you change the queue or the status of an item of the survey, change `survey.json` in the same pull request.
+
+### The rule of the next round
+
+Up to 3 build subagents operate each day. Thus a week has 21 build slots. When the queue holds fewer than 21 rows, the next round of the survey starts. It adds published methods and hybrids of the strategies that the package has. Each round adds methods from the classes with the fewest ideas first. The field `rule` of `survey.json` keeps the 3 builders and the 7 days, and the check shows the state of the queue.
+
 ## What packing has today
 
 The package has these strategies on rectangles: `rows`, `shelf` with 3 fits, `skyline` (bottom-left), `push` and `maxrects` with 5 rules. The composites are `portfolio`, `aspectFit` and `select`. The containers can have other shapes (k37), but the items are rectangles only.
@@ -203,6 +241,42 @@ Each idea is one step that a later item can do. The factors and the score use th
 | S13 | No-fit polygons by Minkowski sums | Cut each polygon into convex parts. Sum the parts pair by pair, and take the union. | nesting | 3 | 2 | 3 | 2.0 | Bennell 2008b, Agarwal 2002 | k39 |
 | S14 | Packomania as a reference | Compare each circle result with the best known packing. Fetch the data in CI, because the site states no license. | benchmarks, circles | 2 | 2 | 2 | 2.0 | Packomania, Hifi 2009 | k46 |
 | S15 | Exact models for few polygons | Put each piece on a grid of dots, and solve the integer model. | nesting, exact | 2 | 3 | 5 | 1.2 | Toledo 2013, Rodrigues 2017 | k10, k39 |
+
+### Round 2: methods and hybrids that the queue does not hold
+
+Roadmap item k108 adds these ideas. Round 1 had no idea for online packing, and few ideas for bins, the knapsack, the free width and circles. Thus this round adds those classes first.
+
+Each method below has a row in the catalog, and a source in its bibliography. No row of the queue holds these ideas, so they have no factors. The column "Item" names the items that touch each idea.
+
+The hybrids join two strategies that the package has. They are ideas of this repository, not published methods.
+
+| Rank | Idea | Description | Class | Sources | Item |
+|---|---|---|---|---|---|
+| R21 | Skyline with a fit score | For each segment of the skyline, score each box by the count of its sides that touch exactly. Put the box with the best score. | strip | Wei 2011 | k22 |
+| R22 | Best fit, fast form | Find the lowest gap of the skyline, and put in it the box that fills the most of its width. Balanced trees make each step fast. | strip | Burke 2004, Imahori 2010 | k25 |
+| R23 | Bottom-left fill with a genetic order | Keep a population of orders. Cross and change them, and decode each order with bottom-left fill, holes included. | strip | Hopper 2001, Jakobs 1996 | k25, k26 |
+| R24 | Reactive GRASP | Build an order with a random greedy rule, and improve it with a local search. Learn the best amount of randomness from the results. | strip | Alvarez-Valdes 2008 | k26 |
+| R25 | Annealing with best fit | Anneal the order of the first boxes. Place the other boxes with the best-fit rule. | strip | Burke 2009 | k26 |
+| R26 | Branch and bound with better bounds | Search the strip height exactly, with new lower bounds and rules that remove equal layouts. | strip | Alvarez-Valdes 2009 | k10 |
+| R27 | Constraint search for the smallest rectangle | Use a constraint model of non-overlap with a sweep. Choose all the `x` places first, then the `y` places, with interval splits. | free width | Simonis 2008, Beldiceanu 2001 | k10, k33 |
+| R28 | Optimal rectangle packing | Test each candidate enclosing rectangle in order of area, with a branch and bound. The first rectangle that holds all the boxes is the answer. | free width | Korf 2003 | k33 |
+| R29 | Tabu search for bins | Move a box from the worst bin to another bin. Forbid the reverse move for some steps. | bin | Lodi 1999 | k26 |
+| R30 | Set covering of good bins | Make many single bins with fast rules. Choose the fewest bins that hold each box, with a Lagrangian heuristic. | bin | Monaci 2006 | none |
+| R31 | Tabu search for the knapsack | Build a layout with a constructive rule. Move boxes into and out of it, with a memory of the last moves. | knapsack | Alvarez-Valdes 2007 | none |
+| R32 | Tree search on grid points | Search exactly over the places on a grid of the possible coordinates, in a container of fixed size. | knapsack | Beasley 1985a | k10 |
+| R33 | Dynamic programming for guillotine cuts | For each size on a grid, the best value is the best box that fits or the best cut into two parts. | knapsack | Gilmore 1965, Christofides 1977, Beasley 1985b | k10, k23 |
+| R34 | Online shelves with a parameter | Round each height up to a power of `r`. Keep open shelves for each class of height, with next fit or first fit. | online | Baker 1983 | k30 |
+| R35 | Harmonic shelves | Do the online shelves with classes of width too, as harmonic bin packing does. | online | Csirik 1997 | k30 |
+| R36 | Online bottom-left | Put each box at its lowest, then leftmost place, in the order of arrival. Its paper gives lower bounds for each online packer. | online | Brown 1982 | k30, k25 |
+| R37 | Restarts that stop at the bound | Use `restarts`, and stop when a layout reaches the bound of k51. No other order can do better. | strip | an idea of this repository | k78, k51 |
+| R38 | Shelves, then MaxRects in the waste | Pack with `shelf`. Then put the boxes of the top shelf into the free rectangles of the lower shelves, with `maxrects-bl`. | strip | an idea of this repository | k21, k24 |
+| R39 | Restarts in the cells of MaxRects | Where `select` picks `maxrects-bl`, wrap the pick in `restarts`. The other cells keep the time of `rows`. | strip | an idea of this repository | k66, k78 |
+| S16 | TOPOS | Grow a partial layout one piece at a time. The waste, the overlap and the distances of the no-fit polygons choose the piece and its place. | nesting | Oliveira 2000 | k39 |
+| S17 | Annealing with linear programs | Anneal the order of the pieces. Linear programs compact and separate the layout in the regions of the no-fit polygons. | nesting | Gomes 2006 | k39 |
+| S18 | Quasi-human moves for circles | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | circle | Huang 1999 | k39 |
+| S19 | Formulation space search | Change between the Cartesian form and the polar form of one nonlinear program, to leave a local optimum of one form. | circle | López 2011 | k39 |
+| S20 | Iterated tabu search for circles in a strip | Solve the strip as a series of fixed lengths. A tabu search with changes and a rule of acceptance solves each length. | circle | Fu 2013 | k39 |
+| S21 | Restarts around bounding boxes | Use `restarts` with the member `bbox`, so circles and polygons get a search over the order. | nesting | an idea of this repository | k78, k91 |
 
 ## The benchmark sets
 

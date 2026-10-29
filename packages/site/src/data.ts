@@ -296,6 +296,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k108",
+    title: "The survey is data: 60 ideas in `survey.json`, with 25 new ideas for online packing, bins, the knapsack and circles. The strategies page shows them.",
+    pr: 138,
+    link: "https://github.com/mark1russell7/packing/pull/138",
+  },
+  {
+    date: "2026-10-29",
     item: "k112",
     title: "The space coverage also tests the model on random pairs of the whole space. Each measure shows the share of the bench grid and of the whole space.",
     pr: 133,

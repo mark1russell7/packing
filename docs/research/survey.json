@@ -1,0 +1,2209 @@
+{
+  "schema": "packing-survey/1",
+  "rule": {
+    "buildersPerDay": 3,
+    "days": 7
+  },
+  "methods": [
+    {
+      "id": "R1",
+      "name": "Random restarts around each strategy",
+      "description": "Change the order of a constructive strategy at random, with a seed and a budget of time. Keep the best layout.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Yang 2013",
+          "authors": "Shuangyuan Yang, Shuihua Han, Weiguo Ye",
+          "year": 2013,
+          "title": "A simple randomized algorithm for two-dimensional strip packing"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "metaheuristic",
+      "item": "k78",
+      "itemTitle": "Random restarts around each strategy",
+      "related": [
+        "k26"
+      ],
+      "status": "built",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 1
+      },
+      "queue": null,
+      "round": 1
+    },
+    {
+      "id": "R2",
+      "name": "Lower bounds as the distance to the best",
+      "description": "Compute `lb-l2` with the reductions of `lb-reduction`. Each record shows its gap to the bound.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Martello 1998",
+          "authors": "Silvano Martello, Daniele Vigo",
+          "year": 1998,
+          "title": "Exact solution of the two-dimensional finite bin packing problem"
+        },
+        {
+          "key": "Carlier 2007",
+          "authors": "Jacques Carlier, François Clautiaux, Aziz Moukrim",
+          "year": 2007,
+          "title": "New reduction procedures and lower bounds for the two-dimensional bin packing problem with fixed orientation"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "bound",
+      "item": "k51",
+      "itemTitle": "Lower bounds, so each result shows",
+      "related": [],
+      "status": "built",
+      "note": null,
+      "survey": {
+        "gain": 5,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": null,
+      "round": 1
+    },
+    {
+      "id": "R3",
+      "name": "The published sets with a known optimum",
+      "description": "Import the sets C, N, T and BKW from ESICUP (CC0) and 2DPackLib. Their gap to the optimum is exact.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Hopper 2001",
+          "authors": "E. Hopper, B. C. H. Turton",
+          "year": 2001,
+          "title": "An empirical investigation of meta-heuristic and heuristic algorithms for a 2D packing problem"
+        },
+        {
+          "key": "Burke 2004",
+          "authors": "E. K. Burke, G. Kendall, G. Whitwell",
+          "year": 2004,
+          "title": "A new placement heuristic for the orthogonal stock-cutting problem"
+        },
+        {
+          "key": "Iori 2022",
+          "authors": "Manuel Iori, Vinícius Loti de Lima, Silvano Martello, Michele Monaci",
+          "year": 2022,
+          "title": "2DPackLib: a two-dimensional cutting and packing library"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "benchmark",
+      "item": "k46",
+      "itemTitle": "The published benchmark sets for strip",
+      "related": [
+        "k45"
+      ],
+      "status": "built",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": null,
+      "round": 1
+    },
+    {
+      "id": "R4",
+      "name": "Skyline best fit with a local search",
+      "description": "Score each place on the skyline by the fit of its gap. Swap boxes in the order with a local search.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Wei 2017",
+          "authors": "Lijun Wei, Qian Hu, Stephen C.H. Leung, Ning Zhang",
+          "year": 2017,
+          "title": "An improved skyline based heuristic for the 2D strip packing problem and its efficient implementation"
+        },
+        {
+          "key": "Burke 2004",
+          "authors": "E. K. Burke, G. Kendall, G. Whitwell",
+          "year": 2004,
+          "title": "A new placement heuristic for the orthogonal stock-cutting problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "local search",
+      "item": "k22",
+      "itemTitle": "Skyline variants: bottom-left, minimum waste, with",
+      "related": [
+        "k25"
+      ],
+      "status": "not queued",
+      "note": "k22 shipped the skyline rules `bl` and `mw`, not this search. The best-fit rule is a part of k25.",
+      "survey": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": null,
+      "round": 1
+    },
+    {
+      "id": "R5",
+      "name": "Goal-driven ruin and recreate",
+      "description": "Remove a part of the layout and pack it again. A goal cost keeps the search moving.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Gardeyn 2022",
+          "authors": "Jeroen Gardeyn, Tony Wauters",
+          "year": 2022,
+          "title": "A goal-driven ruin and recreate heuristic for the 2D variable-sized bin packing problem with guillotine constraints"
+        },
+        {
+          "key": "Wei 2013",
+          "authors": "Lijun Wei, Wee-Chong Oon, Wenbin Zhu, Andrew Lim",
+          "year": 2013,
+          "title": "A goal-driven approach to the 2D bin packing and variable-sized bin packing problems"
+        }
+      ],
+      "problemClass": "bin",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "metaheuristic",
+      "item": "k79",
+      "itemTitle": "Goal-driven ruin and recreate",
+      "related": [
+        "k26"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R6",
+      "name": "Overlap minimization for rectangles",
+      "description": "Shrink the strip. Move one box at a time to its place of least overlap, with guided penalties.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Egeblad 2007",
+          "authors": "Jens Egeblad, Benny K. Nielsen, Allan Odgaard",
+          "year": 2007,
+          "title": "Fast neighborhood search for two- and three-dimensional nesting problems"
+        },
+        {
+          "key": "Umetani 2009",
+          "authors": "Shunji Umetani, Mutsunori Yagiura, Shinji Imahori, Takashi Imamichi, Koji Nonobe, Toshihide Ibaraki",
+          "year": 2009,
+          "title": "Solving the irregular strip packing problem via guided local search for overlap minimization"
+        },
+        {
+          "key": "Imamichi 2009",
+          "authors": "Takashi Imamichi, Mutsunori Yagiura, Hiroshi Nagamochi",
+          "year": 2009,
+          "title": "An iterated local search algorithm based on nonlinear programming for the irregular strip packing problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "local search",
+      "item": "k80",
+      "itemTitle": "Overlap minimization for rectangles",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R7",
+      "name": "Best fit from two or three sides",
+      "description": "Do `best-fit-bkw`, and also fill each gap from the right and from the middle. Keep the best fit.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Aşık 2009",
+          "authors": "Önder Barış Aşık, Ender Özcan",
+          "year": 2009,
+          "title": "Bidirectional best-fit heuristic for orthogonal rectangular strip packing"
+        },
+        {
+          "key": "Verstichel 2013",
+          "authors": "Jannes Verstichel, Patrick De Causmaecker, Greet Vanden Berghe",
+          "year": 2013,
+          "title": "An improved best‐fit heuristic for the orthogonal strip packing problem"
+        },
+        {
+          "key": "Özcan 2013",
+          "authors": "Ender Özcan, Zhang Kai, John H. Drake",
+          "year": 2013,
+          "title": "Bidirectional best-fit heuristic considering compound placement for two dimensional orthogonal rectangular strip packing"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": "k25",
+      "itemTitle": "Bottom-left fill: Baker, Chazelle and the",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "R8",
+      "name": "Least waste first",
+      "description": "Put next the box and the place that leave the least wasted area.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Wei 2009",
+          "authors": "Lijun Wei, Defu Zhang, Qingshan Chen",
+          "year": 2009,
+          "title": "A least wasted first heuristic algorithm for the rectangular packing problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": "k25",
+      "itemTitle": "Bottom-left fill: Baker, Chazelle and the",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "R9",
+      "name": "Guillotine rules for bins",
+      "description": "Fill one bin at a time with guillotine cuts. Add the three insertion rules of Fleszar 2013.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Charalambous 2011",
+          "authors": "Christoforos Charalambous, Krzysztof Fleszar",
+          "year": 2011,
+          "title": "A constructive bin-oriented heuristic for the two-dimensional bin packing problem with guillotine cuts"
+        },
+        {
+          "key": "Fleszar 2013",
+          "authors": "Krzysztof Fleszar",
+          "year": 2013,
+          "title": "Three insertion heuristics and a justification improvement heuristic for two-dimensional bin packing with guillotine cuts"
+        }
+      ],
+      "problemClass": "bin",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": "k23",
+      "itemTitle": "Guillotine: each rule to choose a",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R10",
+      "name": "Binary search on the height",
+      "description": "Search the height of the strip by halves. For each height, do a random local search for a feasible layout.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Zhang 2013",
+          "authors": "Defu Zhang, Lijun Wei, Stephen C. H. Leung, Qingshan Chen",
+          "year": 2013,
+          "title": "A Binary Search Heuristic Algorithm Based on Randomized Local Search for the Rectangular Strip-Packing Problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "local search",
+      "item": "k81",
+      "itemTitle": "Binary search on the height",
+      "related": [
+        "k26"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R11",
+      "name": "Legalization for stability",
+      "description": "After a change, remove the overlap row by row with the least movement.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Spindler 2008",
+          "authors": "Peter Spindler, Ulf Schlichtmann, Frank M. Johannes",
+          "year": 2008,
+          "title": "Abacus"
+        },
+        {
+          "key": "Hill 2002",
+          "authors": "Dwight Hill",
+          "year": 2002,
+          "title": "Method and system for high speed detailed placement of cells within an integrated circuit design"
+        }
+      ],
+      "problemClass": "placement",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": "k82",
+      "itemTitle": "Legalization for stability",
+      "related": [
+        "k12",
+        "k29"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R12",
+      "name": "Genetic programming of the score",
+      "description": "Evolve the score function of `maxrects` or of the skyline on the corpus. No model at run time.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Burke 2010",
+          "authors": "Edmund K. Burke, Matthew Hyde, Graham Kendall, John Woodward",
+          "year": 2010,
+          "title": "A Genetic Programming Hyper-Heuristic Approach for Evolving 2-D Strip Packing Heuristics"
+        },
+        {
+          "key": "Burke 2013",
+          "authors": "Edmund K Burke, Michel Gendreau, Matthew Hyde, Graham Kendall, Gabriela Ochoa, Ender Özcan, Rong Qu",
+          "year": 2013,
+          "title": "Hyper-heuristics: a survey of the state of the art"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "learned",
+      "item": "k83",
+      "itemTitle": "Genetic programming of the score",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R13",
+      "name": "Priority code that a language model evolves",
+      "description": "Evolve the score function with a language model, and keep the code that wins on the corpus.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Romera-Paredes 2024",
+          "authors": "Bernardino Romera-Paredes, Mohammadamin Barekatain, Alexander Novikov, Matej Balog, M. Pawan Kumar, Emilien Dupont, Francisco J. R. Ruiz, Jordan S. Ellenberg, Pengming Wang, Omar Fawzi, Pushmeet Kohli, Alhussein Fawzi",
+          "year": 2024,
+          "title": "Mathematical discoveries from program search with large language models"
+        },
+        {
+          "key": "Liu 2024a",
+          "authors": "Fei Liu, Xialiang Tong, Mingxuan Yuan, Xi Lin, Fu Luo, Zhenkun Wang, Zhichao Lu, Qingfu Zhang",
+          "year": 2024,
+          "title": "Evolution of Heuristics: Towards Efficient Automatic Algorithm Design Using Large Language Model"
+        },
+        {
+          "key": "Herrmann 2025",
+          "authors": "Julien Herrmann, Guillaume Pallez",
+          "year": 2025,
+          "title": "An In-depth Study of LLM Contributions to the Bin Packing Problem"
+        }
+      ],
+      "problemClass": "bin",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "learned",
+      "item": "k84",
+      "itemTitle": "Priority code that a language model evolves",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 5,
+        "cost": 4
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 5,
+        "cost": 4
+      },
+      "round": 1
+    },
+    {
+      "id": "R14",
+      "name": "Beam search",
+      "description": "Keep the best `k` partial layouts. Grow each with each box left, and cut the weak children.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Chen 2025",
+          "authors": "Mao Chen, Xicheng Peng, Xiangyang Tang",
+          "year": 2025,
+          "title": "Filtered beam search algorithm for the two-dimensional rectangular packing problem"
+        },
+        {
+          "key": "Wen 2025",
+          "authors": "Yajie Wen, Defu Zhang",
+          "year": 2025,
+          "title": "A Beam Search Based Parallel Algorithm for the Two-Dimensional Strip Packing Problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "metaheuristic",
+      "item": "k85",
+      "itemTitle": "Beam search",
+      "related": [
+        "k26"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R15",
+      "name": "A learned selector with footprints",
+      "description": "Map each input of the corpus by its features. Fit a classifier for `select`, and show the region where each strategy wins.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Neuenfeldt 2023",
+          "authors": "Alvaro Neuenfeldt Júnior, Julio Siluk, Matheus Francescatto, Gabriel Stieler, David Disconzi",
+          "year": 2023,
+          "title": "A framework to select heuristics for the rectangular two-dimensional strip packing problem"
+        },
+        {
+          "key": "Smith-Miles 2023",
+          "authors": "Kate Smith-Miles, Mario Andrés Muñoz",
+          "year": 2023,
+          "title": "Instance Space Analysis for Algorithm Testing: Methodology and Software Tools"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "learned",
+      "item": "k70",
+      "itemTitle": "Fit `SELECT_TABLE` again on two measures,",
+      "related": [
+        "k66"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "R16",
+      "name": "Global placement for large inputs",
+      "description": "Spread `10k` boxes with an energy method, then legalize them.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Lu 2015",
+          "authors": "Jingwei Lu, Pengwen Chen, Chin-Chih Chang, Lu Sha, Dennis Jen-Hsin Huang, Chin-Chi Teng, Chung-Kuan Cheng",
+          "year": 2015,
+          "title": "ePlace"
+        },
+        {
+          "key": "Lin 2021",
+          "authors": "Yibo Lin, Zixuan Jiang, Jiaqi Gu, Wuxi Li, Shounak Dhar, Haoxing Ren, Brucek Khailany, David Z. Pan",
+          "year": 2021,
+          "title": "DREAMPlace: Deep Learning Toolkit-Enabled GPU Acceleration for Modern VLSI Placement"
+        }
+      ],
+      "problemClass": "placement",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "analytical",
+      "item": "k86",
+      "itemTitle": "Global placement for large inputs",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 5,
+        "cost": 5
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 5,
+        "cost": 5
+      },
+      "round": 1
+    },
+    {
+      "id": "R17",
+      "name": "Dynamic reduction of the width",
+      "description": "For a free width, reduce the width step by step and pack again with a search.",
+      "published": true,
+      "sources": [
+        {
+          "key": "He 2015",
+          "authors": "Kun He, Pengli Ji, Chumin Li",
+          "year": 2015,
+          "title": "Dynamic reduction heuristics for the rectangle packing area minimization problem"
+        }
+      ],
+      "problemClass": "free width",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "local search",
+      "item": "k87",
+      "itemTitle": "Dynamic reduction of the width",
+      "related": [
+        "k33"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "R18",
+      "name": "Exact answers for small inputs",
+      "description": "A branch and bound on the corner places, with the lower bounds. A solver of constraints is an option.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Martello 2003",
+          "authors": "Silvano Martello, Michele Monaci, Daniele Vigo",
+          "year": 2003,
+          "title": "An exact approach to the strip-packing problem"
+        },
+        {
+          "key": "Clautiaux 2007",
+          "authors": "François Clautiaux, Jacques Carlier, Aziz Moukrim",
+          "year": 2007,
+          "title": "A new exact method for the two-dimensional orthogonal packing problem"
+        },
+        {
+          "key": "OR-Tools",
+          "authors": null,
+          "year": null,
+          "title": "OR-Tools"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "exact",
+      "item": "k10",
+      "itemTitle": "An exact baseline for small inputs:",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 4
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 4,
+        "cost": 4
+      },
+      "round": 1
+    },
+    {
+      "id": "R19",
+      "name": "Identical boxes in five blocks",
+      "description": "For many boxes of one size, with turns, use the five-block layout.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Birgin 2010",
+          "authors": "E G Birgin, R D Lobato, R Morabito",
+          "year": 2010,
+          "title": "An effective recursive partitioning approach for the packing of identical rectangles in a rectangle"
+        }
+      ],
+      "problemClass": "knapsack",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": "k88",
+      "itemTitle": "Identical boxes in five blocks",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 2,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 2,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "R20",
+      "name": "A learned order",
+      "description": "A pointer network gives the order for a bottom-left decoder. It needs training and a model at run time.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Fang 2023",
+          "authors": "Jie Fang, Yunqing Rao, Mingliang Shi",
+          "year": 2023,
+          "title": "A deep reinforcement learning algorithm for the rectangular strip packing problem"
+        },
+        {
+          "key": "Vinyals 2015",
+          "authors": "Oriol Vinyals, Meire Fortunato, Navdeep Jaitly",
+          "year": 2015,
+          "title": "Pointer Networks"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "learned",
+      "item": "k89",
+      "itemTitle": "A learned order",
+      "related": [],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 2,
+        "uncertainty": 4,
+        "cost": 5
+      },
+      "queue": {
+        "gain": 2,
+        "uncertainty": 4,
+        "cost": 5
+      },
+      "round": 1
+    },
+    {
+      "id": "S1",
+      "name": "Circles by the maximum hole degree",
+      "description": "Put each circle in the corner place, where it touches two items, with the largest hole degree.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Huang 2006",
+          "authors": "Wen Qi Huang, Yu Li, Chu Min Li, Ru Chu Xu",
+          "year": 2006,
+          "title": "New heuristics for packing unequal circles into a circular container"
+        },
+        {
+          "key": "Kubach 2009",
+          "authors": "T. Kubach, A. Bortfeldt, H. Gehring",
+          "year": 2009,
+          "title": "Parallel greedy algorithms for packing unequal circles into a strip or a rectangle"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "greedy",
+      "item": "k90",
+      "itemTitle": "Circles by the maximum hole degree",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "S2",
+      "name": "Shapes by their bounding boxes",
+      "description": "Pack the bounding rectangle of each polygon or circle with the strategies of today. This is the baseline of each shape.",
+      "published": false,
+      "sources": [
+        {
+          "key": "Yang 2023",
+          "authors": "Zeshi Yang, Zherong Pan, Manyi Li, Kui Wu, Xifeng Gao",
+          "year": 2023,
+          "title": "Learning Based 2D Irregular Shape Packing"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon",
+        "circle"
+      ],
+      "family": "greedy",
+      "item": "k91",
+      "itemTitle": "Shapes by their bounding boxes",
+      "related": [
+        "k39"
+      ],
+      "status": "built",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 2,
+        "cost": 1
+      },
+      "queue": null,
+      "round": 1
+    },
+    {
+      "id": "S3",
+      "name": "A raster no-fit for free forms",
+      "description": "Put each shape on a grid of cells. Place it bottom-left on the free cells, and search the order.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Mundim 2017",
+          "authors": "Leandro R. Mundim, Marina Andretta, Thiago Alves de Queiroz",
+          "year": 2017,
+          "title": "A biased random key genetic algorithm for open dimension nesting problems using no-fit raster"
+        },
+        {
+          "key": "Sato 2019",
+          "authors": "André Kubagawa Sato, Thiago Castro Martins, Antonio Miguel Gomes, Marcos Sales Guerra Tsuzuki",
+          "year": 2019,
+          "title": "Raster penetration map applied to the irregular packing problem"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "free form"
+      ],
+      "family": "greedy",
+      "item": "k92",
+      "itemTitle": "A raster no-fit for free forms",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "S4",
+      "name": "Front chain and enclosing circle",
+      "description": "Pack the circles of a group against the front chain. The smallest enclosing circle gives the parent.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Wang 2006",
+          "authors": "Weixin Wang, Hui Wang, Guozhong Dai, Hongan Wang",
+          "year": 2006,
+          "title": "Visualization of large hierarchical data by circle packing"
+        },
+        {
+          "key": "Welzl 1991",
+          "authors": "Emo Welzl",
+          "year": 1991,
+          "title": "Smallest enclosing disks (balls and ellipsoids)"
+        },
+        {
+          "key": "d3-hierarchy",
+          "authors": null,
+          "year": null,
+          "title": "d3-hierarchy"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "greedy",
+      "item": "k93",
+      "itemTitle": "Front chain and enclosing circle",
+      "related": [
+        "k27",
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "S5",
+      "name": "Basin hopping for circles",
+      "description": "Change a layout of circles at random, then lower its overlap energy. Keep it when it is better.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Wang 2002",
+          "authors": "Huaiqing Wang, Wenqi Huang, Quan Zhang, Dongming Xu",
+          "year": 2002,
+          "title": "An improved algorithm for the packing of unequal circles within a larger containing circle"
+        },
+        {
+          "key": "Addis 2008a",
+          "authors": "Bernardetta Addis, Marco Locatelli, Fabio Schoen",
+          "year": 2008,
+          "title": "Efficiently packing unequal disks in a circle"
+        },
+        {
+          "key": "Grosso 2010",
+          "authors": "A. Grosso, A. R. M. J. U. Jamali, M. Locatelli, F. Schoen",
+          "year": 2010,
+          "title": "Solving the problem of packing equal and unequal circles in a circular container"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "metaheuristic",
+      "item": "k94",
+      "itemTitle": "Basin hopping for circles",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "S6",
+      "name": "Bottom-left fill for polygons",
+      "description": "Put each polygon at its lowest, then leftmost place without overlap. Search the order.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Burke 2006",
+          "authors": "Edmund Burke, Robert Hellier, Graham Kendall, Glenn Whitwell",
+          "year": 2006,
+          "title": "A New Bottom-Left-Fill Heuristic Algorithm for the Two-Dimensional Irregular Packing Problem"
+        },
+        {
+          "key": "SVGnest",
+          "authors": null,
+          "year": null,
+          "title": "SVGnest"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "greedy",
+      "item": "k95",
+      "itemTitle": "Bottom-left fill for polygons",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 3,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "S7",
+      "name": "Overlap minimization for polygons",
+      "description": "Shrink the strip, then remove the collisions one piece at a time with guided weights.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Gardeyn 2025",
+          "authors": "Jeroen Gardeyn, Greet Vanden Berghe, Tony Wauters",
+          "year": 2025,
+          "title": "An open-source heuristic to reboot 2D nesting research"
+        },
+        {
+          "key": "Egeblad 2007",
+          "authors": "Jens Egeblad, Benny K. Nielsen, Allan Odgaard",
+          "year": 2007,
+          "title": "Fast neighborhood search for two- and three-dimensional nesting problems"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "local search",
+      "item": "k96",
+      "itemTitle": "Overlap minimization for polygons",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 5,
+        "uncertainty": 4,
+        "cost": 5
+      },
+      "queue": {
+        "gain": 5,
+        "uncertainty": 4,
+        "cost": 5
+      },
+      "round": 1
+    },
+    {
+      "id": "S8",
+      "name": "Groups of pieces as near rectangles",
+      "description": "Join pieces that fit well into groups that are almost rectangles. Pack the groups with the rectangle strategies.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Yang 2023",
+          "authors": "Zeshi Yang, Zherong Pan, Manyi Li, Kui Wu, Xifeng Gao",
+          "year": 2023,
+          "title": "Learning Based 2D Irregular Shape Packing"
+        },
+        {
+          "key": "Elkeran 2013",
+          "authors": "Ahmed Elkeran",
+          "year": 2013,
+          "title": "A new approach for sheet nesting problem using guided cuckoo search and pairwise clustering"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "learned",
+      "item": "k97",
+      "itemTitle": "Groups of pieces as near rectangles",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "S9",
+      "name": "The ESICUP nesting sets",
+      "description": "Import the polygon sets (CC0), with the table of Sparrow as the reference.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Albano 1980",
+          "authors": "Antonio Albano, Giuseppe Sapuppo",
+          "year": 1980,
+          "title": "Optimal Allocation of Two-Dimensional Irregular Shapes Using Heuristic Search Methods"
+        },
+        {
+          "key": "Gardeyn 2025",
+          "authors": "Jeroen Gardeyn, Greet Vanden Berghe, Tony Wauters",
+          "year": 2025,
+          "title": "An open-source heuristic to reboot 2D nesting research"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "benchmark",
+      "item": "k98",
+      "itemTitle": "The ESICUP nesting sets",
+      "related": [
+        "k46"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "S10",
+      "name": "Phi-functions",
+      "description": "Write the non-overlap of each pair as a function, and solve a nonlinear program from many starts.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Chernov 2010",
+          "authors": "N. Chernov, Yu. Stoyan, T. Romanova",
+          "year": 2010,
+          "title": "Mathematical model and efficient algorithms for object packing problem"
+        },
+        {
+          "key": "Stoyan 2016",
+          "authors": "Yuriy Stoyan, Alexander Pankratov, Tatiana Romanova",
+          "year": 2016,
+          "title": "Cutting and packing problems for irregular objects with continuous rotations: mathematical modelling and non-linear optimization"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon",
+        "circle"
+      ],
+      "family": "analytical",
+      "item": "k99",
+      "itemTitle": "Phi-functions",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 5
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 4,
+        "cost": 5
+      },
+      "round": 1
+    },
+    {
+      "id": "S11",
+      "name": "The best search for circles",
+      "description": "Do a threshold search with layouts that the search hashes to skip repeats.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Lai 2022",
+          "authors": "Xiangjing Lai, Jin-Kao Hao, Dong Yue, Zhipeng Lü, Zhang-Hua Fu",
+          "year": 2022,
+          "title": "Iterated dynamic thresholding search for packing equal circles into a circular container"
+        },
+        {
+          "key": "Zhou 2025",
+          "authors": "Jianrong Zhou, Jiyao He, Kun He",
+          "year": 2025,
+          "title": "Solution-hashing search based on layout-graph transformation for unequal circle packing"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "metaheuristic",
+      "item": "k100",
+      "itemTitle": "The best search for circles",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 4
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 3,
+        "cost": 4
+      },
+      "round": 1
+    },
+    {
+      "id": "S12",
+      "name": "A collision engine",
+      "description": "A tree of cells for the broad phase, and polygons with fewer edges for a fast test. Each nesting method uses it.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Gardeyn 2026",
+          "authors": "Jeroen Gardeyn, Greet Vanden Berghe, Tony Wauters",
+          "year": 2026,
+          "title": "Decoupling Geometry from Optimization in 2D Irregular Cutting and Packing Problems: An Open-Source Collision Detection Engine"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "geometry",
+      "item": "k101",
+      "itemTitle": "A collision engine",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 4,
+        "uncertainty": 2,
+        "cost": 4
+      },
+      "queue": {
+        "gain": 4,
+        "uncertainty": 2,
+        "cost": 4
+      },
+      "round": 1
+    },
+    {
+      "id": "S13",
+      "name": "No-fit polygons by Minkowski sums",
+      "description": "Cut each polygon into convex parts. Sum the parts pair by pair, and take the union.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Bennell 2008b",
+          "authors": "Julia A Bennell, Xiang Song",
+          "year": 2008,
+          "title": "A comprehensive and robust procedure for obtaining the nofit polygon using Minkowski sums"
+        },
+        {
+          "key": "Agarwal 2002",
+          "authors": "Pankaj K. Agarwal, Eyal Flato, Dan Halperin",
+          "year": 2002,
+          "title": "Polygon decomposition for efficient construction of Minkowski sums"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "geometry",
+      "item": "k102",
+      "itemTitle": "No-fit polygons by Minkowski sums",
+      "related": [
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 3,
+        "uncertainty": 2,
+        "cost": 3
+      },
+      "queue": {
+        "gain": 3,
+        "uncertainty": 2,
+        "cost": 3
+      },
+      "round": 1
+    },
+    {
+      "id": "S14",
+      "name": "Packomania as a reference",
+      "description": "Compare each circle result with the best known packing. Fetch the data in CI, because the site states no license.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Packomania",
+          "authors": null,
+          "year": null,
+          "title": "Packomania"
+        },
+        {
+          "key": "Hifi 2009",
+          "authors": "Mhand Hifi, Rym M'Hallah",
+          "year": 2009,
+          "title": "A Literature Review on Circle and Sphere Packing Problems: Models and Methodologies"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "benchmark",
+      "item": "k103",
+      "itemTitle": "Packomania as a reference",
+      "related": [
+        "k46"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 2,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "queue": {
+        "gain": 2,
+        "uncertainty": 2,
+        "cost": 2
+      },
+      "round": 1
+    },
+    {
+      "id": "S15",
+      "name": "Exact models for few polygons",
+      "description": "Put each piece on a grid of dots, and solve the integer model.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Toledo 2013",
+          "authors": "Franklina M.B. Toledo, Maria Antónia Carravilla, Cristina Ribeiro, José F. Oliveira, A. Miguel Gomes",
+          "year": 2013,
+          "title": "The Dotted-Board Model: A new MIP model for nesting irregular shapes"
+        },
+        {
+          "key": "Rodrigues 2017",
+          "authors": "Marcos Okamura Rodrigues, Franklina M.B. Toledo",
+          "year": 2017,
+          "title": "A clique covering MIP model for the irregular strip packing problem"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "exact",
+      "item": "k104",
+      "itemTitle": "Exact models for few polygons",
+      "related": [
+        "k10",
+        "k39"
+      ],
+      "status": "queued",
+      "note": null,
+      "survey": {
+        "gain": 2,
+        "uncertainty": 3,
+        "cost": 5
+      },
+      "queue": {
+        "gain": 2,
+        "uncertainty": 3,
+        "cost": 5
+      },
+      "round": 1
+    },
+    {
+      "id": "R21",
+      "name": "Skyline with a fit score",
+      "description": "For each segment of the skyline, score each box by the count of its sides that touch exactly. Put the box with the best score.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Wei 2011",
+          "authors": "Lijun Wei, Wee-Chong Oon, Wenbin Zhu, Andrew Lim",
+          "year": 2011,
+          "title": "A skyline heuristic for the 2D rectangular packing and strip packing problems"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k22"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R22",
+      "name": "Best fit, fast form",
+      "description": "Find the lowest gap of the skyline, and put in it the box that fills the most of its width. Balanced trees make each step fast.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Burke 2004",
+          "authors": "E. K. Burke, G. Kendall, G. Whitwell",
+          "year": 2004,
+          "title": "A new placement heuristic for the orthogonal stock-cutting problem"
+        },
+        {
+          "key": "Imahori 2010",
+          "authors": "Shinji Imahori, Mutsunori Yagiura",
+          "year": 2010,
+          "title": "The best-fit heuristic for the rectangular strip packing problem: an efficient implementation and the worst-case approximation ratio"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k25"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R23",
+      "name": "Bottom-left fill with a genetic order",
+      "description": "Keep a population of orders. Cross and change them, and decode each order with bottom-left fill, holes included.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Hopper 2001",
+          "authors": "E. Hopper, B. C. H. Turton",
+          "year": 2001,
+          "title": "An empirical investigation of meta-heuristic and heuristic algorithms for a 2D packing problem"
+        },
+        {
+          "key": "Jakobs 1996",
+          "authors": "Stefan Jakobs",
+          "year": 1996,
+          "title": "On genetic algorithms for the packing of polygons"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "metaheuristic",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k25",
+        "k26"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R24",
+      "name": "Reactive GRASP",
+      "description": "Build an order with a random greedy rule, and improve it with a local search. Learn the best amount of randomness from the results.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Alvarez-Valdes 2008",
+          "authors": "R. Alvarez-Valdes, F. Parreño, J. M. Tamarit",
+          "year": 2008,
+          "title": "Reactive GRASP for the strip-packing problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "metaheuristic",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k26"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R25",
+      "name": "Annealing with best fit",
+      "description": "Anneal the order of the first boxes. Place the other boxes with the best-fit rule.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Burke 2009",
+          "authors": "Edmund K. Burke, Graham Kendall, Glenn Whitwell",
+          "year": 2009,
+          "title": "A simulated annealing enhancement of the best-fit heuristic for the orthogonal stock-cutting problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "hybrid",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k26"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R26",
+      "name": "Branch and bound with better bounds",
+      "description": "Search the strip height exactly, with new lower bounds and rules that remove equal layouts.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Alvarez-Valdes 2009",
+          "authors": "R. Alvarez-Valdes, F. Parreño, J. M. Tamarit",
+          "year": 2009,
+          "title": "A branch and bound algorithm for the strip packing problem"
+        }
+      ],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k10"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R27",
+      "name": "Constraint search for the smallest rectangle",
+      "description": "Use a constraint model of non-overlap with a sweep. Choose all the `x` places first, then the `y` places, with interval splits.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Simonis 2008",
+          "authors": "Helmut Simonis, Barry O'Sullivan",
+          "year": 2008,
+          "title": "Search strategies for rectangle packing"
+        },
+        {
+          "key": "Beldiceanu 2001",
+          "authors": "Nicolas Beldiceanu, Mats Carlsson",
+          "year": 2001,
+          "title": "Sweep as a generic pruning technique applied to the non-overlapping rectangles constraint"
+        }
+      ],
+      "problemClass": "free width",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k10",
+        "k33"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R28",
+      "name": "Optimal rectangle packing",
+      "description": "Test each candidate enclosing rectangle in order of area, with a branch and bound. The first rectangle that holds all the boxes is the answer.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Korf 2003",
+          "authors": "Richard E. Korf",
+          "year": 2003,
+          "title": "Optimal rectangle packing: initial results"
+        }
+      ],
+      "problemClass": "free width",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k33"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R29",
+      "name": "Tabu search for bins",
+      "description": "Move a box from the worst bin to another bin. Forbid the reverse move for some steps.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Lodi 1999",
+          "authors": "Andrea Lodi, Silvano Martello, Daniele Vigo",
+          "year": 1999,
+          "title": "Heuristic and metaheuristic approaches for a class of two-dimensional bin packing problems"
+        }
+      ],
+      "problemClass": "bin",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "metaheuristic",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k26"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R30",
+      "name": "Set covering of good bins",
+      "description": "Make many single bins with fast rules. Choose the fewest bins that hold each box, with a Lagrangian heuristic.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Monaci 2006",
+          "authors": "Michele Monaci, Paolo Toth",
+          "year": 2006,
+          "title": "A Set-Covering-Based Heuristic Approach for Bin-Packing Problems"
+        }
+      ],
+      "problemClass": "bin",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "hybrid",
+      "item": null,
+      "itemTitle": null,
+      "related": [],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R31",
+      "name": "Tabu search for the knapsack",
+      "description": "Build a layout with a constructive rule. Move boxes into and out of it, with a memory of the last moves.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Alvarez-Valdes 2007",
+          "authors": "R. Alvarez-Valdes, F. Parreño, J.M. Tamarit",
+          "year": 2007,
+          "title": "A tabu search algorithm for a two-dimensional non-guillotine cutting problem"
+        }
+      ],
+      "problemClass": "knapsack",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "metaheuristic",
+      "item": null,
+      "itemTitle": null,
+      "related": [],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R32",
+      "name": "Tree search on grid points",
+      "description": "Search exactly over the places on a grid of the possible coordinates, in a container of fixed size.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Beasley 1985a",
+          "authors": "J. E. Beasley",
+          "year": 1985,
+          "title": "An exact two-dimensional non-guillotine cutting tree search procedure"
+        }
+      ],
+      "problemClass": "knapsack",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k10"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R33",
+      "name": "Dynamic programming for guillotine cuts",
+      "description": "For each size on a grid, the best value is the best box that fits or the best cut into two parts.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Gilmore 1965",
+          "authors": "P. C. Gilmore, R. E. Gomory",
+          "year": 1965,
+          "title": "Multistage cutting stock problems of two and more dimensions"
+        },
+        {
+          "key": "Christofides 1977",
+          "authors": "Nicos Christofides, Charles Whitlock",
+          "year": 1977,
+          "title": "An algorithm for two-dimensional cutting problems"
+        },
+        {
+          "key": "Beasley 1985b",
+          "authors": "J. E. Beasley",
+          "year": 1985,
+          "title": "Algorithms for unconstrained two-dimensional guillotine cutting"
+        }
+      ],
+      "problemClass": "knapsack",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k10",
+        "k23"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R34",
+      "name": "Online shelves with a parameter",
+      "description": "Round each height up to a power of `r`. Keep open shelves for each class of height, with next fit or first fit.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Baker 1983",
+          "authors": "Brenda S. Baker, Jerald S. Schwarz",
+          "year": 1983,
+          "title": "Shelf algorithms for two-dimensional packing problems"
+        }
+      ],
+      "problemClass": "online",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k30"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R35",
+      "name": "Harmonic shelves",
+      "description": "Do the online shelves with classes of width too, as harmonic bin packing does.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Csirik 1997",
+          "authors": "János Csirik, Gerhard J. Woeginger",
+          "year": 1997,
+          "title": "Shelf algorithms for on-line strip packing"
+        }
+      ],
+      "problemClass": "online",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k30"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R36",
+      "name": "Online bottom-left",
+      "description": "Put each box at its lowest, then leftmost place, in the order of arrival. Its paper gives lower bounds for each online packer.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Brown 1982",
+          "authors": "Donna J. Brown, Brenda S. Baker, Howard P. Katseff",
+          "year": 1982,
+          "title": "Lower bounds for on-line two-dimensional packing algorithms"
+        }
+      ],
+      "problemClass": "online",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "greedy",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k30",
+        "k25"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R37",
+      "name": "Restarts that stop at the bound",
+      "description": "Use `restarts`, and stop when a layout reaches the bound of k51. No other order can do better.",
+      "published": false,
+      "sources": [],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "hybrid",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k78",
+        "k51"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R38",
+      "name": "Shelves, then MaxRects in the waste",
+      "description": "Pack with `shelf`. Then put the boxes of the top shelf into the free rectangles of the lower shelves, with `maxrects-bl`.",
+      "published": false,
+      "sources": [],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "hybrid",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k21",
+        "k24"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "R39",
+      "name": "Restarts in the cells of MaxRects",
+      "description": "Where `select` picks `maxrects-bl`, wrap the pick in `restarts`. The other cells keep the time of `rows`.",
+      "published": false,
+      "sources": [],
+      "problemClass": "strip",
+      "shapes": [
+        "rectangle"
+      ],
+      "family": "hybrid",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k66",
+        "k78"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "S16",
+      "name": "TOPOS",
+      "description": "Grow a partial layout one piece at a time. The waste, the overlap and the distances of the no-fit polygons choose the piece and its place.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Oliveira 2000",
+          "authors": "José F. Oliveira, A. Miguel Gomes, J. Soeiro Ferreira",
+          "year": 2000,
+          "title": "TOPOS – A new constructive algorithm for nesting problems"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "greedy",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k39"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "S17",
+      "name": "Annealing with linear programs",
+      "description": "Anneal the order of the pieces. Linear programs compact and separate the layout in the regions of the no-fit polygons.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Gomes 2006",
+          "authors": "A. Miguel Gomes, José F. Oliveira",
+          "year": 2006,
+          "title": "Solving Irregular Strip Packing problems by hybridising simulated annealing and linear programming"
+        }
+      ],
+      "problemClass": "nesting",
+      "shapes": [
+        "polygon"
+      ],
+      "family": "hybrid",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k39"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "S18",
+      "name": "Quasi-human moves for circles",
+      "description": "When the search stops in a local minimum, take the circle with the most overlap and put it in a new place.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Huang 1999",
+          "authors": "Wenqi Huang, Ruchu Xu",
+          "year": 1999,
+          "title": "Two personification strategies for solving circles packing problem"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "local search",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k39"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "S19",
+      "name": "Formulation space search",
+      "description": "Change between the Cartesian form and the polar form of one nonlinear program, to leave a local optimum of one form.",
+      "published": true,
+      "sources": [
+        {
+          "key": "López 2011",
+          "authors": "C.O. López, J.E. Beasley",
+          "year": 2011,
+          "title": "A heuristic for the circle packing problem with a variety of containers"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "metaheuristic",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k39"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "S20",
+      "name": "Iterated tabu search for circles in a strip",
+      "description": "Solve the strip as a series of fixed lengths. A tabu search with changes and a rule of acceptance solves each length.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Fu 2013",
+          "authors": "Zhanghua Fu, Wenqi Huang, Zhipeng Lü",
+          "year": 2013,
+          "title": "Iterated tabu search for the circular open dimension problem"
+        }
+      ],
+      "problemClass": "circle",
+      "shapes": [
+        "circle"
+      ],
+      "family": "metaheuristic",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k39"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    },
+    {
+      "id": "S21",
+      "name": "Restarts around bounding boxes",
+      "description": "Use `restarts` with the member `bbox`, so circles and polygons get a search over the order.",
+      "published": false,
+      "sources": [],
+      "problemClass": "nesting",
+      "shapes": [
+        "circle",
+        "polygon"
+      ],
+      "family": "hybrid",
+      "item": null,
+      "itemTitle": null,
+      "related": [
+        "k78",
+        "k91"
+      ],
+      "status": "not queued",
+      "note": null,
+      "survey": null,
+      "queue": null,
+      "round": 2
+    }
+  ]
+}
