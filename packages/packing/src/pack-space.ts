@@ -52,8 +52,17 @@ const TARGET_PARAMS: readonly SpaceParam[] = [
 ];
 
 /**
+ * The params of the work limit of roadmap item k117: the switch `limitWork`, then `budgetWork` in work units of `packWork`.
+ * The 256 values go from 1000 to 256000 in steps of 1000. The grid of `spaceSize` takes them on a log scale.
+ */
+const WORK_PARAMS: readonly SpaceParam[] = [
+  { name: "limitWork", kind: "bool", default: false },
+  { name: "budgetWork", kind: "int", min: 1000, max: 256000, step: 1000, scale: "log", default: 16000, when: { param: "limitWork", in: [true] } },
+];
+
+/**
  * The params of a portfolio: the key of the pick, the limits of the run, and an optional aspect search around the portfolio.
- * The options `maxMembers` and `budgetMs` have no default. Thus each one has a switch param, with the default `false`.
+ * The options `maxMembers`, `budgetMs` and `budgetWork` have no default. Thus each one has a switch param, with the default `false`.
  */
 const PORTFOLIO_PARAMS: readonly SpaceParam[] = [
   { name: "key", kind: "enum", values: ["levels", "area"], default: "levels" },
@@ -61,6 +70,7 @@ const PORTFOLIO_PARAMS: readonly SpaceParam[] = [
   { name: "maxMembers", kind: "int", min: 1, max: 5, default: 3, when: { param: "limitMembers", in: [true] } },
   { name: "limitTime", kind: "bool", default: false },
   { name: "budgetMs", kind: "real", min: 1, max: 2000, scale: "log", default: PORTFOLIO_FRAME_MS, when: { param: "limitTime", in: [true] } },
+  ...WORK_PARAMS,
   { name: "aspectFit", kind: "bool", default: false },
   { ...TARGET_PARAMS[0]!, when: { param: "aspectFit", in: [true] } },
   TARGET_PARAMS[1]!,
@@ -68,7 +78,8 @@ const PORTFOLIO_PARAMS: readonly SpaceParam[] = [
 
 /**
  * The params of the random restarts of roadmap item k78. They are the key of the pick, the count of the restarts, the change of
- * the order, its strength and the time limit. The option `budgetMs` has a switch param `limitTime`, with the default `false`.
+ * the order, its strength, the time limit and the work limit. The options `budgetMs` and `budgetWork` have the switch params
+ * `limitTime` and `limitWork`, with the default `false`.
  */
 const RESTARTS_PARAMS: readonly SpaceParam[] = [
   PORTFOLIO_PARAMS[0]!,
@@ -77,6 +88,7 @@ const RESTARTS_PARAMS: readonly SpaceParam[] = [
   { name: "strength", kind: "real", min: 0, max: 1, default: 0.1 },
   { name: "limitTime", kind: "bool", default: false },
   { name: "budgetMs", kind: "real", min: 1, max: 2000, scale: "log", default: PORTFOLIO_FRAME_MS, when: { param: "limitTime", in: [true] } },
+  ...WORK_PARAMS,
 ];
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
@@ -309,6 +321,7 @@ const PORTFOLIO_PLACES = {
   k: "combine.cell-portfolio.k",
   maxMembers: "combine.portfolio.maxMembers",
   budgetMs: "combine.portfolio.budgetMs",
+  budgetWork: "combine.portfolio.budgetWork",
   members: "combine.portfolio.members",
   key: "combine.portfolio.key",
 } as const satisfies Places<PortfolioStrategyOptions>;
@@ -356,6 +369,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     key: "combine.restarts.key",
     limitTime: "combine.restarts.limitTime",
     budgetMs: "combine.restarts.budgetMs",
+    budgetWork: "combine.restarts.budgetWork",
   } satisfies Places<RestartsStrategyOptions>,
   bbox: { member: "combine.bbox.members", turn: "combine.bbox.turn" } satisfies Places<BboxStrategyOptions>,
   pack: {
@@ -491,6 +505,7 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - A `hole-degree` config supports only circles. The function checks only the hard rules on it, at the level `safe`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
+ * - The param `limitWork` of a portfolio and of `restarts` gives the option `budgetWork` (roadmap item k117).
  * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts` or `bbox`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
@@ -517,20 +532,21 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
     ...(params["limitMembers"] === true ? { maxMembers: params["maxMembers"] } : {}),
     ...(params["limitTime"] === true ? { budgetMs: params["budgetMs"] } : {}),
   };
+  const work = params["limitWork"] === true ? { budgetWork: params["budgetWork"] } : {};
   switch (combine.option) {
     case "portfolio":
-      return wrapped("portfolio", { members: members.map(entryOf), ...key, ...limits }, params, input, seed);
+      return wrapped("portfolio", { members: members.map(entryOf), ...key, ...limits, ...work }, params, input, seed);
     case "cell-portfolio": {
       if (members.map((m) => configId(packSpace, m)).sort().join(",") !== POOL_IDS)
         throw new RangeError("The members of cell-portfolio are the entries of PORTFOLIO_SETS.");
-      return wrapped("portfolio", { ...(params["k"] === "cell" ? {} : { k: params["k"] }), ...key, ...limits }, params, input, seed);
+      return wrapped("portfolio", { ...(params["k"] === "cell" ? {} : { k: params["k"] }), ...key, ...limits, ...work }, params, input, seed);
     }
     case "select":
       return packWith("select", input, { members: members.map(entryOf) }, seed);
     case "restarts": {
       const time = params["limitTime"] === true ? { limitTime: true, budgetMs: params["budgetMs"] } : {};
       const options = { member: entryOf(members[0]!), iterations: params["iterations"], perturb: params["perturb"], strength: params["strength"] };
-      return packWith("restarts", input, { ...options, ...key, ...time }, seed);
+      return packWith("restarts", input, { ...options, ...key, ...time, ...work }, seed);
     }
     case "bbox":
       return packWith("bbox", input, { member: entryOf(members[0]!), turn: params["turn"] === true }, seed);

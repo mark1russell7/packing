@@ -6,6 +6,7 @@ import type { PackInput, PackOutput } from "./contract.ts";
 import { MEASURE_SPECS } from "./measures.ts";
 import { packWith, strategy } from "./registry.ts";
 import { measureKey, measureLevel } from "./select-key.ts";
+import { checkBudgetWork, meterMembers, workMeasures, workMeter, workTrace } from "./work.ts";
 
 export { hardBreaks } from "./select-key.ts";
 
@@ -26,6 +27,11 @@ export interface PackPortfolioOptions {
   seed?: number;
   /** The time limit in milliseconds. Without it, each member runs. A cut member makes the pick not deterministic. */
   budgetMs?: number;
+  /**
+   * The work limit in work units of `packWork`, a whole number of 0 or more. Without it, each member runs.
+   * A cut by the work limit is the same on each computer. With `budgetMs`, the first limit that runs out cuts.
+   */
+  budgetWork?: number;
   /** The largest count of members that run */
   maxMembers?: number;
   /** The clock in milliseconds. The default is `performance.now`. */
@@ -64,6 +70,8 @@ export const PORTFOLIO_LEVELS: readonly SelectLevel[] = Object.freeze([
  * - The key reads the measures after `roundMeasures`, as a record keeps them. A replay of the records gives the same pick.
  * - The hash of the key is `outputHash`. `selectBest` of the contract picks the winner.
  * - The output of the winner gets the trace stage `portfolio` with `move.pick` of `pickMoves`.
+ * - With `budgetWork`, the stage also has `work.spent`, `work.budget` and `work.stopped`. A member that the work limit cuts has the status `cut`.
+ * - The function throws a `RangeError` for a `budgetWork` that is not a whole number of 0 or more.
  * - The function throws a `RangeError` for an unknown strategy, an empty list, two members with the same id and an unknown measure of `key`.
  *   With the function form, `pick` throws this error for the list of an input.
  */
@@ -85,11 +93,23 @@ export function packPortfolio(
     ...(options.maxMembers !== undefined ? { maxMembers: options.maxMembers } : {}),
     ...(options.now !== undefined ? { now: options.now } : {}),
   };
-  const inner = portfolio(options.id ?? PORTFOLIO_STAGE, list, key, limits);
+  const { budgetWork } = options;
+  checkBudgetWork("packPortfolio", budgetWork);
+  const id = options.id ?? PORTFOLIO_STAGE;
+  const inner = portfolio(id, list, key, limits);
   const pick = (input: PackInput): PortfolioPick<PackOutput> => {
-    const got = inner.pick(input);
-    const stage = { id: PORTFOLIO_STAGE, measures: { "move.pick": pickMoves(got.trace).pick } };
-    return { ...got, output: { ...got.output, trace: [...(got.output.trace ?? []), stage] } };
+    if (budgetWork === undefined) {
+      const got = inner.pick(input);
+      const stage = { id: PORTFOLIO_STAGE, measures: { "move.pick": pickMoves(got.trace).pick } };
+      return { ...got, output: { ...got.output, trace: [...(got.output.trace ?? []), stage] } };
+    }
+    // Each pick gets its own meter. The members of the meter are a function of the input, so the contract checks their ids.
+    const meter = workMeter(budgetWork);
+    const metered = portfolio(id, (x: PackInput) => meterMembers(typeof list === "function" ? list(x) : list, meter), key, limits);
+    const got = metered.pick(input);
+    const trace = workTrace(got.trace, meter);
+    const stage = { id: PORTFOLIO_STAGE, measures: { "move.pick": pickMoves(trace).pick, ...workMeasures(meter) } };
+    return { ...got, trace, output: { ...got.output, trace: [...(got.output.trace ?? []), stage] } };
   };
   return { id: inner.id, pick, run: (input: PackInput): PackOutput => pick(input).output };
 }

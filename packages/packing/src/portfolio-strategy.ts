@@ -16,6 +16,8 @@ export interface PortfolioStrategyOptions {
   maxMembers?: number;
   /** The opt-in time limit of `portfolio` of the contract, in milliseconds. It has no default. A cut member makes the result not deterministic. */
   budgetMs?: number;
+  /** The opt-in work limit of `packPortfolio`, in work units of `packWork`. It has no default. A cut by it is the same on each computer. */
+  budgetWork?: number;
   /** The members for each input, in place of the set of the cell. The function refuses `members` with the option `k`. */
   members?: readonly (string | PortfolioEntry)[];
   /** The measure ids of the key after the hard breaks, as the option `key` of `packPortfolio`. The default is the key of `PORTFOLIO_LEVELS`. */
@@ -46,6 +48,7 @@ function unionSupports(): Supports {
  *   The default output thus does not depend on the clock.
  * - A member that does not support the cell of an input throws, and it does not win. When each member throws, the strategy throws the first error.
  * - The option `budgetMs` goes to `portfolio` of the contract. The first member always runs.
+ * - The option `budgetWork` goes to `packPortfolio`. With `budgetMs`, the first limit that runs out cuts.
  * - With `members`, each input gets these members, and `maxMembers` has no default. The id of the portfolio stays `portfolio`.
  * - The strategy throws a `RangeError` for a `k` other than 2 or 3, and for `k` with `members`.
  */
@@ -57,12 +60,12 @@ export const portfolioStrategy: Strategy<PortfolioStrategyOptions> = {
   defaults: {},
   deterministic: true,
   pack(input: PackInput, options: PortfolioStrategyOptions, context: PackContext): PackOutput {
-    const { k, maxMembers, budgetMs, members, key } = options;
+    const { k, maxMembers, budgetMs, budgetWork, members, key } = options;
     if (k !== undefined && k !== 2 && k !== 3) throw new RangeError(`The option k of the strategy portfolio is 2 or 3, not ${String(k)}.`);
     if (k !== undefined && members !== undefined) throw new RangeError("The strategy portfolio takes the option k or the option members, not the two.");
     const size = k ?? 3;
     const count = maxMembers ?? (k === undefined && members === undefined ? portfolioDefaultMembers(input) : undefined);
-    const limits = { ...(count === undefined ? {} : { maxMembers: count }), ...(budgetMs === undefined ? {} : { budgetMs }), ...(key === undefined ? {} : { key }) };
+    const limits = { ...(count === undefined ? {} : { maxMembers: count }), ...(budgetMs === undefined ? {} : { budgetMs }), ...(budgetWork === undefined ? {} : { budgetWork }), ...(key === undefined ? {} : { key }) };
     const list = members ?? ((x: PackInput) => portfolioMembers(x, size));
     return packPortfolio(list, { id: k === undefined ? "portfolio" : `portfolio-k${k}`, seed: context.seed, ...limits }).run(input);
   },

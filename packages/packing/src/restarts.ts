@@ -10,6 +10,7 @@ import { PORTFOLIO_LEVELS, type PortfolioEntry } from "./portfolio.ts";
 import { packWith, strategy } from "./registry.ts";
 import { measureKey, measureLevel } from "./select-key.ts";
 import type { PackContext, Strategy, Supports } from "./strategy.ts";
+import { checkBudgetWork, meterMembers, workMeasures, workMeter, workTrace } from "./work.ts";
 
 /**
  * A change of the order of `restarts`.
@@ -42,6 +43,8 @@ export interface RestartsStrategyOptions {
   limitTime?: boolean;
   /** The time limit in milliseconds, with `limitTime` only. Restart 0 always starts. A cut restart makes the result not deterministic. */
   budgetMs?: number;
+  /** The work limit in work units of `packWork`, a whole number of 0 or more. It has no default. Restart 0 always starts. A cut by it is the same on each computer. */
+  budgetWork?: number;
 }
 
 /** The default member of `restarts`: `maxrects` with the rule `bl` */
@@ -138,6 +141,7 @@ function checked(options: RestartsStrategyOptions): { member: PortfolioEntry; so
   if (perturb !== undefined && !RESTART_PERTURBS.includes(perturb)) throw new RangeError(`The option perturb of restarts is one of ${RESTART_PERTURBS.join(", ")}, not ${String(perturb)}.`);
   if (strength !== undefined && !(strength >= 0 && strength <= 1)) throw new RangeError(`The option strength of restarts is a number from 0 to 1, not ${String(strength)}.`);
   if (limitTime === true && budgetMs === undefined) throw new RangeError("The option limitTime of restarts needs the option budgetMs.");
+  checkBudgetWork("restarts", options.budgetWork);
   const sortOrder = ({ ...defaults, ...(member.options as object | undefined) } as { sortOrder: SortOrder }).sortOrder;
   return { member, sortOrder };
 }
@@ -150,6 +154,7 @@ function checked(options: RestartsStrategyOptions): { member: PortfolioEntry; so
  * - Restart `i` gets the random numbers `stepRandom(seed, "restarts:<i>")` of the contract. The seed of the context goes to each restart.
  * - The key is the hard breaks, then `PORTFOLIO_LEVELS` or the option `key`, then `outputHash`. A tie keeps the earlier restart.
  * - The output gets the trace stage `restarts` with `move.restartPick`, `restarts.run` (the index of the pick) and `restarts.runs`.
+ * - With `budgetWork`, the stage also has `work.spent`, `work.budget` and `work.stopped`. With `limitTime` too, the first limit that runs out cuts.
  * - The strategy throws a `RangeError` for a member without the option `sortOrder` and for a bad option.
  */
 export const restartsStrategy: Strategy<RestartsStrategyOptions> = {
@@ -178,9 +183,12 @@ export const restartsStrategy: Strategy<RestartsStrategyOptions> = {
     const members = Array.from({ length: iterations }, (_, i) => runOf(i));
     const key = measureKey(options.key === undefined ? PORTFOLIO_LEVELS.slice(1) : options.key.map(measureLevel));
     const limits = options.limitTime === true && options.budgetMs !== undefined ? { budgetMs: options.budgetMs } : {};
-    const got = portfolio(RESTARTS_STAGE, members, key, limits).pick(input);
-    const runs = got.trace.members.filter((m) => m.status !== "cut").length;
-    const measures = { "move.restartPick": pickMoves(got.trace).pick, "restarts.run": got.trace.winnerIndex, "restarts.runs": runs };
+    const meter = options.budgetWork === undefined ? undefined : workMeter(options.budgetWork);
+    const got = portfolio(RESTARTS_STAGE, meter === undefined ? members : meterMembers(members, meter), key, limits).pick(input);
+    const trace = meter === undefined ? got.trace : workTrace(got.trace, meter);
+    const runs = trace.members.filter((m) => m.status !== "cut").length;
+    const work = meter === undefined ? {} : workMeasures(meter);
+    const measures = { "move.restartPick": pickMoves(trace).pick, "restarts.run": trace.winnerIndex, "restarts.runs": runs, ...work };
     return { ...got.output, trace: [...(got.output.trace ?? []), { id: RESTARTS_STAGE, measures }] };
   },
 };
