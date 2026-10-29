@@ -120,7 +120,7 @@ Status: done, done, waiting, next, done.
 | k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | later | k76 |
 | k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | later | k51, k105 |
 | k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept | core | later | k6, k7 |
-| k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | later | k6, k7 |
+| k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | done | k6, k7 |
 | k112 | Whole-space coverage: configs drawn at random from `packSpace` and inputs from the ranges of the generators, a held-out share within tolerance with a Wilson interval, next to the bench grid | measure | done | k68, k105 |
 | k113 | A hull for `bbox`: `pack.fill` goes above 1 on polygon outputs, because the measure reads the item boxes and `bbox` places the tight boxes of the shapes | measure | done | k91 |
 | k114 | A hard break with obstacles and large knobs: no-overlap fails on `edge-cases` with case `touchObstacles`, margin near 30 and a gap, for a portfolio and a select config | core | done | k112 |
@@ -135,43 +135,42 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | 2 | k116 | 5 | 4 | 3 | 6.7 |
 | 3 | k90 | 4 | 3 | 2 | 6.0 |
 | 4 | k108 | 3 | 2 | 1 | 6.0 |
-| 5 | k111 | 4 | 3 | 2 | 6.0 |
-| 6 | k117 | 4 | 3 | 2 | 6.0 |
-| 7 | k23 | 4 | 4 | 3 | 5.3 |
-| 8 | k47 | 4 | 4 | 3 | 5.3 |
-| 9 | k79 | 4 | 4 | 3 | 5.3 |
-| 10 | k80 | 4 | 4 | 3 | 5.3 |
-| 11 | k26 | 5 | 4 | 4 | 5.0 |
-| 12 | k25 | 3 | 3 | 2 | 4.5 |
-| 13 | k70 | 3 | 3 | 2 | 4.5 |
-| 14 | k13 | 3 | 3 | 2 | 4.5 |
-| 15 | k92 | 3 | 3 | 2 | 4.5 |
-| 16 | k10 | 4 | 4 | 4 | 4.0 |
-| 17 | k81 | 4 | 3 | 3 | 4.0 |
-| 18 | k82 | 3 | 4 | 3 | 4.0 |
-| 19 | k83 | 3 | 4 | 3 | 4.0 |
-| 20 | k93 | 4 | 2 | 2 | 4.0 |
-| 21 | k94 | 4 | 3 | 3 | 4.0 |
-| 22 | k95 | 4 | 3 | 3 | 4.0 |
-| 23 | k96 | 5 | 4 | 5 | 4.0 |
-| 24 | k97 | 3 | 4 | 3 | 4.0 |
-| 25 | k110 | 4 | 2 | 2 | 4.0 |
-| 26 | k84 | 3 | 5 | 4 | 3.8 |
-| 27 | k74 | 4 | 3 | 4 | 3.0 |
-| 28 | k52 | 3 | 2 | 2 | 3.0 |
-| 29 | k85 | 3 | 3 | 3 | 3.0 |
-| 30 | k86 | 3 | 5 | 5 | 3.0 |
-| 31 | k87 | 3 | 3 | 3 | 3.0 |
-| 32 | k98 | 3 | 2 | 2 | 3.0 |
-| 33 | k109 | 4 | 2 | 3 | 2.7 |
-| 34 | k99 | 3 | 4 | 5 | 2.4 |
-| 35 | k100 | 3 | 3 | 4 | 2.3 |
-| 36 | k88 | 2 | 2 | 2 | 2.0 |
-| 37 | k101 | 4 | 2 | 4 | 2.0 |
-| 38 | k102 | 3 | 2 | 3 | 2.0 |
-| 39 | k103 | 2 | 2 | 2 | 2.0 |
-| 40 | k89 | 2 | 4 | 5 | 1.6 |
-| 41 | k104 | 2 | 3 | 5 | 1.2 |
+| 5 | k117 | 4 | 3 | 2 | 6.0 |
+| 6 | k23 | 4 | 4 | 3 | 5.3 |
+| 7 | k47 | 4 | 4 | 3 | 5.3 |
+| 8 | k79 | 4 | 4 | 3 | 5.3 |
+| 9 | k80 | 4 | 4 | 3 | 5.3 |
+| 10 | k26 | 5 | 4 | 4 | 5.0 |
+| 11 | k25 | 3 | 3 | 2 | 4.5 |
+| 12 | k70 | 3 | 3 | 2 | 4.5 |
+| 13 | k13 | 3 | 3 | 2 | 4.5 |
+| 14 | k92 | 3 | 3 | 2 | 4.5 |
+| 15 | k10 | 4 | 4 | 4 | 4.0 |
+| 16 | k81 | 4 | 3 | 3 | 4.0 |
+| 17 | k82 | 3 | 4 | 3 | 4.0 |
+| 18 | k83 | 3 | 4 | 3 | 4.0 |
+| 19 | k93 | 4 | 2 | 2 | 4.0 |
+| 20 | k94 | 4 | 3 | 3 | 4.0 |
+| 21 | k95 | 4 | 3 | 3 | 4.0 |
+| 22 | k96 | 5 | 4 | 5 | 4.0 |
+| 23 | k97 | 3 | 4 | 3 | 4.0 |
+| 24 | k110 | 4 | 2 | 2 | 4.0 |
+| 25 | k84 | 3 | 5 | 4 | 3.8 |
+| 26 | k74 | 4 | 3 | 4 | 3.0 |
+| 27 | k52 | 3 | 2 | 2 | 3.0 |
+| 28 | k85 | 3 | 3 | 3 | 3.0 |
+| 29 | k86 | 3 | 5 | 5 | 3.0 |
+| 30 | k87 | 3 | 3 | 3 | 3.0 |
+| 31 | k98 | 3 | 2 | 2 | 3.0 |
+| 32 | k109 | 4 | 2 | 3 | 2.7 |
+| 33 | k99 | 3 | 4 | 5 | 2.4 |
+| 34 | k100 | 3 | 3 | 4 | 2.3 |
+| 35 | k88 | 2 | 2 | 2 | 2.0 |
+| 36 | k101 | 4 | 2 | 4 | 2.0 |
+| 37 | k102 | 3 | 2 | 3 | 2.0 |
+| 38 | k103 | 2 | 2 | 2 | 2.0 |
+| 39 | k89 | 2 | 4 | 5 | 1.6 |
+| 40 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) and step A of k58 are P1 work outside the queue.
 
