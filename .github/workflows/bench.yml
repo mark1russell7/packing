@@ -33,6 +33,10 @@ on:
         description: "The random pairs of a config and an input for the coverage of the whole space (k112). 0 turns it off."
         type: string
         default: "400"
+      anchor:
+        description: "Add the measures pack.anchor.* of k111 to each input with a locked item. They need more packs."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -94,6 +98,7 @@ jobs:
       PREDICTION: ${{ inputs.prediction }}
       REPEATS: ${{ inputs.repeats }}
       WARMUP: ${{ inputs.warmup }}
+      ANCHOR: ${{ inputs.anchor }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -110,7 +115,8 @@ jobs:
           start=$SECONDS
           status=0
           pnpm --filter @mark1russell7/packing bench run --corpus "$CORPUS" --strategies "$STRATEGY" \
-            --prediction "$PREDICTION" --repeats "$REPEATS" --warmup "$WARMUP" --out "$out" || status=$?
+            --prediction "$PREDICTION" --repeats "$REPEATS" --warmup "$WARMUP" --out "$out" \
+            $([ "$ANCHOR" = "true" ] && echo --anchor) || status=$?
           if [ -f "$out/summary.md" ]; then
             {
               cat "$out/summary.md"
