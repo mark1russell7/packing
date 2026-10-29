@@ -83,12 +83,37 @@ describe("measure", () => {
     };
     const placed = out([...twoRowsOut.placements, { id: "d", x: 60, y: 20 }]);
     const s = measure(shaped, placed);
-    // The hull is 100 by 50. The triangle is 400, the inner rect 600, the ellipse counts as its box 1500, the circle is 100 pi.
-    expect(s["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500 + 100 * Math.PI) / 5000, 12);
-    expect(s["pack.fill"]).toBeCloseTo((800 + 1200 + 1500 + 400) / 5000, 12);
-    // An item that is not placed does not count, and an empty layout gives 0
-    expect(measure(shaped, out(placed.placements.slice(0, 3), { overflow: ["d"] }))["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500) / 5000, 12);
+    // The boxes are the bounding boxes of the shapes (k113): b is 30 by 20 at 40, 0. Thus the hull is 80 by 50.
+    // The triangle is 400, the inner rect 600, the ellipse counts as its box 1500, the circle is 100 pi.
+    expect(s["pack.area"]).toBe(4000);
+    expect(s["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500 + 100 * Math.PI) / 4000, 12);
+    expect(s["pack.fill"]).toBeCloseTo((800 + 600 + 1500 + 400) / 4000, 12);
+    // An item that is not placed does not count, and an empty layout gives 0. Without d, the hull is 70 by 50.
+    expect(measure(shaped, out(placed.placements.slice(0, 3), { overflow: ["d"] }))["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500) / 3500, 12);
     expect(measure(shaped, out([]))["pack.shapeFill"]).toBe(0);
+  });
+
+  // Roadmap item k113: the box of a shape item is the bounding box of its shape at its place, also after a turn
+  it("reads the bounding box of a shape at its place, not the item box", () => {
+    const padded: PackInput = {
+      container: { w: 100, fixed: "width" },
+      items: [
+        { id: "a", w: 12, h: 12, shape: { kind: "rect", x: 1, y: 1, w: 10, h: 10 } },
+        { id: "b", w: 12, h: 12, shape: { kind: "rect", x: 1, y: 1, w: 10, h: 10 } },
+      ],
+    };
+    // The two item boxes overlap by 2 in their padding, but the two shapes touch. Thus the fill is 1, not above 1.
+    const touch = measure(padded, out([{ id: "a", x: -1, y: -1 }, { id: "b", x: 9, y: -1 }]));
+    expect(touch["pack.area"]).toBe(200);
+    expect(touch["pack.fill"]).toBe(1);
+    expect(touch["pack.whitespace"]).toBe(0);
+    expect(touch["pack.shapeFill"]).toBe(1);
+    // A turn of 90 degrees turns the shape in the item box of height 20: the rect at 5, 2 of size 10 by 4 goes to 14, 5 of size 4 by 10
+    const turned: PackInput = { container: { w: 100, fixed: "width" }, items: [{ id: "t", w: 30, h: 20, shape: { kind: "rect", x: 5, y: 2, w: 10, h: 4 } }] };
+    const t = measure(turned, out([{ id: "t", x: 0, y: 0, turn: 90 }]));
+    expect(t["pack.area"]).toBe(40);
+    expect(t["pack.aspect"]).toBe(2.5);
+    expect(t["pack.fill"]).toBe(1);
   });
 
   it("measures the aspect error against the target aspect of the container", () => {
