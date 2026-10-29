@@ -8,7 +8,7 @@ import { objectiveBound, type PackInput, type PackOutput } from "@mark1russell7/
 export const GAP_TO_BOUND = "pack.gapToBound";
 
 /**
- * This function gives an upper bound of the fill of a layout, from the hull bound of k51 of its placed items, or `undefined` when no item is placed.
+ * This function gives an upper bound of the fill of a layout from the k51 hull bound of its placed items. No placed item gives `undefined`.
  *
  * 1. The placed items go into a free container, so the bound is the lower bound of the hull area (`hull.area`, `hull.extent` or `hull.margin`).
  * 2. The upper bound of the fill is the area of the placed boxes over that hull area, at most 1.

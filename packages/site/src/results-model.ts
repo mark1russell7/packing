@@ -300,6 +300,11 @@ export function coverageTile(m: CoverageMeasure, label: string, space: CoverageS
         <small class="cscope">${COVERAGE_STRATA_SCOPE}</small>
         <b>${esc(t.share)} <small class="alt">95% interval ${esc(t.interval)}, ${esc(t.strata)}</small></b>
         <span class="cmeter space" aria-hidden="true"><i style="width:${m.strata!.low * 100}%"></i><i class="range" style="width:${(m.strata!.high - m.strata!.low) * 100}%"></i></span>`;
+  const prior = [space.uniform, space.pooled].flatMap((x) => {
+    const text = priorText(x);
+    return text === null ? [] : [`
+        <small class="alt prior">${esc(text)}</small>`];
+  });
   const p = space.pooled;
   const pooled = p === undefined ? "" : `
         <small class="alt">${COVERAGE_POOLED_SCOPE} ${percentText(p.share)}, ${p.hits} of ${p.n} pairs</small>`;
@@ -310,11 +315,27 @@ export function coverageTile(m: CoverageMeasure, label: string, space: CoverageS
         <span class="cmeter" aria-hidden="true"><i style="width:${m.share * 100}%"></i></span>
         <small>${m.cells.covered} of ${m.cells.space} cells within ${esc(errorText(m, m.tolerance))}</small>
         <small class="cscope">${COVERAGE_SCOPES.space}</small>
-        ${spaceHtml}${strata}${pooled}
+        ${spaceHtml}${strata}${pooled}${prior.join("")}
       </div>`;
 }
 
 // ---- The active sample of k116 ----
+
+/** The label of the share with the family prior of the corpus (k116) */
+export const COVERAGE_PRIOR_SCOPE = "family prior";
+
+/**
+ * This function gives the text of the share of a sample with the family prior, or `null` without it.
+ * The text tells the pairs with the weight 0, because their families are not in the corpus.
+ */
+export function priorText(s: Pick<CoverageSampled, "prior"> | undefined): string | null {
+  const p = s?.prior;
+  if (p === undefined) return null;
+  const zero = p.zero === 0 ? "" : `, ${p.zero} ${p.zero === 1 ? "pair" : "pairs"} of other families with the weight 0`;
+  if (p.share === null) return `${COVERAGE_PRIOR_SCOPE}: no pair of a family of the corpus${zero}`;
+  const range = p.low === null || p.high === null ? "" : ` (95% interval ${percentText(p.low)} to ${percentText(p.high)})`;
+  return `${COVERAGE_PRIOR_SCOPE} ${percentText(p.share)}${range}, ${p.weighted} weighted pairs${zero}`;
+}
 
 /** The label of the forced-overflow split of k116: the pairs where half of the item area or more cannot go in the container */
 export const FORCED_LABEL = "forced overflow of half the item area or more";
@@ -336,7 +357,8 @@ export function activeRows(m: Pick<CoverageMeasure, "active">): string {
   const a = m.active;
   if (a === undefined) return "";
   const bar = (share: number): string => `<span class="abar" aria-hidden="true"><i style="width:${Math.round(Math.max(0, Math.min(1, share)) * 1000) / 10}%"></i></span>`;
-  const evalCell = (e: CoverageEval | null): string => (e === null ? `<td class="num">-</td>` : `<td class="num">${percentText(e.share)}${bar(e.share)}</td>`);
+  const priorOf = (v: number | null | undefined): string => (v === undefined ? "" : ` <small>${COVERAGE_PRIOR_SCOPE} ${v === null ? "-" : percentText(v)}</small>`);
+  const evalCell = (e: CoverageEval | null): string => (e === null ? `<td class="num">-</td>` : `<td class="num">${percentText(e.share)}${priorOf(e.prior)}${bar(e.share)}</td>`);
   const start = `<tr><th scope="row">Grid only</th><td class="num">-</td>${evalCell(a.start)}</tr>`;
   const rows = a.rounds
     .map(

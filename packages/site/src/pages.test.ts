@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
-import { byDate, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
+import { byDate, COVERAGE_LABELS, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -28,6 +28,7 @@ import {
   activeRows,
   FORCED_LABEL,
   forcedText,
+  priorText,
   stratumLabel,
   COVERAGE_STRATA_SCOPE,
   COVERAGE_POOLED_SCOPE,
@@ -418,6 +419,17 @@ describe("the space coverage of k105", () => {
     expect(FORCED_LABEL).toContain("half");
     // The uniform number stays in the tile next to the rounds.
     expect(coverageTile({ ...m, active }, "Fill")).toBe(coverageTile(m, "Fill"));
+    // The family prior shows next to the uniform share, and an old snapshot shows no prior.
+    expect(priorText(m.sampled)).toBeNull();
+    expect(coverageTile(m, "Fill")).not.toContain("family prior");
+    const prior = { share: 0.08, low: 0.03, high: 0.2, nEff: 41.5, weighted: 50, zero: 10, covered: 1 };
+    expect(priorText({ prior })).toBe("family prior 8% (95% interval 3% to 20%), 50 weighted pairs, 10 pairs of other families with the weight 0");
+    expect(priorText({ prior: { ...prior, share: null, low: null, high: null, weighted: 0, zero: 1 } })).toBe("family prior: no pair of a family of the corpus, 1 pair of other families with the weight 0");
+    expect(coverageTile({ ...m, sampled: { ...m.sampled!, prior } }, "Fill")).toContain('<small class="alt prior">family prior 8%');
+    const withPrior = activeRows({ active: { ...active, start: { ...active.start, prior: 0.06 }, rounds: [{ ...active.rounds[0]!, after: { ...active.rounds[0]!.after!, prior: null } }] } });
+    expect(withPrior).toContain("4% <small>family prior 6%</small>");
+    expect(withPrior).toContain("10% <small>family prior -</small>");
+    expect(COVERAGE_LABELS["pack.gapToBound"]!.label).toBe("Fill below its bound");
   });
 
   it("places the points of the trend by date and share", () => {

@@ -383,9 +383,10 @@ describe("the coverage snapshot (k105)", () => {
       })),
     };
     const forced = { heavy: { n: 30, hits: 0, share: 0, wilson: { low: 0, high: 0.1135 } }, rest: { n: 30, hits: 4, share: 0.1333, wilson: { low: 0.0531, high: 0.2968 } } };
+    const prior = { share: 0.08, wilson: { low: 0.03, high: 0.2 }, nEff: 41.5, weighted: 50, zero: 10, covered: 1 };
     const sampled = {
       pairs: 60,
-      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n: 60, hits: 4, share: 0.0667, wilson: { low: 0.0262, high: 0.1593 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 }, forced }],
+      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n: 60, hits: 4, share: 0.0667, wilson: { low: 0.0262, high: 0.1593 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 }, forced, prior }],
     };
     const snap = coverageSnapshot({ ...summary("2026-10-28", 0.5), sampled, active }, origin);
     expect(snap.latest.active).toEqual({ pairs: 8, features: "input", score: "fold-spread", pool: 160, rounds: 2, evalPairs: 40 });
@@ -397,6 +398,7 @@ describe("the coverage snapshot (k105)", () => {
       ],
     });
     expect(snap.latest.measures[0]!.sampled!.forced).toEqual({ heavy: { n: 30, hits: 0, share: 0 }, rest: { n: 30, hits: 4, share: 0.1333 } });
+    expect(snap.latest.measures[0]!.sampled!.prior).toEqual({ share: 0.08, low: 0.03, high: 0.2, nEff: 41.5, weighted: 50, zero: 10, covered: 1 });
     expect(snap.trend).toEqual(plain.trend);
   });
 });

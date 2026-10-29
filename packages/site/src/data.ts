@@ -208,6 +208,23 @@ export interface CoverageSampled {
   baselineMedianAe: number;
   /** The share of the pairs with much forced overflow, and of the other pairs (k116) */
   forced?: { heavy: CoveragePart; rest: CoveragePart };
+  /** The share with the family prior of the corpus (k116). A snapshot from before k116 does not have it. */
+  prior?: CoveragePrior;
+}
+
+/** The share of the sampled pairs with the family prior: each generator family has its share of the inputs of the corpus as its weight */
+export interface CoveragePrior {
+  /** The share with the weights, or `null` without a pair of a family of the corpus */
+  share: number | null;
+  low: number | null;
+  high: number | null;
+  /** The effective count of the pairs */
+  nEff: number;
+  /** The pairs of a family of the corpus, and the pairs of other families with the weight 0 */
+  weighted: number;
+  zero: number;
+  /** The weight of the families of the corpus with pairs */
+  covered: number;
 }
 
 /** The share of a part of the sampled pairs. A part without pairs has the share `null`. */
@@ -222,6 +239,8 @@ export interface CoverageEval {
   share: number;
   mae: number;
   equal: number;
+  /** The share with the family prior, when the snapshot has it */
+  prior?: number | null;
 }
 
 /** One round of the active sample for one measure: the hits of its new pairs, and the evaluation sample after the round */
@@ -233,6 +252,8 @@ export interface CoverageActiveRound {
   low: number;
   high: number;
   mae: number;
+  /** The share of the new pairs with the family prior, when the snapshot has it */
+  prior?: number | null;
   after: CoverageEval | null;
 }
 
@@ -603,6 +624,7 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
 
 /** The names and the notes of the measures of the coverage snapshot */
 export const COVERAGE_LABELS: Record<string, { label: string; note: string }> = {
+  "pack.gapToBound": { label: "Fill below its bound", note: "The part of the best fill of the placed items that the layout misses, from 0 to 1." },
   "pack.fill": { label: "Fill", note: "The share of the hull that the boxes cover." },
   "pack.gap": { label: "Gap to a bound", note: "The distance of each result from a bound of its cell." },
   "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container above its bound." },

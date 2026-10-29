@@ -23,6 +23,7 @@ import {
   COVERAGE_SCOPES,
   COVERAGE_STRATA_SCOPE,
   COVERAGE_POOLED_SCOPE,
+  COVERAGE_PRIOR_SCOPE,
   coverageTile,
   divergingAt,
   errorText,
@@ -424,6 +425,9 @@ function mountCoverage(): void {
       : ` The number "${COVERAGE_STRATA_SCOPE}" is the mean of the shares of the strata. Each stratum has the same weight. The draw of the sample is ${esc(l.strata.draw ?? "not known")}.`) +
     (stratified && sample !== undefined
       ? ` The number "${COVERAGE_POOLED_SCOPE}" is the share of all the ${sample.pairs} pairs of the stratified sample ${runText(l.run, l.date)}. It is not a uniform share.`
+      : "") +
+    (l.measures.some((m) => m.sampled?.prior !== undefined || l.uniform?.measures[m.id]?.prior !== undefined)
+      ? ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs of the corpus as its weight. A family outside the corpus gets the weight 0.`
       : "");
   $("coverage-errors").innerHTML = l.measures
     .map((m) => {

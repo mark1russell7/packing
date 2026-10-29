@@ -19,6 +19,11 @@ import {
   firstOrderIndex,
   fitTree,
   foldScorer,
+  familyPrior,
+  iqrOf,
+  priorShare,
+  ACTIVE_SCORES,
+  SCORE_CAP,
   foldsOf,
   FORCED_HEAVY,
   FORCED_MEASURE,
@@ -470,6 +475,30 @@ describe("the input features and the active rounds of k116", () => {
     // The measured pairs join the rows of the folds.
     expect(foldScorer(grid, sampled, { features: "input", by: "spec" }).rows).toBe(16 + sampled.length);
     expect(scoreMeasures().map((m) => m.id)).not.toContain("ms");
+    // The score spread-iqr caps each term at SCORE_CAP. The old score fold-spread has no cap.
+    for (const s of scores) expect(s).toBeLessThanOrEqual(SCORE_CAP);
+    const old = foldScorer(grid, [], { features: "input", by: "spec" }, "fold-spread");
+    expect(sampled.map((r) => old.score(pairFeatures(r, { features: "input" }).features)).every((s) => s >= 0)).toBe(true);
+    expect(ACTIVE_SCORES).toEqual(["spread-iqr", "fold-spread"]);
+    expect(iqrOf([1, 2, 3, 4, 5])).toBe(2);
+    expect(iqrOf([Infinity, 7])).toBe(0);
+    expect(iqrOf([])).toBe(0);
+  });
+
+  it("weights the families with the prior of the corpus, and reports the families with the weight 0", () => {
+    const prior = familyPrior({ corpus: "c", specs: [{ generator: "a", seeds: [1, 2, 3] }, { generator: "b", seeds: [1] }] });
+    expect([...prior]).toEqual([
+      ["a", 0.75],
+      ["b", 0.25],
+    ]);
+    // a: 1 hit of 2, b: 1 hit of 1, c: not in the corpus. The share is 0.75 · 0.5 + 0.25 · 1.
+    const p = priorShare([true, false, true, true], ["a", "a", "b", "c"], prior);
+    expect(p).toMatchObject({ share: 0.625, weighted: 3, zero: 1, covered: 1 });
+    // The weights are 0.375, 0.375 and 0.25, so the effective count is 1 / 0.34375.
+    expect(p.nEff).toBe(2.9);
+    // A missing family of the corpus does not count: the share divides by the weight of the families with pairs.
+    expect(priorShare([true], ["b"], prior)).toMatchObject({ share: 1, covered: 0.25, weighted: 1, zero: 0 });
+    expect(priorShare([true], ["c"], prior)).toEqual({ share: null, wilson: null, nEff: 0, weighted: 0, zero: 1, covered: 0 });
   });
 
   it("gives the share of each round with the earlier rounds, and the evaluation sample after each round", () => {

@@ -1075,6 +1075,10 @@
   color: var(--muted);
 }
 
+.tile.cover .prior {
+  overflow-wrap: anywhere;
+}
+
 .tile.cover b.none {
   font-size: 0.95rem;
   font-weight: 500;
