@@ -215,7 +215,11 @@ The free area `F` is an upper bound. Thus `forced` is a lower bound for each pac
 
 - An obstacle with `move` is not subtracted, because a packer can move it.
 - A rectangle container also loses the exact area of each obstacle of another shape that is fully in it. Its box has no common point with the other boxes.
-- The bound ignores the gap and the margins. They make the true free area smaller, thus the bound stays valid.
+- Since roadmap item k118, the bound counts the margins and the gap of each rectangle item that is not in `pairGaps`. `docs/PACKER.md` (decision 3) gives the proof.
+- Rule A: each candidate needs the area of its box with its margins in `F`. Rule B, with a gap above 0: each candidate needs its box grown by its margins and by the gap, in the container less the inset grown by the gap. Rule B does not subtract the obstacles.
+- `forced` is the larger count of the two rules. The area is the larger area of the two rules.
+- A candidate of the area bound counts in units of the area that it needs. Thus the area bound drops the candidates with the least item area for each unit first, and it can drop a part of a candidate.
+- A shape item and an item of `pairGaps` count with no margin and no gap. The measures of an input without margins and without a gap do not change.
 - The area of a candidate is `w * h`, or the area of its shape when that is smaller.
 - A slack keeps the bound valid for the tolerance of the hard rules: `2 * tolerance.overlap` along the edges of each candidate and of the container.
 - The area of `pack.overflow.forcedArea` and of its alias `pack.overflow.forcedAreaMin` is the area of the long items of step 1, plus the part of the area of the rest above `F`.
@@ -229,7 +233,7 @@ Since roadmap item k51, the bench records the bound of the objective of each cel
 |---|---|---|---|
 | `pack.bound` | the unit of the objective | none | 0 or more |
 | `pack.bound.kind` | a code | none | 0 to 7 |
-| `pack.gap` | ratio | lower | 0 or more |
+| `pack.gap` | share | lower | 0 to 1 |
 
 **`pack.bound`** is a fact of the input, not of the packer. No packer gets a better result. Its unit is the unit of the objective of the cell:
 
@@ -247,18 +251,26 @@ Since roadmap item k51, the bench records the bound of the objective of each cel
 | 0 | `strip.area` | a strip | The pieces do not overlap and stay in the strip. Thus `H >= sum(w * h) / W`. |
 | 1 | `strip.tallest` | a strip | The hull holds each item. Thus `H` is at least the tallest item in its lowest turn. |
 | 2 | `strip.mmv` | a strip | Two pieces wider than `W / 2` stack. The bound L2 of Martello, Monaci and Vigo adds the narrow area that the wide pieces cannot hold. |
-| 3 | `strip.margin` | a strip | The pieces with their margins do not overlap. They go out of the hull by at most the largest top and bottom margins. |
+| 3 | `strip.margin` | a strip | The pieces with their margins, and with the gap since k118, do not overlap. They go out of the hull by at most the largest top and bottom margins and the gap. |
 | 4 | `hull.area` | no fixed side | The pieces do not overlap in the hull. Thus its area is at least the sum of their areas. |
 | 5 | `hull.extent` | no fixed side | The hull holds the widest and the tallest item. A `turnable` item puts its long side on one axis. |
-| 6 | `hull.margin` | no fixed side | The pieces with their margins stay in the hull grown by the largest margins. |
+| 6 | `hull.margin` | no fixed side | The pieces with their margins, and with the gap since k118, stay in the hull grown by the largest margins and the gap. |
 | 7 | `placed.free` | a fixed size | The placed area is at most the free area `F` of the forced overflow. |
 
-**`pack.gap`** is the distance of the result to the bound. The value 0 tells that the result is the best possible.
+**`pack.gap`** is the share of the better value that the result misses. The value 0 tells that the result is the best possible. `boundShare` gives it since roadmap item k118.
 
-- For a lower bound, `pack.gap` is `result / bound - 1`. For the upper bound of a fixed size, it is `bound / result - 1`.
+- For a lower bound, `pack.gap` is `1 - bound / result`. For the upper bound of a fixed size, it is `1 - result / bound`.
+- The bound and the result are 0 or more. Thus the quotient is 0 or more, and `pack.gap` is at most 1 for each result and each bound.
+- `pack.gap` is 0 or more only when the bound is sound: the result is not better than the bound.
+- When both values are 0, `pack.gap` is 0. A divisor of 0 with a numerator above 0 gives -1: the bound is wrong.
 - A strip and a free container give no `pack.gap` when the output leaves out an item of the bound. Then the result does not compare.
-- A gap with no finite value is not in the record. The bound of a fixed size gives that when the output places no item area.
-- The smoke check fails on a `pack.gap` below 0, because then the bound is wrong.
+- The smoke check fails on a `pack.gap` below 0, because then the bound is wrong. A test of `bench/sample-space.test.ts` checks `0 <= pack.gap <= 1` on sampled pairs.
+
+Before k118, `pack.gap` was the ratio `result / bound - 1` (`bound / result - 1` for the upper bound). `boundGap` gives that ratio.
+
+- A ratio `g` gives the share `g / (1 + g)`, and a share `s` gives the ratio `s / (1 - s)`. The two forms give the same order of the results.
+- The ratio has no upper end, even with a sound bound: a result of 3 times its lower bound gives 2. Thus a clip of the ratio to 1 hides results. The share does not.
+- The ratio of a fixed size with no placed item area is `Infinity`, and the record had no value. The share of that layout is 1.
 
 The rules of the bounds:
 
@@ -267,7 +279,9 @@ The rules of the bounds:
 - The bounds round up only with no tolerance and whole sizes. The bench uses a tolerance, so its strip bounds do not round.
 - `strip.mmv` does not use an item with 2 turns that fit. Fewer items do not need more height.
 - An item that is wider than a fixed width, in each turn, is not in the strip bounds. It counts as overflow.
-- The bounds ignore the gap and the obstacles of a free container. No hard rule needs the gap, and fewer limits do not make the optimum worse.
+- The bounds count the margins and the gap of each rectangle item that is not in `pairGaps` (k118). Each strategy keeps the gap (decision 3 of `docs/PACKER.md`).
+- A bound with the gap is the larger of the bound with the margins only and the bound with the margins and the gap.
+- The bounds ignore the obstacles of a free container. Fewer limits do not make the optimum worse.
 - A shaped container counts as its bounding box, as in the hard rules. A margin below 0 gives no bound.
 - The aspect term of `freeAspect` is 0 or more. Thus the bound of the area holds, but it is weaker than for `freeArea`.
 
@@ -278,9 +292,10 @@ The adversarial search of roadmap item k47 (`bench/adversary.ts`) finds the inpu
 | Container | Measure | Loss |
 |---|---|---|
 | `fixed` (a fixed size) | `pack.fill` | `fill(B) - fill(A)` |
-| each other container | `pack.gap` of k51 | `gap(A) - gap(B)` |
+| each other container | the ratio `boundGap` of k51 | `gap(A) - gap(B)` |
 
 - A value above 0 tells that A loses to B. The value 0 tells that A and B have the same result.
+- The loss uses the ratio, the form of `pack.gap` before k118. Thus the corpus `pack-adversary-v1` stays the same. Its inputs have no margins and no gap, so their bounds do not change.
 - On a strip, the bound is a fact of the input. Thus `gap(A) - gap(B)` is `(H(A) - H(B)) / bound`: the extra height of A in units of the bound.
 - A loss needs a value of each measure, and no break of a hard rule by B. A candidate without them has no loss.
 - A can break a hard rule. The field `hardA` of the corpus gives the count of its breaks.
@@ -559,7 +574,7 @@ Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `Measu
 | `pack.deterministic` | 0 | A boolean as 0 or 1. |
 | `pack.search.widths` | 0 | A count. |
 | `pack.search.ms` | none | A time. The times of CI change from run to run, and the time test of PROMOTION has its own rule. |
-| `pack.gap` | 0.005 | A ratio to a bound. A change of 0.5% counts. |
+| `pack.gap` | 0.005 | A share of a bound. A change of 0.005 counts. |
 | `pack.gapToOpt` | 0.005 | Half of 1 percent of the known best value. |
 
 - A measure with no `minEffect` uses `RECORD_EPS` in `compareMeasure`.

@@ -1035,7 +1035,7 @@ node bench/coverage.ts --records <folder>/records.jsonl --corpus <folder>/corpus
 The draw of a pair:
 
 1. The family is uniform over `corpusFamilies`. Each active dimension is uniform over its supported values or its range, on the scale of the dimension.
-2. The knobs `margin` and `gap` are uniform from 0 to 32. The option `--no-knobs` keeps them at 0.
+2. The knobs `margin` and `gap` are relative to the median side of the items (k118). The option `--knobs absolute` gives the draw of k112: uniform from 0 to 32. The option `--no-knobs` keeps them at 0.
 3. An input with more boxes than `--max-count` (1000) goes back. An input that its generator refuses also goes back.
 4. The config is uniform over all configs of `packSpace`. The script counts the configs of each option exactly, with big integers, and picks in proportion.
 5. Each value of a discrete param counts as one config. A real param counts as one config, and its value is uniform on its scale.
@@ -1044,6 +1044,17 @@ The draw of a pair:
 - Step 6 is rejection sampling. Thus the draw is uniform over the configs that the input accepts.
 - After 20 configs that go back, the script draws a new input. `sample.json` gives the rejection rates and their reasons.
 - With `--draw option`, each top option (the base configs and each meta option) gets the same chance. The draw in each option stays uniform.
+
+The relative knobs of roadmap item k118 (`--knobs relative`, the default):
+
+1. Each knob takes one random number `u`. A value `u` below 1/3 gives the ratio 0. Each other value gives a ratio `r` from 0.01 to 0.5 on a log scale (`knobRatio`).
+2. `resolveDraw` generates the input with the knobs at 0, and takes the median of the widths and the heights of its items (`medianSide`).
+3. The knob is `r` times that median side, with 3 decimals, in the supported range of the dimension (0 to 32).
+
+- An absolute knob also takes one random number. Thus a pair has the same family, params, seed and config with each scale. Only the knobs change.
+- A record has the absolute values in `knobs`, so `bench/coverage.ts` generates the input again. A relative draw also adds `knobRatios`.
+- `sample.json` gives the scale in `knobScale`. The pinned configs of the tests use `knobs: false`, so they do not change.
+- The cause: an absolute margin of 30 on items of side 4 leaves no room for the items. Then the sample measures mostly overflow.
 - Most configs of `packSpace` are portfolios with 5 members. Thus a uniform draw gives almost only portfolios. The option `option` gives the other meta options a chance.
 - Pair `i` reads its own random stream of the seed. Thus the same seed gives the same pairs, and a larger `--n` keeps the first pairs.
 
@@ -1151,7 +1162,7 @@ Thus the share of `pack.fill` was 0.136 or less in each stratum. The cause is th
 
 #### The headline measure `pack.gapToBound`
 
-`pack.gap` is not a share. It is `result/bound − 1`, so it has no upper end. The section "The values of `pack.gap`" below gives the cause.
+Before k118, `pack.gap` was not a share. It was `result/bound − 1`, so it had no upper end. The section "The values of `pack.gap`" below gives the cause. Since k118 it is a share from 0 to 1.
 The record measure `pack.gapToBound` of `bench/gap-to-bound.ts` is the headline measure of the coverage. It is from 0 to 1 in each region.
 
 1. The placed items go into a free container without obstacles. `objectiveBound` of k51 gives the lower bound of their hull area.
@@ -1160,7 +1171,7 @@ The record measure `pack.gapToBound` of `bench/gap-to-bound.ts` is the headline 
 
 - A hull bound of 0, or no bound, gives the upper bound 1. Then the value is `1 − pack.fill`.
 - A layout without a placed item has no value. The record does not have the measure.
-- The bound counts the margins of the items (`hull.margin`), but not the gap between the items.
+- The bound counts the margins of the items and, since k118, the gap between the items (`hull.margin`).
 - `pack()` and the other measures do not change. `pack.fill` stays a measure of the coverage.
 
 #### The input features
@@ -1270,7 +1281,50 @@ The values are correct for the bounds, but the bounds are loose. They are not a 
 - `strip.margin` and `hull.margin` count the margins but not the gap.
 - The sampler draws the margin and the gap up to approximately 32, for each item size. Thus the gap is large next to small items.
 
-A tighter `overflowBound` with the margins and the gap is a change of k51. This item does not change the bound.
+A tighter `overflowBound` with the margins and the gap is a change of k51. This item does not change the bound. Roadmap item k118 makes that change.
+
+##### The change of k118
+
+- `overflowBound`, `freeAreaBound`, `strip.margin` and `hull.margin` count the margins and the gap. `docs/PACKER.md` (decision 3) gives the proofs.
+- `pack.gap` is the share `boundShare`: `1 - bound / result`, or `1 - result / bound` for an upper bound. It is at most 1 by its definition, and 0 or more when the bound is sound.
+- The sampler draws the knobs relative to the median side of the items. `--knobs absolute` keeps the draw of k112.
+
+A local run of 57 stratified pairs (seed 1, 60 pairs asked) gives these values. The first table is the ratio of before k118, with the absolute knobs.
+
+| Bound kind | Pairs | Ratio above 1 | Ratio median | Ratio largest |
+|---|---|---|---|---|
+| `placed.free` | 19 | 15 | 3.43 | 827 |
+| `strip.margin` | 25 | 10 | 0.55 | 30 |
+| `hull.margin` | 6 | 2 | 0.64 | 18 |
+| `strip.tallest` | 2 | 1 | 1.57 | 3.1 |
+| `hull.extent` | 1 | 0 | 0 | 0 |
+
+The same pairs after k118, with the absolute knobs. Each share is from 0 to 1. The ratio is `s / (1 - s)` of the new, tighter bound.
+
+| Bound kind | Pairs | Share above 1 | Share median | Share largest | Ratio above 1 |
+|---|---|---|---|---|---|
+| `placed.free` | 22 | 0 | 0.49 | 1 | 11 |
+| `strip.margin` | 25 | 0 | 0.13 | 0.97 | 5 |
+| `hull.margin` | 6 | 0 | 0.33 | 0.95 | 1 |
+| `strip.tallest` | 2 | 0 | 0.38 | 0.76 | 1 |
+| `hull.extent` | 1 | 0 | 0 | 0 | 0 |
+
+The same pairs with the relative knobs:
+
+| Bound kind | Pairs | Share above 1 | Share median | Share largest | Ratio above 1 |
+|---|---|---|---|---|---|
+| `placed.free` | 22 | 0 | 0.27 | 0.95 | 5 |
+| `strip.margin` | 23 | 0 | 0.21 | 0.97 | 7 |
+| `hull.margin` | 6 | 0 | 0.27 | 0.95 | 1 |
+| `strip.tallest` | 2 | 0 | 0.62 | 0.72 | 2 |
+| `strip.area` | 2 | 0 | 0.55 | 0.59 | 2 |
+| `hull.extent` | 1 | 0 | 0 | 0 | 0 |
+
+- No pair has a share below 0. Thus no bound is above its result.
+- 3 pairs of `placed.free` had no ratio before k118: the layout placed no item area, and the ratio was `Infinity`. Their share is 1.
+- The bound is tighter on 49 of the 53 pairs with a value before and after. The ratios above 1 go from 28 to 17 of these 53 pairs.
+- The large ratios that stay come from loose bounds, not from the measure.
+- The times of a local run do not count. The run of `bench.yml` with 400 pairs gives the values of record.
 
 #### The inputs of `bench.yml`
 

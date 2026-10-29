@@ -1238,6 +1238,35 @@ The rule is safe, but it is not tight:
 - A pair gap that is smaller than the margins does not let the two items come nearer. The packer keeps the margins.
 - A pad also keeps the other neighbours of the item farther away, and it can make an item too large for a fixed container. Then the item goes to the overflow.
 
+#### The bounds with the margins and the gap (roadmap item k118)
+
+The bounds of `src/bounds.ts` and `src/overflow.ts` count the margins and the gap. This section gives the proof that each bound stays sound.
+
+- `M_j` is the box of item `j` grown by its margins. `I` is the container less the inset. `g` is the global `gap`.
+- The hard rules keep each `M_j` in `I`, out of each other `M_k`, out of each fixed obstacle and out of the boxes of the locked items.
+- Decision 3 keeps two items `mA + g + mB` apart. Thus the boxes `R_j`, each `M_j` grown by `g / 2` on each side, do not overlap.
+- Each `R_j` stays in `I` grown by `g / 2` on each side. An `R_j` can go over an obstacle by `g / 2`, so a bound with the gap does not subtract the obstacles.
+
+Only a rectangle item that is not in `pairGaps` grows. The other items count as their bare boxes:
+
+- A pair gap replaces the margins and the gap of its pair. Thus the two items of a pair can be nearer than their margins and the gap.
+- The hard rules test a shape as its bounding box, and `hole-degree` keeps the discs apart, not their boxes. Thus a shape stays bare.
+- A bare box is in its `M_j`. Thus each bound stays sound with the bare items, but it is weaker.
+
+The bounds:
+
+1. `placed.free` with the margins: the placed items need the area of their `M_j` in the free area `F`. `F` loses the margined box of each locked item that grows.
+2. `placed.free` with the gap: the placed items need the area of their `R_j` in the area of `I` grown by `g`.
+3. The forced count drops the candidates with the largest need first, until the rest fits. No packer places more items, so the count is a lower bound of the overflow.
+4. The forced area is the fractional knapsack: the candidates with the least item area for each unit of need go first. No set of items with that need has less item area.
+5. `strip.margin`: the pieces `R_j` do not overlap in a strip of the width of `I` plus `g`. Their hull is at most `H + top + bottom + g` high. `top` and `bottom` are the largest margins.
+6. `hull.margin`: the pieces `R_j` do not overlap in the hull grown by the largest margins and by `g`. `areaFloor` gives the least hull for that.
+7. Each bound with the gap is the larger value of the bound with `g` and the bound with `0`. Each of the two values is sound, so the larger value is sound too.
+
+- The tolerance makes each piece smaller by `t / 2` on each side, as before. The slack of the free area is `2 * t` along each edge.
+- With no margin and no gap, the bounds and the measures are the same as before k118. A test of `src/bounds.test.ts` checks each bound against an exhaustive optimum with a margin, a gap and both.
+- A strategy that does not keep the gap can get a result better than a bound with the gap. Then `pack.gap` is below 0, and the smoke check fails.
+
 ### 4. The ports
 
 - The ports are a part of the item, with the form of `boxes[].ports` of `layout-input/1`. A port has an `id`, an optional `side`, and an optional `x` and `y` on the border of the item.

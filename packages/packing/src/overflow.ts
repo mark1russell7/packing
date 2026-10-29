@@ -259,7 +259,7 @@ const grows = (item: Item, paired: ReadonlySet<string>): boolean => item.shape =
  * - A shape loses only the regions that are fully in it and in the inner rectangle, with no common point between their boxes.
  * - An obstacle with `move` can go out of the way. Thus the bound does not subtract it.
  *
- * The proof: the hard rules keep each item with its margin in the inner rectangle, and out of each fixed obstacle and each other item with its margin.
+ * The proof: the hard rules keep each item with its margin in the inner rectangle. They also keep it out of each fixed obstacle and each other margined item.
  * The gap does not count, because an item with the gap can go over an obstacle. `overflowBound` uses the gap with the inner rectangle only.
  */
 export function freeAreaBound(input: PackInput): number {
@@ -350,14 +350,15 @@ function dropsOf(needs: readonly Need[], weight: (n: Need) => number, room: numb
  * This function gives a lower bound of the overflow of an input: the items that no packer can place, and their area.
  *
  * - The candidates are the items that are not locked at a position.
- * - A fixed side forces each candidate that is longer than the side less the inset, with its margin, in each turn that the item permits.
+ * - A fixed side forces each candidate that is longer than the side less the inset, with its margin. A `turnable` item needs both turns too long.
  * - A fixed size also forces the drops of 2 area rules. The bound takes the larger count and the larger area of the 2 rules.
  * - Rule A: the candidates with their margins fit the free area of `freeAreaBound`.
- * - Rule B, for a gap `g` above 0: the candidates with their margins and the gap fit the inner rectangle grown by `g / 2` on each side.
+ * - Rule B, for a gap `g` above 0: the candidates with their margins and the gap fit the inner rectangle grown by `g / 2`.
  * - An item grows only when it is a rectangle and not in `pairGaps`. Another item counts with its area.
  * - The area of the bound is the area of the long items, plus the area of the drops. A container with no fixed side gives 0.
  *
- * The proof of rule A: the hard rules keep the boxes with their margins in the inner rectangle, out of the obstacles and out of each other.
+ * The proof of rule A: the hard rules keep the margined boxes in the inner rectangle, out of the obstacles and out of each other.
+ *
  * The proof of rule B: two items are `mA + gap + mB` apart (decision 3 of `docs/PACKER.md`). Thus the boxes grown by `g / 2` more do not overlap.
  * Each such box is in the inner rectangle grown by `g / 2`. A box with the gap can go over an obstacle, so rule B does not subtract the obstacles.
  * Rule B holds for each layout that keeps the gap. Each strategy of the package keeps it through its frame.
