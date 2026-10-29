@@ -340,8 +340,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k90",
     title: "The strategy `hole-degree` packs circles by the maximum hole degree of Huang 2005. On 30 circles, its `pack.shapeFill` is 0.816, and `bbox-maxrects-bl` gives 0.692.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pull/0",
+    pr: 142,
+    link: "https://github.com/mark1russell7/packing/pull/142",
   },
   {
     date: "2026-10-29",
