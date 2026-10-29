@@ -434,6 +434,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k58",
+    title: "Release 0.3.0: pack() without a strategy uses the table of select for a fixed size. Other containers keep the rows output.",
+    pr: 167,
+    link: "https://github.com/mark1russell7/packing/pull/167",
+  },
+  {
+    date: "2026-10-29",
     item: "k121",
     title: "Determinism is a gate. A pair without a clock limit that is not deterministic fails the bench, and the sample draws no clock limits by default.",
     pr: 165,

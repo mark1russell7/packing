@@ -1,6 +1,6 @@
 export { Vector } from "./vector.ts";
 export { Rect } from "./rect.ts";
-export { pack, packRows, type PackOptions, type PackLayoutOptions } from "./pack.ts";
+export { defaultLayoutOf, pack, packRows, rectFeatures, type PackOptions, type PackLayoutOptions } from "./pack.ts";
 export { packSkyline, lowestWindow, SKYLINE_RULES, type SkylineOptions, type SkylineRule } from "./skyline.ts";
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
