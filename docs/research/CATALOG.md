@@ -130,7 +130,7 @@ Notes:
 
 A guillotine packer keeps a list of free rectangles. Each free rectangle comes from one straight cut across a larger free rectangle. The packer puts a box in the corner of a free rectangle. Then it cuts the rest of that free rectangle into two new free rectangles.
 
-Each guillotine strategy is a rule to choose and a rule to split. Its `id` is `guillotine-<choice>-<split>`, for example `guillotine-baf-slas`. All rules come from Jylänki 2010.
+Each guillotine strategy is a rule to choose and a rule to split. Its `id` is `guillotine-<choice>-<split>`, for example `guillotine-baf-sas`. All rules come from Jylänki 2010.
 
 | Choice rule | Name | The free rectangle that wins |
 |---|---|---|
@@ -143,24 +143,24 @@ Each guillotine strategy is a rule to choose and a rule to split. Its `id` is `g
 
 | Split rule | Name | The cut |
 |---|---|---|
-| `sas` | Shorter Axis Split | Cut along the shorter side of the free rectangle. |
-| `las` | Longer Axis Split | Cut along the longer side of the free rectangle. |
-| `slas` | Shorter Leftover Axis Split | Cut along the axis with the shorter leftover. |
-| `llas` | Longer Leftover Axis Split | Cut along the axis with the longer leftover. |
+| `sas` | Shorter Leftover Axis Split | Cut along the axis with the shorter leftover. |
+| `las` | Longer Leftover Axis Split | Cut along the axis with the longer leftover. |
+| `sa` | Shorter Axis Split | Cut along the shorter side of the free rectangle. |
+| `la` | Longer Axis Split | Cut along the longer side of the free rectangle. |
 | `minas` | Min Area Split | Cut to make the two new areas as different as possible. |
 | `maxas` | Max Area Split | Cut to make the two new areas as equal as possible. |
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `guillotine-<choice>-<split>` | Guillotine, 36 combinations | Choose a free rectangle with the choice rule. Put the box in its bottom-left corner. Cut the rest with the split rule. | Jylänki 2010 | density | `O(n F)`, `F` is `O(n)` | — | planned | k23 |
-| option `merge` | Rectangle merge | After each box, join two free rectangles with a common full edge into one. | Jylänki 2010 | density | `O(F^2)` for each box | — | planned | k23 |
+| `guillotine-<choice>-<split>` | Guillotine, 36 combinations | Choose a free rectangle with the choice rule. Put the box in its top-left corner (y grows down). Cut the rest with the split rule. | Jylänki 2010 | density | `O(n F)`, `F` is `O(n)` | — | implemented: `guillotine` with `choice` and `split`, entry `guillotine-baf-sas` | k23 |
+| option `merge` | Rectangle merge | After each box, join two free rectangles with a common full edge into one. | Jylänki 2010 | density | `O(F^2)` for each box | — | implemented: `guillotine` with `merge: true`, entry `guillotine-bssf-sas-merge` | k23 |
 | `guillotine-global` | Global choice | For each step, test each box left with each free rectangle, and put the best pair. | Jylänki 2010 | density | `O(n^2 F)` | — | planned | k23 |
 | `guillotine-bin-oriented` | Constructive bin-oriented heuristic | Fill one bin at a time. Choose the boxes for the bin with the rule of average-area sufficiency. Pack them with guillotine cuts. | Charalambous 2011 | density in bins | `O(n^2)` for each bin | — | planned | new item |
 | `guillotine-insertion` | Insertion heuristics with justification | Insert each box into the guillotine tree of a bin. Then move the boxes to one side (justify) and pack again to empty a bin. | Fleszar 2013 | density in bins | `O(n^2)` for each pass | — | planned | new item |
 
 Notes:
 
-- A guillotine layout is a tree of cuts. The layout of a strip packer with the rule `slas` and the rule `baf` is the best start in the tests of Jylänki 2010.
+- A guillotine layout is a tree of cuts. The layout of a strip packer with the rule `sas` (shorter leftover axis) and the rule `baf` is the best start in the tests of Jylänki 2010.
 - The two-stage and three-stage guillotine layouts of the cutting literature are the exact form of the same model. The family [Exact methods and constraint models](#exact-methods-and-constraint-models) has them.
 
 ## MaxRects and free spaces

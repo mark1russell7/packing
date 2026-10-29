@@ -11,6 +11,7 @@ import {
   Rect,
   rectGrid,
   toPackInput,
+  type GeneratorParams,
   type GuillotineChoice,
   type GuillotineSplit,
   type PackInput,
@@ -105,12 +106,12 @@ describe("guillotine: each choice rule on a hand case", () => {
 describe("guillotine: each split rule on a hand case", () => {
   // One box goes in the corner of an empty outer rectangle. A horizontal cut (H) gives the part below the full width. A
   // vertical cut (V) gives the part on the right the full height.
-  const CASES = [
+  const CASES: readonly { outer: [number, number]; size: [number, number] }[] = [
     { outer: [100, 60], size: [40, 20] },
     { outer: [60, 100], size: [20, 50] },
     { outer: [100, 60], size: [90, 20] },
     { outer: [100, 60], size: [20, 50] },
-  ] as const;
+  ];
   const WANT: Record<GuillotineSplit, string> = { sas: "VHHV", las: "HVVH", sa: "VHVV", la: "HVHH", minas: "HVHV", maxas: "VHVH" };
 
   /** This function gives the free rectangles of a horizontal or a vertical cut after a box of `w` by `h` in an outer of `W` by `H`. */
@@ -275,7 +276,8 @@ describe("guillotine: the hard rules", () => {
 
   it("packs an input of each generator with no hard break", () => {
     for (const gen of generators) {
-      let params: Record<string, unknown> = "count" in gen.defaults ? { count: 12 } : {};
+      // A small count keeps the test fast. A generator that refuses the count gets its defaults.
+      let params: Partial<GeneratorParams> = "count" in gen.defaults ? { count: 12 } : {};
       try {
         gen.withDefaults(params);
       } catch {

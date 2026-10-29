@@ -112,8 +112,8 @@ export function cutsAcross(split: GuillotineSplit, f: Box, w: number, h: number)
 
 /**
  * This function removes the box `b` from each free rectangle that it hits. A hit rectangle becomes at most four parts that
- * do not overlap: the full-height parts on the left and on the right, then the parts above and below the box. A part
- * stays only when `keep` accepts it. The order of the list stays.
+ * do not overlap. The first two parts are the full-height parts on the left and on the right. The other two are above
+ * and below the box. A part stays only when `keep` accepts it. The order of the list stays.
  */
 function carve(free: readonly Box[], b: Box, keep: (p: Box) => boolean): Box[] {
   const out: Box[] = [];
