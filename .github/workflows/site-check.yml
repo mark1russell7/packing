@@ -5,27 +5,12 @@
 name: Site check
 
 on:
-  pull_request:
-    paths:
-      - packages/site/**
-      - packages/packing/src/**
-      - pnpm-lock.yaml
-      - .github/workflows/site-check.yml
-  push:
-    branches: [main]
-    paths:
-      - packages/site/**
-      - packages/packing/src/**
-      - pnpm-lock.yaml
-      - .github/workflows/site-check.yml
+  # ci.yml calls this workflow on each push and pull request, so the check CI OK of the ruleset needs it
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: site-check-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   render:
