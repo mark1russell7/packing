@@ -18,6 +18,7 @@ import {
   type HoleDegreeStrategyOptions,
   type Dimension,
   type DimensionValue,
+  type ForceStrategyOptions,
   type GeneticStrategyOptions,
   type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
@@ -97,6 +98,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   "ruin-recreate": { stage: "local-search" },
   "overlap-min": { stage: "local-search" },
   relax: { stage: "local-search" },
+  force: { stage: "local-search" },
   anneal: {
     stage: "local-search",
     rule: "Change the order with swaps and moves. Keep a worse order with a chance that falls as the temperature falls.",
@@ -261,6 +263,7 @@ type AnyOptions = LayoutStrategyOptions &
   RuinRecreateStrategyOptions &
   OverlapMinStrategyOptions &
   RelaxStrategyOptions &
+  ForceStrategyOptions &
   AnnealStrategyOptions &
   GeneticStrategyOptions &
   TabuStrategyOptions &
@@ -301,6 +304,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   iterations: { type: "number", note: "The count of the restarts, restart 0 included. Restart 0 is the member in its own order." },
   perturb: { type: oneOf(RESTART_PERTURBS), note: "The change of the order of each run after run 0." },
   strength: { type: "number", note: "The share of the positions that move, from 0 to 1." },
+  rounds: { type: "number", note: "The most rounds of the overlap removal of PRISM in `force`." },
   limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
   turn: { type: "boolean", note: "The value `true` lets `bbox` turn each turnable item to the lower box." },
   wasteMap: { type: "boolean", note: "The value `true` keeps the free areas below the skyline, and each box tries them first." },
@@ -348,6 +352,11 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
     strength: { type: "number", note: "The share of the move to the even spread, from 0 to 1. With 0, the output is the member output." },
   },
+  force: {
+    member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
+    iterations: { type: "number", note: "The count of the force steps. With 0, the output is the member output." },
+    rounds: { type: "number", note: "The most rounds of the overlap removal of PRISM." },
+  },
 };
 
 /** The options of each strategy that have no default. The types of the package make sure that each name is an option of the strategy. */
@@ -365,6 +374,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   genetic: ["member", "budgetWork"] satisfies (keyof GeneticStrategyOptions)[],
   tabu: ["member", "budgetWork"] satisfies (keyof TabuStrategyOptions)[],
   relax: ["member"] satisfies (keyof RelaxStrategyOptions)[],
+  force: ["member"] satisfies (keyof ForceStrategyOptions)[],
 };
 
 /** One option of a card */

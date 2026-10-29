@@ -48,6 +48,9 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "relax-rows": "move.relax",
   "relax-maxrects-bl": "move.relax",
   "relax-skyline-bl-waste": "move.relax",
+  "force-rows": "move.force",
+  "force-maxrects-bl": "move.force",
+  "force-skyline-bl-waste": "move.force",
 });
 
 /** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */

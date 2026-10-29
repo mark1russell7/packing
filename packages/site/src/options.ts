@@ -128,6 +128,7 @@ function extraControls(id: string): OptionControl[] {
     case "ruin-recreate":
     case "overlap-min":
     case "relax":
+    case "force":
       return [{ key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false }];
     default:
       return [];
@@ -158,7 +159,7 @@ const memberOf = (id: string): { id: string; strategy: string; options: Readonly
 /**
  * This function gives the options of `packWith` from the values of the controls. An empty value gives no option. A
  * portfolio with members takes no `k`. The strategy of `aspect-fit` is a named entry with its options.
- * The member of `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu` and `relax` is a named entry.
+ * The member of `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` is a named entry.
  */
 export function packOptions(id: string, values: OptionValues): Record<string, unknown> {
   const out: Record<string, unknown> = {};

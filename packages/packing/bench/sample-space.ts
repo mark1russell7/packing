@@ -380,7 +380,7 @@ const pinParam = (params: readonly SpaceParam[], name: string, value: ParamValue
 
 /**
  * This function gives the strata of a space, in the order of the stages and of their options. A stratum without configs is not in the list.
- * For `packSpace`, it gives 24 strata: 7 base families, then `portfolio:2` to `portfolio:5`, the 3 values of `k` of `cell-portfolio`, and the other meta options.
+ * For `packSpace`, it gives 25 strata: 7 base families, then `portfolio:2` to `portfolio:5`, the 3 values of `k` of `cell-portfolio`, and the other meta options.
  */
 export function strataOf(space: StrategySpace, counts: SpaceCounts = spaceCounts(space)): Stratum[] {
   const out: Stratum[] = [];
