@@ -285,6 +285,7 @@ describe("the screen on smoke-v1", () => {
     }
   });
 
+  // This test packs the smoke corpus again with each entry. Since k123 each record packs one more time, with the next seed.
   it("gives the same screen for one run and for the merge of the runs of the jobs of a matrix", () => {
     // The jobs keep the order of the strategies of the full run, and the merge keeps the order of its jobs
     const order = full.run.strategies;
@@ -300,7 +301,7 @@ describe("the screen on smoke-v1", () => {
     expect(mergeRuns(jobs.map((j) => j.run)).outputGroups).toBeUndefined();
     const md = summaryMarkdown(merged, records);
     for (const section of ["Ranking", "Fill without overflow", "Overflow", "Distinct outputs", "Activation"]) expect(md).toContain(`## ${section}`);
-  });
+  }, 60_000);
 
   it("ranks each container shape of smoke-v1, with no unmeasured strategy, and keeps forcedArea at or below the overflow area", () => {
     const ranking = full.run.ranking!;
