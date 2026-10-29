@@ -319,26 +319,26 @@ describe("packSpace and the options of the strategies", () => {
     for (const id of ["portfolio", "cell-portfolio", "restarts"]) {
       const params = combine.options.find((o) => o.id === id)!.params;
       expect(params.find((p) => p.name === "limitWork"), id).toEqual({ name: "limitWork", kind: "bool", default: false });
-      expect(params.find((p) => p.name === "budgetWork"), id).toMatchObject({ kind: "int", min: 1000, max: 256000, step: 1000, when: { param: "limitWork", in: [true] } });
+      expect(params.find((p) => p.name === "budgetWork"), id).toEqual({ name: "budgetWork", kind: "enum", values: [4000, 16000, 64000, 256000], default: 16000, when: { param: "limitWork", in: [true] } });
     }
     const pool = named["portfolio"]!.stages["combine"]!.members!;
     const cell = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "cell-portfolio", params, members: pool } } });
-    expect(outputHash(packConfig(input, cell({ limitWork: true, budgetWork: 1000 }), 2))).toBe(outputHash(packWith("portfolio", input, { budgetWork: 1000 }, 2)));
-    const list: StrategyConfig = { space: "packing", stages: { combine: { option: "portfolio", params: { limitWork: true, budgetWork: 1000 }, members: [named["rows"]!, named["maxrects"]!] } } };
-    expect(outputHash(packConfig(input, list))).toBe(outputHash(packWith("portfolio", input, { members: ["rows", "maxrects"], budgetWork: 1000 })));
+    expect(outputHash(packConfig(input, cell({ limitWork: true, budgetWork: 4000 }), 2))).toBe(outputHash(packWith("portfolio", input, { budgetWork: 4000 }, 2)));
+    const list: StrategyConfig = { space: "packing", stages: { combine: { option: "portfolio", params: { limitWork: true, budgetWork: 4000 }, members: [named["rows"]!, named["maxrects"]!] } } };
+    expect(outputHash(packConfig(input, list))).toBe(outputHash(packWith("portfolio", input, { members: ["rows", "maxrects"], budgetWork: 4000 })));
     const restarts = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "restarts", params, members: [named["maxrects-bl"]!] } } });
-    const work = packConfig(input, restarts({ limitWork: true, budgetWork: 5000 }), 3);
-    expect(outputHash(work)).toBe(outputHash(packWith("restarts", input, { budgetWork: 5000 }, 3)));
-    expect(work.trace!.at(-1)!.measures).toMatchObject({ "work.budget": 5000, "work.stopped": 1 });
+    const work = packConfig(input, restarts({ limitWork: true, budgetWork: 4000 }), 3);
+    expect(outputHash(work)).toBe(outputHash(packWith("restarts", input, { budgetWork: 4000 }, 3)));
+    expect(work.trace!.at(-1)!.measures).toMatchObject({ "work.budget": 4000, "work.stopped": 1 });
     // With the two limits on, the config gives the two options
-    expect(outputHash(packConfig(input, restarts({ limitWork: true, budgetWork: 5000, limitTime: true, budgetMs: 2000 }), 3))).toBe(
-      outputHash(packWith("restarts", input, { budgetWork: 5000, limitTime: true, budgetMs: 2000 }, 3)),
+    expect(outputHash(packConfig(input, restarts({ limitWork: true, budgetWork: 16000, limitTime: true, budgetMs: 2000 }), 3))).toBe(
+      outputHash(packWith("restarts", input, { budgetWork: 16000, limitTime: true, budgetMs: 2000 }, 3)),
     );
     // Without the switch param, the output does not change, and checkConfig refuses budgetWork
     expect(outputHash(packConfig(input, restarts({ limitWork: false }), 3))).toBe(outputHash(packWith("restarts", input, {}, 3)));
-    expect(() => packConfig(input, restarts({ budgetWork: 5000 }), 3)).toThrow(/budgetWork/);
-    // A value off the range or off the step breaks the config
+    expect(() => packConfig(input, restarts({ budgetWork: 4000 }), 3)).toThrow(/budgetWork/);
+    // A value that is not in the list breaks the config, but the option of the strategy takes it
     expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 500 }), 3)).toThrow(/budgetWork/);
-    expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 1500 }), 3)).toThrow(/budgetWork/);
+    expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 5000 }), 3)).toThrow(/budgetWork/);
   });
 });

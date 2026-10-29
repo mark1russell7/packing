@@ -354,18 +354,18 @@ The stop rule:
 - The option `budgetWork` is a whole number of 0 or more. Another value causes a `RangeError`.
 - A composite member with no work limit counts only the packs of its winner. Only a member with `budgetWork` reports its full work.
 
-In `packSpace`, the options `portfolio`, `cell-portfolio` and `restarts` have the switch param `limitWork` (default `false`) and the param `budgetWork`. The param `budgetWork` is an int from 1000 to 256000, with the step 1000 and the default 16000. Thus no default config has a work limit.
+In `packSpace`, the options `portfolio`, `cell-portfolio` and `restarts` have the switch param `limitWork` (default `false`) and the param `budgetWork`. The param `budgetWork` is an enum of the 4 values 4000, 16000, 64000 and 256000, with the default 16000. The option `budgetWork` of a strategy takes each whole number. Thus no default config has a work limit.
 
 The counts of `spaceSize` changed with k117. Only the meta configs changed:
 
 | `spaceSize` | Before k117 | Since k117 |
 |---|---:|---:|
 | `base`, 3 levels | 810 | 810 |
-| `meta`, 3 levels | 55171224249681990 | 220684896996747510 |
-| `meta`, 1 level | 3230760471442 | 6461520913474 |
+| `meta`, 3 levels | 55171224249681990 | 275856121245769350 |
+| `meta`, 1 level | 3230760471442 | 16153802239570 |
 | `meta` of one shape kind, 3 levels and 1 level | 1620 and 340 | 1620 and 340 |
 
-- With 3 levels, the work limit gives 4 param points: no limit, then 1000, 16000 and 256000. With 1 level, it gives 2 points. The options `bbox`, `select` and `aspect-fit` do not change.
+- The work limit gives 5 param points at each level count: no limit, then the 4 values of `budgetWork`. The options `bbox`, `select` and `aspect-fit` do not change.
 
 ### Shapes by their bounding boxes
 

@@ -51,13 +51,16 @@ const TARGET_PARAMS: readonly SpaceParam[] = [
   { name: "targetAspect", kind: "real", min: 0.25, max: 4, scale: "log", default: 1, when: { param: "fixedTarget", in: [true] } },
 ];
 
+/** The values of the param `budgetWork` of `packSpace`, in work units. The option `budgetWork` of a strategy takes each whole number. */
+const BUDGET_WORK_VALUES: readonly number[] = [4000, 16000, 64000, 256000];
+
 /**
  * The params of the work limit of roadmap item k117: the switch `limitWork`, then `budgetWork` in work units of `packWork`.
- * The 256 values go from 1000 to 256000 in steps of 1000. The grid of `spaceSize` takes them on a log scale.
+ * The param `budgetWork` has 4 values on a log scale, with the factor 4. With a small list, the sampler draws the work limit in 4 of 5 configs, not in 256 of 257.
  */
 const WORK_PARAMS: readonly SpaceParam[] = [
   { name: "limitWork", kind: "bool", default: false },
-  { name: "budgetWork", kind: "int", min: 1000, max: 256000, step: 1000, scale: "log", default: 16000, when: { param: "limitWork", in: [true] } },
+  { name: "budgetWork", kind: "enum", values: [...BUDGET_WORK_VALUES], default: 16000, when: { param: "limitWork", in: [true] } },
 ];
 
 /**
