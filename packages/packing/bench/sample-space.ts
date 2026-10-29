@@ -1,7 +1,7 @@
 // The sampler of the whole space of roadmap item k112. It draws pairs of a config of `packSpace` and an input of a corpus
 // family. It packs each pair and measures it as the bench runner does. `bench/coverage.ts --sample` scores the pairs.
 //
-//   node bench/sample-space.ts --out <dir> [--n 400] [--seed 1] [--draw uniform|option|stratified] [--stratify] [--max-count 1000] [--no-knobs]
+//   node bench/sample-space.ts --out <dir> [--n 400] [--seed 1] [--draw uniform|option|stratified|active] [--stratify] [--max-count 1000] [--no-knobs]
 //                              [--repeats 1] [--warmup 0] [--max-minutes <m>] [--prediction <id>] [--commit sha]
 //
 // `docs/BENCH.md` ("The whole space, sampled") tells how the draw works. The times of a local run do not count.
@@ -26,6 +26,7 @@ import {
   UnsupportedShape,
   type GeneratedInput,
   type PackHard,
+  type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
 import {
@@ -64,7 +65,7 @@ export const DEFAULT_PAIRS = 400;
 export const DEFAULT_MAX_COUNT = 1000;
 
 /** The largest count of the draws of a config for one input. Then the sampler draws a new input. */
-const MAX_CONFIG_TRIES = 20;
+export const MAX_CONFIG_TRIES = 20;
 
 /** The default largest count of the draws of an input for one pair. Then the pair is an error, or a miss of its stratum. */
 export const MAX_INPUT_TRIES = 200;
@@ -613,8 +614,11 @@ const bump = (out: Record<string, number>, key: string): void => {
 /** This function gives the option of the stage `combine` of a config, or `none`. */
 const combineOf = (config: StrategyConfig): string => config.stages["combine"]?.option ?? "none";
 
-/** This function gives an input file for a draw, or the reason that it goes back. */
-function inputOf(draw: InputDraw, registry: ReturnType<typeof createFamilyRegistry<GeneratedInput>>, maxCount: number): GeneratedInput | string {
+/** The registry of the corpus families. */
+export type FamilyRegistry = ReturnType<typeof createFamilyRegistry<GeneratedInput>>;
+
+/** This function gives an input file for a draw, or the reason that it goes back: `generate` or `max-count`. */
+export function generateInput(draw: InputDraw, registry: FamilyRegistry, maxCount: number): GeneratedInput | string {
   let file: GeneratedInput;
   try {
     file = registry.generate(draw.family, draw.seed, draw.dims, { version: draw.version, set: SAMPLE_SET });
@@ -623,6 +627,83 @@ function inputOf(draw: InputDraw, registry: ReturnType<typeof createFamilyRegist
     throw error;
   }
   return file.boxes.length > maxCount ? "max-count" : file;
+}
+
+/**
+ * This function packs a pair one time. A config that throws `UnsupportedCell` or `UnsupportedShape` gives the reason that it goes back.
+ * Another error goes to the caller.
+ */
+export function firstPack(input: PackInput, config: StrategyConfig, seed: number): PackOutput | string {
+  try {
+    return packConfig(input, config, seed);
+  } catch (error) {
+    if (error instanceof UnsupportedCell) return `unsupported:${error.dimension}=${error.value}`;
+    if (error instanceof UnsupportedShape) return "unsupported:shape";
+    throw error;
+  }
+}
+
+/** A pair for `measurePair`: the input, its file and draw, the canonical config, its id, the first pack and the index of the pair. */
+export interface PairToMeasure {
+  readonly input: PackInput;
+  readonly file: GeneratedInput;
+  readonly draw: InputDraw;
+  readonly config: StrategyConfig;
+  readonly id: string;
+  readonly first: PackOutput;
+  readonly pair: number;
+}
+
+/** The options of `measurePair`. */
+export interface MeasureOptions {
+  readonly env: BenchEnv;
+  readonly prediction: string;
+  readonly repeats: number;
+  readonly warmup: number;
+  readonly clock: () => number;
+  readonly commit?: string;
+}
+
+/** This function packs a pair a second time for `deterministic`, then `warmup` times, then `repeats` times with a clock. It gives the record of the pair. */
+export function measurePair(p: PairToMeasure, o: MeasureOptions): SampleRecord {
+  const { input, file, draw: d, config, id, first } = p;
+  const second = packConfig(input, config, file.seed);
+  const pack = (): PackOutput => packConfig(input, config, file.seed);
+  for (let w = 0; w < o.warmup; w++) pack();
+  const { msRuns, searchMs } = timeRuns(pack, o.repeats, o.clock);
+  const values = pairValues(input, first, searchMs, file.known);
+  const hard = checkHard(input, first, DEFAULT_TOLERANCE);
+  const params = file.generator?.params ?? {};
+  const record: SampleRecord = {
+    schema: "layout-record/1",
+    stage: "pack",
+    step: "pack",
+    strategy: `space:${id}`,
+    options: {},
+    corpus: SAMPLE_SET,
+    input: file.id,
+    inputHash: file.hash,
+    set: file.set,
+    seed: file.seed,
+    nodes: file.boxes.length + (file.obstacles?.length ?? 0),
+    edges: file.edges.length,
+    measures: roundMeasures(finite(values)),
+    hard,
+    tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
+    deterministic: isDeterministic(first, second),
+    prediction: o.prediction,
+    ms: round3(medianOf(msRuns)),
+    msRuns: msRuns.map(round3),
+    outputHash: outputHash(first),
+    env: o.env,
+    pair: p.pair,
+    config,
+    generator: { name: d.family, version: d.version, params },
+    cell: generator(d.family, d.version).cell(params as never) as unknown as Record<string, unknown>,
+    knobs: { margin: Number(d.dims["margin"] ?? 0), gap: Number(d.dims["gap"] ?? 0) },
+  };
+  if (o.commit !== undefined) record.commit = o.commit;
+  return record;
 }
 
 /**
@@ -692,7 +773,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     for (let inputTry = 0; inputTry < maxInputTries && !done; inputTry++) {
       const d = drawInput(r, corpusFamilies, { knobs });
       inputsDrawn++;
-      const file = inputOf(d, registry, maxCount);
+      const file = generateInput(d, registry, maxCount);
       if (typeof file === "string") {
         inputsRejected++;
         bump(inputReasons, file);
@@ -711,67 +792,26 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
         }
         const canonical = capMoves(canonicalConfig(space, config), maxOverlapMoves);
         const id = configId(space, canonical);
-        let first: PackOutput;
+        let first: PackOutput | string;
         try {
-          first = packConfig(input, canonical, file.seed);
+          first = firstPack(input, canonical, file.seed);
         } catch (error) {
-          if (error instanceof UnsupportedCell) {
-            configsRejected++;
-            bump(configReasons, `unsupported:${error.dimension}=${error.value}`);
-            continue;
-          }
-          if (error instanceof UnsupportedShape) {
-            configsRejected++;
-            bump(configReasons, "unsupported:shape");
-            continue;
-          }
           errors.push({ pair, input: file.id, config: id, message: error instanceof Error ? error.message : String(error) });
           done = true;
           break;
         }
+        if (typeof first === "string") {
+          configsRejected++;
+          bump(configReasons, first);
+          continue;
+        }
         done = true;
         try {
-          const second = packConfig(input, canonical, file.seed);
-          const pack = (): PackOutput => packConfig(input, canonical, file.seed);
-          for (let w = 0; w < warmup; w++) pack();
-          const { msRuns, searchMs } = timeRuns(pack, repeats, clock);
-          const values = pairValues(input, first, searchMs, file.known);
-          const hard = checkHard(input, first, DEFAULT_TOLERANCE);
-          const broken = Object.entries(hard).filter(([, v]) => v > 0);
+          const record = measurePair({ input, file, draw: d, config: canonical, id, first, pair }, { env: options.env, prediction, repeats, warmup, clock, ...(options.commit === undefined ? {} : { commit: options.commit }) });
+          const broken = Object.entries(record.hard).filter(([, v]) => v > 0);
           if (broken.length > 0) hardPairs++;
           for (const [rule] of broken) bump(hardRules, rule);
-          const deterministic = isDeterministic(first, second);
-          if (!deterministic) nondeterministic++;
-          const params = file.generator?.params ?? {};
-          const record: SampleRecord = {
-            schema: "layout-record/1",
-            stage: "pack",
-            step: "pack",
-            strategy: `space:${id}`,
-            options: {},
-            corpus: SAMPLE_SET,
-            input: file.id,
-            inputHash: file.hash,
-            set: file.set,
-            seed: file.seed,
-            nodes: file.boxes.length + (file.obstacles?.length ?? 0),
-            edges: file.edges.length,
-            measures: roundMeasures(finite(values)),
-            hard,
-            tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
-            deterministic,
-            prediction,
-            ms: round3(medianOf(msRuns)),
-            msRuns: msRuns.map(round3),
-            outputHash: outputHash(first),
-            env: options.env,
-            pair,
-            config: canonical,
-            generator: { name: d.family, version: d.version, params },
-            cell: generator(d.family, d.version).cell(params as never) as unknown as Record<string, unknown>,
-            knobs: { margin: Number(d.dims["margin"] ?? 0), gap: Number(d.dims["gap"] ?? 0) },
-          };
-          if (options.commit !== undefined) record.commit = options.commit;
+          if (!record.deterministic) nondeterministic++;
           records.push(record);
           bump(composition, combineOf(canonical));
           if (draw === "stratified") bump(strataPairs, stratumOf(space, canonical));
@@ -823,7 +863,7 @@ const round4 = (v: number): number => Math.round(v * 1e4) / 1e4;
 // ---- The command line ----
 
 /** This function gives the value of an option of the command line, or `undefined`. It throws an `Error` for an option without a value. */
-function optionOf(argv: readonly string[], name: string): string | undefined {
+export function optionOf(argv: readonly string[], name: string): string | undefined {
   const at = argv.indexOf(name);
   if (at < 0) return undefined;
   const value = argv[at + 1];
@@ -832,7 +872,7 @@ function optionOf(argv: readonly string[], name: string): string | undefined {
 }
 
 /** This function gives a whole-number option, or the fallback. It throws an `Error` for a value that is not a whole number. */
-function wholeOf(argv: readonly string[], name: string, fallback: number): number {
+export function wholeOf(argv: readonly string[], name: string, fallback: number): number {
   const text = optionOf(argv, name);
   if (text === undefined) return fallback;
   if (!/^\d+$/.test(text)) throw new Error(`The option ${name} is a whole number, not "${text}".`);
@@ -840,7 +880,7 @@ function wholeOf(argv: readonly string[], name: string, fallback: number): numbe
 }
 
 /** This function gives the facts of this computer, as the bench runner gives them. */
-function envOf(): BenchEnv {
+export function envOf(): BenchEnv {
   const list = cpus();
   return {
     node: process.version,
@@ -853,7 +893,7 @@ function envOf(): BenchEnv {
 }
 
 /** This function gives the first 7 characters of the commit: `--commit`, then `GITHUB_SHA`, then `git rev-parse`. */
-function commitOf(argv: readonly string[]): string | undefined {
+export function commitOf(argv: readonly string[]): string | undefined {
   const given = optionOf(argv, "--commit") ?? process.env["GITHUB_SHA"];
   if (given) return given.slice(0, 7);
   try {
@@ -867,6 +907,7 @@ function commitOf(argv: readonly string[]): string | undefined {
 export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOptions {
   const stratify = argv.includes("--stratify");
   const draw = optionOf(argv, "--draw") ?? (stratify ? "stratified" : "uniform");
+  if (draw === "active") throw new Error("The draw active is in bench/active.ts. Start node bench/active.ts, or node bench/sample-space.ts --draw active.");
   if (draw !== "uniform" && draw !== "option" && draw !== "stratified") throw new Error(`The option --draw is uniform, option or stratified, not ${draw}.`);
   if (stratify && draw !== "stratified") throw new Error(`The option --stratify does not go with --draw ${draw}.`);
   const minutes = optionOf(argv, "--max-minutes");
@@ -911,10 +952,25 @@ export function sampleMain(argv: readonly string[]): number {
 }
 
 if (process.argv[1]?.endsWith("sample-space.ts") === true) {
-  try {
-    process.exitCode = sampleMain(process.argv.slice(2));
-  } catch (error) {
+  const argv = process.argv.slice(2);
+  const fail = (error: unknown): void => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 2;
+  };
+  // The draw active (k116) is in bench/active.ts. It reads the grid run, so the sampler loads it only for that draw.
+  if (argv.includes("--draw") && argv[argv.indexOf("--draw") + 1] === "active") {
+    import("./active.ts").then((m) => {
+      try {
+        process.exitCode = m.activeMain(argv);
+      } catch (error) {
+        fail(error);
+      }
+    }, fail);
+  } else {
+    try {
+      process.exitCode = sampleMain(argv);
+    } catch (error) {
+      fail(error);
+    }
   }
 }

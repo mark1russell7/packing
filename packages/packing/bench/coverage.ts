@@ -2,18 +2,21 @@
 // For each measure, it fits a regression tree over the features of the strategy and of the input. Then it gives the
 // held-out error, the first-order sensitivity indices and the share of the cells that the model predicts.
 //
-//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>]
+//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>] [--active <dir>] [--features family|input]
 //
 // With `--sample`, the trees learn on all the grid and predict the pairs of `bench/sample-space.ts` (k112).
 // The section `strata` gives the share of each stratum of the pairs and the mean over the strata, each with the same weight (k115).
+// With `--features input`, the input features of `bench/input-features.ts` replace the family id and the params of the spec (k116).
+// With `--active <dir>`, the section `active` gives each round of an active sample of `bench/active.ts` (k116).
 //
 // `docs/BENCH.md` ("The space coverage") tells how to read the result.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { packSpace } from "@mark1russell7/packing";
-import { canonicalConfig, configId, type StrategyConfig } from "@mark1russell7/layout-contract";
-import { strataOf, stratumOf } from "./sample-space.ts";
+import { corpus, corpusFamilies, packSpace, toPackInput, type CorpusSpec, type GeneratedInput, type PackInput } from "@mark1russell7/packing";
+import { canonicalConfig, configId, createFamilyRegistry, type StrategyConfig } from "@mark1russell7/layout-contract";
+import { inputFeatures } from "./input-features.ts";
+import { SAMPLE_SET, strataOf, stratumOf } from "./sample-space.ts";
 
 /** The schema of the summary of `coverage`. */
 export const COVERAGE_SCHEMA = "packing-coverage/1";
@@ -156,6 +159,61 @@ export function configFeatures(config: StrategyConfig): Record<string, string> {
   if (members.length === 1) addStages(out, members[0]!);
   else out["combine.members"] = members.map((m) => NAME_OF.get(configId(packSpace, m)) ?? configId(packSpace, m)).join(",");
   return out;
+}
+
+// ---- The feature sets of the inputs (k116) ----
+
+/**
+ * The features of an input in the model. `family` is the cell, the family id and the params of the spec, as before k116.
+ * `input` is `inputFeatures` of the input itself: counts, areas, aspects, the container and the knobs.
+ */
+export type FeatureSet = "family" | "input";
+
+/** The feature sets, in the order of the option `--features`. */
+export const FEATURE_SETS: readonly FeatureSet[] = Object.freeze(["family", "input"]);
+
+/** The default feature set. It stays `family` until a bench run decides. */
+export const DEFAULT_FEATURES: FeatureSet = "family";
+
+/**
+ * This function gives the input features of each input of a manifest in a feature set, by input id.
+ * With `input`, it reads the inputs of `known`, and it generates the other inputs again from the specs of the manifest.
+ */
+export function gridInputFeatures(manifest: CoverageManifest, set: FeatureSet, known?: ReadonlyMap<string, PackInput>): Map<string, Readonly<Record<string, string>>> {
+  const dims = inputDims(manifest);
+  if (set === "family") return new Map([...dims].map(([id, d]) => [id, d.dims]));
+  const out = new Map<string, Readonly<Record<string, string>>>();
+  const missing = [...dims.keys()].filter((id) => known?.get(id) === undefined);
+  const made = new Map<string, PackInput>();
+  if (missing.length > 0) for (const file of corpus(manifest.corpus, manifest.specs as readonly CorpusSpec[]).inputs) made.set(file.id, toPackInput(file));
+  for (const id of dims.keys()) {
+    const input = known?.get(id) ?? made.get(id);
+    if (input === undefined) throw new Error(`The specs of the corpus file do not give the input ${id}.`);
+    out.set(id, inputFeatures(input));
+  }
+  return out;
+}
+
+/**
+ * This function generates the input of a sampled pair again: its generator, its params, its seed and its knobs.
+ * It throws an `Error` when the record has no seed, or when the hash of the new input is not the `inputHash` of the record.
+ */
+export function pairInput(r: SampledRecord): PackInput {
+  if (r.seed === undefined) throw new Error(`The sampled record of ${r.input} has no seed. The feature set input needs it.`);
+  const file = familyRegistry().generate(r.generator.name, r.seed, { ...r.generator.params, ...(r.knobs ?? {}) } as never, { version: r.generator.version, set: SAMPLE_SET });
+  if (r.inputHash !== undefined && file.hash !== r.inputHash) throw new Error(`The input ${r.input} does not come out the same: the hash is ${file.hash}, not ${r.inputHash}.`);
+  return toPackInput(file);
+}
+
+/** The family registry of the corpus families, made at the first use. */
+let registry: ReturnType<typeof createFamilyRegistry<GeneratedInput>> | undefined;
+
+/** This function gives the family registry of `corpusFamilies`. */
+const familyRegistry = (): ReturnType<typeof createFamilyRegistry<GeneratedInput>> => (registry ??= createFamilyRegistry<GeneratedInput>(corpusFamilies));
+
+/** This function gives the input features of a sampled pair in a feature set. `known` gives inputs by id, and the other inputs come from `pairInput`. */
+export function pairInputFeatures(r: SampledRecord, set: FeatureSet, known?: ReadonlyMap<string, PackInput>): Record<string, string> {
+  return set === "family" ? sampledDims(r) : inputFeatures(known?.get(r.input) ?? pairInput(r));
 }
 
 // ---- The table of the features ----
@@ -478,6 +536,10 @@ export interface CoverageOptions extends TreeOptions {
   readonly date?: string;
   /** The id of the CI run, or `null`. */
   readonly run?: number | null;
+  /** The features of an input. The default is `family`. */
+  readonly features?: FeatureSet;
+  /** The inputs by id, for the feature set `input`. The other inputs come from their generators again. Tests give them. */
+  readonly inputs?: ReadonlyMap<string, PackInput>;
 }
 
 /** The summary of `coverage`, schema `packing-coverage/1`. */
@@ -492,12 +554,14 @@ export interface CoverageSummary {
   readonly strategies: readonly string[];
   /** The names of the features that change, by group. */
   readonly features: { readonly strategy: readonly string[]; readonly input: readonly string[] };
-  readonly model: { readonly kind: "regression-tree"; readonly maxDepth: number; readonly minLeaf: number; readonly folds: number; readonly seed: number; readonly by: FoldUnit };
+  readonly model: { readonly kind: "regression-tree"; readonly maxDepth: number; readonly minLeaf: number; readonly folds: number; readonly seed: number; readonly by: FoldUnit; readonly features: FeatureSet };
   readonly measures: readonly MeasureCoverage[];
   /** The held-out test on the pairs of the whole space (k112). Only `--sample` gives it. */
   readonly sampled?: SampledCoverage;
   /** The held-out test of the same pairs, by stratum, with the mean over the strata (k115). Only `--sample` gives it. */
   readonly strata?: StrataCoverage;
+  /** The rounds of an active sample (k116). Only `--active` gives it. */
+  readonly active?: ActiveCoverage;
 }
 
 /** This function rounds a value to 4 decimals. The value -0 becomes 0. */
@@ -536,18 +600,36 @@ function rowFeatures(dims: Readonly<Record<string, string>>, sf: Readonly<Record
   return { features: { ...dims, ...sf }, group };
 }
 
-/** This function gives the rows of the grid with a finite value of a measure, and their table of features. */
-function gridTable(measured: readonly CoverageRecord[], dims: ReadonlyMap<string, InputDims>, sFeatures: ReadonlyMap<string, Record<string, string>>, m: CoverageMeasure): { rows: GridRow[]; table: FeatureTable } {
+/** The facts of the grid that each model reads: the measured records, the dimensions and the features of each input and strategy. */
+export interface Grid {
+  readonly dims: ReadonlyMap<string, InputDims>;
+  readonly measured: readonly CoverageRecord[];
+  readonly sFeatures: ReadonlyMap<string, Record<string, string>>;
+  /** The input features of each input, in the feature set of the options. */
+  readonly iFeatures: ReadonlyMap<string, Readonly<Record<string, string>>>;
+}
+
+/** This function gives the grid of some records over the inputs of a manifest, in the feature set of the options. */
+export function gridOf(records: readonly CoverageRecord[], manifest: CoverageManifest, options: CoverageOptions = {}): Grid {
+  const dims = inputDims(manifest);
+  const measured = records.filter((r) => r.skipped === undefined && dims.has(r.input));
+  const sFeatures = new Map([...new Set(measured.map((r) => r.strategy))].sort().map((s) => [s, strategyFeatures(s)]));
+  return { dims, measured, sFeatures, iFeatures: gridInputFeatures(manifest, options.features ?? DEFAULT_FEATURES, options.inputs) };
+}
+
+/** This function gives the rows of the grid with a finite value of a measure, their text features and their table of features. */
+function gridTable(grid: Grid, m: CoverageMeasure): { rows: GridRow[]; features: ReturnType<typeof rowFeatures>[]; table: FeatureTable } {
   const rows: GridRow[] = [];
-  for (const r of measured) {
+  for (const r of grid.measured) {
     const v = valueOf(r, m);
-    if (v !== undefined) rows.push({ r, d: dims.get(r.input)!, v });
+    if (v !== undefined) rows.push({ r, d: grid.dims.get(r.input)!, v });
   }
+  const features = rows.map(({ r }) => rowFeatures(grid.iFeatures.get(r.input)!, grid.sFeatures.get(r.strategy)!, r.strategy));
   const table = featureTable(
-    rows.map(({ r, d }) => rowFeatures(d.dims, sFeatures.get(r.strategy)!, r.strategy)),
+    features,
     rows.map((x) => x.v),
   );
-  return { rows, table };
+  return { rows, features, table };
 }
 
 /**
@@ -566,10 +648,9 @@ export function coverage(records: readonly CoverageRecord[], manifest: CoverageM
   const seed = options.seed ?? 1;
   const by = options.by ?? "input";
   const tree = { ...TREE_DEFAULTS, ...options };
-  const dims = inputDims(manifest);
-  const measured = records.filter((r) => r.skipped === undefined && dims.has(r.input));
-  const strategies = [...new Set(measured.map((r) => r.strategy))].sort();
-  const sFeatures = new Map(strategies.map((s) => [s, strategyFeatures(s)]));
+  const grid = gridOf(records, manifest, options);
+  const { dims, measured } = grid;
+  const strategies = [...grid.sFeatures.keys()];
   const foldOf = foldsOf([...dims.entries()].map(([id, d]) => (by === "spec" ? d.spec : id)), folds, seed);
 
   // The space of the cells: each strategy with each family, and the product of the bins of the params of the family.
@@ -583,7 +664,7 @@ export function coverage(records: readonly CoverageRecord[], manifest: CoverageM
   const out: MeasureCoverage[] = [];
   const seen = { strategy: new Set<string>(), input: new Set<string>() };
   for (const m of measures) {
-    const { rows, table } = gridTable(measured, dims, sFeatures, m);
+    const { rows, table } = gridTable(grid, m);
     for (const f of table.features) seen[f.group].add(f.name);
 
     // The held-out predictions of the tree and of the baseline
@@ -620,8 +701,14 @@ export function coverage(records: readonly CoverageRecord[], manifest: CoverageM
       joint: r4(joint),
     };
 
-    // The cells
-    const binOf = new Map(table.features.map((f) => [f.name, new Map(f.levels.map((l, i) => [l, f.bins[i]!]))]));
+    // The cells. The bins of a param come from the dimensions of the inputs, so the cells do not change with the feature set.
+    const paramNames = [...new Set(rows.flatMap((x) => x.d.params))];
+    const binOf = new Map(
+      paramNames.map((p) => {
+        const f = featureOf(p, "input", rows.map((x) => x.d.dims[p] ?? ABSENT));
+        return [p, new Map(f.levels.map((l, i) => [l, f.bins[i]!]))];
+      }),
+    );
     const binText = (name: string, value: string): string => String(binOf.get(name)?.get(value) ?? 0);
     const cellKey = (strategy: string, d: InputDims): string => [strategy, d.family, ...d.params.map((p) => `${p}=${binText(p, d.dims[p]!)}`)].join("|");
     const cellErrors = new Map<string, number[]>();
@@ -665,7 +752,7 @@ export function coverage(records: readonly CoverageRecord[], manifest: CoverageM
     inputs: dims.size,
     strategies,
     features: { strategy: [...seen.strategy].sort(), input: [...seen.input].sort() },
-    model: { kind: "regression-tree", maxDepth: tree.maxDepth, minLeaf: tree.minLeaf, folds, seed, by },
+    model: { kind: "regression-tree", maxDepth: tree.maxDepth, minLeaf: tree.minLeaf, folds, seed, by, features: options.features ?? DEFAULT_FEATURES },
     measures: out,
   };
 }
@@ -678,6 +765,12 @@ export interface SampledRecord extends CoverageRecord {
   readonly generator: { readonly name: string; readonly version: number; readonly params: Readonly<Record<string, unknown>> };
   readonly cell: Readonly<Record<string, unknown>>;
   readonly knobs?: { readonly margin: number; readonly gap: number };
+  /** The seed of the input. The feature set `input` needs it to generate the input again. */
+  readonly seed?: number;
+  /** The hash of the input. A new input with another hash is an error. */
+  readonly inputHash?: string;
+  /** The round of a pair of an active sample (k116), from 1. */
+  readonly round?: number;
 }
 
 /** The held-out result of one measure on the sampled pairs. */
@@ -699,6 +792,8 @@ export interface SampledMeasure {
   readonly medianAe: number;
   /** The error of the baseline: the median of all the rows of the grid. */
   readonly baseline: ErrorStats;
+  /** The share of the pairs with much forced overflow (`forcedHeavy`) and of the other pairs (k116). A summary from before k116 does not have it. */
+  readonly forced?: { readonly heavy: PartShare; readonly rest: PartShare };
 }
 
 /** The facts of the draw, from `sample.json` of the sampler. */
@@ -749,7 +844,7 @@ export function sampledDims(r: SampledRecord): Record<string, string> {
  * A skipped sampled record and a record without a finite value are not pairs.
  */
 export function sampledCoverage(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions = {}, sample?: SampleFacts): SampledCoverage {
-  return sampledOf(heldOut(records, manifest, sampled, options), sample);
+  return sampledOf(heldOut(gridOf(records, manifest, options), sampled, options, pairFeaturer(options)), sample);
 }
 
 /** The held-out errors of the sampled pairs for one measure. `at` gives the index of the pair of each error. */
@@ -766,28 +861,70 @@ interface HeldOut {
   readonly measures: readonly HeldOutMeasure[];
 }
 
-/** This function fits the tree of each measure on all the grid and gives the errors of the sampled pairs, as `sampledCoverage` tells. */
-function heldOut(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions): HeldOut {
+/** The text features of a row and the group of each feature. */
+export type RowFeatures = ReturnType<typeof rowFeatures>;
+
+/** This function gives the row features of a sampled pair in the feature set of the options: the config and the input. */
+export function pairFeatures(r: SampledRecord, options: CoverageOptions = {}): RowFeatures {
+  return rowFeatures(pairInputFeatures(r, options.features ?? DEFAULT_FEATURES, options.inputs), configFeatures(r.config), r.strategy);
+}
+
+/** This function gives `pairFeatures` with a memory. Each pair gets its features one time. */
+function pairFeaturer(options: CoverageOptions): (r: SampledRecord) => RowFeatures {
+  const memo = new Map<SampledRecord, RowFeatures>();
+  return (r) => {
+    let f = memo.get(r);
+    if (f === undefined) {
+      f = pairFeatures(r, options);
+      memo.set(r, f);
+    }
+    return f;
+  };
+}
+
+/** The training rows of one measure: the text features of each row and its value on the scale of the measure. */
+export interface TrainRows {
+  readonly features: readonly RowFeatures[];
+  readonly y: readonly number[];
+}
+
+/** This function gives the training rows of a measure: the rows of the grid, then the pairs of `train` with a finite value. */
+function trainRows(grid: Grid, m: CoverageMeasure, train: readonly SampledRecord[], featuresOf: (r: SampledRecord) => RowFeatures): TrainRows & { readonly gridY: Float64Array } {
+  const g = gridTable(grid, m);
+  const features = [...g.features];
+  const y = g.rows.map((x) => x.v);
+  for (const r of train) {
+    if (r.skipped !== undefined) continue;
+    const v = valueOf(r, m);
+    if (v === undefined) continue;
+    features.push(featuresOf(r));
+    y.push(v);
+  }
+  return { features, y, gridY: g.table.y };
+}
+
+/**
+ * This function fits the tree of each measure on all the grid and gives the errors of the sampled pairs, as `sampledCoverage` tells.
+ * The pairs of `train` join the rows of the grid before the fit. The baseline stays the median of the grid.
+ */
+function heldOut(grid: Grid, sampled: readonly SampledRecord[], options: CoverageOptions, featuresOf: (r: SampledRecord) => RowFeatures, train: readonly SampledRecord[] = []): HeldOut {
   const measures = options.measures ?? COVERAGE_MEASURES;
   const tree = { ...TREE_DEFAULTS, ...options };
-  const dims = inputDims(manifest);
-  const measured = records.filter((r) => r.skipped === undefined && dims.has(r.input));
-  const sFeatures = new Map([...new Set(measured.map((r) => r.strategy))].map((s) => [s, strategyFeatures(s)]));
   const pairs = sampled.filter((r) => r.skipped === undefined);
-  const features = pairs.map((r) => rowFeatures(sampledDims(r), configFeatures(r.config), r.strategy).features);
   const out: HeldOutMeasure[] = [];
   for (const m of measures) {
-    const { table } = gridTable(measured, dims, sFeatures, m);
+    const rows = trainRows(grid, m, train, featuresOf);
+    const table = featureTable(rows.features, rows.y);
     const all = Array.from(table.y.keys());
     const fitted = fitTree(table, all, tree);
-    const median = medianOf(table.y);
+    const median = medianOf(rows.gridY);
     const errors: number[] = [];
     const baseErrors: number[] = [];
     const at: number[] = [];
     pairs.forEach((r, i) => {
       const v = valueOf(r, m);
       if (v === undefined) return;
-      errors.push(Math.abs((all.length === 0 ? 0 : predictFeatures(fitted, table, features[i]!)) - v));
+      errors.push(Math.abs((all.length === 0 ? 0 : predictFeatures(fitted, table, featuresOf(r).features)) - v));
       baseErrors.push(Math.abs(median - v));
       at.push(i);
     });
@@ -796,12 +933,39 @@ function heldOut(records: readonly CoverageRecord[], manifest: CoverageManifest,
   return { pairs, measures: out };
 }
 
+/** The measure that tells the forced overflow of a pair: a lower bound of the share of the item area that no packer can place. */
+export const FORCED_MEASURE = "pack.overflow.forcedArea";
+
+/** The value of `FORCED_MEASURE` from which a pair has much forced overflow: half of the item area. */
+export const FORCED_HEAVY = 0.5;
+
+/** The hits of a part of the pairs: the count, the hits, the share and its Wilson 95% interval. A part without pairs has `null`. */
+export interface PartShare {
+  readonly n: number;
+  readonly hits: number;
+  readonly share: number | null;
+  readonly wilson: Interval | null;
+}
+
+/** This function gives the share of some hits of some pairs. No pair gives the share `null`. */
+const partOf = (hits: number, n: number): PartShare => ({ n, hits, share: n === 0 ? null : r4(hits / n), wilson: n === 0 ? null : wilson(hits, n) });
+
+/** This function tells if a pair has much forced overflow: its `pack.overflow.forcedArea` is `FORCED_HEAVY` or more. */
+export function forcedHeavy(r: Pick<CoverageRecord, "measures">): boolean {
+  const v = r.measures?.[FORCED_MEASURE];
+  return typeof v === "number" && v >= FORCED_HEAVY;
+}
+
 /** This function gives the section `sampled` from the held-out errors. */
 function sampledOf(h: HeldOut, sample?: SampleFacts): SampledCoverage {
   const out: SampledMeasure[] = [];
-  for (const { m, errors, baseErrors } of h.measures) {
-    const hits = errors.filter((e) => e <= m.tolerance + 1e-12).length;
+  for (const { m, errors, baseErrors, at } of h.measures) {
+    const hit = (e: number): boolean => e <= m.tolerance + 1e-12;
+    const hits = errors.filter(hit).length;
     const stats = errorStats(errors, m.tolerance);
+    const heavy = errors.map((_, j) => forcedHeavy(h.pairs[at[j]!]!));
+    const forced = errors.filter((_, j) => heavy[j]);
+    const rest = errors.filter((_, j) => !heavy[j]);
     out.push({
       id: m.id,
       scale: m.scale,
@@ -813,6 +977,7 @@ function sampledOf(h: HeldOut, sample?: SampleFacts): SampledCoverage {
       mae: stats.mae,
       medianAe: stats.medianAe,
       baseline: errorStats(baseErrors, m.tolerance),
+      forced: { heavy: partOf(forced.filter(hit).length, forced.length), rest: partOf(rest.filter(hit).length, rest.length) },
     });
   }
   return { pairs: h.pairs.length, ...(sample === undefined ? {} : { sample }), measures: out };
@@ -921,7 +1086,7 @@ export function strataCoverage(
   sample?: SampleFacts,
   strata?: SampleStrata,
 ): StrataCoverage {
-  return strataFrom(heldOut(records, manifest, sampled, options), sample, strata);
+  return strataFrom(heldOut(gridOf(records, manifest, options), sampled, options, pairFeaturer(options)), sample, strata);
 }
 
 /**
@@ -983,6 +1148,204 @@ export function sampleFacts(text: string): SampleFacts {
   };
 }
 
+// ---- The active sample (k116) ----
+
+/** The measures of the score of the active draw: the measures without a time. A time changes on each run, so the score does not read it. */
+export const scoreMeasures = (measures: readonly CoverageMeasure[] = COVERAGE_MEASURES): CoverageMeasure[] => measures.filter((m) => m.id !== "ms");
+
+/** The name of the score of the active draw. */
+export const ACTIVE_SCORE = "fold-spread";
+
+/** The scorer of the active draw: the trees of the folds of each measure, and the count of their rows. */
+export interface FoldScorer {
+  /** The rows of the grid and of the measured pairs, for the first measure of the score. */
+  readonly rows: number;
+  /** This function gives the score of the row features of a pair. A higher score tells a larger expected error. */
+  readonly score: (features: Readonly<Record<string, string>>) => number;
+}
+
+/** This function gives the standard deviation of some values. */
+function sdOf(values: readonly number[]): number {
+  const n = values.length;
+  if (n === 0) return 0;
+  const mean = values.reduce((s, v) => s + v, 0) / n;
+  return Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / n);
+}
+
+/**
+ * This function gives the scorer of the active draw (k116), the fold spread.
+ *
+ * 1. The rows of each measure of `scoreMeasures` are the rows of the grid and the measured pairs of `train`.
+ * 2. The rows go into the folds of `coverage`: by input or by spec for the grid, and one unit for each pair.
+ * 3. The tree of fold `k` learns on the rows of the other folds.
+ * 4. The score of a pair is the mean, over the measures, of the standard deviation of the predictions of the fold trees over the tolerance.
+ *
+ * The trees of the folds disagree where the rows do not decide the value. There, the held-out error is large.
+ */
+export function foldScorer(grid: Grid, train: readonly SampledRecord[], options: CoverageOptions = {}): FoldScorer {
+  const featuresOf = pairFeaturer(options);
+  const folds = options.folds ?? 5;
+  const seed = options.seed ?? 1;
+  const by = options.by ?? "input";
+  const tree = { ...TREE_DEFAULTS, ...options };
+  const pairs = train.filter((r) => r.skipped === undefined);
+  const models = scoreMeasures(options.measures).map((m) => {
+    const g = gridTable(grid, m);
+    const units = g.rows.map((x) => (by === "spec" ? x.d.spec : x.r.input));
+    const features = [...g.features];
+    const y = g.rows.map((x) => x.v);
+    pairs.forEach((r, i) => {
+      const v = valueOf(r, m);
+      if (v === undefined) return;
+      features.push(featuresOf(r));
+      y.push(v);
+      units.push(`active:${i}`);
+    });
+    const table = featureTable(features, y);
+    const foldOf = foldsOf(units, folds, seed);
+    const trees: TreeNode[] = [];
+    for (let k = 0; k < folds; k++) {
+      const rows = units.flatMap((u, i) => (foldOf.get(u) === k ? [] : [i]));
+      if (rows.length > 0) trees.push(fitTree(table, rows, tree));
+    }
+    return { m, table, trees };
+  });
+  return {
+    rows: models[0]?.table.y.length ?? 0,
+    score: (f) => {
+      if (models.length === 0) return 0;
+      let sum = 0;
+      for (const { m, table, trees } of models) sum += sdOf(trees.map((t) => predictFeatures(t, table, f))) / m.tolerance;
+      return sum / models.length;
+    },
+  };
+}
+
+/** The held-out result of the evaluation sample for one measure: its pairs, its hits, its share, its mean error and the mean over its strata. */
+export interface EvalMeasure {
+  readonly id: string;
+  readonly n: number;
+  readonly hits: number;
+  readonly share: number;
+  readonly mae: number;
+  /** The mean of the shares of the strata of the evaluation sample, each with the same weight. */
+  readonly equal: number;
+}
+
+/** The held-out result of the pairs of one round for one measure, and of the evaluation sample after the round. */
+export interface ActiveRoundMeasure {
+  readonly id: string;
+  readonly tolerance: number;
+  /** The pairs of the round with a finite value. */
+  readonly n: number;
+  readonly hits: number;
+  /** The hits over the pairs of the round, with the model of the grid and of the earlier rounds. */
+  readonly share: number;
+  readonly wilson: Interval;
+  readonly mae: number;
+  /** The evaluation sample with the model of the grid and of the rounds up to this round, when the coverage has it. */
+  readonly after?: EvalMeasure;
+}
+
+/** One round of the active sample. */
+export interface ActiveRound {
+  readonly round: number;
+  /** The measured pairs of the round. */
+  readonly pairs: number;
+  readonly measures: readonly ActiveRoundMeasure[];
+}
+
+/** The facts of the active draw, from the field `active` of `sample.json`. */
+export interface ActiveFacts {
+  readonly rounds: number;
+  /** The count of the candidate pairs. */
+  readonly pool: number;
+  readonly score: string;
+  readonly features: string;
+}
+
+/** The rounds of an active sample (k116). */
+export interface ActiveCoverage {
+  /** The count of the measured pairs of the active sample. */
+  readonly pairs: number;
+  readonly features: FeatureSet;
+  readonly facts?: ActiveFacts;
+  /** The count of the pairs of the evaluation sample, or `null` without it. */
+  readonly evalPairs: number | null;
+  /** The evaluation sample with the model of the grid only, before the first round. */
+  readonly start?: readonly EvalMeasure[];
+  readonly rounds: readonly ActiveRound[];
+}
+
+/** This function gives the held-out result of the evaluation sample for each measure. */
+function evalOf(h: HeldOut): EvalMeasure[] {
+  const strata = strataFrom(h);
+  return h.measures.map(({ m, errors }, i) => {
+    const hits = errors.filter((e) => e <= m.tolerance + 1e-12).length;
+    return { id: m.id, n: errors.length, hits, share: errors.length === 0 ? 0 : r4(hits / errors.length), mae: errorStats(errors, m.tolerance).mae, equal: strata.measures[i]!.equal.share };
+  });
+}
+
+/**
+ * This function gives the rounds of an active sample (k116). For round `k`:
+ *
+ * 1. The tree of each measure learns on the grid and on the pairs of the rounds before `k`. It predicts the pairs of round `k`.
+ * 2. The share of the round is the hits of these pairs. The pairs of a round are where the model was worst, so this share is low.
+ * 3. With an evaluation sample, the tree learns on the grid and on the rounds up to `k`, and predicts the evaluation sample.
+ *
+ * The section `start` gives the evaluation sample with the grid only. A rise from `start` to the last round is the gain of the active pairs.
+ */
+export function activeCoverage(
+  records: readonly CoverageRecord[],
+  manifest: CoverageManifest,
+  active: readonly SampledRecord[],
+  options: CoverageOptions = {},
+  evalPairs?: readonly SampledRecord[],
+  facts?: ActiveFacts,
+): ActiveCoverage {
+  const grid = gridOf(records, manifest, options);
+  const featuresOf = pairFeaturer(options);
+  const done = active.filter((r) => r.skipped === undefined && r.round !== undefined);
+  const ids = [...new Set(done.map((r) => r.round!))].sort((a, b) => a - b);
+  const rounds = ids.map((k): ActiveRound => {
+    const before = done.filter((r) => r.round! < k);
+    const own = done.filter((r) => r.round === k);
+    const h = heldOut(grid, own, options, featuresOf, before);
+    const after = evalPairs === undefined ? undefined : evalOf(heldOut(grid, evalPairs, options, featuresOf, [...before, ...own]));
+    return {
+      round: k,
+      pairs: own.length,
+      measures: h.measures.map(({ m, errors }, i) => {
+        const hits = errors.filter((e) => e <= m.tolerance + 1e-12).length;
+        return {
+          id: m.id,
+          tolerance: m.tolerance,
+          n: errors.length,
+          hits,
+          share: errors.length === 0 ? 0 : r4(hits / errors.length),
+          wilson: wilson(hits, errors.length),
+          mae: errorStats(errors, m.tolerance).mae,
+          ...(after === undefined ? {} : { after: after[i]! }),
+        };
+      }),
+    };
+  });
+  return {
+    pairs: done.length,
+    features: options.features ?? DEFAULT_FEATURES,
+    ...(facts === undefined ? {} : { facts }),
+    evalPairs: evalPairs === undefined ? null : evalPairs.filter((r) => r.skipped === undefined).length,
+    ...(evalPairs === undefined ? {} : { start: evalOf(heldOut(grid, evalPairs, options, featuresOf)) }),
+    rounds,
+  };
+}
+
+/** This function gives the facts of the active draw from the text of `sample.json`, or `undefined` for another draw. */
+export function activeFacts(text: string): ActiveFacts | undefined {
+  const a = (JSON.parse(text) as { active?: ActiveFacts }).active;
+  return a === undefined ? undefined : { rounds: a.rounds, pool: a.pool, score: a.score, features: a.features };
+}
+
 // ---- The command line ----
 
 /** This function gives the records of the text of a `records.jsonl` file. An empty line is not a record. */
@@ -1011,7 +1374,9 @@ export function coverageOptions(argv: readonly string[]): CoverageOptions {
   if (!Number.isInteger(folds) || folds < 2) throw new Error("The option --folds is a whole number of 2 or more.");
   if (!Number.isInteger(seed)) throw new Error("The option --seed is a whole number.");
   if (by !== "input" && by !== "spec") throw new Error(`The option --by is input or spec, not ${by}.`);
-  return { folds, seed, by, ...(run === undefined ? {} : { run: Number(run) }), ...(date === undefined ? {} : { date }) };
+  const features = optionOf(argv, "--features") ?? DEFAULT_FEATURES;
+  if (!(FEATURE_SETS as readonly string[]).includes(features)) throw new Error(`The option --features is ${FEATURE_SETS.join(" or ")}, not ${features}.`);
+  return { folds, seed, by, features: features as FeatureSet, ...(run === undefined ? {} : { run: Number(run) }), ...(date === undefined ? {} : { date }) };
 }
 
 /**
@@ -1033,8 +1398,37 @@ export function readSample(records: readonly CoverageRecord[], manifest: Coverag
   const facts = join(dir, "sample.json");
   const text = existsSync(facts) ? readFileSync(facts, "utf8") : undefined;
   const sample = text === undefined ? undefined : sampleFacts(text);
-  const h = heldOut(records, manifest, sampled, options);
+  const h = heldOut(gridOf(records, manifest, options), sampled, options, pairFeaturer(options));
   return { sampled: sampledOf(h, sample), strata: strataFrom(h, sample, text === undefined ? undefined : sampleStrata(text)) };
+}
+
+/**
+ * This function gives the section `active` of the active sample in a folder of `bench/active.ts` (k116).
+ * The pairs of the folder `evalDir`, when given, are the evaluation sample. It throws an `Error` when a folder has no `records.jsonl`.
+ */
+export function readActive(records: readonly CoverageRecord[], manifest: CoverageManifest, dir: string, options: CoverageOptions = {}, evalDir?: string): ActiveCoverage {
+  const read = (folder: string): SampledRecord[] => {
+    const file = join(folder, "records.jsonl");
+    if (!existsSync(file)) throw new Error(`The sample folder ${folder} has no records.jsonl. Start bench/sample-space.ts first.`);
+    return readRecords(readFileSync(file, "utf8")) as SampledRecord[];
+  };
+  const facts = join(dir, "sample.json");
+  return activeCoverage(records, manifest, read(dir), options, evalDir === undefined ? undefined : read(evalDir), existsSync(facts) ? activeFacts(readFileSync(facts, "utf8")) : undefined);
+}
+
+/** This function gives the lines of the section `active` for the command line: one line for each round of each measure. */
+export function activeLines(a: ActiveCoverage): string[] {
+  const out: string[] = [];
+  const ids = a.rounds[0]?.measures.map((m) => m.id) ?? [];
+  for (const id of ids) {
+    const start = a.start?.find((s) => s.id === id);
+    const parts = a.rounds.map((r) => {
+      const m = r.measures.find((x) => x.id === id)!;
+      return `round ${r.round}: ${m.hits}/${m.n} new pairs, error ${m.mae}${m.after === undefined ? "" : `, evaluation share ${m.after.share}`}`;
+    });
+    out.push(`${id}, active (${a.features} features)${start === undefined ? "" : `: evaluation share ${start.share} before`}. ${parts.join("; ")}`);
+  }
+  return out;
 }
 
 /** The note of `coverageMain` when a run has too few records for a summary */
@@ -1070,7 +1464,12 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
   const options = coverageOptions(argv);
   const grid = coverage(rows, manifest, options);
   const sampleDir = optionOf(argv, "--sample");
-  const summary: CoverageSummary = sampleDir === undefined ? grid : { ...grid, ...readSample(rows, manifest, sampleDir, options) };
+  const activeDir = optionOf(argv, "--active");
+  const summary: CoverageSummary = {
+    ...grid,
+    ...(sampleDir === undefined ? {} : readSample(rows, manifest, sampleDir, options)),
+    ...(activeDir === undefined ? {} : { active: readActive(rows, manifest, activeDir, options, sampleDir) }),
+  };
   writeFileSync(path, `${JSON.stringify(summary, null, 1)}\n`);
   for (const m of summary.measures) {
     const top = m.indices.slice(0, 3).map((x) => `${x.feature} ${x.index}`).join(", ");
@@ -1091,6 +1490,12 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
   if (empty.length > 0) {
     console.log(`No pairs, not in the mean: ${empty.join(", ")}.`);
   }
+  for (const m of summary.sampled?.measures ?? []) {
+    if (m.forced === undefined) continue;
+    const part = (p: PartShare): string => (p.share === null ? "no pairs" : `${p.share} (${p.hits} of ${p.n})`);
+    console.log(`${m.id}, whole space by forced overflow: ${FORCED_MEASURE} ${FORCED_HEAVY} or more ${part(m.forced.heavy)}, the rest ${part(m.forced.rest)}`);
+  }
+  if (summary.active !== undefined) for (const line of activeLines(summary.active)) console.log(line);
   return summary;
 }
 

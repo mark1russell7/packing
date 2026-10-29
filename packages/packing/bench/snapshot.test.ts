@@ -220,7 +220,7 @@ describe("the coverage snapshot (k105)", () => {
     inputs: 5,
     strategies: ["a", "b"],
     features: { strategy: ["stage.placement"], input: ["size"] },
-    model: { kind: "regression-tree", maxDepth: 12, minLeaf: 3, folds: 5, seed: 1, by: "input" },
+    model: { kind: "regression-tree", maxDepth: 12, minLeaf: 3, folds: 5, seed: 1, by: "input", features: "family" },
     measures: [measure("pack.fill", share)],
   });
   const origin = { release: "0.0.1", commit: "abc1234", date: "2026-10-28", run: 7, source: "made up" };
