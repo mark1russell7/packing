@@ -21,7 +21,7 @@ function compare(name: string, reference: (i: number) => PackResult): number {
 
 describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
-    expect(ENTRIES).toHaveLength(30);
+    expect(ENTRIES).toHaveLength(32);
     const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...composites].map((s) => s.id)];
     for (const id of ids) {
       expect(named, id).toHaveProperty([id]);

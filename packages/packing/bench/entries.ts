@@ -122,8 +122,17 @@ export const BBOX_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "bbox-skyline", strategy: "bbox", options: { member: "skyline" }, base: "skyline" },
 ]);
 
+/**
+ * The composite entries of roadmap item k79. They are not in the pool of the oracle. Each one has 64 iterations of ruin and recreate.
+ * Each iteration packs only the removed items again, with its member. The base is that member. The move is `move.ruinRecreate`.
+ */
+export const RUIN_RECREATE_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "ruin-recreate-maxrects-bl-k64", strategy: "ruin-recreate", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 64 }, base: "maxrects-bl" },
+  { id: "ruin-recreate-skyline-k64", strategy: "ruin-recreate", options: { member: "skyline", iterations: 64 }, base: "skyline" },
+]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -145,6 +154,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...SELECT_ENTRIES,
   ...RESTARTS_ENTRIES,
   ...BBOX_ENTRIES,
+  ...RUIN_RECREATE_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

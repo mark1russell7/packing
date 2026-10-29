@@ -43,8 +43,8 @@ describe("packSpace", () => {
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
     // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 2970 base configs. The count is more than the default `maxMeta` of 1e18
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(36862574914409402550n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(13266726236504962n);
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(36862574914409723310n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(13266726236508522n);
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -294,5 +294,22 @@ describe("packSpace and the options of the strategies", () => {
     // Without the switch param, the config has no budgetMs, and checkConfig refuses it
     expect(outputHash(packConfig(input, restarts({ limitTime: false }), 3))).toBe(want({}));
     expect(() => packConfig(input, restarts({ budgetMs: 1 }), 3)).toThrow(/budgetMs/);
+  });
+
+  // Roadmap item k79: the goal-driven ruin and recreate
+  it("gives the options of ruin-recreate with its params", () => {
+    const ruin = (params: Record<string, string | number | boolean>, member = "maxrects-bl"): StrategyConfig => ({
+      space: "packing",
+      stages: { combine: { option: "ruin-recreate", params, members: [named[member]!] } },
+    });
+    // The default member of ruin-recreate is maxrects-bl
+    const want = (options: Record<string, unknown>): string => outputHash(packWith("ruin-recreate", input, options, 3));
+    expect(outputHash(packConfig(input, named["ruin-recreate"]!, 3))).toBe(want({}));
+    expect(outputHash(packConfig(input, named["ruin-recreate-maxrects-bl-k64"]!, 3))).toBe(want({ iterations: 64 }));
+    expect(outputHash(packConfig(input, ruin({ iterations: 8, ruin: "adjacent", strength: 0.5, shrink: 0.05 }), 3))).toBe(
+      want({ iterations: 8, ruin: "adjacent", strength: 0.5, shrink: 0.05 }),
+    );
+    expect(outputHash(packConfig(input, named["ruin-recreate-skyline-k64"]!, 3))).toBe(outputHash(packConfig(input, ruin({ iterations: 64 }, "skyline"), 3)));
+    expect(() => packConfig(input, ruin({ iterations: 0 }), 3)).toThrow(/iterations/);
   });
 });

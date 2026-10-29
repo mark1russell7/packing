@@ -34,6 +34,7 @@ import { PORTFOLIO_SETS } from "./portfolio-sets.ts";
 import type { PortfolioStrategyOptions } from "./portfolio-strategy.ts";
 import { packWith, strategy, type AspectFitStrategyOptions } from "./registry.ts";
 import { RESTART_PERTURBS, type RestartsStrategyOptions } from "./restarts.ts";
+import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 import type { SelectStrategyOptions } from "./select.ts";
 import { SHELF_FITS } from "./shelf.ts";
 import { UnsupportedShape } from "./strategy.ts";
@@ -76,6 +77,17 @@ const RESTARTS_PARAMS: readonly SpaceParam[] = [
   { name: "strength", kind: "real", min: 0, max: 1, default: 0.1 },
   { name: "limitTime", kind: "bool", default: false },
   { name: "budgetMs", kind: "real", min: 1, max: 2000, scale: "log", default: PORTFOLIO_FRAME_MS, when: { param: "limitTime", in: [true] } },
+];
+
+/**
+ * The params of the goal-driven ruin and recreate of roadmap item k79. They are the count of the iterations, the kind of the
+ * ruin, the largest share of the items that one ruin removes, and the shrink of a met goal.
+ */
+const RUIN_RECREATE_PARAMS: readonly SpaceParam[] = [
+  { name: "iterations", kind: "int", min: 1, max: 256, scale: "log", default: 64 },
+  { name: "ruin", kind: "enum", values: [...RUIN_KINDS], default: "mixed" },
+  { name: "strength", kind: "real", min: 0, max: 1, default: 0.3 },
+  { name: "shrink", kind: "real", min: 0.001, max: 0.5, scale: "log", default: 0.005 },
 ];
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
@@ -192,6 +204,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "restarts", params: RESTARTS_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true, view: "bounds" }, supports: BBOX_ONLY },
+      { id: "ruin-recreate", params: RUIN_RECREATE_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
 ];
@@ -223,7 +236,8 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
  *
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` only.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts` and `bbox`. `restarts` and `bbox` have 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox` and `ruin-recreate`.
+ * - `restarts`, `bbox` and `ruin-recreate` have 1 member.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
@@ -260,6 +274,9 @@ export const packSpace: StrategySpace = Object.freeze({
     "bbox-maxrects-bl": metaConfig("bbox", [single("maxrects-bl")]),
     "bbox-skyline": metaConfig("bbox", [single("skyline")]),
     bbox: metaConfig("bbox", [single("maxrects-bl")]),
+    "ruin-recreate-maxrects-bl-k64": metaConfig("ruin-recreate", [single("maxrects-bl")], { iterations: 64 }),
+    "ruin-recreate-skyline-k64": metaConfig("ruin-recreate", [single("skyline")], { iterations: 64 }),
+    "ruin-recreate": metaConfig("ruin-recreate", [single("maxrects-bl")]),
   },
 } satisfies StrategySpace);
 
@@ -331,6 +348,13 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     budgetMs: "combine.restarts.budgetMs",
   } satisfies Places<RestartsStrategyOptions>,
   bbox: { member: "combine.bbox.members", turn: "combine.bbox.turn" } satisfies Places<BboxStrategyOptions>,
+  "ruin-recreate": {
+    member: "combine.ruin-recreate.members",
+    iterations: "combine.ruin-recreate.iterations",
+    ruin: "combine.ruin-recreate.ruin",
+    strength: "combine.ruin-recreate.strength",
+    shrink: "combine.ruin-recreate.shrink",
+  } satisfies Places<RuinRecreateStrategyOptions>,
   pack: {
     sortOrder: "order",
     space: null,
@@ -450,7 +474,8 @@ function combineOf(config: StrategyConfig): string | undefined {
  * - The caller checks the measures of a `bbox` output with `checkShapes`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
- * - A base config packs with its single strategy of the registry. A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts` or `bbox`.
+ * - A base config packs with its single strategy of the registry.
+ * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox` or `ruin-recreate`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  */
@@ -492,6 +517,10 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
     }
     case "bbox":
       return packWith("bbox", input, { member: entryOf(members[0]!), turn: params["turn"] === true }, seed);
+    case "ruin-recreate": {
+      const options = { member: entryOf(members[0]!), iterations: params["iterations"], ruin: params["ruin"], strength: params["strength"], shrink: params["shrink"] };
+      return packWith("ruin-recreate", input, options, seed);
+    }
     default: {
       const run = runOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);
