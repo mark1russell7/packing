@@ -131,8 +131,17 @@ export const RUIN_RECREATE_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "ruin-recreate-skyline-k64", strategy: "ruin-recreate", options: { member: "skyline", iterations: 64 }, base: "skyline" },
 ]);
 
+/**
+ * The composite entries of roadmap item k80. They are not in the pool of the oracle. Each one makes the strip of its member shorter.
+ * It moves one box at a time to its place of least overlap, with at most 8192 moves. The base is that member. The move is `move.overlapMin`.
+ */
+export const OVERLAP_MIN_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "overlap-min-maxrects-bl-k8192", strategy: "overlap-min", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 8192 }, base: "maxrects-bl" },
+  { id: "overlap-min-skyline-k8192", strategy: "overlap-min", options: { member: "skyline", iterations: 8192 }, base: "skyline" },
+]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES, ...OVERLAP_MIN_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -155,6 +164,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...RESTARTS_ENTRIES,
   ...BBOX_ENTRIES,
   ...RUIN_RECREATE_ENTRIES,
+  ...OVERLAP_MIN_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

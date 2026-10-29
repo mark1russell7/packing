@@ -35,6 +35,7 @@ import { PORTFOLIO_SETS } from "./portfolio-sets.ts";
 import type { PortfolioStrategyOptions } from "./portfolio-strategy.ts";
 import { packWith, strategy, type AspectFitStrategyOptions } from "./registry.ts";
 import { RESTART_PERTURBS, type RestartsStrategyOptions } from "./restarts.ts";
+import type { OverlapMinStrategyOptions } from "./overlap-min.ts";
 import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 import type { SelectStrategyOptions } from "./select.ts";
 import { SHELF_FITS } from "./shelf.ts";
@@ -104,6 +105,12 @@ const RUIN_RECREATE_PARAMS: readonly SpaceParam[] = [
   { name: "ruin", kind: "enum", values: [...RUIN_KINDS], default: "mixed" },
   { name: "strength", kind: "real", min: 0, max: 1, default: 0.3 },
   { name: "shrink", kind: "real", min: 0.001, max: 0.5, scale: "log", default: 0.005 },
+];
+
+/** The params of the overlap minimization of roadmap item k80: the largest count of the item moves, and the share of one cut of the strip. */
+const OVERLAP_MIN_PARAMS: readonly SpaceParam[] = [
+  { name: "iterations", kind: "int", min: 64, max: 65536, scale: "log", default: 8192 },
+  { name: "step", kind: "real", min: 0.001, max: 0.5, scale: "log", default: 0.01 },
 ];
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
@@ -233,6 +240,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "restarts", params: RESTARTS_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true, view: "bounds" }, supports: BBOX_ONLY },
       { id: "ruin-recreate", params: RUIN_RECREATE_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "overlap-min", params: OVERLAP_MIN_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
 ];
@@ -272,8 +280,8 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  *
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox` and `ruin-recreate`.
- * - `restarts`, `bbox` and `ruin-recreate` have 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate` and `overlap-min`.
+ * - `restarts`, `bbox`, `ruin-recreate` and `overlap-min` have 1 member.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
@@ -318,6 +326,9 @@ export const packSpace: StrategySpace = Object.freeze({
     "ruin-recreate-maxrects-bl-k64": metaConfig("ruin-recreate", [single("maxrects-bl")], { iterations: 64 }),
     "ruin-recreate-skyline-k64": metaConfig("ruin-recreate", [single("skyline")], { iterations: 64 }),
     "ruin-recreate": metaConfig("ruin-recreate", [single("maxrects-bl")]),
+    "overlap-min-maxrects-bl-k8192": metaConfig("overlap-min", [single("maxrects-bl")], { iterations: 8192 }),
+    "overlap-min-skyline-k8192": metaConfig("overlap-min", [single("skyline")], { iterations: 8192 }),
+    "overlap-min": metaConfig("overlap-min", [single("maxrects-bl")]),
   },
 } satisfies StrategySpace);
 
@@ -399,6 +410,11 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     strength: "combine.ruin-recreate.strength",
     shrink: "combine.ruin-recreate.shrink",
   } satisfies Places<RuinRecreateStrategyOptions>,
+  "overlap-min": {
+    member: "combine.overlap-min.members",
+    iterations: "combine.overlap-min.iterations",
+    step: "combine.overlap-min.step",
+  } satisfies Places<OverlapMinStrategyOptions>,
   pack: {
     sortOrder: "order",
     space: null,
@@ -534,7 +550,7 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
  * - The param `limitWork` of a portfolio and of `restarts` gives the option `budgetWork` (roadmap item k117).
  * - A base config packs with its single strategy of the registry.
- * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox` or `ruin-recreate`.
+ * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate` or `overlap-min`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  */
@@ -582,6 +598,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       const options = { member: entryOf(members[0]!), iterations: params["iterations"], ruin: params["ruin"], strength: params["strength"], shrink: params["shrink"] };
       return packWith("ruin-recreate", input, options, seed);
     }
+    case "overlap-min":
+      return packWith("overlap-min", input, { member: entryOf(members[0]!), iterations: params["iterations"], step: params["step"] }, seed);
     default: {
       const run = runOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, OVERLAP_MIN_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
@@ -244,9 +244,11 @@ describe("the screen on smoke-v1", () => {
     const input = toPackInput(rectGrid.generate(2, { count: 30 }));
     // The strategy aspect-fit gives its stage only for a container of free size
     const free = toPackInput(rectGrid.generate(2, { count: 30, containerSize: "freeAspect" }));
+    // The strategy overlap-min of k80 packs only a strip: a container with a free height or a free width
+    const strip = toPackInput(rectGrid.generate(2, { count: 30, containerSize: "freeHeight" }));
     for (const [id, move] of Object.entries(MOVE_OF)) {
       const e = entry(id);
-      const on = e.strategy === "aspect-fit" ? free : input;
+      const on = e.strategy === "aspect-fit" ? free : e.strategy === "overlap-min" ? strip : input;
       const counts = moveCounts(packWith(e.strategy, on, Object.keys(e.options).length === 0 ? undefined : e.options));
       expect(Object.keys(counts), id).toContain(move);
       // A composite entry also gives the moves of the member that wins, so only its own move is fixed.
@@ -262,6 +264,7 @@ describe("the screen on smoke-v1", () => {
       ...Object.fromEntries(RESTARTS_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(BBOX_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(RUIN_RECREATE_ENTRIES.map((e) => [e.id, e.base])),
+      ...Object.fromEntries(OVERLAP_MIN_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(SKYLINE_VARIANTS.map((e) => [e.id, e.base])),
     });
   });

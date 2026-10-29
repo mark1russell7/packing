@@ -48,12 +48,14 @@ describe("packSpace", () => {
     // Before k90 the counts were 36862574914409402550 and 13266726236504962. Before k117 they were 37049239404514333362 and 13341577899037878.
     // The work limit of k117 gives 5 param points: no limit, then 4 values of budgetWork. The rect counts before k117 were 36862574914409402550 and 13266726236504962.
     // The ruin and recreate of k79 gives 108 param points with 3 levels and 4 with 1 level, for each base config.
+    // The overlap minimization of k80 gives 9 param points for each base config with 3 levels, and 1 with 1 level.
+    // Before k80 the counts were 185246197022536573518, 66707889492006738, 184312874572011990510 and 66333631179349290.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022536573518n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492006738n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572011990510n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179349290n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022536600275n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492007629n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572012017240n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179350180n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -331,6 +333,23 @@ describe("packSpace and the options of the strategies", () => {
     );
     expect(outputHash(packConfig(input, named["ruin-recreate-skyline-k64"]!, 3))).toBe(outputHash(packConfig(input, ruin({ iterations: 64 }, "skyline"), 3)));
     expect(() => packConfig(input, ruin({ iterations: 0 }), 3)).toThrow(/iterations/);
+  });
+
+  // Roadmap item k80: the overlap minimization
+  it("gives the options of overlap-min with its params", () => {
+    const strip = toPackInput(rectGrid.generate(2, { containerSize: "freeHeight", sizes: "uniform", count: 16 }));
+    const overlap = (params: Record<string, string | number | boolean>, member = "maxrects-bl"): StrategyConfig => ({
+      space: "packing",
+      stages: { combine: { option: "overlap-min", params, members: [named[member]!] } },
+    });
+    // The default member of overlap-min is maxrects-bl
+    const want = (options: Record<string, unknown>): string => outputHash(packWith("overlap-min", strip, options, 3));
+    expect(outputHash(packConfig(strip, overlap({ iterations: 256 }), 3))).toBe(want({ iterations: 256 }));
+    expect(outputHash(packConfig(strip, overlap({ iterations: 128, step: 0.05 }), 3))).toBe(want({ iterations: 128, step: 0.05 }));
+    expect(outputHash(packConfig(strip, overlap({ iterations: 256 }, "skyline"), 3))).toBe(want({ iterations: 256, member: "skyline" }));
+    expect(named["overlap-min-maxrects-bl-k8192"]).toEqual(overlap({ iterations: 8192 }));
+    expect(named["overlap-min-skyline-k8192"]).toEqual(overlap({ iterations: 8192 }, "skyline"));
+    expect(() => packConfig(strip, overlap({ step: 0 }), 3)).toThrow(/step/);
   });
 
   // Roadmap item k117: the work limit has the switch param limitWork, as the time limit has limitTime.
