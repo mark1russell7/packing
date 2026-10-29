@@ -298,8 +298,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k112",
     title: "The space coverage also tests the model on random pairs of the whole space. Each measure shows the share of the bench grid and of the whole space.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pull/0",
+    pr: 133,
+    link: "https://github.com/mark1russell7/packing/pull/133",
   },
   {
     date: "2026-10-29",
