@@ -9,7 +9,10 @@ The ids are the ids of [`docs/FORMAT.md`](FORMAT.md#the-measures-of-the-packer).
 - **The layout** is an input (`PackInput`) and its output (`PackOutput`).
 - **A box** is a placed item with a width and a height above 0. A box has the size of its item after the turn. An item without a placement is not a box.
 - **The hull** is the smallest rectangle around the boxes. Its width is `W` and its height is `H`. No box gives `W = H = 0`.
-- **The area of the boxes** is `A = sum(w * h)` over the boxes. A shaped item counts as its bounding rectangle.
+- **The box of a shape item** is the bounding box of its shape at its place (`placedRect` of the contract), not `w` by `h` (roadmap item k113).
+  `bbox` packs that box. Thus the boxes of a `bbox` output do not overlap, and `fill` stays from 0 to 1.
+- **The area of the boxes** is `A = sum(w * h)` over the boxes. A shape item counts as the bounding box of its shape.
+- The hull, the fill, the whitespace, the overflow measures and `pack.gapToOpt` read the same boxes. An input with no shape gives its item boxes.
 - **The rank** of an item is its field `rank`. Without it, the rank is the index of the item in the list.
 - **The direction** tells which values are better: `lower` or `higher`.
 
@@ -52,7 +55,8 @@ The functions:
 `shapeFill = S / (W * H)`
 
 - `S` is the sum of `boxArea` of the contract over the placed boxes. A circle, a polygon and a `rect` give their exact area.
-- A box of the kind `free`, for example an ellipse, has no exact area in the contract. It counts with its width by its height.
+- A box of the kind `free`, for example an ellipse, has no exact area in the contract. It counts with the area of its box.
+- The hull of `shapeFill` is the hull of `fill`: the hull of the bounding boxes of the shapes. Before k113, it was the hull of the item boxes.
 - A layout of `rect` boxes without a shape gives `shapeFill` equal to `fill`. A shape is inside its box, thus `shapeFill` is not above `fill`.
 
 **`pack.whitespace`** is the part of the hull that no box covers.

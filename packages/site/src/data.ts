@@ -276,6 +276,13 @@ export interface NewsEntry {
 /** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
 export const NEWS: readonly NewsEntry[] = [
   {
+    date: "2026-10-29",
+    item: "k113",
+    title: "The measures of a `bbox` output read the bounding box of each shape at its place. Thus `pack.fill` and `pack.shapeFill` stay from 0 to 1.",
+    pr: 129,
+    link: "https://github.com/mark1russell7/packing/pull/129",
+  },
+  {
     date: "2026-10-28",
     item: "k91",
     title: "With contract 0.2.16, the strategy space counts the `bbox` configs for shapes. The new measure `pack.shapeFill` gives the share of the hull that the shapes cover.",

@@ -10,15 +10,21 @@ const named = packSpace.named!;
 const FAMILIES: readonly ShapeFamily[] = ["circle", "polygon", "mixed"];
 const SEEDS = [1, 2, 3];
 
-/** The mean `pack.shapeFill` of each family and bbox entry over the seeds 1 to 3, with 3 decimals. */
+/**
+ * The mean `pack.fill` and `pack.shapeFill` of each family and bbox entry over the seeds 1 to 3, with 3 decimals.
+ * Since k113, the measures read the bounding box of each shape at its place. Before k113, the polygon fill was above 1.
+ */
 const SHAPE_FILLS: readonly string[] = [
-  "circle bbox-maxrects-bl 0.691",
-  "circle bbox-skyline 0.642",
-  "polygon bbox-maxrects-bl 0.333",
-  "polygon bbox-skyline 0.310",
-  "mixed bbox-maxrects-bl 0.509",
-  "mixed bbox-skyline 0.506",
+  "circle bbox-maxrects-bl fill 0.880 shapeFill 0.691",
+  "circle bbox-skyline fill 0.817 shapeFill 0.642",
+  "polygon bbox-maxrects-bl fill 0.845 shapeFill 0.475",
+  "polygon bbox-skyline fill 0.842 shapeFill 0.474",
+  "mixed bbox-maxrects-bl fill 0.854 shapeFill 0.606",
+  "mixed bbox-skyline fill 0.821 shapeFill 0.582",
 ];
+
+/** The tolerance of the range check of a share: float noise only. */
+const SHARE_NOISE = 1e-9;
 
 /** This function packs an input with a bench entry. */
 function packEntry(id: string, input: LayoutInput, seed = 0): PackOutput {
@@ -135,17 +141,40 @@ describe("the strategy bbox on circles and convex polygons", () => {
           const out = packEntry(id, input, s);
           const m = measure(toPackInput(input), out);
           const placed = applyPack(input, out).boxes.filter((b) => b.x !== undefined);
-          const boxes = placed.reduce((sum, b) => sum + b.w * b.h, 0);
+          const boxes = placed.reduce((sum, b) => sum + placedRect(b)!.w * placedRect(b)!.h, 0);
           const shapes = placed.reduce((sum, b) => sum + shapeArea(b), 0);
-          // The hull is the same for the two measures. Thus their ratio is the share of the item boxes that the shapes cover.
+          // The hull is the same for the two measures. Thus their ratio is the share of the placed bounding boxes that the shapes cover.
           expect(m["pack.shapeFill"] / m["pack.fill"], `${id} ${input.id}`).toBeCloseTo(shapes / boxes, 9);
           expect(m["pack.shapeFill"], `${id} ${input.id}`).toBeLessThan(m["pack.fill"]);
-          return m["pack.shapeFill"];
+          return m;
         });
-        const mean = got.reduce((a, g) => a + g, 0) / got.length;
-        lines.push(`${family} ${id} ${mean.toFixed(3)}`);
+        const mean = (k: "pack.fill" | "pack.shapeFill"): string => (got.reduce((a, g) => a + g[k], 0) / got.length).toFixed(3);
+        lines.push(`${family} ${id} fill ${mean("pack.fill")} shapeFill ${mean("pack.shapeFill")}`);
       }
     expect(lines).toEqual(SHAPE_FILLS);
+  });
+
+  // Roadmap item k113: the measures read the boxes that bbox places, thus a share of the hull stays from 0 to 1
+  it("keeps pack.fill, pack.shapeFill and pack.whitespace from 0 to 1 on each shape output", () => {
+    for (const family of FAMILIES)
+      for (const seed of SEEDS)
+        for (const options of [{}, { fixedSize: true }, { turnable: true }]) {
+          const input = shapeInput(family, seed, options);
+          for (const { id } of BBOX_ENTRIES) {
+            const out = packEntry(id, input, seed);
+            const m = measure(toPackInput(input), out);
+            const at = `${id} ${input.id} ${JSON.stringify(options)}`;
+            for (const k of ["pack.fill", "pack.shapeFill", "pack.whitespace"] as const) {
+              expect(m[k], `${k} ${at}`).toBeGreaterThanOrEqual(-SHARE_NOISE);
+              expect(m[k], `${k} ${at}`).toBeLessThanOrEqual(1 + SHARE_NOISE);
+            }
+            // The hull is the smallest rectangle around the placed bounding boxes of placedRect of the contract
+            const rects = applyPack(input, out).boxes.filter((b) => b.x !== undefined).map((b) => placedRect(b)!);
+            const w = Math.max(...rects.map((r) => r.x + r.w)) - Math.min(...rects.map((r) => r.x));
+            const h = Math.max(...rects.map((r) => r.y + r.h)) - Math.min(...rects.map((r) => r.y));
+            expect(m["pack.area"], at).toBeCloseTo(w * h, 9);
+          }
+        }
   });
 });
 

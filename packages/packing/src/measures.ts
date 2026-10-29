@@ -1,7 +1,7 @@
 // The algebra of measures (roadmap item k8). `docs/MEASURES.md` defines each measure. This file computes them.
 
-import { boxArea as shapeAreaOf, SHAPE_KIND_IDS, type MeasureSpec as ContractMeasureSpec, type Direction } from "@mark1russell7/layout-contract";
-import { RECORD_EPS, type PackInput, type PackOutput } from "./contract.ts";
+import { boundsOf, boxArea as shapeAreaOf, SHAPE_KIND_IDS, type MeasureSpec as ContractMeasureSpec, type Direction } from "@mark1russell7/layout-contract";
+import { RECORD_EPS, turnItem, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 import { aspectError } from "./free.ts";
 import { overflowBound } from "./overflow.ts";
 import { round3, type KnownBest } from "./layout-input.ts";
@@ -196,10 +196,46 @@ export function rowsOf(boxes: readonly Pick<Box, "x" | "y" | "w">[], tolerance: 
 }
 
 /**
+ * This function gives the box view of a layout (roadmap item k113): each item with a shape becomes the bounding box of its shape.
+ *
+ * - The box of a shape item is the tight bounding box of its shape, at the placement plus the offset of the box. `bbox` packs this box.
+ * - A turn of 90 degrees uses the bounding box of the turned shape. `placedRect` of the contract gives the same rectangle.
+ * - A locked shape item moves by the offset of its box. The other fields of an item stay, and the item loses `shape` and `shapeKind`.
+ * - An input with no shape gives the same input and the same output. Thus the measures of a rect input do not change.
+ */
+function boxView(input: PackInput, output: PackOutput): { input: PackInput; output: PackOutput } {
+  if (input.items.every((i) => i.shape === undefined)) return { input, output };
+  const byId = new Map<string, Item>();
+  for (const item of input.items) if (!byId.has(item.id)) byId.set(item.id, item);
+  const items = input.items.map((item): Item => {
+    if (item.shape === undefined) return item;
+    const b = boundsOf(item.shape);
+    const { shape: _shape, shapeKind: _kind, ...rest } = item;
+    const box: Item = { ...rest, w: b.w, h: b.h };
+    return item.x === undefined || item.y === undefined ? box : { ...box, x: item.x + b.x, y: item.y + b.y };
+  });
+  const placements = output.placements.map((p): Placement => {
+    const item = byId.get(p.id);
+    if (item?.shape === undefined) return p;
+    const shape = p.turn === 90 ? turnItem(item).shape! : item.shape;
+    const b = boundsOf(shape);
+    return { ...p, x: p.x + b.x, y: p.y + b.y };
+  });
+  return { input: { ...input, items }, output: { ...output, placements } };
+}
+
+/**
  * This function gives the placed boxes of an output, in the order of the items of the input. A box has the size of its
  * item after the turn. The list has no item without a placement, and no item with a width or a height of 0.
+ *
+ * The box of an item with a shape is the bounding box of the shape at its place (k113). It is the box that `bbox` packs.
  */
 export function boxesOf(input: PackInput, output: PackOutput): Box[] {
+  return rectBoxesOf(boxView(input, output));
+}
+
+/** This function gives the placed boxes of a layout of the box view: each box has the size of its item after the turn. */
+function rectBoxesOf({ input, output }: { input: PackInput; output: PackOutput }): Box[] {
   const placements = new Map<string, PackOutput["placements"][number]>();
   for (const p of output.placements) if (!placements.has(p.id)) placements.set(p.id, p);
   const boxes: Box[] = [];
@@ -234,6 +270,8 @@ function traceSum(output: PackOutput, id: string): number {
  * record rounds them with `roundMeasures`.
  *
  * - The boxes are the placed items with a width and a height above 0. The hull is the smallest rectangle around them.
+ * - The box of an item with a shape is the bounding box of the shape at its place, not `w` by `h`. Thus `pack.fill` stays from 0 to 1.
+ * - The overflow measures read the same boxes. An input with no shape gives the measures of its item boxes.
  * - `pack.shapeFill` gives each box the area of `boxArea` of the contract. A box without an exact area counts with `w` by `h`.
  * - An empty layout gives the area 0, the aspect 1 and the aspect error 0. Its fill is 0 and its whitespace is 1.
  * - The time `pack.search.ms` comes from the trace. It is not part of the determinism rule.
@@ -249,12 +287,18 @@ function traceSum(output: PackOutput, id: string): number {
  * ```
  */
 export function measure(input: PackInput, output: PackOutput, options: MeasureOptions = {}): LayoutMeasures {
-  const boxes = boxesOf(input, output);
+  return measureView(input, boxView(input, output), options);
+}
+
+/** This function gives the measures of a layout from its box view. `given` is the input with the shapes, for `pack.shapeFill`. */
+function measureView(given: PackInput, view: { input: PackInput; output: PackOutput }, options: MeasureOptions): LayoutMeasures {
+  const { input, output } = view;
+  const boxes = rectBoxesOf(view);
   const hull = hullOf(boxes);
   const hullArea = hull.w * hull.h;
   const boxArea = boxes.reduce((sum, b) => sum + b.w * b.h, 0);
   const fill = hullArea > 0 ? boxArea / hullArea : 0;
-  const shapeFill = hullArea > 0 ? shapeAreaSum(input, output) / hullArea : 0;
+  const shapeFill = hullArea > 0 ? shapeAreaSum(given, view) / hullArea : 0;
   const empty = boxes.length === 0;
   const target = input.container.aspect ?? 1;
 
@@ -322,14 +366,15 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
 
 /**
  * This function gives the sum of the shape areas of the placed boxes of `boxesOf`. The area of a box is `boxArea` of the contract.
- * A box of the kind `free` has no exact area. It counts with its width by its height, as `pack.fill` counts it.
+ * A box of the kind `free` has no exact area. It counts with the size of its box in the box view, as `pack.fill` counts it.
  */
-function shapeAreaSum(input: PackInput, output: PackOutput): number {
-  const placed = new Set(output.placements.map((p) => p.id));
+function shapeAreaSum(input: PackInput, view: { input: PackInput; output: PackOutput }): number {
+  const placed = new Set(view.output.placements.map((p) => p.id));
   let sum = 0;
-  for (const item of input.items) {
-    if (!placed.has(item.id) || !(item.w > 0 && item.h > 0)) continue;
-    sum += shapeAreaOf(item) ?? item.w * item.h;
+  for (const [index, item] of input.items.entries()) {
+    const box = view.input.items[index]!;
+    if (!placed.has(item.id) || !(box.w > 0 && box.h > 0)) continue;
+    sum += shapeAreaOf(item) ?? box.w * box.h;
   }
   return sum;
 }
@@ -367,6 +412,11 @@ function excessAreaOf(overflowArea: number, forcedArea: number): number {
  */
 export function gapToOpt(input: PackInput, output: PackOutput, known: KnownBest): number {
   if (!(known.area > 0)) throw new RangeError("A known best value has an area above 0.");
+  return gapOfView(boxView(input, output), known);
+}
+
+/** This function gives `pack.gapToOpt` from the box view of a layout. */
+function gapOfView({ input, output }: { input: PackInput; output: PackOutput }, known: KnownBest): number {
   const unplaced = new Set(output.overflow);
   let unplacedArea = 0;
   for (const item of input.items) if (unplaced.has(item.id)) unplacedArea += Math.max(0, item.w) * Math.max(0, item.h);
