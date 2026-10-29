@@ -285,6 +285,41 @@ describe("the strata of the whole space of k115", () => {
     expect(equalWeight([{ hits: 1, n: 1 }, { hits: 0, n: 99 }]).share).toBe(0.5);
   });
 
+  it("centers the interval of the mean on the mean, also for small shares", () => {
+    // 0 of 20, 0 of 20 and 1 of 20: the mean is 1/60. The adjusted shares are 1.92 / 23.84, 1.92 / 23.84 and 2.92 / 23.84.
+    // Their variances sum to 0.010723, so se = sqrt(0.010723) / 3 = 0.0345. The interval is 0.0167 +- 0.0677, from 0.
+    // The mean of the adjusted shares is 0.0945. An interval around it starts at 0.0269, above the mean: the bug of the CI run.
+    const small = equalWeight([
+      { hits: 0, n: 20 },
+      { hits: 0, n: 20 },
+      { hits: 1, n: 20 },
+    ]);
+    expect(small).toEqual({ strata: 3, share: 0.0167, se: 0.0345, interval: { low: 0, high: 0.0843 } });
+    // The hits of the 4 measures of the stratified CI run 40805165103, with the old intervals that did not hold their shares.
+    const run: Record<string, [number, number][]> = {
+      "pack.fill": [[2, 23], [0, 23], [2, 23], [1, 23], [1, 22], [1, 22], [3, 22], [0, 22], [0, 22], [0, 22], [1, 22], [3, 22], [0, 22], [0, 22], [1, 22], [0, 22], [0, 22]],
+      "pack.gap": [[1, 21], [0, 20], [0, 23], [0, 21], [0, 20], [1, 20], [0, 17], [0, 17], [1, 17], [0, 20], [0, 20], [0, 20], [2, 17], [0, 21], [1, 19], [0, 22], [0, 20]],
+      "pack.overflow.excessArea": [[11, 23], [13, 23], [13, 23], [10, 23], [9, 22], [9, 22], [9, 22], [11, 22], [14, 22], [14, 22], [11, 22], [14, 22], [14, 22], [13, 22], [12, 22], [15, 22], [13, 22]],
+      ms: [[4, 23], [0, 23], [6, 23], [4, 23], [6, 22], [9, 22], [2, 22], [1, 22], [0, 22], [0, 22], [0, 22], [0, 22], [0, 22], [1, 22], [4, 22], [0, 22], [3, 22]],
+    };
+    for (const [id, rows] of Object.entries(run)) {
+      const e = equalWeight(rows.map(([hits, n]) => ({ hits, n })));
+      expect([id, e.interval.low <= e.share && e.share <= e.interval.high]).toEqual([id, true]);
+      expect(e.share).toBeCloseTo(rows.reduce((s, [h, n]) => s + h / n, 0) / rows.length, 4);
+      expect(e.interval.high).toBeCloseTo(Math.min(1, e.share + 1.959964 * e.se), 3);
+    }
+    // Many random strata: the interval always holds the share.
+    for (let i = 0; i < 200; i++) {
+      const rows = Array.from({ length: 1 + (i % 7) }, (_, j) => {
+        const n = 1 + ((i * 7 + j * 13) % 40);
+        return { hits: (i * 3 + j * 5) % (n + 1), n };
+      });
+      const e = equalWeight(rows);
+      expect(e.interval.low).toBeLessThanOrEqual(e.share);
+      expect(e.share).toBeLessThanOrEqual(e.interval.high);
+    }
+  });
+
   it("gives the share of each stratum of the pairs with the errors of the section sampled", () => {
     const sampled = [pair("rows", "a", 10, 0.702), pair("maxrects-bl", "b", 100, 0.803), pair("rows", "b", 500, 0.6), pair("maxrects-bl", "a", 1000, 0.5), { ...pair("rows", "a", 10, 0.7), skipped: "unsupported" }];
     const out = strataCoverage(records, manifest, sampled, { measures: [fill] });
@@ -303,6 +338,7 @@ describe("the strata of the whole space of k115", () => {
     expect(m.strata.find((s) => s.stratum === "push:1")).toEqual({ stratum: "push:1", n: 0, hits: 0, share: null, wilson: null });
     expect(m.equal).toEqual(equalWeight([{ hits: 2, n: 2 }, { hits: 1, n: 2 }]));
     expect(m.equal.share).toBe(0.75);
+    for (const x of out.measures) expect(x.equal.interval.low <= x.equal.share && x.equal.share <= x.equal.interval.high).toBe(true);
     // The hits of the strata sum to the hits of the section sampled.
     expect(m.strata.reduce((s, x) => s + x.hits, 0)).toBe(sampledCoverage(records, manifest, sampled, { measures: [fill] }).measures[0]!.hits);
   });

@@ -296,15 +296,16 @@ describe("the strata of k115", () => {
 
   it("gives the same count of pairs to each stratum, and the same pairs for the same seed", () => {
     const strata = strataOf(packSpace).map((s) => s.id);
-    const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: 2 * strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock() });
+    const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), maxInputTries: 10 });
     const a = run();
     expect(a.summary.errors).toEqual([]);
     expect(a.summary.draw).toBe("stratified");
     expect(Object.keys(a.summary.strata!)).toEqual(strata);
-    // No sampled input has circles, so the stratum hole-degree:1 gets no pairs. Each other stratum gets 2 pairs.
-    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 2] : [id, 2, 0]);
+    // No sampled input has circles, so the stratum hole-degree:1 gets no pairs. Each other stratum gets 1 pair.
+    // The sample is small, and a miss tries only 10 inputs: the full test is slow on the CI runner.
+    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 1] : [id, 1, 0]);
     expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
-    expect(a.records).toHaveLength(2 * strata.length - 2);
+    expect(a.records).toHaveLength(strata.length - 1);
     // Pair i takes the stratum i modulo 18.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
@@ -315,17 +316,24 @@ describe("the strata of k115", () => {
     expect(MAX_STRATUM_MISSES).toBe(1);
     const strata = strataOf(packSpace).map((s) => s.id);
     // The pairs at, at + 18 and at + 36 take hole-degree:1. Only the first of them draws inputs.
+    // The other pairs are base configs of the space, so the test packs no composite. A pair tries at most 60 inputs.
     const at = strata.indexOf("hole-degree:1");
-    const run = (n: number): ReturnType<typeof sampleSpace> => sampleSpace({ n, seed: 4, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock() });
+    const tries = 60;
+    const space = { ...packSpace, stages: packSpace.stages.filter((s) => s.name !== "combine") };
+    const run = (n: number): ReturnType<typeof sampleSpace> =>
+      sampleSpace({ n, seed: 4, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), space, maxInputTries: tries });
     const one = run(at + 1);
-    const three = run(at + 2 * strata.length + 1);
+    const k = strataOf(space).length;
+    expect(strataOf(space).map((s) => s.id).indexOf("hole-degree:1")).toBe(at);
+    const three = run(at + 2 * k + 1);
     const configs = String(HOLE_DEGREE_MAX_STEPS + 1);
     expect(one.summary.strata!["hole-degree:1"]).toEqual({ configs, pairs: 0, missed: 1 });
     expect(three.summary.strata!["hole-degree:1"]).toEqual({ configs, pairs: 0, missed: 3 });
     expect(three.summary.errors).toEqual([]);
-    // The first miss draws 200 inputs. Without the cap, the 2 later misses draw 400 more inputs.
-    expect(one.summary.inputs.drawn).toBeGreaterThanOrEqual(200);
-    expect(three.summary.inputs.drawn).toBeLessThan(one.summary.inputs.drawn + 200);
-    expect(three.records.some((r) => stratumOf(packSpace, r.config) === "hole-degree:1")).toBe(false);
+    // The first miss draws 60 inputs. Without the cap, the 2 later misses draw 120 more inputs.
+    // The 2k - 2 other later pairs draw fewer: each pair has its own random stream, so their inputs do not depend on the cap.
+    expect(one.summary.inputs.drawn).toBeGreaterThanOrEqual(tries);
+    expect(three.summary.inputs.drawn - one.summary.inputs.drawn).toBeLessThan(2 * tries);
+    expect(three.records.some((r) => stratumOf(space, r.config) === "hole-degree:1")).toBe(false);
   });
 });

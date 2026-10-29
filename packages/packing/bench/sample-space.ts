@@ -66,12 +66,12 @@ export const DEFAULT_MAX_COUNT = 1000;
 /** The largest count of the draws of a config for one input. Then the sampler draws a new input. */
 const MAX_CONFIG_TRIES = 20;
 
-/** The largest count of the draws of an input for one pair. Then the pair is an error, or a miss of its stratum. */
-const MAX_INPUT_TRIES = 200;
+/** The default largest count of the draws of an input for one pair. Then the pair is an error, or a miss of its stratum. */
+export const MAX_INPUT_TRIES = 200;
 
 /**
  * The count of the misses that close a stratum of a stratified draw (k115). A miss is a pair that finds no input and config.
- * The later pairs of a closed stratum draw nothing. Thus a stratum costs at most 200 inputs and 4000 configs without a pair.
+ * The later pairs of a closed stratum draw nothing. Thus a stratum costs at most `maxInputTries` inputs (200) and 4000 configs without a pair.
  */
 export const MAX_STRATUM_MISSES = 1;
 
@@ -551,6 +551,8 @@ export interface SampleOptions {
   readonly clock?: () => number;
   /** The space of the configs. The default is `packSpace`. A test gives a small space. */
   readonly space?: StrategySpace;
+  /** The largest count of the draws of an input for one pair. The default is `MAX_INPUT_TRIES`, 200. A test gives a smaller count. */
+  readonly maxInputTries?: number;
 }
 
 /** The summary of a sample, schema `packing-sample-space/1`. */
@@ -630,11 +632,13 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   const repeats = options.repeats ?? 1;
   const warmup = options.warmup ?? 0;
   const space = options.space ?? packSpace;
+  const maxInputTries = options.maxInputTries ?? MAX_INPUT_TRIES;
   const clock = options.clock ?? (() => performance.now());
   const prediction = options.prediction ?? "k112-whole-space";
   if (!Number.isInteger(n) || n < 0) throw new RangeError("The count of the pairs is a whole number of 0 or more.");
   if (!Number.isInteger(repeats) || repeats < 1) throw new RangeError("The repeats are a whole number of 1 or more.");
   if (!Number.isInteger(warmup) || warmup < 0) throw new RangeError("The warm-up runs are a whole number of 0 or more.");
+  if (!Number.isInteger(maxInputTries) || maxInputTries < 1) throw new RangeError("The input tries are a whole number of 1 or more.");
   const counts = spaceCounts(space);
   const strata = draw === "stratified" ? strataOf(space, counts) : [];
   if (draw === "stratified" && strata.length === 0) throw new RangeError("The space has no strata.");
@@ -670,7 +674,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
       continue;
     }
     let done = false;
-    for (let inputTry = 0; inputTry < MAX_INPUT_TRIES && !done; inputTry++) {
+    for (let inputTry = 0; inputTry < maxInputTries && !done; inputTry++) {
       const d = drawInput(r, corpusFamilies, { knobs });
       inputsDrawn++;
       const file = inputOf(d, registry, maxCount);
@@ -763,7 +767,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
       }
     }
     if (!done && stratum !== undefined) bump(strataMissed, stratum.id);
-    else if (!done) errors.push({ pair, input: "-", config: "-", message: `The pair found no input and config after ${MAX_INPUT_TRIES} inputs.` });
+    else if (!done) errors.push({ pair, input: "-", config: "-", message: `The pair found no input and config after ${maxInputTries} inputs.` });
   }
 
   const summary: SampleSummary = {

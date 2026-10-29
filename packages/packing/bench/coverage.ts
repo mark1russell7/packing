@@ -884,29 +884,29 @@ const PACK_STRATA: readonly string[] = strataOf(packSpace).map((s) => s.id);
  * This function gives the mean of the shares of some strata, each with the same weight `1/k`, and its 95% interval.
  *
  * - `share` is the mean of `hits / n` over the `k` strata with pairs.
- * - Each stratum gets the adjusted share `p = (hits + z²/2) / (n + z²)` of Agresti and Coull. Thus a share of 0 or 1 has a variance above 0.
- * - The variance is the sum of `p (1 - p) / (n + z²)`, divided by `k²`. The interval is the mean of the adjusted shares, plus and minus `z` standard errors.
+ * - For the variance, each stratum gets the adjusted share `p = (hits + z²/2) / (n + z²)` of Agresti and Coull. Thus a share of 0 or 1 has a variance above 0.
+ * - The variance is the sum of `p (1 - p) / (n + z²)`, divided by `k²`.
+ * - The interval is `share`, plus and minus `z` standard errors, from 0 to 1. Thus `low <= share <= high` always.
  *
- * With one stratum, the interval is the Agresti-Coull interval. No stratum with pairs gives the share 0 and the interval from 0 to 1.
+ * The adjusted shares give only the variance, not the center. Their mean moves a small share up by approximately `z²/2 / (n + z²)`.
+ * No stratum with pairs gives the share 0 and the interval from 0 to 1.
  */
 export function equalWeight(strata: readonly { readonly hits: number; readonly n: number }[], z = Z95): EqualWeight {
   const used = strata.filter((s) => s.n > 0);
   const k = used.length;
   if (k === 0) return { strata: 0, share: 0, se: 0, interval: { low: 0, high: 1 } };
   const z2 = z * z;
-  let share = 0;
-  let center = 0;
+  let sum = 0;
   let variance = 0;
   for (const s of used) {
-    share += s.hits / s.n;
+    sum += s.hits / s.n;
     const n = s.n + z2;
     const p = (s.hits + z2 / 2) / n;
-    center += p;
     variance += (p * (1 - p)) / n;
   }
+  const share = sum / k;
   const se = Math.sqrt(variance) / k;
-  center /= k;
-  return { strata: k, share: r4(share / k), se: r4(se), interval: { low: r4(Math.max(0, center - z * se)), high: r4(Math.min(1, center + z * se)) } };
+  return { strata: k, share: r4(share), se: r4(se), interval: { low: r4(Math.max(0, share - z * se)), high: r4(Math.min(1, share + z * se)) } };
 }
 
 /**

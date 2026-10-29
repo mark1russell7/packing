@@ -294,7 +294,7 @@ describe("the coverage snapshot (k105)", () => {
             { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, wilson: { low: 0.0349, high: 0.36 } },
             { stratum: "hole-degree:1", n: 0, hits: 0, share: null, wilson: null },
           ],
-          equal: { strata: 2, share: 0.4375, se: 0.0681, interval: { low: 0.3162, high: 0.583 } },
+          equal: { strata: 2, share: 0.4375, se: 0.0681, interval: { low: 0.3041, high: 0.5709 } },
         },
       ],
     };
@@ -302,8 +302,8 @@ describe("the coverage snapshot (k105)", () => {
     expect(snap.latest.strata).toEqual({ pairs: 32, draw: "stratified", strata: strata.strata });
     expect(snap.latest.measures[0]!.strata).toEqual({
       share: 0.4375,
-      low: 0.3162,
-      high: 0.583,
+      low: 0.3041,
+      high: 0.5709,
       strata: 2,
       rows: [
         { stratum: "rows:1", n: 16, hits: 12, share: 0.75, low: 0.5049, high: 0.8983 },

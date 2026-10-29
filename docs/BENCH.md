@@ -1111,10 +1111,12 @@ The script `coverage.ts --sample` adds the section `strata` next to the section 
 
 The interval of the mean:
 
-- Each stratum gets the adjusted share `p = (hits + z²/2) / (n + z²)` of Agresti and Coull, with `z` 1.96.
-- The variance of the mean is the sum of `p (1 - p) / (n + z²)` over the strata, divided by `k²`.
-- The interval is the mean of the adjusted shares, plus and minus `z` standard errors, from 0 to 1.
-- The adjustment gives a variance above 0 to a share of 0 or 1. With one stratum, the interval is the Agresti-Coull interval.
+- For the variance, each stratum gets the adjusted share `p = (hits + z²/2) / (n + z²)` of Agresti and Coull, with `z` 1.96.
+- The variance of the mean is the sum of `p (1 - p) / (n + z²)` over the strata, divided by `k²`. The standard error `se` is its square root.
+- The interval is the mean of the shares (`equal.share`), plus and minus `z` standard errors, from 0 to 1. Thus `low <= share <= high` always.
+- The adjustment gives a variance above 0 to a share of 0 or 1. It does not move the center of the interval.
+- Before the fix of k115, the center was the mean of the adjusted shares. Each stratum added approximately `1.92 / (n + 3.84)` to it.
+- Thus with 22 pairs for each stratum, the old interval of a small share started above the share.
 - 400 pairs give 22 or 23 pairs for each stratum. The half width of the mean is then approximately 0.05 or less.
 
 Why the two numbers differ:
