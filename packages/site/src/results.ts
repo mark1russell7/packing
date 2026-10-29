@@ -23,6 +23,7 @@ import {
   COVERAGE_SCOPES,
   COVERAGE_STRATA_SCOPE,
   COVERAGE_POOLED_SCOPE,
+  COVERAGE_PRIOR_SCOPE,
   coverageTile,
   divergingAt,
   errorText,
@@ -44,6 +45,9 @@ import {
   spaceOf,
   strataRows,
   strataText,
+  activeRows,
+  FORCED_LABEL,
+  forcedText,
   trendChart,
   verdictHash,
   verdictOf,
@@ -357,6 +361,24 @@ function drawStrata(): void {
       ? `The share of each stratum is not measured yet. A sample with strata gives it.`
       : `<b>${esc(coverLabel(m.id))}</b>: the dot is the share of the pairs of a stratum, and the band is its 95% interval. The line is the ${COVERAGE_STRATA_SCOPE}, ${esc(t.share)}.`;
   $("coverage-strata").innerHTML = strataRows(m, cover.latest.strata?.strata);
+  const f = forcedText(m);
+  $("coverage-forced").innerHTML =
+    f === null ? "" : `<b>${esc(coverLabel(m.id))}</b>, the whole space by input: pairs with ${FORCED_LABEL} ${esc(f.heavy)}, the other pairs ${esc(f.rest)}.`;
+  drawActive();
+}
+
+/** This function draws the table of the active rounds of the current measure (k116), or a note without rounds. */
+function drawActive(): void {
+  const m = cover.latest.measures[coverCurrent]!;
+  const a = cover.latest.active;
+  const rows = activeRows(m);
+  $("coverage-active").hidden = rows === "";
+  $("coverage-active").innerHTML = rows;
+  $("coverage-active-note").innerHTML =
+    a === undefined || rows === ""
+      ? "The active rounds are not measured yet. A bench run with the draw <code>active</code> gives them."
+      : `<b>${esc(coverLabel(m.id))}</b>: each round measures the ${a.pool === null ? "" : `${a.pool} `}candidate pairs where the trees of the folds disagree most. The pairs then join the training rows. ` +
+        `"New pairs hit" is the share of the new pairs within the tolerance, before they join. "Sample after" is the share of the ${a.evalPairs ?? ""} pairs of the sample above. The model reads the <code>${esc(a.features)}</code> features.`;
 }
 
 /** This function gives the SVG of the trend chart of the shares. */
@@ -387,7 +409,7 @@ function trendSvg(): string {
 function mountCoverage(): void {
   const l = cover.latest;
   $("coverage-text").innerHTML = marked.parse(coverageText, { async: false });
-  $("coverage-note").innerHTML = `The data: ${dataLine(cover.origin)}. The corpus <code>${esc(l.corpus)}</code>: ${l.records} records of ${l.strategies.length} strategies on ${l.inputs} inputs. The model: a regression tree, ${l.model.folds} parts by ${esc(l.model.by)}, the seed ${l.model.seed}. The small number "by input" is the less strict test.`;
+  $("coverage-note").innerHTML = `The data: ${dataLine(cover.origin)}. The corpus <code>${esc(l.corpus)}</code>: ${l.records} records of ${l.strategies.length} strategies on ${l.inputs} inputs. The model: a regression tree, ${l.model.folds} parts by ${esc(l.model.by)}, the seed ${l.model.seed}, the <code>${esc(l.model.features ?? "family")}</code> features of the inputs. The small number "by input" is the less strict test.`;
   $("coverage-origin").innerHTML = originHtml(cover.origin);
   $("coverage-tiles").innerHTML = l.measures.map((m) => coverageTile(m, coverLabel(m.id), spaceOf(l, m))).join("");
   const sample = l.sampled;
@@ -403,6 +425,9 @@ function mountCoverage(): void {
       : ` The number "${COVERAGE_STRATA_SCOPE}" is the mean of the shares of the strata. Each stratum has the same weight. The draw of the sample is ${esc(l.strata.draw ?? "not known")}.`) +
     (stratified && sample !== undefined
       ? ` The number "${COVERAGE_POOLED_SCOPE}" is the share of all the ${sample.pairs} pairs of the stratified sample ${runText(l.run, l.date)}. It is not a uniform share.`
+      : "") +
+    (l.measures.some((m) => m.sampled?.prior !== undefined || l.uniform?.measures[m.id]?.prior !== undefined)
+      ? ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs of the corpus as its weight. A family outside the corpus gets the weight 0.`
       : "");
   $("coverage-errors").innerHTML = l.measures
     .map((m) => {

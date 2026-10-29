@@ -220,7 +220,7 @@ describe("the coverage snapshot (k105)", () => {
     inputs: 5,
     strategies: ["a", "b"],
     features: { strategy: ["stage.placement"], input: ["size"] },
-    model: { kind: "regression-tree", maxDepth: 12, minLeaf: 3, folds: 5, seed: 1, by: "input" },
+    model: { kind: "regression-tree", maxDepth: 12, minLeaf: 3, folds: 5, seed: 1, by: "input", features: "family" },
     measures: [measure("pack.fill", share)],
   });
   const origin = { release: "0.0.1", commit: "abc1234", date: "2026-10-28", run: 7, source: "made up" };
@@ -362,6 +362,43 @@ describe("the coverage snapshot (k105)", () => {
         { stratum: "hole-degree:1", n: 0, hits: 0, share: null, low: null, high: null },
       ],
     });
+    expect(snap.trend).toEqual(plain.trend);
+  });
+
+  it("keeps the rounds of the active sample and the forced-overflow split (k116), and has neither without them", () => {
+    const plain = coverageSnapshot(summary("2026-10-28", 0.5), origin);
+    expect("active" in plain.latest).toBe(false);
+    expect(plain.latest.measures[0]!.active).toBeUndefined();
+    const evalAt = (share: number) => ({ id: "pack.fill", n: 40, hits: share * 40, share, mae: 0.2, equal: share });
+    const active = {
+      pairs: 8,
+      features: "input" as const,
+      facts: { rounds: 2, pool: 160, score: "fold-spread", features: "input" },
+      evalPairs: 40,
+      start: [evalAt(0.05)],
+      rounds: [1, 2].map((round) => ({
+        round,
+        pairs: 4,
+        measures: [{ id: "pack.fill", tolerance: 0.02, n: 4, hits: round - 1, share: (round - 1) / 4, wilson: { low: 0, high: 0.6 }, mae: 0.3, after: evalAt(round === 1 ? 0.1 : 0.15) }],
+      })),
+    };
+    const forced = { heavy: { n: 30, hits: 0, share: 0, wilson: { low: 0, high: 0.1135 } }, rest: { n: 30, hits: 4, share: 0.1333, wilson: { low: 0.0531, high: 0.2968 } } };
+    const prior = { share: 0.08, wilson: { low: 0.03, high: 0.2 }, nEff: 41.5, weighted: 50, zero: 10, covered: 1 };
+    const sampled = {
+      pairs: 60,
+      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n: 60, hits: 4, share: 0.0667, wilson: { low: 0.0262, high: 0.1593 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 }, forced, prior }],
+    };
+    const snap = coverageSnapshot({ ...summary("2026-10-28", 0.5), sampled, active }, origin);
+    expect(snap.latest.active).toEqual({ pairs: 8, features: "input", score: "fold-spread", pool: 160, rounds: 2, evalPairs: 40 });
+    expect(snap.latest.measures[0]!.active).toEqual({
+      start: { share: 0.05, mae: 0.2, equal: 0.05 },
+      rounds: [
+        { round: 1, n: 4, hits: 0, share: 0, low: 0, high: 0.6, mae: 0.3, after: { share: 0.1, mae: 0.2, equal: 0.1 } },
+        { round: 2, n: 4, hits: 1, share: 0.25, low: 0, high: 0.6, mae: 0.3, after: { share: 0.15, mae: 0.2, equal: 0.15 } },
+      ],
+    });
+    expect(snap.latest.measures[0]!.sampled!.forced).toEqual({ heavy: { n: 30, hits: 0, share: 0 }, rest: { n: 30, hits: 4, share: 0.1333 } });
+    expect(snap.latest.measures[0]!.sampled!.prior).toEqual({ share: 0.08, low: 0.03, high: 0.2, nEff: 41.5, weighted: 50, zero: 10, covered: 1 });
     expect(snap.trend).toEqual(plain.trend);
   });
 });

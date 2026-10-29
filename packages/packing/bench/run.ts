@@ -34,6 +34,7 @@ import {
 import { declaredClaimOf, type DeclaredClaim, type ShapeKind } from "@mark1russell7/layout-contract";
 import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
 import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
+import { gapToBound, GAP_TO_BOUND } from "./gap-to-bound.ts";
 import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
 
@@ -440,6 +441,9 @@ export function pairValues(input: PackInput, first: PackOutput, searchMs: readon
   values[OUTSIDE_EXACT] = checkHard(input, first, DEFAULT_TOLERANCE, { exactContainer: true })["in-container"];
   // The bound of the cell and the distance of the result to it (roadmap item k51)
   Object.assign(values, boundMeasures(input, first));
+  // The fill against the best fill of the placed items (k116), from 0 to 1. No placed item gives no value.
+  const toBound = gapToBound(input, first, values["pack.fill"] ?? 0, values["pack.area"] ?? 0);
+  if (toBound !== undefined) values[GAP_TO_BOUND] = toBound;
   // Only an input with a known best value (roadmap item k45) gets the distance from that value
   if (known !== undefined) values["pack.gapToOpt"] = gapToOpt(input, first, known);
   return values;

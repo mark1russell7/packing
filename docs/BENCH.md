@@ -1134,6 +1134,171 @@ Why the two numbers differ:
 
 The input `stratify` of `bench.yml` (default `false`) adds `--stratify` to the sampler.
 
+### The input features and the active draw (k116)
+
+The first stratified run of k115 found that the sampled inputs are far from the corpus.
+The median `pack.fill` of the 378 sampled pairs is 0.303. The median of the corpus records is 0.912.
+
+Many sampled inputs have a fixed container that is too small for their items. Most of their items are then forced out.
+Thus the share of `pack.fill` was 0.136 or less in each stratum. The cause is the inputs, not the configs.
+
+#### The headline measure `pack.gapToBound`
+
+`pack.gap` is not a share. It is `result/bound − 1`, so it has no upper end. The section "The values of `pack.gap`" below gives the cause.
+The record measure `pack.gapToBound` of `bench/gap-to-bound.ts` is the headline measure of the coverage. It is from 0 to 1 in each region.
+
+1. The placed items go into a free container without obstacles. `objectiveBound` of k51 gives the lower bound of their hull area.
+2. The upper bound of the fill is the area of the placed boxes over that hull bound, at most 1.
+3. The value is `1 − pack.fill / upper`, clipped to 0 and 1.
+
+- A hull bound of 0, or no bound, gives the upper bound 1. Then the value is `1 − pack.fill`.
+- A layout without a placed item has no value. The record does not have the measure.
+- The bound counts the margins of the items (`hull.margin`), but not the gap between the items.
+- `pack()` and the other measures do not change. `pack.fill` stays a measure of the coverage.
+
+#### The input features
+
+The option `--features input` of `coverage.ts` gives the model features of each input, in place of the family and its params.
+The default stays `--features family`. The pure function `inputFeatures` of `bench/input-features.ts` computes them.
+
+| Feature | The value |
+|---|---|
+| `in.count` | The count of items |
+| `in.locked` | The count of locked items |
+| `in.fill` | The sum of the item areas over the container area, with 2 digits. A free container gives `-1`. |
+| `in.side.max` | The largest item side over the fixed container side |
+| `in.margin`, `in.gap` | The margin and the gap over the mean item side |
+| `in.aspect.mean`, `in.aspect.spread`, `in.aspect.max` | The aspect ratios of the items |
+| `in.area.cv` | The coefficient of variation of the item areas |
+| `in.fixed`, `in.container` | The fixed sides and the shape of the container |
+| `in.obstacles`, `in.items`, `in.turnable` | The obstacles, the shapes of the items and the turnable items |
+
+- `in.fill`, `in.side.max`, `in.margin` and `in.gap` tell the forced overflow before a pack.
+- The script regenerates each sampled input from its generator, its params, its seed and its knobs. It then checks the input hash.
+- Each value is a text with 2 digits, so the tree splits on it as on the other features.
+
+#### The forced-overflow split
+
+`coverage.ts --sample` splits the share of each measure in two parts.
+A pair is forced-overflow heavy when its `pack.overflow.forcedArea` is 0.5 or more (`FORCED_HEAVY`).
+The field `forced` of the section `sampled` gives `heavy` and `rest`, each with its pairs, its hits, its share and its Wilson interval.
+Each measure has the split, `pack.gapToBound` too.
+
+#### The family prior
+
+The section `sampled` gives two shares of each measure. The field `share` gives each pair the same weight, as the sampler draws them.
+The field `prior` gives each generator family its share of the inputs of the grid corpus as its weight.
+
+- The weight of family `f` is `prior(f)`. Its pairs share it, so each pair has the weight `prior(f) / n(f)`.
+- The share is `Σ prior(f) · share(f)`, divided by the weight of the families with pairs (`covered`).
+- A family outside the corpus gets the weight 0. The field `zero` gives the count of its pairs.
+- The interval is the Wilson interval with the effective count of Kish, `(Σw)² / Σw²` (`nEff`).
+- No pair of a family of the corpus gives the share `null`.
+- The rounds of the active draw and the evaluation sample after each round also give the share with the prior.
+
+The weights of `pack-classes-v1` are `berkey-wang` 0.6 (300 inputs) and `martello-vigo` 0.4 (200 inputs).
+Thus the other 17 families of `packSpace` get the weight 0. In the 378 pairs of the first stratified run, 342 pairs have the weight 0.
+
+#### The active draw
+
+The script `bench/active.ts` draws the pairs where the model knows least. It measures them in rounds.
+
+```sh
+node bench/active.ts --out <folder>/active --records <folder>/records.jsonl --corpus <folder>/corpus.json --n 400 --seed 1 --features input
+```
+
+1. The script draws a pool of `20 × n` candidate pairs (`--pool 20`). Candidate `c` is in the stratum `c mod S`, with the `S` strata of `strataOf`. Thus the strata of the pool are equal, as in k115.
+2. The script checks each candidate with `checkConfig` and does not pack it. `maxOverlapMoves` of k80 also caps the moves of `overlap-min` in the pool.
+3. Each round fits 5 trees of the folds by spec for each measure. The rows are the grid and the measured active pairs.
+4. The score of a candidate is the mean over the measures of its scaled fold spread (`--score spread-iqr`, the default).
+5. The round packs the candidates from the highest score down, with the diversity rule below. A tie goes to the lower candidate index.
+6. Each round has `floor(n·k/R) − floor(n·(k−1)/R)` pairs, with `R` rounds (`--rounds 4`).
+7. After a round, its measured pairs join the rows. The next round then fits the trees again.
+
+The score `spread-iqr` of one measure is the standard deviation of the 5 predictions over the scale of the measure, at most 3 (`SCORE_CAP`).
+
+- The scale is the interquartile range of the values of the measure in the rows, or the tolerance when the range is smaller.
+- Thus a measure with a wide range, as `pack.gap`, does not decide the score alone.
+- The cap stops one measure with very large values. Thus the other measures also count.
+- `--score fold-spread` gives the score of the first version: the spread over the tolerance, without a cap.
+
+The diversity rule of a round:
+
+- A stratum gets at most `ceil(quota / S)` pairs in one round. Since k80, `packSpace` has 20 strata.
+- A candidate with the stratum and the generator of an earlier pick of the round waits.
+- When only these candidates are left, the rules give way. Thus each round gets its quota.
+
+Why the fold spread:
+
+- The trees of the folds disagree where the rows do not decide the value. There, the held-out error is large.
+- The spread needs no measured value of the candidate. Thus the script scores 8000 candidates without a pack.
+- The score uses `pack.gapToBound`, `pack.fill`, `pack.gap` and `pack.overflow.excessArea`. It does not use `ms`, because a time is different at each measurement.
+
+The same seed, the same grid and the same pool give the same pairs. Each candidate has its own random stream `candidate-<c>`.
+
+`coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.
+
+- The round 1 pairs are tested against the grid model. A later round is tested against the grid and the earlier rounds.
+- Each round gives its pairs, the hits, the share with its Wilson interval and the MAE.
+- With `--sample`, each round also gives the share of the sample after the round. The start gives the share of the grid only.
+- The pairs of a round are not a uniform sample. Thus the share of a round is not the coverage of the whole space.
+
+#### The values of `pack.gap`
+
+In the 378 pairs of the first stratified run, 335 pairs have a `pack.gap`. 177 of them are above 1, and the largest is 4100.
+In the corpus records, the largest `pack.gap` is 2.9.
+
+| Bound kind | Pairs | Above 1 | Median | Largest |
+|---|---|---|---|---|
+| `placed.free` | 112 | 87 | 5.1 | 4100 |
+| `strip.margin` | 135 | 62 | 0.78 | 30 |
+| `hull.margin` | 64 | 21 | 0.55 | 31 |
+| `strip.tallest` | 21 | 7 | - | 12 |
+
+The values are correct for the bounds, but the bounds are loose. They are not a defect of the measure.
+
+- `placed.free` is `1 − forcedArea / total`. `overflowBound` of `src/overflow.ts` does not count the margins and the gap.
+- With a large margin, few items go in, so the bound over a small placed share gives a very large gap.
+- All 87 pairs have a footprint with the margins and the gap larger than the container. Only 22 have an item area larger than the container.
+- `strip.margin` and `hull.margin` count the margins but not the gap.
+- The sampler draws the margin and the gap up to approximately 32, for each item size. Thus the gap is large next to small items.
+
+A tighter `overflowBound` with the margins and the gap is a change of k51. This item does not change the bound.
+
+#### The inputs of `bench.yml`
+
+- The input `draw` is `uniform` (the default), `option`, `stratified` or `active`.
+- `stratify` true with `draw` `uniform` gives `stratified`, as in k115. `stratify` true with `draw` `option` fails.
+- With `draw` `active`, the sampler measures the sample first, uniform or stratified, for 12 minutes. Then `active.ts` measures the rounds for 12 minutes.
+- The input `features` is `family` (the default) or `input`. It goes to `coverage.ts` and `active.ts`.
+
+#### The weekly trend (a hypothesis)
+
+The hypothesis: with `draw` `active`, the share of the sample after the last round rises from week to week.
+
+- Each week adds the measured active pairs of the region where the model fails. The grid of the corpus does not change.
+- The test: the share "sample after" of the last round is above the share of the grid only, and the gap does not shrink over 4 weeks.
+- A share after the rounds that stays at the start tells that the model features do not separate the region. Then the features change, not the draw.
+
+#### The first CI run
+
+The run 40810883047 (2026-10-29) used `pack-classes-v1`, `sample` 400, `draw` `active` and `features` `input`.
+
+- The uniform sample measured 125 of the 400 requested pairs in its 12 minutes. These pairs are the evaluation set.
+- The active rounds measured 400 pairs: 4 rounds of 100, from a pool of 7611 candidates. Each round used 14 to 16 generators.
+- The active pairs had 0 hard breaks, and each was deterministic. The uniform sample had 1 pair that was not deterministic.
+
+The table gives the share of the evaluation pairs within tolerance, with uniform weights, after each round.
+
+| Measure | Grid only | Round 1 | Round 2 | Round 3 | Round 4 |
+|---|---|---|---|---|---|
+| `pack.gapToBound` (118 pairs) | 0.068 | 0.119 | 0.110 | 0.119 | 0.153 |
+| `pack.fill` (125 pairs) | 0.016 | 0.088 | 0.112 | 0.136 | 0.184 |
+
+- The share of `pack.gapToBound` goes from 0.068 to 0.153. The rise is not the same in each round.
+- The family prior is thin: 9 of the 118 pairs have a weight, and the effective count is 2.6. k119 widens the prior.
+- The run has no uniform draw of the same size. Thus it does not tell if the active draw is better than a uniform draw.
+
 ### The site
 
 The section `#coverage` of the results page reads `packages/site/data/coverage.json`. The command `snapshot.ts coverage` computes the coverage two times.
@@ -1141,6 +1306,7 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The large numbers come from the folds by spec, the stricter test.
 - The small numbers "by input" come from the folds by input.
 - Each tile shows the number "bench grid" and the number "whole space (sampled)" with its 95% interval.
+- Under the number of the whole space, the tile shows the number "family prior", with its pairs of the weight 0.
 - The command `snapshot.ts coverage` reads the folder `sample` of the run, or `--sample <dir>`. Without a sample, the tile shows "not measured yet".
 - The number "whole space (sampled)" always comes from the last uniform sample. The note under the tiles gives its run and its date.
 - With strata, each tile also shows the number "equal weight over strata" with its 95% interval, under the uniform number.
@@ -1148,4 +1314,7 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The chart "The whole space by stratum" shows the share of each stratum of the selected measure, with its interval and the mean.
 - A stratum without pairs shows "no pairs" and its count of configs, and no share. It is not in the mean.
 - An old snapshot without strata stays readable. The chart then shows a note.
+- The line under the strata gives the forced-overflow split of the selected measure (k116).
+- The table "The active rounds" shows, for each round, the share of the new pairs and the share of the sample after the round. The first row is the grid only.
+- The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.

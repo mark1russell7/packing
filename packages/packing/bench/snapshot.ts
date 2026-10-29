@@ -6,7 +6,7 @@
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
 //   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--out <file>]
-//   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>]
+//   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>] [--active <dir>] [--features family|input]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
@@ -30,7 +30,19 @@ import {
   type SelectNode,
 } from "@mark1russell7/packing";
 import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/layout-contract";
-import { coverage, coverageOptions, readRecords, readSample, type CoverageManifest, type CoverageSummary, type SampledMeasure, type StrataMeasure } from "./coverage.ts";
+import {
+  coverage,
+  coverageOptions,
+  readActive,
+  readRecords,
+  readSample,
+  type ActiveCoverage,
+  type CoverageManifest,
+  type CoverageSummary,
+  type EvalMeasure,
+  type SampledMeasure,
+  type StrataMeasure,
+} from "./coverage.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 
 /** The schema of each snapshot file */
@@ -699,6 +711,48 @@ export interface CoverageSnapshotMeasure {
   sampled?: CoverageSnapshotSampled;
   /** The same test by stratum, with the mean over the strata (k115), when the snapshot has it */
   strata?: CoverageSnapshotStrata;
+  /** The rounds of the active sample (k116), when the snapshot has them */
+  active?: CoverageSnapshotActive;
+}
+
+/** The evaluation sample with one model: the share, the mean absolute error and the mean over the strata with the same weight */
+export interface CoverageSnapshotEval {
+  share: number;
+  mae: number;
+  equal: number;
+  /** The share with the family prior of the corpus (k116), or `null` without a pair of a family of the corpus. An older summary does not have it. */
+  prior?: number | null;
+}
+
+/** The share of the sampled pairs with the family prior (k116). Each family has its share of the corpus inputs as its weight. */
+export interface CoverageSnapshotPrior {
+  /** The share with the weights, or `null` without a pair of a family of the corpus */
+  share: number | null;
+  /** The Wilson 95% interval with the effective count of the pairs, or `null` without a share */
+  low: number | null;
+  high: number | null;
+  /** The effective count of the pairs of Kish */
+  nEff: number;
+  /** The pairs of a family of the corpus, and the pairs of other families with the weight 0 */
+  weighted: number;
+  zero: number;
+  /** The weight of the families of the corpus with pairs, from 0 to 1 */
+  covered: number;
+}
+
+/** The rounds of the active sample for one measure (k116) */
+export interface CoverageSnapshotActive {
+  /** The evaluation sample with the model of the grid only, or `null` without an evaluation sample */
+  start: CoverageSnapshotEval | null;
+  /** Each round: the hits of its new pairs with the model of the earlier rounds, and the evaluation sample after the round */
+  rounds: { round: number; n: number; hits: number; share: number; low: number; high: number; mae: number; prior?: number | null; after: CoverageSnapshotEval | null }[];
+}
+
+/** The share of a part of the sampled pairs: its pairs, its hits and its share, or `null` without pairs */
+export interface CoverageSnapshotPart {
+  n: number;
+  hits: number;
+  share: number | null;
 }
 
 /** The held-out result of one measure by stratum: the mean over the strata with the same weight, and each stratum */
@@ -726,6 +780,10 @@ export interface CoverageSnapshotSampled {
   medianAe: number;
   baselineMae: number;
   baselineMedianAe: number;
+  /** The share of the pairs with much forced overflow and of the other pairs (k116), when the summary has them */
+  forced?: { heavy: CoverageSnapshotPart; rest: CoverageSnapshotPart };
+  /** The share with the family prior of the corpus (k116), when the summary has it */
+  prior?: CoverageSnapshotPrior;
 }
 
 /** One point of the trend of the coverage: the share of each measure on one date */
@@ -766,6 +824,8 @@ export interface CoverageSnapshot {
      * A stratified sample does not change it. Thus `sampled` of a stratified run is only the share pooled over the strata.
      */
     uniform?: CoverageSnapshotUniform;
+    /** The facts of the active sample (k116), when the snapshot has it: its pairs, its feature set, its score, its pool and its rounds */
+    active?: { pairs: number; features: string; score: string | null; pool: number | null; rounds: number; evalPairs: number | null };
   };
   /** The points of the trend, oldest first. A run has one point. */
   trend: CoveragePoint[];
@@ -811,7 +871,32 @@ const sampledOf = (m: SampledMeasure): CoverageSnapshotSampled => ({
   medianAe: m.medianAe,
   baselineMae: m.baseline.mae,
   baselineMedianAe: m.baseline.medianAe,
+  ...(m.forced === undefined
+    ? {}
+    : {
+        forced: {
+          heavy: { n: m.forced.heavy.n, hits: m.forced.heavy.hits, share: m.forced.heavy.share },
+          rest: { n: m.forced.rest.n, hits: m.forced.rest.hits, share: m.forced.rest.share },
+        },
+      }),
+  ...(m.prior === undefined
+    ? {}
+    : {
+        prior: { share: m.prior.share, low: m.prior.wilson?.low ?? null, high: m.prior.wilson?.high ?? null, nEff: m.prior.nEff, weighted: m.prior.weighted, zero: m.prior.zero, covered: m.prior.covered },
+      }),
 });
+
+/** This function gives the snapshot form of the evaluation sample with one model. */
+const evalOf = (e: EvalMeasure | undefined): CoverageSnapshotEval | null => (e === undefined ? null : { share: e.share, mae: e.mae, equal: e.equal, ...(e.prior === undefined ? {} : { prior: e.prior }) });
+
+/** This function gives the snapshot form of the rounds of the active sample for one measure, or `undefined` when no round has the measure. */
+function activeOf(a: ActiveCoverage, id: string): CoverageSnapshotActive | undefined {
+  const rounds = a.rounds.flatMap((r) => {
+    const m = r.measures.find((x) => x.id === id);
+    return m === undefined ? [] : [{ round: r.round, n: m.n, hits: m.hits, share: m.share, low: m.wilson.low, high: m.wilson.high, mae: m.mae, ...(m.prior === undefined ? {} : { prior: m.prior }), after: evalOf(m.after) }];
+  });
+  return rounds.length === 0 ? undefined : { start: evalOf(a.start?.find((s) => s.id === id)), rounds };
+}
 
 /** This function gives the snapshot form of the held-out result of one measure by stratum. */
 const strataOf = (m: StrataMeasure): CoverageSnapshotStrata => ({
@@ -890,6 +975,10 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
         ...(second.has(m.id) ? { byInput: { mae: second.get(m.id)!.model.mae, medianAe: second.get(m.id)!.model.medianAe, share: second.get(m.id)!.share } } : {}),
         ...(sampled.has(m.id) ? { sampled: sampledOf(sampled.get(m.id)!) } : {}),
         ...(strata.has(m.id) ? { strata: strataOf(strata.get(m.id)!) } : {}),
+        ...((): { active?: CoverageSnapshotActive } => {
+          const a = summary.active === undefined ? undefined : activeOf(summary.active, m.id);
+          return a === undefined ? {} : { active: a };
+        })(),
       })),
       ...(summary.sampled === undefined
         ? {}
@@ -904,6 +993,18 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
           }),
       ...(summary.strata === undefined ? {} : { strata: { pairs: summary.strata.pairs, draw: summary.strata.draw, strata: summary.strata.strata.map((x) => ({ ...x })) } }),
       ...(uniform === undefined ? {} : { uniform }),
+      ...(summary.active === undefined
+        ? {}
+        : {
+            active: {
+              pairs: summary.active.pairs,
+              features: summary.active.features,
+              score: summary.active.facts?.score ?? null,
+              pool: summary.active.facts?.pool ?? null,
+              rounds: summary.active.rounds.length,
+              evalPairs: summary.active.evalPairs,
+            },
+          }),
     },
     trend,
   };
@@ -1026,7 +1127,14 @@ export function snapshotMain(argv: readonly string[]): void {
     const byInput = coverage(records, manifest, { ...options, by: "input" });
     // The sample of the whole space (k112): the folder `sample` of the run, or --sample <dir>
     const sampleDir = optionOf(argv, "--sample") ?? join(folder, "sample");
-    const bySpec = existsSync(join(sampleDir, "records.jsonl")) ? { ...grid, ...readSample(records, manifest, sampleDir, options) } : grid;
+    const hasSample = existsSync(join(sampleDir, "records.jsonl"));
+    // The active sample (k116): the folder `active` of the run, or --active <dir>. The sample above is its evaluation sample.
+    const activeDir = optionOf(argv, "--active") ?? join(folder, "active");
+    const bySpec = {
+      ...grid,
+      ...(hasSample ? readSample(records, manifest, sampleDir, options) : {}),
+      ...(existsSync(join(activeDir, "records.jsonl")) ? { active: readActive(records, manifest, activeDir, { ...options, by: "spec" }, hasSample ? sampleDir : undefined) } : {}),
+    };
     writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
     return;
   }

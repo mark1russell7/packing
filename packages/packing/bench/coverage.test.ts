@@ -2,9 +2,14 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { packSpace } from "@mark1russell7/packing";
-import { strataOf } from "./sample-space.ts";
+import { corpus, packSpace, toPackInput } from "@mark1russell7/packing";
+import { inputFeatures } from "./input-features.ts";
+import { sampleSpace, strataOf } from "./sample-space.ts";
 import {
+  ACTIVE_SCORE,
+  activeCoverage,
+  activeFacts,
+  activeLines,
   coverage,
   coverageMain,
   coverageOptions,
@@ -13,16 +18,32 @@ import {
   featureTable,
   firstOrderIndex,
   fitTree,
+  foldScorer,
+  familyPrior,
+  iqrOf,
+  priorShare,
+  ACTIVE_SCORES,
+  SCORE_CAP,
   foldsOf,
+  FORCED_HEAVY,
+  FORCED_MEASURE,
+  forcedHeavy,
+  gridInputFeatures,
+  gridOf,
   inputDims,
   levelPosition,
   medianOf,
+  pairFeatures,
+  pairInput,
+  pairInputFeatures,
   predictFeatures,
   predictTree,
   readRecords,
   sampledCoverage,
+  sampledDims,
   sampleFacts,
   sampleStrata,
+  scoreMeasures,
   strataCoverage,
   strategyFeatures,
   wilson,
@@ -155,7 +176,7 @@ describe("the coverage", () => {
 
   it("predicts the made-up measures much better than the median, and covers each cell", () => {
     expect(summary).toMatchObject({ schema: "packing-coverage/1", date: "2026-10-28", run: 1, corpus: "toy-v1", records: 48, inputs: 24, strategies: ["maxrects-bl", "rows"] });
-    expect(summary.model).toEqual({ kind: "regression-tree", maxDepth: 12, minLeaf: 3, folds: 5, seed: 1, by: "input" });
+    expect(summary.model).toEqual({ kind: "regression-tree", maxDepth: 12, minLeaf: 3, folds: 5, seed: 1, by: "input", features: "family" });
     const fill = summary.measures[0]!;
     expect(fill.n).toBe(48);
     expect(fill.model.mae).toBeLessThan(0.005);
@@ -195,8 +216,9 @@ describe("the coverage", () => {
     expect(coverage(records, manifest, { date: "2026-10-28", run: 1, measures: [{ id: "pack.fill", tolerance: 0.02, scale: "linear" }, { id: "ms", tolerance: 0.15, scale: "log" }] })).toEqual(summary);
     const bySpec = coverage(records, manifest, { by: "spec", date: "2026-10-28" });
     expect(bySpec.model.by).toBe("spec");
-    expect(bySpec.measures.map((m) => m.id)).toEqual(["pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
-    expect(bySpec.measures[1]!.n).toBe(0);
+    expect(bySpec.measures.map((m) => m.id)).toEqual(["pack.gapToBound", "pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
+    expect(bySpec.measures[0]!.n).toBe(0);
+    expect(bySpec.measures[2]!.n).toBe(0);
   });
 });
 
@@ -373,12 +395,146 @@ describe("the strata of the whole space of k115", () => {
   });
 });
 
+describe("the input features and the active rounds of k116", () => {
+  const fill = { id: "pack.fill", tolerance: 0.02, scale: "linear" } as const;
+  const specs = [10, 30].map((count) => ({ generator: "rect-grid", version: 1, params: { count, obstacles: "none" }, seeds: [1, 2, 3, 4] }));
+  /** A small real corpus: rect-grid with 10 and 30 items. The fill of a record is 0.5 plus the fill of its input over 4. */
+  const real = (): { manifest: CoverageManifest; records: CoverageRecord[] } => {
+    const c = corpus("k116-v1", specs);
+    const records: CoverageRecord[] = [];
+    for (const strategy of ["rows", "maxrects-bl"]) {
+      for (const file of c.inputs) {
+        const f = Number(inputFeatures(toPackInput(file))["in.fill"]);
+        records.push({ strategy, input: file.id, measures: { "pack.fill": 0.5 + f / 4 + (strategy === "rows" ? 0 : 0.1), "pack.overflow.forcedArea": 0 }, ms: 1 });
+      }
+    }
+    return { manifest: c.manifest as unknown as CoverageManifest, records };
+  };
+  /** This function gives the sampled pairs of a small sample, with a fill and a forced overflow of a known value. */
+  const pairs = (knobs: boolean): SampledRecord[] =>
+    sampleSpace({ n: 4, seed: 20, env: { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", cpus: 1 }, maxCount: 60, knobs, maxOverlapMoves: 256, clock: (() => { let t = 0; return () => t++; })() }).records.map((r, i) => ({
+      ...r,
+      measures: { ...r.measures, "pack.fill": 0.6, [FORCED_MEASURE]: i % 2 === 0 ? 0.9 : 0 },
+    }));
+
+  it("generates the input of a sampled pair again, with and without the knobs, and refuses another hash", () => {
+    for (const knobs of [false, true]) {
+      for (const r of pairs(knobs)) {
+        const input = pairInput(r);
+        expect(pairInputFeatures(r, "input")).toEqual(inputFeatures(input));
+        expect(pairInputFeatures(r, "family")).toEqual(sampledDims(r));
+      }
+    }
+    const r = pairs(false)[0]!;
+    expect(() => pairInput({ ...r, inputHash: "0000000000000000" })).toThrow(/does not come out the same/);
+    const { seed: _seed, ...noSeed } = r;
+    expect(() => pairInput(noSeed)).toThrow(/no seed/);
+  });
+
+  it("models the grid on the input features, and keeps the feature set in the summary", () => {
+    const { manifest, records } = real();
+    const byFamily = coverage(records, manifest, { measures: [fill] });
+    const byInput = coverage(records, manifest, { measures: [fill], features: "input" });
+    expect(byFamily.model.features).toBe("family");
+    expect(byInput.model.features).toBe("input");
+    expect(byInput.features.input).toContain("in.fill");
+    expect(byInput.features.input).not.toContain("family");
+    // The grid has one family, so the feature family has one level and the table drops it. The params stay.
+    expect(byFamily.features.input).toContain("count");
+    // The cells of the space do not change with the feature set.
+    expect(byInput.measures[0]!.cells.space).toBe(byFamily.measures[0]!.cells.space);
+    const grid = gridInputFeatures(manifest, "input");
+    expect(grid.size).toBe(8);
+    expect(gridInputFeatures(manifest, "family").get(manifest.inputs![0]!.id)).toMatchObject({ family: "rect-grid@1" });
+  });
+
+  it("splits the share of the sampled pairs by forced overflow", () => {
+    const { manifest, records } = real();
+    const sampled = pairs(false);
+    const m = sampledCoverage(records, manifest, sampled, { measures: [fill] }).measures[0]!;
+    const heavy = sampled.filter((r) => forcedHeavy(r)).length;
+    expect(heavy).toBe(2);
+    expect(m.forced!.heavy.n + m.forced!.rest.n).toBe(m.n);
+    expect(m.forced!.heavy.hits + m.forced!.rest.hits).toBe(m.hits);
+    expect(m.forced!.heavy.n).toBe(heavy);
+    expect(forcedHeavy({ measures: { [FORCED_MEASURE]: FORCED_HEAVY } })).toBe(true);
+    expect(forcedHeavy({ measures: { [FORCED_MEASURE]: 0.49 } })).toBe(false);
+    expect(forcedHeavy({ measures: {} })).toBe(false);
+  });
+
+  it("scores the candidates by the spread of the fold trees, the same for the same rows", () => {
+    const { manifest, records } = real();
+    const grid = gridOf(records, manifest, { features: "input" });
+    const a = foldScorer(grid, [], { features: "input", by: "spec" });
+    const b = foldScorer(grid, [], { features: "input", by: "spec" });
+    const sampled = pairs(false);
+    const scores = sampled.map((r) => a.score(pairFeatures(r, { features: "input" }).features));
+    expect(sampled.map((r) => b.score(pairFeatures(r, { features: "input" }).features))).toEqual(scores);
+    for (const s of scores) expect(s).toBeGreaterThanOrEqual(0);
+    expect(a.rows).toBe(16);
+    // The measured pairs join the rows of the folds.
+    expect(foldScorer(grid, sampled, { features: "input", by: "spec" }).rows).toBe(16 + sampled.length);
+    expect(scoreMeasures().map((m) => m.id)).not.toContain("ms");
+    // The score spread-iqr caps each term at SCORE_CAP. The old score fold-spread has no cap.
+    for (const s of scores) expect(s).toBeLessThanOrEqual(SCORE_CAP);
+    const old = foldScorer(grid, [], { features: "input", by: "spec" }, "fold-spread");
+    expect(sampled.map((r) => old.score(pairFeatures(r, { features: "input" }).features)).every((s) => s >= 0)).toBe(true);
+    expect(ACTIVE_SCORES).toEqual(["spread-iqr", "fold-spread"]);
+    expect(iqrOf([1, 2, 3, 4, 5])).toBe(2);
+    expect(iqrOf([Infinity, 7])).toBe(0);
+    expect(iqrOf([])).toBe(0);
+  });
+
+  it("weights the families with the prior of the corpus, and reports the families with the weight 0", () => {
+    const prior = familyPrior({ corpus: "c", specs: [{ generator: "a", seeds: [1, 2, 3] }, { generator: "b", seeds: [1] }] });
+    expect([...prior]).toEqual([
+      ["a", 0.75],
+      ["b", 0.25],
+    ]);
+    // a: 1 hit of 2, b: 1 hit of 1, c: not in the corpus. The share is 0.75 · 0.5 + 0.25 · 1.
+    const p = priorShare([true, false, true, true], ["a", "a", "b", "c"], prior);
+    expect(p).toMatchObject({ share: 0.625, weighted: 3, zero: 1, covered: 1 });
+    // The weights are 0.375, 0.375 and 0.25, so the effective count is 1 / 0.34375.
+    expect(p.nEff).toBe(2.9);
+    // A missing family of the corpus does not count: the share divides by the weight of the families with pairs.
+    expect(priorShare([true], ["b"], prior)).toMatchObject({ share: 1, covered: 0.25, weighted: 1, zero: 0 });
+    expect(priorShare([true], ["c"], prior)).toEqual({ share: null, wilson: null, nEff: 0, weighted: 0, zero: 1, covered: 0 });
+  });
+
+  it("gives the share of each round with the earlier rounds, and the evaluation sample after each round", () => {
+    const { manifest, records } = real();
+    const sampled = pairs(false);
+    const active = sampled.map((r, i) => ({ ...r, round: i < 2 ? 1 : 2 }));
+    const out = activeCoverage(records, manifest, active, { measures: [fill], features: "input" }, sampled, { rounds: 2, pool: 80, score: ACTIVE_SCORE, features: "input" });
+    expect(out).toMatchObject({ pairs: 4, features: "input", evalPairs: 4, facts: { rounds: 2, pool: 80 } });
+    expect(out.rounds.map((r) => [r.round, r.pairs])).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
+    const r1 = out.rounds[0]!.measures[0]!;
+    expect(r1.n).toBe(2);
+    expect(r1.share).toBe(r4(r1.hits / 2));
+    // After round 2, the model has learned on the pairs of the evaluation sample, so it predicts them at least as well as at the start.
+    const after = out.rounds[1]!.measures[0]!.after!;
+    expect(after.n).toBe(4);
+    expect(after.mae).toBeLessThanOrEqual(out.start![0]!.mae + 1e-9);
+    expect(activeCoverage(records, manifest, active, { measures: [fill], features: "input" }, sampled)).toEqual({ ...out, facts: undefined } as never);
+    const lines = activeLines(out);
+    expect(lines[0]).toMatch(/^pack\.fill, active \(input features\): evaluation share .* before\. round 1: /);
+    expect(activeFacts(JSON.stringify({ draw: "active", active: { rounds: 4, pool: 8, score: "fold-spread", features: "family", perRound: [] } }))).toEqual({ rounds: 4, pool: 8, score: "fold-spread", features: "family" });
+    expect(activeFacts(JSON.stringify({ draw: "uniform" }))).toBeUndefined();
+  });
+});
+
+/** This function rounds a value to 4 decimals. */
+const r4 = (v: number): number => Math.round(v * 1e4) / 1e4;
+
 describe("the command line", () => {
   const dir = mkdtempSync(join(tmpdir(), "coverage-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   it("reads the options and refuses a bad value", () => {
-    expect(coverageOptions(["--run", "12", "--date", "2026-10-28", "--by", "spec"])).toEqual({ folds: 5, seed: 1, by: "spec", run: 12, date: "2026-10-28" });
+    expect(coverageOptions(["--run", "12", "--date", "2026-10-28", "--by", "spec"])).toEqual({ folds: 5, seed: 1, by: "spec", features: "family", run: 12, date: "2026-10-28" });
     expect(() => coverageOptions(["--by", "seed"])).toThrow(/input or spec/);
     expect(() => coverageOptions(["--folds", "1"])).toThrow(/2 or more/);
     expect(() => coverageOptions(["--date", "28.10.2026"])).toThrow(/YYYY-MM-DD/);
@@ -418,7 +574,7 @@ describe("the command line", () => {
     expect(s.strata).toMatchObject({ pairs: 1, draw: "uniform" });
     expect(s.strata!.strata.find((x) => x.id === "rows:1")).toEqual({ id: "rows:1", pairs: 1 });
     // The pair has only a fill and a time. A measure without a value has no stratum with pairs.
-    expect(s.strata!.measures.map((m) => m.equal.strata)).toEqual([1, 0, 0, 1]);
+    expect(s.strata!.measures.map((m) => m.equal.strata)).toEqual([0, 1, 0, 0, 1]);
     expect(() => coverageMain([...base, "--sample", join(dir, "none")])).toThrow(/no records.jsonl/);
   });
 

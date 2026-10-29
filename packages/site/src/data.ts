@@ -185,6 +185,8 @@ export interface CoverageMeasure {
   sampled?: CoverageSampled;
   /** The same test by stratum (k115): the mean over the strata with the same weight, and each stratum */
   strata?: CoverageStrata;
+  /** The rounds of the active sample (k116), when the snapshot has them */
+  active?: CoverageActive;
   cells: { space: number; withRecords: number; covered: number };
   explained: { strategy: number; input: number; joint: number };
   noise: number;
@@ -204,6 +206,62 @@ export interface CoverageSampled {
   medianAe: number;
   baselineMae: number;
   baselineMedianAe: number;
+  /** The share of the pairs with much forced overflow, and of the other pairs (k116) */
+  forced?: { heavy: CoveragePart; rest: CoveragePart };
+  /** The share with the family prior of the corpus (k116). A snapshot from before k116 does not have it. */
+  prior?: CoveragePrior;
+}
+
+/** The share of the sampled pairs with the family prior: each generator family has its share of the inputs of the corpus as its weight */
+export interface CoveragePrior {
+  /** The share with the weights, or `null` without a pair of a family of the corpus */
+  share: number | null;
+  low: number | null;
+  high: number | null;
+  /** The effective count of the pairs */
+  nEff: number;
+  /** The pairs of a family of the corpus, and the pairs of other families with the weight 0 */
+  weighted: number;
+  zero: number;
+  /** The weight of the families of the corpus with pairs */
+  covered: number;
+}
+
+/** The share of a part of the sampled pairs. A part without pairs has the share `null`. */
+export interface CoveragePart {
+  n: number;
+  hits: number;
+  share: number | null;
+}
+
+/** The evaluation sample with one model: the share, the mean absolute error and the mean over the strata with the same weight */
+export interface CoverageEval {
+  share: number;
+  mae: number;
+  equal: number;
+  /** The share with the family prior, when the snapshot has it */
+  prior?: number | null;
+}
+
+/** One round of the active sample for one measure: the hits of its new pairs, and the evaluation sample after the round */
+export interface CoverageActiveRound {
+  round: number;
+  n: number;
+  hits: number;
+  share: number;
+  low: number;
+  high: number;
+  mae: number;
+  /** The share of the new pairs with the family prior, when the snapshot has it */
+  prior?: number | null;
+  after: CoverageEval | null;
+}
+
+/** The rounds of the active sample for one measure (k116) */
+export interface CoverageActive {
+  /** The evaluation sample with the model of the grid only */
+  start: CoverageEval | null;
+  rounds: CoverageActiveRound[];
 }
 
 /** One stratum of the sample for one measure: its pairs, its hits, its share and the Wilson 95% interval */
@@ -260,7 +318,8 @@ export interface CoverageSnapshot {
     records: number;
     inputs: number;
     strategies: string[];
-    model: { kind: string; maxDepth: number; minLeaf: number; folds: number; seed: number; by: "input" | "spec" };
+    /** The model. `features` (k116) is the feature set of the inputs. An older snapshot has no `features`, which is `family`. */
+    model: { kind: string; maxDepth: number; minLeaf: number; folds: number; seed: number; by: "input" | "spec"; features?: "family" | "input" };
     measures: CoverageMeasure[];
     /** The facts of the sample of the whole space (k112), when the snapshot has it */
     sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
@@ -268,6 +327,8 @@ export interface CoverageSnapshot {
     strata?: { pairs: number; draw: string | null; strata: CoverageStratumPairs[] };
     /** The last sample with a uniform draw (k115), with its run and its date. A stratified run keeps it. */
     uniform?: CoverageUniform;
+    /** The facts of the active sample (k116), when the snapshot has them */
+    active?: { pairs: number; features: string; score: string | null; pool: number | null; rounds: number; evalPairs: number | null };
   };
   trend: CoveragePoint[];
 }
@@ -344,6 +405,13 @@ export interface NewsEntry {
 
 /** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
 export const NEWS: readonly NewsEntry[] = [
+  {
+    date: "2026-10-29",
+    item: "k116",
+    title: "The space coverage has an active draw: each round measures the pairs where the model disagrees most. The model can also read features of the input itself.",
+    pr: 154,
+    link: "https://github.com/mark1russell7/packing/pull/154",
+  },
   {
     date: "2026-10-29",
     item: "k80",
@@ -556,6 +624,7 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
 
 /** The names and the notes of the measures of the coverage snapshot */
 export const COVERAGE_LABELS: Record<string, { label: string; note: string }> = {
+  "pack.gapToBound": { label: "Fill below its bound", note: "The part of the best fill of the placed items that the layout misses, from 0 to 1." },
   "pack.fill": { label: "Fill", note: "The share of the hull that the boxes cover." },
   "pack.gap": { label: "Gap to a bound", note: "The distance of each result from a bound of its cell." },
   "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container above its bound." },
