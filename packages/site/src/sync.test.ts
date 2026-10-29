@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
+import { optionsOf } from "./cards-model.ts";
 import { navLinks } from "./chrome.ts";
 import { COMPARE_ENTRIES, COMPARE_FAMILIES } from "./compare-model.ts";
 import { dimensionControls, familyKey } from "./corpus-input.ts";
@@ -85,5 +86,18 @@ describe("the demo", () => {
   it("gives restarts its member as a named entry with its options", () => {
     const options = packOptions("restarts", { ...startValues("restarts"), member: "rows", budgetMs: 50 });
     expect(options).toEqual({ iterations: 16, perturb: "swap", strength: 0.1, limitTime: false, member: { id: "rows", strategy: "rows", options: {} }, budgetMs: 50 });
+  });
+
+  // Roadmap item k117: the work limit of portfolio and restarts
+  it("offers the work limit of portfolio and restarts, with no value at the start", () => {
+    for (const id of ["portfolio", "restarts"]) {
+      const c = optionControls(id).find((x) => x.key === "budgetWork");
+      expect(c, id).toEqual({ key: "budgetWork", kind: "number", value: undefined, min: 0, max: 1_000_000, step: 1, fromDefaults: false });
+      expect(packOptions(id, startValues(id)), id).not.toHaveProperty("budgetWork");
+      expect(packOptions(id, { ...startValues(id), budgetWork: "3000" }), id).toMatchObject({ budgetWork: 3000 });
+      const card = optionsOf(strategy(id)).find((o) => o.name === "budgetWork");
+      expect(card, id).toMatchObject({ type: "number", value: null });
+      expect(card!.note, id).toContain("same on each computer");
+    }
   });
 });

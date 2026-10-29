@@ -296,6 +296,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k117",
+    title: "The composites `portfolio` and `restarts` take a work limit `budgetWork`: one unit is one box in one pack. A cut by it is the same on each computer.",
+    pr: 148,
+    link: "https://github.com/mark1russell7/packing/pull/148",
+  },
+  {
+    date: "2026-10-29",
     item: "k23",
     title: "The new strategy `guillotine` keeps free rectangles that do not overlap. It has 6 rules to choose a free rectangle, 6 rules to cut it, and a merge.",
     pr: 145,

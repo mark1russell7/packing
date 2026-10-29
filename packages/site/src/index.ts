@@ -106,6 +106,7 @@ const OPTION_LABELS: Record<string, string> = {
   strength: "Strength",
   limitTime: "Time limit",
   budgetMs: "Limit (ms)",
+  budgetWork: "Work limit",
   turn: "Turn shapes",
   steps: "Height steps",
 };

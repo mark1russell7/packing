@@ -164,6 +164,7 @@ const { output, winner, trace } = p.pick(input);
 - The bench gives the portfolio report from the records (`docs/BENCH.md`, "Portfolio"). The report tells which sets to try.
 - Since 0.2.7, `members` can also be a function `(input) => members`. The contract checks the list of each input.
 - `packPortfolio` has no default `budgetMs`. A default that reads the clock gives two layouts for one input on two computers.
+- Since roadmap item k117, the option `budgetWork` is a work limit. It cuts at the same member on each computer ("The work budget").
 
 ### The per-cell portfolio
 
@@ -208,6 +209,7 @@ The options of the strategy `portfolio`:
 | `k` | none | 2 or 3. With `k`, each of the `k` members of the cell runs. |
 | `maxMembers` | `defaultMembers` of the cell | The largest count of the members that run. Without `k`, the members come from the set of 3. |
 | `budgetMs` | none | An opt-in time limit of the contract. The first member always runs. A cut member makes the output depend on the clock. |
+| `budgetWork` | none | An opt-in work limit in work units ("The work budget"). The first member always runs. A cut is the same on each computer. |
 | `members` | none | A fixed list of members for each input, in place of the set of the cell. It refuses `k`. |
 | `key` | `pack.overflow.excessArea`, `pack.fill` | The measure ids of the pick after the hard breaks, in order. Each id is in `MEASURE_SPECS`. |
 
@@ -304,6 +306,7 @@ const rows = packWith("restarts", input, { member: "rows", iterations: 32, pertu
 | `strength` | 0.1 | The share of the positions that move, from 0 to 1. |
 | `key` | the key of `PORTFOLIO_LEVELS` | The measure ids of the key after the hard breaks, as for `packPortfolio`. |
 | `limitTime`, `budgetMs` | `false`, none | With `limitTime`, the time limit `budgetMs` cuts the later restarts. Restart 0 always starts. |
+| `budgetWork` | none | The work limit in work units ("The work budget"). Restart 0 always starts. A cut is the same on each computer. |
 
 - Restart 0 is the member with its options. Thus the result is not worse than the member on the key. A tie keeps the earlier restart.
 - The order of the member is the rank order of the items, then a stable sort by its `sortOrder`. The sizes have the margins and the gap.
@@ -314,6 +317,58 @@ const rows = packWith("restarts", input, { member: "rows", iterations: 32, pertu
 - Restart `i` gets the random numbers `stepRandom(seed, "restarts:<i>")` of the contract. The same seed gives the same output and the same trace measures.
 - The output gets the trace stage `restarts` (`RESTARTS_STAGE`). Its measures are `move.restartPick`, `restarts.run` (the index of the pick) and `restarts.runs`.
 - The cost of one call is `iterations` packs of the member, and the key of each output.
+
+### The work budget
+
+Roadmap item k117 adds a work limit to `packPortfolio`, the strategy `portfolio` and the strategy `restarts`. It is opt-in. No default uses it.
+
+```ts
+const output = packWith("restarts", input, { budgetWork: 16000 }); // the same restarts on each computer
+const pick = packPortfolio(["rows", "skyline"], { budgetWork: 5000 }).pick(input);
+```
+
+The time limit `budgetMs` reads the clock. Thus a cut by it can give a different output on a different computer. The work limit counts work units, not milliseconds. Thus the output is a function of the input, the config and the seed.
+
+The work unit is one item in one pack of a single strategy. `packWork(input, output)` gives the work of one output:
+
+- The work is the item count of the input, at least 1, times the count of the packs.
+- The count of the packs is 1, plus the measure `pack.search.widths` of each trace stage. Thus the size search `log-sweep` counts each width that it tried.
+- An output with the measure `work.spent` comes from a composite with a work limit. Then `packWork` gives that value.
+
+Why this unit:
+
+- Each member reports it with no new code: the item count is in the input, and `pack.search.widths` is in the trace of each output.
+- It follows the cost. A pack of a free container tries some 60 widths, so it costs some 60 times more than a pack of a fixed container.
+- A count of the placements that each strategy tried needs a new counter in each strategy. The item count of each pack is a good enough estimate for a limit.
+
+The stop rule:
+
+1. Member 0 (restart 0) always runs. A member that starts always finishes.
+2. Before member `i` above 0 starts, the composite compares the work of the members that ran with `budgetWork`. When the work is equal to `budgetWork` or more, member `i` and each later member get the status `cut`.
+3. A member that throws costs its item count, at least 1.
+4. The pick uses only the members that ran, with the same key and the same tie rules as with the time limit. A tie keeps the earlier member.
+
+- With `budgetMs` too, the limit that ends first cuts. When the work limit cuts first, the flag `deterministic` of the trace stays `true`.
+- A large `budgetWork` gives the output of the run with no limit. A small `budgetWork` gives the same partial output on each call.
+- With `budgetWork`, the trace stage `portfolio` or `restarts` also has `work.spent`, `work.budget` and `work.stopped`. The value of `work.stopped` is 1 when the limit cut a member.
+- The option `budgetWork` is a whole number of 0 or more. Another value causes a `RangeError`.
+- A composite member with no work limit counts only the packs of its winner. Only a member with `budgetWork` reports its full work.
+
+In `packSpace`, the options `portfolio`, `cell-portfolio` and `restarts` have the switch param `limitWork` (default `false`) and the param `budgetWork`. The param `budgetWork` is an enum of the 4 values 4000, 16000, 64000 and 256000, with the default 16000. The option `budgetWork` of a strategy takes each whole number. Thus no default config has a work limit.
+
+The counts of `spaceSize` changed with k117. Only the meta configs changed:
+
+| `spaceSize` | Before k117 | Since k117 |
+|---|---:|---:|
+| `base`, 3 levels and 1 level | 2973 and 891 | 2973 and 891 |
+| `meta`, 3 levels | 37049239404514333362 | 185246197022536252434 |
+| `meta`, 1 level | 13341577899037878 | 66707889492003174 |
+| `meta` for `rect`, 3 levels | 36862574914409402550 | 184312874572011669750 |
+| `meta` for `rect`, 1 level | 13266726236504962 | 66333631179345730 |
+| `meta` for `circle` or `polygon`, 3 levels and 1 level | 5940 and 1780 | 5940 and 1780 |
+
+- The work limit gives 5 param points at each level count: no limit, then the 4 values of `budgetWork`. The options `bbox`, `select` and `aspect-fit` do not change.
+- The meta count with 3 levels is more than `10n ** 20n`. Thus `spaceSize` gives it only with a `maxMeta` of `10n ** 21n` or more.
 
 ### Shapes by their bounding boxes
 
@@ -401,7 +456,7 @@ The order `input` and the options `none` support `rect` and `circle`. The count 
 | Base and meta configs for `circle`, 3 levels | 0 and 5940 | 3 and 5940 |
 | Base and meta configs for `rect`, 3 levels | 2970 and 36862574914409402550 | the same |
 
-The meta counts with 3 levels are more than the default `maxMeta` of 1e18. Thus `spaceSize` gives them only with a larger `maxMeta`, for example `10n ** 20n`.
+The meta counts with 3 levels are more than the default `maxMeta` of 1e18. Thus `spaceSize` gives them only with a larger `maxMeta`, for example `10n ** 20n`. Since k117, the count needs `10n ** 21n` ("The work budget").
 The size search `none` goes only with `push` and `hole-degree`. Each other placement, `guillotine` too, needs `log-sweep`, as before k90.
 
 The limits:

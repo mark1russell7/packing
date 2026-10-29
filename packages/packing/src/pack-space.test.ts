@@ -39,18 +39,20 @@ describe("packSpace", () => {
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
-  it("gives cell-portfolio one pool entry, and counts 3.70e19 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 1.85e20 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
-    // The option portfolio gives nearly all of the count: 160 param points for each ordered list of 2 to 5 of the 2973 base configs. The count is more than the default `maxMeta` of 1e18
-    // Before k90 the counts were 36862574914409402550 and 13266726236504962. The rect counts stay at these values.
+    // The option portfolio gives nearly all of the count: 800 param points for each ordered list of 2 to 5 of the 2973 base configs. The count is more than the default `maxMeta` of 1e18
+    // Before k90 the counts were 36862574914409402550 and 13266726236504962. Before k117 they were 37049239404514333362 and 13341577899037878.
+    // The work limit of k117 gives 5 param points: no limit, then 4 values of budgetWork. The rect counts before k117 were 36862574914409402550 and 13266726236504962.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(37049239404514333362n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(13341577899037878n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 20n })).toEqual({ base: 2970n, meta: 36862574914409402550n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 13266726236504962n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022536252434n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492003174n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572011669750n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179345730n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -311,5 +313,34 @@ describe("packSpace and the options of the strategies", () => {
     // Without the switch param, the config has no budgetMs, and checkConfig refuses it
     expect(outputHash(packConfig(input, restarts({ limitTime: false }), 3))).toBe(want({}));
     expect(() => packConfig(input, restarts({ budgetMs: 1 }), 3)).toThrow(/budgetMs/);
+  });
+
+  // Roadmap item k117: the work limit has the switch param limitWork, as the time limit has limitTime.
+  it("gives the option budgetWork with the param limitWork, for a portfolio and for restarts", () => {
+    const combine = packSpace.stages.find((s) => s.name === "combine")!;
+    for (const id of ["portfolio", "cell-portfolio", "restarts"]) {
+      const params = combine.options.find((o) => o.id === id)!.params;
+      expect(params.find((p) => p.name === "limitWork"), id).toEqual({ name: "limitWork", kind: "bool", default: false });
+      expect(params.find((p) => p.name === "budgetWork"), id).toEqual({ name: "budgetWork", kind: "enum", values: [4000, 16000, 64000, 256000], default: 16000, when: { param: "limitWork", in: [true] } });
+    }
+    const pool = named["portfolio"]!.stages["combine"]!.members!;
+    const cell = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "cell-portfolio", params, members: pool } } });
+    expect(outputHash(packConfig(input, cell({ limitWork: true, budgetWork: 4000 }), 2))).toBe(outputHash(packWith("portfolio", input, { budgetWork: 4000 }, 2)));
+    const list: StrategyConfig = { space: "packing", stages: { combine: { option: "portfolio", params: { limitWork: true, budgetWork: 4000 }, members: [named["rows"]!, named["maxrects"]!] } } };
+    expect(outputHash(packConfig(input, list))).toBe(outputHash(packWith("portfolio", input, { members: ["rows", "maxrects"], budgetWork: 4000 })));
+    const restarts = (params: Record<string, string | number | boolean>): StrategyConfig => ({ space: "packing", stages: { combine: { option: "restarts", params, members: [named["maxrects-bl"]!] } } });
+    const work = packConfig(input, restarts({ limitWork: true, budgetWork: 4000 }), 3);
+    expect(outputHash(work)).toBe(outputHash(packWith("restarts", input, { budgetWork: 4000 }, 3)));
+    expect(work.trace!.at(-1)!.measures).toMatchObject({ "work.budget": 4000, "work.stopped": 1 });
+    // With the two limits on, the config gives the two options
+    expect(outputHash(packConfig(input, restarts({ limitWork: true, budgetWork: 16000, limitTime: true, budgetMs: 2000 }), 3))).toBe(
+      outputHash(packWith("restarts", input, { budgetWork: 16000, limitTime: true, budgetMs: 2000 }, 3)),
+    );
+    // Without the switch param, the output does not change, and checkConfig refuses budgetWork
+    expect(outputHash(packConfig(input, restarts({ limitWork: false }), 3))).toBe(outputHash(packWith("restarts", input, {}, 3)));
+    expect(() => packConfig(input, restarts({ budgetWork: 4000 }), 3)).toThrow(/budgetWork/);
+    // A value that is not in the list breaks the config, but the option of the strategy takes it
+    expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 500 }), 3)).toThrow(/budgetWork/);
+    expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 5000 }), 3)).toThrow(/budgetWork/);
   });
 });

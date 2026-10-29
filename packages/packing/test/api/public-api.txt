@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 345 names
+## . (build/index.d.ts): 349 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -203,6 +203,9 @@ UnsupportedShape: build/index.d.ts#UnsupportedShape
 Vector: build/index.d.ts#Vector
 WALL_LOCKS_MAX: build/index.d.ts#WALL_LOCKS_MAX
 WALL_LOCK_WALLS: build/index.d.ts#WALL_LOCK_WALLS
+WORK_BUDGET: build/index.d.ts#WORK_BUDGET
+WORK_SPENT: build/index.d.ts#WORK_SPENT
+WORK_STOPPED: build/index.d.ts#WORK_STOPPED
 WORST_COUNTS: build/index.d.ts#WORST_COUNTS
 WORST_WIDTH: build/index.d.ts#WORST_WIDTH
 type WallLocksParams: build/index.d.ts#WallLocksParams
@@ -299,6 +302,7 @@ packShelf: build/index.d.ts#packShelf
 packSkyline: build/index.d.ts#packSkyline
 packSpace: build/index.d.ts#packSpace
 packWith: build/index.d.ts#packWith
+packWork: build/index.d.ts#packWork
 packingMetrics: build/index.d.ts#packingMetrics
 pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
@@ -965,6 +969,7 @@ interface PackPortfolioOptions {
   id?: string;
   seed?: number;
   budgetMs?: number;
+  budgetWork?: number;
   maxMembers?: number;
   now?: () => number;
   key?: readonly string[];
@@ -1048,6 +1053,7 @@ interface PortfolioStrategyOptions {
   k?: 2 | 3;
   maxMembers?: number;
   budgetMs?: number;
+  budgetWork?: number;
   members?: readonly (string | PortfolioEntry)[];
   key?: readonly string[];
 }
@@ -1133,6 +1139,7 @@ interface RestartsStrategyOptions {
   key?: readonly string[];
   limitTime?: boolean;
   budgetMs?: number;
+  budgetWork?: number;
 }
 
 ### build/index.d.ts#SELECT_MAX_DEPTH
@@ -1339,6 +1346,15 @@ export declare const WALL_LOCKS_MAX = 4;
 
 ### build/index.d.ts#WALL_LOCK_WALLS
 export declare const WALL_LOCK_WALLS: Readonly<Record<WorstContainer, readonly LockWall[]>>;
+
+### build/index.d.ts#WORK_BUDGET
+export declare const WORK_BUDGET = "work.budget";
+
+### build/index.d.ts#WORK_SPENT
+export declare const WORK_SPENT = "work.spent";
+
+### build/index.d.ts#WORK_STOPPED
+export declare const WORK_STOPPED = "work.stopped";
 
 ### build/index.d.ts#WORST_COUNTS
 export declare const WORST_COUNTS: readonly number[];
@@ -1650,6 +1666,9 @@ export declare const packSpace: StrategySpace$1;
 
 ### build/index.d.ts#packWith
 export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
+
+### build/index.d.ts#packWork
+export declare function packWork(input: PackInput, output: PackOutput): number;
 
 ### build/index.d.ts#packingMetrics
 export declare function packingMetrics(rects: readonly Rect[], options?: MetricsOptions): PackingMetrics;

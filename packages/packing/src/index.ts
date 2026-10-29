@@ -105,6 +105,7 @@ export { circleOverlaps, HOLE_DEGREE_MAX_STEPS, HOLE_DEGREE_STAGE, holeDegree, t
 export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
 export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb, type RestartsStrategyOptions } from "./restarts.ts";
+export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export {
   cellKey,
