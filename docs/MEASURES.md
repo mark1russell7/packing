@@ -271,6 +271,21 @@ The rules of the bounds:
 - A shaped container counts as its bounding box, as in the hard rules. A margin below 0 gives no bound.
 - The aspect term of `freeAspect` is 0 or more. Thus the bound of the area holds, but it is weaker than for `freeArea`.
 
+### The loss of one entry to another
+
+The adversarial search of roadmap item k47 (`bench/adversary.ts`) finds the inputs where an entry A loses most to an entry B. The loss is not a field of a record. The search and the corpus `pack-adversary-v1` write it.
+
+| Container | Measure | Loss |
+|---|---|---|
+| `fixed` (a fixed size) | `pack.fill` | `fill(B) - fill(A)` |
+| each other container | `pack.gap` of k51 | `gap(A) - gap(B)` |
+
+- A value above 0 tells that A loses to B. The value 0 tells that A and B have the same result.
+- On a strip, the bound is a fact of the input. Thus `gap(A) - gap(B)` is `(H(A) - H(B)) / bound`: the extra height of A in units of the bound.
+- A loss needs a value of each measure, and no break of a hard rule by B. A candidate without them has no loss.
+- A can break a hard rule. The field `hardA` of the corpus gives the count of its breaks.
+- With `best` as B, B is the single entry with the best value and no break. The first entry of the list wins a tie.
+
 ## Coverage
 
 | Id | Unit | Direction | Range |
