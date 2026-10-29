@@ -335,13 +335,13 @@ describe("the space coverage of k105", () => {
     const facts = [
       { id: "rows:1", pairs: 16, configs: "905", missed: 0 },
       { id: "hole-degree:1", pairs: 0, configs: "33", missed: 2 },
-      { id: "portfolio:5", pairs: 16, configs: "1803617799647731522519680", missed: 0 },
+      { id: "portfolio:5", pairs: 16, configs: "38385277888016468128534214400", missed: 0 },
     ];
     const counted = strataRows(withStrata, facts);
     expect(counted).toContain("no pairs <small>(33 configs)</small>");
     expect(counted).toContain('title="hole-degree: no pairs, 33 configs. No sampled input accepts this stratum. It is not in the mean."');
     expect(counted).toContain("75% <small>(12 of 16)</small>");
-    expect(countText("1803617799647731522519680")).toBe("1,803,617,799,647,731,522,519,680");
+    expect(countText("38385277888016468128534214400")).toBe("38,385,277,888,016,468,128,534,214,400");
     expect(countText("905")).toBe("905");
 
     expect(stratumLabel("rows:1")).toBe("rows");

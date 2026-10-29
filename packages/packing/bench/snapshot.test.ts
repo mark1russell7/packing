@@ -282,7 +282,7 @@ describe("the coverage snapshot (k105)", () => {
       draw: "stratified",
       strata: [
         { id: "rows:1", pairs: 16, configs: "905", missed: 0 },
-        { id: "portfolio:5", pairs: 16, configs: "1803617799647731522519680", missed: 0 },
+        { id: "portfolio:5", pairs: 16, configs: "38385277888016468128534214400", missed: 0 },
         { id: "hole-degree:1", pairs: 0, configs: "33", missed: 2 },
       ],
       measures: [

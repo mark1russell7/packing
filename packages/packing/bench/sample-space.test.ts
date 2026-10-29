@@ -202,9 +202,9 @@ describe("the sample of pairs", () => {
   });
 
   it("keeps the uniform draw: the same configs as before k115, and no strata in the summary", () => {
-    // The config ids of the first 4 pairs of the seed 3 come from the sampler of main before k115, with k23 and k90.
+    // The config ids of the first 4 pairs of the seed 20 come from the sampler of main before k115, with k23, k90 and k117.
     const a = sampleSpace({ ...options, clock: fakeClock() });
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["8f9267686dee5c4a", "6e4e0730a75d95c2", "c62c669ea14c3ca6", "553ea7f8f84a051b"]);
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["ce6d8bf386fbb8a6", "58da5ef5c70859cc", "c2b0e4f380f82b0d", "d49ccb0bd735314d"]);
     expect(a.summary.draw).toBe("uniform");
     expect("strata" in a.summary).toBe(false);
   });
