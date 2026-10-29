@@ -56,6 +56,10 @@ The functions:
 
 - `S` is the sum of `boxArea` of the contract over the placed boxes. A circle, a polygon and a `rect` give their exact area.
 - A box of the kind `free`, for example an ellipse, has no exact area in the contract. It counts with the area of its box.
+- A shape is inside its box. Thus with a `free` box, `shapeFill` is the true share or more: an upper bound.
+- The spec declares this (contract 0.2.17). It has the exact kinds `rect`, `polygon` and `circle`, and `bound: { shapes: ["free"], side: "upper" }`.
+- `checkShapes` refuses `shapeFill` on a `free` box at the levels `exact` and `safe`. Only the level `bound` accepts it.
+- Use the level `bound` only for a claim that an upper bound proves, for example "the shapes cover at most this share".
 - The hull of `shapeFill` is the hull of `fill`: the hull of the bounding boxes of the shapes. Before k113, it was the hull of the item boxes.
 - A layout of `rect` boxes without a shape gives `shapeFill` equal to `fill`. A shape is inside its box, thus `shapeFill` is not above `fill`.
 

@@ -1,4 +1,4 @@
-import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, ruleLevel, SHAPE_KIND_IDS, spaceSize, type PackInput } from "@mark1russell7/layout-contract";
+import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, ruleLevel, SHAPE_KIND_IDS, shapeLevel, shapeSupportProblems, spaceSize, type PackInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import {
   composites,
@@ -177,7 +177,11 @@ describe("packSpace and the shape kinds", () => {
       "pack.search.widths",
       "pack.search.ms",
     ]);
-    for (const s of Object.values(MEASURE_SPECS)) if (s.shapes !== undefined) expect(s.shapes).toEqual(SHAPE_KIND_IDS);
+    for (const s of Object.values(MEASURE_SPECS)) if (s.shapes !== undefined && s.id !== "pack.shapeFill") expect(s.shapes, s.id).toEqual(SHAPE_KIND_IDS);
+    // Contract 0.2.17: pack.shapeFill is exact on rect, polygon and circle, and an upper bound on free
+    expect(MEASURE_SPECS["pack.shapeFill"].shapes).toEqual(["rect", "polygon", "circle"]);
+    expect(MEASURE_SPECS["pack.shapeFill"].bound).toEqual({ shapes: ["free"], side: "upper" });
+    expect(shapeSupportProblems(Object.values(MEASURE_SPECS))).toEqual([]);
     const uses = [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES];
     expect(checkShapes({ id: "c", boxes: circle.items }, uses).map((b) => b.detail.split(" ")[0])).toEqual([
       "pack.fill",
@@ -205,6 +209,22 @@ describe("packSpace and the shape kinds", () => {
       expect(checkShapes({ id: "s", boxes: input.items }, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])).toEqual(["no-overlap", "in-container"]);
       expect(checkShapes({ id: "s", boxes: input.items }, PACK_HARD_RULES, { level: "safe" })).toEqual([]);
     }
+  });
+
+  // Contract 0.2.17: pack.shapeFill on a free shape is an upper bound. Only the level bound accepts it.
+  it("refuses pack.shapeFill on a free shape at the level safe, and accepts it at the level bound", () => {
+    const shapeFill = MEASURE_SPECS["pack.shapeFill"];
+    expect(SHAPE_KIND_IDS.map((kind) => shapeLevel(shapeFill, kind))).toEqual(["exact", "exact", "exact", "bound"]);
+    const free = { id: "f", boxes: [...items, { id: "e", w: 12, h: 6, shape: { kind: "ellipse", cx: 6, cy: 3, rx: 6, ry: 3 } } as const] };
+    for (const level of [undefined, "safe"] as const) {
+      const breaks = checkShapes(free, [shapeFill], level === undefined ? {} : { level });
+      expect(breaks.map((b) => b.detail.split(" ")[0]), level).toEqual(["pack.shapeFill"]);
+      expect(breaks[0]!.detail, level).toMatch(/only an upper bound for free/);
+    }
+    expect(checkShapes(free, [shapeFill], { level: "bound" })).toEqual([]);
+    for (const input of [circle, polygon]) expect(checkShapes({ id: "s", boxes: input.items }, [shapeFill])).toEqual([]);
+    // A bbox config checks only the hard rules, so a free input still packs (BBOX_CHECK stays at the level safe)
+    expect(() => packConfig({ container: { fixed: "none" }, items: free.boxes }, named["bbox"]!, 2)).not.toThrow();
   });
 
   it("packs a shape input with a bbox config after the safe check of the hard rules", () => {
