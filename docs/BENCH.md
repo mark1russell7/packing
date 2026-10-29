@@ -157,6 +157,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
+| `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 
@@ -256,6 +257,47 @@ The ladder is on the strip of the width 1024. Each side is a whole number, unifo
 - The axis `count` has `10 * 2^rung` items, 10 to 2560, with the sides 64 to 256.
 - The axis `ratio` has 100 items, with the sides `256 / 2^rung` to 256. The ratio of the largest side to the smallest side goes from 1 to 256.
 - The ladder shows how the gap and the time of a strategy grow along one axis.
+
+### The adversarial search
+
+Roadmap item k47 adds a search for the inputs where one entry loses most to another. The file `bench/adversary.ts` has it.
+
+- For an ordered pair of entries (A, B), the search finds the input with the largest loss of A to B.
+- `docs/MEASURES.md` ("The loss of one entry to another") tells the loss: the fill for a fixed size, else the gap to the bound of k51.
+- The value `best` of B is the best single entry on each input, with no break of a hard rule.
+
+The search is a seeded hill climb with restarts:
+
+- A start takes a random origin: a generator of `ORIGINS`, random parameters in the ranges of its family, and a random seed.
+- `ORIGINS` has the 4 adversarial families, `ladder`, `berkey-wang` and `martello-vigo`.
+- A move changes one parameter or the seed of the origin, or one item. The item moves are `resize`, `split`, `merge`, `swap`, `add` and `delete`.
+- Each width stays in the container. With `fixed`, each height also stays in the container. The count stays from 1 to the cap.
+- The search keeps a move when the loss does not become smaller. After 120 evaluations with no gain, it starts again from a new origin.
+- One evaluation packs one candidate with A and B. The budget is a count of evaluations, not a time. Thus one seed gives one result on each computer.
+- The search compares a loss of `fill` with a loss of `gap` as numbers. A move of `containerSize` changes the measure.
+
+Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`. Its generator stamp has the name `adversary` and the version 1. Its `params` have the pair, the seed, the budget, the cap and the origin generator.
+
+The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
+
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items.
+
+- The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
+- The field `inputs` has the input files, in the order of `found`.
+- The file has no specs, so the runner does not read it. A test reads its inputs.
+- `node bench/adversary.ts` writes the file. `node bench/adversary.ts --check` compares the file with a new search of each pair.
+- `node bench/adversary.ts --check --pair 2` examines the pair with the index 2 only. A test examines that pair and the hash of each input.
+
+The losses of the corpus:
+
+| A | B | Measure | Loss | Items | Origin | Winner |
+|---|---|---|---|---|---|---|
+| `skyline` | `maxrects-bl` | gap | 0.563 | 52 | `martello-vigo` VIII, `freeHeight` | `maxrects-bl` |
+| `shelf-best` | `maxrects-bl` | gap | 0.403 | 9 | `ladder`, axis `count`, rung 0 | `maxrects-bl` |
+| `rows` | `maxrects-bl` | gap | 0.480 | 37 | `tall-row`, ratio 25, `freeHeight` | `maxrects-bl` |
+| `maxrects-bl` | `skyline` | fill | 0.054 | 52 | `berkey-wang` VI, `fixed` | `skyline` |
+| `maxrects-bl` | `restarts-maxrects-bl-k16` | gap | 0.307 | 49 | `ladder`, axis `ratio`, rung 8 | `restarts-maxrects-bl-k16` |
+| `select-rows-bl` | `best` | gap | 0.533 | 60 | `ladder`, axis `ratio`, rung 4 | `skyline` |
 
 The corpus `pack-strip-v1` has 160 specs and 528 inputs. It has the published sets of strip packing of the literature. It has no published instance file. The generators make each input by the published rule of its set, with the random numbers of `stepRandom(seed, step)`.
 

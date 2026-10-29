@@ -296,6 +296,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k47",
+    title: "A seeded search finds the inputs where one strategy loses most to another. The corpus `pack-adversary-v1` has the worst input of 6 pairs.",
+    pr: 0,
+    link: "https://github.com/mark1russell7/packing/pull/0",
+  },
+  {
+    date: "2026-10-29",
     item: "k111",
     title: "The measures `pack.anchor.*` move one locked item a small step and measure how far the other items move. The corpus `pack-anchor-v1` has 51 inputs.",
     pr: 140,
