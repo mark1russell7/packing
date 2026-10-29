@@ -30,7 +30,7 @@ import {
   type SelectNode,
 } from "@mark1russell7/packing";
 import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/layout-contract";
-import { coverage, coverageOptions, readRecords, readSampled, type CoverageManifest, type CoverageSummary, type SampledMeasure } from "./coverage.ts";
+import { coverage, coverageOptions, readRecords, readSample, type CoverageManifest, type CoverageSummary, type SampledMeasure, type StrataMeasure } from "./coverage.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 
 /** The schema of each snapshot file */
@@ -697,6 +697,21 @@ export interface CoverageSnapshotMeasure {
   byInput?: { mae: number; medianAe: number; share: number };
   /** The held-out test on the sampled pairs of the whole space (k112), when the snapshot has it */
   sampled?: CoverageSnapshotSampled;
+  /** The same test by stratum, with the mean over the strata (k115), when the snapshot has it */
+  strata?: CoverageSnapshotStrata;
+}
+
+/** The held-out result of one measure by stratum: the mean over the strata with the same weight, and each stratum */
+export interface CoverageSnapshotStrata {
+  /** The mean of the shares of the strata with pairs */
+  share: number;
+  /** The 95% interval of the mean */
+  low: number;
+  high: number;
+  /** The count of the strata with pairs */
+  strata: number;
+  /** Each stratum: its pairs, its hits, its share and the Wilson 95% interval */
+  rows: { stratum: string; n: number; hits: number; share: number; low: number; high: number }[];
 }
 
 /** The held-out result of one measure on the sampled pairs of the whole space */
@@ -741,6 +756,8 @@ export interface CoverageSnapshot {
     measures: CoverageSnapshotMeasure[];
     /** The facts of the sample of the whole space (k112), when the snapshot has it */
     sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
+    /** The facts of the strata of the sample (k115), when the snapshot has them: the draw and the pairs of each stratum */
+    strata?: { pairs: number; draw: string | null; strata: { id: string; pairs: number }[] };
   };
   /** The points of the trend, oldest first. A date has one point for each corpus. */
   trend: CoveragePoint[];
@@ -759,6 +776,15 @@ const sampledOf = (m: SampledMeasure): CoverageSnapshotSampled => ({
   baselineMedianAe: m.baseline.medianAe,
 });
 
+/** This function gives the snapshot form of the held-out result of one measure by stratum. */
+const strataOf = (m: StrataMeasure): CoverageSnapshotStrata => ({
+  share: m.equal.share,
+  low: m.equal.interval.low,
+  high: m.equal.interval.high,
+  strata: m.equal.strata,
+  rows: m.strata.map((x) => ({ stratum: x.stratum, n: x.n, hits: x.hits, share: x.share, low: x.wilson.low, high: x.wilson.high })),
+});
+
 /**
  * This function gives the coverage snapshot of a summary of `coverage`. The trend keeps each point of the earlier
  * snapshot, and the new point takes the place of a point with the same date and corpus.
@@ -767,6 +793,7 @@ const sampledOf = (m: SampledMeasure): CoverageSnapshotSampled => ({
 export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
+  const strata = new Map((summary.strata?.measures ?? []).map((m) => [m.id, m]));
   const point: CoveragePoint = {
     date: summary.date,
     run: summary.run,
@@ -806,6 +833,7 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
         indices: m.indices.slice(0, COVERAGE_TOP).map((x) => ({ ...x })),
         ...(second.has(m.id) ? { byInput: { mae: second.get(m.id)!.model.mae, medianAe: second.get(m.id)!.model.medianAe, share: second.get(m.id)!.share } } : {}),
         ...(sampled.has(m.id) ? { sampled: sampledOf(sampled.get(m.id)!) } : {}),
+        ...(strata.has(m.id) ? { strata: strataOf(strata.get(m.id)!) } : {}),
       })),
       ...(summary.sampled === undefined
         ? {}
@@ -818,6 +846,7 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
               hardPairs: summary.sampled.sample?.hardPairs ?? null,
             },
           }),
+      ...(summary.strata === undefined ? {} : { strata: { pairs: summary.strata.pairs, draw: summary.strata.draw, strata: summary.strata.strata.map((x) => ({ ...x })) } }),
     },
     trend,
   };
@@ -940,7 +969,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const byInput = coverage(records, manifest, { ...options, by: "input" });
     // The sample of the whole space (k112): the folder `sample` of the run, or --sample <dir>
     const sampleDir = optionOf(argv, "--sample") ?? join(folder, "sample");
-    const bySpec = existsSync(join(sampleDir, "records.jsonl")) ? { ...grid, sampled: readSampled(records, manifest, sampleDir, options) } : grid;
+    const bySpec = existsSync(join(sampleDir, "records.jsonl")) ? { ...grid, ...readSample(records, manifest, sampleDir, options) } : grid;
     writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
     return;
   }

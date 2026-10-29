@@ -272,4 +272,45 @@ describe("the coverage snapshot (k105)", () => {
     expect(snap.latest.sampled).toEqual({ pairs: 60, seed: 1, draw: "uniform", configRejectionRate: 0.02, hardPairs: 1 });
     expect(snap.trend).toEqual(plain.trend);
   });
+
+  it("keeps the strata (k115) when the summary has them, and has no strata without them", () => {
+    const plain = coverageSnapshot(summary("2026-10-28", 0.5), origin);
+    expect(plain.latest.measures[0]!.strata).toBeUndefined();
+    expect("strata" in plain.latest).toBe(false);
+    const strata = {
+      pairs: 32,
+      draw: "stratified",
+      strata: [
+        { id: "rows:1", pairs: 16 },
+        { id: "portfolio:5", pairs: 16 },
+        { id: "bbox:1", pairs: 0 },
+      ],
+      measures: [
+        {
+          id: "pack.fill",
+          tolerance: 0.02,
+          strata: [
+            { stratum: "rows:1", n: 16, hits: 12, share: 0.75, wilson: { low: 0.5049, high: 0.8983 } },
+            { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, wilson: { low: 0.0349, high: 0.36 } },
+            { stratum: "bbox:1", n: 0, hits: 0, share: 0, wilson: { low: 0, high: 1 } },
+          ],
+          equal: { strata: 2, share: 0.4375, se: 0.0925, interval: { low: 0.2629, high: 0.6254 } },
+        },
+      ],
+    };
+    const snap = coverageSnapshot({ ...summary("2026-10-28", 0.5), strata }, origin);
+    expect(snap.latest.strata).toEqual({ pairs: 32, draw: "stratified", strata: strata.strata });
+    expect(snap.latest.measures[0]!.strata).toEqual({
+      share: 0.4375,
+      low: 0.2629,
+      high: 0.6254,
+      strata: 2,
+      rows: [
+        { stratum: "rows:1", n: 16, hits: 12, share: 0.75, low: 0.5049, high: 0.8983 },
+        { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, low: 0.0349, high: 0.36 },
+        { stratum: "bbox:1", n: 0, hits: 0, share: 0, low: 0, high: 1 },
+      ],
+    });
+    expect(snap.trend).toEqual(plain.trend);
+  });
 });
