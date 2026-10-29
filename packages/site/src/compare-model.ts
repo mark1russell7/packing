@@ -2,7 +2,7 @@
 // the sort. The list of the entries is `ENTRIES` of the benchmark. The sync test fails when the page list differs from it.
 
 import type { CorpusFamily, LayoutInput } from "@mark1russell7/layout-contract";
-import { measure, MEASURE_SPECS, packWith, type MeasureId, type PackInput, type PackOutput } from "@mark1russell7/packing";
+import { cellOf, measure, MEASURE_SPECS, packWith, shapeStrategies, type MeasureId, type PackInput, type PackOutput } from "@mark1russell7/packing";
 import { ENTRIES, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 import { generateInput, MAX_SITE_COUNT, SITE_FAMILIES, type DimensionValues } from "./corpus-input.ts";
 import { MEASURE_LABELS } from "./data.ts";
@@ -13,6 +13,22 @@ export { regionBounds, regionSvg } from "./region.ts";
 
 /** This constant lists each entry of the compare page: `ENTRIES` of the benchmark, in its order. */
 export const COMPARE_ENTRIES: readonly BenchEntry[] = ENTRIES;
+
+/**
+ * This constant lists the strategies of one shape kind, as entries with no options. They are not in `ENTRIES`. The page
+ * adds them after `COMPARE_ENTRIES` when they support the shape of the input.
+ */
+export const SHAPE_ENTRIES: readonly BenchEntry[] = shapeStrategies.map((s) => ({ id: s.id, strategy: s.id, options: {} }));
+
+/** This constant lists each entry that the page can show: `COMPARE_ENTRIES`, then `SHAPE_ENTRIES`. */
+const ALL_ENTRIES: readonly BenchEntry[] = [...COMPARE_ENTRIES, ...SHAPE_ENTRIES];
+
+/** This function gives the entries of an input: each entry of `COMPARE_ENTRIES`, then each shape entry that supports its item shape. */
+export function entriesFor(input: PackInput): readonly BenchEntry[] {
+  const kind = cellOf(input).itemShape;
+  const shaped = SHAPE_ENTRIES.filter((e) => shapeStrategies.some((s) => s.id === e.strategy && s.supports.itemShape.includes(kind)));
+  return shaped.length === 0 ? COMPARE_ENTRIES : [...COMPARE_ENTRIES, ...shaped];
+}
 
 /** This constant lists each corpus family that the compare page offers: the families of the registry of the site. */
 export const COMPARE_FAMILIES: readonly CorpusFamily<LayoutInput>[] = SITE_FAMILIES;
@@ -68,7 +84,7 @@ export function valueText(m: Pick<CompareMeasure, "share" | "id">, v: number): s
 /** The result of one entry on one input. */
 export interface EntryResult {
   entry: BenchEntry;
-  /** The place of the entry in `COMPARE_ENTRIES` */
+  /** The place of the entry in `COMPARE_ENTRIES`, then `SHAPE_ENTRIES` */
   index: number;
   output?: PackOutput;
   /** The value of each measure of `COMPARE_MEASURES` */
@@ -85,7 +101,7 @@ export interface EntryResult {
  * An error does not throw. The result has its text.
  */
 export function runEntry(entry: BenchEntry, input: PackInput, seed = 0, now: () => number = () => performance.now()): EntryResult {
-  const index = COMPARE_ENTRIES.indexOf(entry);
+  const index = ALL_ENTRIES.indexOf(entry);
   const start = now();
   try {
     const output = packWith(entry.strategy, input, entry.options, seed);
@@ -101,9 +117,9 @@ export function runEntry(entry: BenchEntry, input: PackInput, seed = 0, now: () 
 // Later, with roadmap item k68: `packSpace` gives the ranges of the options of each strategy. Then the hybrid pipelines
 // join the list of the compare page here, after the named entries.
 
-/** This function packs an input with each entry of `COMPARE_ENTRIES`. */
+/** This function packs an input with each entry of `entriesFor` of the input. */
 export function runAll(input: PackInput, seed = 0, now?: () => number): EntryResult[] {
-  return COMPARE_ENTRIES.map((e) => runEntry(e, input, seed, now));
+  return entriesFor(input).map((e) => runEntry(e, input, seed, now));
 }
 
 /** A key of the sort: the order of the entries, the time, or a measure of `COMPARE_MEASURES`. */
@@ -164,7 +180,10 @@ export function drawingSvg(input: PackInput, output: PackOutput, label: string):
     right = Math.max(right, p.x + w);
     bottom = Math.max(bottom, p.y + h);
     const t = Math.round((found.i / n) * 100);
-    parts.push(`<rect class="box" x="${p.x}" y="${p.y}" width="${w}" height="${h}" style="fill:color-mix(in oklab, var(--early), var(--late) ${t}%)" />`);
+    const fill = `style="fill:color-mix(in oklab, var(--early), var(--late) ${t}%)"`;
+    const c = found.item.shape?.kind === "circle" ? found.item.shape : undefined;
+    // A circle item shows its circle, not its box
+    parts.push(c === undefined ? `<rect class="box" x="${p.x}" y="${p.y}" width="${w}" height="${h}" ${fill} />` : `<circle class="box" cx="${p.x + c.cx}" cy="${p.y + c.cy}" r="${c.r}" ${fill} />`);
   }
   const moved = new Map(output.moved.map((m) => [m.id, m]));
   const obstacles = (input.obstacles ?? []).map((o) => {

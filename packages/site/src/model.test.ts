@@ -1,8 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { packFree, Rect, strategy as registryStrategy } from "@mark1russell7/packing";
-import { chosenTry, makeItem, makeItems, ORDERS, PRESETS, random, runPacking, SEARCH_STRATEGIES, searchChart, STRATEGIES, type Placed } from "./model.ts";
+import { circleOverlaps, packFree, Rect, strategy as registryStrategy } from "@mark1russell7/packing";
+import {
+  chosenTry,
+  inputOf,
+  makeItem,
+  makeItems,
+  offeredStrategies,
+  ORDERS,
+  PRESETS,
+  random,
+  resizeItem,
+  runPacking,
+  SEARCH_STRATEGIES,
+  searchChart,
+  STRATEGIES,
+  strategyFor,
+  type Placed,
+} from "./model.ts";
 
-// The demo items are rectangles. A strategy of one other shape kind (`hole-degree` of k90) refuses them.
+// The items of the rect presets are rectangles. A strategy of one other shape kind (`hole-degree` of k90) refuses them.
 const RECT_STRATEGIES = STRATEGIES.filter((id) => registryStrategy(id).supports.itemShape.includes("rect"));
 
 const overlaps = (a: Placed, b: Placed): boolean =>
@@ -213,5 +229,72 @@ describe("runPacking with a free width", () => {
   it("gives an empty chart for no try", () => {
     const chart = searchChart({ target, aspect: 0, fill: 0, aspectError: 0, objective: 0, tried: [], chosen: -1 });
     expect(chart.points).toEqual([]);
+  });
+});
+
+describe("the circle preset", () => {
+  const items = makeItems("circles", 24, 7);
+
+  it("makes circle items with the same width and height", () => {
+    expect(PRESETS.map((p) => p.id)).toContain("circles");
+    for (const item of items) {
+      expect(item.circle).toBe(true);
+      expect(item.w).toBe(item.h);
+    }
+    expect(makeItem("circles", 7, 30).circle).toBe(true);
+    const input = inputOf(items, 640, "fixed");
+    expect(input.items[0]!.shape).toEqual({ kind: "circle", cx: items[0]!.w / 2, cy: items[0]!.w / 2, r: items[0]!.w / 2 });
+  });
+
+  it("offers hole degree and bbox on circles, and hole degree only on circles", () => {
+    const offered = offeredStrategies(items);
+    expect(offered).toContain("hole-degree");
+    expect(offered).toContain("bbox");
+    expect(offered).not.toContain("rows");
+    for (const id of offered) expect(registryStrategy(id).supports.itemShape).toContain("circle");
+    const rects = offeredStrategies(makeItems("cards", 10, 1));
+    expect(rects).not.toContain("hole-degree");
+    expect(rects).toEqual(RECT_STRATEGIES);
+  });
+
+  it("gives each layout a strategy for circles", () => {
+    const offered = offeredStrategies(items);
+    expect(strategyFor("rows", offered, 0, "skyline")).toBe("hole-degree");
+    expect(strategyFor("skyline", offered, 1, "hole-degree")).toBe("bbox");
+    expect(strategyFor("bbox", offered, 0, "hole-degree")).toBe("bbox");
+    const rects = offeredStrategies(makeItems("cards", 10, 1));
+    expect(strategyFor("hole-degree", rects, 0, "bbox")).toBe("rows");
+    expect(strategyFor("maxrects", rects, 1, "rows")).toBe("maxrects");
+  });
+
+  it("packs the circles with hole degree and bbox, with no overlap of two circles", () => {
+    const input = inputOf(items, 640, "fixed");
+    const settings = [
+      { strategy: "hole-degree" },
+      { strategy: "bbox", options: { member: "maxrects-bl" } },
+      { strategy: "bbox", options: { member: "skyline" } },
+    ];
+    for (const setting of settings) {
+      const run = runPacking(items, 640, setting);
+      const label = JSON.stringify(setting);
+      expect(run.error, label).toBeUndefined();
+      expect(run.placed.every((p) => p.packed && p.circle === true), label).toBe(true);
+      for (const p of run.placed) expect(p.x + p.w, label).toBeLessThanOrEqual(640 + 1e-6);
+      const placements = run.placed.map((p) => ({ id: String(p.key), x: p.x, y: p.y }));
+      expect(circleOverlaps(input, { placements }), label).toBe(0);
+    }
+  });
+
+  it("keeps a circle round when it changes size", () => {
+    const item = { key: 0, w: 40, h: 40, circle: true };
+    resizeItem(item, 60, 40);
+    expect([item.w, item.h]).toEqual([60, 60]);
+    resizeItem(item, 60, 30);
+    expect([item.w, item.h]).toEqual([30, 30]);
+    resizeItem(item, 1, 1);
+    expect([item.w, item.h]).toEqual([4, 4]);
+    const box = { key: 1, w: 40, h: 40 };
+    resizeItem(box, 60, 30);
+    expect([box.w, box.h]).toEqual([60, 30]);
   });
 });
