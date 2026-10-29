@@ -80,8 +80,8 @@ const RESTARTS_PARAMS: readonly SpaceParam[] = [
 ];
 
 /**
- * The params of the goal-driven ruin and recreate of roadmap item k79. They are the count of the iterations, the kind of the
- * ruin, the largest share of the items that one ruin removes, and the shrink of a met goal.
+ * The params of the goal-driven ruin and recreate of roadmap item k79. They are the count of the iterations and the kind of the ruin.
+ * They are also the largest share of the items that one ruin removes, and the shrink of a met goal.
  */
 const RUIN_RECREATE_PARAMS: readonly SpaceParam[] = [
   { name: "iterations", kind: "int", min: 1, max: 256, scale: "log", default: 64 },

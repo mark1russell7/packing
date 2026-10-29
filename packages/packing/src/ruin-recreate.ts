@@ -115,7 +115,7 @@ const unranked = (item: Item): Item => (item.rank === undefined ? item : (({ ran
  * Gardeyn 2022 and Wei 2013). `docs/PACKER.md` tells the method and the choices of this project.
  *
  * - The start is the layout of the member. Each iteration removes some items, and packs them and the unplaced items again with the member.
- * - The member packs around the kept items: they are locked items of the input of the recreate. Locked items and obstacles are never removed.
+ * - The member packs around the kept items: they are locked items of the input of the recreate. A ruin does not remove a locked item or an obstacle.
  * - A free container gets a goal box that is smaller than the best layout. The items out of the goal box are unplaced.
  * - A recreate that is not worse than the current layout replaces it: more placed items, then more placed area.
  * - When each item is in the goal box, the goal is met: the layout is a candidate, and the goal box shrinks by `shrink`.
@@ -232,7 +232,7 @@ class Search {
     return extentOf(this.input, placements, [], this.bounds, this.inset, turnItem);
   }
 
-  /** This function gives the size of the container of a layout: a fixed side keeps its size, and a free side goes to the far edge. */
+  /** This function gives the size of the container of a layout. A fixed side keeps its size, and a free side goes to the far edge. */
   private sizeOf(layout: Layout): { w: number; h: number } {
     const { right, bottom } = this.extent(layout);
     return { w: Number.isFinite(this.bounds.w) ? this.bounds.w : right, h: Number.isFinite(this.bounds.h) ? this.bounds.h : bottom };
@@ -360,7 +360,7 @@ class Search {
     return { placements, overflow: [...layout.unplaced], size: this.sizeOf(layout), moved: [] };
   }
 
-  /** This function runs the search, and gives its result. */
+  /** This function does the search, and gives its result. */
   run(iterations: number, ruin: RuinKind, strength: number, shrink: number): SearchResult {
     const result: SearchResult = { improved: 0, ran: 0, accepted: 0, goalSteps: 0, bestAt: 0 };
     let current = this.layoutOf(this.base.placements);
