@@ -1280,6 +1280,25 @@ The hypothesis: with `draw` `active`, the share of the sample after the last rou
 - The test: the share "sample after" of the last round is above the share of the grid only, and the gap does not shrink over 4 weeks.
 - A share after the rounds that stays at the start tells that the model features do not separate the region. Then the features change, not the draw.
 
+#### The first CI run
+
+The run 40810883047 (2026-10-29) used `pack-classes-v1`, `sample` 400, `draw` `active` and `features` `input`.
+
+- The uniform sample measured 125 of the 400 requested pairs in its 12 minutes. These pairs are the evaluation set.
+- The active rounds measured 400 pairs: 4 rounds of 100, from a pool of 7611 candidates. Each round used 14 to 16 generators.
+- The active pairs had 0 hard breaks, and each was deterministic. The uniform sample had 1 pair that was not deterministic.
+
+The table gives the share of the evaluation pairs within tolerance, with uniform weights, after each round.
+
+| Measure | Grid only | Round 1 | Round 2 | Round 3 | Round 4 |
+|---|---|---|---|---|---|
+| `pack.gapToBound` (118 pairs) | 0.068 | 0.119 | 0.110 | 0.119 | 0.153 |
+| `pack.fill` (125 pairs) | 0.016 | 0.088 | 0.112 | 0.136 | 0.184 |
+
+- The share of `pack.gapToBound` goes from 0.068 to 0.153. The rise is not the same in each round.
+- The family prior is thin: 9 of the 118 pairs have a weight, and the effective count is 2.6. k119 widens the prior.
+- The run has no uniform draw of the same size. Thus it does not tell if the active draw is better than a uniform draw.
+
 ### The site
 
 The section `#coverage` of the results page reads `packages/site/data/coverage.json`. The command `snapshot.ts coverage` computes the coverage two times.
