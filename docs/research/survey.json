@@ -162,7 +162,7 @@
     {
       "id": "R5",
       "name": "Goal-driven ruin and recreate",
-      "description": "Remove a part of the layout and pack it again. A goal cost keeps the search moving.",
+      "description": "Remove a part of the layout and pack it again. A goal cost keeps the search moving. Built as the strategy `ruin-recreate` (k79), with the entry `ruin-recreate-maxrects-bl-k64`.",
       "published": true,
       "sources": [
         {

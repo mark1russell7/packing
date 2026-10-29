@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
@@ -261,6 +261,7 @@ describe("the screen on smoke-v1", () => {
       ...Object.fromEntries(SELECT_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(RESTARTS_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(BBOX_ENTRIES.map((e) => [e.id, e.base])),
+      ...Object.fromEntries(RUIN_RECREATE_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(SKYLINE_VARIANTS.map((e) => [e.id, e.base])),
     });
   });

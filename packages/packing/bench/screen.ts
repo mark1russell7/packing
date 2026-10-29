@@ -37,6 +37,8 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "restarts-maxrects-bl-k16": "move.restartPick",
   "restarts-rows-k16": "move.restartPick",
   "restarts-maxrects-bl-shuffle-k16": "move.restartPick",
+  "ruin-recreate-maxrects-bl-k64": "move.ruinRecreate",
+  "ruin-recreate-skyline-k64": "move.ruinRecreate",
 });
 
 /** The base of each variant: the same strategy without the options of the variant. The activation compares their outputs. */

@@ -1,7 +1,7 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, shapeStrategies, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
+import { composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
 /** This constant lists each strategy of the registry: the single strategies, the strategies of one shape kind, then the composite strategies. */
@@ -22,6 +22,7 @@ export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
   rule: MAXRECTS_RULES,
   fit: SHELF_FITS,
   perturb: RESTART_PERTURBS,
+  ruin: RUIN_KINDS,
   choice: GUILLOTINE_CHOICES,
   split: GUILLOTINE_SPLITS,
 };
@@ -41,6 +42,7 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   budgetMs: { min: 0, max: 2000, step: 1 },
   steps: { min: 0, max: 32, step: 1 },
   budgetWork: { min: 0, max: 1_000_000, step: 1 },
+  shrink: { min: 0.001, max: 0.5, step: 0.001 },
 };
 
 /** The entries that a composite strategy can take as a member: the entries that are not composite entries. */
@@ -102,6 +104,7 @@ function extraControls(id: string): OptionControl[] {
         { key: "budgetWork", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetWork"]!, fromDefaults: false },
       ];
     case "bbox":
+    case "ruin-recreate":
       return [{ key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false }];
     default:
       return [];
@@ -132,7 +135,7 @@ const memberOf = (id: string): { id: string; strategy: string; options: Readonly
 /**
  * This function gives the options of `packWith` from the values of the controls. An empty value gives no option. A
  * portfolio with members takes no `k`. The strategy of `aspect-fit` is a named entry with its options.
- * The member of `restarts` and `bbox` is a named entry.
+ * The member of `restarts`, `bbox` and `ruin-recreate` is a named entry.
  */
 export function packOptions(id: string, values: OptionValues): Record<string, unknown> {
   const out: Record<string, unknown> = {};

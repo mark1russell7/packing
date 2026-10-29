@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 349 names
+## . (build/index.d.ts): 354 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -153,6 +153,8 @@ type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
 RESTARTS_STAGE: build/index.d.ts#RESTARTS_STAGE
 RESTART_PERTURBS: build/index.d.ts#RESTART_PERTURBS
+RUIN_KINDS: build/index.d.ts#RUIN_KINDS
+RUIN_RECREATE_STAGE: build/index.d.ts#RUIN_RECREATE_STAGE
 Rect: build/index.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
 type RectGridV2Params: build/index.d.ts#RectGridV2Params
@@ -160,6 +162,8 @@ type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
 type RestartPerturb: build/index.d.ts#RestartPerturb
 type RestartsStrategyOptions: build/index.d.ts#RestartsStrategyOptions
+type RuinKind: build/index.d.ts#RuinKind
+type RuinRecreateStrategyOptions: build/index.d.ts#RuinRecreateStrategyOptions
 SELECT_MAX_DEPTH: build/index.d.ts#SELECT_MAX_DEPTH
 SELECT_MEMBERS: build/index.d.ts#SELECT_MEMBERS
 SELECT_STAGE: build/index.d.ts#SELECT_STAGE
@@ -326,6 +330,7 @@ restartsStrategy: build/index.d.ts#restartsStrategy
 round3: build/index.d.ts#round3
 roundMeasures: build/index.d.ts#roundMeasures
 rows: build/index.d.ts#rows
+ruinRecreateStrategy: build/index.d.ts#ruinRecreateStrategy
 selectFeatures: build/index.d.ts#selectFeatures
 selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
@@ -1087,6 +1092,12 @@ export declare const RESTARTS_STAGE = "restarts";
 ### build/index.d.ts#RESTART_PERTURBS
 export declare const RESTART_PERTURBS: readonly RestartPerturb[];
 
+### build/index.d.ts#RUIN_KINDS
+export declare const RUIN_KINDS: readonly RuinKind[];
+
+### build/index.d.ts#RUIN_RECREATE_STAGE
+export declare const RUIN_RECREATE_STAGE = "ruin-recreate";
+
 ### build/index.d.ts#Rect
 export declare class Rect<T = unknown> {
   id?: T;
@@ -1140,6 +1151,18 @@ interface RestartsStrategyOptions {
   limitTime?: boolean;
   budgetMs?: number;
   budgetWork?: number;
+}
+
+### build/index.d.ts#RuinKind
+type RuinKind = "mixed" | "region" | "random" | "adjacent";
+
+### build/index.d.ts#RuinRecreateStrategyOptions
+interface RuinRecreateStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  ruin?: RuinKind;
+  strength?: number;
+  shrink?: number;
 }
 
 ### build/index.d.ts#SELECT_MAX_DEPTH
@@ -1743,6 +1766,9 @@ export declare function roundMeasures<T extends object>(measures: T): T;
 
 ### build/index.d.ts#rows
 export declare const rows: Strategy<LayoutStrategyOptions>;
+
+### build/index.d.ts#ruinRecreateStrategy
+export declare const ruinRecreateStrategy: Strategy<RuinRecreateStrategyOptions>;
 
 ### build/index.d.ts#selectFeatures
 export declare function selectFeatures(input: PackInput): SelectFeatures;

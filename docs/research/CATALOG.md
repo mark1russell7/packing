@@ -246,7 +246,7 @@ A search changes the input of a fast packer, the "decoder", and keeps the best r
 | `search-beam-parallel` | Parallel beam search (BSPA) | Do a beam search over partial layouts on many threads at once. The authors give the code and the data. | Wen 2025 | density, speed | `O(n^2 k)` on `t` threads | — | planned | new item |
 | `search-goal-driven` | Goal-driven search for bins | Split the search space of the bins into ordered sets, and search them in order toward a goal of total area. The rule in detail is unverified. | Wei 2013 | density in bins | steps x decoder | — | planned | new item |
 | `search-grasp-vnd` | GRASP with variable neighborhood descent | Build each bin with a maximal-space rule and random choices. Improve the bins with several moves in a variable neighborhood descent. | Parreño 2010 | density in bins | starts x moves | — | planned | new item |
-| `search-ruin-recreate` | Goal-driven ruin and recreate | Remove a part of the layout and pack it again. A goal cost decides which layouts the search keeps. | Gardeyn 2022 | density in bins | steps x decoder | — | planned | new item |
+| `search-ruin-recreate` | Goal-driven ruin and recreate | Remove a part of the layout and pack it again. A goal cost decides which layouts the search keeps. | Gardeyn 2022 | density in bins | steps x decoder | — | implemented: `ruin-recreate`, entries `ruin-recreate-maxrects-bl-k64` and `ruin-recreate-skyline-k64` | k79 |
 | `search-set-cover` | Set covering of good bins | Make many single bins with fast heuristics. Choose the fewest bins that hold each box, with a Lagrangian heuristic for set covering. | Monaci 2006 | density in bins | columns x Lagrangian steps | — | planned | new item |
 
 Notes:

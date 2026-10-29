@@ -296,6 +296,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k79",
+    title: "The new strategy `ruin-recreate` removes some boxes of a layout and packs them again. A goal box that becomes smaller keeps the search moving.",
+    pr: 152,
+    link: "https://github.com/mark1russell7/packing/pull/152",
+  },
+  {
+    date: "2026-10-29",
     item: "k117",
     title: "The composites `portfolio` and `restarts` take a work limit `budgetWork`: one unit is one box in one pack. A cut by it is the same on each computer.",
     pr: 148,

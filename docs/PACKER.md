@@ -477,12 +477,135 @@ The circle family of `bench/shape-inputs.ts` (seeds 1 to 5, 30 circles) gives th
 
 On a square, `hole-degree` fills the 4 corners first. Thus its hull is the full square, and the hull of a `bbox` member is smaller.
 
+### The goal-driven ruin and recreate
+
+Roadmap item k79 adds the composite strategy `ruin-recreate` (catalog row `search-ruin-recreate`, idea R5 of the survey). It is opt-in. No default uses it.
+
+```ts
+const output = packWith("ruin-recreate", input); // 64 iterations around maxrects-bl
+const chain = packWith("ruin-recreate", input, { member: "skyline", ruin: "adjacent", strength: 0.5 }, 7);
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `member` | `maxrects` with the rule `bl` | A strategy id, or a `PortfolioEntry` with options. The strategy has the option `sortOrder`. |
+| `iterations` | 64 | The count of the ruins. A whole number of 0 or more. With 0, the output is the output of the member. |
+| `ruin` | `mixed` | The ruin: `region`, `random`, `adjacent`, or `mixed` for one of the three at random (`RUIN_KINDS`). |
+| `strength` | 0.3 | The largest share of the placed items that one ruin removes, from 0 to 1. One ruin removes 1 item or more. |
+| `shrink` | 0.005 | The share by which a met goal makes the free side of the goal box smaller, from 0.001 to 0.5. |
+
+The search:
+
+1. The member packs the input. Its layout is the first layout and the first best layout.
+2. A ruin removes `k` placed items. `k` is a random whole number from 1 to `ceil(strength * placed count)`.
+3. `region` removes the `k` items nearest to a random point of the goal box. `random` removes `k` random items.
+4. `adjacent` starts at a random item. Each next item is the item nearest to the last one, by the distance between their boxes.
+5. The recreate packs the removed items and the unplaced items with the member. The kept items are locked items of that input.
+6. The recreate order is the rank order and the `sortOrder` of the member, or a random order with the sort order `input`. Each one has the chance 0.5.
+7. The search accepts a candidate that is not worse than the current layout. A candidate that is better than the best layout becomes the best layout.
+
+The compare of two layouts is the pick of `restarts`:
+
+- The key is the hard breaks, then the levels of `PORTFOLIO_LEVELS`: `pack.overflow.excessArea`, then `pack.fill`. `selectBest` of the contract compares the two layouts.
+- A tie on each level keeps the current layout or the best layout. Thus a tie is accepted, but it is not a new best layout.
+- The key is the same for each container. A fixed container does not rank by the count of placed items first.
+
+The goal:
+
+- A container of fixed size has no goal box. The search stops early when each item is placed.
+- On a free side, the goal is a box of fixed size. Its first size is the size of the member output, with the free side smaller by `shrink`.
+- The recreate packs into the goal box. An item outside the box is unplaced, and the next ruins try to place it.
+- When each item of the member layout is in the goal box, the goal is met. The search keeps the layout when the key finds it better.
+- Then the free side of the goal box gets smaller by `shrink` again. The items outside the new box become unplaced.
+- With `fixed: "none"`, the goal box shrinks its long side for the target aspect. The search stops when no free side can shrink.
+- A free side does not shrink below the far edges of the locked items and the obstacles.
+
+The rules of the output:
+
+- Locked items and obstacles stay at their places. A ruin never removes them. A movable obstacle and a group give `UnsupportedCell`.
+- The supports are the union of the supports of the 5 placement strategies, with the fixed obstacles and the free or soft order.
+- A cell that the member does not support gives `UnsupportedCell` from the member.
+- In a free container with a polygon shape, the goal box is a rectangle. The holes of the polygon become obstacles of the recreate.
+- A free container keeps the overflow of the member. In each container, the output is not worse than the output of the member by the key.
+- The output is the output of the member when no candidate is better. Else it is the best layout, with the placements in rank order.
+- Iteration `i` gets the random numbers `stepRandom(seed, "ruin-recreate:<i>")` of the contract. The same seed gives the same output, byte for byte.
+- The budget is the count `iterations`. The strategy reads no clock.
+- `iterations` is already a budget of work with no clock. Thus `ruin-recreate` has no option `budgetWork`.
+- The output gets the trace stage `ruin-recreate` (`RUIN_RECREATE_STAGE`). Its measures are in the table below.
+- The cost of one call is at most `iterations` packs of the member. Each pack has only the removed items and the unplaced items.
+
+| Measure | Value |
+|---|---|
+| `move.ruinRecreate` | The count of the new best layouts. 0 means that the output is the output of the member. |
+| `ruin-recreate.iterations` | The count of the iterations that ran. The search stops before `iterations` when it has no goal. |
+| `ruin-recreate.accepted` | The count of the accepted candidates. |
+| `ruin-recreate.goalSteps` | The count of the met goals. In a fixed container, the count of the accepted candidates that placed more items than the best. |
+| `ruin-recreate.bestAt` | The iteration of the best layout, or 0 for the member layout. |
+
+The choices of this project that differ from the sources:
+
+- This strategy follows only the general method of the two sources: a goal that becomes harder after each success, and a ruin and recreate search toward it.
+- Gardeyn & Wauters (EJOR 2022) pack bins of some sizes with guillotine cuts. This strategy packs one container, with no bins and no guillotine rule.
+- Wei, Oon, Zhu & Lim (EJOR 2013) set a goal for bins. This strategy sets a goal box for each free side of one container.
+- The recreate uses the member of the strategy. It does not use a placement rule of the sources.
+- The three ruins, the shrink factor and the random recreate order are the choices of this project.
+- The acceptance rule is the pick key of `restarts`, not a rule of the sources.
+- The budget is a count of iterations, not a time limit. Thus the output does not depend on the clock.
+
+A local comparison (2026-10-28) used 180 inputs of the classes corpus: the counts 20, 40 and 60, with the seeds 1 to 3.
+The inputs are 90 fixed containers and 90 `freeHeight` containers. The table gives the medians of `pack.fill` and `pack.gap`, and the mean of `pack.overflow.rate`.
+The CI benchmark measures the entries on the full corpus.
+
+| Entry | Fill, all | Gap, all | Fill, fixed | Gap, fixed | Overflow rate, fixed | Fill, free | Gap, free |
+|---|---|---|---|---|---|---|---|
+| `maxrects-bl` | 0.9025 | 0.0800 | 0.9525 | 0.0515 | 0.6529 | 0.8750 | 0.1110 |
+| `restarts-maxrects-bl-k16` | 0.9230 | 0.0685 | 0.9585 | 0.0460 | 0.6529 | 0.8900 | 0.0895 |
+| `ruin-recreate-maxrects-bl-k64` | 0.9130 | 0.0670 | 0.9595 | 0.0435 | 0.6299 | 0.8775 | 0.1030 |
+| `skyline` | 0.8665 | 0.1375 | 0.9460 | 0.0585 | 0.6677 | 0.7790 | 0.2110 |
+| `ruin-recreate-skyline-k64` | 0.8675 | 0.1300 | 0.9495 | 0.0565 | 0.6584 | 0.7815 | 0.2045 |
+
+- In fixed containers, `ruin-recreate-maxrects-bl-k64` has the best fill, the smallest gap and the lowest overflow rate of the five entries.
+- In `freeHeight` containers, `restarts-maxrects-bl-k16` is better. The goal box of `ruin-recreate` improves the member by a small step only.
+- An earlier rule ranked a fixed container by the count of placed items first. It gave the fill 0.8780 and the gap 0.1415 for fixed containers.
+
+The CI benchmark (run 40805929127, 2026-10-29) used the 500 inputs of `pack-classes-v1`. The table gives the median `pack.gap`.
+
+| Entry | Gap, all | Gap, fixed | Gap, free |
+|---|---|---|---|
+| `maxrects-bl` | 0.0610 | 0.0350 | 0.0850 |
+| `restarts-maxrects-bl-k16` | 0.0540 | 0.0310 | 0.0750 |
+| `ruin-recreate-maxrects-bl-k64` | 0.0550 | 0.0310 | 0.0840 |
+| `skyline` | 0.1240 | 0.0490 | 0.2030 |
+| `ruin-recreate-skyline-k64` | 0.1150 | 0.0470 | 0.1990 |
+
+- The run has 0 hard breaks and 0 results that are not deterministic.
+- In fixed containers, `ruin-recreate-maxrects-bl-k64` is level with `restarts-maxrects-bl-k16`.
+- In `freeHeight` containers, it gains only 0.001 on its member. The `restarts` entry gains 0.010.
+
+The counts of `packSpace`:
+
+- `combine` gets the option `ruin-recreate` with 1 member and the params `iterations`, `ruin`, `strength` and `shrink`.
+- The named configs are `ruin-recreate`, `ruin-recreate-maxrects-bl-k64` and `ruin-recreate-skyline-k64`. The benchmark has the last two as entries.
+- Each base config gives 108 new meta configs with 3 levels: 3 values of `iterations`, 4 of `ruin`, 3 of `strength` and 3 of `shrink`.
+- With 1 level, each base config gives 4 new meta configs, one for each value of `ruin`. The table gives the counts before k79 and since k79.
+
+| `spaceSize` | Before k79 | Since k79 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 185246197022536252434 | 185246197022536573518 |
+| 1 level | 66707889492003174 | 66707889492006738 |
+| 3 levels, `shapes: ["rect"]` | 184312874572011669750 | 184312874572011990510 |
+| 1 level, `shapes: ["rect"]` | 66333631179345730 | 66333631179349290 |
+
+- The base configs stay 2973 and 891, and 2970 and 890 for `rect`. The counts for the other shape kinds do not change.
+- `ENTRIES` of the benchmark: 30 before, 32 after. `composites`: 5 before, 6 after. The meta options of `spaceCounts`: 6 before, 7 after.
+- The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
+
 ## The registry
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
-const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select" and "restarts"
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox" and "ruin-recreate"
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```

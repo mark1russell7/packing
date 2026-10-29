@@ -61,10 +61,10 @@ describe("the demo", () => {
     }
   });
 
-  it("picks the members of portfolio, select, aspect-fit, restarts and bbox from the named entries", () => {
+  it("picks the members of portfolio, select, aspect-fit, restarts, bbox and ruin-recreate from the named entries", () => {
     expect(MEMBER_ENTRIES.map((e) => e.id)).toEqual(ENTRIES.filter((e) => !isComposite(e.id)).map((e) => e.id));
     const ids = ENTRIES.map((e) => e.id);
-    for (const id of ["portfolio", "select", "aspect-fit", "restarts", "bbox"]) {
+    for (const id of ["portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate"]) {
       const pickers = optionControls(id).filter((c) => c.kind === "entry" || c.kind === "members");
       expect(pickers.length, id).toBe(1);
       for (const c of pickers) if (c.kind === "entry" || c.kind === "members") for (const v of c.values) expect(ids).toContain(v);

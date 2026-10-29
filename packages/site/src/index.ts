@@ -81,6 +81,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   restarts: "Restarts",
   bbox: "Bounding boxes",
   "hole-degree": "Hole degree (circles)",
+  "ruin-recreate": "Ruin-recreate",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
 
@@ -109,6 +110,8 @@ const OPTION_LABELS: Record<string, string> = {
   budgetWork: "Work limit",
   turn: "Turn shapes",
   steps: "Height steps",
+  ruin: "Ruin",
+  shrink: "Goal shrink",
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 

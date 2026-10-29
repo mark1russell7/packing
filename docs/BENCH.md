@@ -64,6 +64,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `restarts-maxrects-bl-k16` | `restarts` | `member: maxrects-bl`, `iterations: 16` | `maxrects-bl` |
 | `restarts-rows-k16` | `restarts` | `member: "rows"`, `iterations: 16` | `rows` |
 | `restarts-maxrects-bl-shuffle-k16` | `restarts` | `member: maxrects-bl`, `iterations: 16`, `perturb: "shuffle"` | `maxrects-bl` |
+| `ruin-recreate-maxrects-bl-k64` | `ruin-recreate` | `member: maxrects-bl`, `iterations: 64` | `maxrects-bl` |
+| `ruin-recreate-skyline-k64` | `ruin-recreate` | `member: "skyline"`, `iterations: 64` | `skyline` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
@@ -81,6 +83,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The entry `portfolio-area-rows-bl` has the 2 members `rows` and `maxrects-bl`. Its key `AREA_KEY` puts `pack.area` before `pack.overflow.excessArea` and `pack.fill`. Its move is `move.pick`.
 - The entry `select-rows-bl` of roadmap item k66 is `SELECT_ENTRIES`. It packs with one member, from the features of the input. Its move is `move.select`. `docs/PACKER.md` ("The feature select") tells it.
 - The 3 entries of roadmap item k78 are `RESTARTS_ENTRIES`. Each one packs 16 times with its member, in random orders, and keeps the best output. Its move is `move.restartPick`. `docs/PACKER.md` ("The random restarts") tells it.
+- The 2 entries of roadmap item k79 are `RUIN_RECREATE_ENTRIES`. Each one removes some boxes 64 times, and packs them again with its member. Its move is `move.ruinRecreate`.
+- `docs/PACKER.md` ("The goal-driven ruin and recreate") tells the entries of k79.
 
 ## The jobs
 
