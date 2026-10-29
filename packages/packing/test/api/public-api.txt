@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 367 names
+## . (build/index.d.ts): 369 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -265,6 +265,7 @@ countCell: build/index.d.ts#countCell
 createContext: build/index.d.ts#createContext
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
+defaultLayoutOf: build/index.d.ts#defaultLayoutOf
 edgeCases: build/index.d.ts#edgeCases
 edgeCasesFamily: build/index.d.ts#edgeCasesFamily
 fnv1a32: build/index.d.ts#fnv1a32
@@ -333,6 +334,7 @@ portfolioStrategy: build/index.d.ts#portfolioStrategy
 push: build/index.d.ts#push
 pushCascade: build/index.d.ts#pushCascade
 quantile: build/index.d.ts#quantile
+rectFeatures: build/index.d.ts#rectFeatures
 rectGrid: build/index.d.ts#rectGrid
 rectGridFamily: build/index.d.ts#rectGridFamily
 rectGridV2: build/index.d.ts#rectGridV2
@@ -1588,6 +1590,9 @@ export declare const dashboard: CorpusGenerator<UiParams>;
 ### build/index.d.ts#dashboardFamily
 export declare const dashboardFamily: CorpusFamily<GeneratedInput>;
 
+### build/index.d.ts#defaultLayoutOf
+export declare function defaultLayoutOf<T>(rects: readonly Rect<T>[], outer: Rect<T>, options?: PackOptions): Pick<PackLayoutOptions, "strategy" | "rule">;
+
 ### build/index.d.ts#edgeCases
 export declare const edgeCases: CorpusGenerator<EdgeCaseParams>;
 
@@ -1810,6 +1815,9 @@ export declare function pushCascade<T>(placed: Rect<T>, rects: readonly Rect<T>[
 
 ### build/index.d.ts#quantile
 export declare function quantile(values: readonly number[], q: number): number;
+
+### build/index.d.ts#rectFeatures
+export declare function rectFeatures<T>(rects: readonly Rect<T>[], space?: FreeSpace): SelectFeatures;
 
 ### build/index.d.ts#rectGrid
 export declare const rectGrid: CorpusGenerator<RectGridParams>;

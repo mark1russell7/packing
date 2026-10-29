@@ -31,7 +31,9 @@ Without fixed sizes, the outer rectangle grows until all rectangles fit. With `f
 pack(rects, outer, { strategy: "skyline", sortOrder: "area-desc" });
 ```
 
-- `packRows` (the default): a guillotine row packing. It fills the space under the short rectangles of each row.
+Without `strategy`, a fixed size uses the pick of `SELECT_TABLE`: `packRows`, or `packMaxRects` with the rule `bl`. Each other container uses `packRows`. `defaultLayoutOf` gives the choice. This default starts in 0.3.0.
+
+- `packRows`: a guillotine row packing. It fills the space under the short rectangles of each row.
 - `packSkyline`: each rectangle goes to the lowest place where it fits. It packs around a `locked` rectangle.
 - `packShelf`: it fills rows left to right in the sort order, and goes around each `locked` rectangle. With the sort order `input`, the rows read in your order.
 
