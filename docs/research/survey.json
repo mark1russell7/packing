@@ -1970,7 +1970,7 @@
     {
       "id": "R37",
       "name": "Restarts that stop at the bound",
-      "description": "Run `restarts`, and stop when a layout reaches the bound of k51. No other order can do better.",
+      "description": "Use `restarts`, and stop when a layout reaches the bound of k51. No other order can do better.",
       "published": false,
       "sources": [],
       "problemClass": "strip",
@@ -2184,7 +2184,7 @@
     {
       "id": "S21",
       "name": "Restarts around bounding boxes",
-      "description": "Run `restarts` with the member `bbox`, so circles and polygons get a search over the order.",
+      "description": "Use `restarts` with the member `bbox`, so circles and polygons get a search over the order.",
       "published": false,
       "sources": [],
       "problemClass": "nesting",

@@ -42,7 +42,7 @@ When you change the queue or the status of an item of the survey, change `survey
 
 ### The rule of the next round
 
-Up to 3 build subagents run each day. Thus a week has 21 build slots. When the queue holds fewer than 21 rows, the next round of the survey starts. It adds published methods and hybrids of the strategies that the package has. Each round adds methods from the classes with the fewest ideas first. The field `rule` of `survey.json` keeps the 3 builders and the 7 days, and the check shows the state of the queue.
+Up to 3 build subagents operate each day. Thus a week has 21 build slots. When the queue holds fewer than 21 rows, the next round of the survey starts. It adds published methods and hybrids of the strategies that the package has. Each round adds methods from the classes with the fewest ideas first. The field `rule` of `survey.json` keeps the 3 builders and the 7 days, and the check shows the state of the queue.
 
 ## What packing has today
 
@@ -268,7 +268,7 @@ The hybrids join two strategies that the package has. They are ideas of this rep
 | R34 | Online shelves with a parameter | Round each height up to a power of `r`. Keep open shelves for each class of height, with next fit or first fit. | online | Baker 1983 | k30 |
 | R35 | Harmonic shelves | Do the online shelves with classes of width too, as harmonic bin packing does. | online | Csirik 1997 | k30 |
 | R36 | Online bottom-left | Put each box at its lowest, then leftmost place, in the order of arrival. Its paper gives lower bounds for each online packer. | online | Brown 1982 | k30, k25 |
-| R37 | Restarts that stop at the bound | Run `restarts`, and stop when a layout reaches the bound of k51. No other order can do better. | strip | an idea of this repository | k78, k51 |
+| R37 | Restarts that stop at the bound | Use `restarts`, and stop when a layout reaches the bound of k51. No other order can do better. | strip | an idea of this repository | k78, k51 |
 | R38 | Shelves, then MaxRects in the waste | Pack with `shelf`. Then put the boxes of the top shelf into the free rectangles of the lower shelves, with `maxrects-bl`. | strip | an idea of this repository | k21, k24 |
 | R39 | Restarts in the cells of MaxRects | Where `select` picks `maxrects-bl`, wrap the pick in `restarts`. The other cells keep the time of `rows`. | strip | an idea of this repository | k66, k78 |
 | S16 | TOPOS | Grow a partial layout one piece at a time. The waste, the overlap and the distances of the no-fit polygons choose the piece and its place. | nesting | Oliveira 2000 | k39 |
@@ -276,7 +276,7 @@ The hybrids join two strategies that the package has. They are ideas of this rep
 | S18 | Quasi-human moves for circles | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | circle | Huang 1999 | k39 |
 | S19 | Formulation space search | Change between the Cartesian form and the polar form of one nonlinear program, to leave a local optimum of one form. | circle | López 2011 | k39 |
 | S20 | Iterated tabu search for circles in a strip | Solve the strip as a series of fixed lengths. A tabu search with changes and a rule of acceptance solves each length. | circle | Fu 2013 | k39 |
-| S21 | Restarts around bounding boxes | Run `restarts` with the member `bbox`, so circles and polygons get a search over the order. | nesting | an idea of this repository | k78, k91 |
+| S21 | Restarts around bounding boxes | Use `restarts` with the member `bbox`, so circles and polygons get a search over the order. | nesting | an idea of this repository | k78, k91 |
 
 ## The benchmark sets
 

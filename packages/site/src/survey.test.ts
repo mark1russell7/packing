@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readInputs } from "../scripts/survey-check.ts";
+import { scoreHtml, sourcesHtml, surveyRowHtml } from "./survey-section.ts";
 import { CLASSES, checkSurvey, countBy, filterMethods, parseRoadmap, parseSurvey, roundState, scoreText, STATUSES, type SurveyInputs, type SurveyMethod } from "./survey-model.ts";
 
 const input = readInputs();
@@ -87,6 +88,34 @@ describe("the survey as data (k108)", () => {
     bad.methods[0]!["problemClass"] = "cubes";
     bad.methods[1]!["queue"] = { gain: 6, uncertainty: 1, cost: 1 };
     expect(() => parseSurvey(JSON.stringify(bad))).toThrow(/R1 has no valid problemClass\.\nThe record R2 has no valid queue/);
+  });
+});
+
+describe("the section of the survey on the strategies page", () => {
+  const byId = (id: string): SurveyMethod => methods.find((m) => m.id === id)!;
+
+  it("gives a row with the status, the item, the sources and the score of the queue", () => {
+    const html = surveyRowHtml(byId("S1"));
+    expect(html).toContain(`data-class="circle" data-status="queued"`);
+    expect(html).toContain(`<span class="sv-chip queued"`);
+    expect(html).toContain("<code>k90</code>");
+    expect(html).toMatch(/<abbr title="[^"]+ \(2006\)\. [^"]+">Huang 2006<\/abbr>, <abbr title="[^"]+">Kubach 2009<\/abbr>/);
+    expect(scoreHtml(byId("S1"))).toContain(">6.0<");
+  });
+
+  it("marks a hybrid of this repository and a new idea, and gives a dash for an idea without factors", () => {
+    const html = surveyRowHtml(byId("R37"));
+    expect(html).toContain("hybrid of this repository");
+    expect(html).toContain("round 2");
+    expect(sourcesHtml(byId("R37"))).toBe(`<span class="sv-own">this repository</span>`);
+    expect(scoreHtml(byId("R37"))).toContain("—");
+    expect(scoreHtml(byId("R4"))).toContain("sv-old");
+    expect(surveyRowHtml(byId("R4"))).toContain("<code>bl</code>");
+  });
+
+  it("escapes the text of a source", () => {
+    const m = { ...byId("R21"), sources: [{ key: "A <b> 2020", authors: "X & Y", year: 2020, title: `"T"` }] };
+    expect(sourcesHtml(m)).toBe(`<abbr title="X &amp; Y (2020). &quot;T&quot;">A &lt;b&gt; 2020</abbr>`);
   });
 });
 
