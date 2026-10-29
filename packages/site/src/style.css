@@ -491,6 +491,11 @@ select {
   min-width: 0;
 }
 
+/* A long option name must not widen the page on a phone. The select gets narrower than its longest option. */
+.order select {
+  min-width: 0;
+}
+
 .canvas {
   width: 100%;
   min-width: 0;
