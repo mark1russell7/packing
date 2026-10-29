@@ -24,6 +24,7 @@ The functions:
 | `measureChange(baseInput, baseOutput, changeInput, changeOutput)` | The stability measures of a change pair. The items match by id. |
 | `isDeterministic(first, second)` | The measure `pack.deterministic` of two runs. |
 | `gapToOpt(input, output, known)` | The measure `pack.gapToOpt`: the distance from the known best value of the input. |
+| `anchorStability(input, strategy, id, step, options?)` | The measures `pack.anchor.*`: how far the other items move when one anchor moves. |
 | `MEASURE_SPECS` | The family, the unit, the direction, the range and the minimum effect of each id. Each guard also has its `floor` and its `tol`. |
 
 ### The numbers
@@ -315,6 +316,67 @@ A change pair is the run on a base input and the run on its variant. The variant
 - A distance at or below `RECORD_EPS` is not a move. It still counts in `mean` and `q95`.
 - The quantile uses linear interpolation. The position in the sorted list is `(n - 1) * q`. `quantile` gives it.
 - The unit is the larger width of the two runs. Thus the measures are the same when the two runs change places.
+
+## Stability when an anchor moves
+
+Roadmap item k111 measures how far the other items move when one anchor moves. The function `anchorStability` of `src/anchor.ts` gives the measures. `measure` does not give them, because they need more packs.
+
+| Id | Unit | Direction | Range |
+|---|---|---|---|
+| `pack.anchor.mean` | container diagonals | lower | 0 or more |
+| `pack.anchor.max` | container diagonals | lower | 0 or more |
+| `pack.anchor.moved` | share | lower | 0 to 1 |
+| `pack.anchor.gain` | step lengths | lower | 0 or more |
+| `pack.anchor.settled` | boolean as 0 or 1 | higher | 0 or 1 |
+
+The words:
+
+- **The anchor** is a locked item with a position, or a fixed rectangle obstacle. `isAnchor` tells if an id is an anchor. The side anchors of roadmap item k110 are not in the package yet.
+- **The step** is `(dx, dy)`, a small move of the anchor. Its length is `L = sqrt(dx^2 + dy^2)`, and `L` is above 0.
+- **The other items** are the items of the input other than the anchor. An item that only one of two outputs places does not count.
+- **The loop** is `k` steps of the same move. Pack `j` has the anchor at its position plus `j` times the step, for `j` from 0 to `k`.
+- Each pack uses the same strategy, the same options and the same seed. The default `k` is `ANCHOR_STEPS`, 4.
+
+The first three measures compare pack 0 and pack 1. The distance `d` of an other item is the length of the move of its top-left corner.
+
+**`pack.anchor.mean`** is the mean distance of the other items, in diagonals of the container.
+
+`mean = sum(d) / (#{other} * D)`
+
+**`pack.anchor.max`** is the largest distance of an other item, in diagonals of the container.
+
+`max = max(d) / D`
+
+**`pack.anchor.moved`** is the share of the other items that moved. It is `pack.stability.moved` of `measureChange`, on the inputs without the anchor.
+
+**`pack.anchor.gain`** is the largest gain of a step of the loop. The gain of step `j` is the largest distance of an other item from pack `j - 1` to pack `j`, divided by `L`.
+
+`gain = max over j of (max(d_j) / L)`
+
+**`pack.anchor.settled`** is 1 when the gain of each step is at most the limit, and 0 otherwise. The option `gainLimit` is the limit. The default is `ANCHOR_GAIN_LIMIT`, 1.
+
+The normalisation:
+
+- `D` is the diagonal of the larger width and the larger height of the sizes of pack 0 and pack 1. A `D` of 0 becomes 1.
+- The diagonal counts a move in `x` and a move in `y` the same. The width of `pack.stability` makes a vertical move in a tall strip larger than 1.
+- A top-left corner in the container moves at most `D`. Thus `mean` and `max` are from 0 to 1 when the items stay in the container.
+- The diagonal does not use the anchor. Thus two anchors of one input compare. An item size is not the unit, because a small anchor gives large values.
+- The gain has the step length as its unit. Thus the gain does not change with the length of the step when the packer moves the items with the anchor.
+
+The settle rule:
+
+- A loop of an anchor and a container size settles when each change of one side moves the other side less. A gain of 1 or less is that bound for the packer.
+- With the gain limit 1, the other items move no farther than the anchor in each step of the loop. Then the displacement of each step stays bounded.
+- A gain above 1 shows a jump: a small move of the anchor sends an item to another row or another free rectangle.
+- A gain at the limit plus `RECORD_EPS / L` counts as at the limit. This tolerance is the rounding of a record.
+- `gains` of the result gives the gain of each step in its order. Use it to see if the jumps are in one step or in each step.
+
+The rules:
+
+- No other item, or no other item that moves: each distance measure and the gain are 0, and `settled` is 1.
+- The function does not check the moved input. Choose a step that keeps the anchor in the container and away from the other anchors.
+- `anchorStep` gives the step of the bench: 1% of the container width along the wall of the anchor. The section "Stability when an anchor moves" of `docs/BENCH.md` tells it.
+- The cost is `k + 1` packs for each anchor. A composite strategy multiplies it with the packs of its members.
 
 ## Determinism
 
