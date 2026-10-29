@@ -764,6 +764,43 @@ The counts of `packSpace`:
 
 The bench (prediction `packing-k124-relax`): rows, maxrects-bl and skyline-bl-waste, each alone and in `relax`, on `pack-screen-v1`. The measures are the balance measures, fill, the order inversions, the time and the hard breaks.
 
+### The force packer
+
+Roadmap item k125 adds the composite strategy `force` (catalog rows `overlap-spring`, Li 2005, and `overlap-prism`, Gansner 2010). It is opt-in. No default uses it. The code is `src/force.ts`.
+
+The relax pass of k124 keeps the order of the boxes and maps their extent onto the container. The bench of k124 shows two limits. The gaps are not even (`pack.balance.gapCv` rises from 0 to 0.9 to 1.8), and an obstacle stops the spread of each box behind it. A force layout lets the boxes find their own places. Each box pushes its neighbours and the walls away, until each gap is near one target gap.
+
+```ts
+const output = packWith("force", input); // force over maxrects-bl
+const output2 = packWith("force", input, { member: "rows", iterations: 100 });
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `member` | `maxrects` with the rule `bl` | A strategy id, or a `PortfolioEntry` with options. The member packs the first layout and gives the placed set. |
+| `iterations` | 60 | The count of the force steps. With 0, the output is the output of the member. |
+| `rounds` | 10 | The most rounds of the overlap removal of PRISM. |
+
+The pass works only when the container is fixed on both sides. On a free side, the output is the output of the member.
+
+1. **The start.** The member packs the input. Its placed boxes and their places are the start. The unplaced items stay unplaced.
+2. **The target gap.** `g = max(0, sqrt(free area / n) - sqrt(mean box area))`: the gap of a square grid of mean boxes that fills the frame. Each box has its margins, its pads and half the gap of the input.
+3. **The forces.** At each step, each pair of boxes with a clearance below `g` pushes apart along the line of their centers by half of `g` less the clearance. The clearance is the larger of the x gap and the y gap of the two boxes, and it is less than 0 for an overlap. A wall, an obstacle and a locked box push the same way and do not move. The step is the sum of the pushes, times a cooling factor `1 - k / iterations`. Then each box goes back into the frame.
+4. **The overlap removal (PRISM).** The proximity graph has an edge for each pair with a clearance below `g`. An edge of two boxes that overlap gets the length `t` times their distance, with `t` the least factor that removes the overlap, at most 1.5. The other edges keep their length. Sweeps of stress majorization (weights `1 / d^2`) move the boxes toward these lengths. A round ends with each box back in the frame. The rounds stop when no edge has an overlap, or after `rounds`.
+5. **The last pass.** When an overlap is left, the satisfy step of VPSC (k124) separates the boxes on x, then on y, in the order of their centers. The walls, the obstacles and the locked boxes are fixed.
+6. **The guard.** `checkHard` examines the result. On a hard break, or when the VPSC step fails, the output is the output of the member.
+
+The rules:
+
+- The pass does not add or remove a box. So the placed set, the unplaced count and the output size do not change.
+- The start, the forces and the sweeps read no seed, and each loop visits the boxes in the order of the member output. So the output is the same for each seed, and `pack.stability.seed` is 0.
+- The force step and the graph are O(n^2) for each step. The cost is `iterations` x n^2 plus `rounds` x n^2 for the sweeps.
+- PRISM uses the edges of a Delaunay triangulation and then a scan for the overlaps that the graph does not hold. This pass uses the pairs with a clearance below `g` in place of both, because the pairs are already O(n^2).
+- The step of VPSC is the code of `relax`. It moves into `src/separation.ts`, with no change of the output of `relax`.
+- The trace stage `force` has `move.force` (the moved boxes), `force.overlaps` (the overlaps after the forces), `force.rounds`, `force.vpsc` (1 when the last pass ran) and `force.fallback`.
+
+The bench (prediction `packing-k125-force`): rows, maxrects-bl and skyline-bl-waste, each alone, in `relax` and in `force`, on `pack-screen-v1`. The measures are the same as for k124.
+
 ### The searches over orders
 
 Roadmap item k26 adds three composite strategies that search the order of the items: `anneal`, `genetic` and `tabu`. They are opt-in. No default uses them.
