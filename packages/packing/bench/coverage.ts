@@ -31,8 +31,12 @@ export interface CoverageMeasure {
   readonly scale: "linear" | "log";
 }
 
-/** The measures of the coverage, with their tolerances. A time uses a log scale: 0.15 is a factor of 1.41. */
+/**
+ * The measures of the coverage, with their tolerances. A time uses a log scale: 0.15 is a factor of 1.41.
+ * The first measure is the headline: `pack.gapToBound` of k116, the fill against the bound of the fill, from 0 to 1.
+ */
 export const COVERAGE_MEASURES: readonly CoverageMeasure[] = Object.freeze([
+  { id: "pack.gapToBound", tolerance: 0.02, scale: "linear" },
   { id: "pack.fill", tolerance: 0.02, scale: "linear" },
   { id: "pack.gap", tolerance: 0.02, scale: "linear" },
   { id: "pack.overflow.excessArea", tolerance: 0.02, scale: "linear" },
@@ -1153,12 +1157,38 @@ export function sampleFacts(text: string): SampleFacts {
 /** The measures of the score of the active draw: the measures without a time. A time changes on each run, so the score does not read it. */
 export const scoreMeasures = (measures: readonly CoverageMeasure[] = COVERAGE_MEASURES): CoverageMeasure[] => measures.filter((m) => m.id !== "ms");
 
-/** The name of the score of the active draw. */
-export const ACTIVE_SCORE = "fold-spread";
+/**
+ * The scores of the active draw. Each score is the spread of the predictions of the fold trees, as a mean over the measures.
+ *
+ * - `spread-iqr` divides the spread of each measure by its robust spread on the rows, and caps the term at `SCORE_CAP`.
+ * - `fold-spread` divides the spread by the tolerance, with no cap. It is the first score of k116.
+ */
+export const ACTIVE_SCORES = Object.freeze(["spread-iqr", "fold-spread"] as const);
+
+/** A score of the active draw. `ACTIVE_SCORES` gives each score. */
+export type ActiveScore = (typeof ACTIVE_SCORES)[number];
+
+/** The default score of the active draw. */
+export const ACTIVE_SCORE: ActiveScore = "spread-iqr";
+
+/** The largest term of one measure in the score `spread-iqr`. Thus one measure with a wide range does not decide the score. */
+export const SCORE_CAP = 3;
+
+/** This function gives the interquartile range of some values, from the quantiles 0.25 and 0.75 of the sorted values. No value gives 0. */
+export function iqrOf(values: readonly number[]): number {
+  const v = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (v.length === 0) return 0;
+  const at = (q: number): number => {
+    const x = q * (v.length - 1);
+    const lo = Math.floor(x);
+    return v[lo]! + (v[Math.min(v.length - 1, lo + 1)]! - v[lo]!) * (x - lo);
+  };
+  return at(0.75) - at(0.25);
+}
 
 /** The scorer of the active draw: the trees of the folds of each measure, and the count of their rows. */
 export interface FoldScorer {
-  /** The rows of the grid and of the measured pairs, for the first measure of the score. */
+  /** The rows of the grid and of the measured pairs, for the measure of the score with the most rows. */
   readonly rows: number;
   /** This function gives the score of the row features of a pair. A higher score tells a larger expected error. */
   readonly score: (features: Readonly<Record<string, string>>) => number;
@@ -1178,11 +1208,15 @@ function sdOf(values: readonly number[]): number {
  * 1. The rows of each measure of `scoreMeasures` are the rows of the grid and the measured pairs of `train`.
  * 2. The rows go into the folds of `coverage`: by input or by spec for the grid, and one unit for each pair.
  * 3. The tree of fold `k` learns on the rows of the other folds.
- * 4. The score of a pair is the mean, over the measures, of the standard deviation of the predictions of the fold trees over the tolerance.
+ * 4. The term of a measure is the standard deviation of the predictions of the fold trees over the scale of the measure.
+ * 5. The score of a pair is the mean of the terms over the measures.
+ *
+ * The scale of `spread-iqr` is the interquartile range of the values of the rows, at least the tolerance. Its term is at most `SCORE_CAP`.
+ * The scale of `fold-spread` is the tolerance, and its term has no cap.
  *
  * The trees of the folds disagree where the rows do not decide the value. There, the held-out error is large.
  */
-export function foldScorer(grid: Grid, train: readonly SampledRecord[], options: CoverageOptions = {}): FoldScorer {
+export function foldScorer(grid: Grid, train: readonly SampledRecord[], options: CoverageOptions = {}, kind: ActiveScore = ACTIVE_SCORE): FoldScorer {
   const featuresOf = pairFeaturer(options);
   const folds = options.folds ?? 5;
   const seed = options.seed ?? 1;
@@ -1208,14 +1242,16 @@ export function foldScorer(grid: Grid, train: readonly SampledRecord[], options:
       const rows = units.flatMap((u, i) => (foldOf.get(u) === k ? [] : [i]));
       if (rows.length > 0) trees.push(fitTree(table, rows, tree));
     }
-    return { m, table, trees };
+    const scale = kind === "fold-spread" ? m.tolerance : Math.max(m.tolerance, iqrOf(y));
+    const cap = kind === "fold-spread" ? Infinity : SCORE_CAP;
+    return { table, trees, scale, cap };
   });
   return {
-    rows: models[0]?.table.y.length ?? 0,
+    rows: models.reduce((most, x) => Math.max(most, x.table.y.length), 0),
     score: (f) => {
       if (models.length === 0) return 0;
       let sum = 0;
-      for (const { m, table, trees } of models) sum += sdOf(trees.map((t) => predictFeatures(t, table, f))) / m.tolerance;
+      for (const { table, trees, scale, cap } of models) sum += Math.min(cap, sdOf(trees.map((t) => predictFeatures(t, table, f))) / scale);
       return sum / models.length;
     },
   };

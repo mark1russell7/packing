@@ -2,7 +2,8 @@
 // The pairs that it measures join the training rows before the next round. Thus the model learns the region of the space where it is weak.
 //
 //   node bench/active.ts --out <dir> --records <records.jsonl> --corpus <corpus.json> [--n 400] [--seed 1] [--rounds 4] [--pool 20]
-//                        [--features family|input] [--by input|spec] [--max-count 1000] [--no-knobs] [--repeats 1] [--warmup 0] [--max-minutes <m>]
+//                        [--features family|input] [--by input|spec] [--score spread-iqr|fold-spread] [--max-count 1000] [--no-knobs]
+//                        [--repeats 1] [--warmup 0] [--max-minutes <m>]
 //
 // `node bench/sample-space.ts --draw active` starts this file. `docs/BENCH.md` ("The active draw") tells how the draw works.
 
@@ -12,6 +13,7 @@ import { corpusFamilies, generator, packSpace, toPackInput, type GeneratedInput,
 import { canonicalConfig, checkConfig, configId, createFamilyRegistry, shapeKindsOf, stepRandom, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
 import {
   ACTIVE_SCORE,
+  ACTIVE_SCORES,
   DEFAULT_FEATURES,
   FEATURE_SETS,
   foldScorer,
@@ -20,6 +22,7 @@ import {
   readRecords,
   type CoverageManifest,
   type CoverageOptions,
+  type ActiveScore,
   type CoverageRecord,
   type FeatureSet,
   type SampledRecord,
@@ -87,6 +90,8 @@ export interface ActiveOptions extends Omit<SampleOptions, "draw"> {
   readonly poolFactor?: number;
   /** The options of the coverage model: the feature set, the folds and the unit of a fold. */
   readonly coverage?: CoverageOptions;
+  /** The score of the candidates. The default is `ACTIVE_SCORE`, `spread-iqr`. */
+  readonly score?: ActiveScore;
 }
 
 /** The facts of one round of an active draw. */
@@ -115,7 +120,7 @@ export interface ActiveSummary extends Omit<SampleSummary, "draw"> {
     readonly poolFactor: number;
     /** The candidates that the pool did not find: their strata closed, or no input and config came. */
     readonly poolMissed: number;
-    readonly score: typeof ACTIVE_SCORE;
+    readonly score: ActiveScore;
     readonly features: FeatureSet;
     readonly by: "input" | "spec";
     readonly perRound: readonly ActiveRoundFacts[];
@@ -220,6 +225,30 @@ export function candidatePool(
   return pool;
 }
 
+/** The picks of one round so far: the measured pairs of each stratum, and each pair of a stratum and an input generator. */
+export interface RoundPicks {
+  readonly strata: Map<string, number>;
+  readonly pairs: Set<string>;
+}
+
+/** This function gives the key of a candidate for the diversity rule: its stratum and its input generator. */
+export const pickKey = (c: Pick<Candidate, "stratum" | "draw">): string => `${c.stratum}|${c.draw.family}`;
+
+/**
+ * This function gives the next candidate of a round, or `undefined` when no candidate is left. `order` is from the highest score down.
+ *
+ * 1. The first pass takes the first candidate whose stratum has fewer than `cap` picks, and whose stratum and generator have no pick.
+ * 2. When no candidate passes, the second pass keeps only the cap of the stratum.
+ * 3. When no candidate passes again, the third pass takes the first candidate that is left.
+ *
+ * Thus the rules change the order of a round only while other candidates are left. The order and the picks decide the result.
+ */
+export function nextPick<T extends { readonly c: Candidate }>(order: readonly T[], taken: ReadonlySet<number>, picks: RoundPicks, cap: number): T | undefined {
+  const left = order.filter((x) => !taken.has(x.c.index));
+  const roomy = (x: T): boolean => (picks.strata.get(x.c.stratum) ?? 0) < cap;
+  return left.find((x) => roomy(x) && !picks.pairs.has(pickKey(x.c))) ?? left.find(roomy) ?? left[0];
+}
+
 /**
  * This function draws and measures an active sample (k116).
  *
@@ -227,6 +256,7 @@ export function candidatePool(
  * 2. Round `k` of `rounds` asks for `floor(n k / rounds) - floor(n (k - 1) / rounds)` pairs.
  * 3. At the start of a round, `foldScorer` learns on the grid and on the pairs of the earlier rounds. It scores each candidate that is left.
  * 4. The round measures the candidates from the highest score down, until it has its pairs. A candidate that the packer refuses goes back.
+ * 5. A round takes at most `ceil(quota / strata)` pairs of a stratum, and one pair of each stratum and generator. `nextPick` tells the rules.
  *
  * The score reads no time, so the same seed and the same grid give the same pairs. Only `maxMinutes` can cut a sample short.
  */
@@ -243,6 +273,9 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const clock = options.clock ?? (() => performance.now());
   const prediction = options.prediction ?? "k116-active";
   const coverage: CoverageOptions = { by: "spec", ...options.coverage };
+  const score = options.score ?? ACTIVE_SCORE;
+  if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new RangeError(`The score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
+  const strataCount = strataOf(space).length;
   if (!Number.isInteger(n) || n < 0) throw new RangeError("The count of the pairs is a whole number of 0 or more.");
   if (!Number.isInteger(rounds) || rounds < 1) throw new RangeError("The count of the rounds is a whole number of 1 or more.");
   if (!Number.isInteger(poolFactor) || poolFactor < 1) throw new RangeError("The pool factor is a whole number of 1 or more.");
@@ -268,7 +301,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
 
   for (let k = 1; k <= rounds && stopped === undefined; k++) {
     const quota = Math.floor((n * k) / rounds) - Math.floor((n * (k - 1)) / rounds);
-    const scorer = foldScorer(grid, records, { ...coverage, inputs });
+    const scorer = foldScorer(grid, records, { ...coverage, inputs }, score);
     const order = pool
       .filter((c) => !taken.has(c.index))
       .map((c) => ({ c, s: scorer.score(c.features) }))
@@ -277,8 +310,12 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
     let got = 0;
     let rejected = 0;
     const scores: number[] = [];
-    for (const { c, s } of order) {
-      if (got >= quota) break;
+    const cap = Math.max(1, Math.ceil(quota / Math.max(1, strataCount)));
+    const picks: RoundPicks = { strata: new Map(), pairs: new Set() };
+    while (got < quota) {
+      const next = nextPick(order, taken, picks, cap);
+      if (next === undefined) break;
+      const { c, s } = next;
       if (late()) {
         stopped = "time";
         break;
@@ -312,6 +349,8 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
         bump(strataPairs, c.stratum);
         bump(families, `${c.draw.family}@${c.draw.version}`);
         scores.push(s);
+        picks.strata.set(c.stratum, (picks.strata.get(c.stratum) ?? 0) + 1);
+        picks.pairs.add(pickKey(c));
         got++;
       } catch (error) {
         errors.push({ pair, input: file.id, config: c.id, message: error instanceof Error ? error.message : String(error) });
@@ -354,7 +393,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
       pool: pool.length,
       poolFactor,
       poolMissed: counts.missed,
-      score: ACTIVE_SCORE,
+      score,
       features: coverage.features ?? DEFAULT_FEATURES,
       by: coverage.by ?? "spec",
       perRound,
@@ -373,8 +412,16 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   if (!(FEATURE_SETS as readonly string[]).includes(features)) throw new Error(`The option --features is ${FEATURE_SETS.join(" or ")}, not ${features}.`);
   const by = optionOf(argv, "--by") ?? "spec";
   if (by !== "input" && by !== "spec") throw new Error(`The option --by is input or spec, not ${by}.`);
+  const score = optionOf(argv, "--score") ?? ACTIVE_SCORE;
+  if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new Error(`The option --score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
   const { draw: _draw, ...kept } = base;
-  return { ...kept, rounds: wholeOf(argv, "--rounds", DEFAULT_ROUNDS), poolFactor: wholeOf(argv, "--pool", DEFAULT_POOL_FACTOR), coverage: { features: features as FeatureSet, by } };
+  return {
+    ...kept,
+    rounds: wholeOf(argv, "--rounds", DEFAULT_ROUNDS),
+    poolFactor: wholeOf(argv, "--pool", DEFAULT_POOL_FACTOR),
+    coverage: { features: features as FeatureSet, by },
+    score: score as ActiveScore,
+  };
 }
 
 /** This function starts the active draw from the arguments of the command line. It writes `records.jsonl` and `sample.json` into `--out`. */

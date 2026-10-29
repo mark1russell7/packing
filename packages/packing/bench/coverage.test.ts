@@ -211,8 +211,9 @@ describe("the coverage", () => {
     expect(coverage(records, manifest, { date: "2026-10-28", run: 1, measures: [{ id: "pack.fill", tolerance: 0.02, scale: "linear" }, { id: "ms", tolerance: 0.15, scale: "log" }] })).toEqual(summary);
     const bySpec = coverage(records, manifest, { by: "spec", date: "2026-10-28" });
     expect(bySpec.model.by).toBe("spec");
-    expect(bySpec.measures.map((m) => m.id)).toEqual(["pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
-    expect(bySpec.measures[1]!.n).toBe(0);
+    expect(bySpec.measures.map((m) => m.id)).toEqual(["pack.gapToBound", "pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
+    expect(bySpec.measures[0]!.n).toBe(0);
+    expect(bySpec.measures[2]!.n).toBe(0);
   });
 });
 
@@ -544,7 +545,7 @@ describe("the command line", () => {
     expect(s.strata).toMatchObject({ pairs: 1, draw: "uniform" });
     expect(s.strata!.strata.find((x) => x.id === "rows:1")).toEqual({ id: "rows:1", pairs: 1 });
     // The pair has only a fill and a time. A measure without a value has no stratum with pairs.
-    expect(s.strata!.measures.map((m) => m.equal.strata)).toEqual([1, 0, 0, 1]);
+    expect(s.strata!.measures.map((m) => m.equal.strata)).toEqual([0, 1, 0, 0, 1]);
     expect(() => coverageMain([...base, "--sample", join(dir, "none")])).toThrow(/no records.jsonl/);
   });
 
