@@ -859,18 +859,14 @@
       "related": [
         "k39"
       ],
-      "status": "queued",
+      "status": "built",
       "note": null,
       "survey": {
         "gain": 4,
         "uncertainty": 3,
         "cost": 2
       },
-      "queue": {
-        "gain": 4,
-        "uncertainty": 3,
-        "cost": 2
-      },
+      "queue": null,
       "round": 1
     },
     {
