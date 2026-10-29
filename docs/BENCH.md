@@ -72,6 +72,9 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `anneal-skyline-k16` | `anneal` | `member: "skyline"`, `iterations: 16` | `skyline` |
 | `genetic-maxrects-bl-k16` | `genetic` | `member: maxrects-bl`, `iterations: 16`, `population: 4` | `maxrects-bl` |
 | `tabu-maxrects-bl-k16` | `tabu` | `member: maxrects-bl`, `iterations: 16`, `neighbors: 4` | `maxrects-bl` |
+| `relax-rows` | `relax` | `member: "rows"` | `rows` |
+| `relax-maxrects-bl` | `relax` | `member: maxrects-bl` | `maxrects-bl` |
+| `relax-skyline-bl-waste` | `relax` | `member: skyline-bl-waste` | `skyline-bl-waste` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.

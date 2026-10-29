@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { composites, strategies } from "@mark1russell7/packing";
-import { ASPECT_FIT_ENTRIES, ENTRIES, entry, GUILLOTINE_VARIANTS, MAXRECTS_VARIANTS, BBOX_ENTRIES, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, ENTRIES, entry, GUILLOTINE_VARIANTS, MAXRECTS_VARIANTS, BBOX_ENTRIES, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, RELAX_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import {
   boundsMarkdown,
   checkPrediction,
@@ -155,7 +155,10 @@ describe("the benchmark runner", () => {
       expect(own.every((r) => /^unsupported containerSize: (fixed|freeAspect|freeArea)$/.test(r.skipped)), id).toBe(true);
       expect(measured.filter((r) => r.strategy === id).length, id).toBe(inputs.length - own.length);
     }
-    expect(skips.filter((r) => r.strategy !== "push" && !strips.includes(r.strategy))).toEqual([]);
+    // The relax pass of k124 packs only a rectangle container with at most one free side
+    const relax = RELAX_ENTRIES.map((e) => e.id);
+    for (const id of relax) expect(skips.filter((r) => r.strategy === id).map((r) => r.skipped).filter((s) => !/^unsupported (containerSize: (freeAspect|freeArea)|containerShape: [a-z]+)$/.test(s)), id).toEqual([]);
+    expect(skips.filter((r) => r.strategy !== "push" && !strips.includes(r.strategy) && !relax.includes(r.strategy))).toEqual([]);
   });
 
   it("gives each variant of the shelf family its options in each record, over the defaults of shelf", () => {

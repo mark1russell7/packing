@@ -25,6 +25,7 @@ import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-de
 import type { PackInput, PackOutput } from "./contract.ts";
 import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
 import type { AnnealStrategyOptions, GeneticStrategyOptions, TabuStrategyOptions } from "./order-search.ts";
+import type { RelaxStrategyOptions } from "./relax.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
 import { SKYLINE_RULES } from "./skyline.ts";
 import { MEASURE_SPECS } from "./measures.ts";
@@ -113,6 +114,9 @@ const OVERLAP_MIN_PARAMS: readonly SpaceParam[] = [
   { name: "iterations", kind: "int", min: 64, max: 65536, scale: "log", default: 8192 },
   { name: "step", kind: "real", min: 0.001, max: 0.5, scale: "log", default: 0.01 },
 ];
+
+/** The param of `relax` of roadmap item k124: the share of the move from the member layout to the target. */
+const RELAX_PARAMS: readonly SpaceParam[] = [{ name: "strength", kind: "real", min: 0, max: 1, default: 1 }];
 
 /** The param `iterations` of the searches over orders of roadmap item k26: the count of the packs of the member. */
 const SEARCH_ITERATIONS: SpaceParam = { name: "iterations", kind: "int", min: 1, max: 256, scale: "log", default: 64 };
@@ -272,6 +276,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "anneal", params: ANNEAL_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "genetic", params: GENETIC_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "tabu", params: TABU_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "relax", params: RELAX_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
 ];
@@ -311,8 +316,8 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  *
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` and `tabu`.
- * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` and `tabu` have 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu` and `relax`.
+ * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu` and `relax` have 1 member.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
@@ -367,6 +372,10 @@ export const packSpace: StrategySpace = Object.freeze({
     anneal: metaConfig("anneal", [single("maxrects-bl")]),
     genetic: metaConfig("genetic", [single("maxrects-bl")]),
     tabu: metaConfig("tabu", [single("maxrects-bl")]),
+    "relax-rows": metaConfig("relax", [single("rows")]),
+    "relax-maxrects-bl": metaConfig("relax", [single("maxrects-bl")]),
+    "relax-skyline-bl-waste": metaConfig("relax", [single("skyline-bl-waste")]),
+    relax: metaConfig("relax", [single("maxrects-bl")]),
   },
 } satisfies StrategySpace);
 
@@ -474,6 +483,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     tenure: "combine.tabu.tenure",
     neighbors: "combine.tabu.neighbors",
   } satisfies Places<TabuStrategyOptions>,
+  relax: { member: "combine.relax.members", strength: "combine.relax.strength" } satisfies Places<RelaxStrategyOptions>,
   pack: {
     sortOrder: "order",
     space: null,
@@ -666,6 +676,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return packWith("genetic", input, { member: entryOf(members[0]!), iterations: params["iterations"], population: params["population"], mutation: params["mutation"], ...work }, seed);
     case "tabu":
       return packWith("tabu", input, { member: entryOf(members[0]!), iterations: params["iterations"], tenure: params["tenure"], neighbors: params["neighbors"], ...work }, seed);
+    case "relax":
+      return packWith("relax", input, { member: entryOf(members[0]!), strength: params["strength"] }, seed);
     default: {
       const run = runOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);

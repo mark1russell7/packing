@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The composite strategy `relax` (roadmap item k124, catalog row `overlap-vpsc`). It packs with a member, then spreads the slack of each fixed side evenly. The satisfy step of VPSC keeps the order and removes each overlap. The options are `member` and `strength`. Nothing default uses it.
+- `RELAX_STAGE`, `RELAX_MAX_CONSTRAINTS` and `RelaxStrategyOptions`.
+- The bench entries `relax-rows`, `relax-maxrects-bl` and `relax-skyline-bl-waste`, with the move `move.relax`.
+- `packSpace` has the meta option `relax` with the param `strength`.
+
 ## 0.4.0
 
 The balance and the stability by alignment, roadmap item k123. The contract `@mark1russell7/layout-contract` 0.2.19 computes them, so the joint records get the same values.
