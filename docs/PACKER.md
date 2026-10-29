@@ -568,6 +568,20 @@ The CI benchmark measures the entries on the full corpus.
 - In `freeHeight` containers, `restarts-maxrects-bl-k16` is better. The goal box of `ruin-recreate` improves the member by a small step only.
 - An earlier rule ranked a fixed container by the count of placed items first. It gave the fill 0.8780 and the gap 0.1415 for fixed containers.
 
+The CI benchmark (run 40805929127, 2026-10-29) used the 500 inputs of `pack-classes-v1`. The table gives the median `pack.gap`.
+
+| Entry | Gap, all | Gap, fixed | Gap, free |
+|---|---|---|---|
+| `maxrects-bl` | 0.0610 | 0.0350 | 0.0850 |
+| `restarts-maxrects-bl-k16` | 0.0540 | 0.0310 | 0.0750 |
+| `ruin-recreate-maxrects-bl-k64` | 0.0550 | 0.0310 | 0.0840 |
+| `skyline` | 0.1240 | 0.0490 | 0.2030 |
+| `ruin-recreate-skyline-k64` | 0.1150 | 0.0470 | 0.1990 |
+
+- The run has 0 hard breaks and 0 results that are not deterministic.
+- In fixed containers, `ruin-recreate-maxrects-bl-k64` is level with `restarts-maxrects-bl-k16`.
+- In `freeHeight` containers, it gains only 0.001 on its member. The `restarts` entry gains 0.010.
+
 The counts of `packSpace`:
 
 - `combine` gets the option `ruin-recreate` with 1 member and the params `iterations`, `ruin`, `strength` and `shrink`.
