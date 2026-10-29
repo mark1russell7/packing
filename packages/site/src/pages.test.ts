@@ -308,7 +308,11 @@ describe("the space coverage of k105", () => {
     // The data of the site has the strata of the stratified run 40805165103.
     const l = snap.latest.strata!;
     expect(l).toMatchObject({ pairs: 378, draw: "stratified" });
+    // The run came before ruin-recreate:1 of k79. The snapshot keeps its 18 strata, and the site shows only them.
     expect(l.strata).toHaveLength(18);
+    expect(l.strata.some((s) => s.id === "ruin-recreate:1")).toBe(false);
+    expect(snap.latest.measures[0]!.strata!.rows.some((r) => r.stratum === "ruin-recreate:1")).toBe(false);
+    expect(strataRows(snap.latest.measures[0]!, l.strata)).not.toContain("ruin-recreate");
     expect(l.strata.find((s) => s.id === "hole-degree:1")).toEqual({ id: "hole-degree:1", pairs: 0, configs: "33", missed: 22 });
     for (const x of snap.latest.measures) {
       expect(x.strata!.strata).toBe(17);

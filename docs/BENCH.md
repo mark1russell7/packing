@@ -1078,8 +1078,8 @@ A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `ben
 - A meta option of the stage `combine` is its own family. Its size is its count of members.
 - `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
 - `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
-- `select` has 2 members. `aspect-fit`, `restarts` and `bbox` have 1 member. Each one is one stratum. The family of their member does not count.
-- Thus `packSpace` has 18 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- `select` has 2 members. `aspect-fit`, `restarts`, `bbox` and `ruin-recreate` have 1 member. Each one is one stratum. The family of their member does not count.
+- Thus `packSpace` has 19 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
 - A new option of `placement` or `combine` gives new strata.
 
 ```sh
@@ -1088,7 +1088,7 @@ node bench/sample-space.ts --out <folder>/sample --n 400 --seed 1 --stratify
 
 The stratified draw:
 
-1. Pair `i` takes the stratum `i` modulo 18. Thus the counts of the strata differ by 1 or less, also after the time limit.
+1. Pair `i` takes the stratum `i` modulo 19. Thus the counts of the strata differ by 1 or less, also after the time limit.
 2. The config is uniform over the configs of its stratum. The draw of the input and the rejections stay as in the uniform draw.
 3. A rejected config goes back, and the script draws a new config of the same stratum.
 4. The same seed gives the same pairs. `--draw stratified` is the same as `--stratify`. The default draw stays `uniform`.
@@ -1108,6 +1108,8 @@ The script `coverage.ts --sample` adds the section `strata` next to the section 
 - Each stratum gets its hits, its share and its Wilson 95% interval, with the errors of the section `sampled`.
 - A stratum without pairs has the share `null` and the interval `null`, not 0. It is not in the mean.
 - With the strata of `sample.json`, each stratum of the section also has its `configs` and its `missed` pairs.
+- With the strata of `sample.json`, the section has only those strata. A stratum that the code added after the run gets no row.
+- For example, the CI run `40805165103` came before `ruin-recreate:1` of k79. Thus its section has 18 strata.
 - `equal` is the mean of the shares of the strata with pairs. Each stratum has the weight `1/k`.
 
 The interval of the mean:
@@ -1118,7 +1120,7 @@ The interval of the mean:
 - The adjustment gives a variance above 0 to a share of 0 or 1. It does not move the center of the interval.
 - Before the fix of k115, the center was the mean of the adjusted shares. Each stratum added approximately `1.92 / (n + 3.84)` to it.
 - Thus with 22 pairs for each stratum, the old interval of a small share started above the share.
-- 400 pairs give 22 or 23 pairs for each stratum. The half width of the mean is then approximately 0.05 or less.
+- 400 pairs give 21 or 22 pairs for each stratum. The half width of the mean is then approximately 0.05 or less.
 
 Why the two numbers differ:
 

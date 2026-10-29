@@ -924,10 +924,14 @@ export function strataCoverage(
   return strataFrom(heldOut(records, manifest, sampled, options), sample, strata);
 }
 
-/** This function gives the section `strata` from the held-out errors. The strata of `sample.json` add their counts of configs and of missed pairs. */
+/**
+ * This function gives the section `strata` from the held-out errors. The strata of `sample.json` add their counts of configs and of missed pairs.
+ * With the strata of `sample.json`, the section has only those strata. Thus a stratum that the code added after the run gets no row.
+ */
 function strataFrom(h: HeldOut, sample?: SampleFacts, facts?: SampleStrata): StrataCoverage {
   const of = h.pairs.map((r) => stratumOf(packSpace, r.config));
-  const ids = [...PACK_STRATA, ...[...new Set(of)].filter((id) => !PACK_STRATA.includes(id)).sort()];
+  const known = facts === undefined ? PACK_STRATA : Object.keys(facts);
+  const ids = [...known, ...[...new Set(of)].filter((id) => !known.includes(id)).sort()];
   const pairs = new Map(ids.map((id) => [id, 0]));
   for (const id of of) pairs.set(id, pairs.get(id)! + 1);
   const measures = h.measures.map(({ m, errors, at }): StrataMeasure => {

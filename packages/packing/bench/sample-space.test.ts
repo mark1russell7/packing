@@ -202,7 +202,7 @@ describe("the sample of pairs", () => {
   });
 
   it("keeps the uniform draw: the same configs as before k115, and no strata in the summary", () => {
-    // The config ids of the first 4 pairs of the seed 20 come from the sampler of main before k115, with k23, k90 and k117.
+    // The config ids of the first 4 pairs of the seed 20 come from the sampler of main before k115, with k23, k90, k117 and k79.
     const a = sampleSpace({ ...options, clock: fakeClock() });
     expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["ce6d8bf386fbb8a6", "58da5ef5c70859cc", "c2b0e4f380f82b0d", "d49ccb0bd735314d"]);
     expect(a.summary.draw).toBe("uniform");
@@ -211,7 +211,7 @@ describe("the sample of pairs", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 18 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 19 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -233,6 +233,7 @@ describe("the strata of k115", () => {
       "aspect-fit:1",
       "restarts:1",
       "bbox:1",
+      "ruin-recreate:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
     expect(strata.reduce((s, x) => s + x.configs, 0n)).toBe(total);
@@ -306,7 +307,7 @@ describe("the strata of k115", () => {
     for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 1] : [id, 1, 0]);
     expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
     expect(a.records).toHaveLength(strata.length - 1);
-    // Pair i takes the stratum i modulo 18.
+    // Pair i takes the stratum i modulo 19.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
     expect(b.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash])).toEqual(a.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash]));
@@ -315,7 +316,7 @@ describe("the strata of k115", () => {
   it("closes a stratum that no sampled input accepts after one miss, and counts its later pairs as missed", () => {
     expect(MAX_STRATUM_MISSES).toBe(1);
     const strata = strataOf(packSpace).map((s) => s.id);
-    // The pairs at, at + 18 and at + 36 take hole-degree:1. Only the first of them draws inputs.
+    // The pairs at, at + k and at + 2k take hole-degree:1. Only the first of them draws inputs.
     // The other pairs are base configs of the space, so the test packs no composite. A pair tries at most 60 inputs.
     const at = strata.indexOf("hole-degree:1");
     const tries = 60;

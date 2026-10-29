@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { packSpace } from "@mark1russell7/packing";
+import { strataOf } from "./sample-space.ts";
 import {
   coverage,
   coverageMain,
@@ -326,7 +327,9 @@ describe("the strata of the whole space of k115", () => {
     expect(out.pairs).toBe(4);
     expect(out.draw).toBeNull();
     expect(out.strata.map((s) => s.id).slice(0, 7)).toEqual(["rows:1", "skyline:1", "shelf:1", "maxrects:1", "guillotine:1", "push:1", "hole-degree:1"]);
-    expect(out.strata).toHaveLength(18);
+    // Without the strata of sample.json, the section has the 19 strata of packSpace.
+    expect(out.strata).toHaveLength(19);
+    expect(out.strata.at(-1)!.id).toBe("ruin-recreate:1");
     expect(out.strata.filter((s) => s.pairs > 0)).toEqual([
       { id: "rows:1", pairs: 2 },
       { id: "maxrects:1", pairs: 2 },
@@ -350,8 +353,17 @@ describe("the strata of the whole space of k115", () => {
     const out = strataCoverage(records, manifest, sampled, { measures: [fill] }, undefined, facts);
     expect(out.strata.find((s) => s.id === "hole-degree:1")).toEqual({ id: "hole-degree:1", pairs: 0, configs: "33", missed: 3 });
     expect(out.strata.find((s) => s.id === "rows:1")).toEqual({ id: "rows:1", pairs: 1, configs: "905", missed: 0 });
-    // A stratum that sample.json does not name has no counts.
-    expect(out.strata.find((s) => s.id === "push:1")).toEqual({ id: "push:1", pairs: 0 });
+    // The section has only the strata of sample.json. A stratum of the code that the run did not know has no row: ruin-recreate:1 of k79.
+    expect(out.strata.map((s) => s.id)).toEqual(["rows:1", "maxrects:1", "hole-degree:1"]);
+    expect(out.measures[0]!.strata.map((s) => s.stratum)).toEqual(["rows:1", "maxrects:1", "hole-degree:1"]);
+    expect(strataOf(packSpace).some((s) => s.id === "ruin-recreate:1")).toBe(true);
+    // A pair of a stratum that sample.json does not name gets a row after them, without counts.
+    const extra = strataCoverage(records, manifest, sampled, { measures: [fill] }, undefined, { "rows:1": facts["rows:1"], "hole-degree:1": facts["hole-degree:1"] });
+    expect(extra.strata).toEqual([
+      { id: "rows:1", pairs: 1, configs: "905", missed: 0 },
+      { id: "hole-degree:1", pairs: 0, configs: "33", missed: 3 },
+      { id: "maxrects:1", pairs: 1 },
+    ]);
     const m = out.measures[0]!;
     expect(m.strata.find((s) => s.stratum === "hole-degree:1")).toEqual({ stratum: "hole-degree:1", n: 0, hits: 0, share: null, wilson: null });
     expect(m.equal.strata).toBe(2);
