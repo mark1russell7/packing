@@ -36,6 +36,15 @@ export const SKYLINE_VARIANTS: readonly BenchEntry[] = Object.freeze([
 ]);
 
 /**
+ * The entries of the guillotine family of roadmap item k23. The entry `guillotine-baf-sas` has the defaults of `guillotine`.
+ * The other entry has no base entry: `guillotine-bssf-sas` is not an entry. The corpora have no turnable items, thus no entry turns.
+ */
+export const GUILLOTINE_VARIANTS: readonly BenchEntry[] = Object.freeze([
+  { id: "guillotine-baf-sas", strategy: "guillotine", options: { choice: "baf", split: "sas" } },
+  { id: "guillotine-bssf-sas-merge", strategy: "guillotine", options: { choice: "bssf", split: "sas", merge: true } },
+]);
+
+/**
  * The entries of the MaxRects family of roadmap item k24: one entry for each rule. Their base is `maxrects-bl`, because the
  * move of each other rule is a place that is not the place of `bl`.
  */
@@ -122,7 +131,7 @@ export function isComposite(id: string): boolean {
 }
 
 /** The strategies of the registry with no entry of their own. The variants of each rule replace them. */
-const VARIANTS_ONLY: ReadonlySet<string> = new Set(["maxrects"]);
+const VARIANTS_ONLY: ReadonlySet<string> = new Set(["maxrects", "guillotine"]);
 
 /** The entries of the benchmark: each strategy of the registry, then the variants, then the composite entries. */
 export const ENTRIES: readonly BenchEntry[] = Object.freeze([
@@ -130,6 +139,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...SHELF_VARIANTS,
   ...MAXRECTS_VARIANTS,
   ...SKYLINE_VARIANTS,
+  ...GUILLOTINE_VARIANTS,
   ...PORTFOLIO_ENTRIES,
   ...ASPECT_FIT_ENTRIES,
   ...SELECT_ENTRIES,

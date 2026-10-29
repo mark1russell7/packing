@@ -2,7 +2,7 @@
 // A new strategy, entry or option that a page does not offer fails this test.
 
 import { readFileSync } from "node:fs";
-import { composites, corpusFamilies, strategies, strategy } from "@mark1russell7/packing";
+import { composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, strategies, strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
@@ -68,6 +68,18 @@ describe("the demo", () => {
       expect(pickers.length, id).toBe(1);
       for (const c of pickers) if (c.kind === "entry" || c.kind === "members") for (const v of c.values) expect(ids).toContain(v);
     }
+  });
+
+  it("offers guillotine with each rule to choose and to split, the turn and the merge", () => {
+    expect(DEMO_IDS).toContain("guillotine");
+    expect(COMPARE_ENTRIES.map((e) => e.id)).toEqual(expect.arrayContaining(["guillotine-baf-sas", "guillotine-bssf-sas-merge"]));
+    const controls = Object.fromEntries(optionControls("guillotine").map((c) => [c.key, c]));
+    expect(controls["choice"]).toMatchObject({ kind: "select", values: [...GUILLOTINE_CHOICES], value: "baf" });
+    expect(controls["split"]).toMatchObject({ kind: "select", values: [...GUILLOTINE_SPLITS], value: "sas" });
+    expect(controls["rotate"]).toMatchObject({ kind: "flag", value: false });
+    expect(controls["merge"]).toMatchObject({ kind: "flag", value: false });
+    const options = packOptions("guillotine", { ...startValues("guillotine"), choice: "wlsf", split: "maxas", merge: true });
+    expect(options).toMatchObject({ choice: "wlsf", split: "maxas", rotate: false, merge: true });
   });
 
   it("gives restarts its member as a named entry with its options", () => {

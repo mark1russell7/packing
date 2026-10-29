@@ -4,6 +4,8 @@
 
 import {
   ASPECT_FIT_FACTORS,
+  GUILLOTINE_CHOICES,
+  GUILLOTINE_SPLITS,
   MAXRECTS_RULES,
   RESTART_PERTURBS,
   SHELF_FITS,
@@ -13,6 +15,7 @@ import {
   type BboxStrategyOptions,
   type Dimension,
   type DimensionValue,
+  type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
   type MaxRectsStrategyOptions,
   type PortfolioStrategyOptions,
@@ -59,6 +62,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   skyline: { stage: "placement" },
   shelf: { stage: "placement" },
   maxrects: { stage: "placement" },
+  guillotine: { stage: "placement" },
   push: { stage: "local-search" },
   "aspect-fit": {
     stage: "size-search",
@@ -228,6 +232,7 @@ type AnyOptions = LayoutStrategyOptions &
   SelectStrategyOptions &
   RestartsStrategyOptions &
   BboxStrategyOptions &
+  GuillotineStrategyOptions &
   Omit<SkylineStrategyOptions, "rule">;
 
 /** The type and the note of an option */
@@ -264,6 +269,9 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
   turn: { type: "boolean", note: "The value `true` lets `bbox` turn each turnable item to the lower box." },
   wasteMap: { type: "boolean", note: "The value `true` keeps the free areas below the skyline, and each box tries them first." },
+  choice: { type: oneOf(GUILLOTINE_CHOICES), note: "The rule of `guillotine` to choose a free rectangle: the best or the worst fit by area, short side or long side." },
+  split: { type: oneOf(GUILLOTINE_SPLITS), note: "The rule of `guillotine` to cut the rest of a free rectangle: by the leftover axis, the axis or the area." },
+  merge: { type: "boolean", note: "The value `true` joins two free rectangles of `guillotine` with a common full edge after each box." },
 };
 
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */

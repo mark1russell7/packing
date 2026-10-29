@@ -345,7 +345,7 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - The measures read the box that `bbox` places for a shape item: the bounding box of the shape at its place, not `w` by `h` (roadmap item k113).
 - Thus the hull, `pack.fill`, `pack.whitespace`, the overflow measures and `pack.shapeFill` use the same boxes. Each share stays from 0 to 1.
 - In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.
-- Thus `spaceSize` with a shape kind counts the `bbox` configs: 1620 meta configs with 3 levels, and 340 with 1 level. It counts 0 base configs.
+- Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level. It counts 0 base configs.
 
 ## The registry
 
