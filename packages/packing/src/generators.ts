@@ -14,12 +14,14 @@ import {
   type GenerateContext,
   type LayoutInput,
 } from "@mark1russell7/layout-contract";
-import type { Item, LayoutContainer, Obstacle, Region } from "./contract.ts";
+import { checkHard } from "./check.ts";
+import { DEFAULT_TOLERANCE, type Item, type LayoutContainer, type Obstacle, type PackOutput, type Region } from "./contract.ts";
 import {
   countCell,
   fnv1a32,
   hashInput,
   round3,
+  toPackInput,
   type CorpusCell,
   type GeneratorParams,
   type GeneratedInput,
@@ -1556,10 +1558,21 @@ const numberOf = (dims: DimensionValues, name: string): number => {
   return v;
 };
 
+/** This function tells if a locked box at its input position stays clear of each obstacle and in the container, by the rules of `checkHard`. */
+function lockedClear(box: Item, file: Pick<GeneratedInput, "container" | "obstacles">): boolean {
+  const input = toPackInput({ container: file.container, boxes: [box], ...(file.obstacles === undefined ? {} : { obstacles: file.obstacles }) });
+  const output: PackOutput = { placements: [{ id: box.id, x: box.x ?? 0, y: box.y ?? 0 }], overflow: [], size: { w: 0, h: 0 }, moved: [] };
+  const hard = checkHard(input, output, DEFAULT_TOLERANCE);
+  return hard["no-overlap"] === 0 && hard["in-container"] === 0;
+}
+
 /**
  * This function gives an input with the knobs over it. A margin above 0 goes on each box, and a gap above 0 goes on the
  * input. Each value above 0 adds a part to the family: `.m<margin>` and `.g<gap>`. Then the id and the hash change.
  * The registry refuses a shape other than `rect` before this function, because `shape` supports `rect` only.
+ *
+ * A locked box gets the margin only when it stays clear of each obstacle and in the container with the margin (roadmap
+ * item k114). The packer does not move a locked box. Thus a margin over an obstacle is a break that no output can remove.
  */
 function withKnobs(file: GeneratedInput, dims: DimensionValues): GeneratedInput {
   const margin = round3(numberOf(dims, "margin"));
@@ -1572,7 +1585,7 @@ function withKnobs(file: GeneratedInput, dims: DimensionValues): GeneratedInput 
     ...rest,
     id: `${rest.set}/${family}/s${rest.seed}`,
     family,
-    boxes: margin === 0 ? rest.boxes : rest.boxes.map((b) => ({ ...b, margin })),
+    boxes: margin === 0 ? rest.boxes : rest.boxes.map((b) => (b.locked === true && !lockedClear({ ...b, margin }, rest) ? b : { ...b, margin })),
     ...(gap === 0 ? {} : { gap }),
   };
   return { ...body, hash: hashInput(body) };
