@@ -5,6 +5,7 @@ export { packSkyline, lowestWindow, SKYLINE_RULES, type SkylineOptions, type Sky
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
 export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule } from "./maxrects.ts";
+export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
 export { compareRects, SORT_ORDERS, type SortOrder } from "./order.ts";
 export { pushCascade, type PushOptions } from "./push.ts";
@@ -71,12 +72,14 @@ export {
   type Supports,
 } from "./strategy.ts";
 export {
+  guillotine,
   logSweep,
   maxrects,
   push,
   rows,
   shelf,
   skyline,
+  type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
   type MaxRectsStrategyOptions,
   type SkylineStrategyOptions,

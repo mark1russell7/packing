@@ -3,6 +3,7 @@
 import { EPS, type PackInput, type PackOutput } from "./contract.ts";
 import { boundsOf, buildFrame, frameTurn, now, outerOf, readFrame, rectsOf, viaAxes, type Entry, type Frame, type FrameTurns } from "./frame.ts";
 import { packFree } from "./free.ts";
+import type { GuillotineChoice, GuillotineSplit } from "./guillotine.ts";
 import type { MaxRectsRule } from "./maxrects.ts";
 import { clearMoves, moveCount, MOVES } from "./moves.ts";
 import type { SortOrder } from "./order.ts";
@@ -41,15 +42,16 @@ export interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
 }
 
 /** The id of a strategy of `pack`. */
-type LayoutId = "rows" | "skyline" | "shelf" | "maxrects";
+type LayoutId = "rows" | "skyline" | "shelf" | "maxrects" | "guillotine";
 
 /** The options of a strategy of `pack`: the options of `maxrects` are optional for the other strategies. */
 type AnyLayoutOptions = LayoutStrategyOptions &
   Partial<Pick<MaxRectsStrategyOptions, "rotate" | "bandHeight">> &
-  Partial<Pick<SkylineStrategyOptions, "wasteMap">> & { rule?: MaxRectsRule | SkylineRule };
+  Partial<Pick<SkylineStrategyOptions, "wasteMap">> &
+  Partial<Pick<GuillotineStrategyOptions, "choice" | "split" | "merge">> & { rule?: MaxRectsRule | SkylineRule };
 
 /** The options of `pack` that a strategy adds to the sort order and the space. */
-type PackExtras = Pick<PackLayoutOptions, "fit" | "rule" | "bandHeight" | "skylineRule" | "wasteMap" | "turnable" | "turned">;
+type PackExtras = Pick<PackLayoutOptions, "fit" | "rule" | "bandHeight" | "skylineRule" | "wasteMap" | "choice" | "split" | "merge" | "turnable" | "turned">;
 
 /** The options of the strategy `skyline`. The strategy does not read `fit`. */
 export interface SkylineStrategyOptions extends LayoutStrategyOptions {
@@ -59,6 +61,18 @@ export interface SkylineStrategyOptions extends LayoutStrategyOptions {
   wasteMap: boolean;
   /** The value `true` lets each turnable item that is not locked turn by 90 degrees. The default is `false`. */
   rotate: boolean;
+}
+
+/** The options of the strategy `guillotine`. The strategy does not read `fit`. */
+export interface GuillotineStrategyOptions extends LayoutStrategyOptions {
+  /** The rule to choose a free rectangle: `baf` (the default) or another rule of `GUILLOTINE_CHOICES`. */
+  choice: GuillotineChoice;
+  /** The rule to split a free rectangle: `sas` (the default) or another rule of `GUILLOTINE_SPLITS`. */
+  split: GuillotineSplit;
+  /** The value `true` lets each turnable item that is not locked turn by 90 degrees. The default is `false`. */
+  rotate: boolean;
+  /** The value `true` joins two free rectangles with a common full edge after each item. The default is `false`. */
+  merge: boolean;
 }
 
 /** The options of the strategy `push`. */
@@ -109,6 +123,8 @@ function extrasOf(id: LayoutId, options: AnyLayoutOptions, frame: Frame): PackEx
     if (options.wasteMap === true) out.wasteMap = true;
   } else if (id === "maxrects") {
     out = { rule: (options.rule as MaxRectsRule | undefined) ?? "bssf", ...(options.bandHeight === undefined ? {} : { bandHeight: options.bandHeight }) };
+  } else if (id === "guillotine") {
+    out = { choice: options.choice ?? "baf", split: options.split ?? "sas", ...(options.merge === true ? { merge: true } : {}) };
   } else return {};
   if (options.rotate !== true) return out;
   const turnable = new Set(frame.entries.filter((e) => e.item?.turnable === true && !e.rect.locked).map((e) => e.rect));
@@ -132,6 +148,7 @@ function movesOf(id: LayoutId, extras: PackExtras): Record<string, number> {
     return out;
   }
   const out: Record<string, number> = { [MOVES[id]]: moveCount(MOVES[id]) };
+  if (id === "guillotine" && extras.merge === true) out[MOVES.merge] = moveCount(MOVES.merge);
   if (extras.fit !== undefined) for (const move of [MOVES.firstFit, MOVES.bestFit]) out[move] = moveCount(move);
   return out;
 }
@@ -144,7 +161,7 @@ function turnsOf(extras: PackExtras, transposed: boolean): FrameTurns | undefine
 /** This function packs an input with a fixed size or a fixed width with one strategy of `pack`. */
 function packFixedWidth(id: LayoutId, input: PackInput, options: AnyLayoutOptions, transposed = false): PackOutput {
   const start = now();
-  const frame = buildFrame(input, false, (id === "maxrects" || id === "skyline") && options.rotate === true);
+  const frame = buildFrame(input, false, (id === "maxrects" || id === "skyline" || id === "guillotine") && options.rotate === true);
   const rects = rectsOf(frame);
   const extras = extrasOf(id, options, frame);
   clearMoves();
@@ -239,18 +256,33 @@ export const maxrects: Strategy<MaxRectsStrategyOptions> = layoutStrategy(
 );
 
 /**
+ * The strategy `guillotine` uses `packGuillotine`: the guillotine packer of roadmap item k23. It keeps a list of free
+ * rectangles that do not overlap. The option `choice` chooses the free rectangle, and the option `split` cuts the rest.
+ *
+ * - The free rectangles go around the locked items and the fixed obstacles, with the walls of `maxrects`.
+ * - With `rotate`, each turnable item that is not locked can turn by 90 degrees. Groups and item shapes throw `UnsupportedCell`.
+ */
+export const guillotine: Strategy<GuillotineStrategyOptions> = layoutStrategy(
+  "guillotine",
+  "guillotine",
+  ["guillotine-<choice>-<split>"],
+  { obstacleMove: ["fixed"], order: ["free", "soft"], rotation: ["none", "quarter"] },
+  { ...LAYOUT_DEFAULTS, choice: "baf", split: "sas", rotate: false, merge: false },
+);
+
+/**
  * The size search `log-sweep` uses `packFree` of 0.1.2: widths on a log scale, then the widths near the best width. It
- * wraps `rows`, `skyline`, `shelf` and `maxrects`. The objective is the area of the frame times `1 + aspectWeight * aspectError`.
+ * wraps `rows`, `skyline`, `shelf`, `maxrects` and `guillotine`. The objective is the area of the frame times `1 + aspectWeight * aspectError`.
  */
 export const logSweep: SizeSearch = {
   id: "log-sweep",
   search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput {
     if (input.container.fixed !== "none") return inner.pack(input, options ?? inner.defaults, context);
     const id = inner.id;
-    if (id !== "rows" && id !== "skyline" && id !== "shelf" && id !== "maxrects") throw new UnsupportedCell("containerSize", cellOf(input).containerSize);
+    if (id !== "rows" && id !== "skyline" && id !== "shelf" && id !== "maxrects" && id !== "guillotine") throw new UnsupportedCell("containerSize", cellOf(input).containerSize);
     const o = { ...(inner.defaults as AnyLayoutOptions), ...(options as Partial<AnyLayoutOptions> | undefined) };
     const start = now();
-    const frame = buildFrame(input, false, (id === "maxrects" || id === "skyline") && o.rotate === true);
+    const frame = buildFrame(input, false, (id === "maxrects" || id === "skyline" || id === "guillotine") && o.rotate === true);
     const extras = extrasOf(id, o, frame);
     const result = packFree(rectsOf(frame), new Rect<number>(), {
       strategy: id,

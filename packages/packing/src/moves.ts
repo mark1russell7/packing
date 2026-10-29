@@ -17,6 +17,8 @@ export const MOVES: Readonly<{
   split: "move.split";
   minWaste: "move.minWaste";
   wasteFill: "move.wasteFill";
+  guillotine: "move.freeChoice";
+  merge: "move.merge";
 }> = Object.freeze({
   /** A rectangle that the gap fill of `packRow` places in a gap of a row: under a shorter neighbor, or at the row break. */
   rows: "move.gapFill",
@@ -47,6 +49,10 @@ export const MOVES: Readonly<{
   minWaste: "move.minWaste",
   /** A rectangle that the waste map of the skyline puts in a free rectangle below the skyline. */
   wasteFill: "move.wasteFill",
+  /** A rectangle that the choice rule of `guillotine` puts in a free rectangle that is not the first free rectangle where it fits. */
+  guillotine: "move.freeChoice",
+  /** Two free rectangles of `guillotine` with a common full edge that the option `merge` joins into one. */
+  merge: "move.merge",
 });
 
 const counts = new Map<string, number>();

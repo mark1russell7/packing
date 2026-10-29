@@ -1,4 +1,4 @@
-import { maxrects, push, rows, shelf, skyline } from "./adapters.ts";
+import { guillotine, maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { aspectFit } from "./aspect-fit.ts";
 import { bboxStrategy } from "./bbox.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
@@ -8,7 +8,7 @@ import { selectStrategy } from "./select.ts";
 import { createContext, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 
 /** Each single strategy of the package. The benchmark starts each one on each input of the corpus. */
-export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects] as Strategy[]);
+export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects, guillotine] as Strategy[]);
 
 /** The options of the strategy `aspect-fit` */
 export interface AspectFitStrategyOptions {

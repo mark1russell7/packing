@@ -19,9 +19,10 @@ import {
   type StrategyConfig,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import type { LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
+import type { GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
+import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
 import { SKYLINE_RULES } from "./skyline.ts";
 import { MEASURE_SPECS } from "./measures.ts";
@@ -93,7 +94,7 @@ const choice = (option: string, params: Record<string, string | number | boolean
  */
 export function baseConfig(id: string, options: Readonly<Record<string, unknown>> = {}): StrategyConfig {
   const o = { ...(strategy(id).defaults as Record<string, unknown>), ...options };
-  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap"];
+  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap", "choice", "split", "merge"];
   for (const key of Object.keys(o)) if (!known.includes(key) || (key === "fit" && id !== "shelf")) throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
   const stages: Record<string, StageChoice | null> = { order: choice(String(o["sortOrder"])), "local-search": choice("none") };
   if (id === "push") {
@@ -107,7 +108,9 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
     const bands = o["bandHeight"] === undefined ? { fixedBands: false } : { fixedBands: true, bandHeight: o["bandHeight"] as number };
     stages["placement"] = choice("maxrects", { rule: o["rule"] as string, rotate: o["rotate"] as boolean, ...bands });
   } else if (id === "skyline") stages["placement"] = choice("skyline", { rule: o["rule"] as string, wasteMap: o["wasteMap"] as boolean, rotate: o["rotate"] as boolean });
-  else if (id === "rows") stages["placement"] = choice(id);
+  else if (id === "guillotine") {
+    stages["placement"] = choice("guillotine", { choice: o["choice"] as string, split: o["split"] as string, rotate: o["rotate"] as boolean, merge: o["merge"] as boolean });
+  } else if (id === "rows") stages["placement"] = choice(id);
   else throw new RangeError(`The strategy ${id} is not a single strategy of the space packing.`);
   return { space: ENGINE, stages };
 }
@@ -160,6 +163,16 @@ const STAGES: readonly SpaceStage[] = [
         ],
         supports: RECT_ONLY,
       },
+      {
+        id: "guillotine",
+        params: [
+          { name: "choice", kind: "enum", values: [...GUILLOTINE_CHOICES], default: "baf" },
+          { name: "split", kind: "enum", values: [...GUILLOTINE_SPLITS], default: "sas" },
+          { name: "rotate", kind: "bool", default: false },
+          { name: "merge", kind: "bool", default: false },
+        ],
+        supports: RECT_ONLY,
+      },
       { id: "push", params: [{ name: "maxShovesPerItem", kind: "int", min: 1, max: 64, scale: "log", default: 8 }], supports: RECT_ONLY },
     ],
   },
@@ -198,6 +211,9 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "skyline-mw-waste": baseConfig("skyline", { rule: "mw", wasteMap: true }),
   ...Object.fromEntries(MAXRECTS_RULES.map((rule) => [`maxrects-${rule}`, baseConfig("maxrects", { rule })])),
   maxrects: baseConfig("maxrects"),
+  "guillotine-baf-sas": baseConfig("guillotine"),
+  "guillotine-bssf-sas-merge": baseConfig("guillotine", { choice: "bssf", merge: true }),
+  guillotine: baseConfig("guillotine"),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;
@@ -290,6 +306,13 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     rotate: "placement.maxrects.rotate",
     bandHeight: "placement.maxrects.bandHeight",
   } satisfies Places<MaxRectsStrategyOptions>,
+  guillotine: {
+    ...LAYOUT_PLACES,
+    choice: "placement.guillotine.choice",
+    split: "placement.guillotine.split",
+    rotate: "placement.guillotine.rotate",
+    merge: "placement.guillotine.merge",
+  } satisfies Places<GuillotineStrategyOptions>,
   push: { sortOrder: "order", maxShovesPerItem: "placement.push.maxShovesPerItem" } satisfies Places<PushStrategyOptions>,
   portfolio: PORTFOLIO_PLACES,
   "aspect-fit": {
@@ -317,6 +340,9 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     bandHeight: "placement.maxrects.bandHeight",
     skylineRule: "placement.skyline.rule",
     wasteMap: "placement.skyline.wasteMap",
+    choice: "placement.guillotine.choice",
+    split: "placement.guillotine.split",
+    merge: "placement.guillotine.merge",
     turnable: null,
     turned: null,
   } satisfies Places<PackLayoutOptions>,
@@ -333,8 +359,9 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
   "rows.fit": ONLY_SHELF,
   "skyline.fit": ONLY_SHELF,
   "maxrects.fit": ONLY_SHELF,
+  "guillotine.fit": ONLY_SHELF,
   "pack.space": "It is an object: the free space of the container. `pack` gets it from the input, not from a choice.",
-  "pack.turnable": "It is a set of rectangles of the input. The params `placement.maxrects.rotate` and `placement.skyline.rotate` make it.",
+  "pack.turnable": "It is a set of rectangles of the input. The `rotate` params of `maxrects`, `skyline` and `guillotine` make it.",
   "pack.turned": "It is a set that `pack` fills with the turned rectangles. It holds a result, not a choice.",
 });
 
@@ -384,6 +411,12 @@ function runOf(config: StrategyConfig): Run {
     options["rule"] = p["rule"];
     options["rotate"] = p["rotate"];
     if (p["fixedBands"] === true) options["bandHeight"] = p["bandHeight"];
+  }
+  if (place.option === "guillotine") {
+    options["choice"] = p["choice"];
+    options["split"] = p["split"];
+    options["rotate"] = p["rotate"];
+    options["merge"] = p["merge"];
   }
   return { strategy: place.option, options };
 }

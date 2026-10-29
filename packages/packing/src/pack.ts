@@ -1,3 +1,4 @@
+import { packGuillotine, type GuillotineChoice, type GuillotineSplit } from "./guillotine.ts";
 import { packMaxRects, type MaxRectsRule } from "./maxrects.ts";
 import { clearMoves, countMove, moveCount, MOVES } from "./moves.ts";
 import { compareRects, type SortOrder } from "./order.ts";
@@ -21,10 +22,10 @@ export interface PackOptions {
 /** The options of `pack` */
 export interface PackLayoutOptions extends PackOptions {
   /**
-   * The packing: `rows` (the default), `skyline`, `shelf` or `maxrects`. `skyline`, `shelf` and `maxrects` pack around
+   * The packing: `rows` (the default), `skyline`, `shelf`, `maxrects` or `guillotine`. Each one but `rows` packs around
    * locked rectangles. Use `shelf` with the sort order `input` to keep the order of the array around locked rectangles.
    */
-  strategy?: "rows" | "skyline" | "shelf" | "maxrects";
+  strategy?: "rows" | "skyline" | "shelf" | "maxrects" | "guillotine";
   /** The rule of `shelf` to choose a shelf. Only `shelf` reads it. `ShelfOptions` tells it. Without it, `shelf` packs as in 0.2.3. */
   fit?: ShelfFit;
   /** The rule of `maxrects` to choose a free rectangle. Only `maxrects` reads it. The default is `bssf`. */
@@ -35,9 +36,15 @@ export interface PackLayoutOptions extends PackOptions {
   skylineRule?: SkylineRule;
   /** The value `true` gives `skyline` a waste map. Only `skyline` reads it. `SkylineOptions` tells it. */
   wasteMap?: boolean;
-  /** The rectangles that `maxrects` and `skyline` can turn by 90 degrees. */
+  /** The rule of `guillotine` to choose a free rectangle. Only `guillotine` reads it. The default is `baf`. */
+  choice?: GuillotineChoice;
+  /** The rule of `guillotine` to split a free rectangle. Only `guillotine` reads it. The default is `sas`. */
+  split?: GuillotineSplit;
+  /** The value `true` gives `guillotine` the rectangle merge. Only `guillotine` reads it. `GuillotineOptions` tells it. */
+  merge?: boolean;
+  /** The rectangles that `maxrects`, `skyline` and `guillotine` can turn by 90 degrees. */
   turnable?: ReadonlySet<unknown>;
-  /** The rectangles that `maxrects` and `skyline` turned. `MaxRectsOptions` tells it. */
+  /** The rectangles that `maxrects`, `skyline` and `guillotine` turned. `MaxRectsOptions` tells it. */
   turned?: Set<unknown>;
 }
 
@@ -273,7 +280,7 @@ export function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options: PackOptio
  *   This width is not less than the width of the widest rectangle. The height grows until all rectangles fit.
  * - With `fixedWidth`, the width stays. A rectangle wider than that width goes on its own row and overflows.
  * - With `fixedSize`, a rectangle that does not fit is not packed: its `wasPacked` stays `false`.
- * - `options.strategy` selects `packRows` (the default), `packSkyline`, `packShelf` or `packMaxRects` after the width is set.
+ * - `options.strategy` selects `packRows` (the default), `packSkyline`, `packShelf`, `packMaxRects` or `packGuillotine` after the width is set.
  */
 export function pack<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), options: PackLayoutOptions = {}): Rect<T> {
   let totalArea = 0;
@@ -301,6 +308,7 @@ export function pack<T>(rects: Rect<T>[], outer: Rect<T> = new Rect(), options: 
   }
   else if (options.strategy === "shelf") packShelf(rects, outer, options);
   else if (options.strategy === "maxrects") packMaxRects(rects, outer, options);
+  else if (options.strategy === "guillotine") packGuillotine(rects, outer, options);
   else packRows(rects, outer, options);
 
   if (!outer.fixedSize) {
