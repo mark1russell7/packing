@@ -1266,6 +1266,14 @@ The bounds:
 - The tolerance makes each piece smaller by `t / 2` on each side, as before. The slack of the free area is `2 * t` along each edge.
 - With no margin and no gap, the bounds and the measures are the same as before k118. A test of `src/bounds.test.ts` checks each bound against an exhaustive optimum with a margin, a gap and both.
 - A strategy that does not keep the gap can get a result better than a bound with the gap. Then `pack.gap` is below 0, and the smoke check fails.
+- The test of `bench/sample-space.test.ts` checks `0 <= pack.gap <= 1` on sampled pairs of `packSpace`. Thus it also finds a strategy of the space that ignores the gap.
+- `overlap-min` of k80 grows each item by its margin and by half the gap, as the frame does. Thus it keeps the gap too.
+
+A later item: the bound of a fixed size with the gap is loose. It counts only the area.
+
+- Four squares of 4 with the margin 1 and the gap 2 in a box of 12: each square needs 8 by 8 of a box of 14 by 14.
+- The area 196 holds 3 squares of 64, so the bound is 0.766. Only 1 square fits, so the optimum is 0.25.
+- A bound of the count of the wide pieces on each axis, as `strip.mmv` does for a strip, is a candidate for that item.
 
 ### 4. The ports
 

@@ -258,7 +258,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
   // The share form of pack.gap is at most 1 by its definition, and 0 or more when the bound is sound.
   for (const knobScale of ["relative", "absolute"] as const) {
     it(`gives 0 <= pack.gap <= 1 on each pair with ${knobScale} knobs`, () => {
-      const { records } = sampleSpace({ n: 6, seed: 1, env: ENV, maxCount: 40, draw: "stratified", knobScale, clock: fakeClock(), maxInputTries: 20 });
+      const { records } = sampleSpace({ n: 6, seed: 1, env: ENV, maxCount: 40, draw: "stratified", knobScale, clock: fakeClock(), maxInputTries: 20, maxOverlapMoves: 256 });
       const gaps = records.map((r) => r.measures["pack.gap"]).filter((g): g is number => g !== undefined);
       expect(gaps.length).toBeGreaterThan(0);
       for (const g of gaps) {

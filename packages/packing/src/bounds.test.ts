@@ -390,10 +390,17 @@ describe("boundShare", () => {
 describe("the bounds on the corpus", () => {
   const specsOf = (name: string): CorpusSpec[] => (JSON.parse(readFileSync(new URL(`../bench/corpora/${name}.json`, import.meta.url), "utf8")) as { specs: CorpusSpec[] }).specs;
 
-  it("are at most the result of each strategy, and the measure adds no field to measure", () => {
-    const kinds = new Set<string>();
-    for (const name of ["smoke-v1", "pack-free-v1"]) {
-      const inputs = corpus(name, specsOf(name)).inputs.filter((_, k) => name === "smoke-v1" || k % 24 === 0);
+  // The kinds of the bounds that the tests of the 2 corpora find
+  const kinds = new Set<string>();
+  // Each input of smoke-v1, and each 24th input of pack-free-v1 in 2 halves of 15 inputs: the index k with k % 48 of 0 or of 24
+  const parts: readonly { name: string; keep: (k: number) => boolean; label: string }[] = [
+    { name: "smoke-v1", keep: () => true, label: "each input" },
+    { name: "pack-free-v1", keep: (k) => k % 48 === 0, label: "k % 48 = 0" },
+    { name: "pack-free-v1", keep: (k) => k % 48 === 24, label: "k % 48 = 24" },
+  ];
+  for (const { name, keep, label } of parts) {
+    it(`are at most the result of each strategy on ${name} (${label}), from 0 to 1, and the measure adds no field to measure`, () => {
+      const inputs = corpus(name, specsOf(name)).inputs.filter((_, k) => keep(k));
       for (const file of inputs) {
         const input = toPackInput(file);
         for (const s of strategies) {
@@ -413,9 +420,12 @@ describe("the bounds on the corpus", () => {
           expect(m["pack.gap"], `${s.id} ${file.id}`).toBeLessThanOrEqual(1);
         }
       }
-    }
+    }, 120_000);
+  }
+
+  it("find a bound of each kind of container on the 2 corpora", () => {
     expect([...kinds].some((k) => k.startsWith("strip."))).toBe(true);
     expect([...kinds].some((k) => k.startsWith("hull."))).toBe(true);
     expect(kinds.has("placed.free")).toBe(true);
-  }, 120_000);
+  });
 });
