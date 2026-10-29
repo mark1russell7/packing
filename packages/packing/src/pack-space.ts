@@ -78,7 +78,7 @@ const PORTFOLIO_PARAMS: readonly SpaceParam[] = [
 
 /**
  * The params of the random restarts of roadmap item k78. They are the key of the pick, the count of the restarts, the change of
- * the order, its strength, the time limit and the work limit. The options `budgetMs` and `budgetWork` have the switch params
+ * the order and its strength. Then the time limit and the work limit follow. The options `budgetMs` and `budgetWork` have the switch params
  * `limitTime` and `limitWork`, with the default `false`.
  */
 const RESTARTS_PARAMS: readonly SpaceParam[] = [

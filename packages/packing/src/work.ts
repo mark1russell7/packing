@@ -44,7 +44,7 @@ export function checkBudgetWork(owner: string, budgetWork: number | undefined): 
 export interface WorkMeter {
   /** The work budget in work units */
   readonly budget: number;
-  /** The work of the members that ran, in work units */
+  /** The work of the members that started, in work units */
   spent: number;
   /** The ids of the members that the work budget cut */
   readonly cut: Set<string>;
@@ -62,7 +62,7 @@ class WorkCut extends Error {
 }
 
 /**
- * This function gives the members with a work meter around each one. Member 0 always runs. A member that starts always finishes.
+ * This function gives the members with a work meter around each one. Member 0 always starts. A member that starts always finishes.
  *
  * - Before member `i` above 0 starts, the meter compares its work with the budget. When the work is equal to the budget or more, the member does not start.
  * - A member that runs adds `packWork` of its output. A member that throws adds the item count, at least 1.

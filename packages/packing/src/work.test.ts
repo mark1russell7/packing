@@ -126,7 +126,7 @@ describe("the work budget of packPortfolio", () => {
     }
   });
 
-  it("with a time limit too, cuts at the first limit that runs out", () => {
+  it("with a time limit too, cuts at the limit that ends first", () => {
     // A clock that moves 1 ms on each read
     const clock = (): (() => number) => {
       let t = 0;

@@ -29,7 +29,7 @@ export interface PackPortfolioOptions {
   budgetMs?: number;
   /**
    * The work limit in work units of `packWork`, a whole number of 0 or more. Without it, each member runs.
-   * A cut by the work limit is the same on each computer. With `budgetMs`, the first limit that runs out cuts.
+   * A cut by the work limit is the same on each computer. With `budgetMs`, the limit that ends first cuts.
    */
   budgetWork?: number;
   /** The largest count of members that run */

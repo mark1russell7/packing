@@ -259,6 +259,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   k: { type: "2 | 3", note: "The size of the set of the cell." },
   maxMembers: { type: "number", note: "The largest count of the members that the strategy starts." },
   budgetMs: { type: "number", note: "A time limit in milliseconds. A cut member makes the result depend on the clock." },
+  budgetWork: { type: "number", note: "A work limit: one unit is one box in one pack. A cut is the same on each computer." },
   members: { type: "(string | PortfolioEntry)[]", note: "The members for each input, in place of the default members." },
   key: { type: "string[]", note: "The measure ids of the key after the hard breaks." },
   strategy: { type: "string", note: "The id of the wrapped strategy of the registry. The option is necessary." },
@@ -287,10 +288,10 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
 export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOptions)[]>> = {
   shelf: ["fit"] satisfies (keyof LayoutStrategyOptions)[],
   maxrects: ["bandHeight"] satisfies (keyof MaxRectsStrategyOptions)[],
-  portfolio: ["k", "maxMembers", "budgetMs", "members", "key"] satisfies (keyof PortfolioStrategyOptions)[],
+  portfolio: ["k", "maxMembers", "budgetMs", "budgetWork", "members", "key"] satisfies (keyof PortfolioStrategyOptions)[],
   "aspect-fit": ["strategy", "options", "targetAspect"] satisfies (keyof AspectFitStrategyOptions)[],
   select: ["members", "table"] satisfies (keyof SelectStrategyOptions)[],
-  restarts: ["member", "budgetMs", "key"] satisfies (keyof RestartsStrategyOptions)[],
+  restarts: ["member", "budgetMs", "budgetWork", "key"] satisfies (keyof RestartsStrategyOptions)[],
   bbox: ["member"] satisfies (keyof BboxStrategyOptions)[],
 };
 

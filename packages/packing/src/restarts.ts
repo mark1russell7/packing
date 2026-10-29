@@ -154,7 +154,7 @@ function checked(options: RestartsStrategyOptions): { member: PortfolioEntry; so
  * - Restart `i` gets the random numbers `stepRandom(seed, "restarts:<i>")` of the contract. The seed of the context goes to each restart.
  * - The key is the hard breaks, then `PORTFOLIO_LEVELS` or the option `key`, then `outputHash`. A tie keeps the earlier restart.
  * - The output gets the trace stage `restarts` with `move.restartPick`, `restarts.run` (the index of the pick) and `restarts.runs`.
- * - With `budgetWork`, the stage also has `work.spent`, `work.budget` and `work.stopped`. With `limitTime` too, the first limit that runs out cuts.
+ * - With `budgetWork`, the stage also has `work.spent`, `work.budget` and `work.stopped`. With `limitTime` too, the limit that ends first cuts.
  * - The strategy throws a `RangeError` for a member without the option `sortOrder` and for a bad option.
  */
 export const restartsStrategy: Strategy<RestartsStrategyOptions> = {

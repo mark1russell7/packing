@@ -40,6 +40,7 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   strength: { min: 0, max: 1, step: 0.01 },
   budgetMs: { min: 0, max: 2000, step: 1 },
   steps: { min: 0, max: 32, step: 1 },
+  budgetWork: { min: 0, max: 1_000_000, step: 1 },
 };
 
 /** The entries that a composite strategy can take as a member: the entries that are not composite entries. */
@@ -85,6 +86,7 @@ function extraControls(id: string): OptionControl[] {
       return [
         { key: "k", kind: "select", values: ["2", "3"], value: "", none: "cell", fromDefaults: false },
         { key: "members", kind: "members", values: members, value: [], fromDefaults: false },
+        { key: "budgetWork", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetWork"]!, fromDefaults: false },
       ];
     case "aspect-fit":
       return [
@@ -97,6 +99,7 @@ function extraControls(id: string): OptionControl[] {
       return [
         { key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false },
         { key: "budgetMs", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetMs"]!, fromDefaults: false },
+        { key: "budgetWork", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetWork"]!, fromDefaults: false },
       ];
     case "bbox":
       return [{ key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false }];

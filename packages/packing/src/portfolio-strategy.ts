@@ -48,7 +48,7 @@ function unionSupports(): Supports {
  *   The default output thus does not depend on the clock.
  * - A member that does not support the cell of an input throws, and it does not win. When each member throws, the strategy throws the first error.
  * - The option `budgetMs` goes to `portfolio` of the contract. The first member always runs.
- * - The option `budgetWork` goes to `packPortfolio`. With `budgetMs`, the first limit that runs out cuts.
+ * - The option `budgetWork` goes to `packPortfolio`. With `budgetMs`, the limit that ends first cuts.
  * - With `members`, each input gets these members, and `maxMembers` has no default. The id of the portfolio stays `portfolio`.
  * - The strategy throws a `RangeError` for a `k` other than 2 or 3, and for `k` with `members`.
  */

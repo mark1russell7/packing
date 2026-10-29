@@ -1034,6 +1034,14 @@ The draw of a pair:
 The script packs each pair two times, to check that the output does not change, then times it with `--repeats` (1). It measures the pair like `bench run`.
 It writes `records.jsonl` (`layout-record/1`, with the config and the input of each pair) and `sample.json` (the counts, the rejections and the hard breaks).
 
+The pairs that are not deterministic (the count `nondeterministic` of `sample.json`):
+
+- Only a config with the param `limitTime` set to `true` can give two different outputs. The clock of the time limit cuts a different member on each run.
+- The k112 sample found one such pair. The draw keeps `limitTime`, because the time limit is an opt-in of the space.
+- Since roadmap item k117, the param `limitWork` gives the work limit `budgetWork` (`docs/PACKER.md`, "The work budget"). It cuts at the same member on each run.
+- The script draws `limitWork` and `budgetWork` like each other param. Each of the 256 values of `budgetWork` counts as one config.
+- Thus 256 of 257 configs of a portfolio or of `restarts` have the work limit. A uniform draw gives almost only configs with a work limit for these options.
+
 The held-out test:
 
 - The tree of each measure learns on all the records of the grid. The baseline is the median of the grid.
