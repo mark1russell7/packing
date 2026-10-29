@@ -281,9 +281,9 @@ describe("the coverage snapshot (k105)", () => {
       pairs: 32,
       draw: "stratified",
       strata: [
-        { id: "rows:1", pairs: 16 },
-        { id: "portfolio:5", pairs: 16 },
-        { id: "bbox:1", pairs: 0 },
+        { id: "rows:1", pairs: 16, configs: "905", missed: 0 },
+        { id: "portfolio:5", pairs: 16, configs: "1803617799647731522519680", missed: 0 },
+        { id: "hole-degree:1", pairs: 0, configs: "33", missed: 2 },
       ],
       measures: [
         {
@@ -292,7 +292,7 @@ describe("the coverage snapshot (k105)", () => {
           strata: [
             { stratum: "rows:1", n: 16, hits: 12, share: 0.75, wilson: { low: 0.5049, high: 0.8983 } },
             { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, wilson: { low: 0.0349, high: 0.36 } },
-            { stratum: "bbox:1", n: 0, hits: 0, share: 0, wilson: { low: 0, high: 1 } },
+            { stratum: "hole-degree:1", n: 0, hits: 0, share: null, wilson: null },
           ],
           equal: { strata: 2, share: 0.4375, se: 0.0681, interval: { low: 0.3162, high: 0.583 } },
         },
@@ -308,7 +308,8 @@ describe("the coverage snapshot (k105)", () => {
       rows: [
         { stratum: "rows:1", n: 16, hits: 12, share: 0.75, low: 0.5049, high: 0.8983 },
         { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, low: 0.0349, high: 0.36 },
-        { stratum: "bbox:1", n: 0, hits: 0, share: 0, low: 0, high: 1 },
+        // A stratum without pairs keeps null, not a share of 0.
+        { stratum: "hole-degree:1", n: 0, hits: 0, share: null, low: null, high: null },
       ],
     });
     expect(snap.trend).toEqual(plain.trend);

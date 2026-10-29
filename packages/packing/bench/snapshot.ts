@@ -710,8 +710,8 @@ export interface CoverageSnapshotStrata {
   high: number;
   /** The count of the strata with pairs */
   strata: number;
-  /** Each stratum: its pairs, its hits, its share and the Wilson 95% interval */
-  rows: { stratum: string; n: number; hits: number; share: number; low: number; high: number }[];
+  /** Each stratum: its pairs, its hits, its share and the Wilson 95% interval. A stratum without pairs has `null`, not 0. */
+  rows: { stratum: string; n: number; hits: number; share: number | null; low: number | null; high: number | null }[];
 }
 
 /** The held-out result of one measure on the sampled pairs of the whole space */
@@ -756,8 +756,11 @@ export interface CoverageSnapshot {
     measures: CoverageSnapshotMeasure[];
     /** The facts of the sample of the whole space (k112), when the snapshot has it */
     sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
-    /** The facts of the strata of the sample (k115), when the snapshot has them: the draw and the pairs of each stratum */
-    strata?: { pairs: number; draw: string | null; strata: { id: string; pairs: number }[] };
+    /**
+     * The facts of the strata of the sample (k115), when the snapshot has them: the draw and the pairs of each stratum.
+     * A stratified sample also gives the count of the configs and of the missed pairs of each stratum.
+     */
+    strata?: { pairs: number; draw: string | null; strata: { id: string; pairs: number; configs?: string; missed?: number }[] };
   };
   /** The points of the trend, oldest first. A date has one point for each corpus. */
   trend: CoveragePoint[];
@@ -782,7 +785,7 @@ const strataOf = (m: StrataMeasure): CoverageSnapshotStrata => ({
   low: m.equal.interval.low,
   high: m.equal.interval.high,
   strata: m.equal.strata,
-  rows: m.strata.map((x) => ({ stratum: x.stratum, n: x.n, hits: x.hits, share: x.share, low: x.wilson.low, high: x.wilson.high })),
+  rows: m.strata.map((x) => ({ stratum: x.stratum, n: x.n, hits: x.hits, share: x.share, low: x.wilson?.low ?? null, high: x.wilson?.high ?? null })),
 });
 
 /**

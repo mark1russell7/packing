@@ -12,5 +12,6 @@ How much of the space of strategies and inputs can we predict? A model learns ea
 - The number "bench grid" is that share. The number "whole space (sampled)" is the share of random pairs of a config and an input that the model predicts within the tolerance.
 - Most random configs are portfolios with 5 members. Thus the pairs also go into strata: a strategy family with one count of members.
 - The number "equal weight over strata" is the mean of the shares of the strata. Each family and size has the same weight.
+- A stratum without pairs shows "no pairs". It is not in the mean. No sampled input has circles, so `hole-degree` has no pairs.
 
 The index of a feature is the part of the variance of the measure that the feature explains alone. A high index tells that the feature changes the measure much.

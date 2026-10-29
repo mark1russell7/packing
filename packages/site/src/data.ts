@@ -212,9 +212,20 @@ export interface CoverageStratum {
   stratum: string;
   n: number;
   hits: number;
-  share: number;
-  low: number;
-  high: number;
+  /** The share and its interval. A stratum without pairs has `null`, not 0. An older snapshot has 0. */
+  share: number | null;
+  low: number | null;
+  high: number | null;
+}
+
+/** One stratum of the sample: its measured pairs and, for a stratified sample, its count of configs and of missed pairs */
+export interface CoverageStratumPairs {
+  id: string;
+  pairs: number;
+  /** The exact count of the configs of the stratum, as decimal text */
+  configs?: string;
+  /** The pairs of the stratum that found no input and config */
+  missed?: number;
 }
 
 /** The held-out result of one measure by stratum: the mean over the strata with the same weight, its 95% interval and each stratum */
@@ -254,7 +265,7 @@ export interface CoverageSnapshot {
     /** The facts of the sample of the whole space (k112), when the snapshot has it */
     sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
     /** The facts of the strata of the sample (k115), when the snapshot has them */
-    strata?: { pairs: number; draw: string | null; strata: { id: string; pairs: number }[] };
+    strata?: { pairs: number; draw: string | null; strata: CoverageStratumPairs[] };
   };
   trend: CoveragePoint[];
 }

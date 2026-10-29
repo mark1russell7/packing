@@ -66,8 +66,14 @@ export const DEFAULT_MAX_COUNT = 1000;
 /** The largest count of the draws of a config for one input. Then the sampler draws a new input. */
 const MAX_CONFIG_TRIES = 20;
 
-/** The largest count of the draws of an input for one pair. Then the pair is an error. */
+/** The largest count of the draws of an input for one pair. Then the pair is an error, or a miss of its stratum. */
 const MAX_INPUT_TRIES = 200;
+
+/**
+ * The count of the misses that close a stratum of a stratified draw (k115). A miss is a pair that finds no input and config.
+ * The later pairs of a closed stratum draw nothing. Thus a stratum costs at most 200 inputs and 4000 configs without a pair.
+ */
+export const MAX_STRATUM_MISSES = 1;
 
 // ---- The random numbers ----
 
@@ -359,7 +365,7 @@ const pinParam = (params: readonly SpaceParam[], name: string, value: ParamValue
 
 /**
  * This function gives the strata of a space, in the order of the stages and of their options. A stratum without configs is not in the list.
- * For `packSpace`, it gives 16 strata: 5 base families, then `portfolio:2` to `portfolio:5`, the 3 values of `k` of `cell-portfolio`, and the other meta options.
+ * For `packSpace`, it gives 18 strata: 7 base families, then `portfolio:2` to `portfolio:5`, the 3 values of `k` of `cell-portfolio`, and the other meta options.
  */
 export function strataOf(space: StrategySpace, counts: SpaceCounts = spaceCounts(space)): Stratum[] {
   const out: Stratum[] = [];
@@ -577,8 +583,11 @@ export interface SampleSummary {
   readonly errors: readonly { readonly pair: number; readonly input: string; readonly config: string; readonly message: string }[];
   /** `time` when `maxMinutes` stopped the sample before its last pair. */
   readonly stopped?: "time";
-  /** The strata of a stratified draw: the exact count of the configs, as decimal text, and the count of the measured pairs. */
-  readonly strata?: Readonly<Record<string, { readonly configs: string; readonly pairs: number }>>;
+  /**
+   * The strata of a stratified draw. `configs` is the exact count of the configs, as decimal text. `pairs` is the count of the measured pairs.
+   * `missed` is the count of the pairs without an input and config. The pairs of a closed stratum count as `missed`.
+   */
+  readonly strata?: Readonly<Record<string, { readonly configs: string; readonly pairs: number; readonly missed: number }>>;
 }
 
 /** This function adds one to a count of a record. */
@@ -609,7 +618,8 @@ function inputOf(draw: InputDraw, registry: ReturnType<typeof createFamilyRegist
  * 3. After 20 configs that go back, it draws a new input. Thus the draw is uniform over the configs that the input accepts.
  * 4. It packs the pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock, as `runBench` does.
  *
- * Another error goes into `errors`, and the sampler goes on.
+ * Another error goes into `errors`, and the sampler goes on. A stratified pair without an input and config is a miss of its stratum, not an error.
+ * After `MAX_STRATUM_MISSES` misses, the stratum closes: its later pairs draw nothing and count as missed.
  */
 export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; summary: SampleSummary } {
   const n = options.n ?? DEFAULT_PAIRS;
@@ -629,6 +639,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   const strata = draw === "stratified" ? strataOf(space, counts) : [];
   if (draw === "stratified" && strata.length === 0) throw new RangeError("The space has no strata.");
   const strataPairs: Record<string, number> = Object.fromEntries(strata.map((s) => [s.id, 0]));
+  const strataMissed: Record<string, number> = Object.fromEntries(strata.map((s) => [s.id, 0]));
   const registry = createFamilyRegistry<GeneratedInput>(corpusFamilies);
   const start = Date.now();
   const records: SampleRecord[] = [];
@@ -653,6 +664,11 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     }
     const r = stepRandom(seed, `pair-${pair}`);
     const stratum = strata[pair % Math.max(1, strata.length)];
+    // A closed stratum draws nothing: each of its pairs is a miss.
+    if (stratum !== undefined && strataMissed[stratum.id]! >= MAX_STRATUM_MISSES) {
+      bump(strataMissed, stratum.id);
+      continue;
+    }
     let done = false;
     for (let inputTry = 0; inputTry < MAX_INPUT_TRIES && !done; inputTry++) {
       const d = drawInput(r, corpusFamilies, { knobs });
@@ -746,7 +762,8 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
         }
       }
     }
-    if (!done) errors.push({ pair, input: "-", config: "-", message: `The pair found no input and config after ${MAX_INPUT_TRIES} inputs.` });
+    if (!done && stratum !== undefined) bump(strataMissed, stratum.id);
+    else if (!done) errors.push({ pair, input: "-", config: "-", message: `The pair found no input and config after ${MAX_INPUT_TRIES} inputs.` });
   }
 
   const summary: SampleSummary = {
@@ -768,7 +785,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     nondeterministic,
     errors,
     ...(stopped === undefined ? {} : { stopped }),
-    ...(draw === "stratified" ? { strata: Object.fromEntries(strata.map((s) => [s.id, { configs: s.configs.toString(), pairs: strataPairs[s.id] ?? 0 }])) } : {}),
+    ...(draw === "stratified" ? { strata: Object.fromEntries(strata.map((s) => [s.id, { configs: s.configs.toString(), pairs: strataPairs[s.id] ?? 0, missed: strataMissed[s.id] ?? 0 }])) } : {}),
   };
   return { records, summary };
 }
@@ -870,7 +887,7 @@ export function sampleMain(argv: readonly string[]): number {
       `Inputs: ${summary.inputs.rejected} of ${summary.inputs.drawn} went back. Hard breaks: ${summary.hard.pairs} pairs. Not deterministic: ${summary.nondeterministic}. ` +
       `Errors: ${summary.errors.length}. Combine: ${parts}.${summary.stopped === "time" ? " The time limit stopped the sample." : ""}`,
   );
-  if (summary.strata !== undefined) console.log(`Strata: ${Object.entries(summary.strata).map(([id, s]) => `${id} ${s.pairs}`).join(", ")}.`);
+  if (summary.strata !== undefined) console.log(`Strata: ${Object.entries(summary.strata).map(([id, s]) => `${id} ${s.pairs}${s.missed > 0 ? ` (${s.missed} missed)` : ""}`).join(", ")}.`);
   return summary.errors.length > 0 ? 1 : 0;
 }
 

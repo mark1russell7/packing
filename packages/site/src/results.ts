@@ -354,7 +354,7 @@ function drawStrata(): void {
     t === null
       ? `The share of each stratum is not measured yet. A sample with strata gives it.`
       : `<b>${esc(coverLabel(m.id))}</b>: the dot is the share of the pairs of a stratum, and the band is its 95% interval. The line is the ${COVERAGE_STRATA_SCOPE}, ${esc(t.share)}.`;
-  $("coverage-strata").innerHTML = strataRows(m);
+  $("coverage-strata").innerHTML = strataRows(m, cover.latest.strata?.strata);
 }
 
 /** This function gives the SVG of the trend chart of the shares. */

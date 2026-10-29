@@ -17,6 +17,7 @@ import {
   drawInput,
   drawParams,
   drawStratum,
+  MAX_STRATUM_MISSES,
   memberListCount,
   paramCount,
   pickWeighted,
@@ -201,16 +202,16 @@ describe("the sample of pairs", () => {
   });
 
   it("keeps the uniform draw: the same configs as before k115, and no strata in the summary", () => {
-    // The config ids of the first 4 pairs of the seed 3 come from the sampler of k112, before the strata.
+    // The config ids of the first 4 pairs of the seed 3 come from the sampler of main before k115, with k23 and k90.
     const a = sampleSpace({ ...options, clock: fakeClock() });
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["50cf6ffc8363c2de", "9f3715be79611b96", "3bdec5ffce877adc", "b9f2480fcf4f4f8f"]);
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["8f9267686dee5c4a", "6e4e0730a75d95c2", "c62c669ea14c3ca6", "553ea7f8f84a051b"]);
     expect(a.summary.draw).toBe("uniform");
     expect("strata" in a.summary).toBe(false);
   });
 });
 
 describe("the strata of k115", () => {
-  it("gives 16 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 18 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -218,7 +219,9 @@ describe("the strata of k115", () => {
       "skyline:1",
       "shelf:1",
       "maxrects:1",
+      "guillotine:1",
       "push:1",
+      "hole-degree:1",
       "portfolio:2",
       "portfolio:3",
       "portfolio:4",
@@ -242,6 +245,8 @@ describe("the strata of k115", () => {
     expect(of("push")).toBe("push:1");
     expect(of("shelf-best")).toBe("shelf:1");
     expect(of("maxrects-bl")).toBe("maxrects:1");
+    expect(of("guillotine-bssf-sas-merge")).toBe("guillotine:1");
+    expect(of("hole-degree")).toBe("hole-degree:1");
     expect(of("skyline-mw-waste")).toBe("skyline:1");
     expect(of("portfolio")).toBe("cell-portfolio:cell");
     expect(of("portfolio-k2")).toBe("cell-portfolio:2");
@@ -296,11 +301,31 @@ describe("the strata of k115", () => {
     expect(a.summary.errors).toEqual([]);
     expect(a.summary.draw).toBe("stratified");
     expect(Object.keys(a.summary.strata!)).toEqual(strata);
-    for (const s of Object.values(a.summary.strata!)) expect(s.pairs).toBe(2);
+    // No sampled input has circles, so the stratum hole-degree:1 gets no pairs. Each other stratum gets 2 pairs.
+    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 2] : [id, 2, 0]);
     expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
-    // Pair i takes the stratum i modulo 16.
+    expect(a.records).toHaveLength(2 * strata.length - 2);
+    // Pair i takes the stratum i modulo 18.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
     expect(b.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash])).toEqual(a.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash]));
+  });
+
+  it("closes a stratum that no sampled input accepts after one miss, and counts its later pairs as missed", () => {
+    expect(MAX_STRATUM_MISSES).toBe(1);
+    const strata = strataOf(packSpace).map((s) => s.id);
+    // The pairs at, at + 18 and at + 36 take hole-degree:1. Only the first of them draws inputs.
+    const at = strata.indexOf("hole-degree:1");
+    const run = (n: number): ReturnType<typeof sampleSpace> => sampleSpace({ n, seed: 4, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock() });
+    const one = run(at + 1);
+    const three = run(at + 2 * strata.length + 1);
+    const configs = String(HOLE_DEGREE_MAX_STEPS + 1);
+    expect(one.summary.strata!["hole-degree:1"]).toEqual({ configs, pairs: 0, missed: 1 });
+    expect(three.summary.strata!["hole-degree:1"]).toEqual({ configs, pairs: 0, missed: 3 });
+    expect(three.summary.errors).toEqual([]);
+    // The first miss draws 200 inputs. Without the cap, the 2 later misses draw 400 more inputs.
+    expect(one.summary.inputs.drawn).toBeGreaterThanOrEqual(200);
+    expect(three.summary.inputs.drawn).toBeLessThan(one.summary.inputs.drawn + 200);
+    expect(three.records.some((r) => stratumOf(packSpace, r.config) === "hole-degree:1")).toBe(false);
   });
 });

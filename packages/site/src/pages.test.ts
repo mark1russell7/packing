@@ -22,6 +22,7 @@ import {
   ratioAt,
   sampledText,
   stepText,
+  countText,
   strataRows,
   strataText,
   stratumLabel,
@@ -303,7 +304,8 @@ describe("the space coverage of k105", () => {
       rows: [
         { stratum: "rows:1", n: 16, hits: 12, share: 0.75, low: 0.5049, high: 0.8983 },
         { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, low: 0.0349, high: 0.36 },
-        { stratum: "cell-portfolio:cell", n: 0, hits: 0, share: 0, low: 0, high: 1 },
+        { stratum: "cell-portfolio:cell", n: 0, hits: 0, share: null, low: null, high: null },
+        { stratum: "hole-degree:1", n: 0, hits: 0, share: null, low: null, high: null },
       ],
     };
     const withStrata = { ...m, strata };
@@ -317,7 +319,7 @@ describe("the space coverage of k105", () => {
     expect(tile).toContain("95% interval 3% to 7%, 17 of 400 pairs");
 
     const rows = strataRows(withStrata);
-    expect(rows.match(/<li /g)).toHaveLength(3);
+    expect(rows.match(/<li /g)).toHaveLength(4);
     expect(rows).toContain("<code>rows</code>");
     expect(rows).toContain("<code>portfolio, 5 members</code>");
     expect(rows).toContain("75% <small>(12 of 16)</small>");
@@ -326,6 +328,21 @@ describe("the space coverage of k105", () => {
     expect(rows).toContain('class="smean" style="left:43.8%"');
     expect(rows).toContain('class="irow srow empty"');
     expect(rows).toContain("no pairs");
+    expect(rows).not.toContain("0% <small>");
+    expect(rows).not.toContain("configs");
+
+    // A stratified sample gives the count of the configs. A stratum that no sampled input accepts shows no pairs and its count.
+    const facts = [
+      { id: "rows:1", pairs: 16, configs: "905", missed: 0 },
+      { id: "hole-degree:1", pairs: 0, configs: "33", missed: 2 },
+      { id: "portfolio:5", pairs: 16, configs: "1803617799647731522519680", missed: 0 },
+    ];
+    const counted = strataRows(withStrata, facts);
+    expect(counted).toContain("no pairs <small>(33 configs)</small>");
+    expect(counted).toContain('title="hole-degree: no pairs, 33 configs. No sampled input accepts this stratum. It is not in the mean."');
+    expect(counted).toContain("75% <small>(12 of 16)</small>");
+    expect(countText("1803617799647731522519680")).toBe("1,803,617,799,647,731,522,519,680");
+    expect(countText("905")).toBe("905");
 
     expect(stratumLabel("rows:1")).toBe("rows");
     expect(stratumLabel("portfolio:3")).toBe("portfolio, 3 members");

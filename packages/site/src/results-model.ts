@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { CoverageMeasure, CoveragePoint, CoverageStratum, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { CoverageMeasure, CoveragePoint, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
@@ -202,23 +202,36 @@ export function strataText(m: Pick<CoverageMeasure, "strata">): StrataText | nul
   return { share: percentText(s.share), interval: `${percentText(s.low)} to ${percentText(s.high)}`, strata: `${s.strata} ${s.strata === 1 ? "stratum" : "strata"}` };
 }
 
+/** This function gives a whole number in decimal text with a comma for each 3 digits, for example `1,234`. */
+export const countText = (n: string): string => n.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
 /**
  * This function gives the HTML of the rows of the strata chart of one measure. Each row shows the share of a stratum and its 95% interval.
- * The line in each bar is the mean over the strata. A stratum without pairs shows "no pairs".
+ * The line in each bar is the mean over the strata. A stratum without pairs shows "no pairs" and no share.
+ * With the strata of a stratified sample, a stratum without pairs also shows its count of configs.
  */
-export function strataRows(m: Pick<CoverageMeasure, "strata">): string {
+export function strataRows(m: Pick<CoverageMeasure, "strata">, facts: readonly CoverageStratumPairs[] = []): string {
   const s = m.strata;
   if (s === undefined) return "";
   const pct = (v: number): number => Math.round(Math.max(0, Math.min(1, v)) * 1000) / 10;
   return s.rows
     .map((x: CoverageStratum) => {
       const name = stratumLabel(x.stratum);
-      const value = x.n === 0 ? "no pairs" : `${percentText(x.share)} <small>(${x.hits} of ${x.n})</small>`;
-      const title = x.n === 0 ? `${name}: no pairs` : `${name}: ${x.hits} of ${x.n} pairs, 95% interval ${percentText(x.low)} to ${percentText(x.high)}`;
+      const fact = facts.find((f) => f.id === x.stratum);
+      const configs = fact?.configs === undefined ? "" : `${countText(fact.configs)} ${fact.configs === "1" ? "config" : "configs"}`;
+      const unrun = fact !== undefined && fact.pairs === 0 && (fact.missed ?? 0) > 0;
+      const share = x.share ?? 0;
+      const low = x.low ?? 0;
+      const high = x.high ?? 0;
+      const value = x.n === 0 ? `no pairs${configs === "" ? "" : ` <small>(${configs})</small>`}` : `${percentText(share)} <small>(${x.hits} of ${x.n})</small>`;
+      const title =
+        x.n === 0
+          ? `${name}: no pairs${configs === "" ? "" : `, ${configs}`}.${unrun ? " No sampled input accepts this stratum." : ""} It is not in the mean.`
+          : `${name}: ${x.hits} of ${x.n} pairs, 95% interval ${percentText(low)} to ${percentText(high)}`;
       const bar =
         x.n === 0
           ? `<span class="smean" style="left:${pct(s.share)}%"></span>`
-          : `<span class="srange" style="left:${pct(x.low)}%;width:${pct(x.high - x.low)}%"></span><span class="smean" style="left:${pct(s.share)}%"></span><span class="sdot" style="left:${pct(x.share)}%"></span>`;
+          : `<span class="srange" style="left:${pct(low)}%;width:${pct(high - low)}%"></span><span class="smean" style="left:${pct(s.share)}%"></span><span class="sdot" style="left:${pct(share)}%"></span>`;
       return `<li class="irow srow${x.n === 0 ? " empty" : ""}" title="${esc(title)}">
         <span class="iname"><code>${esc(name)}</code></span>
         <span class="ibar sbar" aria-hidden="true">${bar}</span>

@@ -826,11 +826,24 @@ export interface StratumShare {
   /** The count of the pairs of the stratum with a finite value. */
   readonly n: number;
   readonly hits: number;
-  /** The hits over the pairs. No pair gives 0. */
-  readonly share: number;
-  /** The Wilson 95% interval of the share. */
-  readonly wilson: Interval;
+  /** The hits over the pairs. A stratum without pairs has no share: `null`, not 0. */
+  readonly share: number | null;
+  /** The Wilson 95% interval of the share, or `null` without pairs. */
+  readonly wilson: Interval | null;
 }
+
+/** One stratum of the sample: its count of measured pairs and, from `sample.json`, its count of configs and of missed pairs. */
+export interface StratumPairs {
+  readonly id: string;
+  readonly pairs: number;
+  /** The exact count of the configs of the stratum, as decimal text. */
+  readonly configs?: string;
+  /** The pairs of the stratum that found no input and config. A stratum that no sampled input accepts has only missed pairs. */
+  readonly missed?: number;
+}
+
+/** The strata of a stratified sample, from `sample.json`: the count of the configs, the measured pairs and the missed pairs. */
+export type SampleStrata = Readonly<Record<string, { readonly configs: string; readonly pairs: number; readonly missed?: number }>>;
 
 /** The mean of the shares of the strata, each stratum with the same weight. */
 export interface EqualWeight {
@@ -860,7 +873,7 @@ export interface StrataCoverage {
   /** The draw of the sample: `uniform`, `option`, `stratified`, or `null` without `sample.json`. */
   readonly draw: string | null;
   /** Each stratum and its count of pairs, in the order of `strataOf` of `packSpace`. An unknown stratum comes last. */
-  readonly strata: readonly { readonly id: string; readonly pairs: number }[];
+  readonly strata: readonly StratumPairs[];
   readonly measures: readonly StrataMeasure[];
 }
 
@@ -900,12 +913,19 @@ export function equalWeight(strata: readonly { readonly hits: number; readonly n
  * This function gives the held-out test of the sampled pairs by stratum (k115). The errors are the errors of `sampledCoverage`.
  * `stratumOf` gives the stratum of each pair from its config. Each stratum gets its share and its Wilson interval, and `equalWeight` gives the mean.
  */
-export function strataCoverage(records: readonly CoverageRecord[], manifest: CoverageManifest, sampled: readonly SampledRecord[], options: CoverageOptions = {}, sample?: SampleFacts): StrataCoverage {
-  return strataFrom(heldOut(records, manifest, sampled, options), sample);
+export function strataCoverage(
+  records: readonly CoverageRecord[],
+  manifest: CoverageManifest,
+  sampled: readonly SampledRecord[],
+  options: CoverageOptions = {},
+  sample?: SampleFacts,
+  strata?: SampleStrata,
+): StrataCoverage {
+  return strataFrom(heldOut(records, manifest, sampled, options), sample, strata);
 }
 
-/** This function gives the section `strata` from the held-out errors. */
-function strataFrom(h: HeldOut, sample?: SampleFacts): StrataCoverage {
+/** This function gives the section `strata` from the held-out errors. The strata of `sample.json` add their counts of configs and of missed pairs. */
+function strataFrom(h: HeldOut, sample?: SampleFacts, facts?: SampleStrata): StrataCoverage {
   const of = h.pairs.map((r) => stratumOf(packSpace, r.config));
   const ids = [...PACK_STRATA, ...[...new Set(of)].filter((id) => !PACK_STRATA.includes(id)).sort()];
   const pairs = new Map(ids.map((id) => [id, 0]));
@@ -919,11 +939,20 @@ function strataFrom(h: HeldOut, sample?: SampleFacts): StrataCoverage {
     });
     const strata = ids.map((id): StratumShare => {
       const c = count.get(id)!;
-      return { stratum: id, n: c.n, hits: c.hits, share: c.n === 0 ? 0 : r4(c.hits / c.n), wilson: wilson(c.hits, c.n) };
+      return { stratum: id, n: c.n, hits: c.hits, share: c.n === 0 ? null : r4(c.hits / c.n), wilson: c.n === 0 ? null : wilson(c.hits, c.n) };
     });
     return { id: m.id, tolerance: m.tolerance, strata, equal: equalWeight(strata) };
   });
-  return { pairs: h.pairs.length, draw: sample?.draw ?? null, strata: ids.map((id) => ({ id, pairs: pairs.get(id)! })), measures };
+  const row = (id: string): StratumPairs => {
+    const f = facts?.[id];
+    return f === undefined ? { id, pairs: pairs.get(id)! } : { id, pairs: pairs.get(id)!, configs: f.configs, missed: f.missed ?? 0 };
+  };
+  return { pairs: h.pairs.length, draw: sample?.draw ?? null, strata: ids.map(row), measures };
+}
+
+/** This function gives the strata of the text of `sample.json`, or `undefined` for a sample without strata. */
+export function sampleStrata(text: string): SampleStrata | undefined {
+  return (JSON.parse(text) as { strata?: SampleStrata }).strata;
 }
 
 /** This function gives the facts of the draw from the text of `sample.json`. */
@@ -998,9 +1027,10 @@ export function readSample(records: readonly CoverageRecord[], manifest: Coverag
   if (!existsSync(file)) throw new Error(`The sample folder ${dir} has no records.jsonl. Start bench/sample-space.ts first.`);
   const sampled = readRecords(readFileSync(file, "utf8")) as SampledRecord[];
   const facts = join(dir, "sample.json");
-  const sample = existsSync(facts) ? sampleFacts(readFileSync(facts, "utf8")) : undefined;
+  const text = existsSync(facts) ? readFileSync(facts, "utf8") : undefined;
+  const sample = text === undefined ? undefined : sampleFacts(text);
   const h = heldOut(records, manifest, sampled, options);
-  return { sampled: sampledOf(h, sample), strata: strataFrom(h, sample) };
+  return { sampled: sampledOf(h, sample), strata: strataFrom(h, sample, text === undefined ? undefined : sampleStrata(text)) };
 }
 
 /** The note of `coverageMain` when a run has too few records for a summary */
@@ -1052,6 +1082,10 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
   for (const m of summary.strata?.measures ?? []) {
     const parts = m.strata.filter((s) => s.n > 0).map((s) => `${s.stratum} ${s.hits}/${s.n}`).join(", ");
     console.log(`${m.id}, equal weight over ${m.equal.strata} strata: share ${m.equal.share} (95% from ${m.equal.interval.low} to ${m.equal.interval.high}). By stratum: ${parts}`);
+  }
+  const empty = (summary.strata?.strata ?? []).filter((s) => s.pairs === 0).map((s) => (s.configs === undefined ? s.id : `${s.id} (${s.configs} configs)`));
+  if (empty.length > 0) {
+    console.log(`No pairs, not in the mean: ${empty.join(", ")}.`);
   }
   return summary;
 }

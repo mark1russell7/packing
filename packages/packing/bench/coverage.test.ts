@@ -21,6 +21,7 @@ import {
   readRecords,
   sampledCoverage,
   sampleFacts,
+  sampleStrata,
   strataCoverage,
   strategyFeatures,
   wilson,
@@ -289,8 +290,8 @@ describe("the strata of the whole space of k115", () => {
     const out = strataCoverage(records, manifest, sampled, { measures: [fill] });
     expect(out.pairs).toBe(4);
     expect(out.draw).toBeNull();
-    expect(out.strata.map((s) => s.id).slice(0, 5)).toEqual(["rows:1", "skyline:1", "shelf:1", "maxrects:1", "push:1"]);
-    expect(out.strata).toHaveLength(16);
+    expect(out.strata.map((s) => s.id).slice(0, 7)).toEqual(["rows:1", "skyline:1", "shelf:1", "maxrects:1", "guillotine:1", "push:1", "hole-degree:1"]);
+    expect(out.strata).toHaveLength(18);
     expect(out.strata.filter((s) => s.pairs > 0)).toEqual([
       { id: "rows:1", pairs: 2 },
       { id: "maxrects:1", pairs: 2 },
@@ -298,11 +299,29 @@ describe("the strata of the whole space of k115", () => {
     const m = out.measures[0]!;
     expect(m.strata.find((s) => s.stratum === "rows:1")).toEqual({ stratum: "rows:1", n: 2, hits: 2, share: 1, wilson: wilson(2, 2) });
     expect(m.strata.find((s) => s.stratum === "maxrects:1")).toEqual({ stratum: "maxrects:1", n: 2, hits: 1, share: 0.5, wilson: wilson(1, 2) });
-    expect(m.strata.find((s) => s.stratum === "push:1")).toEqual({ stratum: "push:1", n: 0, hits: 0, share: 0, wilson: { low: 0, high: 1 } });
+    // A stratum without pairs has no share and no interval: null, not 0.
+    expect(m.strata.find((s) => s.stratum === "push:1")).toEqual({ stratum: "push:1", n: 0, hits: 0, share: null, wilson: null });
     expect(m.equal).toEqual(equalWeight([{ hits: 2, n: 2 }, { hits: 1, n: 2 }]));
     expect(m.equal.share).toBe(0.75);
     // The hits of the strata sum to the hits of the section sampled.
     expect(m.strata.reduce((s, x) => s + x.hits, 0)).toBe(sampledCoverage(records, manifest, sampled, { measures: [fill] }).measures[0]!.hits);
+  });
+
+  it("reports a stratum that no sampled input accepts as no pairs with its count, and keeps it out of the mean", () => {
+    // The stratified sample closed hole-degree:1 after one miss. Its 3 pairs are all missed.
+    const sampled = [pair("rows", "a", 10, 0.702), pair("maxrects-bl", "b", 100, 0.803)];
+    const facts = { "rows:1": { configs: "905", pairs: 1, missed: 0 }, "maxrects:1": { configs: "18100", pairs: 1, missed: 0 }, "hole-degree:1": { configs: "33", pairs: 0, missed: 3 } };
+    const out = strataCoverage(records, manifest, sampled, { measures: [fill] }, undefined, facts);
+    expect(out.strata.find((s) => s.id === "hole-degree:1")).toEqual({ id: "hole-degree:1", pairs: 0, configs: "33", missed: 3 });
+    expect(out.strata.find((s) => s.id === "rows:1")).toEqual({ id: "rows:1", pairs: 1, configs: "905", missed: 0 });
+    // A stratum that sample.json does not name has no counts.
+    expect(out.strata.find((s) => s.id === "push:1")).toEqual({ id: "push:1", pairs: 0 });
+    const m = out.measures[0]!;
+    expect(m.strata.find((s) => s.stratum === "hole-degree:1")).toEqual({ stratum: "hole-degree:1", n: 0, hits: 0, share: null, wilson: null });
+    expect(m.equal.strata).toBe(2);
+    expect(m.equal).toEqual(equalWeight(m.strata.filter((s) => s.n > 0)));
+    expect(sampleStrata(JSON.stringify({ strata: facts }))).toEqual(facts);
+    expect(sampleStrata(JSON.stringify({ draw: "uniform" }))).toBeUndefined();
   });
 });
 
