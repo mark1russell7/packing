@@ -346,7 +346,11 @@ export function drawDimension(r: Random, d: CorpusDimension): ParamValue {
   const min = range.min ?? d.min ?? 0;
   const max = range.max ?? d.max ?? min;
   if (d.kind === "int" && d.scale !== "log") return min + Number(uniformBig(r, BigInt(max - min + 1)));
-  return dimensionAt({ ...d, min, max }, r());
+  const v = dimensionAt({ ...d, min, max }, r());
+  // A dimension with `precision` gets the value that the family uses: the knobs `margin` and `gap` keep 3 decimals.
+  if (d.precision === undefined || typeof v !== "number") return v;
+  const f = 10 ** d.precision;
+  return Math.min(max, Math.max(min, Math.round(v * f) / f));
 }
 
 /** This function draws an input: a family with the same chance for each family, then each active dimension of the family. */
@@ -539,7 +543,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
       for (let configTry = 0; configTry < MAX_CONFIG_TRIES && !done; configTry++) {
         const config = drawConfig(r, space, counts, draw);
         configsDrawn++;
-        const breaks = checkConfig(space, config, combineOf(config) === "bbox" ? {} : { shapes });
+        const breaks = checkConfig(space, config, { shapes });
         if (breaks.length > 0) {
           configsRejected++;
           bump(configReasons, `check:${breaks[0]!.claim}`);

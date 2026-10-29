@@ -134,6 +134,8 @@ describe("the draw of an input", () => {
       if (d.family === "bl-trap") expect([2, 3]).toContain(d.dims["stages"]);
       if (d.family === "ladder") expect(d.dims["rung"]).toBeLessThanOrEqual(8);
       if (d.family === "tall-row") expect(d.dims["ratio"] as number).toBeLessThanOrEqual(32);
+      // The knobs keep the 3 decimals of their precision.
+      for (const k of ["margin", "gap"]) if (k in d.dims) expect(Math.round((d.dims[k] as number) * 1000) / 1000).toBe(d.dims[k]);
       expect(Number.isInteger(d.seed) && d.seed >= 0).toBe(true);
     }
   });
@@ -161,8 +163,7 @@ describe("the sample of pairs", () => {
       const file = generator(rec.generator.name, rec.generator.version).generate(rec.seed, rec.generator.params as never, "sample-space");
       expect(file.hash).toBe(rec.inputHash);
       const shapes = shapeKindsOf({ boxes: toPackInput(file).items });
-      const bbox = rec.config.stages["combine"]?.option === "bbox";
-      expect(checkConfig(packSpace, rec.config, bbox ? {} : { shapes })).toEqual([]);
+      expect(checkConfig(packSpace, rec.config, { shapes })).toEqual([]);
     }
     expect(a.summary.configs.drawn).toBe(a.summary.configs.rejected + a.summary.pairs + a.summary.errors.length);
   });
