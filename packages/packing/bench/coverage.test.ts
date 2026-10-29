@@ -421,7 +421,8 @@ describe("the input features and the active rounds of k116", () => {
     }
     const r = pairs(false)[0]!;
     expect(() => pairInput({ ...r, inputHash: "0000000000000000" })).toThrow(/does not come out the same/);
-    expect(() => pairInput({ ...r, seed: undefined })).toThrow(/no seed/);
+    const { seed: _seed, ...noSeed } = r;
+    expect(() => pairInput(noSeed)).toThrow(/no seed/);
   });
 
   it("models the grid on the input features, and keeps the feature set in the summary", () => {
