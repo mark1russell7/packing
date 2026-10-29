@@ -407,6 +407,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k118",
+    title: "The bounds count the margins and the gap. `pack.gap` is now a share from 0 to 1, and the sampler draws the margins and the gaps relative to the item size.",
+    pr: 160,
+    link: "https://github.com/mark1russell7/packing/pull/160",
+  },
+  {
+    date: "2026-10-29",
     item: "k26",
     title: "The new strategies `anneal`, `genetic` and `tabu` search the order of the boxes. A member packs each order, and the result is never worse than the member.",
     pr: 159,
