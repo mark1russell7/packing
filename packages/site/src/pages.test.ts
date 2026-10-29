@@ -1,13 +1,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
-import { byDate, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
+import { byDate, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
-import { divergingAt, gapAt, gapRanking, gapScale, gapShade, gapTable, gapText, niceCeil, pickHolds, rankStrategies, ratioAt, stepText } from "./results-model.ts";
+import { divergingAt, errorText, errorWidth, gapAt, gapRanking, gapScale, gapShade, gapTable, gapText, niceCeil, percentText, pickHolds, rankStrategies, ratioAt, stepText, trendChart } from "./results-model.ts";
 
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
 const KINDS: Record<string, Snapshot["kind"]> = {
+  "coverage.json": "coverage",
   "gaps-pack-known-v1.json": "gaps",
   "gaps-pack-select-v2.json": "gaps",
   "paired-k67.json": "paired",
@@ -138,7 +139,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-28", ["k2"], ["2"]],
       ["2026-10-20", [], ["1"]],
     ]);
-    expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
   });
 });
 
@@ -204,5 +205,51 @@ describe("the distance to the best", () => {
     expect(bound.measure).toBe("pack.gap");
     expect(bound.origin[0]!.run).toBe(40766464710);
     expect(bound.strategies.every((s) => s.all.below0 === 0)).toBe(true);
+  });
+});
+
+describe("the space coverage of k105", () => {
+  const snap = parseSnapshot(read("coverage.json"), "coverage") as CoverageSnapshot;
+
+  it("has the k22 run and the first CI coverage run as points, and a share from 0 to 1 for each measure", () => {
+    expect(snap.trend.map((p) => p.run).sort()).toEqual([40783923164, 40789799391]);
+    expect(snap.latest.measures.map((m) => m.id)).toEqual(["pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
+    for (const m of snap.latest.measures) {
+      expect(m.share).toBeGreaterThanOrEqual(0);
+      expect(m.share).toBeLessThanOrEqual(1);
+      expect(m.cells.covered).toBeLessThanOrEqual(m.cells.withRecords);
+      expect(m.cells.withRecords).toBeLessThanOrEqual(m.cells.space);
+      expect(m.mae).toBeLessThan(m.baselineMae);
+      expect(m.medianAe).toBeLessThanOrEqual(m.baselineMedianAe);
+      expect(m.byInput!.share).toBeGreaterThanOrEqual(0);
+      expect(m.byInput!.mae).toBeLessThanOrEqual(m.mae);
+    }
+    expect(snap.latest.model.by).toBe("spec");
+    expect(Object.keys(snap.trend[0]!.sharesByInput!)).toEqual(Object.keys(snap.trend[0]!.shares));
+    expect(snap.origin[0]).toMatchObject({ release: "0.2.17", commit: "a73bdd2" });
+  });
+
+  it("gives the texts and the widths of the errors", () => {
+    expect(percentText(0.2864)).toBe("29%");
+    expect(errorText({ scale: "linear" }, 0.0481)).toBe("0.048");
+    expect(errorText({ scale: "log" }, 0.083)).toBe("×1.21");
+    expect(errorWidth(0.05, 0.2)).toBe(25);
+    expect(errorWidth(0.3, 0.2)).toBe(100);
+    expect(errorWidth(0.1, 0)).toBe(0);
+  });
+
+  it("places the points of the trend by date and share", () => {
+    const trend = [
+      { date: "2026-10-28", run: 1, corpus: "c", commit: "a", shares: { f: 0.5, g: 1 } },
+      { date: "2026-11-04", run: 2, corpus: "c", commit: "b", shares: { f: 0 } },
+    ];
+    const chart = trendChart(trend, ["f", "g"], 100, 50, 10);
+    expect(chart.series[0]!.points.map((p) => [p.x, p.y])).toEqual([
+      [10, 25],
+      [90, 40],
+    ]);
+    expect(chart.series[1]!.points).toHaveLength(1);
+    expect(chart.ticks.map((t) => t.x)).toEqual([10, 90]);
+    expect(trendChart(trend.slice(0, 1), ["f"], 100, 50, 10).series[0]!.points[0]!.x).toBe(50);
   });
 });

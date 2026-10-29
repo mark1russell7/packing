@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { CoverageMeasure, CoveragePoint, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
 export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict | undefined => s.verdicts.find((v) => v.measure === measure);
@@ -155,3 +155,52 @@ export function gapTable(snap: GapSnapshot, columns: readonly GapStrategy[]): Ga
 
 /** This function gives the share of the scale for the shade of a cell of the table, from 0 to 1. */
 export const gapShade = (value: number, max: number): number => Math.max(0, Math.min(1, value / max));
+
+// ---- The space coverage of k105 ----
+
+/** This function gives a share as a percent with no decimals, for example `29%`. */
+export const percentText = (share: number): string => `${Math.round(share * 100)}%`;
+
+/**
+ * This function gives the text of an error of the coverage. A measure on a log scale gives a factor, for example `×1.21`.
+ * Another measure gives the value with 3 decimals.
+ */
+export const errorText = (m: Pick<CoverageMeasure, "scale">, error: number): string => (m.scale === "log" ? `×${(10 ** error).toFixed(2)}` : error.toFixed(3));
+
+/** This function gives the width of the bar of an error of the model, as a percent of the baseline error. It is from 0 to 100. */
+export const errorWidth = (model: number, baseline: number): number => (baseline <= 0 ? 0 : Math.max(0, Math.min(100, (model / baseline) * 100)));
+
+/** One point of a series of the trend chart, in the units of the box of the chart */
+export interface TrendPoint {
+  x: number;
+  y: number;
+  date: string;
+  share: number;
+}
+
+/** The geometry of the trend chart: a series for each measure and the ticks of the dates */
+export interface TrendChart {
+  series: { id: string; points: TrendPoint[] }[];
+  ticks: { x: number; date: string }[];
+}
+
+/** The day count of a date `YYYY-MM-DD` since 1970-01-01 */
+const dayOf = (date: string): number => Date.parse(`${date}T00:00:00Z`) / 86_400_000;
+
+/**
+ * This function gives the geometry of the trend chart in a box of `width` by `height`, with a margin `pad` on each side.
+ * The x axis is the date, and the y axis is the share from 0 at the bottom to 1 at the top. One date goes to the middle.
+ */
+export function trendChart(trend: readonly CoveragePoint[], measures: readonly string[], width: number, height: number, pad: number): TrendChart {
+  const days = trend.map((p) => dayOf(p.date));
+  const lo = Math.min(...days);
+  const hi = Math.max(...days);
+  const x = (date: string): number => (hi === lo ? width / 2 : pad + ((dayOf(date) - lo) / (hi - lo)) * (width - 2 * pad));
+  const y = (share: number): number => height - pad - Math.max(0, Math.min(1, share)) * (height - 2 * pad);
+  const series = measures.map((id) => ({
+    id,
+    points: trend.flatMap((p) => (p.shares[id] === undefined ? [] : [{ x: x(p.date), y: y(p.shares[id]), date: p.date, share: p.shares[id] }])),
+  }));
+  const dates = [...new Set(trend.map((p) => p.date))];
+  return { series, ticks: dates.map((date) => ({ x: x(date), date })) };
+}

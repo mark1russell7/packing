@@ -1,0 +1,341 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "coverage",
+ "origin": [
+  {
+   "release": "0.2.17",
+   "commit": "a73bdd2",
+   "date": "2026-10-28",
+   "run": 40789799391,
+   "source": "bench.yml, the artifact bench-pack-classes-v1, and bench/coverage.ts"
+  }
+ ],
+ "latest": {
+  "date": "2026-10-28",
+  "run": 40789799391,
+  "corpus": "pack-classes-v1",
+  "records": 13500,
+  "inputs": 500,
+  "strategies": [
+   "aspect-fit-maxrects-bl",
+   "aspect-fit-maxrects-bssf",
+   "aspect-fit-portfolio-k2",
+   "bbox-maxrects-bl",
+   "bbox-skyline",
+   "maxrects-baf",
+   "maxrects-bl",
+   "maxrects-blsf",
+   "maxrects-bssf",
+   "maxrects-cp",
+   "portfolio-area-rows-bl",
+   "portfolio-k2",
+   "portfolio-k3",
+   "restarts-maxrects-bl-k16",
+   "restarts-maxrects-bl-shuffle-k16",
+   "restarts-rows-k16",
+   "rows",
+   "select-rows-bl",
+   "shelf",
+   "shelf-best",
+   "shelf-first",
+   "shelf-first-input",
+   "shelf-next",
+   "skyline",
+   "skyline-bl-waste",
+   "skyline-mw",
+   "skyline-mw-waste"
+  ],
+  "model": {
+   "kind": "regression-tree",
+   "maxDepth": 12,
+   "minLeaf": 3,
+   "folds": 5,
+   "seed": 1,
+   "by": "spec"
+  },
+  "measures": [
+   {
+    "id": "pack.fill",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 13500,
+    "mae": 0.0374,
+    "baselineMae": 0.0741,
+    "medianAe": 0.023,
+    "baselineMedianAe": 0.061,
+    "skill": 0.4953,
+    "share": 0.3626,
+    "shareOfMeasured": 0.3626,
+    "cells": {
+     "space": 2700,
+     "withRecords": 2700,
+     "covered": 979
+    },
+    "explained": {
+     "strategy": 0.158,
+     "input": 0.457,
+     "joint": 0.8874
+    },
+    "noise": 0.1126,
+    "indices": [
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.2996
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0641
+     },
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.0607
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.0547
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.0527
+     },
+     {
+      "feature": "placement.maxrects.rule",
+      "group": "strategy",
+      "index": 0.0471
+     }
+    ],
+    "byInput": {
+     "mae": 0.0287,
+     "medianAe": 0.019,
+     "share": 0.44
+    }
+   },
+   {
+    "id": "pack.gap",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 13500,
+    "mae": 0.0569,
+    "baselineMae": 0.0923,
+    "medianAe": 0.028,
+    "baselineMedianAe": 0.05,
+    "skill": 0.3835,
+    "share": 0.29,
+    "shareOfMeasured": 0.29,
+    "cells": {
+     "space": 2700,
+     "withRecords": 2700,
+     "covered": 783
+    },
+    "explained": {
+     "strategy": 0.1693,
+     "input": 0.1994,
+     "joint": 0.8147
+    },
+    "noise": 0.1853,
+    "indices": [
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.0601
+     },
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.0594
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0537
+     },
+     {
+      "feature": "placement.maxrects.rule",
+      "group": "strategy",
+      "index": 0.0534
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.049
+     },
+     {
+      "feature": "placement.shelf.fit",
+      "group": "strategy",
+      "index": 0.0366
+     }
+    ],
+    "byInput": {
+     "mae": 0.0489,
+     "medianAe": 0.024,
+     "share": 0.3415
+    }
+   },
+   {
+    "id": "pack.overflow.excessArea",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 13500,
+    "mae": 0.0073,
+    "baselineMae": 0.0079,
+    "medianAe": 0,
+    "baselineMedianAe": 0,
+    "skill": 0.0759,
+    "share": 0.8689,
+    "shareOfMeasured": 0.8689,
+    "cells": {
+     "space": 2700,
+     "withRecords": 2700,
+     "covered": 2346
+    },
+    "explained": {
+     "strategy": 0.0318,
+     "input": 0.7282,
+     "joint": 0.893
+    },
+    "noise": 0.107,
+    "indices": [
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.1512
+     },
+     {
+      "feature": "class",
+      "group": "input",
+      "index": 0.0796
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.0515
+     },
+     {
+      "feature": "placement.shelf.fit",
+      "group": "strategy",
+      "index": 0.0227
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0187
+     },
+     {
+      "feature": "stage.order",
+      "group": "strategy",
+      "index": 0.0145
+     }
+    ],
+    "byInput": {
+     "mae": 0.0029,
+     "medianAe": 0,
+     "share": 0.9637
+    }
+   },
+   {
+    "id": "ms",
+    "scale": "log",
+    "tolerance": 0.15,
+    "n": 13500,
+    "mae": 0.1674,
+    "baselineMae": 0.4853,
+    "medianAe": 0.1179,
+    "baselineMedianAe": 0.3926,
+    "skill": 0.6551,
+    "share": 0.5552,
+    "shareOfMeasured": 0.5552,
+    "cells": {
+     "space": 2700,
+     "withRecords": 2700,
+     "covered": 1499
+    },
+    "explained": {
+     "strategy": 0.6534,
+     "input": 0.2148,
+     "joint": 0.9624
+    },
+    "noise": 0.0376,
+    "indices": [
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.5725
+     },
+     {
+      "feature": "combine.restarts.perturb",
+      "group": "strategy",
+      "index": 0.4278
+     },
+     {
+      "feature": "combine.restarts.iterations",
+      "group": "strategy",
+      "index": 0.4257
+     },
+     {
+      "feature": "combine.restarts.key",
+      "group": "strategy",
+      "index": 0.4257
+     },
+     {
+      "feature": "combine.restarts.limitTime",
+      "group": "strategy",
+      "index": 0.4257
+     },
+     {
+      "feature": "combine.restarts.strength",
+      "group": "strategy",
+      "index": 0.4257
+     }
+    ],
+    "byInput": {
+     "mae": 0.1321,
+     "medianAe": 0.0855,
+     "share": 0.6493
+    }
+   }
+  ]
+ },
+ "trend": [
+  {
+   "date": "2026-10-28",
+   "run": 40789799391,
+   "corpus": "pack-classes-v1",
+   "commit": "a73bdd2",
+   "shares": {
+    "pack.fill": 0.3626,
+    "pack.gap": 0.29,
+    "pack.overflow.excessArea": 0.8689,
+    "ms": 0.5552
+   },
+   "sharesByInput": {
+    "pack.fill": 0.44,
+    "pack.gap": 0.3415,
+    "pack.overflow.excessArea": 0.9637,
+    "ms": 0.6493
+   }
+  },
+  {
+   "date": "2026-10-28",
+   "run": 40783923164,
+   "corpus": "pack-select-v2",
+   "commit": "443bbca",
+   "shares": {
+    "pack.fill": 0.2894,
+    "pack.gap": 0.5101,
+    "pack.overflow.excessArea": 0.7343,
+    "ms": 0.798
+   },
+   "sharesByInput": {
+    "pack.fill": 0.2864,
+    "pack.gap": 0.5151,
+    "pack.overflow.excessArea": 0.7615,
+    "ms": 0.8849
+   }
+  }
+ ]
+}
