@@ -222,7 +222,7 @@ export function candidatePool(
 /**
  * This function draws and measures an active sample (k116).
  *
- * 1. It draws a pool of `poolFactor` times `n` candidates, stratified as in k115. A candidate is not packed.
+ * 1. It draws a pool of `poolFactor` times `n` candidates, stratified as in k115. The pool does not pack a candidate.
  * 2. Round `k` of `rounds` asks for `floor(n k / rounds) - floor(n (k - 1) / rounds)` pairs.
  * 3. At the start of a round, `foldScorer` learns on the grid and on the pairs of the earlier rounds. It scores each candidate that is left.
  * 4. The round measures the candidates from the highest score down, until it has its pairs. A candidate that the packer refuses goes back.

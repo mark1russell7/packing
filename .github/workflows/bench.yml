@@ -41,6 +41,16 @@ on:
         description: "Draw the same count of sampled pairs for each stratum: a strategy family with one count of members (k115)."
         type: boolean
         default: false
+      draw:
+        description: "The draw of the sampled pairs (k116). active measures the sample first, then 4 active rounds. stratify true is the same as stratified."
+        type: choice
+        options: [uniform, option, stratified, active]
+        default: uniform
+      features:
+        description: "The features of the inputs for the coverage model (k116): family, or input for the features of each input."
+        type: choice
+        options: [family, input]
+        default: family
 
 permissions:
   contents: read
@@ -75,9 +85,17 @@ jobs:
           REPEATS: ${{ inputs.repeats }}
           WARMUP: ${{ inputs.warmup }}
           SAMPLE: ${{ inputs.sample }}
+          STRATIFY: ${{ inputs.stratify }}
+          DRAW: ${{ inputs.draw }}
+          FEATURES: ${{ inputs.features }}
         run: |
           [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
           [[ "$SAMPLE" =~ ^[0-9]+$ ]] || { echo "sample must be a number of 0 or more, not '$SAMPLE'"; exit 1; }
+          [[ "$DRAW" =~ ^(uniform|option|stratified|active)$ ]] || { echo "draw must be uniform, option, stratified or active, not '$DRAW'"; exit 1; }
+          [[ "$FEATURES" =~ ^(family|input)$ ]] || { echo "features must be family or input, not '$FEATURES'"; exit 1; }
+          # k116: stratify true goes with the draw uniform (the old default), stratified or active. With active, it stratifies the sample.
+          if [ "$STRATIFY" = "true" ] && [ "$DRAW" = "option" ]; then echo "stratify true does not go with the draw option"; exit 1; fi
+          if [ "$DRAW" = "active" ] && [ "$SAMPLE" -eq 0 ]; then echo "the draw active needs a sample above 0"; exit 1; fi
           [ -f "packages/packing/bench/corpora/$CORPUS.json" ] || { echo "packages/packing/bench/corpora/$CORPUS.json does not exist"; exit 1; }
           [[ "$PREDICTION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "prediction must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$PREDICTION'"; exit 1; }
           [[ "$REPEATS" =~ ^[1-9][0-9]*$ ]] || { echo "repeats must be a number of 1 or more, not '$REPEATS'"; exit 1; }
@@ -140,12 +158,15 @@ jobs:
     needs: [plan, run]
     if: always() && needs.plan.result == 'success'
     runs-on: ubuntu-latest
-    # The sample of the whole space (k112) stops after 25 minutes. The merge and the coverage take some seconds.
-    timeout-minutes: 35
+    # The sample of the whole space (k112) stops after 25 minutes. With the draw active (k116), the sample and the rounds
+    # stop after 12 minutes each, and the fits of the rounds take some minutes. The merge and the coverage take some seconds.
+    timeout-minutes: 40
     env:
       CORPUS: ${{ inputs.corpus }}
       SAMPLE: ${{ inputs.sample }}
       STRATIFY: ${{ inputs.stratify }}
+      DRAW: ${{ inputs.draw }}
+      FEATURES: ${{ inputs.features }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -185,17 +206,31 @@ jobs:
           run_date="$(date -u +%Y-%m-%d)"
           status=0
           sample=()
-          # k115: with stratify, each stratum gets the same count of pairs
-          stratify=()
-          if [ "$STRATIFY" = "true" ]; then stratify=(--stratify); fi
+          active=()
+          # k115: with stratify, each stratum gets the same count of pairs.
+          # k116: the draw active measures the sample first (uniform, or stratified with stratify), then the active rounds.
+          draw="$DRAW"
+          if [ "$STRATIFY" = "true" ] && [ "$draw" = "uniform" ]; then draw=stratified; fi
+          sample_draw="$draw"
+          minutes=25
+          if [ "$draw" = "active" ]; then
+            sample_draw=uniform
+            if [ "$STRATIFY" = "true" ]; then sample_draw=stratified; fi
+            minutes=12
+          fi
           if [ "$SAMPLE" -gt 0 ]; then
-            node packages/packing/bench/sample-space.ts --out "$out/sample" --n "$SAMPLE" --seed 1 --max-minutes 25 "${stratify[@]}" \
+            node packages/packing/bench/sample-space.ts --out "$out/sample" --n "$SAMPLE" --seed 1 --max-minutes "$minutes" --draw "$sample_draw" \
               > "$RUNNER_TEMP/sample.txt" 2>&1 || status=$?
             if [ -f "$out/sample/records.jsonl" ]; then sample=(--sample "$out/sample"); fi
           fi
+          if [ "$draw" = "active" ]; then
+            node packages/packing/bench/active.ts --out "$out/active" --records "$out/records.jsonl" --corpus "$out/corpus.json" \
+              --n "$SAMPLE" --seed 1 --max-minutes 12 --features "$FEATURES" >> "$RUNNER_TEMP/sample.txt" 2>&1 || status=$?
+            if [ -f "$out/active/records.jsonl" ]; then active=(--active "$out/active"); fi
+          fi
           node packages/packing/bench/coverage.ts --records "$out/records.jsonl" --corpus "$out/corpus.json" \
-            --out "$out/coverage.json" --by spec --run "$GITHUB_RUN_ID" --date "$run_date" --min-records 50 \
-            "${sample[@]}" > "$RUNNER_TEMP/coverage.txt" 2>&1 || status=$?
+            --out "$out/coverage.json" --by spec --run "$GITHUB_RUN_ID" --date "$run_date" --min-records 50 --features "$FEATURES" \
+            "${sample[@]}" "${active[@]}" > "$RUNNER_TEMP/coverage.txt" 2>&1 || status=$?
           {
             echo "### The space coverage (folds by spec)"
             echo '```'

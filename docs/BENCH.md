@@ -1134,6 +1134,87 @@ Why the two numbers differ:
 
 The input `stratify` of `bench.yml` (default `false`) adds `--stratify` to the sampler.
 
+### The input features and the active draw (k116)
+
+The first stratified run of k115 found that the sampled inputs are far from the corpus.
+The median `pack.fill` of the 378 sampled pairs is 0.303. The median of the corpus records is 0.912.
+
+Many sampled inputs have a fixed container that is too small for their items. Most of their items are then forced out.
+Thus the share of `pack.fill` was 0.136 or less in each stratum. The cause is the inputs, not the configs.
+
+#### The input features
+
+The option `--features input` of `coverage.ts` gives the model features of each input, in place of the family and its params.
+The default stays `--features family`. The pure function `inputFeatures` of `bench/input-features.ts` computes them.
+
+| Feature | The value |
+|---|---|
+| `in.count` | The count of items |
+| `in.locked` | The count of locked items |
+| `in.fill` | The sum of the item areas over the container area, with 2 digits. A free container gives `-1`. |
+| `in.side.max` | The largest item side over the fixed container side |
+| `in.margin`, `in.gap` | The margin and the gap over the mean item side |
+| `in.aspect.mean`, `in.aspect.spread`, `in.aspect.max` | The aspect ratios of the items |
+| `in.area.cv` | The coefficient of variation of the item areas |
+| `in.fixed`, `in.container` | The fixed sides and the shape of the container |
+| `in.obstacles`, `in.items`, `in.turnable` | The obstacles, the shapes of the items and the turnable items |
+
+- `in.fill`, `in.side.max`, `in.margin` and `in.gap` tell the forced overflow before a pack.
+- The script regenerates each sampled input from its generator, its params, its seed and its knobs. It then checks the input hash.
+- Each value is a text with 2 digits, so the tree splits on it as on the other features.
+
+#### The forced-overflow split
+
+`coverage.ts --sample` splits the share of each measure in two parts.
+A pair is forced-overflow heavy when its `pack.overflow.forcedArea` is 0.5 or more (`FORCED_HEAVY`).
+The field `forced` of the section `sampled` gives `heavy` and `rest`, each with its pairs, its hits, its share and its Wilson interval.
+
+#### The active draw
+
+The script `bench/active.ts` draws the pairs where the model knows least. It measures them in rounds.
+
+```sh
+node bench/active.ts --out <folder>/active --records <folder>/records.jsonl --corpus <folder>/corpus.json --n 400 --seed 1 --features input
+```
+
+1. The script draws a pool of `20 × n` candidate pairs (`--pool 20`). Candidate `c` is in the stratum `c mod 18`, so the strata of the pool are equal, as in k115.
+2. The script checks each candidate with `checkConfig` and does not pack it.
+3. Each round fits 5 trees of the folds by spec for each measure. The rows are the grid and the measured active pairs.
+4. The score of a candidate is its fold spread: the standard deviation of the 5 predictions over the tolerance, as a mean over the measures.
+5. The round packs the candidates with the highest score. A tie goes to the lower candidate index.
+6. Each round has `floor(n·k/R) − floor(n·(k−1)/R)` pairs, with `R` rounds (`--rounds 4`).
+7. After a round, its measured pairs join the rows. The next round then fits the trees again.
+
+Why the fold spread:
+
+- The trees of the folds disagree where the rows do not decide the value. There, the held-out error is large.
+- The spread needs no measured value of the candidate. Thus the script scores 8000 candidates without a pack.
+- The score uses `pack.fill`, `pack.gap` and `pack.overflow.excessArea`. It does not use `ms`, because a time is different at each measurement.
+
+The same seed, the same grid and the same pool give the same pairs. Each candidate has its own random stream `candidate-<c>`.
+
+`coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.
+
+- The round 1 pairs are tested against the grid model. A later round is tested against the grid and the earlier rounds.
+- Each round gives its pairs, the hits, the share with its Wilson interval and the MAE.
+- With `--sample`, each round also gives the share of the sample after the round. The start gives the share of the grid only.
+- The pairs of a round are not a uniform sample. Thus the share of a round is not the coverage of the whole space.
+
+#### The inputs of `bench.yml`
+
+- The input `draw` is `uniform` (the default), `option`, `stratified` or `active`.
+- `stratify` true with `draw` `uniform` gives `stratified`, as in k115. `stratify` true with `draw` `option` fails.
+- With `draw` `active`, the sampler measures the sample first, uniform or stratified, for 12 minutes. Then `active.ts` measures the rounds for 12 minutes.
+- The input `features` is `family` (the default) or `input`. It goes to `coverage.ts` and `active.ts`.
+
+#### The weekly trend (a hypothesis)
+
+The hypothesis: with `draw` `active`, the share of the sample after the last round rises from week to week.
+
+- Each week adds the measured active pairs of the region where the model fails. The grid of the corpus does not change.
+- The test: the share "sample after" of the last round is above the share of the grid only, and the gap does not shrink over 4 weeks.
+- A share after the rounds that stays at the start tells that the model features do not separate the region. Then the features change, not the draw.
+
 ### The site
 
 The section `#coverage` of the results page reads `packages/site/data/coverage.json`. The command `snapshot.ts coverage` computes the coverage two times.
@@ -1148,4 +1229,7 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The chart "The whole space by stratum" shows the share of each stratum of the selected measure, with its interval and the mean.
 - A stratum without pairs shows "no pairs" and its count of configs, and no share. It is not in the mean.
 - An old snapshot without strata stays readable. The chart then shows a note.
+- The line under the strata gives the forced-overflow split of the selected measure (k116).
+- The table "The active rounds" shows, for each round, the share of the new pairs and the share of the sample after the round. The first row is the grid only.
+- The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
