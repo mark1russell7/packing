@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { CoverageMeasure, CoveragePoint, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { CoverageMeasure, CoveragePoint, CoverageStratum, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
@@ -171,6 +171,63 @@ export const errorText = (m: Pick<CoverageMeasure, "scale">, error: number): str
 /** The labels of the two numbers of each measure of the coverage */
 export const COVERAGE_SCOPES = { grid: "bench grid", space: "whole space (sampled)" } as const;
 
+/** The label of the mean over the strata of k115 */
+export const COVERAGE_STRATA_SCOPE = "equal weight over strata";
+
+/**
+ * This function gives the name of a stratum `<family>:<size>`. The size 1 gives only the family.
+ * The size `cell` gives "members from the cell", and another size gives its count of members.
+ */
+export function stratumLabel(id: string): string {
+  const at = id.lastIndexOf(":");
+  if (at < 0) return id;
+  const family = id.slice(0, at);
+  const size = id.slice(at + 1);
+  if (size === "1") return family;
+  if (size === "cell") return `${family}, members from the cell`;
+  return `${family}, ${size} members`;
+}
+
+/** The text of the mean over the strata of one measure: the share, its interval and the count of the strata */
+export interface StrataText {
+  share: string;
+  interval: string;
+  strata: string;
+}
+
+/** This function gives the text of the mean over the strata of a measure, or `null` when the measure has no strata. */
+export function strataText(m: Pick<CoverageMeasure, "strata">): StrataText | null {
+  const s = m.strata;
+  if (s === undefined) return null;
+  return { share: percentText(s.share), interval: `${percentText(s.low)} to ${percentText(s.high)}`, strata: `${s.strata} ${s.strata === 1 ? "stratum" : "strata"}` };
+}
+
+/**
+ * This function gives the HTML of the rows of the strata chart of one measure. Each row shows the share of a stratum and its 95% interval.
+ * The line in each bar is the mean over the strata. A stratum without pairs shows "no pairs".
+ */
+export function strataRows(m: Pick<CoverageMeasure, "strata">): string {
+  const s = m.strata;
+  if (s === undefined) return "";
+  const pct = (v: number): number => Math.round(Math.max(0, Math.min(1, v)) * 1000) / 10;
+  return s.rows
+    .map((x: CoverageStratum) => {
+      const name = stratumLabel(x.stratum);
+      const value = x.n === 0 ? "no pairs" : `${percentText(x.share)} <small>(${x.hits} of ${x.n})</small>`;
+      const title = x.n === 0 ? `${name}: no pairs` : `${name}: ${x.hits} of ${x.n} pairs, 95% interval ${percentText(x.low)} to ${percentText(x.high)}`;
+      const bar =
+        x.n === 0
+          ? `<span class="smean" style="left:${pct(s.share)}%"></span>`
+          : `<span class="srange" style="left:${pct(x.low)}%;width:${pct(x.high - x.low)}%"></span><span class="smean" style="left:${pct(s.share)}%"></span><span class="sdot" style="left:${pct(x.share)}%"></span>`;
+      return `<li class="irow srow${x.n === 0 ? " empty" : ""}" title="${esc(title)}">
+        <span class="iname"><code>${esc(name)}</code></span>
+        <span class="ibar sbar" aria-hidden="true">${bar}</span>
+        <span class="ival">${value}</span>
+      </li>`;
+    })
+    .join("");
+}
+
 /** The text of the number of the whole space of one measure: the share, its interval and the pairs, or a note */
 export interface SampledText {
   share: string;
@@ -200,6 +257,14 @@ export function coverageTile(m: CoverageMeasure, label: string): string {
       ? `<b class="none">${esc(s.share)}</b>`
       : `<b>${esc(s.share)} <small class="alt">95% interval ${esc(s.interval)}, ${esc(s.pairs ?? "")}</small></b>
         <span class="cmeter space" aria-hidden="true"><i style="width:${low * 100}%"></i><i class="range" style="width:${(high - low) * 100}%"></i></span>`;
+  const t = strataText(m);
+  const strata =
+    t === null
+      ? ""
+      : `
+        <small class="cscope">${COVERAGE_STRATA_SCOPE}</small>
+        <b>${esc(t.share)} <small class="alt">95% interval ${esc(t.interval)}, ${esc(t.strata)}</small></b>
+        <span class="cmeter space" aria-hidden="true"><i style="width:${m.strata!.low * 100}%"></i><i class="range" style="width:${(m.strata!.high - m.strata!.low) * 100}%"></i></span>`;
   return `<div class="tile cover">
         <span>${esc(label)}</span>
         <small class="cscope">${COVERAGE_SCOPES.grid}</small>
@@ -207,7 +272,7 @@ export function coverageTile(m: CoverageMeasure, label: string): string {
         <span class="cmeter" aria-hidden="true"><i style="width:${m.share * 100}%"></i></span>
         <small>${m.cells.covered} of ${m.cells.space} cells within ${esc(errorText(m, m.tolerance))}</small>
         <small class="cscope">${COVERAGE_SCOPES.space}</small>
-        ${space}
+        ${space}${strata}
       </div>`;
 }
 

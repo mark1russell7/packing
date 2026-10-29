@@ -22,6 +22,10 @@ import {
   ratioAt,
   sampledText,
   stepText,
+  strataRows,
+  strataText,
+  stratumLabel,
+  COVERAGE_STRATA_SCOPE,
   trendChart,
 } from "./results-model.ts";
 
@@ -160,7 +164,7 @@ describe("the calculations of the pages", () => {
       ["2026-10-20", [], ["1"]],
     ]);
     expect(NEWS.filter((x) => x.date === "2026-10-28").map((x) => x.item).sort()).toEqual(["k105", "k106", "k107", "k22", "k45", "k51", "k78", "k91", "k91"]);
-    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
+    expect(NEWS.filter((x) => x.date === "2026-10-29").map((x) => x.item)).toEqual(["k115", "k79", "k117", "k23", "k47", "k111", "k108", "k112", "k114", "k90", "k91", "k46", "k113"]);
   });
 });
 
@@ -280,6 +284,54 @@ describe("the space coverage of k105", () => {
     expect(withSample).toContain("95% interval 3% to 16%, 4 of 60 pairs");
     expect(withSample).not.toContain("not measured yet");
     expect(withSample).toContain(percentText(m.share));
+  });
+
+  it("shows the strata of k115 when a measure has them, and keeps an old snapshot without them", () => {
+    // The data of the site has no strata yet. The test uses made-up strata.
+    expect(snap.latest.strata).toBeUndefined();
+    const m = snap.latest.measures[0]!;
+    expect(m.strata).toBeUndefined();
+    expect(strataText(m)).toBeNull();
+    expect(strataRows(m)).toBe("");
+    expect(coverageTile(m, "Fill")).not.toContain(COVERAGE_STRATA_SCOPE);
+
+    const strata = {
+      share: 0.4375,
+      low: 0.3162,
+      high: 0.583,
+      strata: 2,
+      rows: [
+        { stratum: "rows:1", n: 16, hits: 12, share: 0.75, low: 0.5049, high: 0.8983 },
+        { stratum: "portfolio:5", n: 16, hits: 2, share: 0.125, low: 0.0349, high: 0.36 },
+        { stratum: "cell-portfolio:cell", n: 0, hits: 0, share: 0, low: 0, high: 1 },
+      ],
+    };
+    const withStrata = { ...m, strata };
+    expect(strataText(withStrata)).toEqual({ share: "44%", interval: "32% to 58%", strata: "2 strata" });
+    expect(strataText({ strata: { ...strata, strata: 1 } })!.strata).toBe("1 stratum");
+    const tile = coverageTile(withStrata, "Fill");
+    expect(tile).toContain(`>${COVERAGE_STRATA_SCOPE}<`);
+    expect(tile).toContain("95% interval 32% to 58%, 2 strata");
+    // The uniform number stays in the tile, before the mean over the strata.
+    expect(tile.indexOf(COVERAGE_SCOPES.space)).toBeLessThan(tile.indexOf(COVERAGE_STRATA_SCOPE));
+    expect(tile).toContain("95% interval 3% to 7%, 17 of 400 pairs");
+
+    const rows = strataRows(withStrata);
+    expect(rows.match(/<li /g)).toHaveLength(3);
+    expect(rows).toContain("<code>rows</code>");
+    expect(rows).toContain("<code>portfolio, 5 members</code>");
+    expect(rows).toContain("75% <small>(12 of 16)</small>");
+    expect(rows).toContain('class="srange" style="left:50.5%;width:39.3%"');
+    expect(rows).toContain('class="sdot" style="left:75%"');
+    expect(rows).toContain('class="smean" style="left:43.8%"');
+    expect(rows).toContain('class="irow srow empty"');
+    expect(rows).toContain("no pairs");
+
+    expect(stratumLabel("rows:1")).toBe("rows");
+    expect(stratumLabel("portfolio:3")).toBe("portfolio, 3 members");
+    expect(stratumLabel("cell-portfolio:cell")).toBe("cell-portfolio, members from the cell");
+    expect(stratumLabel("aspect-fit:1")).toBe("aspect-fit");
+    expect(stratumLabel("odd")).toBe("odd");
   });
 
   it("places the points of the trend by date and share", () => {

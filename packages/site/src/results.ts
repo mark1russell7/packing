@@ -21,6 +21,7 @@ import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapsh
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
 import {
   COVERAGE_SCOPES,
+  COVERAGE_STRATA_SCOPE,
   coverageTile,
   divergingAt,
   errorText,
@@ -39,6 +40,8 @@ import {
   ratioAt,
   scaleOf,
   stepText,
+  strataRows,
+  strataText,
   trendChart,
   verdictHash,
   verdictOf,
@@ -340,6 +343,18 @@ function drawIndices(): void {
       </li>`,
     )
     .join("");
+  drawStrata();
+}
+
+/** This function draws the strata chart of the current measure, or a note without strata. */
+function drawStrata(): void {
+  const m = cover.latest.measures[coverCurrent]!;
+  const t = strataText(m);
+  $("coverage-strata-note").innerHTML =
+    t === null
+      ? `The share of each stratum is not measured yet. A sample with strata gives it.`
+      : `<b>${esc(coverLabel(m.id))}</b>: the dot is the share of the pairs of a stratum, and the band is its 95% interval. The line is the ${COVERAGE_STRATA_SCOPE}, ${esc(t.share)}.`;
+  $("coverage-strata").innerHTML = strataRows(m);
 }
 
 /** This function gives the SVG of the trend chart of the shares. */
@@ -377,7 +392,10 @@ function mountCoverage(): void {
   $("coverage-sampled").innerHTML =
     sample === undefined
       ? `The number of the ${COVERAGE_SCOPES.space} tests the model on random pairs of a config and an input, outside the bench grid. It is not measured yet.`
-      : `The number of the ${COVERAGE_SCOPES.space} tests the model on ${sample.pairs} random pairs of a config and an input, outside the bench grid. The range is its 95% interval.`;
+      : `The number of the ${COVERAGE_SCOPES.space} tests the model on ${sample.pairs} random pairs of a config and an input, outside the bench grid. The range is its 95% interval.` +
+        (l.strata === undefined
+          ? ""
+          : ` The number "${COVERAGE_STRATA_SCOPE}" is the mean of the shares of the strata. Each stratum has the same weight. The draw of the sample is ${esc(l.strata.draw ?? "not known")}.`);
   $("coverage-errors").innerHTML = l.measures
     .map((m) => {
       const skill = m.skill === null ? "" : `, ${percentText(m.skill)} less error`;

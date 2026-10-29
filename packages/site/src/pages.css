@@ -1179,6 +1179,38 @@
   border-radius: 0 4px 4px 0;
 }
 
+.sbar .srange {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: color-mix(in oklab, var(--accent) 35%, var(--surface));
+  border-radius: 3px;
+}
+
+.sbar .sdot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.sbar .smean {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+
+.srow.empty .iname,
+.srow.empty .ival {
+  color: var(--muted);
+}
+
 .ifill.input {
   background: var(--series-1);
 }
