@@ -200,6 +200,8 @@ The cases of `edge-cases` have a fixed rectangle container:
 - `oversize` has one box that is wider than the container.
 - `exactTiling` has identical boxes that fill the container with no free space.
 - `touchObstacles` has a locked box on an obstacle, and boxes as wide as the path between 2 obstacles. Its cell has the obstacles `corridors`.
+  - The knob `margin` does not go on a locked box when the margin goes into an obstacle or out of the container (roadmap item k114).
+  - The packer does not move a locked box. Thus its margin in an obstacle is a `no-overlap` break that no strategy can remove.
 
 ### The inputs with a known best value
 
