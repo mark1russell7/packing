@@ -9,7 +9,7 @@
 - The bench entries `relax-rows`, `relax-maxrects-bl` and `relax-skyline-bl-waste`, with the move `move.relax`.
 - `packSpace` has the meta option `relax` with the param `strength`.
 - The composite strategy `force` (roadmap item k125, catalog rows `overlap-spring` and `overlap-prism`). It packs with a member, then pushes the boxes apart toward one target gap. The rounds of PRISM and the separation of VPSC remove each overlap. The options are `member`, `iterations` and `rounds`. Nothing default uses it.
-- `FORCE_STAGE`, `FORCE_MAX_BOXES` and `ForceStrategyOptions`.
+- `FORCE_STAGE`, `FORCE_MAX_BOXES`, `FORCE_MAX_FIXED` and `ForceStrategyOptions`. `FORCE_MAX_BOXES` counts only the moving boxes. When a cap stops the pass, the trace measure `force.capped` is 1.
 - The bench entries `force-rows`, `force-maxrects-bl` and `force-skyline-bl-waste`, with the move `move.force`.
 - `packSpace` has the meta option `force` with the params `iterations` and `rounds`.
 
