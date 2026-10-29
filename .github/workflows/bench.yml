@@ -37,6 +37,10 @@ on:
         description: "Add the measures pack.anchor.* of k111 to each input with a locked item. They need more packs."
         type: boolean
         default: false
+      stratify:
+        description: "Draw the same count of sampled pairs for each stratum: a strategy family with one count of members (k115)."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -141,6 +145,7 @@ jobs:
     env:
       CORPUS: ${{ inputs.corpus }}
       SAMPLE: ${{ inputs.sample }}
+      STRATIFY: ${{ inputs.stratify }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -180,8 +185,11 @@ jobs:
           run_date="$(date -u +%Y-%m-%d)"
           status=0
           sample=()
+          # k115: with stratify, each stratum gets the same count of pairs
+          stratify=()
+          if [ "$STRATIFY" = "true" ]; then stratify=(--stratify); fi
           if [ "$SAMPLE" -gt 0 ]; then
-            node packages/packing/bench/sample-space.ts --out "$out/sample" --n "$SAMPLE" --seed 1 --max-minutes 25 \
+            node packages/packing/bench/sample-space.ts --out "$out/sample" --n "$SAMPLE" --seed 1 --max-minutes 25 "${stratify[@]}" \
               > "$RUNNER_TEMP/sample.txt" 2>&1 || status=$?
             if [ -f "$out/sample/records.jsonl" ]; then sample=(--sample "$out/sample"); fi
           fi
