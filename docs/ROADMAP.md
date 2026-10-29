@@ -32,7 +32,7 @@ Status: done, done, waiting, next, done.
 | k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | done | k6, k7 |
 | k24 | MaxRects: best short side, best long side, best area, bottom-left, contact point | strategies | done | k6, k7 |
 | k25 | Bottom-left fill: Baker, Chazelle and the lowest-gap variants | strategies | later | k6, k7 |
-| k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | later | k6, k7 |
+| k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | done | k6, k7 |
 | k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi | strategies | later | k6, k7 |
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
 | k29 | Methods that keep the reading order or the layout under change | strategies | later | k6, k7 |
@@ -124,8 +124,10 @@ Status: done, done, waiting, next, done.
 | k115 | Coverage by stratum: the sampled share for each strategy family and each portfolio size, with equal weight, next to the uniform number | measure | done | k112 |
 | k116 | Coverage that rises by design: active sampling where the held-out error is largest, and a model on input features, not family ids | measure | done | k112, k115 |
 | k117 | A work budget for composites: count placements, not milliseconds, so each result is a pure function of the input and the config. Wall-clock stays an opt-in | core | done | k112 |
-| k118 | Bounds that count margins and gaps, knobs relative to the item size, and a `pack.gap` of 1 or less on each sampled pair | measure | next | k51, k116 |
+| k118 | Bounds that count margins and gaps, knobs relative to the item size, and a `pack.gap` of 1 or less on each sampled pair | measure | done | k51, k116 |
 | k119 | A prior over all families: the family weights come from the union of the committed corpora, with the effective count next to each prior share | measure | next | k116 |
+| k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish | measure | next | k116, k119 |
+| k121 | Determinism as a gate: the bench fails on a pair that is not deterministic and has no clock limit, a repeat test runs each entry in a shuffled order, and the source of the 2 bad pairs is found | measure | next | k116, k118 |
 
 ## The queue
 
@@ -133,9 +135,9 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | k118 | 4 | 3 | 2 | 6.0 |
-| 2 | k119 | 3 | 4 | 2 | 6.0 |
-| 3 | k26 | 5 | 4 | 4 | 5.0 |
+| 1 | k119 | 3 | 4 | 2 | 6.0 |
+| 2 | k121 | 4 | 3 | 2 | 6.0 |
+| 3 | k120 | 4 | 3 | 2 | 6.0 |
 | 4 | k25 | 3 | 3 | 2 | 4.5 |
 | 5 | k70 | 3 | 3 | 2 | 4.5 |
 | 6 | k13 | 3 | 3 | 2 | 4.5 |
