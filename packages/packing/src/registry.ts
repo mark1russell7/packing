@@ -6,6 +6,7 @@ import type { PackInput, PackOutput } from "./contract.ts";
 import { annealStrategy, geneticStrategy, tabuStrategy } from "./order-search.ts";
 import { portfolioStrategy } from "./portfolio-strategy.ts";
 import { overlapMinStrategy } from "./overlap-min.ts";
+import { forceStrategy } from "./force.ts";
 import { relaxStrategy } from "./relax.ts";
 import { restartsStrategy } from "./restarts.ts";
 import { ruinRecreateStrategy } from "./ruin-recreate.ts";
@@ -69,9 +70,9 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
  * Roadmap item k78 adds `restarts`, roadmap item k91 adds `bbox`, and roadmap item k79 adds `ruin-recreate`.
  * Roadmap item k80 adds `overlap-min`, and roadmap item k26 adds `anneal`, `genetic` and `tabu`.
  *
- * Roadmap item k124 adds `relax`.
+ * Roadmap item k124 adds `relax`, and roadmap item k125 adds `force`.
  */
-export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, relaxStrategy] as Strategy[]);
+export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, relaxStrategy, forceStrategy] as Strategy[]);
 
 /**
  * This function gives the strategy with an id, also a strategy of `shapeStrategies` and a composite strategy.

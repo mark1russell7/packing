@@ -161,8 +161,18 @@ export const RELAX_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "relax-skyline-bl-waste", strategy: "relax", options: { member: { id: "skyline-bl-waste", strategy: "skyline", options: { wasteMap: true } } }, base: "skyline-bl-waste" },
 ]);
 
+/**
+ * The composite entries of roadmap item k125. They are not in the pool of the oracle. In each one, the boxes of its member
+ * push each other and the walls, then PRISM and VPSC remove the overlaps. The base is that member. The move is `move.force`.
+ */
+export const FORCE_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "force-rows", strategy: "force", options: { member: "rows" }, base: "rows" },
+  { id: "force-maxrects-bl", strategy: "force", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } } }, base: "maxrects-bl" },
+  { id: "force-skyline-bl-waste", strategy: "force", options: { member: { id: "skyline-bl-waste", strategy: "skyline", options: { wasteMap: true } } }, base: "skyline-bl-waste" },
+]);
+
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES, ...OVERLAP_MIN_ENTRIES, ...ORDER_SEARCH_ENTRIES, ...RELAX_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES, ...OVERLAP_MIN_ENTRIES, ...ORDER_SEARCH_ENTRIES, ...RELAX_ENTRIES, ...FORCE_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -188,6 +198,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...OVERLAP_MIN_ENTRIES,
   ...ORDER_SEARCH_ENTRIES,
   ...RELAX_ENTRIES,
+  ...FORCE_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

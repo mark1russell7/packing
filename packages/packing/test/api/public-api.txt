@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 377 names
+## . (build/index.d.ts): 381 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -63,6 +63,9 @@ type Direction: @mark1russell7/layout-contract#Direction (external)
 EPS: @mark1russell7/layout-contract#EPS (external)
 type EdgeCase: build/index.d.ts#EdgeCase
 type EdgeCaseParams: build/index.d.ts#EdgeCaseParams
+FORCE_MAX_BOXES: build/index.d.ts#FORCE_MAX_BOXES
+FORCE_STAGE: build/index.d.ts#FORCE_STAGE
+type ForceStrategyOptions: build/index.d.ts#ForceStrategyOptions
 type FreeSpace: build/index.d.ts#FreeSpace
 type FreeSpan: build/index.d.ts#FreeSpan
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
@@ -274,6 +277,7 @@ defaultLayoutOf: build/index.d.ts#defaultLayoutOf
 edgeCases: build/index.d.ts#edgeCases
 edgeCasesFamily: build/index.d.ts#edgeCasesFamily
 fnv1a32: build/index.d.ts#fnv1a32
+forceStrategy: build/index.d.ts#forceStrategy
 freeSpace: build/index.d.ts#freeSpace
 fromRects: build/index.d.ts#fromRects
 gallery: build/index.d.ts#gallery
@@ -665,6 +669,19 @@ type EdgeCaseParams = {
   case: EdgeCase;
   count: number;
 };
+
+### build/index.d.ts#FORCE_MAX_BOXES
+export declare const FORCE_MAX_BOXES = 1e3;
+
+### build/index.d.ts#FORCE_STAGE
+export declare const FORCE_STAGE = "force";
+
+### build/index.d.ts#ForceStrategyOptions
+interface ForceStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  rounds?: number;
+}
 
 ### build/index.d.ts#FreeSpace
 interface FreeSpace {
@@ -1640,6 +1657,9 @@ export declare const edgeCasesFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
+
+### build/index.d.ts#forceStrategy
+export declare const forceStrategy: Strategy<ForceStrategyOptions>;
 
 ### build/index.d.ts#freeSpace
 export declare function freeSpace(input: PackInput): FreeSpace;

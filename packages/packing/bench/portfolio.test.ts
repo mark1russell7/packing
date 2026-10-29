@@ -213,7 +213,8 @@ describe("the portfolio report: the composite entries", () => {
       "restarts-maxrects-bl-k16", "restarts-rows-k16", "restarts-maxrects-bl-shuffle-k16", "bbox-maxrects-bl", "bbox-skyline", "ruin-recreate-maxrects-bl-k64", "ruin-recreate-skyline-k64",
       "overlap-min-maxrects-bl-k8192", "overlap-min-skyline-k8192",
       "anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16",
-      "relax-rows", "relax-maxrects-bl", "relax-skyline-bl-waste"]));
+      "relax-rows", "relax-maxrects-bl", "relax-skyline-bl-waste",
+      "force-rows", "force-maxrects-bl", "force-skyline-bl-waste"]));
     expect(cell.pool).toEqual(["A", "B"]);
     expect(Object.keys(cell.soleWins)).toEqual(["A", "B"]);
     expect(cell.losers).not.toContain("portfolio-k2");

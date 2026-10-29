@@ -40,7 +40,7 @@ function clock(step: number): () => number {
 
 describe("the strategy portfolio", () => {
   it("is a composite strategy of the registry, not a single strategy", () => {
-    expect(composites.map((s) => s.id)).toEqual(["portfolio", "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax"]);
+    expect(composites.map((s) => s.id)).toEqual(["portfolio", "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "force"]);
     expect(strategies.map((s) => s.id)).not.toContain("portfolio");
     expect(strategy("portfolio")).toBe(portfolioStrategy);
     expect(portfolioStrategy.defaults).toEqual({});
