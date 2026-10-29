@@ -298,8 +298,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k117",
     title: "The composites `portfolio` and `restarts` take a work limit `budgetWork`: one unit is one box in one pack. A cut by it is the same on each computer.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pull/0",
+    pr: 148,
+    link: "https://github.com/mark1russell7/packing/pull/148",
   },
   {
     date: "2026-10-29",
