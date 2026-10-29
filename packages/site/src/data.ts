@@ -436,8 +436,8 @@ export const NEWS: readonly NewsEntry[] = [
     date: "2026-10-29",
     item: "k119",
     title: "The family prior of the space coverage now comes from all the committed corpora. Each share with the prior shows its effective count of pairs.",
-    pr: 0,
-    link: "https://github.com/mark1russell7/packing/pull/0",
+    pr: 164,
+    link: "https://github.com/mark1russell7/packing/pull/164",
   },
   {
     date: "2026-10-29",
