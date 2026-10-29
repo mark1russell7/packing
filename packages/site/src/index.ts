@@ -77,6 +77,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   select: "Select",
   restarts: "Restarts",
   bbox: "Bounding boxes",
+  "ruin-recreate": "Ruin-recreate",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
 
@@ -103,6 +104,8 @@ const OPTION_LABELS: Record<string, string> = {
   limitTime: "Time limit",
   budgetMs: "Limit (ms)",
   turn: "Turn shapes",
+  ruin: "Ruin",
+  shrink: "Goal shrink",
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 

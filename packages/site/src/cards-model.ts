@@ -8,6 +8,7 @@ import {
   GUILLOTINE_SPLITS,
   MAXRECTS_RULES,
   RESTART_PERTURBS,
+  RUIN_KINDS,
   SHELF_FITS,
   SKYLINE_RULES,
   SORT_ORDERS,
@@ -21,6 +22,7 @@ import {
   type PortfolioStrategyOptions,
   type PushStrategyOptions,
   type RestartsStrategyOptions,
+  type RuinRecreateStrategyOptions,
   type SelectStrategyOptions,
   type SkylineStrategyOptions,
   type Strategy,
@@ -85,6 +87,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     cost: "one pack of the member for each restart: 16 packs by default",
   },
   bbox: { stage: "placement" },
+  "ruin-recreate": { stage: "local-search" },
 };
 
 // ---- The catalog ----
@@ -231,6 +234,7 @@ type AnyOptions = LayoutStrategyOptions &
   AspectFitStrategyOptions &
   SelectStrategyOptions &
   RestartsStrategyOptions &
+  RuinRecreateStrategyOptions &
   BboxStrategyOptions &
   GuillotineStrategyOptions &
   Omit<SkylineStrategyOptions, "rule">;
@@ -272,11 +276,18 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   choice: { type: oneOf(GUILLOTINE_CHOICES), note: "The rule of `guillotine` to choose a free rectangle: the best or the worst fit by area, short side or long side." },
   split: { type: oneOf(GUILLOTINE_SPLITS), note: "The rule of `guillotine` to cut the rest of a free rectangle: by the leftover axis, the axis or the area." },
   merge: { type: "boolean", note: "The value `true` joins two free rectangles of `guillotine` with a common full edge after each box." },
+  ruin: { type: oneOf(RUIN_KINDS), note: "The ruin: the boxes near a random point, random boxes, a chain of neighbors, or a random pick of the three." },
+  shrink: { type: "number", note: "The share by which a met goal makes the free side of the goal box smaller." },
 };
 
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
 export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<string, OptionInfo>>>> = {
   skyline: { rule: { type: oneOf(SKYLINE_RULES), note: "The rule to choose a place on the skyline: bottom-left or minimum waste." } },
+  "ruin-recreate": {
+    member: { type: "string | PortfolioEntry", note: "The member that packs the first layout and each recreate. The default is `maxrects-bl`." },
+    iterations: { type: "number", note: "The count of the ruins. Each ruin removes some boxes, and the member packs them again." },
+    strength: { type: "number", note: "The largest share of the placed boxes that one ruin removes, from 0 to 1." },
+  },
 };
 
 /** The options of each strategy that have no default. The types of the package make sure that each name is an option of the strategy. */
@@ -288,6 +299,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   select: ["members", "table"] satisfies (keyof SelectStrategyOptions)[],
   restarts: ["member", "budgetMs", "key"] satisfies (keyof RestartsStrategyOptions)[],
   bbox: ["member"] satisfies (keyof BboxStrategyOptions)[],
+  "ruin-recreate": ["member"] satisfies (keyof RuinRecreateStrategyOptions)[],
 };
 
 /** One option of a card */
