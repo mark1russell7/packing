@@ -1530,7 +1530,7 @@
     {
       "id": "R23",
       "name": "Bottom-left fill with a genetic order",
-      "description": "Keep a population of orders. Cross and change them, and decode each order with bottom-left fill, holes included.",
+      "description": "Keep a population of orders. Cross and change them, and decode each order with bottom-left fill, holes included. Built as the strategy `genetic` (k26), with the entry `genetic-maxrects-bl-k16`.",
       "published": true,
       "sources": [
         {

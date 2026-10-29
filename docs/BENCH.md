@@ -68,6 +68,10 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `ruin-recreate-skyline-k64` | `ruin-recreate` | `member: "skyline"`, `iterations: 64` | `skyline` |
 | `overlap-min-maxrects-bl-k8192` | `overlap-min` | `member: maxrects-bl`, `iterations: 8192` | `maxrects-bl` |
 | `overlap-min-skyline-k8192` | `overlap-min` | `member: "skyline"`, `iterations: 8192` | `skyline` |
+| `anneal-maxrects-bl-k16` | `anneal` | `member: maxrects-bl`, `iterations: 16` | `maxrects-bl` |
+| `anneal-skyline-k16` | `anneal` | `member: "skyline"`, `iterations: 16` | `skyline` |
+| `genetic-maxrects-bl-k16` | `genetic` | `member: maxrects-bl`, `iterations: 16`, `population: 4` | `maxrects-bl` |
+| `tabu-maxrects-bl-k16` | `tabu` | `member: maxrects-bl`, `iterations: 16`, `neighbors: 4` | `maxrects-bl` |
 
 - The 4 variants of roadmap item k21 are the shelf family. `docs/PACKER.md` tells the option `fit`.
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
@@ -90,6 +94,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 2 entries of roadmap item k80 are `OVERLAP_MIN_ENTRIES`. Each one makes the strip of its member shorter with at most 8192 box moves. Its move is `move.overlapMin`.
 - The entries of k80 pack only a container with a free height or a free width. They skip each other input as `UnsupportedCell`.
 - `docs/PACKER.md` ("The overlap minimization") tells the entries of k80.
+- The 4 entries of roadmap item k26 are `ORDER_SEARCH_ENTRIES`. Each one packs 16 orders with its member, and keeps the best output.
+- Their moves are `move.anneal`, `move.genetic` and `move.tabu`. `docs/PACKER.md` ("The searches over orders") tells them.
 
 ## The jobs
 
@@ -1083,8 +1089,9 @@ A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `ben
 - A meta option of the stage `combine` is its own family. Its size is its count of members.
 - `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
 - `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
-- `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate` and `overlap-min` have 1 member. Each one is one stratum. The family of their member does not count.
-- Thus `packSpace` has 20 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` and `tabu` have 1 member.
+- Each one is one stratum. The family of their member does not count.
+- Thus `packSpace` has 23 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
 - A new option of `placement` or `combine` gives new strata.
 
 ```sh
@@ -1093,7 +1100,7 @@ node bench/sample-space.ts --out <folder>/sample --n 400 --seed 1 --stratify
 
 The stratified draw:
 
-1. Pair `i` takes the stratum `i` modulo 20. Thus the counts of the strata differ by 1 or less, also after the time limit.
+1. Pair `i` takes the stratum `i` modulo 23. Thus the counts of the strata differ by 1 or less, also after the time limit.
 2. The config is uniform over the configs of its stratum. The draw of the input and the rejections stay as in the uniform draw.
 3. A rejected config goes back, and the script draws a new config of the same stratum.
 4. The same seed gives the same pairs. `--draw stratified` is the same as `--stratify`. The default draw stays `uniform`.

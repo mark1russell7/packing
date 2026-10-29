@@ -714,12 +714,168 @@ The counts of `packSpace`:
 - The strata of k115 (`strataOf`): 19 before, 20 after. The new stratum is `overlap-min:1`.
 - The tests that pack each entry on a fixed container now expect `UnsupportedCell` from the entries of `overlap-min`.
 
+### The searches over orders
+
+Roadmap item k26 adds three composite strategies that search the order of the items: `anneal`, `genetic` and `tabu`. They are opt-in. No default uses them.
+
+```ts
+const output = packWith("anneal", input); // 64 packs of maxrects-bl
+const sky = packWith("genetic", input, { member: "skyline", iterations: 32, population: 4 }, 7);
+const turns = packWith("tabu", input, { member: { id: "maxrects-rot", strategy: "maxrects", options: { rotate: true } } });
+```
+
+The three strategies have the same frame:
+
+- A genome is the order of the movable items. When the member turns items, the genome also has a turn flag for each turnable item.
+- The member decodes each genome: it packs the items in that order with the sort order `input`. A turned item is the turned box of `turnItem`.
+- The first genome is the order of the member: the rank order, then a stable sort by its `sortOrder`. Its output is the output of the member.
+- The compare of two outputs is the pick of `restarts`. The key is the hard breaks, then `pack.overflow.excessArea`, then `pack.fill`, with `selectBest`.
+- The output is the best output of the search when the key finds it better than the member output. Else it is the member output.
+- Thus the key does not find a search worse than its member at any time. The placements of the output are in the rank order of the input.
+- Locked items with a place stay out of the genome. They go first in each decoded input, so they keep their places.
+
+| Option | Default | Value |
+|---|---|---|
+| `member` | `maxrects` with the rule `bl` | A strategy id, or a `PortfolioEntry` with options. The strategy has the option `sortOrder`. |
+| `iterations` | 64 | The count of the packs of the member, the pack of the member order included. A whole number of 1 or more. |
+| `budgetWork` | none | The work limit in work units of `packWork`, as for `restarts`. The first pack always starts. |
+| `temperature` | 0.01 | `anneal` only. The start temperature, in the units of the key levels. A number above 0 and to 1. |
+| `cooling` | 0.01 | `anneal` only. The temperature of the last step as a share of the start temperature. A number above 0 and to 1. |
+| `population` | 8 | `genetic` only. The count of the genomes in one generation. A whole number from 2 to 256. |
+| `mutation` | 0.5 | `genetic` only. The chance that a child gets one more random change, from 0 to 1. |
+| `tenure` | 7 | `tabu` only. The count of the steps in which a move stays tabu. A whole number from 0 to 1024. |
+| `neighbors` | 8 | `tabu` only. The count of the random moves that one step tries. A whole number from 1 to 1024. |
+
+The search `anneal` (catalog row `search-sa-order`):
+
+1. Each step changes the current genome. The change is a swap of two items or a move of one item to another place, with the chance 0.5 each.
+2. When the member turns items, a step turns one random turnable item with the chance 0.2.
+3. A candidate that is better or equal by the key replaces the current genome. A better candidate than the best genome becomes the best genome.
+4. A worse candidate replaces the current genome with the chance `exp(-delta / T)`. `delta` is its loss on its first worse level of the key.
+5. A candidate with more hard breaks does not replace the current genome at any time.
+6. The temperature `T` falls geometrically from `temperature` to `temperature * cooling`, over the packs of the budget.
+
+The search `genetic` (catalog row `search-ga-order`):
+
+1. The first generation is the member genome, then `population - 1` changes of it. Child `i` of that generation has `i` random changes.
+2. Each next generation keeps the best genome of the last generation (elitism with 1 genome).
+3. Each other child has two parents. Each parent is the better genome of a tournament of 2 random genomes.
+4. The child is the order crossover (OX) of its parents. It keeps a random slice of the first parent, and the other items come in the order of the second parent.
+5. Each item of the child keeps the turn flag of the parent that gave its place.
+6. With the chance `mutation`, the child gets one random change: a swap of two items. When the member turns items, the change is a turn with the chance 0.2.
+
+The search `tabu` (catalog row `search-tabu`):
+
+1. Each step tries `neighbors` random swaps of two items of the current genome. When the member turns items, a move turns one item with the chance 0.2.
+2. A move is tabu when its attribute is in the tabu list. The attribute is the pair of the swapped items, or the turned item.
+3. The aspiration rule: the search can take a tabu move when its output is better than the best genome.
+4. The step goes to the best permitted move, also when that move is worse than the current genome. Then the move stays tabu for `tenure` steps.
+5. A step with no permitted move does not move. The search continues with the next step.
+
+The rules of the output:
+
+- The budget is `iterations` packs of the member. A genome that the search already packed costs no pack, because a cache keeps its output.
+- A search also stops after `4 * iterations` tries, cache answers included. Thus a search on a few items stops.
+- With `budgetWork`, the search stops when the work of its packs reaches the limit. The work counts as in `restarts`.
+- Step `t` gets the random numbers `stepRandom(seed, "<strategy>:<t>")` of the contract. The same seed gives the same output, byte for byte.
+- The strategies read no clock. A cut by `budgetWork` is the same on each computer.
+- The supports are the union of the supports of the 6 placement strategies, with the free or soft order. A movable obstacle and a group give `UnsupportedCell`.
+- A cell that the member does not support gives `UnsupportedCell` from the member.
+- The genome has turn flags only when the member has `rotate: true` and the input has turnable items. Else the genome is only the order.
+- The output gets the trace stage of its strategy (`ANNEAL_STAGE`, `GENETIC_STAGE` or `TABU_STAGE`). Its measures are in the table below.
+
+| Measure | Value |
+|---|---|
+| `move.anneal`, `move.genetic`, `move.tabu` | 1 when the output is not the member output, else 0. |
+| `<strategy>.packs` | The count of the packs of the member, the member order included. |
+| `<strategy>.bestAt` | The index of the pack that gave the output, or 0 for the member output. |
+| `anneal.accepted`, `anneal.uphill` | The count of the accepted candidates, and of the accepted candidates that were worse. |
+| `genetic.generations` | The count of the generations, the first generation included. |
+| `tabu.steps`, `tabu.aspirations` | The count of the steps that moved, and of the tabu moves that the aspiration rule permitted. |
+| `work.spent`, `work.budget`, `work.stopped` | With `budgetWork` only, as for `restarts`. |
+
+The choices of this project that differ from the sources:
+
+- The decoder is a member of the registry, `maxrects-bl` by default. Jakobs (1996) and Hopper & Turton (2001) decode with bottom-left or bottom-left fill.
+- The objective is the key of `restarts`, not the height of the strip. The compare uses `selectBest`, so a difference below the `minEffect` of a level is a tie.
+- The budget is a count of packs, not a time limit or a count of generations. The sources run many more evaluations than the default 64.
+- A cache answers a genome that the search already packed. The sources pack each genome again.
+- Each search starts from the order of its member, not from a random order. The sources start from random orders or from one sorted order.
+- The output is not worse than the member, because a last compare keeps the member output. The sources do not have this guard.
+- `anneal`: Kirkpatrick, Gelatt and Vecchi (1983) cool in steps, with many moves at each temperature. Here the temperature falls a little after each pack.
+- `anneal`: the temperature is in the units of the key levels. `delta` is the loss on the first worse level only. The search does not accept a loss of hard breaks at any time.
+- `genetic`: the population is small (8), because each child costs one pack. Hopper & Turton (2001) use larger populations.
+- `genetic`: the crossover is OX of Davis (1985). The first generation is the member order with 0 to `population - 1` random swaps.
+- `tabu`: Lodi, Martello & Vigo (1999) move items between bins. Iori, Martello & Monaci (2003) work on strip layouts. Here the move is a swap in the order.
+- `tabu`: a step tries a random sample of `neighbors` swaps, not each swap. The tenure is fixed. The search has no long-term memory and no diversification.
+- Turn flags are moves of the search only when the member has `rotate: true`. Else the member decides no turn, and the genome has no turn flags.
+
+A local comparison (2026-10-29) used 180 inputs of `pack-classes-v1`: the counts 20, 40 and 60, with the seeds 1 to 3.
+The inputs are 90 fixed containers and 90 `freeHeight` containers. The table gives the medians of `pack.fill`, `pack.gap` and the time of one call, and the mean of `pack.overflow.rate`.
+The rows with `k64` are not entries. The time is from a shared computer, so it gives only an order of size. The CI benchmark measures the entries on the full corpus.
+
+| Config | Fill, all | Gap, all | Fill, fixed | Gap, fixed | Overflow rate, fixed | Fill, free | Gap, free | ms |
+|---|---|---|---|---|---|---|---|---|
+| `maxrects-bl` | 0.9022 | 0.0799 | 0.9526 | 0.0516 | 0.6529 | 0.8751 | 0.1110 | 0.08 |
+| `restarts-maxrects-bl-k16` | 0.9228 | 0.0687 | 0.9585 | 0.0461 | 0.6529 | 0.8899 | 0.0896 | 1.52 |
+| `ruin-recreate-maxrects-bl-k64` | 0.9126 | 0.0674 | 0.9595 | 0.0438 | 0.6299 | 0.8774 | 0.1029 | 4.32 |
+| `anneal-maxrects-bl-k16` | 0.9310 | 0.0620 | 0.9635 | 0.0442 | 0.6425 | 0.8945 | 0.0846 | 0.60 |
+| `genetic-maxrects-bl-k16` | 0.9262 | 0.0661 | 0.9718 | 0.0350 | 0.6482 | 0.8972 | 0.0848 | 0.89 |
+| `tabu-maxrects-bl-k16` | 0.9252 | 0.0654 | 0.9670 | 0.0425 | 0.6520 | 0.8937 | 0.0844 | 0.66 |
+| `anneal-maxrects-bl-k64` | 0.9365 | 0.0560 | 0.9679 | 0.0396 | 0.6419 | 0.8984 | 0.0751 | 2.42 |
+| `genetic-maxrects-bl-k64` | 0.9378 | 0.0597 | 0.9784 | 0.0383 | 0.6464 | 0.9010 | 0.0803 | 2.58 |
+| `tabu-maxrects-bl-k64` | 0.9365 | 0.0498 | 0.9729 | 0.0359 | 0.6489 | 0.9126 | 0.0741 | 2.32 |
+| `skyline` | 0.8662 | 0.1375 | 0.9460 | 0.0588 | 0.6677 | 0.7791 | 0.2108 | 0.13 |
+| `anneal-skyline-k16` | 0.8939 | 0.1007 | 0.9599 | 0.0476 | 0.6543 | 0.8195 | 0.1605 | 0.98 |
+
+- `restarts-maxrects-bl-k16` also has 16 packs. With that budget, each of the three searches has a smaller median gap than `restarts`, on fixed and on free containers.
+- `anneal-maxrects-bl-k16` has the smallest gap of the three over all inputs. Thus the skyline entry is `anneal-skyline-k16`.
+- `genetic-maxrects-bl-k16` has the best fill and the smallest gap in fixed containers.
+- With 64 packs, `tabu` has the smallest gap. The k64 rows show that each search improves with more packs.
+- No config had a hard break on the 180 inputs.
+
+The CI record (2026-10-29, run 40813526076) used the 500 inputs of `pack-classes-v1`: 250 fixed and 250 `freeHeight` containers.
+The table gives the medians of `pack.gap`, `pack.fill` and the time of one pack. The run had 0 hard breaks, and each record was deterministic.
+
+| Entry | Gap, all | Gap, fixed | Fill, fixed | Time, fixed (ms) | Gap, free | Fill, free | Time, free (ms) |
+|---|---|---|---|---|---|---|---|
+| `maxrects-bl` | 0.061 | 0.035 | 0.968 | 0.1 | 0.085 | 0.887 | 0.1 |
+| `restarts-maxrects-bl-k16` | 0.054 | 0.031 | 0.973 | 0.7 | 0.075 | 0.896 | 2.0 |
+| `anneal-maxrects-bl-k16` | 0.051 | 0.033 | 0.973 | 1.2 | 0.075 | 0.900 | 2.6 |
+| `genetic-maxrects-bl-k16` | 0.046 | 0.025 | 0.982 | 0.7 | 0.069 | 0.903 | 1.5 |
+| `tabu-maxrects-bl-k16` | 0.048 | 0.030 | 0.976 | 1.2 | 0.070 | 0.903 | 2.7 |
+| `skyline` | 0.124 | 0.049 | 0.960 | 0.1 | 0.203 | 0.781 | 0.1 |
+| `anneal-skyline-k16` | 0.097 | 0.039 | 0.968 | 1.5 | 0.165 | 0.816 | 2.3 |
+
+- Each of the three searches with 16 packs has a smaller gap over all inputs than `restarts-maxrects-bl-k16`: 0.051, 0.046 and 0.048, against 0.054.
+- `genetic-maxrects-bl-k16` has the smallest gap in fixed containers (0.025) and in free containers (0.069).
+- In CI, `anneal-maxrects-bl-k16` is not faster than `restarts-maxrects-bl-k16`. The local comparison gave the opposite result.
+- `anneal-skyline-k16` cuts the gap of `skyline` from 0.124 to 0.097.
+
+The counts of `packSpace`:
+
+- `combine` gets the options `anneal`, `genetic` and `tabu`, each with 1 member and `RECT_ONLY`. Each one has `iterations`, its two params, and the work limit of k117.
+- The named configs are `anneal`, `genetic`, `tabu` and the 4 entries. The benchmark has the 4 entries `ORDER_SEARCH_ENTRIES`.
+- With 3 levels, each base config gives 135 new meta configs for each search. They are 3 values of each number param, then 5 values of the work limit.
+- With 1 level, each base config gives 5 new meta configs for each search: the 5 values of the work limit.
+
+| `spaceSize` | Before k26 | Since k26 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 185246197022536600275 | 185246197022537804340 |
+| 1 level | 66707889492007629 | 66707889492020994 |
+| 3 levels, `shapes: ["rect"]` | 184312874572012017240 | 184312874572013220090 |
+| 1 level, `shapes: ["rect"]` | 66333631179350180 | 66333631179363530 |
+
+- The base configs stay 2973 and 891, and 2970 and 890 for `rect`.
+- `ENTRIES` of the benchmark: 34 before, 38 after. `composites`: 7 before, 10 after. The meta options of `spaceCounts`: 8 before, 11 after.
+- The strata of `strataOf`: 20 before, 23 after. The new strata are `anneal:1`, `genetic:1` and `tabu:1`.
+
 ## The registry
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
-const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate" and "overlap-min"
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```

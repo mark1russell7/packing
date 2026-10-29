@@ -9,6 +9,7 @@
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
 ANCHOR_STEPS: build/index.d.ts#ANCHOR_STEPS
+ANNEAL_STAGE: build/index.d.ts#ANNEAL_STAGE
 ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
@@ -17,6 +18,7 @@ type AnchorStability: build/index.d.ts#AnchorStability
 type AnchorStabilityOptions: build/index.d.ts#AnchorStabilityOptions
 type AnchorStep: build/index.d.ts#AnchorStep
 type AnchorStrategy: build/index.d.ts#AnchorStrategy
+type AnnealStrategyOptions: build/index.d.ts#AnnealStrategyOptions
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
 BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
@@ -66,11 +68,13 @@ type FreeSpan: build/index.d.ts#FreeSpan
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
+GENETIC_STAGE: build/index.d.ts#GENETIC_STAGE
 GUILLOTINE_CHOICES: build/index.d.ts#GUILLOTINE_CHOICES
 GUILLOTINE_SPLITS: build/index.d.ts#GUILLOTINE_SPLITS
 type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
+type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GuillotineChoice: build/index.d.ts#GuillotineChoice
 type GuillotineOptions: build/index.d.ts#GuillotineOptions
 type GuillotineSplit: build/index.d.ts#GuillotineSplit
@@ -200,7 +204,9 @@ type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type StripContainer: build/index.d.ts#StripContainer
 type StripCut: build/index.d.ts#StripCut
 type Supports: build/index.d.ts#Supports
+TABU_STAGE: build/index.d.ts#TABU_STAGE
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
+type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type UiParams: build/index.d.ts#UiParams
@@ -219,6 +225,7 @@ type WorstContainer: build/index.d.ts#WorstContainer
 anchorGenerators: build/index.d.ts#anchorGenerators
 anchorStability: build/index.d.ts#anchorStability
 anchorStep: build/index.d.ts#anchorStep
+annealStrategy: build/index.d.ts#annealStrategy
 aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
@@ -267,6 +274,7 @@ galleryFamily: build/index.d.ts#galleryFamily
 gapToOpt: build/index.d.ts#gapToOpt
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
+geneticStrategy: build/index.d.ts#geneticStrategy
 guillotine: build/index.d.ts#guillotine
 halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
@@ -348,6 +356,7 @@ strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 stripGenerators: build/index.d.ts#stripGenerators
 supportsCell: build/index.d.ts#supportsCell
+tabuStrategy: build/index.d.ts#tabuStrategy
 tailShare: build/index.d.ts#tailShare
 tallRow: build/index.d.ts#tallRow
 tallRowFamily: build/index.d.ts#tallRowFamily
@@ -374,6 +383,9 @@ export declare const ANCHOR_MEASURE_IDS: readonly (keyof AnchorMeasures)[];
 
 ### build/index.d.ts#ANCHOR_STEPS
 export declare const ANCHOR_STEPS = 4;
+
+### build/index.d.ts#ANNEAL_STAGE
+export declare const ANNEAL_STAGE = "anneal";
 
 ### build/index.d.ts#ASPECT_FIT_FACTORS
 export declare const ASPECT_FIT_FACTORS: readonly number[];
@@ -416,6 +428,15 @@ interface AnchorStep {
 interface AnchorStrategy {
   readonly strategy: string;
   readonly options?: unknown;
+}
+
+### build/index.d.ts#AnnealStrategyOptions
+interface AnnealStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  budgetWork?: number;
+  temperature?: number;
+  cooling?: number;
 }
 
 ### build/index.d.ts#AspectFitOptions
@@ -677,6 +698,9 @@ interface FreeWidthTry {
   objective: number;
 }
 
+### build/index.d.ts#GENETIC_STAGE
+export declare const GENETIC_STAGE = "genetic";
+
 ### build/index.d.ts#GUILLOTINE_CHOICES
 export declare const GUILLOTINE_CHOICES: readonly ["baf", "bssf", "blsf", "waf", "wssf", "wlsf"];
 
@@ -702,6 +726,15 @@ type GeneratorParams = Record<string, string | number>;
 ### build/index.d.ts#GeneratorStamp
 interface GeneratorStamp extends LayoutGenerator {
   readonly params: Readonly<GeneratorParams>;
+}
+
+### build/index.d.ts#GeneticStrategyOptions
+interface GeneticStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  budgetWork?: number;
+  population?: number;
+  mutation?: number;
 }
 
 ### build/index.d.ts#GuillotineChoice
@@ -1329,8 +1362,20 @@ type Supports = {
   mode: ("offline" | "online" | "incremental")[];
 };
 
+### build/index.d.ts#TABU_STAGE
+export declare const TABU_STAGE = "tabu";
+
 ### build/index.d.ts#THIN_INPUTS
 export declare const THIN_INPUTS = 12;
+
+### build/index.d.ts#TabuStrategyOptions
+interface TabuStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  budgetWork?: number;
+  tenure?: number;
+  neighbors?: number;
+}
 
 ### build/index.d.ts#TallRowParams
 type TallRowParams = {
@@ -1416,6 +1461,9 @@ export declare function anchorStability(input: PackInput, config: AnchorStrategy
 
 ### build/index.d.ts#anchorStep
 export declare function anchorStep(input: PackInput, output: PackOutput, id: string, steps?: number): AnchorStep;
+
+### build/index.d.ts#annealStrategy
+export declare const annealStrategy: Strategy<AnnealStrategyOptions>;
 
 ### build/index.d.ts#aspectError
 export declare function aspectError(width: number, height: number, target?: number): number;
@@ -1565,6 +1613,9 @@ export declare function generator(name: string, version?: number): CorpusGenerat
 
 ### build/index.d.ts#generators
 export declare const generators: readonly CorpusGenerator[];
+
+### build/index.d.ts#geneticStrategy
+export declare const geneticStrategy: Strategy<GeneticStrategyOptions>;
 
 ### build/index.d.ts#guillotine
 export declare const guillotine: Strategy<GuillotineStrategyOptions>;
@@ -1830,6 +1881,9 @@ export declare const stripGenerators: readonly CorpusGenerator[];
 
 ### build/index.d.ts#supportsCell
 export declare function supportsCell(supports: Supports, cell: Partial<Record<Dimension, string>>): boolean;
+
+### build/index.d.ts#tabuStrategy
+export declare const tabuStrategy: Strategy<TabuStrategyOptions>;
 
 ### build/index.d.ts#tailShare
 export declare function tailShare(ratios: readonly number[], limit: number): number;

@@ -12,11 +12,13 @@ import {
   SHELF_FITS,
   SKYLINE_RULES,
   SORT_ORDERS,
+  type AnnealStrategyOptions,
   type AspectFitStrategyOptions,
   type BboxStrategyOptions,
   type HoleDegreeStrategyOptions,
   type Dimension,
   type DimensionValue,
+  type GeneticStrategyOptions,
   type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
   type MaxRectsStrategyOptions,
@@ -28,6 +30,7 @@ import {
   type SelectStrategyOptions,
   type SkylineStrategyOptions,
   type Strategy,
+  type TabuStrategyOptions,
 } from "@mark1russell7/packing";
 import { CORPUS_LABELS, MEASURE_LABELS, type Label, type StrategySnapshot } from "./data.ts";
 
@@ -92,6 +95,21 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   "hole-degree": { stage: "placement" },
   "ruin-recreate": { stage: "local-search" },
   "overlap-min": { stage: "local-search" },
+  anneal: {
+    stage: "local-search",
+    rule: "Change the order with swaps and moves. Keep a worse order with a chance that falls as the temperature falls.",
+    cost: "one pack of the member for each new order: 64 packs by default",
+  },
+  genetic: {
+    stage: "local-search",
+    rule: "Keep a population of orders. Join two parents by the order crossover, change some children, and keep the best order.",
+    cost: "one pack of the member for each new order: 64 packs by default",
+  },
+  tabu: {
+    stage: "local-search",
+    rule: "Try some swaps of the order, and go to the best one. A swapped pair stays tabu for some steps.",
+    cost: "one pack of the member for each new order: 64 packs by default",
+  },
 };
 
 // ---- The catalog ----
@@ -240,6 +258,9 @@ type AnyOptions = LayoutStrategyOptions &
   RestartsStrategyOptions &
   RuinRecreateStrategyOptions &
   OverlapMinStrategyOptions &
+  AnnealStrategyOptions &
+  GeneticStrategyOptions &
+  TabuStrategyOptions &
   BboxStrategyOptions &
   GuillotineStrategyOptions &
   HoleDegreeStrategyOptions &
@@ -287,6 +308,12 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   ruin: { type: oneOf(RUIN_KINDS), note: "The ruin: the boxes near a random point, random boxes, a chain of neighbors, or a random pick of the three." },
   shrink: { type: "number", note: "The share by which a met goal makes the free side of the goal box smaller." },
   step: { type: "number", note: "The share by which each cut of `overlap-min` makes the strip shorter, from 0.001 to 0.5." },
+  temperature: { type: "number", note: "The start temperature of `anneal`, as a share of the key levels. A worse order is kept with the chance `exp(-loss / T)`." },
+  cooling: { type: "number", note: "The temperature of the last step of `anneal` as a share of the start temperature." },
+  population: { type: "number", note: "The count of the orders in one generation of `genetic`, from 2 to 256." },
+  mutation: { type: "number", note: "The chance that a child of `genetic` gets one more random change, from 0 to 1." },
+  tenure: { type: "number", note: "The count of the steps of `tabu` in which a swapped pair stays tabu." },
+  neighbors: { type: "number", note: "The count of the random swaps that one step of `tabu` tries." },
 };
 
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
@@ -302,6 +329,18 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
     iterations: { type: "number", note: "The largest count of the box moves. Each move puts one box at its place of least overlap." },
     step: { type: "number", note: "The share by which each cut makes the strip shorter, from 0.001 to 0.5." },
   },
+  anneal: {
+    member: { type: "string | PortfolioEntry", note: "The member that packs each order. The default is `maxrects-bl`." },
+    iterations: { type: "number", note: "The count of the packs of the member, the member order included." },
+  },
+  genetic: {
+    member: { type: "string | PortfolioEntry", note: "The member that packs each order. The default is `maxrects-bl`." },
+    iterations: { type: "number", note: "The count of the packs of the member, the member order included." },
+  },
+  tabu: {
+    member: { type: "string | PortfolioEntry", note: "The member that packs each order. The default is `maxrects-bl`." },
+    iterations: { type: "number", note: "The count of the packs of the member, the member order included." },
+  },
 };
 
 /** The options of each strategy that have no default. The types of the package make sure that each name is an option of the strategy. */
@@ -315,6 +354,9 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   bbox: ["member"] satisfies (keyof BboxStrategyOptions)[],
   "ruin-recreate": ["member"] satisfies (keyof RuinRecreateStrategyOptions)[],
   "overlap-min": ["member"] satisfies (keyof OverlapMinStrategyOptions)[],
+  anneal: ["member", "budgetWork"] satisfies (keyof AnnealStrategyOptions)[],
+  genetic: ["member", "budgetWork"] satisfies (keyof GeneticStrategyOptions)[],
+  tabu: ["member", "budgetWork"] satisfies (keyof TabuStrategyOptions)[],
 };
 
 /** One option of a card */

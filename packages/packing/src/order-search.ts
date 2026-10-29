@@ -330,7 +330,7 @@ class OrderSearch {
   }
 
   /**
-   * This function gives the output of a search: the best genome when it is better than the member output by the key, else the member output.
+   * This function gives the output of a search. It is the best genome when the key finds it better than the member output. Else it is the member output.
    * The output gets the trace stage of the search with its measures.
    */
   finish(stage: string, move: string, best: Scored, measures: Record<string, number>): PackOutput {
@@ -347,7 +347,7 @@ class OrderSearch {
  * - The start is the member output. Each step changes the current genome: a swap or an insert, or a turn when the member turns items.
  * - The member packs the new order with the sort order `input`. The compare is the key of `restarts`, with `selectBest`.
  * - A better candidate or a tie replaces the current genome. A worse candidate replaces it with the chance `exp(-delta / T)`.
- * - `delta` is the loss on the first worse level of the key. A candidate with more hard breaks never replaces the current genome.
+ * - `delta` is the loss on the first worse level of the key. A candidate with more hard breaks does not replace the current genome at any time.
  * - The temperature `T` falls geometrically from `temperature` to `temperature * cooling` over the packs.
  * - Step `t` gets the random numbers `stepRandom(seed, "anneal:<t>")` of the contract. The strategy reads no clock.
  * - The output gets the trace stage `anneal` with `move.anneal`, `anneal.packs`, `anneal.bestAt`, `anneal.accepted` and `anneal.uphill`.
@@ -396,7 +396,7 @@ export const annealStrategy: Strategy<AnnealStrategyOptions> = {
   },
 };
 
-/** This function gives the child of two parents by the order crossover (OX): a slice of `a`, then the other items in the order of `b`. */
+/** This function gives the child of two parents by the order crossover (OX). The child has a slice of `a`, then the other items in the order of `b`. */
 function orderCrossover(a: Genome, b: Genome, r: () => number): Genome {
   const n = a.order.length;
   const i = pick(r, n);
@@ -498,7 +498,7 @@ export const geneticStrategy: Strategy<GeneticStrategyOptions> = {
  * - The start is the member output. Each step tries `neighbors` random swaps of the current genome, or turns when the member turns items.
  * - The step moves to the best move that is not tabu, also when it is worse than the current genome.
  * - A swapped pair of items, or a turned item, stays tabu for `tenure` steps.
- * - The aspiration rule: a tabu move is allowed when it is better than the best genome.
+ * - The aspiration rule: the search can take a tabu move when it is better than the best genome.
  * - The compare is the key of `restarts`, with `selectBest`. A tie keeps the earlier move.
  * - Step `t` gets the random numbers `stepRandom(seed, "tabu:<t>")` of the contract. The strategy reads no clock.
  * - The output gets the trace stage `tabu` with `move.tabu`, `tabu.packs`, `tabu.bestAt`, `tabu.steps` and `tabu.aspirations`.

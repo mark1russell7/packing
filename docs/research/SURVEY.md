@@ -255,7 +255,7 @@ The hybrids join two strategies that the package has. They are ideas of this rep
 |---|---|---|---|---|---|
 | R21 | Skyline with a fit score | For each segment of the skyline, score each box by the count of its sides that touch exactly. Put the box with the best score. | strip | Wei 2011 | k22 |
 | R22 | Best fit, fast form | Find the lowest gap of the skyline, and put in it the box that fills the most of its width. Balanced trees make each step fast. | strip | Burke 2004, Imahori 2010 | k25 |
-| R23 | Bottom-left fill with a genetic order | Keep a population of orders. Cross and change them, and decode each order with bottom-left fill, holes included. | strip | Hopper 2001, Jakobs 1996 | k25, k26 |
+| R23 | Bottom-left fill with a genetic order | Keep a population of orders. Cross and change them, and decode each order with bottom-left fill, holes included. Built as the strategy `genetic` (k26), with the entry `genetic-maxrects-bl-k16`. | strip | Hopper 2001, Jakobs 1996 | k25, k26 |
 | R24 | Reactive GRASP | Build an order with a random greedy rule, and improve it with a local search. Learn the best amount of randomness from the results. | strip | Alvarez-Valdes 2008 | k26 |
 | R25 | Annealing with best fit | Anneal the order of the first boxes. Place the other boxes with the best-fit rule. | strip | Burke 2009 | k26 |
 | R26 | Branch and bound with better bounds | Search the strip height exactly, with new lower bounds and rules that remove equal layouts. | strip | Alvarez-Valdes 2009 | k10 |

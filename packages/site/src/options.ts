@@ -43,6 +43,12 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   steps: { min: 0, max: 32, step: 1 },
   budgetWork: { min: 0, max: 1_000_000, step: 1 },
   shrink: { min: 0.001, max: 0.5, step: 0.001 },
+  temperature: { min: 0.0001, max: 1, step: 0.0001 },
+  cooling: { min: 0.0001, max: 1, step: 0.0001 },
+  population: { min: 2, max: 256, step: 1 },
+  mutation: { min: 0, max: 1, step: 0.01 },
+  tenure: { min: 0, max: 1024, step: 1 },
+  neighbors: { min: 1, max: 1024, step: 1 },
 };
 
 /** The limits of an option with a number value of one strategy, when they are not the values of `NUMBER_LIMITS`, by strategy id. */
@@ -111,6 +117,13 @@ function extraControls(id: string): OptionControl[] {
         { key: "budgetMs", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetMs"]!, fromDefaults: false },
         { key: "budgetWork", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetWork"]!, fromDefaults: false },
       ];
+    case "anneal":
+    case "genetic":
+    case "tabu":
+      return [
+        { key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false },
+        { key: "budgetWork", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetWork"]!, fromDefaults: false },
+      ];
     case "bbox":
     case "ruin-recreate":
     case "overlap-min":
@@ -144,7 +157,7 @@ const memberOf = (id: string): { id: string; strategy: string; options: Readonly
 /**
  * This function gives the options of `packWith` from the values of the controls. An empty value gives no option. A
  * portfolio with members takes no `k`. The strategy of `aspect-fit` is a named entry with its options.
- * The member of `restarts`, `bbox`, `ruin-recreate` and `overlap-min` is a named entry.
+ * The member of `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` and `tabu` is a named entry.
  */
 export function packOptions(id: string, values: OptionValues): Record<string, unknown> {
   const out: Record<string, unknown> = {};
