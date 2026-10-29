@@ -218,8 +218,12 @@ describe("hole-degree in the registry and in packSpace", () => {
     const sorted = { ...named, stages: { ...named.stages, order: { option: "area-desc" } } };
     const swept = { ...named, stages: { ...named.stages, "size-search": { option: "log-sweep" } } };
     for (const config of [sorted, swept]) expect(checkConfig(packSpace, config).some((b) => b.claim === "constraint")).toBe(true);
-    const rows = packSpace.named!["rows"]!;
-    const noSearch = { ...rows, stages: { ...rows.stages, "size-search": { option: "none" } } };
-    expect(checkConfig(packSpace, noSearch).some((b) => b.claim === "constraint")).toBe(true);
+    // The size search none stays only with push and hole-degree. Each other placement, guillotine of k23 too, needs a sweep.
+    for (const id of ["rows", "skyline", "shelf", "maxrects", "guillotine"]) {
+      const config = packSpace.named![id]!;
+      const noSearch = { ...config, stages: { ...config.stages, "size-search": { option: "none" } } };
+      expect(checkConfig(packSpace, noSearch).some((b) => b.claim === "constraint"), id).toBe(true);
+    }
+    expect(checkConfig(packSpace, packSpace.named!["push"]!)).toEqual([]);
   });
 });
