@@ -340,6 +340,8 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - Without `turn`, the member decides the turns. A turn of the member turns the shape.
 - An input with no shape and without `turn` gives the output of the member, byte for byte.
 - The measures of the box area stay `rect` only (roadmap item k75). The measure `pack.shapeFill` gives the shape area with `boxArea` of the contract.
+- On a `free` shape, `pack.shapeFill` is an upper bound (contract 0.2.17). `checkShapes` accepts it there only at the level `bound`.
+- `packConfig` does not check the measures of a `bbox` config. Thus the level `safe` of the hard rules stays, and a free shape packs.
 - The measures read the box that `bbox` places for a shape item: the bounding box of the shape at its place, not `w` by `h` (roadmap item k113).
 - Thus the hull, `pack.fill`, `pack.whitespace`, the overflow measures and `pack.shapeFill` use the same boxes. Each share stays from 0 to 1.
 - In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.

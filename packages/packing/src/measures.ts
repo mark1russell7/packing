@@ -43,7 +43,7 @@ export interface LayoutMeasures {
   "pack.fill": number;
   /**
    * The area of the shapes of the boxes divided by the area of the hull. A box of the kind `free` counts with its bounding box.
-   * For a list of only `rect` boxes, it is equal to `pack.fill`.
+   * Thus with a `free` box, the value is an upper bound of the true share. For a list of only `rect` boxes, it is equal to `pack.fill`.
    */
   "pack.shapeFill": number;
   "pack.whitespace": number;
@@ -108,6 +108,15 @@ const REL = Object.freeze({ rel: 0.01 });
 const anyShape = (s: MeasureSpec): MeasureSpec => ({ ...s, shapes: SHAPE_KIND_IDS });
 
 /**
+ * The shape support of `pack.shapeFill` (contract 0.2.17). The area of a rect, a polygon and a circle is exact.
+ * A free shape counts with its bounding box. That area is the true area or more, so the value is an upper bound.
+ */
+const SHAPE_FILL_SUPPORT = Object.freeze({
+  shapes: Object.freeze(["rect", "polygon", "circle"] as const),
+  bound: Object.freeze({ shapes: Object.freeze(["free"] as const), side: "upper" as const }),
+});
+
+/**
  * The facts of each measure, by id. `docs/MEASURES.md` gives the full definitions. This record is the source of the floor
  * and the tolerance of each guard of the packer, and of the minimum effect of each measure.
  *
@@ -120,12 +129,13 @@ const anyShape = (s: MeasureSpec): MeasureSpec => ({ ...s, shapes: SHAPE_KIND_ID
  * - `pack.gapToOpt` has 0.005: half of 1 percent of the known best value.
  * - A measure of the bounding boxes, the positions, the counts or the times supports each shape kind. Its spec has `shapes`.
  * - A measure of the area of the boxes has no `shapes`. Thus it supports only `rect`, and `checkShapes` refuses the other kinds.
- * - `pack.shapeFill` reads the area of each shape with `boxArea` of the contract. Thus it supports each shape kind.
+ * - `pack.shapeFill` reads the area of each shape with `boxArea` of the contract. Its value is exact on a rect, a polygon and a circle.
+ * - On a free shape, `pack.shapeFill` is an upper bound. `checkShapes` accepts it only at the level `bound`.
  */
 export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.freeze({
   "pack.area": anyShape(spec("pack.area", "density", "square units", "lower", 0, Infinity, REL)),
   "pack.fill": spec("pack.fill", "density", "share", "higher", 0, 1, 0.005),
-  "pack.shapeFill": anyShape(spec("pack.shapeFill", "density", "share", "higher", 0, 1, 0.005)),
+  "pack.shapeFill": { ...spec("pack.shapeFill", "density", "share", "higher", 0, 1, 0.005), ...SHAPE_FILL_SUPPORT },
   "pack.whitespace": spec("pack.whitespace", "density", "share", "lower", 0, 1, 0.005),
   "pack.aspect": anyShape(spec("pack.aspect", "aspect", "ratio", "lower", 1, Infinity, REL)),
   "pack.aspectError": anyShape(spec("pack.aspectError", "aspect", "natural log", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 })),

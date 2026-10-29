@@ -277,6 +277,13 @@ export interface NewsEntry {
 export const NEWS: readonly NewsEntry[] = [
   {
     date: "2026-10-29",
+    item: "k91",
+    title: "With contract 0.2.17, `pack.shapeFill` declares an upper bound on a free shape. `checkShapes` accepts it there only at the level `bound`.",
+    pr: 135,
+    link: "https://github.com/mark1russell7/packing/pull/135",
+  },
+  {
+    date: "2026-10-29",
     item: "k46",
     title: "The families `hopper-turton`, `burke-kendall-whitwell` and `beasley-gcut` make the published strip sets by their rules. The corpus `pack-strip-v1` has 528 inputs.",
     pr: 130,

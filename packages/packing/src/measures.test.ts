@@ -87,6 +87,9 @@ describe("measure", () => {
     // The triangle is 400, the inner rect 600, the ellipse counts as its box 1500, the circle is 100 pi.
     expect(s["pack.area"]).toBe(4000);
     expect(s["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500 + 100 * Math.PI) / 4000, 12);
+    // Contract 0.2.17: the ellipse is free, so the value is an upper bound. The true area of the ellipse is 375 pi.
+    expect(MEASURE_SPECS["pack.shapeFill"].bound).toEqual({ shapes: ["free"], side: "upper" });
+    expect(s["pack.shapeFill"]).toBeGreaterThan((400 + 600 + 375 * Math.PI + 100 * Math.PI) / 4000);
     expect(s["pack.fill"]).toBeCloseTo((800 + 600 + 1500 + 400) / 4000, 12);
     // An item that is not placed does not count, and an empty layout gives 0. Without d, the hull is 70 by 50.
     expect(measure(shaped, out(placed.placements.slice(0, 3), { overflow: ["d"] }))["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500) / 3500, 12);

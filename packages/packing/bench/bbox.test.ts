@@ -52,7 +52,7 @@ describe("the strategy bbox on circles and convex polygons", () => {
       const input = shapeInput(family, 1);
       expect(checkShapes(input, PACK_HARD_RULES, SAFE), family).toEqual([]);
       expect(new Set(checkShapes(input, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])), family).toEqual(new Set(["no-overlap", "in-container"]));
-      // The measures of the box area stay rect only. The measure pack.shapeFill supports each kind.
+      // The measures of the box area stay rect only. The measure pack.shapeFill is exact on circles and polygons.
       expect(checkShapes(input, [MEASURE_SPECS["pack.shapeFill"]], SAFE), family).toEqual([]);
       expect(checkShapes(input, [MEASURE_SPECS["pack.fill"]], SAFE).length, family).toBeGreaterThan(0);
     }
