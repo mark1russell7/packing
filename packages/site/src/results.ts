@@ -20,6 +20,8 @@ import { mountChrome } from "./chrome.ts";
 import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
 import {
+  COVERAGE_SCOPES,
+  coverageTile,
   divergingAt,
   errorText,
   errorWidth,
@@ -370,16 +372,12 @@ function mountCoverage(): void {
   $("coverage-text").innerHTML = marked.parse(coverageText, { async: false });
   $("coverage-note").innerHTML = `The data: ${dataLine(cover.origin)}. The corpus <code>${esc(l.corpus)}</code>: ${l.records} records of ${l.strategies.length} strategies on ${l.inputs} inputs. The model: a regression tree, ${l.model.folds} parts by ${esc(l.model.by)}, the seed ${l.model.seed}. The small number "by input" is the less strict test.`;
   $("coverage-origin").innerHTML = originHtml(cover.origin);
-  $("coverage-tiles").innerHTML = l.measures
-    .map(
-      (m) => `<div class="tile cover">
-        <span>${esc(coverLabel(m.id))}</span>
-        <b>${percentText(m.share)}${m.byInput === undefined ? "" : ` <small class="alt">by input ${percentText(m.byInput.share)}</small>`}</b>
-        <span class="cmeter" aria-hidden="true"><i style="width:${m.share * 100}%"></i></span>
-        <small>${m.cells.covered} of ${m.cells.space} cells within ${esc(errorText(m, m.tolerance))}</small>
-      </div>`,
-    )
-    .join("");
+  $("coverage-tiles").innerHTML = l.measures.map((m) => coverageTile(m, coverLabel(m.id))).join("");
+  const sample = l.sampled;
+  $("coverage-sampled").innerHTML =
+    sample === undefined
+      ? `The number of the ${COVERAGE_SCOPES.space} tests the model on random pairs of a config and an input, outside the bench grid. It is not measured yet.`
+      : `The number of the ${COVERAGE_SCOPES.space} tests the model on ${sample.pairs} random pairs of a config and an input, outside the bench grid. The range is its 95% interval.`;
   $("coverage-errors").innerHTML = l.measures
     .map((m) => {
       const skill = m.skill === null ? "" : `, ${percentText(m.skill)} less error`;

@@ -6,7 +6,7 @@
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
 //   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--out <file>]
-//   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>]
+//   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
@@ -30,7 +30,7 @@ import {
   type SelectNode,
 } from "@mark1russell7/packing";
 import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/layout-contract";
-import { coverage, coverageOptions, readRecords, type CoverageManifest, type CoverageSummary } from "./coverage.ts";
+import { coverage, coverageOptions, readRecords, readSampled, type CoverageManifest, type CoverageSummary, type SampledMeasure } from "./coverage.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 
 /** The schema of each snapshot file */
@@ -695,6 +695,22 @@ export interface CoverageSnapshotMeasure {
   indices: { feature: string; group: "strategy" | "input"; index: number }[];
   /** The errors and the share of the folds by input, when the snapshot has them. This test is less strict. */
   byInput?: { mae: number; medianAe: number; share: number };
+  /** The held-out test on the sampled pairs of the whole space (k112), when the snapshot has it */
+  sampled?: CoverageSnapshotSampled;
+}
+
+/** The held-out result of one measure on the sampled pairs of the whole space */
+export interface CoverageSnapshotSampled {
+  n: number;
+  hits: number;
+  share: number;
+  /** The Wilson 95% interval of the share */
+  low: number;
+  high: number;
+  mae: number;
+  medianAe: number;
+  baselineMae: number;
+  baselineMedianAe: number;
 }
 
 /** One point of the trend of the coverage: the share of each measure on one date */
@@ -723,10 +739,25 @@ export interface CoverageSnapshot {
     strategies: string[];
     model: CoverageSummary["model"];
     measures: CoverageSnapshotMeasure[];
+    /** The facts of the sample of the whole space (k112), when the snapshot has it */
+    sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
   };
   /** The points of the trend, oldest first. A date has one point for each corpus. */
   trend: CoveragePoint[];
 }
+
+/** This function gives the snapshot form of the held-out result of one measure on the sampled pairs. */
+const sampledOf = (m: SampledMeasure): CoverageSnapshotSampled => ({
+  n: m.n,
+  hits: m.hits,
+  share: m.share,
+  low: m.wilson.low,
+  high: m.wilson.high,
+  mae: m.mae,
+  medianAe: m.medianAe,
+  baselineMae: m.baseline.mae,
+  baselineMedianAe: m.baseline.medianAe,
+});
 
 /**
  * This function gives the coverage snapshot of a summary of `coverage`. The trend keeps each point of the earlier
@@ -735,6 +766,7 @@ export interface CoverageSnapshot {
  */
 export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
+  const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
   const point: CoveragePoint = {
     date: summary.date,
     run: summary.run,
@@ -773,7 +805,19 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
         noise: m.noise,
         indices: m.indices.slice(0, COVERAGE_TOP).map((x) => ({ ...x })),
         ...(second.has(m.id) ? { byInput: { mae: second.get(m.id)!.model.mae, medianAe: second.get(m.id)!.model.medianAe, share: second.get(m.id)!.share } } : {}),
+        ...(sampled.has(m.id) ? { sampled: sampledOf(sampled.get(m.id)!) } : {}),
       })),
+      ...(summary.sampled === undefined
+        ? {}
+        : {
+            sampled: {
+              pairs: summary.sampled.pairs,
+              seed: summary.sampled.sample?.seed ?? null,
+              draw: summary.sampled.sample?.draw ?? null,
+              configRejectionRate: summary.sampled.sample?.configRejectionRate ?? null,
+              hardPairs: summary.sampled.sample?.hardPairs ?? null,
+            },
+          }),
     },
     trend,
   };
@@ -892,8 +936,11 @@ export function snapshotMain(argv: readonly string[]): void {
     const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
     const earlier = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as CoverageSnapshot) : undefined;
     // The site shows the folds by spec, the stricter test. The folds by input give the second number.
-    const bySpec = coverage(records, manifest, { ...options, by: "spec" });
+    const grid = coverage(records, manifest, { ...options, by: "spec" });
     const byInput = coverage(records, manifest, { ...options, by: "input" });
+    // The sample of the whole space (k112): the folder `sample` of the run, or --sample <dir>
+    const sampleDir = optionOf(argv, "--sample") ?? join(folder, "sample");
+    const bySpec = existsSync(join(sampleDir, "records.jsonl")) ? { ...grid, sampled: readSampled(records, manifest, sampleDir, options) } : grid;
     writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
     return;
   }

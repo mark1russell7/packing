@@ -1067,6 +1067,32 @@
   border-radius: 3px;
 }
 
+.tile.cover .cscope {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.tile.cover b.none {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.cmeter.space {
+  display: flex;
+}
+
+.cmeter.space i {
+  border-radius: 0;
+}
+
+.cmeter.space .range {
+  background: color-mix(in oklab, var(--accent) 35%, var(--surface));
+}
+
 .cchart,
 .ichart {
   list-style: none;

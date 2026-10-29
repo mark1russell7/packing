@@ -181,10 +181,27 @@ export interface CoverageMeasure {
   shareOfMeasured: number;
   /** The errors and the share of the folds by input, a less strict test */
   byInput?: { mae: number; medianAe: number; share: number };
+  /** The held-out test on the sampled pairs of the whole space (k112): the share, its Wilson 95% interval and the errors */
+  sampled?: CoverageSampled;
   cells: { space: number; withRecords: number; covered: number };
   explained: { strategy: number; input: number; joint: number };
   noise: number;
   indices: { feature: string; group: "strategy" | "input"; index: number }[];
+}
+
+/** The held-out result of one measure on the sampled pairs of the whole space */
+export interface CoverageSampled {
+  n: number;
+  hits: number;
+  share: number;
+  /** The low end of the Wilson 95% interval of the share */
+  low: number;
+  /** The high end of the Wilson 95% interval of the share */
+  high: number;
+  mae: number;
+  medianAe: number;
+  baselineMae: number;
+  baselineMedianAe: number;
 }
 
 /** One point of the trend of the coverage */
@@ -211,6 +228,8 @@ export interface CoverageSnapshot {
     strategies: string[];
     model: { kind: string; maxDepth: number; minLeaf: number; folds: number; seed: number; by: "input" | "spec" };
     measures: CoverageMeasure[];
+    /** The facts of the sample of the whole space (k112), when the snapshot has it */
+    sampled?: { pairs: number; seed: number | null; draw: string | null; configRejectionRate: number | null; hardPairs: number | null };
   };
   trend: CoveragePoint[];
 }
@@ -275,6 +294,13 @@ export interface NewsEntry {
 
 /** The news that is not a release, newest first. A release of the package comes from `releases.json`. */
 export const NEWS: readonly NewsEntry[] = [
+  {
+    date: "2026-10-29",
+    item: "k112",
+    title: "The space coverage also tests the model on random pairs of the whole space. Each measure shows the share of the bench grid and of the whole space.",
+    pr: 133,
+    link: "https://github.com/mark1russell7/packing/pull/133",
+  },
   {
     date: "2026-10-29",
     item: "k114",

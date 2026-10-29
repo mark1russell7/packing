@@ -1,6 +1,7 @@
 // The calculations of the results page. They read only the snapshot files.
 
 import type { CoverageMeasure, CoveragePoint, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import { esc } from "./format.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
 export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict | undefined => s.verdicts.find((v) => v.measure === measure);
@@ -166,6 +167,49 @@ export const percentText = (share: number): string => `${Math.round(share * 100)
  * Another measure gives the value with 3 decimals.
  */
 export const errorText = (m: Pick<CoverageMeasure, "scale">, error: number): string => (m.scale === "log" ? `×${(10 ** error).toFixed(2)}` : error.toFixed(3));
+
+/** The labels of the two numbers of each measure of the coverage */
+export const COVERAGE_SCOPES = { grid: "bench grid", space: "whole space (sampled)" } as const;
+
+/** The text of the number of the whole space of one measure: the share, its interval and the pairs, or a note */
+export interface SampledText {
+  share: string;
+  /** The Wilson 95% interval, for example `3% to 16%`, or `null` without a test */
+  interval: string | null;
+  /** The hits over the pairs, for example `4 of 60 pairs`, or `null` without a test */
+  pairs: string | null;
+}
+
+/** This function gives the text of the number of the whole space of a measure. A measure without the held-out test gives `not measured yet`. */
+export function sampledText(m: Pick<CoverageMeasure, "sampled">): SampledText {
+  const s = m.sampled;
+  if (s === undefined) return { share: "not measured yet", interval: null, pairs: null };
+  return { share: percentText(s.share), interval: `${percentText(s.low)} to ${percentText(s.high)}`, pairs: `${s.hits} of ${s.n} pairs` };
+}
+
+/**
+ * This function gives the HTML of the tile of one measure of the coverage. The tile shows the share of the bench grid.
+ * Under it, the tile shows the share of the whole space with its interval, or `not measured yet`.
+ */
+export function coverageTile(m: CoverageMeasure, label: string): string {
+  const s = sampledText(m);
+  const low = m.sampled?.low ?? 0;
+  const high = m.sampled?.high ?? 0;
+  const space =
+    s.interval === null
+      ? `<b class="none">${esc(s.share)}</b>`
+      : `<b>${esc(s.share)} <small class="alt">95% interval ${esc(s.interval)}, ${esc(s.pairs ?? "")}</small></b>
+        <span class="cmeter space" aria-hidden="true"><i style="width:${low * 100}%"></i><i class="range" style="width:${(high - low) * 100}%"></i></span>`;
+  return `<div class="tile cover">
+        <span>${esc(label)}</span>
+        <small class="cscope">${COVERAGE_SCOPES.grid}</small>
+        <b>${percentText(m.share)}${m.byInput === undefined ? "" : ` <small class="alt">by input ${percentText(m.byInput.share)}</small>`}</b>
+        <span class="cmeter" aria-hidden="true"><i style="width:${m.share * 100}%"></i></span>
+        <small>${m.cells.covered} of ${m.cells.space} cells within ${esc(errorText(m, m.tolerance))}</small>
+        <small class="cscope">${COVERAGE_SCOPES.space}</small>
+        ${space}
+      </div>`;
+}
 
 /** This function gives the width of the bar of an error of the model, as a percent of the baseline error. It is from 0 to 100. */
 export const errorWidth = (model: number, baseline: number): number => (baseline <= 0 ? 0 : Math.max(0, Math.min(100, (model / baseline) * 100)));

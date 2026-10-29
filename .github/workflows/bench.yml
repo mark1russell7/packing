@@ -29,6 +29,10 @@ on:
         description: "The runs before the timed runs of each pair."
         type: string
         default: "2"
+      sample:
+        description: "The random pairs of a config and an input for the coverage of the whole space (k112). 0 turns it off."
+        type: string
+        default: "400"
 
 permissions:
   contents: read
@@ -62,8 +66,10 @@ jobs:
           PREDICTION: ${{ inputs.prediction }}
           REPEATS: ${{ inputs.repeats }}
           WARMUP: ${{ inputs.warmup }}
+          SAMPLE: ${{ inputs.sample }}
         run: |
           [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
+          [[ "$SAMPLE" =~ ^[0-9]+$ ]] || { echo "sample must be a number of 0 or more, not '$SAMPLE'"; exit 1; }
           [ -f "packages/packing/bench/corpora/$CORPUS.json" ] || { echo "packages/packing/bench/corpora/$CORPUS.json does not exist"; exit 1; }
           [[ "$PREDICTION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "prediction must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$PREDICTION'"; exit 1; }
           [[ "$REPEATS" =~ ^[1-9][0-9]*$ ]] || { echo "repeats must be a number of 1 or more, not '$REPEATS'"; exit 1; }
@@ -124,9 +130,11 @@ jobs:
     needs: [plan, run]
     if: always() && needs.plan.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # The sample of the whole space (k112) stops after 25 minutes. The merge and the coverage take some seconds.
+    timeout-minutes: 35
     env:
       CORPUS: ${{ inputs.corpus }}
+      SAMPLE: ${{ inputs.sample }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -152,7 +160,9 @@ jobs:
           [ -f "$out/summary.md" ] && cat "$out/summary.md" >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
       # k105: the space coverage of the merged records, with the folds by spec. It takes some seconds.
-      # A run with fewer than 50 measured records gives a note in coverage.json. The step does not fail the job.
+      # A run with fewer than 50 measured records gives a note in coverage.json.
+      # k112: with sample above 0, the sampler packs that many random pairs into merged/sample first.
+      # The coverage then adds the held-out test of the grid on those pairs. An error of the sampler fails the step.
       - name: Compute the space coverage
         if: always()
         run: |
@@ -162,13 +172,29 @@ jobs:
             exit 0
           fi
           run_date="$(date -u +%Y-%m-%d)"
+          status=0
+          sample=()
+          if [ "$SAMPLE" -gt 0 ]; then
+            node packages/packing/bench/sample-space.ts --out "$out/sample" --n "$SAMPLE" --seed 1 --max-minutes 25 \
+              > "$RUNNER_TEMP/sample.txt" 2>&1 || status=$?
+            if [ -f "$out/sample/records.jsonl" ]; then sample=(--sample "$out/sample"); fi
+          fi
+          node packages/packing/bench/coverage.ts --records "$out/records.jsonl" --corpus "$out/corpus.json" \
+            --out "$out/coverage.json" --by spec --run "$GITHUB_RUN_ID" --date "$run_date" --min-records 50 \
+            "${sample[@]}" > "$RUNNER_TEMP/coverage.txt" 2>&1 || status=$?
           {
             echo "### The space coverage (folds by spec)"
             echo '```'
-            node packages/packing/bench/coverage.ts --records "$out/records.jsonl" --corpus "$out/corpus.json" \
-              --out "$out/coverage.json" --by spec --run "$GITHUB_RUN_ID" --date "$run_date" --min-records 50
+            cat "$RUNNER_TEMP/coverage.txt"
             echo '```'
+            if [ -f "$RUNNER_TEMP/sample.txt" ]; then
+              echo "### The sample of the whole space"
+              echo '```'
+              cat "$RUNNER_TEMP/sample.txt"
+              echo '```'
+            fi
           } | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
