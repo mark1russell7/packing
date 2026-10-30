@@ -190,8 +190,6 @@ export interface BenchRun extends Partial<BenchScreen> {
   heldOut?: HeldOut;
   /** The value `true` when the timed passes of each input alternate between the entries. A run without `interleave` does not have it. */
   interleave?: true;
-  /** The value `true` for a paired time run (`pairedTime`). The order of the entries changes on each repeat. A run without the mode does not have it. */
-  pairedTime?: true;
   /** The count of the inputs for each declared property of `DECLARED_IDS`. A `run.json` before roadmap item k62 does not have it. */
   declared?: Record<string, number>;
 }
@@ -231,11 +229,6 @@ export interface BenchOptions {
    * Then the time ratio of two entries compares passes on the same computer at nearly the same moment. The default is `false`.
    */
   interleave?: boolean;
-  /**
-   * The value `true` gives a paired time run (k127). It is the interleaved mode, but the order of the entries is reversed on each odd repeat.
-   * Thus each entry has the first turn equally often. `pairedTimeOf` (`bench/paired-time.ts`) gives the ratios. The default is `false`.
-   */
-  pairedTime?: boolean;
   /**
    * The stability when an anchor moves (roadmap item k111). With `true` or options, each input with a locked item gets the
    * measures `pack.anchor.*` of `anchorMeasures`. They need more packs. The default is `false`, so the records do not change.
@@ -353,15 +346,10 @@ export interface TimedRun {
   repeat: number;
 }
 
-/**
- * This function gives the order of the timed passes of one input in the interleaved mode: for each repeat, one pass of each entry.
- * With `swap`, each odd repeat has the entries in the reverse order (ABBA for 2 entries).
- */
-export function interleavedOrder(entries: number, repeats: number, swap = false): TimedRun[] {
+/** This function gives the order of the timed passes of one input in the interleaved mode: for each repeat, one pass of each entry. */
+export function interleavedOrder(entries: number, repeats: number): TimedRun[] {
   const out: TimedRun[] = [];
-  for (let repeat = 0; repeat < repeats; repeat++) {
-    for (let at = 0; at < entries; at++) out.push({ entry: swap && repeat % 2 === 1 ? entries - 1 - at : at, repeat });
-  }
+  for (let repeat = 0; repeat < repeats; repeat++) for (let entry = 0; entry < entries; entry++) out.push({ entry, repeat });
   return out;
 }
 
@@ -386,6 +374,29 @@ function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | un
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
 }
 
+/** One input of a corpus for the paired time test (k127): its id, its seed, and the cell of the input. */
+export interface PairedCorpusInput {
+  id: string;
+  seed: number;
+  input: PackInput;
+  cell: CorpusManifest["inputs"][number]["cell"];
+}
+
+/** This function gives the inputs of a corpus for the paired time test (k127), in the order of the corpus. */
+export function pairedInputs(c: BenchCorpus): PairedCorpusInput[] {
+  const { manifest, inputs } = corpus(c.corpus, c.specs);
+  return inputs.map((file, index) => ({ id: file.id, seed: file.seed, input: toPackInput(file), cell: manifest.inputs[index]!.cell }));
+}
+
+/** This function gives the pack of an entry on an input, as the runner packs it. An entry that does not support the cell of the input gives `undefined`. */
+export function pairedPack(id: string, at: PairedCorpusInput, over?: EntryOptions): (() => PackOutput) | undefined {
+  const e = entryWith(id, over);
+  const s = strategy(e.strategy);
+  if (unsupportedOf(s.supports, at.cell) !== undefined) return undefined;
+  const given = givenOf(e, s.defaults);
+  return () => packWith(e.strategy, at.input, given, at.seed);
+}
+
 /** This function times `repeats` passes of one pair, one after the other. The sampler of the whole space (k112) uses it. */
 export function timeRuns(pack: () => PackOutput, repeats: number, clock: () => number): PairTimes {
   const out: PairTimes = { msRuns: [], searchMs: [] };
@@ -401,11 +412,11 @@ export function timeRuns(pack: () => PackOutput, repeats: number, clock: () => n
 /**
  * This function gives the times of each pair in the interleaved mode, by entry id and by input id.
  *
- * - For each input, it does the warm-up passes of each entry, then the timed passes in the order of `interleavedOrder`, with `swap` in a paired time run.
+ * - For each input, it does the warm-up passes of each entry, then the timed passes in the order of `interleavedOrder`.
  * - An entry that does not support the cell of the input, or that throws, gets no times for that input.
  * - The main loop of `runBench` then packs the pair again. It gives the skip or the error of the pair, as without the mode.
  */
-function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corpus>["inputs"], manifest: CorpusManifest, repeats: number, warmup: number, clock: () => number, over: EntryOptions, swap: boolean): Map<string, Map<string, PairTimes>> {
+function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corpus>["inputs"], manifest: CorpusManifest, repeats: number, warmup: number, clock: () => number, over: EntryOptions): Map<string, Map<string, PairTimes>> {
   const out = new Map<string, Map<string, PairTimes>>(ids.map((id) => [id, new Map()]));
   for (const [index, file] of inputs.entries()) {
     const input = toPackInput(file);
@@ -424,7 +435,7 @@ function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corp
       ready.push({ id, pack, times: { msRuns: [], searchMs: [] } });
     }
     const failed = new Set<number>();
-    for (const run of interleavedOrder(ready.length, repeats, swap)) {
+    for (const run of interleavedOrder(ready.length, repeats)) {
       if (failed.has(run.entry)) continue;
       const own = ready[run.entry]!;
       try {
@@ -585,7 +596,6 @@ export function finite(values: Record<string, number>): Record<string, number> {
  * - The records keep the order of the strategies, and then the order of the inputs.
  * - The runner packs each pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock.
  * - With `interleave`, the timed passes of each input alternate between the entries. The records and their order do not change.
- * - With `pairedTime`, the passes alternate too, and the order of the entries is reversed on each odd repeat.
  * - An input with a `base` in the corpus gets the stability measures of `measureChange` against the run on its base.
  * - With `anchor`, an input with a locked item gets the measures `pack.anchor.*` of `anchorMeasures`.
  * - An error other than `UnsupportedCell` goes into `errors`, and the runner goes on.
@@ -601,8 +611,7 @@ export function runBench(options: BenchOptions): BenchResult {
   const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
   // A false claim stops the run before the first packing
   const declared = checkDeclared(options.corpus, inputs.map(toPackInput));
-  const paired = options.pairedTime === true;
-  const interleaved = options.interleave === true || paired ? interleavedTimes(ids, inputs, manifest, repeats, warmup, clock, options.entryOptions, paired) : undefined;
+  const interleaved = options.interleave === true ? interleavedTimes(ids, inputs, manifest, repeats, warmup, clock, options.entryOptions) : undefined;
 
   const records: BenchRecord[] = [];
   const skipped: BenchSkip[] = [];
@@ -732,8 +741,7 @@ export function runBench(options: BenchOptions): BenchResult {
   };
   if (options.commit !== undefined) run.commit = options.commit;
   if (options.corpus.heldOut !== undefined) run.heldOut = options.corpus.heldOut;
-  if (options.interleave === true || paired) run.interleave = true;
-  if (paired) run.pairedTime = true;
+  if (options.interleave === true) run.interleave = true;
   const members = ids.some((id) => COMPOSITE_IDS.has(id))
     ? compositeMembersOf(
         ids,
@@ -898,7 +906,6 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
     `- Computer: ${run.env.runner}, ${run.env.os} ${run.env.arch}, ${run.env.cpus} x ${run.env.cpu}, Node.js ${run.env.node}`,
     `- Runs of each pair: 2 for determinism, ${run.warmup} warm-up, ${run.repeats} timed. \`ms\` is the median of the timed runs.`,
     ...(run.interleave === true ? ["- The timed passes of each input alternate between the strategies: for each repeat, one timed pass of each strategy."] : []),
-    ...(run.pairedTime === true ? ["- Paired time run: each odd repeat has the strategies in the reverse order. `paired-time.md` gives the time ratios."] : []),
     `- Records: ${records.length}. Measured records: ${measured.length}. Skipped records: ${skips.length}. Errors: ${run.errors.length}.`,
     "",
     "## Strategies",

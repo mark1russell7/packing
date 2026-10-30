@@ -369,24 +369,4 @@ describe("the interleaved timing mode", () => {
     const sequential = plain.records.filter(isMeasured).flatMap((r) => Array.from({ length: repeats }, (_, repeat) => `${r.strategy} ${r.input} ${repeat}`));
     expect(runOrder(plain.records)).toEqual(sequential);
   });
-
-  it("reverses the order of the entries on each odd repeat with swap (k127)", () => {
-    expect(interleavedOrder(2, 3, true).map((r) => r.entry)).toEqual([0, 1, 1, 0, 0, 1]);
-    expect(interleavedOrder(3, 2, true).map((r) => r.entry)).toEqual([0, 1, 2, 2, 1, 0]);
-    expect(interleavedOrder(3, 2, true).map((r) => r.repeat)).toEqual([0, 0, 0, 1, 1, 1]);
-    expect(interleavedOrder(2, 3, false)).toEqual(interleavedOrder(2, 3));
-  });
-
-  it("gives the same records in a paired time run, with the timed runs in the swapped order (k127)", () => {
-    const paired = runBench({ corpus: tiny, prediction: "p-test", strategies: ids, repeats, warmup: 1, env: ENV, clock: squareClock(), pairedTime: true });
-    expect(paired.records.map(timeless)).toEqual(plain.records.map(timeless));
-    expect(paired.run.interleave).toBe(true);
-    expect(paired.run.pairedTime).toBe(true);
-    expect(mixed.run).not.toHaveProperty("pairedTime");
-    expect(summaryMarkdown(paired.run, paired.records)).toContain("Paired time run");
-    const inputs = paired.manifest.inputs.map((e) => e.id);
-    const packs = (input: string): string[] => ids.filter((id) => paired.records.some((r) => isMeasured(r) && r.strategy === id && r.input === input));
-    const expected = inputs.flatMap((input) => interleavedOrder(packs(input).length, repeats, true).map((run) => `${packs(input)[run.entry]} ${input} ${run.repeat}`));
-    expect(runOrder(paired.records)).toEqual(expected);
-  });
 });

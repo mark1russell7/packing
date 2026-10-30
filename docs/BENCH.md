@@ -866,6 +866,37 @@ The job starts `bench/paired.ts`. The script loads `packWith` of both arms in on
 
 The artifact `paired-<corpus>-<strategy>` has `records.jsonl`, `summary.json` and `summary.md`. Each record has the two times, the ratio and the placement hash of each arm. The summary gives the median ratio of the free-size rect inputs with 100 items and of the other inputs. It also gives the median ratio of each class of the other inputs.
 
+## A paired time test of strategies
+
+The workflow `Bench` packs each strategy in its own job, often on a different CPU. Thus a time ratio of two strategies from `Bench` compares runners. A claim from such a ratio is void (k127).
+
+The workflow `Paired time` (`.github/workflows/paired-time.yml`) times two or more strategies in one job. Start it with the GitHub CLI:
+
+```sh
+gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f corpus=pack-classes-v1 -f prediction=<id>
+```
+
+| Input | Default | What it sets |
+|---|---|---|
+| `arms` | | The ids of the strategies, with commas. The first one is the base. |
+| `corpus` | `pack-classes-v1` | The corpus. |
+| `prediction` | | The id of the prediction of the run. |
+| `mode` | `fresh` | `fresh`: a new process for each arm, each input and each round. `process`: one process. |
+| `repeats` | `5` | The timed rounds of each arm on each input. |
+| `warmup` | `2` | The untimed passes of each arm before each timed pass. |
+| `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
+
+The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/1`. The two modes are:
+
+- Mode `fresh` starts a child `paired-child` for each arm, each input and each round. The order of the arms rotates each round. The child does the warm-up runs, times one run, and writes its time and its memory peak.
+- Mode `process` packs each input with the arms in turn in one process. Odd rounds reverse the order (ABBA).
+
+The test uses only the inputs that each arm supports. The ratio of an input is the median time of the arm over the median time of the base. A group is a seed of the corpus.
+
+The artifact `paired-time-<corpus>-<mode>` has `run.json`, `paired-time.json` and `paired-time.md`. For each arm, the report gives the median, p10 and p90 of the ratios. It also gives the median of each group, and the mean and SD of the groups. The noise floor is the median, p10 and p90 of the A/A ratios. The value `moved` of an arm is the share of its inputs with a ratio outside [p10, p90] of the A/A arm.
+
+A claim gives the median, p10, p90 and `moved` of each arm, and the noise floor. A difference inside the noise floor is not a result.
+
 ## The cells of a candidate
 
 `packages/packing/bench/cells.ts` finds the cells where a candidate fills more than the default (roadmap item k66). It reads the records of one run. It does not start a packer.

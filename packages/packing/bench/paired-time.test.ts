@@ -1,74 +1,166 @@
 import { describe, expect, it } from "vitest";
-import { PAIRED_TIME_MODE, pairedTimeMarkdown, pairedTimeOf } from "./paired-time.ts";
-import type { BenchEnv, BenchRecord, BenchRun, MeasuredRecord } from "./run.ts";
+import { aaId, armOrder, childResult, measureIsolated, pairedMarkdown, quantileOf, timeChild, type PairedEnv } from "./paired-time.ts";
 
-const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "x64", runner: "test runner", cpu: "Test CPU 9000", cpus: 4 };
+const ENV: PairedEnv = { cpu: "Test CPU 9000", cores: 4, os: "test", arch: "x64", node: "v0.0.0" };
 
-/** This function makes a made-up run with the strategies of `ids`. */
-const runOf = (ids: string[], pairedTime = true): BenchRun => ({
-  schema: "packing-bench-run/1",
-  corpus: "tiny-v1",
-  prediction: "p-test",
-  commit: "abc1234",
-  repeats: 5,
-  warmup: 2,
-  strategies: ids,
-  env: ENV,
-  skipped: [],
-  errors: [],
-  ...(pairedTime ? { interleave: true as const, pairedTime: true as const } : {}),
+/** This function makes a made-up clock: each run of an arm adds the cost of the arm on the input to the time. */
+function fakeClock() {
+  let now = 0;
+  return { clock: () => now, spend: (ms: number) => (now += ms) };
+}
+
+describe("armOrder", () => {
+  it("reverses the order in odd rounds of mode process", () => {
+    expect([0, 1, 2, 3].map((round) => armOrder(3, round, "process"))).toEqual([
+      [0, 1, 2],
+      [2, 1, 0],
+      [0, 1, 2],
+      [2, 1, 0],
+    ]);
+  });
+
+  it("rotates the order each round of mode fresh", () => {
+    expect([0, 1, 2, 3].map((round) => armOrder(3, round, "fresh"))).toEqual([
+      [0, 1, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [0, 1, 2],
+    ]);
+  });
 });
 
-/** This function makes a made-up measured record. Only the fields that the report reads matter. */
-const record = (strategy: string, input: string, seed: number, ms: number): BenchRecord => ({ strategy, input, seed, ms, msRuns: [ms], measures: {}, hard: {}, env: ENV }) as unknown as MeasuredRecord;
+describe("quantileOf", () => {
+  it("interpolates between the two nearest values", () => {
+    expect(quantileOf([4, 1, 3, 2], 0.5)).toBe(2.5);
+    expect(quantileOf([1, 2, 3, 4, 5], 0.1)).toBeCloseTo(1.4);
+    expect(quantileOf([], 0.5)).toBeNaN();
+  });
+});
 
-describe("pairedTimeOf", () => {
-  // 2 inputs of the seed 1 and 2 inputs of the seed 2. The strategy b takes 2 or 3 times the base, and c takes half
-  const records: BenchRecord[] = [
-    record("base", "i1", 1, 1),
-    record("b", "i1", 1, 2),
-    record("c", "i1", 1, 0.5),
-    record("base", "i2", 1, 2),
-    record("b", "i2", 1, 4),
-    record("c", "i2", 1, 1),
-    record("base", "i3", 2, 1),
-    record("b", "i3", 2, 3),
-    record("c", "i3", 2, 0.5),
-    record("base", "i4", 2, 1),
-    record("b", "i4", 2, 3),
+describe("measureIsolated in mode process", () => {
+  // 2 inputs of the group 1 and 2 inputs of the group 2. The value of an input gives the cost of each arm
+  const inputs = [
+    { id: "i1", group: "1", value: { base: 1, b: 2 } },
+    { id: "i2", group: "1", value: { base: 2, b: 4 } },
+    { id: "i3", group: "2", value: { base: 1, b: 3 } },
+    { id: "i4", group: "2", value: { base: 1, b: 3 } },
   ];
-  const report = pairedTimeOf(runOf(["base", "b", "c"]), records);
-
-  it("gives the ratio of each strategy over the first strategy on each input", () => {
-    expect(report.base).toBe("base");
-    expect(report.inputs.find((i) => i.input === "i2")).toEqual({ input: "i2", seed: 1, ms: { base: 2, b: 4, c: 1 }, ratio: { b: 2, c: 0.5 } });
-    expect(report.inputs.find((i) => i.input === "i4")?.ratio).toEqual({ b: 3 });
+  const calls: string[] = [];
+  const { clock, spend } = fakeClock();
+  const report = measureIsolated({
+    mode: "process",
+    inputs,
+    repeats: 2,
+    warmup: 1,
+    clock,
+    env: ENV,
+    context: "local",
+    arms: [
+      { id: "base", run: (v: { base: number }) => (calls.push("base"), spend(v.base)) },
+      { id: "b", run: (v: { b: number }) => (calls.push("b"), spend(v.b)) },
+    ],
   });
 
-  it("gives the median, the fold medians by seed, their mean and their sample SD", () => {
-    expect(report.ratios["b"]).toEqual({ inputs: 4, median: 2.5, folds: { "1": 2, "2": 3 }, foldMean: 2.5, foldSD: 0.707 });
-    expect(report.ratios["c"]).toEqual({ inputs: 3, median: 0.5, folds: { "1": 0.5, "2": 0.5 }, foldMean: 0.5, foldSD: 0 });
+  it("adds the A/A arm, and gives the arms in turn with the warm-up runs not timed", () => {
+    expect(report.schema).toBe("paired-time/1");
+    expect(report.arms).toEqual(["base", "b", aaId("base")]);
+    // Round 0 on i1: each arm warms up once and then packs once
+    expect(calls.slice(0, 6)).toEqual(["base", "base", "b", "b", "base", "base"]);
+    expect(calls).toHaveLength(2 * 4 * 3 * 2);
   });
 
-  it("names the mode and the CPU of the one process", () => {
-    expect(report.mode).toBe(PAIRED_TIME_MODE);
-    expect(report.cpu).toBe("Test CPU 9000");
-    expect(report.commit).toBe("abc1234");
-    const md = pairedTimeMarkdown(report);
-    expect(md).toContain("one process on Test CPU 9000");
-    expect(md).toContain("| `b` | 4 | 2.5 | 2 | 3 | 2.5 | 0.707 |");
+  it("keeps the raw times, the medians and the ratios of each input", () => {
+    const i2 = report.inputs.find((i) => i.id === "i2")!;
+    expect(i2.ms).toEqual({ base: [2, 2], b: [4, 4], "base~aa": [2, 2] });
+    expect(i2.ratio).toEqual({ b: 2, "base~aa": 1 });
+    expect(i2.group).toBe("1");
+    expect(i2.peakRss).toBeUndefined();
   });
 
-  it("skips a skipped record and a base time of 0", () => {
-    const skipped = { ...record("b", "i5", 1, 9), skipped: "unsupported" } as unknown as BenchRecord;
-    const more = pairedTimeOf(runOf(["base", "b"]), [...records, record("base", "i5", 1, 1), skipped, record("base", "i6", 1, 0), record("b", "i6", 1, 1)]);
-    expect(more.inputs.find((i) => i.input === "i5")?.ratio).toEqual({});
-    expect(more.inputs.some((i) => i.input === "i6")).toBe(false);
-    expect(more.ratios["b"]?.inputs).toBe(4);
+  it("gives the median, the groups, the group SD, the noise floor and the moved share", () => {
+    expect(report.ratios["b"]).toMatchObject({ inputs: 4, median: 2.5, groups: { "1": 2, "2": 3 }, groupMean: 2.5, moved: 1 });
+    expect(report.ratios["b"]!.groupSD).toBeCloseTo(Math.SQRT1_2);
+    expect(report.noiseFloor).toEqual({ median: 1, p10: 1, p90: 1 });
+    expect(report.ratios[aaId("base")]!.moved).toBe(0);
+    expect(report.env).toEqual(ENV);
   });
 
-  it("throws a RangeError for a run that is not a paired time run, or with 1 strategy", () => {
-    expect(() => pairedTimeOf(runOf(["base", "b"], false), records)).toThrow(RangeError);
-    expect(() => pairedTimeOf(runOf(["base"]), records)).toThrow(RangeError);
+  it("writes a table with the arms and the noise floor", () => {
+    const md = pairedMarkdown(report);
+    expect(md).toContain("mode `process`, context `local`, on 4 x Test CPU 9000");
+    expect(md).toContain("Noise floor (the A/A arm): median 1.000, p10 1.000, p90 1.000.");
+    expect(md).toContain("| `b` | 4 | 2.500 | 2.000 | 3.000 | 1.000 | 2.000 | 3.000 | 2.500 | 0.707 |");
+  });
+
+  it("gives no A/A arm and no moved share with aa false", () => {
+    const { clock: c2, spend: s2 } = fakeClock();
+    const plain = measureIsolated({ mode: "process", inputs, repeats: 1, clock: c2, env: ENV, aa: false, arms: [{ id: "base", run: (v: { base: number }) => s2(v.base) }, { id: "b", run: (v: { b: number }) => s2(v.b) }] });
+    expect(plain.arms).toEqual(["base", "b"]);
+    expect(plain.noiseFloor).toBeNull();
+    expect(plain.ratios["b"]!.moved).toBeNull();
+    expect(plain.ratios["b"]!.groups).toMatchObject({ "1": 2 });
+  });
+});
+
+describe("measureIsolated in mode fresh", () => {
+  it("starts a child for each arm, input and round, in the rotated order, and keeps the highest peak", async () => {
+    const started: string[] = [];
+    const report = await measureIsolated({
+      mode: "fresh",
+      repeats: 2,
+      warmup: 3,
+      env: ENV,
+      context: "ci --flag",
+      inputs: [{ id: "x" }, { id: "y" }],
+      arms: [
+        { id: "base", command: ["child", "--arm", "base"] },
+        { id: "b", command: ["child", "--arm", "b"] },
+      ],
+      startChild: async (argv) => {
+        started.push(argv.join(" "));
+        const arm = argv[2];
+        const round = started.filter((s) => s.startsWith(`child --arm ${arm} `) && s.includes(`--input ${argv[4]}`)).length;
+        return `noise\n{"ms": ${arm === "b" ? 4 : 2}, "peakRss": ${1000 * round}}\n`;
+      },
+    });
+    // Round 0: base, b, base (the A/A arm), each on x then y. Round 1 starts with b
+    expect(started.slice(0, 2)).toEqual(["child --arm base --input x --warmup 3", "child --arm base --input y --warmup 3"]);
+    expect(started[6]).toBe("child --arm b --input x --warmup 3");
+    expect(started).toHaveLength(12);
+    const x = report.inputs.find((i) => i.id === "x")!;
+    expect(x.ratio).toEqual({ b: 2, "base~aa": 1 });
+    // The A/A arm has the command of the base, so the base command packs 4 times on x
+    expect(x.peakRss).toEqual({ base: 4000, b: 2000, "base~aa": 3000 });
+    expect(report.mode).toBe("fresh");
+    expect(report.ratios["b"]!.groups).toEqual({ all: 2 });
+    expect(report.context).toBe("ci --flag");
+  });
+});
+
+describe("the child protocol", () => {
+  it("reads the last line of the stdout of a child", () => {
+    expect(childResult('log\n{"ms": 1.5}\n')).toEqual({ ms: 1.5 });
+    expect(childResult('{"ms": 2, "peakRss": 10}')).toEqual({ ms: 2, peakRss: 10 });
+    expect(() => childResult('{"peakRss": 10}')).toThrow("no time");
+  });
+
+  it("times one run after the warm-up runs", () => {
+    let runs = 0;
+    let now = 0;
+    const result = timeChild(() => ((runs += 1), (now += runs)), 2, () => now);
+    expect(runs).toBe(3);
+    expect(result.ms).toBe(3);
+    expect(result.peakRss).toBeGreaterThan(0);
+  });
+});
+
+describe("the options", () => {
+  it("throws a RangeError for a bad option", () => {
+    const arms = [{ id: "a", run: () => 0 }];
+    expect(() => measureIsolated({ mode: "process", inputs: [], repeats: 0, arms })).toThrow(RangeError);
+    expect(() => measureIsolated({ mode: "process", inputs: [], repeats: 1, arms: [] })).toThrow(RangeError);
+    expect(() => measureIsolated({ mode: "process", inputs: [], repeats: 1, arms, aa: false })).toThrow(RangeError);
+    expect(() => measureIsolated({ mode: "fresh", inputs: [], repeats: 1, arms })).toThrow("no command");
+    expect(() => measureIsolated({ mode: "process", inputs: [{ id: "i" }, { id: "i" }], repeats: 1, arms })).toThrow("inputs are not unique");
   });
 });
