@@ -64,8 +64,10 @@ on:
 permissions:
   contents: read
 
+# The runner budget of the account (strategist, 2026-10-30): 3 jobs of the matrix at one time.
+# The group has the inputs, so only a true duplicate replaces a run that waits.
 concurrency:
-  group: bench-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.prediction }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategies }}-${{ inputs.prediction }}-${{ inputs.sample }}
   cancel-in-progress: false
 
 jobs:
@@ -129,7 +131,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 3
       matrix:
         strategy: ${{ fromJSON(needs.plan.outputs.strategies) }}
     env:

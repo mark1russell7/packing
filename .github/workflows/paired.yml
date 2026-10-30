@@ -34,6 +34,11 @@ on:
 permissions:
   contents: read
 
+# The runner budget of the account (strategist, 2026-10-30). The group has the inputs, so only a true duplicate replaces a run that waits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategy }}-${{ inputs.arm_a }}-${{ inputs.arm_b }}-${{ inputs.prediction }}
+  cancel-in-progress: false
+
 jobs:
   paired:
     runs-on: ubuntu-latest
