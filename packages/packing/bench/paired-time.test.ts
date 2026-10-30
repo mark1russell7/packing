@@ -116,15 +116,16 @@ describe("measureIsolated in mode fresh", () => {
         { id: "base", command: ["child", "--arm", "base"] },
         { id: "b", command: ["child", "--arm", "b"] },
       ],
-      startChild: async (argv) => {
-        started.push(argv.join(" "));
-        const arm = argv[2];
-        const round = started.filter((s) => s.startsWith(`child --arm ${arm} `) && s.includes(`--input ${argv[4]}`)).length;
-        return `noise\n{"ms": ${arm === "b" ? 4 : 2}, "peakRss": ${1000 * round}}\n`;
+      startChild: async (command, input, warmup) => {
+        started.push(`${command.join(" ")} --input ${input} --warmup ${warmup}`);
+        const arm = command[2];
+        const round = started.filter((s) => s.startsWith(`child --arm ${arm} `) && s.includes(`--input ${input}`)).length;
+        return { ms: arm === "b" ? 4 : 2, peakRss: 1000 * round };
       },
     });
-    // Round 0: base, b, base (the A/A arm), each on x then y. Round 1 starts with b
-    expect(started.slice(0, 2)).toEqual(["child --arm base --input x --warmup 3", "child --arm base --input y --warmup 3"]);
+    // Round 0: x takes base, b and base (the A/A arm) in turn, then y. Round 1 starts with b
+    expect(started.slice(0, 3)).toEqual(["child --arm base --input x --warmup 3", "child --arm b --input x --warmup 3", "child --arm base --input x --warmup 3"]);
+    expect(started[3]).toBe("child --arm base --input y --warmup 3");
     expect(started[6]).toBe("child --arm b --input x --warmup 3");
     expect(started).toHaveLength(12);
     const x = report.inputs.find((i) => i.id === "x")!;

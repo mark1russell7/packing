@@ -3,7 +3,7 @@
 //   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--interleave] [--anchor] [--out dir] [--commit sha]
 //   node bench/main.ts list [--strategies a,b|all]
 //   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--no-aa] [--out dir]
-//   node bench/main.ts paired-child --corpus <name> --arm <id> --input <id> --warmup <n>
+//   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n>
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
 //
@@ -136,15 +136,17 @@ async function paired(): Promise<number> {
   const packs = new Map(ids.map((id) => [id, new Map(all.map((at) => [at.id, pairedPack(id, at)]))]));
   const inputs = all.filter((at) => ids.every((id) => packs.get(id)!.get(at.id) !== undefined)).map((at) => ({ id: at.id, group: String(at.seed), value: at }));
   if (inputs.length === 0) return empty(`the corpus ${name} for the arms ${ids.join(", ")}`);
-  // A child packs one arm on one input. The helper adds --input and --warmup
-  const child = [process.execPath, ...process.execArgv, join(here, "main.ts"), "paired-child", "--corpus", name];
+  const out = resolve(opt("--out") ?? join("bench-out", `${name}-paired`));
+  mkdirSync(out, { recursive: true });
+  // A child packs one arm on one input. The helper adds --input and --warmup. The index gives the spec and the seed of each input
+  const index = join(out, "paired-index.json");
+  writeFileSync(index, `${JSON.stringify(Object.fromEntries(inputs.map((x) => [x.id, [x.value.spec, x.value.seed]])))}\n`);
+  const child = [process.execPath, ...process.execArgv, join(here, "main.ts"), "paired-child", "--corpus", name, "--index", index];
   const arms: Arm<(typeof inputs)[number]["value"]>[] = ids.map((id) => ({ id, run: (at) => packs.get(id)!.get(at.id)!(), command: [...child, "--arm", id] }));
   const repeats = count("--repeats", DEFAULT_REPEATS);
   const warmup = count("--warmup", 1);
   const options = { arms, inputs, repeats, warmup, aa: !rest.includes("--no-aa") };
   const report: PairedReport = mode === "process" ? measureIsolated({ ...options, mode }) : await measureIsolated({ ...options, mode });
-  const out = resolve(opt("--out") ?? join("bench-out", `${name}-paired`));
-  mkdirSync(out, { recursive: true });
   const sha = commit();
   const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, arms: ids, inputs: inputs.length, skipped: all.length - inputs.length };
   writeFileSync(join(out, "run.json"), `${JSON.stringify(run, null, 2)}\n`);
@@ -159,8 +161,11 @@ function pairedChild(): number {
   const { corpus } = corpusOpt();
   const id = opt("--arm");
   const input = opt("--input");
-  if (id === undefined || input === undefined) throw new Error("A child needs --arm <id> and --input <id>.");
-  const at = pairedInputs(corpus).find((x) => x.id === input);
+  const file = opt("--index");
+  if (id === undefined || input === undefined || file === undefined) throw new Error("A child needs --arm <id>, --input <id> and --index <file>.");
+  const where = (JSON.parse(readFileSync(file, "utf8")) as Record<string, [number, number]>)[input];
+  if (where === undefined) throw new Error(`The index has no input "${input}".`);
+  const at = pairedInputs(corpus, { spec: where[0], seed: where[1] }).find((x) => x.id === input);
   if (at === undefined) throw new Error(`The corpus has no input "${input}".`);
   const pack = pairedPack(id, at);
   if (pack === undefined) throw new Error(`The arm ${id} does not support the input ${input}.`);

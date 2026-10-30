@@ -374,18 +374,27 @@ function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | un
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
 }
 
-/** One input of a corpus for the paired time test (k127): its id, its seed, and the cell of the input. */
+/** One input of a corpus for the paired time test (k127): its id, the index of its spec, its seed, and the cell of the input. */
 export interface PairedCorpusInput {
   id: string;
+  spec: number;
   seed: number;
   input: PackInput;
   cell: CorpusManifest["inputs"][number]["cell"];
 }
 
-/** This function gives the inputs of a corpus for the paired time test (k127), in the order of the corpus. */
-export function pairedInputs(c: BenchCorpus): PairedCorpusInput[] {
-  const { manifest, inputs } = corpus(c.corpus, c.specs);
-  return inputs.map((file, index) => ({ id: file.id, seed: file.seed, input: toPackInput(file), cell: manifest.inputs[index]!.cell }));
+/**
+ * This function gives the inputs of a corpus for the paired time test (k127), in the order of the corpus.
+ *
+ * - With `only`, it generates only the input of that spec and that seed. A child of mode `fresh` uses it.
+ */
+export function pairedInputs(c: BenchCorpus, only?: { spec: number; seed: number }): PairedCorpusInput[] {
+  const specs = c.specs.map((spec, at) => ({ spec, at }));
+  const chosen = only === undefined ? specs : specs.filter((x) => x.at === only.spec).map((x) => ({ ...x, spec: { ...x.spec, seeds: [only.seed] } }));
+  return chosen.flatMap(({ spec, at }) => {
+    const { manifest, inputs } = corpus(c.corpus, [spec]);
+    return inputs.map((file, index) => ({ id: file.id, spec: at, seed: file.seed, input: toPackInput(file), cell: manifest.inputs[index]!.cell }));
+  });
 }
 
 /** This function gives the pack of an entry on an input, as the runner packs it. An entry that does not support the cell of the input gives `undefined`. */

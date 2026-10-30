@@ -5,7 +5,7 @@
 // arms in one job, interleaved per input, and an A/A arm (the base against itself) gives the noise floor.
 //
 // - Mode `process`: one process. In each round, the arms run in turn on each input. Odd rounds reverse the order (ABBA).
-// - Mode `fresh`: a fresh process for each arm, each input and each round. The order of the arms rotates each round.
+// - Mode `fresh`: a fresh process for each arm, each input and each round. Each input takes the arms in turn. The order rotates each round.
 
 import { spawn } from "node:child_process";
 import { arch, cpus, platform } from "node:os";
@@ -25,6 +25,12 @@ export interface Input<I> {
   id: string;
   group?: string;
   value?: I;
+}
+
+/** The result of one child of mode `fresh`: its time in milliseconds, and its memory peak in bytes. */
+export interface ChildResult {
+  ms: number;
+  peakRss?: number;
 }
 
 /** The computer of a paired time run. The `cpu` is the model of the first CPU. */
@@ -51,8 +57,8 @@ export interface PairedOptions<I> {
   aa?: boolean;
   /** The clock in milliseconds for mode `process`. The default is `performance.now`. */
   clock?: () => number;
-  /** The start of a child for mode `fresh`: it gives the stdout of the child. The default starts a process. A test gives its own. */
-  startChild?: (argv: readonly string[]) => Promise<string>;
+  /** The start of a child for mode `fresh`: it gives the result of the child. The default starts a process. A test gives its own. */
+  startChild?: (command: readonly string[], input: string, warmup: number) => Promise<ChildResult>;
   /** The computer. The default is the computer of this process. */
   env?: PairedEnv;
   /** The context of the run: `ci` or `local` (or `BENCH_MODE`), with the Node.js flags. The default is the context of this process. */
@@ -260,8 +266,13 @@ export function timeChild(run: () => unknown, warmup: number, clock: () => numbe
   return { ms, peakRss: process.resourceUsage().maxRSS * 1024 };
 }
 
-/** This function starts a child, and gives its stdout. A child that exits with a code other than 0 is an error. */
-function startProcess(argv: readonly string[]): Promise<string> {
+/** This function starts a child with the child protocol, and gives its result. A child that exits with a code other than 0 is an error. */
+async function startProcess(command: readonly string[], input: string, warmup: number): Promise<ChildResult> {
+  return childResult(await startArgv([...command, "--input", input, "--warmup", String(warmup)]));
+}
+
+/** This function starts a process, and gives its stdout. A process that exits with a code other than 0 is an error. */
+function startArgv(argv: readonly string[]): Promise<string> {
   return new Promise((done, fail) => {
     const child = spawn(argv[0]!, argv.slice(1), { stdio: ["ignore", "pipe", "inherit"] });
     let out = "";
@@ -273,7 +284,7 @@ function startProcess(argv: readonly string[]): Promise<string> {
 }
 
 /** This function reads the last line of the stdout of a child: `{"ms": n, "peakRss"?: bytes}`. */
-export function childResult(stdout: string): { ms: number; peakRss?: number } {
+export function childResult(stdout: string): ChildResult {
   const line = stdout.trim().split("\n").at(-1) ?? "";
   const value = JSON.parse(line) as { ms?: unknown; peakRss?: unknown };
   if (typeof value.ms !== "number" || !Number.isFinite(value.ms)) throw new Error(`The child gave no time: ${line}`);
@@ -300,16 +311,16 @@ function measureProcess<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Paired
   return pairedReport("process", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw);
 }
 
-/** This function times the arms with a fresh process for each arm, each input and each round. The order of the arms rotates each round. */
+/** This function times the arms with a fresh process for each arm, each input and each round. Each input takes the arms in turn, in an order that rotates each round. */
 async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Promise<PairedReport> {
   const start = o.startChild ?? startProcess;
   const warmup = o.warmup ?? 1;
   const raw = rawOf(o.inputs, arms);
   for (let round = 0; round < o.repeats; round++) {
-    for (const at of armOrder(arms.length, round, "fresh")) {
-      const arm = arms[at]!;
-      for (const input of o.inputs) {
-        const result = childResult(await start([...arm.command!, "--input", input.id, "--warmup", String(warmup)]));
+    for (const input of o.inputs) {
+      for (const at of armOrder(arms.length, round, "fresh")) {
+        const arm = arms[at]!;
+        const result = await start(arm.command!, input.id, warmup);
         raw.ms.get(input.id)!.get(arm.id)!.push(result.ms);
         if (result.peakRss !== undefined) {
           const peak = raw.peak.get(input.id)!;
