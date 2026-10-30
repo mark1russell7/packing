@@ -79,7 +79,7 @@ jobs:
           # The jobs that their own if may skip, separated by spaces. Each other job must pass.
           ALLOW_SKIP: "presets"
         run: |
-          echo "$NEEDS" | jq -r 'to_entries[] | "(.key) (.value.result)"' > results
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key) \(.value.result)"' > results
           cat results
           if [ ! -s results ]; then echo "::error::no job in needs"; exit 1; fi
           bad=0
