@@ -1,6 +1,7 @@
 // The command line of the benchmark runner (`docs/BENCH.md`). The workflows `bench.yml` and `bench-smoke.yml` start it in CI.
 //
 //   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--interleave] [--anchor] [--out dir] [--commit sha]
+//   node bench/main.ts run --corpus <name> --prediction <id> --paired-time base,a,b [--repeats 5] [--warmup 2] [--out dir]
 //   node bench/main.ts list [--strategies a,b|all]
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
@@ -29,6 +30,7 @@ import {
   type BenchRecord,
   type BenchRun,
 } from "./run.ts";
+import { pairedTimeMarkdown, pairedTimeOf } from "./paired-time.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
 
 const here = import.meta.dirname;
@@ -116,10 +118,16 @@ function main(): number {
       if (prediction === undefined || prediction.trim() === "") throw new Error("Each run names its prediction: --prediction <id>.");
       const file = join(here, "corpora", `${name}.json`);
       const sha = commit();
+      // The option --paired-time base,a,b packs these strategies in turns in one process, and gives their time ratios (k127)
+      const pairedIds = opt("--paired-time");
+      if (pairedIds !== undefined && opt("--strategies") !== undefined) throw new Error("Give --paired-time or --strategies, not both.");
+      const paired = pairedIds === undefined ? undefined : strategyIds(pairedIds);
+      if (paired !== undefined && paired.length < 2) throw new Error("The option --paired-time needs 2 strategies or more.");
       const result = runBench({
         corpus: parseCorpus(readFileSync(file, "utf8"), name),
         prediction,
-        strategies: strategyIds(opt("--strategies")),
+        strategies: paired ?? strategyIds(opt("--strategies")),
+        ...(paired === undefined ? {} : { pairedTime: true }),
         repeats: count("--repeats", DEFAULT_REPEATS),
         warmup: count("--warmup", DEFAULT_WARMUP),
         // The flag --interleave alternates the timed passes of each input between the strategies
@@ -133,6 +141,12 @@ function main(): number {
       if (result.records.length === 0) return empty(`the run of the corpus ${name}`);
       const out = resolve(opt("--out") ?? join("bench-out", name));
       write(out, result.run, result.records, result.manifest);
+      if (paired !== undefined) {
+        const report = pairedTimeOf(result.run, result.records);
+        writeFileSync(join(out, "paired-time.json"), `${JSON.stringify(report, null, 2)}
+`);
+        writeFileSync(join(out, "paired-time.md"), pairedTimeMarkdown(report));
+      }
       const skips = result.records.filter((r) => !isMeasured(r)).length;
       process.stdout.write(`${result.records.length} records, ${skips} of them skipped, and ${result.run.errors.length} errors in ${out}\n`);
       const passed = gate(result.records);
