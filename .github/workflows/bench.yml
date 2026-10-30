@@ -64,8 +64,9 @@ on:
 permissions:
   contents: read
 
+# The runner budget of the account (strategist, 2026-10-30): one bench for each ref, and 3 jobs of its matrix at one time.
 concurrency:
-  group: bench-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.prediction }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -129,7 +130,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 3
       matrix:
         strategy: ${{ fromJSON(needs.plan.outputs.strategies) }}
     env:

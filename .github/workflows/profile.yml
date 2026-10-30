@@ -30,6 +30,11 @@ on:
 permissions:
   contents: read
 
+# The runner budget of the account (strategist, 2026-10-30): one run for each ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   profile:
     runs-on: ubuntu-latest
