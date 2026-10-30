@@ -18,6 +18,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "./index.ts";
+import { fillOf } from "./measures.ts";
 
 // The opt-in portfolio of k20, part 1. Made-up inputs of the generators only.
 
@@ -130,6 +131,20 @@ describe("packPortfolio", () => {
     expect(bare(packPortfolio(MEMBERS, { key: ["pack.overflow.excessArea", "pack.fill"] }).run(input))).toEqual(bare(packPortfolio(MEMBERS).run(input)));
     expect(() => packPortfolio(MEMBERS, { key: ["nope"] })).toThrow(RangeError);
     expect(() => packPortfolio(MEMBERS, { key: ["hard"] })).toThrow(RangeError);
+  });
+
+  it("with the key of only pack.fill, gives the fill of measure and the pick of the full measures (k127)", () => {
+    const p = packPortfolio(MEMBERS, { key: ["pack.fill"] });
+    const levels = [PORTFOLIO_LEVELS[0]!, { id: "pack.fill", spec: MEASURE_SPECS["pack.fill"] }];
+    for (const input of inputs()) {
+      const outputs = MEMBERS.map((m) => packMember(m, input));
+      expect(outputs.map((o) => fillOf(input, o))).toEqual(outputs.map((o) => measure(input, o)["pack.fill"]));
+      const candidates = MEMBERS.map((m, i) => ({
+        id: typeof m === "string" ? m : m.id,
+        values: { hard: hardBreaks(input, outputs[i]!), "pack.fill": roundMeasures(measure(input, outputs[i]!))["pack.fill"] },
+      }));
+      expect(p.pick(input).winner).toBe(selectBest(candidates, levels).winner);
+    }
   });
 
   it("gives the levels in the order of the pick, with the specs of the measures", () => {

@@ -329,6 +329,19 @@ export function measure(input: PackInput, output: PackOutput, options: MeasureOp
   return measureView(input, boxView(input, output), options);
 }
 
+/**
+ * This function gives `pack.fill` of a layout alone, with no other measure (roadmap item k127). Its value is equal to the value of `measure`.
+ *
+ * - It reads the box view, as `measure` does. Its cost is linear in the count of the boxes.
+ */
+export function fillOf(input: PackInput, output: PackOutput): number {
+  const boxes = rectBoxesOf(boxView(input, output));
+  const hull = hullOf(boxes);
+  const hullArea = hull.w * hull.h;
+  const boxArea = boxes.reduce((sum, b) => sum + b.w * b.h, 0);
+  return hullArea > 0 ? boxArea / hullArea : 0;
+}
+
 /** This function gives the measures of a layout from its box view. `given` is the input with the shapes, for `pack.shapeFill`. */
 function measureView(given: PackInput, view: { input: PackInput; output: PackOutput }, options: MeasureOptions): LayoutMeasures {
   const { input, output } = view;

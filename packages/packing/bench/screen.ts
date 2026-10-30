@@ -33,6 +33,7 @@ export const MOVE_OF: Readonly<Record<string, string>> = Object.freeze({
   "aspect-fit-maxrects-bssf": "move.aspectPick",
   "aspect-fit-portfolio-k2": "move.aspectPick",
   "portfolio-area-rows-bl": "move.pick",
+  "portfolio-fill-rows-bl": "move.pick",
   "select-rows-bl": "move.select",
   "restarts-maxrects-bl-k16": "move.restartPick",
   "restarts-rows-k16": "move.restartPick",

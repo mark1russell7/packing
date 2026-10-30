@@ -61,6 +61,7 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `aspect-fit-portfolio-k2` | `aspect-fit` | `strategy: "portfolio"`, `options: { k: 2 }` | `portfolio-k2` |
 | `portfolio-area-rows-bl` | `portfolio` | `members: ["rows", maxrects-bl]`, `key: AREA_KEY` | `maxrects-bl` |
 | `select-rows-bl` | `select` | the defaults: the members `rows` and `maxrects-bl`, `SELECT_TABLE` | `rows` |
+| `portfolio-fill-rows-bl` | `portfolio` | `members: ["rows", maxrects-bl]`, `key: ["pack.fill"]` | `rows` |
 | `restarts-maxrects-bl-k16` | `restarts` | `member: maxrects-bl`, `iterations: 16` | `maxrects-bl` |
 | `restarts-rows-k16` | `restarts` | `member: "rows"`, `iterations: 16` | `rows` |
 | `restarts-maxrects-bl-shuffle-k16` | `restarts` | `member: maxrects-bl`, `iterations: 16`, `perturb: "shuffle"` | `maxrects-bl` |
@@ -93,7 +94,8 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 4 composite entries of roadmap item k62 are `ASPECT_FIT_ENTRIES`. An entry `aspect-fit-<entry>` wraps that entry with `aspectFit`. `docs/PACKER.md` ("The aspect fit") tells it.
 - On a container of fixed size, an entry `aspect-fit-<entry>` gives the output of its base. On a free size, its move is `move.aspectPick`.
 - The entry `portfolio-area-rows-bl` has the 2 members `rows` and `maxrects-bl`. Its key `AREA_KEY` puts `pack.area` before `pack.overflow.excessArea` and `pack.fill`. Its move is `move.pick`.
-- The entry `select-rows-bl` of roadmap item k66 is `SELECT_ENTRIES`. It packs with one member, from the features of the input. Its move is `move.select`. `docs/PACKER.md` ("The feature select") tells it.
+- The entry `select-rows-bl` of roadmap item k66 is in `SELECT_ENTRIES`. It packs with one member, from the features of the input. Its move is `move.select`. `docs/PACKER.md` ("The feature select") tells it.
+- The entry `portfolio-fill-rows-bl` of roadmap item k127 is in `SELECT_ENTRIES`. It is the fill oracle of the members of `select`. Its key computes the fill alone. Its move is `move.pick`.
 - The 3 entries of roadmap item k78 are `RESTARTS_ENTRIES`. Each one packs 16 times with its member, in random orders, and keeps the best output. Its move is `move.restartPick`. `docs/PACKER.md` ("The random restarts") tells it.
 - The 2 entries of roadmap item k79 are `RUIN_RECREATE_ENTRIES`. Each one removes some boxes 64 times, and packs them again with its member. Its move is `move.ruinRecreate`.
 - `docs/PACKER.md` ("The goal-driven ruin and recreate") tells the entries of k79.

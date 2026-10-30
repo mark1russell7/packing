@@ -39,7 +39,7 @@ describe("packSpace", () => {
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
-  it("gives cell-portfolio one pool entry, and counts 1.85e20 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 2.78e20 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
@@ -56,12 +56,14 @@ describe("packSpace", () => {
     // The relax pass of k124 gives 3 param points for each base config with 3 levels, and 1 with 1 level.
     // Before k125 the counts were 185246197022537813259, 66707889492021885, 184312874572013229000 and 66333631179364420.
     // The force packer of k125 gives 9 param points for each base config with 3 levels, and 1 with 1 level.
+    // Before k127 the counts were 185246197022537840016, 66707889492022776, 184312874572013255730 and 66333631179365310.
+    // The key fill of the portfolio (k127) gives 3 values of the param key, not 2. Thus each meta count is 1.5 times the count before.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(185246197022537840016n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(66707889492022776n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 184312874572013255730n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 66333631179365310n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(277869295533801539436n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100061834237626086n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 276469311858014672730n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 99500446768640790n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
