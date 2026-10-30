@@ -321,6 +321,11 @@ describe("the command line of the win test", () => {
   );
   const args = (out: string, ...more: string[]): string[] => [main, "--candidate", "cand", "--default", "rows", "--out", join(root, out), ...more];
 
+  it("stops with an error on a folder with no records", () => {
+    const none = folderOf("none", []);
+    expect(() => promoteMain([none, "--candidate", "cand", "--default", "rows", "--out", join(root, "none-out")])).toThrow(/has no records/);
+  });
+
   it("keeps the floor 0 with --time-floor-ms 0", () => {
     const v = promoteMain(args("zero", "--time-floor-ms", "0"));
     expect(v.parameters.timeFloorMs).toBe(0);

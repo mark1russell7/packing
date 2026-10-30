@@ -1041,6 +1041,8 @@ const optionOf = (argv: readonly string[], name: string): string | undefined => 
 /** This function reads `records.jsonl` and the cells of `corpus.json` of a folder. A folder without `corpus.json` gives no cells. */
 function readFolder(folder: string): { records: PromotionRecord[]; cells: Map<string, InputCell> } {
   const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8")) as PromotionRecord[];
+  // The test fails closed: a folder with no records stops it with an error
+  if (records.length === 0) throw new Error(`The file records.jsonl of ${folder} has no records. The win test needs one record or more.`);
   const manifestFile = join(folder, "corpus.json");
   const cells = existsSync(manifestFile) ? cellsOf(JSON.parse(readFileSync(manifestFile, "utf8"))) : new Map<string, InputCell>();
   return { records, cells };

@@ -151,6 +151,7 @@ function main(argv: readonly string[]): void {
     throw new Error("Start the choice with: node bench/choose-sets.ts <folder> --run <id> [--out <file>]");
   }
   const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
+  if (records.length === 0) throw new Error(`The file records.jsonl of ${folder} has no records. The choice needs one record or more.`);
   const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as CorpusManifest;
   const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { commit?: string };
   const table = chooseTable(records, manifest, { run: argv[runAt + 1]!, commit: run.commit ?? "unknown" });

@@ -296,6 +296,11 @@ async function main(): Promise<number> {
     return 1;
   }
   const pages = await findPages(dist);
+  // The check fails closed: a build with no pages is a failure, not a pass
+  if (pages.length === 0) {
+    console.error(`The build in ${dist} has no pages. The render check needs one page or more.`);
+    return 1;
+  }
   if (list) {
     for (const page of pages) console.log(`${page.file}\t${base}${page.path}\t${page.slug}`);
     return 0;
