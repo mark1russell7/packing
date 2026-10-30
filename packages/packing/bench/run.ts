@@ -374,7 +374,7 @@ function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | un
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
 }
 
-/** One input of a corpus for the paired time test (k127): its id, the index of its spec, its seed, and the cell of the input. */
+/** One input of a corpus for the paired time test (k127): its id, its spec index, its seed and its cell. */
 export interface PairedCorpusInput {
   id: string;
   spec: number;
