@@ -35,18 +35,43 @@ on:
         description: Add the A/A arm (the base against itself) for the noise floor.
         type: boolean
         default: true
+      runs:
+        description: "The count of the same test, from 1 to 9. Each run is a job. A derived gate limit needs 5 runs (STRATEGY.md 1e10f489)."
+        type: string
+        default: "1"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      runs: ${{ steps.plan.outputs.runs }}
+    steps:
+      - name: Plan the runs
+        id: plan
+        env:
+          RUNS: ${{ inputs.runs }}
+        run: |
+          [[ "$RUNS" =~ ^[1-9]$ ]] || { echo "runs must be a number from 1 to 9, not '$RUNS'"; exit 1; }
+          echo "runs=[$(seq -s, 1 "$RUNS")]" >> "$GITHUB_OUTPUT"
+
   paired-time:
+    needs: plan
+    name: paired-time (run ${{ matrix.run }})
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        run: ${{ fromJSON(needs.plan.outputs.runs) }}
     env:
       ARMS: ${{ inputs.arms }}
       CORPUS: ${{ inputs.corpus }}
@@ -83,6 +108,6 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: paired-time-${{ inputs.corpus }}-${{ inputs.mode }}
+          name: paired-time-${{ inputs.corpus }}-${{ inputs.mode }}-run${{ matrix.run }}
           path: ${{ runner.temp }}/paired-time
           if-no-files-found: error

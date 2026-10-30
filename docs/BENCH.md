@@ -885,6 +885,7 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `repeats` | `5` | The timed rounds of each arm on each input. |
 | `warmup` | `2` | The untimed passes of each arm before each timed pass. |
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
+| `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
 The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/1`. The two modes are:
 
@@ -893,7 +894,7 @@ The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` wr
 
 The test uses only the inputs that each arm supports. The ratio of an input is the median time of the arm over the median time of the base. A group is a seed of the corpus.
 
-The artifact `paired-time-<corpus>-<mode>` has `run.json`, `paired-time.json` and `paired-time.md`. For each arm, the report gives the median, p10 and p90 of the ratios. It also gives the median of each group, and the mean and SD of the groups. The noise floor is the median, p10 and p90 of the A/A ratios. The value `moved` of an arm is the share of its inputs with a ratio outside [p10, p90] of the A/A arm.
+The artifact `paired-time-<corpus>-<mode>-run<n>` of each run has `run.json`, `paired-time.json` and `paired-time.md`. For each arm, the report gives the median, p10 and p90 of the ratios. It also gives the median of each group, and the mean and SD of the groups. The noise floor is the median, p10 and p90 of the A/A ratios. The value `moved` of an arm is the share of its inputs with a ratio outside [p10, p90] of the A/A arm.
 
 A claim gives the median, p10, p90 and `moved` of each arm, and the noise floor. A difference inside the noise floor is not a result.
 
