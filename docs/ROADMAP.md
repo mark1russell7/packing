@@ -132,7 +132,7 @@ Status: done, done, waiting, next, done.
 | k123 | Balance and stability on each record: the gap spread, the offset of the slack centroid, the empty share per side, and the move under an input change and a seed change. Compare shows compact against spread as a front | measure | done | k118 |
 | k124 | A relax pass after any packer: it spreads the slack evenly with no overlap, by constrained stress or by separation constraints. Since #175, the opt-in composite `relax` does it with the satisfy step of VPSC. | strategies | done | k123 |
 | k125 | Packers by forces: boxes push each other and the container walls, with an overlap removal pass at the end | strategies | done | k123, k124 |
-| k126 | The oracle gap of `select`: run both members and keep the best on the 250 fixed-size inputs of `pack-classes-v1`. It reports the gap, the share of the 29 fill losses against `rows` that it removes, and the times. Then it decides: a better chooser, the oracle within a time budget, or stop | measure | next | k66 |
+| k126 | The oracle gap of `select`: run both members and keep the best on the 250 fixed-size inputs of `pack-classes-v1`. It reports the gap, the share of the 29 fill losses against `rows` that it removes, and the times. Then it decides: a better chooser, the oracle within a time budget, or stop. Done 10-30 (run 41001611131): the gap is 0.0029 of fill (fold SD 0.0005), the oracle removes all 29 losses, and the 2-member `portfolio` costs 5.1 times `select`. By the rule set before the bench, the next step is a better chooser | measure | done | k66 |
 
 ## The queue
 
@@ -140,39 +140,38 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | k126 | 3 | 3 | 1 | 9.0 |
-| 2 | k120 | 4 | 3 | 2 | 6.0 |
-| 3 | k25 | 3 | 3 | 2 | 4.5 |
-| 4 | k70 | 3 | 3 | 2 | 4.5 |
-| 5 | k13 | 3 | 3 | 2 | 4.5 |
-| 6 | k92 | 3 | 3 | 2 | 4.5 |
-| 7 | k10 | 4 | 4 | 4 | 4.0 |
-| 8 | k81 | 4 | 3 | 3 | 4.0 |
-| 9 | k82 | 3 | 4 | 3 | 4.0 |
-| 10 | k83 | 3 | 4 | 3 | 4.0 |
-| 11 | k93 | 4 | 2 | 2 | 4.0 |
-| 12 | k94 | 4 | 3 | 3 | 4.0 |
-| 13 | k95 | 4 | 3 | 3 | 4.0 |
-| 14 | k96 | 5 | 4 | 5 | 4.0 |
-| 15 | k97 | 3 | 4 | 3 | 4.0 |
-| 16 | k110 | 4 | 2 | 2 | 4.0 |
-| 17 | k84 | 3 | 5 | 4 | 3.8 |
-| 18 | k74 | 4 | 3 | 4 | 3.0 |
-| 19 | k52 | 3 | 2 | 2 | 3.0 |
-| 20 | k85 | 3 | 3 | 3 | 3.0 |
-| 21 | k86 | 3 | 5 | 5 | 3.0 |
-| 22 | k87 | 3 | 3 | 3 | 3.0 |
-| 23 | k98 | 3 | 2 | 2 | 3.0 |
-| 24 | k122 | 2 | 3 | 2 | 3.0 |
-| 25 | k109 | 4 | 2 | 3 | 2.7 |
-| 26 | k99 | 3 | 4 | 5 | 2.4 |
-| 27 | k100 | 3 | 3 | 4 | 2.3 |
-| 28 | k88 | 2 | 2 | 2 | 2.0 |
-| 29 | k101 | 4 | 2 | 4 | 2.0 |
-| 30 | k102 | 3 | 2 | 3 | 2.0 |
-| 31 | k103 | 2 | 2 | 2 | 2.0 |
-| 32 | k89 | 2 | 4 | 5 | 1.6 |
-| 33 | k104 | 2 | 3 | 5 | 1.2 |
+| 1 | k120 | 4 | 3 | 2 | 6.0 |
+| 2 | k25 | 3 | 3 | 2 | 4.5 |
+| 3 | k70 | 3 | 3 | 2 | 4.5 |
+| 4 | k13 | 3 | 3 | 2 | 4.5 |
+| 5 | k92 | 3 | 3 | 2 | 4.5 |
+| 6 | k10 | 4 | 4 | 4 | 4.0 |
+| 7 | k81 | 4 | 3 | 3 | 4.0 |
+| 8 | k82 | 3 | 4 | 3 | 4.0 |
+| 9 | k83 | 3 | 4 | 3 | 4.0 |
+| 10 | k93 | 4 | 2 | 2 | 4.0 |
+| 11 | k94 | 4 | 3 | 3 | 4.0 |
+| 12 | k95 | 4 | 3 | 3 | 4.0 |
+| 13 | k96 | 5 | 4 | 5 | 4.0 |
+| 14 | k97 | 3 | 4 | 3 | 4.0 |
+| 15 | k110 | 4 | 2 | 2 | 4.0 |
+| 16 | k84 | 3 | 5 | 4 | 3.8 |
+| 17 | k74 | 4 | 3 | 4 | 3.0 |
+| 18 | k52 | 3 | 2 | 2 | 3.0 |
+| 19 | k85 | 3 | 3 | 3 | 3.0 |
+| 20 | k86 | 3 | 5 | 5 | 3.0 |
+| 21 | k87 | 3 | 3 | 3 | 3.0 |
+| 22 | k98 | 3 | 2 | 2 | 3.0 |
+| 23 | k122 | 2 | 3 | 2 | 3.0 |
+| 24 | k109 | 4 | 2 | 3 | 2.7 |
+| 25 | k99 | 3 | 4 | 5 | 2.4 |
+| 26 | k100 | 3 | 3 | 4 | 2.3 |
+| 27 | k88 | 2 | 2 | 2 | 2.0 |
+| 28 | k101 | 4 | 2 | 4 | 2.0 |
+| 29 | k102 | 3 | 2 | 3 | 2.0 |
+| 30 | k103 | 2 | 2 | 2 | 2.0 |
+| 31 | k89 | 2 | 4 | 5 | 1.6 |
+| 32 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) are P1 work outside the queue.
 
