@@ -50,6 +50,9 @@ const ENGINE = "packing";
 /** The key `area` of the portfolio: the area first after the hard breaks, then the key of `PORTFOLIO_LEVELS`. */
 const AREA_KEY: readonly string[] = Object.freeze(["pack.area", "pack.overflow.excessArea", "pack.fill"]);
 
+/** The key `fill` of the portfolio (k127): `pack.fill` alone after the hard breaks. The key computes the fill alone. */
+const FILL_KEY: readonly string[] = Object.freeze(["pack.fill"]);
+
 /** The params of the aspect search: a fixed target aspect, else the aspect of the container. */
 const TARGET_PARAMS: readonly SpaceParam[] = [
   { name: "fixedTarget", kind: "bool", default: false },
@@ -73,7 +76,7 @@ const WORK_PARAMS: readonly SpaceParam[] = [
  * The options `maxMembers`, `budgetMs` and `budgetWork` have no default. Thus each one has a switch param, with the default `false`.
  */
 const PORTFOLIO_PARAMS: readonly SpaceParam[] = [
-  { name: "key", kind: "enum", values: ["levels", "area"], default: "levels" },
+  { name: "key", kind: "enum", values: ["levels", "area", "fill"], default: "levels" },
   { name: "limitMembers", kind: "bool", default: false },
   { name: "maxMembers", kind: "int", min: 1, max: 5, default: 3, when: { param: "limitMembers", in: [true] } },
   { name: "limitTime", kind: "bool", default: false },
@@ -357,6 +360,7 @@ export const packSpace: StrategySpace = Object.freeze({
     "aspect-fit-portfolio-k2": metaConfig("cell-portfolio", pool, { k: 2, aspectFit: true }),
     "portfolio-area-rows-bl": metaConfig("portfolio", [single("rows"), single("maxrects-bl")], { key: "area" }),
     "select-rows-bl": metaConfig("select", [single("rows"), single("maxrects-bl")]),
+    "portfolio-fill-rows-bl": metaConfig("portfolio", [single("rows"), single("maxrects-bl")], { key: "fill" }),
     portfolio: metaConfig("cell-portfolio", pool),
     "aspect-fit": metaConfig("aspect-fit", [single("maxrects")]),
     select: metaConfig("select", [single("rows"), single("maxrects-bl")]),
@@ -654,7 +658,7 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
   }
   const params = combine.params ?? {};
   const members = combine.members ?? [];
-  const key = params["key"] === "area" ? { key: AREA_KEY } : {};
+  const key = params["key"] === "area" ? { key: AREA_KEY } : params["key"] === "fill" ? { key: FILL_KEY } : {};
   const limits = {
     ...(params["limitMembers"] === true ? { maxMembers: params["maxMembers"] } : {}),
     ...(params["limitTime"] === true ? { budgetMs: params["budgetMs"] } : {}),

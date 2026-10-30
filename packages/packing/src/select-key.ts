@@ -5,7 +5,8 @@ import type { PortfolioKey, SelectLevel } from "@mark1russell7/layout-contract";
 import { checkHard } from "./check.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { outputHash } from "./layout-input.ts";
-import { MEASURE_SPECS, measure, roundMeasures, type LayoutMeasures } from "./measures.ts";
+import { round3 } from "./layout-input.ts";
+import { fillOf, MEASURE_SPECS, measure, roundMeasures, type LayoutMeasures } from "./measures.ts";
 
 /** This function gives the count of the hard breaks of an output: the sum of `checkHard` with `exactContainer`. */
 export function hardBreaks(input: PackInput, output: PackOutput): number {
@@ -24,6 +25,7 @@ export function measureLevel(id: string): SelectLevel {
  *
  * - The levels read the measures after `roundMeasures`, as a record keeps them. A replay of the records gives the same pick.
  * - The measures of one output are computed one time.
+ * - A key of only `pack.fill` computes the fill alone with `fillOf` (k127). The value and the pick do not change.
  * - `view` gives the input of the measures. The default is the input. The hard breaks always read the input.
  */
 export function measureKey(levels: readonly SelectLevel[], view: (input: PackInput) => PackInput = (input) => input): PortfolioKey<PackInput, PackOutput> {
@@ -36,6 +38,13 @@ export function measureKey(levels: readonly SelectLevel[], view: (input: PackInp
     }
     return m;
   };
+  if (levels.length > 0 && levels.every((level) => level.id === "pack.fill")) {
+    return {
+      hard: hardBreaks,
+      levels: levels.map((level) => ({ id: level.id, spec: level.spec, value: (input: PackInput, output: PackOutput): number => round3(fillOf(view(input), output)) })),
+      hash: outputHash,
+    };
+  }
   return {
     hard: hardBreaks,
     levels: levels.map((level) => ({

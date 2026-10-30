@@ -93,8 +93,18 @@ export const ASPECT_FIT_ENTRIES: readonly BenchEntry[] = Object.freeze([
  *
  * - `select-rows-bl`: the strategy `select` with its defaults. It packs each input with `rows` or `maxrects-bl` by `SELECT_TABLE`.
  *   Its base is `rows`, the default. Its move is `move.select`.
+ * - `portfolio-fill-rows-bl` (k127): the fill oracle of the members of `select`. It packs with `rows` and `maxrects-bl`, and keeps the
+ *   output with fewer hard breaks, then the higher `pack.fill`. Its key computes the fill alone. Its move is `move.pick`.
  */
-export const SELECT_ENTRIES: readonly BenchEntry[] = Object.freeze([{ id: "select-rows-bl", strategy: "select", options: {}, base: "rows" }]);
+export const SELECT_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "select-rows-bl", strategy: "select", options: {}, base: "rows" },
+  {
+    id: "portfolio-fill-rows-bl",
+    strategy: "portfolio",
+    options: { members: ["rows", { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }], key: ["pack.fill"] },
+    base: "rows",
+  },
+]);
 
 /**
  * The composite entries of roadmap item k78. They are not in the pool of the oracle. Each one has 16 restarts, so it costs 16 packs of its member.

@@ -24,6 +24,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
+import { fillOf } from "./measures.ts";
 
 // The measures of docs/MEASURES.md on tiny layouts, with values computed by hand.
 
@@ -91,6 +92,9 @@ describe("measure", () => {
     expect(MEASURE_SPECS["pack.shapeFill"].bound).toEqual({ shapes: ["free"], side: "upper" });
     expect(s["pack.shapeFill"]).toBeGreaterThan((400 + 600 + 375 * Math.PI + 100 * Math.PI) / 4000);
     expect(s["pack.fill"]).toBeCloseTo((800 + 600 + 1500 + 400) / 4000, 12);
+    // k127: fillOf gives the same fill alone, on the box view of the shapes
+    expect(fillOf(shaped, placed)).toBe(s["pack.fill"]);
+    expect(fillOf(shaped, out([], { overflow: ["a", "b", "c", "d"] }))).toBe(0);
     // An item that is not placed does not count, and an empty layout gives 0. Without d, the hull is 70 by 50.
     expect(measure(shaped, out(placed.placements.slice(0, 3), { overflow: ["d"] }))["pack.shapeFill"]).toBeCloseTo((400 + 600 + 1500) / 3500, 12);
     expect(measure(shaped, out([]))["pack.shapeFill"]).toBe(0);

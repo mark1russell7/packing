@@ -816,6 +816,35 @@ The counts of `packSpace`:
 
 The bench (prediction `packing-k125-force`): rows, maxrects-bl and skyline-bl-waste, each alone, in `relax` and in `force`, on `pack-screen-v1`. The measures are the same as for k124.
 
+### The fill key of the portfolio
+
+Roadmap item k127 makes a fill oracle cheap. A portfolio with the key `["pack.fill"]` computes the fill alone with `fillOf`, not each measure of `measure`.
+
+```ts
+const output = packWith("portfolio", input, { members: ["rows", { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }], key: ["pack.fill"] });
+```
+
+The rules:
+
+- `fillOf` reads the box view, as `measure` does, and gives the same value. Thus the pick and the output do not change.
+- A key with each level `pack.fill` uses `fillOf`. Each other key uses `measure`, as before.
+- The hard breaks and the output hash of each member stay. The cost of the fill is linear in the count of the boxes. The cost of `measure` is quadratic.
+- The bench entry `portfolio-fill-rows-bl` is the fill oracle of the members of `select`. Its base is `rows`, and its move is `move.pick`.
+
+The counts of `packSpace`:
+
+- The param `key` of `portfolio` gets the value `fill`, after `levels` and `area`. The named config is `portfolio-fill-rows-bl`.
+- Each meta config with the param `key` gets a third value. Thus each meta count is 1.5 times the count before k127.
+
+| `spaceSize` | Before k127 | Since k127 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 185246197022537840016 | 277869295533801539436 |
+| 1 level | 66707889492022776 | 100061834237626086 |
+| 3 levels, `shapes: ["rect"]` | 184312874572013255730 | 276469311858014672730 |
+| 1 level, `shapes: ["rect"]` | 66333631179365310 | 99500446768640790 |
+
+The bench (prediction `packing-k127-lean-oracle`): `rows`, `maxrects-bl`, `select-rows-bl`, `portfolio-area-rows-bl` and `portfolio-fill-rows-bl` on the 250 fixed-size inputs of `pack-classes-v1`.
+
 ### The searches over orders
 
 Roadmap item k26 adds three composite strategies that search the order of the items: `anneal`, `genetic` and `tabu`. They are opt-in. No default uses them.
