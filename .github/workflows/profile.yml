@@ -30,9 +30,9 @@ on:
 permissions:
   contents: read
 
-# The runner budget of the account (strategist, 2026-10-30): one run for each ref.
+# The runner budget of the account (strategist, 2026-10-30). The group has the inputs, so only a true duplicate replaces a run that waits.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategy }}
   cancel-in-progress: false
 
 jobs:
