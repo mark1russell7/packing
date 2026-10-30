@@ -97,6 +97,13 @@ function gate(records: readonly BenchRecord[]): boolean {
   return lines.length === 0;
 }
 
+/** This function writes the message of an empty input and gives the code 1. A gate fails on no input. */
+function empty(what: string): number {
+  process.stderr.write(`The gate found no records in ${what}. It needs one record or more.
+`);
+  return 1;
+}
+
 function main(): number {
   switch (command) {
     case "list":
@@ -122,6 +129,8 @@ function main(): number {
         env: env(),
         ...(sha !== undefined ? { commit: sha } : {}),
       });
+      // A gate fails closed: a run with no records is a failure, not a pass
+      if (result.records.length === 0) return empty(`the run of the corpus ${name}`);
       const out = resolve(opt("--out") ?? join("bench-out", name));
       write(out, result.run, result.records, result.manifest);
       const skips = result.records.filter((r) => !isMeasured(r)).length;
@@ -142,6 +151,7 @@ function main(): number {
         for (const line of readFileSync(join(dir, "records.jsonl"), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line) as BenchRecord);
         if (manifest === undefined && existsSync(join(dir, "corpus.json"))) manifest = JSON.parse(readFileSync(join(dir, "corpus.json"), "utf8"));
       }
+      if (records.length === 0) return empty(`the files records.jsonl of ${dirs.join(", ")}`);
       const run = mergeRuns(runs, records, manifest);
       write(resolve(out), run, records, manifest);
       const skips = records.filter((r) => !isMeasured(r)).length;
