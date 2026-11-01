@@ -52,6 +52,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # A manual run always runs the win test. A pull request or a push runs it only when a tool of the win test changed.
   changes:
