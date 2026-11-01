@@ -27,7 +27,7 @@ describe("timeBudget", () => {
     const b = timeBudget(five([1.1, 1.2, 1.3, 1.4, 1.5]), "b");
     expect(b.verdict).toBe("promoted");
     expect(b.median).toEqual({ worst: 1.3, limit: 1.5, pass: true });
-    expect(b.tail).toMatchObject({ worst: 1.485, spread: 0, pass: true });
+    expect(b.tail).toMatchObject({ worst: 1.485, spread: 0, measured: true, pass: true });
     expect(b.runs[0]!.tailSet).toBe(4);
     expect(b.resolution.median).toEqual({ worstAaP90: 1, least: 1.1, valid: true });
     expect(b.runs[0]).toMatchObject({ underOldFloor: 0.2, under01ms: 0.2 });
@@ -56,11 +56,13 @@ describe("timeBudget", () => {
     expect(b.reasons[0]).toContain("noise: the tails of the runs spread");
   });
 
-  it("passes the tail check with an empty tail set", () => {
+  it("records the tail as not measured with an empty tail set", () => {
     const b = timeBudget(five([1.1, 1.2, 1.3, 1.4, 1.5]), "b", { ...BUDGET_POLICY, floorMs: 100 });
     expect(b.verdict).toBe("promoted");
     expect(b.runs[0]!.tailSet).toBe(0);
-    expect(b.reasons).toEqual(["no input has a time of 100 ms or more, so the tail check passes"]);
+    expect(b.tail.measured).toBe(false);
+    expect(b.reasons).toEqual(["tail: not measured, no input above 100 ms"]);
+    expect(budgetMarkdown(b)).toContain("Tail: not measured, no input above 100 ms.");
   });
 
   it("does not promote an arm with a tail above the budget on the tail set", () => {

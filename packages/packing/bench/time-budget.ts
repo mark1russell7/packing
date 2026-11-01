@@ -73,7 +73,8 @@ export interface BudgetResult {
     tail: { worstAaTail: number; least: number; valid: boolean };
   };
   median: { worst: number; limit: number; pass: boolean };
-  tail: { worst: number; limit: number; spread: number; pass: boolean };
+  /** The tail check. With an empty tail set in each run, `measured` is false and the check does not stop a promotion */
+  tail: { worst: number; limit: number; spread: number; measured: boolean; pass: boolean };
   verdict: BudgetVerdict;
   reasons: string[];
 }
@@ -110,7 +111,7 @@ export function budgetRun(input: BudgetInput, arm: string, tailQ: number, floorM
  * - The runs are of one corpus, one filter, mode `process` and one base, each with the A/A arm. Else the verdict is `cannot decide`.
  * - The median decision is valid when `median > worst A/A p90 * (1 + margin)`. Else the verdict is `cannot decide`.
  * - The arm passes when the worst median of the runs is at most `median`, and the tail check passes.
- * - The tail set holds the inputs with a base or an arm median of `floorMs` or more. An empty tail set passes the tail check.
+ * - The tail set holds the inputs with a base or an arm median of `floorMs` or more. An empty tail set gives `tail: not measured`, which does not stop a promotion.
  * - The tail check needs `tail > worst A/A tail * (1 + margin)` and a spread of the tails of at most `margin`. Else the verdict is `cannot decide`.
  */
 export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: BudgetPolicy = BUDGET_POLICY): BudgetResult {
@@ -149,7 +150,7 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
   const median = { worst: worst((r) => r.median), limit: policy.median, pass: worst((r) => r.median) <= policy.median };
   const tails = runs.filter((r) => r.tailSet > 0).map((r) => r.tail);
   const spread = noTail ? 0 : tails.length < runs.length ? Number.NaN : r4(Math.max(...tails) / Math.min(...tails) - 1);
-  const tail = { worst: noTail ? Number.NaN : worstTail((r) => r.tail), limit: policy.tail, spread, pass: noTail || worstTail((r) => r.tail) <= policy.tail };
+  const tail = { worst: noTail ? Number.NaN : worstTail((r) => r.tail), limit: policy.tail, spread, measured: !noTail, pass: noTail || worstTail((r) => r.tail) <= policy.tail };
   let verdict: BudgetVerdict;
   if (reasons.length > 0) verdict = "cannot decide";
   else if (!resolution.median.valid) {
@@ -168,7 +169,7 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
     reasons.push(`the worst tail ${tail.worst} is above the budget ${policy.tail}`);
   } else {
     verdict = "promoted";
-    if (noTail) reasons.push(`no input has a time of ${policy.floorMs} ms or more, so the tail check passes`);
+    if (noTail) reasons.push(`tail: not measured, no input above ${policy.floorMs} ms`);
   }
   return { schema: "packing-time-budget/1", corpus, mode, base, arm, ...(only !== undefined ? { only } : {}), policy, runs, resolution, median, tail, verdict, reasons };
 }
@@ -182,7 +183,7 @@ export function budgetMarkdown(b: BudgetResult): string {
     "",
     `Policy: the worst median of ${b.policy.runs} runs is at most ${b.policy.median}, and the worst ${q} is at most ${b.policy.tail}.`,
     `Resolution: the worst A/A p90 ${b.resolution.median.worstAaP90} gives ${b.resolution.median.least} (${b.resolution.median.valid ? "valid" : "not valid"}). The worst A/A ${q} ${b.resolution.tail.worstAaTail} gives ${b.resolution.tail.least} (${b.resolution.tail.valid ? "valid" : "not valid"}).`,
-    `Median: worst ${b.median.worst}, budget ${b.median.limit}. Tail (inputs of ${b.policy.floorMs} ms or more): worst ${b.tail.worst}, budget ${b.tail.limit}, spread ${b.tail.spread}.`,
+    `Median: worst ${b.median.worst}, budget ${b.median.limit}. ${b.tail.measured ? `Tail (inputs of ${b.policy.floorMs} ms or more): worst ${b.tail.worst}, budget ${b.tail.limit}, spread ${b.tail.spread}.` : `Tail: not measured, no input above ${b.policy.floorMs} ms.`}`,
     ...(b.reasons.length > 0 ? ["", `Reasons: ${b.reasons.join(". ")}.`] : []),
     "",
     `| Run | CPU | Inputs | Median | ${q} | A/A median | A/A p90 | A/A ${q} | Tail set | Base under 3.33 ms | Base under 0.1 ms |`,
