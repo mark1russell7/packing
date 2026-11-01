@@ -163,5 +163,12 @@ describe("the options", () => {
     expect(() => measureIsolated({ mode: "process", inputs: [], repeats: 1, arms, aa: false })).toThrow(RangeError);
     expect(() => measureIsolated({ mode: "fresh", inputs: [], repeats: 1, arms })).toThrow("no command");
     expect(() => measureIsolated({ mode: "process", inputs: [{ id: "i" }, { id: "i" }], repeats: 1, arms })).toThrow("inputs are not unique");
+    expect(() => measureIsolated({ mode: "process", inputs: [], repeats: 1, arms })).toThrow("1 input or more");
+    expect(() => measureIsolated({ mode: "other" as "process", inputs: [{ id: "i" }], repeats: 1, arms })).toThrow("not \"other\"");
+  });
+
+  it("refuses a peakRss that an arm gives in mode process", () => {
+    const arms = [{ id: "a", run: () => ({ peakRss: 1 }) }];
+    expect(() => measureIsolated({ mode: "process", inputs: [{ id: "i" }], repeats: 1, arms, env: ENV })).toThrow("peakRss in mode process");
   });
 });
