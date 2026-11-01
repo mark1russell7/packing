@@ -920,8 +920,9 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/1`, roadmap
 - The measure is the raw paired ratio of the candidate against the default, in mode `process`, with the A/A arm. The Bench records do not count.
 - The A/A arm of the same runs gives the resolution. The median decision is valid only when 1.5 is more than the worst A/A p90 times 1.1.
 - If the median decision is not valid, the verdict is `cannot decide`, with the numbers.
-- The tail decision needs 2 more than the worst A/A q95 times 1.1, and a spread of the 5 tails of 0.1 or less. Else the verdict is `not promoted`, for noise.
-- No fixed floor in milliseconds applies. The record keeps the share of inputs with a base under 3.33 ms and under 0.1 ms as a report.
+- The tail decision needs 2 more than the worst A/A q95 on the tail set times 1.1. It also needs a spread of the 5 tails of 0.1 or less. Else the verdict is `cannot decide`.
+- The tail set holds only the inputs with a base or a candidate median of `timeFloorMs` (5 ms) or more. An empty tail set passes.
+- The record keeps the share of inputs with a base under 3.33 ms and under 0.1 ms as a report.
 - After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value times 1.1).
 
 The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.

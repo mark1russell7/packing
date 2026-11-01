@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { PairedReport } from "./paired-time.ts";
 import { BUDGET_POLICY, budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
 
-/** This function makes a made-up run: the arm `b` has the ratio of each value, and the A/A arm has the ratio of `aa` on each input. */
+/** This function makes a made-up run: the arm `b` has the ratio of each value, and the A/A arm has the ratio of `aa` on each input. The first input is under the relevance floor. */
 function run(name: string, ratios: number[], aa: number[] = ratios.map(() => 1), over: Partial<PairedReport> = {}): BudgetInput {
-  const inputs = ratios.map((r, i) => ({ id: `i${i}`, group: "all", ms: {}, median: { a: i === 0 ? 0.05 : 4 }, ratio: { b: r, "a~aa": aa[i]! } }));
+  const inputs = ratios.map((r, i) => ({ id: `i${i}`, group: "all", ms: {}, median: { a: i === 0 ? 0.05 : 8, b: (i === 0 ? 0.05 : 8) * r }, ratio: { b: r, "a~aa": aa[i]! } }));
   const sorted = [...aa].sort((x, y) => x - y);
   const report = {
     schema: "paired-time/1",
@@ -27,7 +27,8 @@ describe("timeBudget", () => {
     const b = timeBudget(five([1.1, 1.2, 1.3, 1.4, 1.5]), "b");
     expect(b.verdict).toBe("promoted");
     expect(b.median).toEqual({ worst: 1.3, limit: 1.5, pass: true });
-    expect(b.tail).toMatchObject({ worst: 1.48, spread: 0, pass: true });
+    expect(b.tail).toMatchObject({ worst: 1.485, spread: 0, pass: true });
+    expect(b.runs[0]!.tailSet).toBe(4);
     expect(b.resolution.median).toEqual({ worstAaP90: 1, least: 1.1, valid: true });
     expect(b.runs[0]).toMatchObject({ underOldFloor: 0.2, under01ms: 0.2 });
     expect(b.reasons).toEqual([]);
@@ -47,12 +48,26 @@ describe("timeBudget", () => {
     expect(b.resolution.median).toEqual({ worstAaP90: 1.4, least: 1.54, valid: false });
   });
 
-  it("does not promote for noise when the tails spread more than the margin", () => {
+  it("cannot decide for noise when the tails spread more than the margin", () => {
     const runs = five([1, 1, 1, 1, 1.5]);
     runs[0] = run("run1", [1, 1, 1, 1, 1.9]);
     const b = timeBudget(runs, "b");
-    expect(b.verdict).toBe("not promoted");
+    expect(b.verdict).toBe("cannot decide");
     expect(b.reasons[0]).toContain("noise: the tails of the runs spread");
+  });
+
+  it("passes the tail check with an empty tail set", () => {
+    const b = timeBudget(five([1.1, 1.2, 1.3, 1.4, 1.5]), "b", { ...BUDGET_POLICY, floorMs: 100 });
+    expect(b.verdict).toBe("promoted");
+    expect(b.runs[0]!.tailSet).toBe(0);
+    expect(b.reasons).toEqual(["no input has a time of 100 ms or more, so the tail check passes"]);
+  });
+
+  it("does not promote an arm with a tail above the budget on the tail set", () => {
+    const b = timeBudget(five([30, 1, 1, 1, 2.5]), "b");
+    expect(b.runs[0]!.tail).toBeCloseTo(2.275);
+    expect(b.verdict).toBe("not promoted");
+    expect(b.reasons).toEqual(["the worst tail 2.275 is above the budget 2"]);
   });
 
   it("cannot decide with fewer runs, another mode, a mixed corpus or no A/A arm", () => {
@@ -71,6 +86,6 @@ describe("timeBudget", () => {
     const md = budgetMarkdown(timeBudget(five([1.1, 1.2, 1.3, 1.4, 1.5]), "b", BUDGET_POLICY));
     expect(md).toContain("## The time budget of b against a on set-v1: promoted");
     expect(md).toContain("Resolution: the worst A/A p90 1 gives 1.1 (valid).");
-    expect(md).toContain("| run1 | Test CPU | 5 | 1.3 | 1.48 | 1 | 1 | 1 | 0.2 | 0.2 |");
+    expect(md).toContain("| run1 | Test CPU | 5 | 1.3 | 1.485 | 1 | 1 | 1 | 4 | 0.2 | 0.2 |");
   });
 });
