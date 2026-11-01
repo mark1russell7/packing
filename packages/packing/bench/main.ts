@@ -2,7 +2,7 @@
 //
 //   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--interleave] [--anchor] [--out dir] [--commit sha]
 //   node bench/main.ts list [--strategies a,b|all]
-//   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--no-aa] [--out dir]
+//   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--no-aa] [--only text] [--out dir]
 //   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n>
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
@@ -121,7 +121,7 @@ function corpusOpt(): { name: string; corpus: ReturnType<typeof parseCorpus> } {
  * This function packs the paired time test of k127: the strategies of `--arms` in one job, with the helper of `paired-time.ts`.
  *
  * - The first arm is the base. The A/A arm is on, except with `--no-aa`.
- * - The test uses only the inputs that each arm supports.
+ * - The test uses only the inputs that each arm supports. With `--only <text>`, it uses only the inputs with that text in their id.
  * - Mode `fresh` (the default) starts a child `paired-child` for each arm, each input and each round.
  */
 async function paired(): Promise<number> {
@@ -134,7 +134,8 @@ async function paired(): Promise<number> {
   if (mode !== "fresh" && mode !== "process") throw new Error(`The mode is fresh or process, not "${mode}".`);
   const all = pairedInputs(corpus);
   const packs = new Map(ids.map((id) => [id, new Map(all.map((at) => [at.id, pairedPack(id, at)]))]));
-  const inputs = all.filter((at) => ids.every((id) => packs.get(id)!.get(at.id) !== undefined)).map((at) => ({ id: at.id, group: String(at.seed), value: at }));
+  const only = opt("--only");
+  const inputs = all.filter((at) => (only === undefined || at.id.includes(only)) && ids.every((id) => packs.get(id)!.get(at.id) !== undefined)).map((at) => ({ id: at.id, group: String(at.seed), value: at }));
   if (inputs.length === 0) return empty(`the corpus ${name} for the arms ${ids.join(", ")}`);
   const out = resolve(opt("--out") ?? join("bench-out", `${name}-paired`));
   mkdirSync(out, { recursive: true });

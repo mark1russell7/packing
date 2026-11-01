@@ -885,6 +885,7 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `repeats` | `5` | The timed rounds of each arm on each input. |
 | `warmup` | `2` | The untimed passes of each arm before each timed pass. |
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
+| `only` | empty | The test uses only the inputs with this text in their id, for example `.fixed.`. |
 | `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
 The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/1`. The two modes are:
