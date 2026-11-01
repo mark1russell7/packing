@@ -886,6 +886,7 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `warmup` | `2` | The untimed passes of each arm before each timed pass. |
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
 | `only` | empty | The test uses only the inputs with this text in their id, for example `.fixed.`. |
+| `gate` | empty | The name of a time gate in `bench/gates/`, for example `k66-time`. The job fails when the gate fails. |
 | `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
 The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/1`. The two modes are:
@@ -898,6 +899,17 @@ The test uses only the inputs that each arm supports. The ratio of an input is t
 The artifact `paired-time-<corpus>-<mode>-run<n>` of each run has `run.json`, `paired-time.json` and `paired-time.md`. For each arm, the report gives the median, p10 and p90 of the ratios. It also gives the median of each group, and the mean and SD of the groups. The noise floor is the median, p10 and p90 of the A/A ratios. The value `moved` of an arm is the share of its inputs with a ratio outside [p10, p90] of the A/A arm.
 
 A claim gives the median, p10, p90 and `moved` of each arm, and the noise floor. A difference inside the noise floor is not a result.
+
+### A time gate
+
+A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
+
+- A limit is the worst value of 5 CI jobs of the same paired test, times 1.1 (STRATEGY.md 1e10f489). The record keeps the 5 values, the jobs, the CPUs and the A/A spread.
+- A measure with a spread across the 5 runs larger than the margin does not gate. The record reports it with the reason.
+- `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
+- The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
+
+The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
 
 ## The cells of a candidate
 

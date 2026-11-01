@@ -39,6 +39,10 @@ on:
         description: Use only the inputs with this text in their id, for example .fixed. for the fixed sizes. Empty uses all inputs.
         type: string
         default: ""
+      gate:
+        description: The name of a time gate in packages/packing/bench/gates, for example k66-time. Empty applies no gate.
+        type: string
+        default: ""
       runs:
         description: "The count of the same test, from 1 to 9. Each run is a job. A derived gate limit needs 5 runs (STRATEGY.md 1e10f489)."
         type: string
@@ -48,7 +52,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}-${{ inputs.gate }}
   cancel-in-progress: false
 
 jobs:
@@ -85,6 +89,7 @@ jobs:
       WARMUP: ${{ inputs.warmup }}
       AA: ${{ inputs.aa }}
       ONLY: ${{ inputs.only }}
+      GATE: ${{ inputs.gate }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -103,6 +108,7 @@ jobs:
           [[ "$REPEATS" =~ ^[1-9][0-9]*$ ]] || { echo "repeats must be a number of 1 or more, not '$REPEATS'"; exit 1; }
           [[ "$WARMUP" =~ ^[0-9]+$ ]] || { echo "warmup must be a number of 0 or more, not '$WARMUP'"; exit 1; }
           [[ "$ONLY" =~ ^[A-Za-z0-9._-]*$ ]] || { echo "only must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$ONLY'"; exit 1; }
+          [[ "$GATE" =~ ^[a-z0-9-]*$ ]] || { echo "gate must be a-z, 0-9 and hyphen, not '$GATE'"; exit 1; }
           out="$RUNNER_TEMP/paired-time"
           aa=()
           [ "$AA" = "true" ] || aa=(--no-aa)
@@ -111,6 +117,10 @@ jobs:
           node packages/packing/bench/main.ts paired --corpus "$CORPUS" --arms "$ARMS" --prediction "$PREDICTION" \
             --mode "$MODE" --repeats "$REPEATS" --warmup "$WARMUP" "${aa[@]}" --commit "$GITHUB_SHA" --out "$out" || status=$?
           [ -f "$out/paired-time.md" ] && cat "$out/paired-time.md" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = 0 ] && [ -n "$GATE" ]; then
+            node packages/packing/bench/main.ts paired-gate --gate "packages/packing/bench/gates/$GATE.json" --dir "$out" || status=$?
+            [ -f "$out/gate.md" ] && cat "$out/gate.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
           exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()

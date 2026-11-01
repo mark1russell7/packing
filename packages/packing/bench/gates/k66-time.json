@@ -1,0 +1,78 @@
+{
+  "schema": "packing-time-gate/1",
+  "id": "k66-time",
+  "item": "k66",
+  "rule": "STRATEGY.md 1e10f489: a limit is the worst value of 5 CI runs of the gate harness times 1.1. The A/A noise is well inside the margin.",
+  "corpus": "pack-select-v2",
+  "mode": "process",
+  "base": "rows",
+  "arm": "select-rows-bl",
+  "aaMedian": 0.05,
+  "checks": [
+    {
+      "measure": "median",
+      "max": 2.6419,
+      "derivation": {
+        "runs": [
+          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run1",
+          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run2",
+          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run3",
+          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run4",
+          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run5"
+        ],
+        "cpus": [
+          "AMD EPYC 9V45 96-Core Processor",
+          "AMD EPYC 7763 64-Core Processor",
+          "AMD EPYC 9V45 96-Core Processor",
+          "AMD EPYC 9V74 80-Core Processor",
+          "AMD EPYC 7763 64-Core Processor"
+        ],
+        "values": [
+          2.2859,
+          2.4017,
+          2.3037,
+          2.386,
+          2.392
+        ],
+        "worst": 2.4017,
+        "margin": 0.1
+      }
+    }
+  ],
+  "reports": [
+    {
+      "measure": "q95",
+      "values": [
+        58.9582,
+        51.9869,
+        55.803,
+        59.4339,
+        52.3907
+      ],
+      "why": "The q95 of the 5 runs spans 51.9869 to 59.4339, a spread of 0.143, more than the margin 0.1. The A/A q95 is 1.09 to 1.13. So it does not gate."
+    }
+  ],
+  "aa": {
+    "median": [
+      0.9983,
+      0.9994,
+      0.9981,
+      0.9985,
+      1.0007
+    ],
+    "p10": [
+      0.9412,
+      0.9331,
+      0.9375,
+      0.9356,
+      0.9291
+    ],
+    "p90": [
+      1.0631,
+      1.0614,
+      1.053,
+      1.0687,
+      1.075
+    ]
+  }
+}
