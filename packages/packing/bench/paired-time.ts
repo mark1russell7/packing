@@ -117,10 +117,10 @@ export const AA_SUFFIX = "~aa";
 /** This function gives the id of the A/A arm of a base. */
 export const aaId = (base: string): string => `${base}${AA_SUFFIX}`;
 
-/** This function gives the computer of this process. The runner comes from `BENCH_RUNNER`, else `RUNNER_NAME`. */
+/** This function gives the computer of this process. The runner comes from `BENCH_RUNNER`, else `RUNNER_NAME`. An empty value takes the fallback. */
 export function pairedEnv(): PairedEnv {
   const all = cpus();
-  const env: PairedEnv = { cpu: all[0]?.model.trim() ?? "unknown", cores: all.length, os: platform(), arch: arch(), node: process.version };
+  const env: PairedEnv = { cpu: all[0]?.model.trim() || "unknown", cores: all.length, os: platform(), arch: arch(), node: process.version };
   const runner = process.env["BENCH_RUNNER"] || process.env["RUNNER_NAME"];
   if (runner !== undefined && runner !== "") env.runner = runner;
   return env;
@@ -167,6 +167,7 @@ function sampleSD(values: readonly number[]): number {
 
 /** This function checks the options, and gives the arms with the A/A arm. It throws a `RangeError` for a bad option. */
 function armsOf<I>(o: PairedOptions<I>): Arm<I>[] {
+  if (o.mode !== "process" && o.mode !== "fresh") throw new RangeError(`The mode is process or fresh, not "${String(o.mode)}".`);
   if (!Number.isInteger(o.repeats) || o.repeats < 1) throw new RangeError("The repeats are a whole number of 1 or more.");
   const warmup = o.warmup ?? 1;
   if (!Number.isInteger(warmup) || warmup < 0) throw new RangeError("The warm-up runs are a whole number of 0 or more.");
@@ -180,6 +181,7 @@ function armsOf<I>(o: PairedOptions<I>): Arm<I>[] {
     if (o.mode === "fresh" && (a.command === undefined || a.command.length === 0)) throw new RangeError(`The arm ${a.id} has no command for mode fresh.`);
   }
   if (new Set(o.inputs.map((i) => i.id)).size !== o.inputs.length) throw new RangeError("The ids of the inputs are not unique.");
+  if (o.inputs.length === 0) throw new RangeError("A paired time run needs 1 input or more.");
   return arms;
 }
 
@@ -303,8 +305,10 @@ function measureProcess<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Paired
         const run = arm.run!;
         for (let w = 0; w < warmup; w++) run(input.value as I);
         const start = clock();
-        run(input.value as I);
+        const out = run(input.value as I);
         raw.ms.get(input.id)!.get(arm.id)!.push(clock() - start);
+        // Mode process has one process, so a memory peak of an arm has no meaning
+        if (typeof out === "object" && out !== null && "peakRss" in out) throw new RangeError(`The arm ${arm.id} gave a peakRss in mode process.`);
       }
     }
   }
