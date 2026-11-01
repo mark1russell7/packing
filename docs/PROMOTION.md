@@ -74,6 +74,8 @@ Thus a candidate with a time of `timeFloorMs` or less passes the median test. Su
 CI does the time test, because other jobs on a local machine change the times. CI times the candidate and the default on the same machine, in alternate runs.
 <!-- /shared:win-test -->
 
+In packing, the time test of a new strategy is the time budget of `docs/BENCH.md` (roadmap item k128). It keeps the values `timeRatio` 1.5 and `timeTail` 2 as a policy. It replaces the ratio `t / max(b, timeFloorMs / timeRatio)` with the raw paired ratio of 5 runs in one job each. The A/A arm of the same runs gives the resolution, not a floor. The base times of the packing corpora are under 3.33 ms on 99 % of the inputs, so the floor made the ratio an absolute time.
+
 <!-- shared:noise-guard -->
 ### The noise guard
 

@@ -887,6 +887,7 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
 | `only` | empty | The test uses only the inputs with this text in their id, for example `.fixed.`. |
 | `gate` | empty | The name of a time gate in `bench/gates/`, for example `k66-time`. The job fails when the gate fails. |
+| `budget` | empty | The id of a candidate arm for the time budget of a promotion (k128). It needs `runs` 5 and mode `process`. |
 | `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
 The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/1`. The two modes are:
@@ -910,6 +911,20 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in 
 - The gate refuses a report of another corpus, mode or base. It also refuses a run with `only`, a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
 
 The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
+
+### The time budget of a promotion
+
+The time budget (`bench/time-budget.ts`, schema `packing-time-budget/1`, roadmap item k128) is the time test of a new strategy. It replaces the floor rule of the time row in `docs/PROMOTION.md` for packing.
+
+- The budget is a policy, not a measured limit. The worst median of 5 paired jobs is at most 1.5. The worst q95 is at most 2.
+- The measure is the raw paired ratio of the candidate against the default, in mode `process`, with the A/A arm. The Bench records do not count.
+- The A/A arm of the same runs gives the resolution. The median decision is valid only when 1.5 is more than the worst A/A p90 times 1.1.
+- If the median decision is not valid, the verdict is `cannot decide`, with the numbers.
+- The tail decision needs 2 more than the worst A/A q95 times 1.1, and a spread of the 5 tails of 0.1 or less. Else the verdict is `not promoted`, for noise.
+- No fixed floor in milliseconds applies. The record keeps the share of inputs with a base under 3.33 ms and under 0.1 ms as a report.
+- After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value times 1.1).
+
+The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 
 ## The cells of a candidate
 
