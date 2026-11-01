@@ -5,13 +5,14 @@
 //   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--no-aa] [--only text] [--out dir]
 //   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n>
 //   node bench/main.ts paired-gate --gate <file> --dir <paired out dir>
+//   node bench/main.ts paired-budget --dir <folder of paired runs> --arm <id>
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
 //
 // The times of a run on a local computer do not count. Only the times of CI compare.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, arch, platform } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -36,6 +37,7 @@ import {
 } from "./run.ts";
 import { measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
+import { budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
 import { checkTimeGate, gateMarkdown, parseTimeGate } from "./time-gate.ts";
 
 const here = import.meta.dirname;
@@ -190,6 +192,27 @@ function pairedGate(): number {
   return result.pass ? 0 : 1;
 }
 
+/** This function gives the time budget of an arm (k128) over the paired jobs in the folders of `--dir`. It writes `budget.json` and `budget.md`. */
+function pairedBudget(): number {
+  const dir = opt("--dir");
+  const arm = opt("--arm");
+  if (dir === undefined || arm === undefined) throw new Error("A time budget needs --dir <folder of paired runs> and --arm <id>.");
+  const inputs: BudgetInput[] = readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && existsSync(join(dir, e.name, "paired-time.json")))
+    .map((e) => e.name)
+    .sort()
+    .map((name) => {
+      const run = JSON.parse(readFileSync(join(dir, name, "run.json"), "utf8")) as { corpus: string; only?: string };
+      const report = JSON.parse(readFileSync(join(dir, name, "paired-time.json"), "utf8")) as PairedReport;
+      return { run: name, report, corpus: run.corpus, ...(run.only !== undefined ? { only: run.only } : {}) };
+    });
+  const result = timeBudget(inputs, arm);
+  writeFileSync(join(dir, "budget.json"), `${JSON.stringify(result, null, 2)}\n`);
+  writeFileSync(join(dir, "budget.md"), budgetMarkdown(result));
+  process.stdout.write(budgetMarkdown(result));
+  return 0;
+}
+
 function main(): number | Promise<number> {
   switch (command) {
     case "paired":
@@ -198,6 +221,8 @@ function main(): number | Promise<number> {
       return pairedChild();
     case "paired-gate":
       return pairedGate();
+    case "paired-budget":
+      return pairedBudget();
     case "list":
       process.stdout.write(`${JSON.stringify(strategyIds(opt("--strategies")))}\n`);
       return 0;
