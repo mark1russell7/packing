@@ -374,6 +374,38 @@ function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | un
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
 }
 
+/** One input of a corpus for the paired time test (k127): its id, its spec index, its seed and its cell. */
+export interface PairedCorpusInput {
+  id: string;
+  spec: number;
+  seed: number;
+  input: PackInput;
+  cell: CorpusManifest["inputs"][number]["cell"];
+}
+
+/**
+ * This function gives the inputs of a corpus for the paired time test (k127), in the order of the corpus.
+ *
+ * - With `only`, it generates only the input of that spec and that seed. A child of mode `fresh` uses it.
+ */
+export function pairedInputs(c: BenchCorpus, only?: { spec: number; seed: number }): PairedCorpusInput[] {
+  const specs = c.specs.map((spec, at) => ({ spec, at }));
+  const chosen = only === undefined ? specs : specs.filter((x) => x.at === only.spec).map((x) => ({ ...x, spec: { ...x.spec, seeds: [only.seed] } }));
+  return chosen.flatMap(({ spec, at }) => {
+    const { manifest, inputs } = corpus(c.corpus, [spec]);
+    return inputs.map((file, index) => ({ id: file.id, spec: at, seed: file.seed, input: toPackInput(file), cell: manifest.inputs[index]!.cell }));
+  });
+}
+
+/** This function gives the pack of an entry on an input, as the runner packs it. An entry that does not support the cell of the input gives `undefined`. */
+export function pairedPack(id: string, at: PairedCorpusInput, over?: EntryOptions): (() => PackOutput) | undefined {
+  const e = entryWith(id, over);
+  const s = strategy(e.strategy);
+  if (unsupportedOf(s.supports, at.cell) !== undefined) return undefined;
+  const given = givenOf(e, s.defaults);
+  return () => packWith(e.strategy, at.input, given, at.seed);
+}
+
 /** This function times `repeats` passes of one pair, one after the other. The sampler of the whole space (k112) uses it. */
 export function timeRuns(pack: () => PackOutput, repeats: number, clock: () => number): PairTimes {
   const out: PairTimes = { msRuns: [], searchMs: [] };

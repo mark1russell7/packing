@@ -1,0 +1,113 @@
+# The paired time test of strategies (docs/BENCH.md, "A paired time test of strategies", k127). One job packs one corpus
+# with each strategy of the arms on the same runner, to the shared interface paired-time/1. An A/A arm gives the noise floor.
+# Thus a ratio of times compares strategies, not runners. Only a person starts a run, after a commit adds its prediction.
+name: Paired time
+
+on:
+  workflow_dispatch:
+    inputs:
+      arms:
+        description: "The ids of the strategies, with commas. The first one is the base: the denominator of each ratio."
+        type: string
+        required: true
+      corpus:
+        description: "The corpus: a file of packages/packing/bench/corpora, without .json."
+        type: string
+        default: pack-classes-v1
+      prediction:
+        description: The id of the prediction of the run. A commit adds the prediction before the run.
+        type: string
+        required: true
+      mode:
+        description: "fresh: a new process for each arm, each input and each round. process: one process, ABBA order."
+        type: choice
+        options: [fresh, process]
+        default: fresh
+      repeats:
+        description: The timed rounds of each arm on each input. The time is the median.
+        type: string
+        default: "5"
+      warmup:
+        description: The untimed passes of each arm before each timed pass.
+        type: string
+        default: "2"
+      aa:
+        description: Add the A/A arm (the base against itself) for the noise floor.
+        type: boolean
+        default: true
+      runs:
+        description: "The count of the same test, from 1 to 9. Each run is a job. A derived gate limit needs 5 runs (STRATEGY.md 1e10f489)."
+        type: string
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      runs: ${{ steps.plan.outputs.runs }}
+    steps:
+      - name: Plan the runs
+        id: plan
+        env:
+          RUNS: ${{ inputs.runs }}
+        run: |
+          [[ "$RUNS" =~ ^[1-9]$ ]] || { echo "runs must be a number from 1 to 9, not '$RUNS'"; exit 1; }
+          echo "runs=[$(seq -s, 1 "$RUNS")]" >> "$GITHUB_OUTPUT"
+
+  paired-time:
+    needs: plan
+    name: paired-time (run ${{ matrix.run }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        run: ${{ fromJSON(needs.plan.outputs.runs) }}
+    env:
+      ARMS: ${{ inputs.arms }}
+      CORPUS: ${{ inputs.corpus }}
+      PREDICTION: ${{ inputs.prediction }}
+      MODE: ${{ inputs.mode }}
+      REPEATS: ${{ inputs.repeats }}
+      WARMUP: ${{ inputs.warmup }}
+      AA: ${{ inputs.aa }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Run the paired time test
+        run: |
+          [[ "$ARMS" =~ ^[a-z0-9][a-z0-9-]*(,[a-z0-9][a-z0-9-]*)*$ ]] || { echo "arms must be ids of a-z, 0-9 and hyphen with commas, not '$ARMS'"; exit 1; }
+          [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
+          [[ "$PREDICTION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "prediction must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$PREDICTION'"; exit 1; }
+          [[ "$REPEATS" =~ ^[1-9][0-9]*$ ]] || { echo "repeats must be a number of 1 or more, not '$REPEATS'"; exit 1; }
+          [[ "$WARMUP" =~ ^[0-9]+$ ]] || { echo "warmup must be a number of 0 or more, not '$WARMUP'"; exit 1; }
+          out="$RUNNER_TEMP/paired-time"
+          aa=()
+          [ "$AA" = "true" ] || aa=(--no-aa)
+          status=0
+          node packages/packing/bench/main.ts paired --corpus "$CORPUS" --arms "$ARMS" --prediction "$PREDICTION" \
+            --mode "$MODE" --repeats "$REPEATS" --warmup "$WARMUP" "${aa[@]}" --commit "$GITHUB_SHA" --out "$out" || status=$?
+          [ -f "$out/paired-time.md" ] && cat "$out/paired-time.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: paired-time-${{ inputs.corpus }}-${{ inputs.mode }}-run${{ matrix.run }}
+          path: ${{ runner.temp }}/paired-time
+          if-no-files-found: error
