@@ -69,7 +69,7 @@ The test compares the candidate with the current default on each input of the co
 | Time | The time ratio of an input is `t / b`, with `t` the median time of the candidate and `b` that of the default in one `paired-time/1` report. The test uses 5 CI jobs in mode `process`, each with the A/A arm. The worst median ratio of the 5 jobs is at most `timeRatio`. The tail set holds the inputs with `b` or `t` of `timeFloorMs` or more. On the tail set, the worst `timeTailQ` quantile of the 5 jobs is at most `timeTail`. The large bench fixtures stay in their CI time limit. |
 | Stability | On the base and change pairs of the corpus, each stability measure is a guard measure. It passes the median and tail tests. |
 
-The A/A arm of the same jobs gives the resolution of the time test, never a fixed constant.
+The A/A arm of the same jobs gives the resolution of the time test, not a fixed constant.
 
 - The median decision is valid only when `timeRatio` is more than the worst A/A p90 of the 5 jobs times 1.1.
 - The tail decision is valid only when `timeTail` is more than the worst A/A `timeTailQ` quantile on the tail set times 1.1.
