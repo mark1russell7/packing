@@ -4,6 +4,7 @@
 //   node bench/main.ts list [--strategies a,b|all]
 //   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--no-aa] [--only text] [--out dir]
 //   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n>
+//   node bench/main.ts paired-gate --gate <file> --dir <paired out dir>
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
 //
@@ -35,6 +36,7 @@ import {
 } from "./run.ts";
 import { measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
+import { checkTimeGate, gateMarkdown, parseTimeGate } from "./time-gate.ts";
 
 const here = import.meta.dirname;
 const [command, ...rest] = process.argv.slice(2);
@@ -149,7 +151,7 @@ async function paired(): Promise<number> {
   const options = { arms, inputs, repeats, warmup, aa: !rest.includes("--no-aa") };
   const report: PairedReport = mode === "process" ? measureIsolated({ ...options, mode }) : await measureIsolated({ ...options, mode });
   const sha = commit();
-  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, arms: ids, inputs: inputs.length, skipped: all.length - inputs.length };
+  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, arms: ids, ...(only !== undefined ? { only } : {}), inputs: inputs.length, skipped: all.length - inputs.length };
   writeFileSync(join(out, "run.json"), `${JSON.stringify(run, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.json"), `${JSON.stringify(report, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.md"), pairedMarkdown(report, `A paired time test of ${ids.join(", ")} on ${name}`));
@@ -174,12 +176,28 @@ function pairedChild(): number {
   return 0;
 }
 
+/** This function applies a time gate (`bench/gates/`) to the report of a paired run. It writes `gate.json` and `gate.md`, and fails on a fail. */
+function pairedGate(): number {
+  const file = opt("--gate");
+  const dir = opt("--dir");
+  if (file === undefined || dir === undefined) throw new Error("A time gate needs --gate <file> and --dir <paired out dir>.");
+  const gate = parseTimeGate(readFileSync(file, "utf8"));
+  const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8")) as { corpus: string; only?: string };
+  const result = checkTimeGate(gate, JSON.parse(readFileSync(join(dir, "paired-time.json"), "utf8")) as PairedReport, run.corpus, run.only);
+  writeFileSync(join(dir, "gate.json"), `${JSON.stringify(result, null, 2)}\n`);
+  writeFileSync(join(dir, "gate.md"), gateMarkdown(result));
+  process.stdout.write(gateMarkdown(result));
+  return result.pass ? 0 : 1;
+}
+
 function main(): number | Promise<number> {
   switch (command) {
     case "paired":
       return paired();
     case "paired-child":
       return pairedChild();
+    case "paired-gate":
+      return pairedGate();
     case "list":
       process.stdout.write(`${JSON.stringify(strategyIds(opt("--strategies")))}\n`);
       return 0;
