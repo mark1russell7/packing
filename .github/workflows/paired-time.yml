@@ -52,7 +52,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}-${{ inputs.gate }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}-${{ inputs.gate }}-${{ inputs.only }}
   cancel-in-progress: false
 
 jobs:

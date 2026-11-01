@@ -86,9 +86,10 @@ export function parseTimeGate(text: string): TimeGate {
   return gate;
 }
 
-/** This function applies a time gate to a paired report and the corpus of its run. A refused report does not pass. */
-export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: string): GateResult {
+/** This function applies a time gate to a paired report, the corpus of its run and its filter `--only`. A refused report does not pass. */
+export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: string, only?: string): GateResult {
   const refused: string[] = [];
+  if (only !== undefined) refused.push(`the run uses only the inputs with ${only} in their id`);
   if (corpus !== gate.corpus) refused.push(`the corpus is ${corpus}, not ${gate.corpus}`);
   if (report.mode !== gate.mode) refused.push(`the mode is ${report.mode}, not ${gate.mode}`);
   if (report.base !== gate.base) refused.push(`the base is ${report.base}, not ${gate.base}`);

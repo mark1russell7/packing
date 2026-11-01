@@ -907,7 +907,7 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in 
 - A limit is the worst value of 5 CI jobs of the same paired test, times 1.1 (STRATEGY.md 1e10f489). The record keeps the 5 values, the jobs, the CPUs and the A/A spread.
 - A measure with a spread across the 5 runs larger than the margin does not gate. The record reports it with the reason.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
-- The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
+- The gate refuses a report of another corpus, mode or base. It also refuses a run with `only`, a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
 
 The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
 

@@ -151,7 +151,7 @@ async function paired(): Promise<number> {
   const options = { arms, inputs, repeats, warmup, aa: !rest.includes("--no-aa") };
   const report: PairedReport = mode === "process" ? measureIsolated({ ...options, mode }) : await measureIsolated({ ...options, mode });
   const sha = commit();
-  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, arms: ids, inputs: inputs.length, skipped: all.length - inputs.length };
+  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, arms: ids, ...(only !== undefined ? { only } : {}), inputs: inputs.length, skipped: all.length - inputs.length };
   writeFileSync(join(out, "run.json"), `${JSON.stringify(run, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.json"), `${JSON.stringify(report, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.md"), pairedMarkdown(report, `A paired time test of ${ids.join(", ")} on ${name}`));
@@ -182,8 +182,8 @@ function pairedGate(): number {
   const dir = opt("--dir");
   if (file === undefined || dir === undefined) throw new Error("A time gate needs --gate <file> and --dir <paired out dir>.");
   const gate = parseTimeGate(readFileSync(file, "utf8"));
-  const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8")) as { corpus: string };
-  const result = checkTimeGate(gate, JSON.parse(readFileSync(join(dir, "paired-time.json"), "utf8")) as PairedReport, run.corpus);
+  const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8")) as { corpus: string; only?: string };
+  const result = checkTimeGate(gate, JSON.parse(readFileSync(join(dir, "paired-time.json"), "utf8")) as PairedReport, run.corpus, run.only);
   writeFileSync(join(dir, "gate.json"), `${JSON.stringify(result, null, 2)}\n`);
   writeFileSync(join(dir, "gate.md"), gateMarkdown(result));
   process.stdout.write(gateMarkdown(result));

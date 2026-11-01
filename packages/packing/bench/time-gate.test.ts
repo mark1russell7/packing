@@ -56,6 +56,7 @@ describe("checkTimeGate", () => {
     expect(checkTimeGate(GATE, report([1]), "set-v2").refused).toEqual(["the corpus is set-v2, not set-v1"]);
     expect(checkTimeGate(GATE, report([1], { mode: "fresh" }), "set-v1").refused).toEqual(["the mode is fresh, not process"]);
     expect(checkTimeGate(GATE, report([1], { noiseFloor: null }), "set-v1").refused).toEqual(["the report has no A/A arm"]);
+    expect(checkTimeGate(GATE, report([1]), "set-v1", ".fixed.").refused).toEqual(["the run uses only the inputs with .fixed. in their id"]);
     const wide = checkTimeGate(GATE, report([1], { noiseFloor: { median: 1.06, p10: 1, p90: 1.1 } }), "set-v1");
     expect(wide.pass).toBe(false);
     expect(wide.refused).toEqual(["the A/A median 1.06 is outside 1 ± 0.05"]);
