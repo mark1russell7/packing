@@ -1013,6 +1013,16 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/1`, roadmap
 
 The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 
+### The speed claims
+
+The workflow `claims-time.yml` measures the speed claims of k124 (`relax`), k125 (`force`) and k80 (`overlap-min`) again as paired time tests.
+
+- One dispatch starts a matrix of 30 jobs: 3 claims, 2 corpora and 5 jobs for each pair. Each job uses mode `fresh` with the A/A arm.
+- The first corpus is the corpus of the old bench record: `pack-screen-v1` for k124 and k125, `pack-classes-v1` for k80.
+- The second corpus is `pack-select-v2`. For k80 it is `pack-strip-v1`, because `overlap-min` packs only free-height strips and `pack-select-v2` has none.
+- The ratio of a claim is the median over the inputs of the time of the arm over the time of its member. The value of a claim is the median of the 5 jobs.
+- A job counts only when its A/A band p10 to p90 contains 1.
+
 ## The cells of a candidate
 
 `packages/packing/bench/cells.ts` finds the cells where a candidate fills more than the default (roadmap item k66). It reads the records of one run. It does not start a packer.
