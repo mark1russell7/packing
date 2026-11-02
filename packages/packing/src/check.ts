@@ -1,5 +1,6 @@
 import { boundsOf, rectInRegion, regionHitsRect, translate, type ContainerTest, type PackHard, type Rect, type Region } from "@mark1russell7/layout-contract";
 import { DEFAULT_TOLERANCE, marginOf, RECORD_EPS, turnItem, type Item, type PackInput, type PackOutput, type Placement, type Tolerance } from "./contract.ts";
+import { predicates } from "./probe.ts";
 
 export type { ContainerTest, PackHard } from "@mark1russell7/layout-contract";
 
@@ -109,11 +110,17 @@ export function checkHard(
     return translate(o.region, at.x - b.x, at.y - b.y);
   });
 
+  // A13: the probe of the bench command `predicates` sees each pair and each box. Without a probe, these lines make no object
+  const probe = predicates.probe;
   let overlaps = 0;
   for (const [i, a] of boxes.entries()) {
     for (let j = i + 1; j < boxes.length; j++) {
       const g = pairs?.get(pairKey(ids[i]!, ids[j]!));
-      if (g === undefined ? overlap(a, boxes[j]!, tol) : overlap(grown(raws[i]!, g), raws[j]!, tol)) overlaps += 1;
+      const p = g === undefined ? a : grown(raws[i]!, g);
+      const q = g === undefined ? boxes[j]! : raws[j]!;
+      const hit = overlap(p, q, tol);
+      if (probe !== undefined) probe("overlap", g === undefined ? { a: p, b: q, tolerance: tol } : { a: p, b: q, tolerance: tol, gap: g }, hit);
+      if (hit) overlaps += 1;
     }
     if (obstacles.length === 0) continue;
     const rect = inner(a, tol);
@@ -134,6 +141,7 @@ export function checkHard(
   for (const box of boxes) {
     const outX = fixedW && (box.l < x + inset - tol || box.r > x + w - inset + tol);
     const outY = fixedH && (box.t < y + inset - tol || box.b > y + h - inset + tol);
+    if (probe !== undefined) probe("container", { box, x, y, w, h, inset, tolerance: tol, fixedW, fixedH }, outX || outY);
     if (outX || outY) outside += 1;
     else if (exact !== undefined && !rectInRegion(exact, inner({ l: box.l - inset, t: box.t - inset, r: box.r + inset, b: box.b + inset }, tol))) outside += 1;
   }

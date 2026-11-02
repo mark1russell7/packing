@@ -2,6 +2,7 @@
 
 import { canonicalInput, type LayoutContainer, type LayoutEdge, type LayoutGenerator, type LayoutInput } from "@mark1russell7/layout-contract";
 import type { PackInput, PackOutput } from "./contract.ts";
+import { predicates } from "./probe.ts";
 import { sha256Hex, utf8 } from "./sha256.ts";
 import type { Cell } from "./strategy.ts";
 
@@ -136,7 +137,9 @@ export function samePlacements(a: Pick<PackOutput, "placements">, b: Pick<PackOu
   if (a.placements.length !== b.placements.length) return false;
   const x = a.placements.toSorted(byId);
   const y = b.placements.toSorted(byId);
-  return x.every((p, i) => canonicalJson(p) === canonicalJson(y[i]));
+  const same = x.every((p, i) => canonicalJson(p) === canonicalJson(y[i]));
+  predicates.probe?.("samePlacements", { a: x, b: y }, same);
+  return same;
 }
 
 /** This function gives the scale of a count: the nearest of 1, 10, 100, 1000 and 10000 on a log scale. The count 0 gives `1`. */
