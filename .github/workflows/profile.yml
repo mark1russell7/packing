@@ -18,6 +18,10 @@ on:
         description: The run id of a promotion.yml run. Its artifact promotion-time-<strategy> gives the time records.
         required: true
         default: "40683546461"
+      inputs:
+        description: Input ids with commas. With this list, the job profiles these inputs and does not use times_run.
+        required: false
+        default: ""
       slowest:
         description: The count of the inputs with the highest time ratio
         required: false
@@ -48,6 +52,7 @@ jobs:
       TIMES_RUN: ${{ inputs.times_run || '40683546461' }}
       SLOWEST: ${{ inputs.slowest || '20' }}
       RANK: ${{ inputs.rank || 'ratio' }}
+      INPUTS: ${{ inputs.inputs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -67,8 +72,10 @@ jobs:
           [[ "$TIMES_RUN" =~ ^[1-9][0-9]*$ ]] || { echo "times_run must be a run id, not '$TIMES_RUN'"; exit 1; }
           [[ "$SLOWEST" =~ ^[1-9][0-9]*$ ]] || { echo "slowest must be a number of 1 or more, not '$SLOWEST'"; exit 1; }
           [[ "$RANK" == ratio || "$RANK" == ms ]] || { echo "rank must be ratio or ms, not '$RANK'"; exit 1; }
+          [[ -z "$INPUTS" || "$INPUTS" =~ ^[A-Za-z0-9._/,-]+$ ]] || { echo "inputs must be input ids with commas, not '$INPUTS'"; exit 1; }
           node packages/packing/bench/main.ts list --strategies "$STRATEGY,rows"
       - name: Download the time records
+        if: ${{ inputs.inputs == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -76,19 +83,22 @@ jobs:
       - name: Profile the slowest inputs
         working-directory: packages/packing
         run: |
+          if [ -n "$INPUTS" ]; then pick=(--inputs "$INPUTS"); else pick=(--slowest "$SLOWEST" --rank "$RANK" --times "$RUNNER_TEMP/time"); fi
           node bench/profile.ts --corpus "$CORPUS" --strategy "$STRATEGY" --default rows \
-            --slowest "$SLOWEST" --rank "$RANK" --times "$RUNNER_TEMP/time" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile"
+            "${pick[@]}" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile"
       # V8 gives the samples of an inlined function to its caller. Without inlining, each function keeps its own samples.
       - name: Profile the slowest inputs without inlining
         working-directory: packages/packing
         run: |
+          if [ -n "$INPUTS" ]; then pick=(--inputs "$INPUTS"); else pick=(--slowest "$SLOWEST" --rank "$RANK" --times "$RUNNER_TEMP/time"); fi
           node --no-turbo-inlining --no-maglev-inlining bench/profile.ts --corpus "$CORPUS" --strategy "$STRATEGY" --default rows \
-            --slowest "$SLOWEST" --rank "$RANK" --times "$RUNNER_TEMP/time" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile/no-inlining"
+            "${pick[@]}" --repeats 3 --warmup 1 --out "$RUNNER_TEMP/profile/no-inlining"
       - name: Write the tables to the job summary
         if: ${{ !cancelled() }}
         run: |
           cpu="$(node -p 'const c = require("node:os").cpus(); `${c.length} x ${c[0].model.trim()}`')"
-          echo "The time records come from the artifact \`promotion-time-$STRATEGY\` of run $TIMES_RUN. The runner has $cpu." >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$INPUTS" ]; then from="The inputs come from the input \`inputs\`."; else from="The time records come from the artifact \`promotion-time-$STRATEGY\` of run $TIMES_RUN."; fi
+          echo "$from The runner has $cpu." >> "$GITHUB_STEP_SUMMARY"
           for md in "$RUNNER_TEMP/profile/profile.md" "$RUNNER_TEMP/profile/no-inlining/profile.md"; do
             if [ -f "$md" ]; then
               echo >> "$GITHUB_STEP_SUMMARY"
