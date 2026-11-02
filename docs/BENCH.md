@@ -923,6 +923,15 @@ The warm rule is relative, because a fixed limit failed. The prediction of the f
 
 An arm `wrap-<entry>` is the portfolio wrapper of `packPortfolio` around one entry, with a key that has no hard breaks, no levels and no hash. The ratio of `wrap-rows` over `rows` is the cost of the wrapper alone (k130).
 
+### Absolute times
+
+An absolute time of this repository is an in-order time, if no paired test is named with it. The records of `bench.yml`, the roadmap and the site have such times.
+
+- One CI process packs the inputs in order, after a small warm-up. The time is the median of the timed runs of each input.
+- An in-order time depends on the CPU and on the state of the process. Thus it is not a result for a comparison.
+- A warm child of mode `fresh` (5000 untimed passes) gave 0.94 to 0.97 of the in-order time for `rows` and `maxrects-bl`, and 0.91 for the portfolio (EPYC 7763, run 41470082104).
+- At 1000 untimed passes (run 41455264185), the same ratio was 1.11 to 1.24. Thus the warm-up changes the level, and only a paired ratio compares two strategies.
+
 ### A time gate
 
 A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
@@ -941,7 +950,7 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in 
 - The field `steady` of the gate gives the arms of the warm rule. A check or a report with `steady: true` uses only the inputs with each of these arms warm. The line `steady.inputs` gives their count.
 - The measure `sum-median` is the median of the time of the arm over the sum of the times of the `members` of the gate.
 
-The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
+The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The in-order time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
 
 The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` against the sum of its members `rows` and `maxrects-bl`. It uses mode `fresh` on the `.fixed.` inputs of `pack-classes-v1`, with 5000 untimed passes and 200 timed passes.
 
@@ -1236,7 +1245,7 @@ The pair 16 of the k118 sample (run 40815224148) was not deterministic:
 
 - Its config is `restarts` with `limitTime` `true`, `budgetMs` 2.61 and a work limit of 64000. The input is `ladder@1` with the seed 1019521697.
 - With `limitTime` `false`, 10 packs give one hash. The test `bench/determinism.test.ts` pins it.
-- With a clock limit of 1 to 6 ms, a local computer gave from 1 to 16 restarts, and two hashes in 40 packs. The CI computer is slower.
+- With a clock limit of 1 to 6 ms, a local computer gave from 1 to 16 restarts, and two hashes in 40 packs. The CI computer is slower. These local counts show the cause only. They are not a time result.
 - The portfolio of the k116 run with `budgetMs` 2.04 has the same cause.
 
 The test `bench/shuffle.test.ts` packs each bench entry and 24 sampled configs on 3 inputs, 5 times each, in a shuffled order. Each pair gives one hash.
