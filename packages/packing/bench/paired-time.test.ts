@@ -62,7 +62,7 @@ describe("measureIsolated in mode process", () => {
   });
 
   it("adds the A/A arm, and gives the arms in turn with the warm-up runs not timed", () => {
-    expect(report.schema).toBe("paired-time/1");
+    expect(report.schema).toBe("paired-time/2");
     expect(report.arms).toEqual(["base", "b", aaId("base")]);
     // Round 0 on i1: each arm warms up once and then packs once
     expect(calls.slice(0, 6)).toEqual(["base", "base", "b", "b", "base", "base"]);
@@ -135,6 +135,43 @@ describe("measureIsolated in mode fresh", () => {
     expect(report.mode).toBe("fresh");
     expect(report.ratios["b"]!.groups).toEqual({ all: 2 });
     expect(report.context).toBe("ci --flag");
+    expect(report.schema).toBe("paired-time/2");
+    expect([report.passes, report.warm, x.warm]).toEqual([1, undefined, undefined]);
+    expect(report.wallMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("gives the passes to each child, and the warm check of each arm and input (k130)", async () => {
+    const started: string[] = [];
+    const report = await measureIsolated({
+      mode: "fresh",
+      repeats: 3,
+      warmup: 50,
+      passes: 4,
+      env: ENV,
+      inputs: [{ id: "x" }, { id: "y" }],
+      arms: [
+        { id: "base", command: ["child", "--arm", "base"] },
+        { id: "b", command: ["child", "--arm", "b"] },
+      ],
+      startChild: async (command, input, warmup, passes) => {
+        started.push(`${command[2]} ${input} ${warmup} ${passes}`);
+        // The arm b on y does not reach a warm state: its last passes are faster than its first passes
+        return { ms: 1, warm: command[2] === "b" && input === "y" ? 0.5 : 1 };
+      },
+    });
+    expect(started.every((x) => x.endsWith(" 50 4"))).toBe(true);
+    expect(report.passes).toBe(4);
+    const y = report.inputs.find((i) => i.id === "y")!;
+    expect(y.warm!["b"]).toBe(0.5);
+    expect(Object.keys(y.warm!)).toEqual(["base", "b", "base~aa"]);
+    expect(report.warm!["b"]!.inputs).toBe(2);
+    // The A/A band is [1, 1], so the warm value 0.5 of b on y is outside it, and the warm values of 1 are not
+    expect(report.warm!["b"]!.outside).toBe(0.5);
+    expect(report.warm!["base"]!.outside).toBe(0);
+    const md = pairedMarkdown(report);
+    expect(md).toContain("Each child times 4 passes after its warm-up.");
+    expect(md).toContain("| Arm | Inputs | Median | p10 | p90 | Outside |");
+    expect(md).toContain("| `b` | 2 |");
   });
 });
 
@@ -142,6 +179,8 @@ describe("the child protocol", () => {
   it("reads the last line of the stdout of a child", () => {
     expect(childResult('log\n{"ms": 1.5}\n')).toEqual({ ms: 1.5 });
     expect(childResult('{"ms": 2, "peakRss": 10}')).toEqual({ ms: 2, peakRss: 10 });
+    expect(childResult('{"ms": 2, "warm": 0.98}')).toEqual({ ms: 2, warm: 0.98 });
+    expect(childResult('{"ms": 2, "warm": null}')).toEqual({ ms: 2 });
     expect(() => childResult('{"peakRss": 10}')).toThrow("no time");
   });
 
@@ -152,6 +191,19 @@ describe("the child protocol", () => {
     expect(runs).toBe(3);
     expect(result.ms).toBe(3);
     expect(result.peakRss).toBeGreaterThan(0);
+    expect(result.warm).toBeUndefined();
+  });
+
+  it("times each pass, and gives the median and the warm check (k130)", () => {
+    // The passes take 8, 6, 4, 4 and 4 ms after the warm-up: the time goes down in the first half
+    const steps = [1, 8, 6, 4, 4, 4];
+    let at = 0;
+    let now = 0;
+    const result = timeChild(() => (now += steps[at++]!), 1, () => now, 5);
+    expect(at).toBe(6);
+    expect(result.ms).toBe(4);
+    // The first 2 passes have the median 7, the last 2 have 4
+    expect(result.warm).toBeCloseTo(4 / 7, 12);
   });
 });
 
@@ -165,6 +217,8 @@ describe("the options", () => {
     expect(() => measureIsolated({ mode: "process", inputs: [{ id: "i" }, { id: "i" }], repeats: 1, arms })).toThrow("inputs are not unique");
     expect(() => measureIsolated({ mode: "process", inputs: [], repeats: 1, arms })).toThrow("1 input or more");
     expect(() => measureIsolated({ mode: "other" as "process", inputs: [{ id: "i" }], repeats: 1, arms })).toThrow("not \"other\"");
+    expect(() => measureIsolated({ mode: "process", inputs: [{ id: "i" }], repeats: 1, arms, passes: 2 })).toThrow("option passes is for mode fresh");
+    expect(() => measureIsolated({ mode: "process", inputs: [{ id: "i" }], repeats: 1, arms, passes: 0 })).toThrow("passes are a whole number");
   });
 
   it("refuses a peakRss that an arm gives in mode process", () => {

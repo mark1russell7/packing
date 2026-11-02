@@ -884,15 +884,16 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `mode` | `fresh` | `fresh`: a new process for each arm, each input and each round. `process`: one process. |
 | `repeats` | `5` | The timed rounds of each arm on each input. |
 | `warmup` | `2` | The untimed passes of each arm before each timed pass. |
+| `passes` | `1` | Mode `fresh` only: the timed passes of each child. The time of the child is their median. |
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
 | `only` | empty | The test uses only the inputs with this text in their id, for example `.fixed.`. |
 | `gate` | empty | The name of a time gate in `bench/gates/`, for example `k66-time`. The job fails when the gate fails. |
 | `budget` | empty | The id of a candidate arm for the time budget of a promotion (k128). It needs `runs` 5 and mode `process`. |
 | `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
-The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/1`. The two modes are:
+The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/2`. The two modes are:
 
-- Mode `fresh` starts a child `paired-child` for each arm, each input and each round. The order of the arms rotates each round. The child does the warm-up runs, times one run, and writes its time and its memory peak.
+- Mode `fresh` starts a child `paired-child` for each arm, each input and each round. The order of the arms rotates each round. The child does the warm-up runs, times `passes` runs, and writes their median time and its memory peak.
 - Mode `process` packs each input with the arms in turn in one process. Odd rounds reverse the order (ABBA).
 
 The test uses only the inputs that each arm supports. The ratio of an input is the median time of the arm over the median time of the base. A group is a seed of the corpus.
@@ -900,6 +901,16 @@ The test uses only the inputs that each arm supports. The ratio of an input is t
 The artifact `paired-time-<corpus>-<mode>-run<n>` of each run has `run.json`, `paired-time.json` and `paired-time.md`. For each arm, the report gives the median, p10 and p90 of the ratios. It also gives the median of each group, and the mean and SD of the groups. The noise floor is the median, p10 and p90 of the A/A ratios. The value `moved` of an arm is the share of its inputs with a ratio outside [p10, p90] of the A/A arm.
 
 A claim gives the median, p10, p90 and `moved` of each arm, and the noise floor. A difference inside the noise floor is not a result.
+
+Schema `paired-time/2` is `paired-time/1` with three more fields (k130). A reader of version 2 reads a file of version 1.
+
+- `wallMs` is the time of all the rounds of the job.
+- `passes` is the count of timed passes of each child of mode `fresh`.
+- With 2 passes or more, each child also gives `warm`. It is the median of the last half of its passes over the median of the first half.
+- The report gives `warm` for each arm and input. For each arm, it also gives the median, p10, p90 and `outside`. The value `outside` is the share of inputs with a warm value outside [p10, p90] of the A/A arm.
+- A warm value outside the A/A band tells that the child did not reach a warm state. That input is not a result.
+
+An arm `wrap-<entry>` is the portfolio wrapper of `packPortfolio` around one entry, with a key that has no hard breaks, no levels and no hash. The ratio of `wrap-rows` over `rows` is the cost of the wrapper alone (k130).
 
 ### A time gate
 
