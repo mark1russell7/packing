@@ -12,6 +12,8 @@ import {
   median,
   mergeRuns,
   outputHash,
+  pairedInputs,
+  pairedPack,
   parseCorpus,
   parsePredictions,
   recordLines,
@@ -24,6 +26,7 @@ import {
   type BenchRecord,
   type MeasuredRecord,
   type SkippedRecord,
+  WRAP_PREFIX,
 } from "./run.ts";
 
 // The runner of the benchmark on the tiny corpus smoke-v1, with one timed run. The test reads no time: CI gives the times.
@@ -368,5 +371,27 @@ describe("the interleaved timing mode", () => {
     // Without the mode, the runner times each pair to the end, in the order of the strategies and then of the inputs
     const sequential = plain.records.filter(isMeasured).flatMap((r) => Array.from({ length: repeats }, (_, repeat) => `${r.strategy} ${r.input} ${repeat}`));
     expect(runOrder(plain.records)).toEqual(sequential);
+  });
+});
+
+describe("the wrap arms of the paired time test (k130)", () => {
+  it("gives the placements of the entry, with only the stage of the portfolio added", () => {
+    let compared = 0;
+    for (const at of pairedInputs(smoke)) {
+      for (const id of ["rows", "maxrects-bl"]) {
+        const plain = pairedPack(id, at);
+        const wrapped = pairedPack(`${WRAP_PREFIX}${id}`, at);
+        expect(wrapped === undefined).toBe(plain === undefined);
+        if (plain === undefined || wrapped === undefined) continue;
+        const [a, b] = [plain(), wrapped()];
+        expect(outputHash(b)).toBe(outputHash(a));
+        expect(b.overflow).toEqual(a.overflow);
+        expect((b.trace ?? []).map((t) => t.id)).toEqual([...(a.trace ?? []).map((t) => t.id), "portfolio"]);
+        expect(b.trace!.at(-1)!.measures).toEqual({ "move.pick": 0 });
+        compared++;
+      }
+    }
+    expect(compared).toBeGreaterThan(0);
+    expect(() => pairedPack(`${WRAP_PREFIX}nope`, pairedInputs(smoke)[0]!)).toThrow();
   });
 });

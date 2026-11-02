@@ -82,6 +82,18 @@ export function packPortfolio(
   members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]),
   options: PackPortfolioOptions = {},
 ): Portfolio<PackInput, PackOutput> {
+  return portfolioWith(members, measureKey(options.key === undefined ? PORTFOLIO_LEVELS.slice(1) : options.key.map(measureLevel)), options);
+}
+
+/**
+ * This function makes the portfolio of `packPortfolio` with a given key. It ignores the option `key`.
+ * The bench uses it with an empty key, to time the wrapper alone (k130). The package root does not export it.
+ */
+export function portfolioWith(
+  members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]),
+  key: PortfolioKey<PackInput, PackOutput>,
+  options: PackPortfolioOptions = {},
+): Portfolio<PackInput, PackOutput> {
   const seed = options.seed ?? 0;
   const toMembers = (given: readonly (string | PortfolioEntry)[]): Member<PackInput, PackOutput>[] =>
     given.map((m) => {
@@ -90,7 +102,6 @@ export function packPortfolio(
       return { id: e.id, run: (input: PackInput): PackOutput => packWith(e.strategy, input, e.options, seed) };
     });
   const list = typeof members === "function" ? (input: PackInput): Member<PackInput, PackOutput>[] => toMembers(members(input)) : toMembers(members);
-  const key = measureKey(options.key === undefined ? PORTFOLIO_LEVELS.slice(1) : options.key.map(measureLevel));
   const limits = {
     ...(options.budgetMs !== undefined ? { budgetMs: options.budgetMs } : {}),
     ...(options.maxMembers !== undefined ? { maxMembers: options.maxMembers } : {}),

@@ -32,7 +32,8 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { declaredClaimOf, type DeclaredClaim, type ShapeKind } from "@mark1russell7/layout-contract";
+import { declaredClaimOf, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
+import { portfolioWith } from "../src/portfolio.ts";
 import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
 import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
 import { gapToBound, GAP_TO_BOUND } from "./gap-to-bound.ts";
@@ -397,12 +398,25 @@ export function pairedInputs(c: BenchCorpus, only?: { spec: number; seed: number
   });
 }
 
-/** This function gives the pack of an entry on an input, as the runner packs it. An entry that does not support the cell of the input gives `undefined`. */
+/** The prefix of an arm of the paired time test that is the portfolio wrapper around one entry, with an empty key (k130). */
+export const WRAP_PREFIX = "wrap-";
+
+/** The key of a wrap arm: no hard breaks, no levels and no hash. Thus the arm times only the wrapper and its member. */
+const EMPTY_KEY: PortfolioKey<PackInput, PackOutput> = { hard: () => 0, levels: [], hash: () => "" };
+
+/**
+ * This function gives the pack of an entry on an input, as the runner packs it. An entry that does not support the cell of the input gives `undefined`.
+ *
+ * - The id `wrap-<entry>` gives the wrapper of `packPortfolio` around that one entry, with an empty key (k130).
+ * - Each pack of a wrap arm makes its portfolio, as the strategy `portfolio` does. It does not go through `packWith`.
+ */
 export function pairedPack(id: string, at: PairedCorpusInput, over?: EntryOptions): (() => PackOutput) | undefined {
-  const e = entryWith(id, over);
+  const wrapped = id.startsWith(WRAP_PREFIX) ? id.slice(WRAP_PREFIX.length) : undefined;
+  const e = entryWith(wrapped ?? id, over);
   const s = strategy(e.strategy);
   if (unsupportedOf(s.supports, at.cell) !== undefined) return undefined;
   const given = givenOf(e, s.defaults);
+  if (wrapped !== undefined) return () => portfolioWith([{ id: e.id, strategy: e.strategy, options: given }], EMPTY_KEY, { seed: at.seed }).run(at.input);
   return () => packWith(e.strategy, at.input, given, at.seed);
 }
 

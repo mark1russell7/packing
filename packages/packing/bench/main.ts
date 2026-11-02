@@ -2,8 +2,8 @@
 //
 //   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--interleave] [--anchor] [--out dir] [--commit sha]
 //   node bench/main.ts list [--strategies a,b|all]
-//   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--no-aa] [--only text] [--out dir]
-//   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n>
+//   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--passes 1] [--no-aa] [--only text] [--out dir]
+//   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n> [--passes <n>]
 //   node bench/main.ts paired-gate --gate <file> --dir <paired out dir>
 //   node bench/main.ts paired-budget --dir <folder of paired runs> --arm <id>
 //   node bench/main.ts merge --out <dir> <job dir>...
@@ -127,6 +127,7 @@ function corpusOpt(): { name: string; corpus: ReturnType<typeof parseCorpus> } {
  * - The first arm is the base. The A/A arm is on, except with `--no-aa`.
  * - The test uses only the inputs that each arm supports. With `--only <text>`, it uses only the inputs with that text in their id.
  * - Mode `fresh` (the default) starts a child `paired-child` for each arm, each input and each round.
+ * - With `--passes <n>`, each child times n passes and gives their median and the warm check (k130).
  */
 async function paired(): Promise<number> {
   const { name, corpus } = corpusOpt();
@@ -150,10 +151,11 @@ async function paired(): Promise<number> {
   const arms: Arm<(typeof inputs)[number]["value"]>[] = ids.map((id) => ({ id, run: (at) => packs.get(id)!.get(at.id)!(), command: [...child, "--arm", id] }));
   const repeats = count("--repeats", DEFAULT_REPEATS);
   const warmup = count("--warmup", 1);
-  const options = { arms, inputs, repeats, warmup, aa: !rest.includes("--no-aa") };
+  const passes = count("--passes", 1);
+  const options = { arms, inputs, repeats, warmup, ...(mode === "fresh" ? { passes } : {}), aa: !rest.includes("--no-aa") };
   const report: PairedReport = mode === "process" ? measureIsolated({ ...options, mode }) : await measureIsolated({ ...options, mode });
   const sha = commit();
-  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, arms: ids, ...(only !== undefined ? { only } : {}), inputs: inputs.length, skipped: all.length - inputs.length };
+  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, ...(mode === "fresh" ? { passes } : {}), arms: ids, ...(only !== undefined ? { only } : {}), inputs: inputs.length, skipped: all.length - inputs.length };
   writeFileSync(join(out, "run.json"), `${JSON.stringify(run, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.json"), `${JSON.stringify(report, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.md"), pairedMarkdown(report, `A paired time test of ${ids.join(", ")} on ${name}`));
@@ -161,7 +163,7 @@ async function paired(): Promise<number> {
   return 0;
 }
 
-/** This function packs one arm on one input in a fresh process, by the child protocol of `paired-time.ts`. It writes `{"ms": n, "peakRss": bytes}`. */
+/** This function packs one arm on one input in a fresh process, by the child protocol of `paired-time.ts`. It writes `{"ms": n, "peakRss": bytes, "warm"?: n}`. */
 function pairedChild(): number {
   const { corpus } = corpusOpt();
   const id = opt("--arm");
@@ -174,7 +176,7 @@ function pairedChild(): number {
   if (at === undefined) throw new Error(`The corpus has no input "${input}".`);
   const pack = pairedPack(id, at);
   if (pack === undefined) throw new Error(`The arm ${id} does not support the input ${input}.`);
-  process.stdout.write(`${JSON.stringify(timeChild(pack, count("--warmup", 1)))}\n`);
+  process.stdout.write(`${JSON.stringify(timeChild(pack, count("--warmup", 1), undefined, count("--passes", 1)))}\n`);
   return 0;
 }
 

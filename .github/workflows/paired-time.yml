@@ -1,5 +1,5 @@
 # The paired time test of strategies (docs/BENCH.md, "A paired time test of strategies", k127). One job packs one corpus
-# with each strategy of the arms on the same runner, to the shared interface paired-time/1. An A/A arm gives the noise floor.
+# with each strategy of the arms on the same runner, to the shared interface paired-time/2. An A/A arm gives the noise floor.
 # Thus a ratio of times compares strategies, not runners. Only a person starts a run, after a commit adds its prediction.
 name: Paired time
 
@@ -31,6 +31,10 @@ on:
         description: The untimed passes of each arm before each timed pass.
         type: string
         default: "2"
+      passes:
+        description: "Mode fresh: the timed passes of each child. The time is their median. With 2 or more, the report has the warm check (k130)."
+        type: string
+        default: "1"
       aa:
         description: Add the A/A arm (the base against itself) for the noise floor.
         type: boolean
@@ -56,7 +60,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}-${{ inputs.gate }}-${{ inputs.only }}-${{ inputs.budget }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}-${{ inputs.gate }}-${{ inputs.only }}-${{ inputs.budget }}-${{ inputs.warmup }}-${{ inputs.passes }}
   cancel-in-progress: false
 
 jobs:
@@ -91,6 +95,7 @@ jobs:
       MODE: ${{ inputs.mode }}
       REPEATS: ${{ inputs.repeats }}
       WARMUP: ${{ inputs.warmup }}
+      PASSES: ${{ inputs.passes }}
       AA: ${{ inputs.aa }}
       ONLY: ${{ inputs.only }}
       GATE: ${{ inputs.gate }}
@@ -111,12 +116,15 @@ jobs:
           [[ "$PREDICTION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "prediction must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$PREDICTION'"; exit 1; }
           [[ "$REPEATS" =~ ^[1-9][0-9]*$ ]] || { echo "repeats must be a number of 1 or more, not '$REPEATS'"; exit 1; }
           [[ "$WARMUP" =~ ^[0-9]+$ ]] || { echo "warmup must be a number of 0 or more, not '$WARMUP'"; exit 1; }
+          [[ "$PASSES" =~ ^[1-9][0-9]*$ ]] || { echo "passes must be a number of 1 or more, not '$PASSES'"; exit 1; }
+          [ "$MODE" = fresh ] || [ "$PASSES" = 1 ] || { echo "passes is for mode fresh"; exit 1; }
           [[ "$ONLY" =~ ^[A-Za-z0-9._-]*$ ]] || { echo "only must be A-Z, a-z, 0-9, dot, underscore and hyphen, not '$ONLY'"; exit 1; }
           [[ "$GATE" =~ ^[a-z0-9-]*$ ]] || { echo "gate must be a-z, 0-9 and hyphen, not '$GATE'"; exit 1; }
           out="$RUNNER_TEMP/paired-time"
           aa=()
           [ "$AA" = "true" ] || aa=(--no-aa)
           [ -z "$ONLY" ] || aa+=(--only "$ONLY")
+          [ "$MODE" != fresh ] || aa+=(--passes "$PASSES")
           status=0
           node packages/packing/bench/main.ts paired --corpus "$CORPUS" --arms "$ARMS" --prediction "$PREDICTION" \
             --mode "$MODE" --repeats "$REPEATS" --warmup "$WARMUP" "${aa[@]}" --commit "$GITHUB_SHA" --out "$out" || status=$?

@@ -1,4 +1,4 @@
-// The paired time test of two or more arms, to the shared interface paired-time/1 (k127, `docs/BENCH.md`, "A paired time test of strategies").
+// The paired time test of two or more arms, to the shared interface paired-time/2 (k127, k130, `docs/BENCH.md`, "A paired time test of strategies").
 //
 // This file imports no type of the packer. highways keeps a copy to the same interface, and the two copies go into the
 // gates package of rigor as one file. The rule is STRATEGY.md 49537337 and 211125cd of the fleet: a comparison runs its
@@ -6,6 +6,8 @@
 //
 // - Mode `process`: one process. In each round, the arms run in turn on each input. Odd rounds reverse the order (ABBA).
 // - Mode `fresh`: a fresh process for each arm, each input and each round. Each input takes the arms in turn. The order rotates each round.
+//
+// Schema `paired-time/2` is `paired-time/1` with the fields `passes`, `warm` and `wallMs`. A reader of version 2 reads version 1.
 
 import { spawn } from "node:child_process";
 import { arch, cpus, platform } from "node:os";
@@ -31,6 +33,8 @@ export interface Input<I> {
 export interface ChildResult {
   ms: number;
   peakRss?: number;
+  /** The median of the last half of the timed passes over the median of the first half. Only a child with 2 passes or more gives it. */
+  warm?: number;
 }
 
 /** The computer of a paired time run. The `cpu` is the model of the first CPU. */
@@ -52,13 +56,15 @@ export interface PairedOptions<I> {
   repeats: number;
   /** The untimed passes of each arm before its timed pass. The default is 1. */
   warmup?: number;
+  /** The timed passes of each child of mode `fresh`. The time is their median. The default is 1. Mode `process` takes only 1. */
+  passes?: number;
   mode: Mode;
   /** The value `true` adds a second copy of the base with the id `${base}~aa`. The default is `true`. */
   aa?: boolean;
   /** The clock in milliseconds for mode `process`. The default is `performance.now`. */
   clock?: () => number;
   /** The start of a child for mode `fresh`: it gives the result of the child. The default starts a process. A test gives its own. */
-  startChild?: (command: readonly string[], input: string, warmup: number) => Promise<ChildResult>;
+  startChild?: (command: readonly string[], input: string, warmup: number, passes: number) => Promise<ChildResult>;
   /** The computer. The default is the computer of this process. */
   env?: PairedEnv;
   /** The context of the run: `ci` or `local` (or `BENCH_MODE`), with the Node.js flags. The default is the context of this process. */
@@ -93,11 +99,27 @@ export interface PairedInput {
   ratio: Record<string, number>;
   /** The highest memory peak of each arm over its rounds, in bytes. Only mode `fresh` has it. */
   peakRss?: Record<string, number>;
+  /** The median `warm` of the children of each arm over its rounds. Only mode `fresh` with 2 passes or more has it. */
+  warm?: Record<string, number>;
 }
 
-/** The report of a paired time run: schema `paired-time/1`. */
+/**
+ * The warm check of one arm over the inputs (k130). A warm value near 1 tells that the time of a child did not go down in its timed passes.
+ *
+ * - `outside` is the share of the inputs whose warm value is outside [p10, p90] of the A/A ratios. Such an input is not a result.
+ * - `outside` is `null` without the A/A arm.
+ */
+export interface PairedWarm {
+  inputs: number;
+  median: number;
+  p10: number;
+  p90: number;
+  outside: number | null;
+}
+
+/** The report of a paired time run: schema `paired-time/2`. A file of version 1 has no `passes`, `warm` and `wallMs`. */
 export interface PairedReport {
-  schema: "paired-time/1";
+  schema: "paired-time/1" | "paired-time/2";
   mode: Mode;
   /** The context of the run: `ci` or `local` (or `BENCH_MODE`), with the Node.js flags */
   context?: string;
@@ -109,6 +131,12 @@ export interface PairedReport {
   ratios: Record<string, PairedRatio>;
   /** The ratios of the A/A arm. It is `null` without the A/A arm. */
   noiseFloor: { median: number; p10: number; p90: number } | null;
+  /** The timed passes of each child. Only mode `fresh` has it. */
+  passes?: number;
+  /** The warm check of each arm. Only mode `fresh` with 2 passes or more has it. */
+  warm?: Record<string, PairedWarm>;
+  /** The time of all the rounds, in milliseconds */
+  wallMs?: number;
 }
 
 /** The suffix of the id of the A/A arm. */
@@ -171,6 +199,9 @@ function armsOf<I>(o: PairedOptions<I>): Arm<I>[] {
   if (!Number.isInteger(o.repeats) || o.repeats < 1) throw new RangeError("The repeats are a whole number of 1 or more.");
   const warmup = o.warmup ?? 1;
   if (!Number.isInteger(warmup) || warmup < 0) throw new RangeError("The warm-up runs are a whole number of 0 or more.");
+  const passes = o.passes ?? 1;
+  if (!Number.isInteger(passes) || passes < 1) throw new RangeError("The passes are a whole number of 1 or more.");
+  if (o.mode === "process" && passes !== 1) throw new RangeError("Mode process takes 1 pass. The option passes is for mode fresh.");
   const base = o.arms[0];
   if (base === undefined) throw new RangeError("A paired time run needs a base arm.");
   const arms = o.aa === false ? [...o.arms] : [...o.arms, { ...base, id: aaId(base.id) }];
@@ -189,12 +220,14 @@ function armsOf<I>(o: PairedOptions<I>): Arm<I>[] {
 interface RawTimes {
   ms: Map<string, Map<string, number[]>>;
   peak: Map<string, Map<string, number>>;
+  warm: Map<string, Map<string, number[]>>;
 }
 
 /** This function makes empty raw times for the inputs and the arms. */
 function rawOf(inputs: readonly { id: string }[], arms: readonly { id: string }[]): RawTimes {
   const ms = new Map(inputs.map((i) => [i.id, new Map(arms.map((a) => [a.id, [] as number[]]))]));
-  return { ms, peak: new Map(inputs.map((i) => [i.id, new Map<string, number>()])) };
+  const warm = new Map(inputs.map((i) => [i.id, new Map(arms.map((a) => [a.id, [] as number[]]))]));
+  return { ms, peak: new Map(inputs.map((i) => [i.id, new Map<string, number>()])), warm };
 }
 
 /** This function gives the statistics of the ratios of one arm. */
@@ -228,7 +261,15 @@ function ratioOf(rows: readonly { group?: string; ratio: number }[], band: { p10
  * - The ratio of an input is the median of the arm over the median of the base. An input with a base median of 0 or no time gets no ratio.
  * - With the A/A arm, the noise floor is its ratios, and `moved` of each arm uses the band [p10, p90] of the A/A ratios.
  */
-export function pairedReport<I>(mode: Mode, env: PairedEnv, context: string | undefined, arms: readonly Arm<I>[], inputs: readonly Input<I>[], raw: RawTimes): PairedReport {
+export function pairedReport<I>(
+  mode: Mode,
+  env: PairedEnv,
+  context: string | undefined,
+  arms: readonly Arm<I>[],
+  inputs: readonly Input<I>[],
+  raw: RawTimes,
+  run: { passes?: number; wallMs?: number } = {},
+): PairedReport {
   const base = arms[0]!.id;
   const aa = arms.find((a) => a.id === aaId(base))?.id;
   const rows: PairedInput[] = inputs.map((input) => {
@@ -247,6 +288,9 @@ export function pairedReport<I>(mode: Mode, env: PairedEnv, context: string | un
     if (input.group !== undefined) row.group = input.group;
     const peak = raw.peak.get(input.id)!;
     if (mode === "fresh" && peak.size > 0) row.peakRss = Object.fromEntries(peak);
+    const warms = raw.warm.get(input.id)!;
+    const warm = Object.fromEntries(arms.flatMap((a) => ((warms.get(a.id) ?? []).length > 0 ? [[a.id, quantileOf(warms.get(a.id)!, 0.5)]] : [])));
+    if (mode === "fresh" && Object.keys(warm).length > 0) row.warm = warm;
     return row;
   });
   const rowsOf = (id: string) => rows.filter((r) => r.ratio[id] !== undefined).map((r) => ({ ...(r.group === undefined ? {} : { group: r.group }), ratio: r.ratio[id]! }));
@@ -254,23 +298,47 @@ export function pairedReport<I>(mode: Mode, env: PairedEnv, context: string | un
   const band = floor === undefined ? undefined : { p10: floor.p10, p90: floor.p90 };
   const ratios: Record<string, PairedRatio> = {};
   for (const a of arms.slice(1)) ratios[a.id] = ratioOf(rowsOf(a.id), band);
-  const report: PairedReport = { schema: "paired-time/1", mode, ...(context === undefined ? {} : { context }), env, base, arms: arms.map((a) => a.id), inputs: rows, ratios, noiseFloor: floor === undefined ? null : { median: floor.median, p10: floor.p10, p90: floor.p90 } };
+  const report: PairedReport = { schema: "paired-time/2", mode, ...(context === undefined ? {} : { context }), env, base, arms: arms.map((a) => a.id), inputs: rows, ratios, noiseFloor: floor === undefined ? null : { median: floor.median, p10: floor.p10, p90: floor.p90 } };
+  if (mode === "fresh" && run.passes !== undefined) report.passes = run.passes;
+  if (rows.some((r) => r.warm !== undefined)) report.warm = Object.fromEntries(arms.map((a) => [a.id, warmOf(rows.flatMap((r) => (r.warm?.[a.id] === undefined ? [] : [r.warm[a.id]!])), band)]));
+  if (run.wallMs !== undefined) report.wallMs = run.wallMs;
   return report;
 }
 
-/** This function does the warm-up passes of a child untimed, then one timed pass. It gives the time and the memory peak of the process. */
-export function timeChild(run: () => unknown, warmup: number, clock: () => number = () => performance.now()): { ms: number; peakRss: number } {
+/** This function gives the warm check of one arm: the quantiles of its warm values, and the share outside the A/A band. */
+function warmOf(values: readonly number[], band: { p10: number; p90: number } | undefined): PairedWarm {
+  return {
+    inputs: values.length,
+    median: quantileOf(values, 0.5),
+    p10: quantileOf(values, 0.1),
+    p90: quantileOf(values, 0.9),
+    outside: band === undefined ? null : values.length === 0 ? 0 : values.filter((v) => v < band.p10 || v > band.p90).length / values.length,
+  };
+}
+
+/**
+ * This function does the warm-up passes of a child untimed, then the timed passes. It gives the median time and the memory peak of the process.
+ * With 2 passes or more, it also gives `warm`: the median of the last half of the passes over the median of the first half.
+ */
+export function timeChild(run: () => unknown, warmup: number, clock: () => number = () => performance.now(), passes = 1): ChildResult & { peakRss: number } {
   for (let w = 0; w < warmup; w++) run();
-  const start = clock();
-  run();
-  const ms = clock() - start;
+  const times: number[] = [];
+  for (let p = 0; p < passes; p++) {
+    const start = clock();
+    run();
+    times.push(clock() - start);
+  }
+  const half = Math.floor(passes / 2);
+  const early = quantileOf(times.slice(0, half), 0.5);
   // The value maxRSS of Node.js is in kilobytes
-  return { ms, peakRss: process.resourceUsage().maxRSS * 1024 };
+  const out: ChildResult & { peakRss: number } = { ms: quantileOf(times, 0.5), peakRss: process.resourceUsage().maxRSS * 1024 };
+  if (half > 0 && early > 0) out.warm = quantileOf(times.slice(passes - half), 0.5) / early;
+  return out;
 }
 
 /** This function starts a child with the child protocol, and gives its result. A child that exits with a code other than 0 is an error. */
-async function startProcess(command: readonly string[], input: string, warmup: number): Promise<ChildResult> {
-  return childResult(await startArgv([...command, "--input", input, "--warmup", String(warmup)]));
+async function startProcess(command: readonly string[], input: string, warmup: number, passes: number): Promise<ChildResult> {
+  return childResult(await startArgv([...command, "--input", input, "--warmup", String(warmup), ...(passes === 1 ? [] : ["--passes", String(passes)])]));
 }
 
 /** This function starts a process, and gives its stdout. A process that exits with a code other than 0 is an error. */
@@ -285,12 +353,15 @@ function startArgv(argv: readonly string[]): Promise<string> {
   });
 }
 
-/** This function reads the last line of the stdout of a child: `{"ms": n, "peakRss"?: bytes}`. */
+/** This function reads the last line of the stdout of a child: `{"ms": n, "peakRss"?: bytes, "warm"?: n}`. */
 export function childResult(stdout: string): ChildResult {
   const line = stdout.trim().split("\n").at(-1) ?? "";
-  const value = JSON.parse(line) as { ms?: unknown; peakRss?: unknown };
+  const value = JSON.parse(line) as { ms?: unknown; peakRss?: unknown; warm?: unknown };
   if (typeof value.ms !== "number" || !Number.isFinite(value.ms)) throw new Error(`The child gave no time: ${line}`);
-  return typeof value.peakRss === "number" ? { ms: value.ms, peakRss: value.peakRss } : { ms: value.ms };
+  const out: ChildResult = { ms: value.ms };
+  if (typeof value.peakRss === "number") out.peakRss = value.peakRss;
+  if (typeof value.warm === "number" && Number.isFinite(value.warm)) out.warm = value.warm;
+  return out;
 }
 
 /** This function times the arms in one process: in each round, the arms in turn on each input, with the order reversed in odd rounds. */
@@ -298,6 +369,7 @@ function measureProcess<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Paired
   const clock = o.clock ?? (() => performance.now());
   const warmup = o.warmup ?? 1;
   const raw = rawOf(o.inputs, arms);
+  const began = performance.now();
   for (let round = 0; round < o.repeats; round++) {
     for (const input of o.inputs) {
       for (const at of armOrder(arms.length, round, "process")) {
@@ -312,20 +384,23 @@ function measureProcess<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Paired
       }
     }
   }
-  return pairedReport("process", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw);
+  return pairedReport("process", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw, { wallMs: performance.now() - began });
 }
 
 /** This function times the arms with a fresh process for each arm, each input and each round. Each input takes the arms in turn, in an order that rotates each round. */
 async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Promise<PairedReport> {
   const start = o.startChild ?? startProcess;
   const warmup = o.warmup ?? 1;
+  const passes = o.passes ?? 1;
   const raw = rawOf(o.inputs, arms);
+  const began = performance.now();
   for (let round = 0; round < o.repeats; round++) {
     for (const input of o.inputs) {
       for (const at of armOrder(arms.length, round, "fresh")) {
         const arm = arms[at]!;
-        const result = await start(arm.command!, input.id, warmup);
+        const result = await start(arm.command!, input.id, warmup, passes);
         raw.ms.get(input.id)!.get(arm.id)!.push(result.ms);
+        if (result.warm !== undefined) raw.warm.get(input.id)!.get(arm.id)!.push(result.warm);
         if (result.peakRss !== undefined) {
           const peak = raw.peak.get(input.id)!;
           peak.set(arm.id, Math.max(peak.get(arm.id) ?? 0, result.peakRss));
@@ -333,11 +408,11 @@ async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Pr
       }
     }
   }
-  return pairedReport("fresh", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw);
+  return pairedReport("fresh", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw, { passes, wallMs: performance.now() - began });
 }
 
 /**
- * This function times the arms of a comparison, and gives the report of schema `paired-time/1`.
+ * This function times the arms of a comparison, and gives the report of schema `paired-time/2`.
  *
  * - Mode `process` gives the report. Mode `fresh` gives a promise of the report.
  * - With `aa` (the default), the report has an A/A arm and the noise floor.
@@ -364,6 +439,8 @@ export function pairedMarkdown(r: PairedReport, title = "A paired time test"): s
     `- Schema \`${r.schema}\`, mode \`${r.mode}\`${r.context === undefined ? "" : `, context \`${r.context}\``}, on ${r.env.cores} x ${r.env.cpu} (${r.env.os} ${r.env.arch}, Node.js ${r.env.node}${r.env.runner === undefined ? "" : `, ${r.env.runner}`}).`,
     `- Base \`${r.base}\`. The ratio of an input is the median time of the arm over the median time of the base.`,
     `- Noise floor (the A/A arm): ${floor}.`,
+    ...(r.passes === undefined ? [] : [`- Each child times ${r.passes} passes after its warm-up. The time is their median.`]),
+    ...(r.wallMs === undefined ? [] : [`- The rounds took ${(r.wallMs / 60000).toFixed(1)} min.`]),
     "",
     `| Arm | Inputs | Median | p10 | p90 | Moved | ${groups.map((g) => `Group ${g}`).join(" | ")}${groups.length > 0 ? " | " : ""}Group mean | Group SD |`,
     `|---|---|---|---|---|---|${groups.map(() => "---|").join("")}---|---|`,
@@ -371,5 +448,15 @@ export function pairedMarkdown(r: PairedReport, title = "A paired time test"): s
       ([id, x]) => `| \`${id}\` | ${x.inputs} | ${fmt(x.median)} | ${fmt(x.p10)} | ${fmt(x.p90)} | ${fmt(x.moved)} | ${groups.map((g) => fmt(x.groups[g])).join(" | ")}${groups.length > 0 ? " | " : ""}${fmt(x.groupMean)} | ${fmt(x.groupSD)} |`,
     ),
     "",
+    ...(r.warm === undefined
+      ? []
+      : [
+          "The warm check: the median of the last half of the timed passes of a child over the median of the first half. Outside: the share outside the A/A band.",
+          "",
+          "| Arm | Inputs | Median | p10 | p90 | Outside |",
+          "|---|---|---|---|---|---|",
+          ...Object.entries(r.warm).map(([id, w]) => `| \`${id}\` | ${w.inputs} | ${fmt(w.median)} | ${fmt(w.p10)} | ${fmt(w.p90)} | ${fmt(w.outside)} |`),
+          "",
+        ]),
   ].join("\n");
 }
