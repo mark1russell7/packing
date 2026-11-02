@@ -928,16 +928,18 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in 
 - The gate refuses a run with another filter `only` than the gate. A gate without `only` takes only a run of all the inputs.
 - With `aaBand`, the gate refuses a report with an A/A band p10 to p90 that does not contain 1.
 - With `warmup` or `passes`, the gate refuses a run of mode `fresh` with another count of passes.
-- With `steady`, the measures use only the inputs with the warm value of each of these arms in the A/A band. The line `steady.inputs` gives their count.
+- The field `steady` of the gate gives the arms of the warm rule. A check or a report with `steady: true` uses only the inputs with each of these arms warm. The line `steady.inputs` gives their count.
 - The measure `sum-median` is the median of the time of the arm over the sum of the times of the `members` of the gate.
 
 The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
 
 The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` against the sum of its members `rows` and `maxrects-bl`. It uses mode `fresh` on the `.fixed.` inputs of `pack-classes-v1`, with 5000 untimed passes and 200 timed passes.
 
-- The portfolio arm fails the warm rule at 5000 untimed passes (`outside` 0.30 to 0.46). Thus the gate measures only the steady inputs, 101 to 151 of 250 per job.
-- The 5 jobs of run 41470082104 give 1.2869, 1.3574, 1.3608, 1.3689 and 1.3046. The limit is 1.368949 + 0.082058, rounded down to 1.4510.
-- On the steady inputs, the portfolio costs 1.35 times the sum of its members (the mean of the 5 jobs).
+- The gate measures all 250 inputs. The slow tail of the portfolio is what a user pays, so a change that makes the tail worse fails the gate.
+- The 5 jobs of run 41470082104 give 1.2984, 1.3795, 1.3701, 1.3804 and 1.3064. The limit is 1.380365 + 0.081997, rounded down to 1.4623.
+- The portfolio arm fails the warm rule at 5000 untimed passes (`outside` 0.30 to 0.46). The steady inputs (101 to 151 of 250 per job) give a second number, a report.
+- On the steady inputs, the 5 jobs give 1.2869 to 1.3689. The band that picks these inputs comes from the data of each run, so this number does not gate.
+- On all the inputs, the portfolio costs 1.35 times the sum of its members (the mean of the 5 jobs).
 
 ### The time budget of a promotion
 

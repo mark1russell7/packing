@@ -2,7 +2,7 @@
   "schema": "packing-time-gate/1",
   "id": "k130-time",
   "item": "k130",
-  "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded down to 4 decimals. Each run has its A/A band p10 to p90 around 1. The portfolio arm fails the warm rule at W=5000, so the gate measures only the steady inputs (the fallback of the strategist, k130).",
+  "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded down to 4 decimals. Each run has its A/A band p10 to p90 around 1. The gate is on all the inputs, because the slow tail is what a user of the portfolio pays (the strategist, k130). The portfolio arm fails the warm rule at W=5000, so the steady inputs (all 3 arms warm) give a second number, a report.",
   "corpus": "pack-classes-v1",
   "mode": "fresh",
   "base": "rows",
@@ -24,7 +24,7 @@
   "checks": [
     {
       "measure": "sum-median",
-      "max": 1.451,
+      "max": 1.4623,
       "derivation": {
         "runs": [
           "https://github.com/mark1russell7/packing/actions/runs/41470082104 job run1",
@@ -41,28 +41,40 @@
           "AMD EPYC 9V45 96-Core Processor"
         ],
         "values": [
-          1.286891,
-          1.357432,
-          1.360764,
-          1.368949,
-          1.30455
+          1.298368,
+          1.379478,
+          1.370108,
+          1.380365,
+          1.306407
         ],
-        "worst": 1.368949,
-        "spread": 0.082058
+        "worst": 1.380365,
+        "spread": 0.081997
       }
     }
   ],
   "reports": [
     {
+      "measure": "sum-median",
+      "steady": true,
+      "values": [
+        1.286891,
+        1.357432,
+        1.360764,
+        1.368949,
+        1.30455
+      ],
+      "why": "The second number: the same measure on the steady inputs only. The band that picks them comes from the data of each run, so it does not gate."
+    },
+    {
       "measure": "median",
       "values": [
-        2.662456,
-        2.865976,
-        2.868491,
-        2.899068,
-        2.709505
+        2.69247,
+        2.889413,
+        2.88338,
+        2.910507,
+        2.712177
       ],
-      "why": "The ratio of the portfolio to rows alone, on the steady inputs. It is for the record. The user-facing number is the sum measure."
+      "why": "The ratio of the portfolio to rows alone, for the record. The user-facing number is the sum measure."
     }
   ],
   "aa": {

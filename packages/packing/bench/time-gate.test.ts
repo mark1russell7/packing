@@ -68,7 +68,7 @@ describe("checkTimeGate", () => {
   });
 });
 
-/** A gate of the k130 shape: the arm `c` over the sum of `a` and `b`, on the steady inputs only. */
+/** A gate of the k130 shape: the arm `c` over the sum of `a` and `b`, on all the inputs, with the steady inputs as a report. */
 const SUM: TimeGate = {
   ...GATE,
   id: "sum-time",
@@ -81,7 +81,7 @@ const SUM: TimeGate = {
   members: ["a", "b"],
   steady: ["a", "b", "c"],
   checks: [{ measure: "sum-median", max: 1.5, derivation: { runs: derivation.runs, cpus: derivation.cpus, values: [1.3, 1.25, 1.35, 1.32, 1.28], worst: 1.35, spread: 0.1 } }],
-  reports: [{ measure: "median", values: [2, 2, 2, 2, 2], why: "test" }],
+  reports: [{ measure: "sum-median", steady: true, values: [1.2, 1.2, 1.2, 1.2, 1.2], why: "test" }],
 };
 
 /** This function makes a made-up report of mode fresh: each input has the times of `a`, `b` and `c`, and a warm value of `c`. */
@@ -98,7 +98,7 @@ function fresh(rows: { a: number; b: number; c: number; warm: number }[], over: 
 }
 
 describe("the sum measure on the steady inputs (k130)", () => {
-  // The input i2 has the warm value 1.5 of c, outside the A/A band 0.95 to 1.05. Thus the measures do not use it.
+  // The input i2 has the warm value 1.5 of c, outside the A/A band 0.95 to 1.05. Thus the steady measures do not use it.
   const rows = [
     { a: 1, b: 2, c: 3.6, warm: 1 },
     { a: 1, b: 1, c: 2.8, warm: 1.02 },
@@ -107,16 +107,19 @@ describe("the sum measure on the steady inputs (k130)", () => {
 
   it("gives the median of c / (a + b) and of c / a over the steady inputs", () => {
     expect(gateValue(fresh(rows), "c", "sum-median", SUM)).toBeCloseTo(1.3);
+    expect(gateValue(fresh(rows), "c", "sum-median", { members: ["a", "b"] })).toBeCloseTo(1.4);
     expect(gateValue(fresh(rows), "c", "median", SUM)).toBeCloseTo(3.2);
     expect(gateValue(fresh(rows), "c", "sum-median", { members: ["a", "nope"] })).toBeNaN();
     expect(gateValue(fresh(rows), "c", "sum-median")).toBeNaN();
   });
 
-  it("passes a run of the test, and reports the count of steady inputs", () => {
+  it("gates on all the inputs, and reports the steady measure and the count of steady inputs", () => {
     const result = checkTimeGate(SUM, fresh(rows), "set-v1", ".fixed.", 5000);
     expect([result.pass, result.refused]).toEqual([true, []]);
-    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", 1.05], ["steady.inputs", null], ["sum-median", 1.5], ["median", null]]);
+    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", 1.05], ["steady.inputs", null], ["sum-median", 1.5], ["sum-median", null]]);
     expect(gateMarkdown(result)).toContain("| steady.inputs | 2 | report | - |");
+    expect(gateMarkdown(result)).toContain("| sum-median | 1.4000 | 1.5000 | pass |");
+    expect(gateMarkdown(result)).toContain("| sum-median (steady) | 1.3000 | report | - |");
   });
 
   it("refuses a run with another filter, warm-up or count of passes, without the warm check or with an A/A band off 1", () => {
@@ -148,6 +151,8 @@ describe("parseTimeGate", () => {
     expect(() => parseTimeGate(sum(1.45, { spread: 0.2 }))).toThrow("The spread of sum-median is");
     expect(() => parseTimeGate(sum(1.45, { margin: 0.1 }))).toThrow("not both or none");
     expect(() => parseTimeGate(JSON.stringify({ ...JSON.parse(sum(1.45)), members: [] }))).toThrow("needs the members");
+    const { steady: _arms, ...noArms } = JSON.parse(sum(1.45)) as TimeGate;
+    expect(() => parseTimeGate(JSON.stringify(noArms))).toThrow("needs the arms of the warm rule");
   });
 
   it("reads the gate record of k66", () => {
@@ -158,7 +163,8 @@ describe("parseTimeGate", () => {
 
   it("reads the gate record of k130", () => {
     const gate = parseTimeGate(readFileSync(join(import.meta.dirname, "gates", "k130-time.json"), "utf8"));
-    expect(gate.checks.map((c) => [c.measure, c.max, c.derivation.worst, c.derivation.spread])).toEqual([["sum-median", 1.451, 1.368949, 0.082058]]);
+    expect(gate.checks.map((c) => [c.measure, c.max, c.derivation.worst, c.derivation.spread])).toEqual([["sum-median", 1.4623, 1.380365, 0.081997]]);
+    expect(gate.reports.map((r) => [r.measure, r.steady === true])).toEqual([["sum-median", true], ["median", false]]);
     expect([gate.mode, gate.only, gate.warmup, gate.passes, gate.members, gate.steady]).toEqual(["fresh", ".fixed.", 5000, 200, ["rows", "maxrects-bl"], ["rows", "maxrects-bl", "portfolio-fill-rows-bl"]]);
   });
 });

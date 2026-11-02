@@ -34,6 +34,8 @@ export interface GateCheck {
   measure: GateMeasure;
   max: number;
   derivation: GateDerivation;
+  /** When `true`, the measure uses only the steady inputs (the field `steady` of the gate). */
+  steady?: boolean;
 }
 
 /** A measure that the gate only reports, with the reason that it does not gate. */
@@ -41,6 +43,8 @@ export interface GateReportOnly {
   measure: GateMeasure;
   values: number[];
   why: string;
+  /** When `true`, the measure uses only the steady inputs (the field `steady` of the gate). */
+  steady?: boolean;
 }
 
 /** A time gate of one candidate against its base on one corpus (schema `packing-time-gate/1`). */
@@ -65,7 +69,7 @@ export interface TimeGate {
   passes?: number;
   /** The arms of the measure `sum-median` */
   members?: string[];
-  /** The arms of the warm rule. When the gate has it, its measures use only the inputs with the warm value of each of these arms in the A/A band. */
+  /** The arms of the warm rule. The steady inputs have the warm value of each of these arms in the A/A band. */
   steady?: string[];
   checks: GateCheck[];
   reports: GateReportOnly[];
@@ -76,6 +80,8 @@ export interface TimeGate {
 /** A line of the result: a measure, its value, its limit (or `null` for a report) and its result. */
 export interface GateLine {
   measure: GateMeasure | "aa.median" | "steady.inputs";
+  /** `true` for a measure on the steady inputs only */
+  steady?: boolean;
   value: number;
   max: number | null;
   pass: boolean;
@@ -90,12 +96,12 @@ export interface GateResult {
   lines: GateLine[];
 }
 
-/** This function gives the inputs of the measures of a gate: all the inputs, or only the steady inputs when the gate has `steady`. */
+/** This function gives the inputs of a measure. With `steady`, it gives only the inputs with each arm of `steady` warm. */
 export function gateInputs(report: PairedReport, gate: Pick<TimeGate, "steady">): PairedInput[] {
   return gate.steady === undefined ? report.inputs : warmInputs(report, gate.steady);
 }
 
-/** This function gives a measure of the arm in a report. A gate with `steady` or `members` changes the inputs or the measure. */
+/** This function gives a measure of the arm in a report. With `steady`, it uses only the steady inputs. `members` are the arms of `sum-median`. */
 export function gateValue(report: PairedReport, arm: string, measure: GateMeasure, gate: Pick<TimeGate, "steady" | "members"> = {}): number {
   if (measure === "median" && gate.steady === undefined) return report.ratios[arm]?.median ?? Number.NaN;
   const inputs = gateInputs(report, gate);
@@ -111,6 +117,11 @@ export function gateValue(report: PairedReport, arm: string, measure: GateMeasur
   }
   const ratios = inputs.map((i) => i.ratio[arm]).filter((x): x is number => x !== undefined);
   return quantileOf(ratios, measure === "median" ? 0.5 : 0.95);
+}
+
+/** This function gives the options of `gateValue` for one check or report of a gate. */
+function entryOptions(gate: TimeGate, entry: { steady?: boolean }): Pick<TimeGate, "steady" | "members"> {
+  return { ...(gate.members !== undefined ? { members: gate.members } : {}), ...(entry.steady === true && gate.steady !== undefined ? { steady: gate.steady } : {}) };
 }
 
 /** This function examines the shape of a gate record and throws a `TypeError` on a break. */
@@ -130,7 +141,10 @@ export function parseTimeGate(text: string): TimeGate {
       if (Math.abs(spread - d.spread!) > 1e-9) throw new TypeError(`The spread of ${c.measure} is ${spread}, not ${d.spread}.`);
       if (Math.abs(c.max - Math.floor((worst + spread) * 1e4 + 1e-9) / 1e4) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
     }
-    if (c.measure === "sum-median" && (gate.members ?? []).length === 0) throw new TypeError("The measure sum-median needs the members of the gate.");
+  }
+  for (const e of [...gate.checks, ...gate.reports]) {
+    if (e.measure === "sum-median" && (gate.members ?? []).length === 0) throw new TypeError("The measure sum-median needs the members of the gate.");
+    if (e.steady === true && gate.steady === undefined) throw new TypeError(`The steady measure ${e.measure} needs the arms of the warm rule (the field steady of the gate).`);
   }
   return gate;
 }
@@ -157,17 +171,18 @@ export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: stri
     if (gate.aaBand === true && !(p10 <= 1 && p90 >= 1)) refused.push(`the A/A band ${p10} to ${p90} does not contain 1`);
   }
   if (gate.steady !== undefined) lines.push({ measure: "steady.inputs", value: gateInputs(report, gate).length, max: null, pass: true });
+  const tag = (e: { steady?: boolean }): { steady?: boolean } => (e.steady === true ? { steady: true } : {});
   for (const c of gate.checks) {
-    const value = gateValue(report, gate.arm, c.measure, gate);
-    lines.push({ measure: c.measure, value, max: c.max, pass: value <= c.max });
+    const value = gateValue(report, gate.arm, c.measure, entryOptions(gate, c));
+    lines.push({ measure: c.measure, ...tag(c), value, max: c.max, pass: value <= c.max });
   }
-  for (const r of gate.reports) lines.push({ measure: r.measure, value: gateValue(report, gate.arm, r.measure, gate), max: null, pass: true });
+  for (const r of gate.reports) lines.push({ measure: r.measure, ...tag(r), value: gateValue(report, gate.arm, r.measure, entryOptions(gate, r)), max: null, pass: true });
   return { gate: gate.id, pass: refused.length === 0 && lines.every((l) => l.pass), refused, lines };
 }
 
 /** This function writes the result of a time gate as Markdown. */
 export function gateMarkdown(result: GateResult): string {
-  const rows = result.lines.map((l) => `| ${l.measure} | ${l.measure === "steady.inputs" ? String(l.value) : l.value.toFixed(4)} | ${l.max === null ? "report" : l.max.toFixed(4)} | ${l.max === null ? "-" : l.pass ? "pass" : "fail"} |`);
+  const rows = result.lines.map((l) => `| ${l.measure}${l.steady === true ? " (steady)" : ""} | ${l.measure === "steady.inputs" ? String(l.value) : l.value.toFixed(4)} | ${l.max === null ? "report" : l.max.toFixed(4)} | ${l.max === null ? "-" : l.pass ? "pass" : "fail"} |`);
   const refused = result.refused.length === 0 ? [] : ["", `The gate refuses the report: ${result.refused.join(", ")}.`];
   return [`## The time gate ${result.gate}: ${result.pass ? "pass" : "fail"}`, "", "| Measure | Value | Limit | Result |", "| --- | --- | --- | --- |", ...rows, ...refused, ""].join("\n");
 }
