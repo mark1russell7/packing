@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { PairedReport } from "./paired-time.ts";
-import { checkTimeGate, gateMarkdown, gateValue, parseTimeGate, type TimeGate } from "./time-gate.ts";
+import { checkTimeGate, gateMarkdown, gateValue, parseTimeGate, spreadLimit, type TimeGate } from "./time-gate.ts";
 
 const derivation = { runs: ["r1", "r2", "r3", "r4", "r5"], cpus: ["c", "c", "c", "c", "c"], values: [1.8, 2, 1.9, 1.7, 1.95], worst: 2, margin: 0.1 };
 const GATE: TimeGate = {
@@ -142,6 +142,13 @@ describe("parseTimeGate", () => {
     expect(() => parseTimeGate(JSON.stringify({ ...GATE, schema: "x" }))).toThrow(TypeError);
   });
 
+  it("gives the worst value plus the spread, rounded up", () => {
+    expect(spreadLimit([1.3, 1.25, 1.35, 1.32, 1.28])).toBe(1.45);
+    expect(spreadLimit([1.298368, 1.379478, 1.370108, 1.380365, 1.306407])).toBe(1.4624);
+    expect(spreadLimit([1.00001, 1])).toBe(1.0001);
+    expect(spreadLimit([1.23456, 1], 2)).toBe(1.47);
+  });
+
   it("refuses a limit that is not its worst value plus its spread", () => {
     const check = SUM.checks[0]!;
     const sum = (max: number, d: object = {}) => JSON.stringify({ ...SUM, checks: [{ ...check, max, derivation: { ...check.derivation, ...d } }] });
@@ -163,7 +170,7 @@ describe("parseTimeGate", () => {
 
   it("reads the gate record of k130", () => {
     const gate = parseTimeGate(readFileSync(join(import.meta.dirname, "gates", "k130-time.json"), "utf8"));
-    expect(gate.checks.map((c) => [c.measure, c.max, c.derivation.worst, c.derivation.spread])).toEqual([["sum-median", 1.4623, 1.380365, 0.081997]]);
+    expect(gate.checks.map((c) => [c.measure, c.max, c.derivation.worst, c.derivation.spread])).toEqual([["sum-median", 1.4624, 1.380365, 0.081997]]);
     expect(gate.reports.map((r) => [r.measure, r.steady === true])).toEqual([["sum-median", true], ["median", false]]);
     expect([gate.mode, gate.only, gate.warmup, gate.passes, gate.members, gate.steady]).toEqual(["fresh", ".fixed.", 5000, 200, ["rows", "maxrects-bl"], ["rows", "maxrects-bl", "portfolio-fill-rows-bl"]]);
   });

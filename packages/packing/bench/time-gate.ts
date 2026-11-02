@@ -2,7 +2,7 @@
 //
 // A limit comes from 5 CI runs of the same test or more. The gate refuses a report that is not of its test.
 // - The old rule (STRATEGY.md 1e10f489): the limit is the worst value times 1 plus the margin.
-// - The rule of the gate limits: the limit is the worst value plus the spread (max - min) of the values, rounded down to 4 decimals.
+// - The rule of the gate limits: the limit is the worst value plus the spread (max - min) of the values, rounded up to 4 decimals.
 
 import { aaId, quantileOf, warmInputs, type PairedInput, type PairedReport } from "./paired-time.ts";
 
@@ -18,7 +18,7 @@ export type GateMeasure = "median" | "q95" | "sum-median";
  * The derivation of a limit: the values of the runs and the worst value.
  *
  * - With `margin`, the limit is `worst * (1 + margin)`.
- * - With `spread`, the spread is max - min of the values, and the limit is `worst + spread`, rounded down to 4 decimals.
+ * - With `spread`, the spread is max - min of the values, and the limit is `spreadLimit(values)`.
  */
 export interface GateDerivation {
   runs: string[];
@@ -119,6 +119,17 @@ export function gateValue(report: PairedReport, arm: string, measure: GateMeasur
   return quantileOf(ratios, measure === "median" ? 0.5 : 0.95);
 }
 
+/**
+ * This function gives the limit of the rule of the gate limits: the worst value plus the spread (max - min), rounded up to `digits` decimals.
+ *
+ * The rounding goes away from the data. A limit rounded down can fail a value of its own record.
+ */
+export function spreadLimit(values: readonly number[], digits = 4): number {
+  const worst = Math.max(...values);
+  const scale = 10 ** digits;
+  return Math.ceil((2 * worst - Math.min(...values)) * scale - 1e-9) / scale;
+}
+
 /** This function gives the options of `gateValue` for one check or report of a gate. */
 function entryOptions(gate: TimeGate, entry: { steady?: boolean }): Pick<TimeGate, "steady" | "members"> {
   return { ...(gate.members !== undefined ? { members: gate.members } : {}), ...(entry.steady === true && gate.steady !== undefined ? { steady: gate.steady } : {}) };
@@ -139,7 +150,7 @@ export function parseTimeGate(text: string): TimeGate {
     } else {
       const spread = worst - Math.min(...d.values);
       if (Math.abs(spread - d.spread!) > 1e-9) throw new TypeError(`The spread of ${c.measure} is ${spread}, not ${d.spread}.`);
-      if (Math.abs(c.max - Math.floor((worst + spread) * 1e4 + 1e-9) / 1e4) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
+      if (Math.abs(c.max - spreadLimit(d.values)) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
     }
   }
   for (const e of [...gate.checks, ...gate.reports]) {

@@ -921,7 +921,7 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in 
 
 - A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A spread.
 - A derivation with `margin` uses the old rule (STRATEGY.md 1e10f489): the limit is the worst value times 1 plus the margin. `k66-time` uses it.
-- A derivation with `spread` uses the rule of the gate limits: the limit is the worst value plus the spread (max - min). It is rounded down to 4 decimals.
+- A derivation with `spread` uses the rule of the gate limits: the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
 - A measure with a spread across the 5 runs larger than the margin does not gate. The record reports it with the reason.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
 - The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
@@ -936,7 +936,7 @@ The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-
 The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` against the sum of its members `rows` and `maxrects-bl`. It uses mode `fresh` on the `.fixed.` inputs of `pack-classes-v1`, with 5000 untimed passes and 200 timed passes.
 
 - The gate measures all 250 inputs. The slow tail of the portfolio is what a user pays, so a change that makes the tail worse fails the gate.
-- The 5 jobs of run 41470082104 give 1.2984, 1.3795, 1.3701, 1.3804 and 1.3064. The limit is 1.380365 + 0.081997, rounded down to 1.4623.
+- The 5 jobs of run 41470082104 give 1.2984, 1.3795, 1.3701, 1.3804 and 1.3064. The limit is 1.380365 + 0.081997, rounded up to 1.4624.
 - The portfolio arm fails the warm rule at 5000 untimed passes (`outside` 0.30 to 0.46). The steady inputs (101 to 151 of 250 per job) give a second number, a report.
 - On the steady inputs, the 5 jobs give 1.2869 to 1.3689. The band that picks these inputs comes from the data of each run, so this number does not gate.
 - On all the inputs, the portfolio costs 1.35 times the sum of its members (the mean of the 5 jobs).
