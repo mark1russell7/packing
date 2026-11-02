@@ -117,8 +117,26 @@ export function hashInput(file: LayoutInput): string {
  * The records of the benchmark and the key of `packPortfolio` use it. It is not `outputHash` of the contract, which uses a grid.
  */
 export function outputHash(output: Pick<PackOutput, "placements">): string {
-  const sorted = output.placements.toSorted((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  return sha256Hex(canonicalJson(sorted)).slice(0, 16);
+  return sha256Hex(outputForm(output)).slice(0, 16);
+}
+
+/** This function gives the canonical form of the placements of an output, sorted by id. `outputHash` is the SHA-256 of this form. */
+export function outputForm(output: Pick<PackOutput, "placements">): string {
+  return canonicalJson(output.placements.toSorted(byId));
+}
+
+/** This function orders two placements by id. */
+const byId = (a: { id: string }, b: { id: string }): number => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/**
+ * This function gives `true` when two outputs have the same `outputForm`. It does not hash, and it stops at the first different placement.
+ * The form is a JSON list. Thus two forms are equal only when the lists have the same length and the same form at each index.
+ */
+export function samePlacements(a: Pick<PackOutput, "placements">, b: Pick<PackOutput, "placements">): boolean {
+  if (a.placements.length !== b.placements.length) return false;
+  const x = a.placements.toSorted(byId);
+  const y = b.placements.toSorted(byId);
+  return x.every((p, i) => canonicalJson(p) === canonicalJson(y[i]));
 }
 
 /** This function gives the scale of a count: the nearest of 1, 10, 100, 1000 and 10000 on a log scale. The count 0 gives `1`. */
