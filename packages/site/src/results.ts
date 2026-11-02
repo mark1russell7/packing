@@ -114,7 +114,7 @@ function details(s: StrategySummary, snap: StrategySnapshot): string {
   const groups = s.groups
     .map((g) => `<li><span class="gname">${esc(g.group)}</span>${signsBar(g)}</li>`)
     .join("");
-  const ms = s.msMedian === null ? "no time" : `median ${msText(s.msMedian)} for each pack, in its own CI job`;
+  const ms = s.msMedian === null ? "no time" : `in-order median ${msText(s.msMedian)} for each pack, in its own CI job`;
   return `
     <p class="hint">${s.records} records, ${s.skipped} skipped, ${s.hardBreaks} hard breaks, ${ms}.</p>
     <div class="scroll"><table class="vtable">
