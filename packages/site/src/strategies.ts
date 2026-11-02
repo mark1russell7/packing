@@ -112,6 +112,7 @@ function methodsHtml(c: StrategyCard): string {
     ${factsHtml([
       ["Source", "this repository"],
       ["Cost", md(c.cost ?? "")],
+      ...(c.measured === undefined ? [] : ([["Measured", md(c.measured)]] as [string, string][])),
       ["Guarantee", guaranteeHtml("—")],
     ])}
   </div>`;

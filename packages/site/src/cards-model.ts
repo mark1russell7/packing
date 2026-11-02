@@ -60,6 +60,8 @@ export interface StageInfo {
   rule?: string;
   /** The time for `n` boxes. Only a strategy with no catalog row has it. */
   cost?: string;
+  /** The measured fill and time of the strategy, with the CI runs. Only a strategy with no catalog row has it. */
+  measured?: string;
 }
 
 /**
@@ -82,6 +84,10 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     stage: "combine",
     rule: "Pack with each member of the set of the cell of the input. Keep the output with the best key.",
     cost: "one pack for each member: 2 or 3 packs",
+    measured:
+      "Paired CI runs of k130: `portfolio-fill-rows-bl` takes 1.31 to 1.37 times the sum of the times of `rows` and `maxrects-bl`. " +
+      "On `pack-classes-v1` its mean fill is 0.922, and the fill of `select-rows-bl` is 0.917. It takes 2.26 times the time of `select-rows-bl`. " +
+      "Thus it is an option for more fill, and `select` stays the default.",
   },
   select: {
     stage: "combine",
@@ -512,6 +518,8 @@ export interface StrategyCard {
   /** The rule and the cost of `STRATEGY_STAGES` for a strategy with no catalog row */
   rule: string | undefined;
   cost: string | undefined;
+  /** The measured fill and time of `STRATEGY_STAGES`, when it has them */
+  measured: string | undefined;
   options: CardOption[];
   cells: CardCells[];
   entries: CardEntry[];
@@ -551,6 +559,7 @@ export function buildCards(input: CardInputs): StrategyCard[] {
       name: rows[0]?.name ?? s.id,
       rule: rows.length === 0 ? info?.rule : undefined,
       cost: rows.length === 0 ? info?.cost : undefined,
+      measured: rows.length === 0 ? info?.measured : undefined,
       options: optionsOf(s),
       cells: cellsOfStrategy(s),
       entries: input.entries

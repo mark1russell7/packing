@@ -35,6 +35,11 @@ describe("the sync of the cards with the code and the catalog", () => {
     for (const info of Object.values(STRATEGY_STAGES)) expect(STAGES).toContain(info.stage);
   });
 
+  it("gives the measured fill and time of portfolio to its card", () => {
+    expect(STRATEGY_STAGES["portfolio"]?.measured).toContain("1.31 to 1.37 times");
+    expect(STRATEGY_STAGES["select"]?.measured).toBeUndefined();
+  });
+
   it("gives a rule and a cost to each strategy with no catalog row", () => {
     for (const s of registry.filter((x) => x.catalog.length === 0)) {
       expect(STRATEGY_STAGES[s.id]?.rule, s.id).toBeTruthy();
