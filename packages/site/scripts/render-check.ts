@@ -341,6 +341,6 @@ async function main(): Promise<number> {
   return ok ? 0 : 1;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   process.exitCode = await main();
 }
