@@ -4,8 +4,8 @@
 //   node packages/site/scripts/survey-check.ts --check
 //
 // With `--check`, the script exits with 1 when the files differ. Without it, it writes the counts only.
-import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { CLASSES, checkSurvey, countBy, parseRoadmap, parseSurvey, roundState, STATUSES, type SurveyInputs } from "../src/survey-model.ts";
 
 const DOCS = new URL("../../../docs/", import.meta.url);
@@ -37,4 +37,4 @@ export function main(args: readonly string[]): number {
   return problems.length === 0 ? 0 : 1;
 }
 
-if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) process.exitCode = main(process.argv.slice(2));
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exitCode = main(process.argv.slice(2));
