@@ -36,8 +36,8 @@ describe("the sync of the cards with the code and the catalog", () => {
   });
 
   it("gives the measured fill and time of portfolio to its card", () => {
-    expect(STRATEGY_STAGES.portfolio?.measured).toContain("1.31 to 1.37 times");
-    expect(STRATEGY_STAGES.select?.measured).toBeUndefined();
+    expect(STRATEGY_STAGES["portfolio"]?.measured).toContain("1.31 to 1.37 times");
+    expect(STRATEGY_STAGES["select"]?.measured).toBeUndefined();
   });
 
   it("gives a rule and a cost to each strategy with no catalog row", () => {
