@@ -924,7 +924,7 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
 | `only` | empty | The test uses only the inputs with this text in their id, for example `.fixed.`. |
 | `gate` | empty | The name of a time gate in `bench/gates/`, for example `k66-time`. The job fails when the gate fails. |
-| `budget` | empty | The id of a candidate arm for the time budget of a promotion (k128). It needs `runs` 5 and mode `process`. |
+| `budget` | empty | The id of a candidate arm for the time budget of a promotion (k128). It needs `runs` 5 and mode `fresh`. |
 | `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
 The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/2`. The two modes are:
@@ -1000,7 +1000,7 @@ The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` again
 The time budget (`bench/time-budget.ts`, schema `packing-time-budget/1`, roadmap item k128) is the time test of a new strategy. It replaces the floor rule of the time row in `docs/PROMOTION.md` for packing.
 
 - The budget is a policy, not a measured limit. The worst median of 5 paired jobs is at most 1.5. The worst q95 is at most 2.
-- The measure is the raw paired ratio of the candidate against the default, in mode `process`, with the A/A arm. The Bench records do not count.
+- The measure is the raw paired ratio of the candidate against the default, in mode `fresh`, with the A/A arm. Each case starts in its own fresh processes. The Bench records do not count.
 - A run counts only when its A/A band from p10 to p90 contains 1. A new run replaces a run that does not count.
 - The A/A arm of the same runs gives the resolution. The median decision is valid only when 1.5 is more than the worst A/A p90 plus their spread.
 - The spread of the runs is the largest value minus the smallest value. The resolution has no margin factor.

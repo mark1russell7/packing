@@ -8,7 +8,7 @@ function run(name: string, ratios: number[], aa: number[] = ratios.map(() => 1),
   const sorted = [...aa].sort((x, y) => x - y);
   const report = {
     schema: "paired-time/1",
-    mode: "process",
+    mode: "fresh",
     env: { cpu: "Test CPU", cores: 1, os: "test", arch: "x64", node: "v0" },
     base: "a",
     arms: ["a", "b", "a~aa"],
@@ -90,8 +90,8 @@ describe("timeBudget", () => {
     const mixed = five([1]);
     mixed[1] = { ...mixed[1]!, corpus: "set-v2" };
     expect(timeBudget(mixed, "b").reasons).toEqual(["the runs have more than one corpus: set-v1, set-v2"]);
-    const fresh = five([1]).map((r) => ({ ...r, report: { ...r.report, mode: "fresh" as const } }));
-    expect(timeBudget(fresh, "b").reasons).toEqual(["the mode is fresh, not process"]);
+    const inProcess = five([1]).map((r) => ({ ...r, report: { ...r.report, mode: "process" as const } }));
+    expect(timeBudget(inProcess, "b").reasons).toEqual(["the mode is process, not fresh"]);
     const plain = five([1]);
     plain[2] = run("run3", [1], [1], { noiseFloor: null });
     expect(timeBudget(plain, "b")).toMatchObject({ verdict: "cannot decide", reasons: ["the run run3 has no A/A arm"] });
