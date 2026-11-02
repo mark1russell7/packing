@@ -5,6 +5,7 @@
 import { boundsOf, regionHitsRect, translate } from "@mark1russell7/layout-contract";
 import { EPS, type PackInput, type Region } from "./contract.ts";
 import { buildFrame, transposeRegion, type Frame } from "./frame.ts";
+import { predicates } from "./probe.ts";
 
 /** A free interval on one axis, from `start` to `end`. A box fits when it starts at `start` or later and ends at `end` or earlier. */
 export interface FreeSpan {
@@ -111,13 +112,20 @@ function subtract(spans: [number, number][], a: number, b: number): [number, num
 
 /** This function gives the x of a segment at `y`. The ends give their exact x. */
 function xAt(ax: number, ay: number, bx: number, by: number, y: number): number {
-  if (y === ay) return ax;
-  if (y === by) return bx;
-  return ax + ((y - ay) * (bx - ax)) / (by - ay);
+  const x = y === ay ? ax : y === by ? bx : ax + ((y - ay) * (bx - ax)) / (by - ay);
+  predicates.probe?.("xAt", { ax, ay, bx, by, y }, x);
+  return x;
 }
 
 /** This function gives the x-range of the part of a segment in the open strip from `y0` to `y1`, or `undefined`. */
 function edgeRange(ax: number, ay: number, bx: number, by: number, y0: number, y1: number): [number, number] | undefined {
+  const range = segmentRange(ax, ay, bx, by, y0, y1);
+  predicates.probe?.("edgeRange", { ax, ay, bx, by, y0, y1 }, range ?? null);
+  return range;
+}
+
+/** This function gives the result of `edgeRange` without the probe. */
+function segmentRange(ax: number, ay: number, bx: number, by: number, y0: number, y1: number): [number, number] | undefined {
   const lo = Math.min(ay, by);
   const hi = Math.max(ay, by);
   if (hi <= y0 || lo >= y1) return undefined;

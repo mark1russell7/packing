@@ -6,13 +6,14 @@
 //   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n> [--passes <n>] [--events]
 //   node bench/main.ts paired-gate --gate <file> --dir <paired out dir>
 //   node bench/main.ts paired-budget --dir <folder of paired runs> --arm <id>
+//   node bench/main.ts predicates --corpus <name> [--strategies a,b|all] [--out dir]
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
 //
 // The times of a run on a local computer do not count. Only the times of CI compare.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, writeFileSync, writeSync } from "node:fs";
 import { cpus, arch, platform } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -36,6 +37,7 @@ import {
   pairedPack,
 } from "./run.ts";
 import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
+import { dumpPredicates, NEAR } from "./predicates.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
 import { budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
 import { checkTimeGate, gateMarkdown, parseTimeGate } from "./time-gate.ts";
@@ -222,6 +224,31 @@ function pairedBudget(): number {
   return 0;
 }
 
+/**
+ * This function writes the near inputs of the float predicates of a corpus (A13 of algebra) into `predicates.jsonl`.
+ * It does not time, and it writes no records. Thus the outputs of the other commands stay byte-equal.
+ */
+function predicateDump(): number {
+  const name = opt("--corpus") ?? "smoke-v1";
+  if (!/^[a-z0-9][a-z0-9.-]*$/.test(name)) throw new Error(`The corpus name "${name}" has other characters than a-z, 0-9, dot and hyphen.`);
+  const out = resolve(opt("--out") ?? join("bench-out", `predicates-${name}`));
+  mkdirSync(out, { recursive: true });
+  const fd = openSync(join(out, "predicates.jsonl"), "w");
+  let result: ReturnType<typeof dumpPredicates>;
+  try {
+    result = dumpPredicates(parseCorpus(readFileSync(join(here, "corpora", `${name}.json`), "utf8"), name), strategyIds(opt("--strategies")), (line) => writeSync(fd, `${line}
+`));
+  } finally {
+    closeSync(fd);
+  }
+  const sha = commit();
+  writeFileSync(join(out, "run.json"), `${JSON.stringify({ corpus: name, near: NEAR, cases: result.cases, nearInputs: result.near, env: env(), ...(sha !== undefined ? { commit: sha } : {}) }, null, 2)}
+`);
+  process.stdout.write(`${result.cases} cases, near inputs ${JSON.stringify(result.near)}, in ${out}
+`);
+  return result.cases === 0 ? empty(`the corpus ${name}`) : 0;
+}
+
 function main(): number | Promise<number> {
   switch (command) {
     case "paired":
@@ -232,6 +259,8 @@ function main(): number | Promise<number> {
       return pairedGate();
     case "paired-budget":
       return pairedBudget();
+    case "predicates":
+      return predicateDump();
     case "list":
       process.stdout.write(`${JSON.stringify(strategyIds(opt("--strategies")))}\n`);
       return 0;
@@ -295,7 +324,7 @@ function main(): number | Promise<number> {
       return result.failures.length > 0 ? 1 : 0;
     }
     default:
-      process.stderr.write("Usage: node bench/main.ts run|list|merge|check|paired. docs/BENCH.md gives the options.\n");
+      process.stderr.write("Usage: node bench/main.ts run|list|merge|check|paired|predicates. docs/BENCH.md gives the options.\n");
       return 2;
   }
 }

@@ -845,6 +845,41 @@ A run on a local computer gives no valid times. Use it only to examine the scrip
 node bench/profile.ts --corpus smoke-v1 --strategy maxrects-bl --inputs <id>,<id> --out bench-out/profile
 ```
 
+## A predicate dump
+
+The command `predicates` writes the near-degenerate inputs of the float predicates of the packer as JSON lines. Item A13 of the role `algebra` uses them to rank exact predicates.
+
+```sh
+node bench/main.ts predicates --corpus smoke-v1 --strategies all --out bench-out/predicates
+```
+
+The workflow `Predicates` (`.github/workflows/predicates.yml`) dumps a full corpus in CI, with one job for each entry. Its default corpus is `pack-select-v2`. The artifact `predicates-<corpus>` has `predicates.jsonl` and `summary.json`.
+
+The command packs each input one time with each entry, and then examines the output with `checkHard`. The probe of `src/probe.ts` sees these predicates in the pack and in the check:
+
+| `fn` | Where | The inputs of a line |
+|---|---|---|
+| `overlap` | `checkHard`, each pair of boxes | `a`, `b` as `{l,t,r,b}`, `tolerance`, and `gap` for a pair of `pairGaps` |
+| `container` | `checkHard`, each box | `box`, `x`, `y`, `w`, `h`, `inset`, `tolerance`, `fixedW`, `fixedH` |
+| `edgeRange` | `src/space.ts`, each edge of a polygon and each strip | `ax`, `ay`, `bx`, `by`, `y0`, `y1` |
+| `xAt` | `src/space.ts`, in `edgeRange` | `ax`, `ay`, `bx`, `by`, `y` |
+| `samePlacements` | `src/layout-input.ts`, the portfolio of k130 | `a`, `b`: the first pair of placements that are different but near |
+
+A box has its edges as the predicate reads them. A width `w = r - l` is a rounded value, so the line does not give it.
+
+A value is near when its size is at most `1e-9` times the largest size of the inputs of the predicate. These values count:
+
+- `overlap`: the margin `min(right) - max(left)` of each axis (`x:zero`, `y:zero`), and the margin minus the tolerance (`x:tolerance`, `y:tolerance`).
+- `container`: the box edge minus the inner side (`<side>:zero`), and the box edge minus the side moved out by the tolerance (`<side>:tolerance`). Only a fixed side counts.
+- `edgeRange`: the ends of the segment against the sides of the strip (`low`, `high`), and two near but different ends (`flat`).
+- `xAt`: a `y` near an end but not at it (`end`).
+
+A value of exactly 0 gets the suffix `:touch`. Its float sign is exact, so an input with only touch values gets no line. The case line counts it in `touch`.
+
+Each near line is `{"case","fn",...the inputs,"near","floatAnswer","times"}`. The case is `<entry>/<input id>`. `times` counts the same line in the case. After the near lines of a case, one case line gives `{"case","totalPairs","totals","near","touch","lines"}`. `totalPairs` is the count of the pairs of `overlap`.
+
+`JSON.stringify` writes each number exactly, but it writes `-0` as `0` and an infinite size as `null`. The probe does not change an answer, and the other commands do not set it. Thus their outputs stay byte-equal.
+
 ## A paired time test
 
 Two bench runs often go on two runners with different CPUs, and their times do not compare. The workflow `Paired` (`.github/workflows/paired.yml`) times two refs of the repository in one job. Start it with the GitHub CLI:
