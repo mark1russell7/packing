@@ -426,6 +426,49 @@ export function measureIsolated<I>(options: PairedOptions<I>): PairedReport | Pr
   return options.mode === "process" ? measureProcess(options, arms) : measureFresh(options, arms);
 }
 
+/** The verdict of the warm rule on one report (k130). */
+export interface WarmVerdict {
+  /** `true` when each arm of the rule is warm */
+  ok: boolean;
+  /** The share of the inputs of the A/A arm with a warm value outside the A/A band */
+  aaOutside: number;
+  arms: Record<string, { median: number; outside: number; ok: boolean }>;
+  /** The count of inputs with the warm value of each arm of the rule in the A/A band */
+  inputsWarm: number;
+}
+
+/**
+ * This function applies the warm rule to a report of mode `fresh` with 2 passes or more and the A/A arm (k130).
+ *
+ * - An arm is warm when its `outside` is at most the `outside` of the A/A arm plus `slack`, and its warm median is in `median`.
+ * - The rule compares each arm with the noise floor. A fixed limit on `outside` fails: the A/A arm itself has 0.18 to 0.32.
+ * - The default arms are each arm except the A/A arm. The default `slack` is 0.1, and the default `median` is [0.97, 1.03].
+ * - The function throws an `Error` for a report without the warm check or the A/A arm.
+ */
+export function warmRule(
+  r: PairedReport,
+  o: { arms?: readonly string[]; slack?: number; median?: readonly [number, number] } = {},
+): WarmVerdict {
+  const aa = aaId(r.base);
+  const floor = r.noiseFloor;
+  if (r.warm === undefined || floor === null || r.warm[aa] === undefined) throw new Error("The warm rule needs a report of mode fresh with 2 passes or more and the A/A arm.");
+  const slack = o.slack ?? 0.1;
+  const [low, high] = o.median ?? [0.97, 1.03];
+  const aaOutside = r.warm[aa]!.outside ?? 0;
+  const ids = o.arms ?? r.arms.filter((a) => a !== aa);
+  const arms = Object.fromEntries(
+    ids.map((id) => {
+      const w = r.warm![id];
+      if (w === undefined) throw new Error(`The report has no warm check of the arm ${id}.`);
+      const outside = w.outside ?? 0;
+      return [id, { median: w.median, outside, ok: outside <= aaOutside + slack && w.median >= low && w.median <= high }];
+    }),
+  );
+  const inside = (v: number | undefined): boolean => v !== undefined && v >= floor.p10 && v <= floor.p90;
+  const inputsWarm = r.inputs.filter((i) => ids.every((id) => inside(i.warm?.[id]))).length;
+  return { ok: Object.values(arms).every((a) => a.ok), aaOutside, arms, inputsWarm };
+}
+
 /** This function gives a number with 3 decimals for a table. */
 const fmt = (value: number | null | undefined): string => (value === undefined || value === null || Number.isNaN(value) ? "" : value.toFixed(3));
 

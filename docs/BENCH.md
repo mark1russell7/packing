@@ -909,6 +909,9 @@ Schema `paired-time/2` is `paired-time/1` with three more fields (k130). A reade
 - With 2 passes or more, each child also gives `warm`. It is the median of the last half of its passes over the median of the first half.
 - The report gives `warm` for each arm and input. For each arm, it also gives the median, p10, p90 and `outside`. The value `outside` is the share of inputs with a warm value outside [p10, p90] of the A/A arm.
 - A warm value outside the A/A band tells that the child did not reach a warm state. That input is not a result.
+- `warmRule` gives the verdict of a report. An arm is warm when two conditions are true. Its `outside` is at most the `outside` of the A/A arm plus 0.1. Its warm median is in [0.97, 1.03].
+
+The warm rule is relative, because a fixed limit failed. The prediction of the first fresh run of k130 had the limit `outside` 0.2 or less. By construction, 20 % of the A/A ratios are outside their own p10 to p90. The warm value of a child has its own noise. Thus the A/A arm itself had 0.18 to 0.32, and the limit was below the noise floor.
 
 An arm `wrap-<entry>` is the portfolio wrapper of `packPortfolio` around one entry, with a key that has no hard breaks, no levels and no hash. The ratio of `wrap-rows` over `rows` is the cost of the wrapper alone (k130).
 
