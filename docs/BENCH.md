@@ -924,6 +924,8 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in 
 - A derivation with `spread` uses the rule of the gate limits: the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
 - A measure with a spread across the 5 runs larger than the margin does not gate. The record reports it with the reason.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
+- `time-gate.yml` makes one job of the paired test of each gate in its list, with the settings of the gate record. `ci.yml` uses it, so CI OK needs it.
+- A pull request starts these jobs only when a file of the gates changed. The workflow names the files. A push or a release does not start them again.
 - The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
 - The gate refuses a run with another filter `only` than the gate. A gate without `only` takes only a run of all the inputs.
 - With `aaBand`, the gate refuses a report with an A/A band p10 to p90 that does not contain 1.

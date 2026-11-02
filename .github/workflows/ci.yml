@@ -20,7 +20,7 @@ jobs:
   ci:
     uses: mark1russell7/template/.github/workflows/reusable-ci.yml@3377b376fb6e39e4d65f130a98e74125d592f1f3 # main
 
-  # The gate jobs of this repository: the smoke run of the benchmark and the render of the site
+  # The gate jobs of this repository: the smoke run of the benchmark, the render of the site and the time gates
   bench-smoke:
     uses: ./.github/workflows/bench-smoke.yml
     permissions:
@@ -28,6 +28,12 @@ jobs:
 
   site-check:
     uses: ./.github/workflows/site-check.yml
+    permissions:
+      contents: read
+
+  # The time gates of bench/gates (k130). A pull request runs them only when a file of the gates changed.
+  time-gate:
+    uses: ./.github/workflows/time-gate.yml
     permissions:
       contents: read
 
@@ -69,7 +75,7 @@ jobs:
   ci-ok:
     name: CI OK
     if: always()
-    needs: [ci, bench-smoke, site-check, presets]
+    needs: [ci, bench-smoke, site-check, time-gate, presets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
