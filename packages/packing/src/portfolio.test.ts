@@ -18,6 +18,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "./index.ts";
+import { outputForm, samePlacements } from "./layout-input.ts";
 import { fillOf } from "./measures.ts";
 
 // The opt-in portfolio of k20, part 1. Made-up inputs of the generators only.
@@ -52,6 +53,21 @@ describe("outputHash", () => {
     expect(outputHash(output)).toBe(createHash("sha256").update(canonicalJson(sorted)).digest("hex").slice(0, 16));
     expect(outputHash({ placements: output.placements.toReversed() })).toBe(outputHash(output));
     expect(outputHash(output)).toMatch(/^[0-9a-f]{16}$/);
+  });
+});
+
+describe("samePlacements", () => {
+  it("gives true only when the outputForm values are equal, in each order of the placements (k130)", () => {
+    const outputs = inputs().flatMap((input) => MEMBERS.map((m) => packMember(m, input)));
+    const moved = outputs[0]!.placements.map((p, i) => (i === 3 ? { ...p, x: p.x + 0.0004 } : p));
+    const all = [...outputs, { placements: outputs[0]!.placements.toReversed() }, { placements: moved }, { placements: outputs[0]!.placements.slice(1) }];
+    let same = 0;
+    for (const a of all) for (const b of all) {
+      expect(samePlacements(a, b)).toBe(outputForm(a) === outputForm(b));
+      if (a !== b && samePlacements(a, b)) same++;
+    }
+    // The reversed list and the move under the precision of round3 have the form of output 0
+    expect(same).toBeGreaterThanOrEqual(6);
   });
 });
 
@@ -93,6 +109,19 @@ describe("packPortfolio", () => {
     expect(bare(one.run(input))).toEqual(bare(got.output));
     expect(one.id).toBe("portfolio");
     expect(packPortfolio(["shelf"], { id: "mine" }).id).toBe("mine");
+  });
+
+  it("gives with run the output of pick, with and without budgetWork, when member 0 loses (k130)", () => {
+    let picked = 0;
+    for (const options of [{}, { budgetWork: 1e9 }, { key: ["pack.fill"] }]) {
+      const p = packPortfolio(MEMBERS, options);
+      for (const input of inputs()) {
+        const got = p.pick(input);
+        expect(bare(p.run(input))).toEqual(bare(got.output));
+        if (got.trace.picked) picked++;
+      }
+    }
+    expect(picked).toBeGreaterThan(0);
   });
 
   it("cuts the members after maxMembers, and keeps the pick deterministic", () => {

@@ -1,8 +1,9 @@
 // The portfolio of roadmap item k20, part 1 (`docs/PACKER.md`, "The portfolio"). A portfolio packs an input with each
 // member and keeps the best output by the one pick rule `selectBest` of the contract. Nothing default uses it.
 
-import { pickMoves, portfolio, type Member, type Portfolio, type PortfolioPick, type SelectLevel } from "@mark1russell7/layout-contract";
+import { pickMoves, portfolio, type Member, type Portfolio, type PortfolioKey, type PortfolioPick, type SelectLevel } from "@mark1russell7/layout-contract";
 import type { PackInput, PackOutput } from "./contract.ts";
+import { samePlacements } from "./layout-input.ts";
 import { MEASURE_SPECS } from "./measures.ts";
 import { packWith, strategy } from "./registry.ts";
 import { measureKey, measureLevel } from "./select-key.ts";
@@ -70,6 +71,8 @@ export const PORTFOLIO_LEVELS: readonly SelectLevel[] = Object.freeze([
  * - The key reads the measures after `roundMeasures`, as a record keeps them. A replay of the records gives the same pick.
  * - The hash of the key is `outputHash`. `selectBest` of the contract picks the winner.
  * - The output of the winner gets the trace stage `portfolio` with `move.pick` of `pickMoves`.
+ * - `pick` hashes the output of each member. `run` does not hash. It compares the base and the winner with `samePlacements` (k130).
+ *   Thus `run` gives the output of `pick` at a lower cost.
  * - With `budgetWork`, the stage also has `work.spent`, `work.budget` and `work.stopped`. A member that the work limit cuts has the status `cut`.
  * - The function throws a `RangeError` for a `budgetWork` that is not a whole number of 0 or more.
  * - The function throws a `RangeError` for an unknown strategy, an empty list, two members with the same id and an unknown measure of `key`.
@@ -96,20 +99,29 @@ export function packPortfolio(
   const { budgetWork } = options;
   checkBudgetWork("packPortfolio", budgetWork);
   const id = options.id ?? PORTFOLIO_STAGE;
-  const inner = portfolio(id, list, key, limits);
-  const pick = (input: PackInput): PortfolioPick<PackOutput> => {
+  // The hash of each member is most of the time of a portfolio (k130). `run` gives only the output, so its key does not hash.
+  // With `hashes: "pick"`, the contract gives the key only the base and the winner, when the winner is not member 0.
+  // The key keeps these two outputs, and `samePlacements` gives `move.pick` as `pickMoves` gives it from the hashes.
+  let seen: PackOutput[] = [];
+  const runKey: PortfolioKey<PackInput, PackOutput> = { ...key, hash: (output) => (seen.push(output), "") };
+  const moved = (trace: PortfolioPick<PackOutput>["trace"], hashes: "all" | "pick"): number =>
+    hashes === "all" ? pickMoves(trace).pick : trace.winnerIndex > 0 && (seen.length < 2 || !samePlacements(seen[0]!, seen[1]!)) ? 1 : 0;
+  const keys = { all: key, pick: runKey } as const;
+  const inners = { all: portfolio(id, list, key, limits), pick: portfolio(id, list, runKey, { ...limits, hashes: "pick" }) } as const;
+  const choose = (input: PackInput, hashes: "all" | "pick"): PortfolioPick<PackOutput> => {
+    seen = [];
     if (budgetWork === undefined) {
-      const got = inner.pick(input);
-      const stage = { id: PORTFOLIO_STAGE, measures: { "move.pick": pickMoves(got.trace).pick } };
+      const got = inners[hashes].pick(input);
+      const stage = { id: PORTFOLIO_STAGE, measures: { "move.pick": moved(got.trace, hashes) } };
       return { ...got, output: { ...got.output, trace: [...(got.output.trace ?? []), stage] } };
     }
     // Each pick gets its own meter. The members of the meter are a function of the input, so the contract checks their ids.
     const meter = workMeter(budgetWork);
-    const metered = portfolio(id, (x: PackInput) => meterMembers(typeof list === "function" ? list(x) : list, meter), key, limits);
+    const metered = portfolio(id, (x: PackInput) => meterMembers(typeof list === "function" ? list(x) : list, meter), keys[hashes], { ...limits, hashes });
     const got = metered.pick(input);
     const trace = workTrace(got.trace, meter);
-    const stage = { id: PORTFOLIO_STAGE, measures: { "move.pick": pickMoves(trace).pick, ...workMeasures(meter) } };
+    const stage = { id: PORTFOLIO_STAGE, measures: { "move.pick": moved(trace, hashes), ...workMeasures(meter) } };
     return { ...got, trace, output: { ...got.output, trace: [...(got.output.trace ?? []), stage] } };
   };
-  return { id: inner.id, pick, run: (input: PackInput): PackOutput => pick(input).output };
+  return { id: inners.all.id, pick: (input: PackInput) => choose(input, "all"), run: (input: PackInput): PackOutput => choose(input, "pick").output };
 }
