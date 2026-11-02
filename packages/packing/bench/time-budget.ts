@@ -108,7 +108,7 @@ export function budgetRun(input: BudgetInput, arm: string, tailQ: number, floorM
 /**
  * This function gives the verdict of the time budget of an arm over some paired runs.
  *
- * - The runs are of one corpus, one filter, mode `process` and one base, each with the A/A arm. Else the verdict is `cannot decide`.
+ * - The runs are of one corpus, one filter, mode `fresh` and one base, each with the A/A arm. Else the verdict is `cannot decide`.
  * - A run counts only when its A/A band from p10 to p90 contains 1. Else the verdict is `cannot decide`, and a new run replaces it.
  * - The spread of the runs is the largest value minus the smallest value. The resolution has no margin factor.
  * - The median decision is valid when `median > worst A/A p90 + spread`. Else the verdict is `cannot decide`.
@@ -129,7 +129,7 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
   const base = one((i) => i.report.base, "base") ?? "";
   const only = one((i) => i.only, "filter");
   if (inputs.length < policy.runs) reasons.push(`a decision needs ${policy.runs} runs, not ${inputs.length}`);
-  if (first !== undefined && mode !== "process") reasons.push(`the mode is ${mode}, not process`);
+  if (first !== undefined && mode !== "fresh") reasons.push(`the mode is ${mode}, not fresh`);
   for (const i of inputs) {
     if (!i.report.arms.includes(arm)) reasons.push(`the run ${i.run} has no arm ${arm}`);
     const band = i.report.noiseFloor;

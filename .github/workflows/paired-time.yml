@@ -52,7 +52,7 @@ on:
         type: string
         default: ""
       budget:
-        description: "The id of a candidate arm for the time budget of a promotion (k128) over all runs. It needs runs 5 and mode process. Empty gives no budget."
+        description: "The id of a candidate arm for the time budget of a promotion (k128) over all runs. It needs runs 5 and mode fresh. Empty gives no budget."
         type: string
         default: ""
       runs:
