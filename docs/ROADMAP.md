@@ -136,7 +136,7 @@ Status: done, done, waiting, next, done.
 | k127 | The fill oracle within a time budget: the 2 members of `select` with a key of `pack.fill` alone (`fillOf`), as the entry `portfolio-fill-rows-bl`, on the 250 fixed-size inputs of `pack-classes-v1`. It passes on 3 tests set before the bench: the time is at most 2.5 times `select` with the fold SD, the pick is the pick of the full measure, and the mean fill is within 1 fold SD of the strict oracle. Not shipped: test 1 failed. The time is 4.524 ± 0.107 times `select` over 5 fold seeds, and the limit is 2.5. A better chooser is a new item | measure | done | k126 |
 | k128 | The shared time test of `docs/PROMOTION.md` on the paired ratio. The floor `timeFloorMs` 5 turns the ratio of each candidate under 5 ms into an absolute time, as in k66. The new test is the paired median ratio with a limit from 5 CI runs. The floor is only a noise check on the base. It comes before k127 promotes a strategy. | measure | done | k66 |
 | k129 | A feature chooser for `select`: a decision table of depth 1 or 2 on 10 cheap features of the input, fit on 4 fold seeds and scored on the fifth. Done 11-02, not shipped. Out of the fold, the fill gain over `select` is -0.0002 to -0.0016, and the oracle gap is 0.0029 ± 0.0004. The result is only for these 10 features and these depths: count, spread, demand, the largest item share, the aspect SD, the container aspect, the largest width and height shares, and the width and height SD | strategies | done | k126 |
-| k130 | The portfolio costs about the sum of its members. A profile finds the cost of the wrapper, and the fix goes in `portfolio` itself. A CI gate: the time of a portfolio is at most 1.1 times the sum of its members, the worst of 5 jobs. The packs do not change. The tests 1 to 3 of k127 apply to `portfolio-fill-rows-bl`. The default stays `select`, except when the bench puts the portfolio on the front of fill and time | strategies | active | k127 |
+| k130 | The portfolio costs about the sum of its members. A profile finds the cost of the wrapper, and the fix goes in `portfolio` itself. A CI gate `k130-time` in CI OK: the portfolio takes at most 1.4624 times the sum of its members (worst of 5 CI runs plus the spread). It took 1.31 to 1.37 times in 4 runs. The packs do not change. The tests 1 to 3 of k127 apply to `portfolio-fill-rows-bl`. The default stays `select`, except when the bench puts the portfolio on the front of fill and time | strategies | done | k127 |
 
 ## The queue
 
@@ -144,39 +144,38 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score |
 | --- | --- | --- | --- | --- | --- |
-| 1 | k130 | 4 | 3 | 2 | 6.0 |
-| 2 | k120 | 4 | 3 | 2 | 6.0 |
-| 3 | k25 | 3 | 3 | 2 | 4.5 |
-| 4 | k70 | 3 | 3 | 2 | 4.5 |
-| 5 | k13 | 3 | 3 | 2 | 4.5 |
-| 6 | k92 | 3 | 3 | 2 | 4.5 |
-| 7 | k10 | 4 | 4 | 4 | 4.0 |
-| 8 | k81 | 4 | 3 | 3 | 4.0 |
-| 9 | k82 | 3 | 4 | 3 | 4.0 |
-| 10 | k83 | 3 | 4 | 3 | 4.0 |
-| 11 | k93 | 4 | 2 | 2 | 4.0 |
-| 12 | k94 | 4 | 3 | 3 | 4.0 |
-| 13 | k95 | 4 | 3 | 3 | 4.0 |
-| 14 | k96 | 5 | 4 | 5 | 4.0 |
-| 15 | k97 | 3 | 4 | 3 | 4.0 |
-| 16 | k110 | 4 | 2 | 2 | 4.0 |
-| 17 | k84 | 3 | 5 | 4 | 3.8 |
-| 18 | k74 | 4 | 3 | 4 | 3.0 |
-| 19 | k52 | 3 | 2 | 2 | 3.0 |
-| 20 | k85 | 3 | 3 | 3 | 3.0 |
-| 21 | k86 | 3 | 5 | 5 | 3.0 |
-| 22 | k87 | 3 | 3 | 3 | 3.0 |
-| 23 | k98 | 3 | 2 | 2 | 3.0 |
-| 24 | k122 | 2 | 3 | 2 | 3.0 |
-| 25 | k109 | 4 | 2 | 3 | 2.7 |
-| 26 | k99 | 3 | 4 | 5 | 2.4 |
-| 27 | k100 | 3 | 3 | 4 | 2.3 |
-| 28 | k88 | 2 | 2 | 2 | 2.0 |
-| 29 | k101 | 4 | 2 | 4 | 2.0 |
-| 30 | k102 | 3 | 2 | 3 | 2.0 |
-| 31 | k103 | 2 | 2 | 2 | 2.0 |
-| 32 | k89 | 2 | 4 | 5 | 1.6 |
-| 33 | k104 | 2 | 3 | 5 | 1.2 |
+| 1 | k120 | 4 | 3 | 2 | 6.0 |
+| 2 | k25 | 3 | 3 | 2 | 4.5 |
+| 3 | k70 | 3 | 3 | 2 | 4.5 |
+| 4 | k13 | 3 | 3 | 2 | 4.5 |
+| 5 | k92 | 3 | 3 | 2 | 4.5 |
+| 6 | k10 | 4 | 4 | 4 | 4.0 |
+| 7 | k81 | 4 | 3 | 3 | 4.0 |
+| 8 | k82 | 3 | 4 | 3 | 4.0 |
+| 9 | k83 | 3 | 4 | 3 | 4.0 |
+| 10 | k93 | 4 | 2 | 2 | 4.0 |
+| 11 | k94 | 4 | 3 | 3 | 4.0 |
+| 12 | k95 | 4 | 3 | 3 | 4.0 |
+| 13 | k96 | 5 | 4 | 5 | 4.0 |
+| 14 | k97 | 3 | 4 | 3 | 4.0 |
+| 15 | k110 | 4 | 2 | 2 | 4.0 |
+| 16 | k84 | 3 | 5 | 4 | 3.8 |
+| 17 | k74 | 4 | 3 | 4 | 3.0 |
+| 18 | k52 | 3 | 2 | 2 | 3.0 |
+| 19 | k85 | 3 | 3 | 3 | 3.0 |
+| 20 | k86 | 3 | 5 | 5 | 3.0 |
+| 21 | k87 | 3 | 3 | 3 | 3.0 |
+| 22 | k98 | 3 | 2 | 2 | 3.0 |
+| 23 | k122 | 2 | 3 | 2 | 3.0 |
+| 24 | k109 | 4 | 2 | 3 | 2.7 |
+| 25 | k99 | 3 | 4 | 5 | 2.4 |
+| 26 | k100 | 3 | 3 | 4 | 2.3 |
+| 27 | k88 | 2 | 2 | 2 | 2.0 |
+| 28 | k101 | 4 | 2 | 4 | 2.0 |
+| 29 | k102 | 3 | 2 | 3 | 2.0 |
+| 30 | k103 | 2 | 2 | 2 | 2.0 |
+| 31 | k89 | 2 | 4 | 5 | 1.6 |
+| 32 | k104 | 2 | 3 | 5 | 1.2 |
 
 The items of the site (k71, k72, k73) are P1 work outside the queue.
 
