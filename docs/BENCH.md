@@ -918,9 +918,12 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/1`, roadmap
 
 - The budget is a policy, not a measured limit. The worst median of 5 paired jobs is at most 1.5. The worst q95 is at most 2.
 - The measure is the raw paired ratio of the candidate against the default, in mode `process`, with the A/A arm. The Bench records do not count.
-- The A/A arm of the same runs gives the resolution. The median decision is valid only when 1.5 is more than the worst A/A p90 times 1.1.
+- A run counts only when its A/A band from p10 to p90 contains 1. A new run replaces a run that does not count.
+- The A/A arm of the same runs gives the resolution. The median decision is valid only when 1.5 is more than the worst A/A p90 plus their spread.
+- The spread of the runs is the largest value minus the smallest value. The resolution has no margin factor.
 - If the median decision is not valid, the verdict is `cannot decide`, with the numbers.
-- The tail decision needs 2 more than the worst A/A q95 on the tail set times 1.1. It also needs a spread of the 5 tails of 0.1 or less. Else the verdict is `cannot decide`.
+- The tail decision needs 2 more than the worst A/A q95 on the tail set plus their spread, and a tail set in each run. Else the verdict is `cannot decide`.
+- Each decision uses the worst of the 5 runs, so each run must pass.
 - The tail set holds only the inputs with a base or a candidate median of `timeFloorMs` (5 ms) or more. An empty tail set gives `tail: not measured` in the record. It does not stop a promotion.
 - The record keeps the share of inputs with a base under 3.33 ms and under 0.1 ms as a report.
 - After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value times 1.1).

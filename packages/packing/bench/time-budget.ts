@@ -12,16 +12,14 @@ export interface BudgetPolicy {
   tail: number;
   /** The quantile of the tail */
   tailQ: number;
-  /** The margin of the resolution check and of the spread of the tail */
-  margin: number;
   /** The runs that a decision needs */
   runs: number;
   /** The relevance floor `timeFloorMs`: an input with a base median and an arm median under it leaves the tail set */
   floorMs: number;
 }
 
-/** The time budget of `docs/PROMOTION.md`: median 1.5, q95 2, a margin of 0.1, 5 runs and the relevance floor 5 ms. */
-export const BUDGET_POLICY: BudgetPolicy = Object.freeze({ median: 1.5, tail: 2, tailQ: 0.95, margin: 0.1, runs: 5, floorMs: 5 });
+/** The time budget of `docs/PROMOTION.md`: median 1.5, q95 2, 5 runs and the relevance floor 5 ms. */
+export const BUDGET_POLICY: BudgetPolicy = Object.freeze({ median: 1.5, tail: 2, tailQ: 0.95, runs: 5, floorMs: 5 });
 
 /** The base time of the old floor `timeFloorMs / timeRatio` (5 / 1.5 ms). It is only a report field. */
 export const OLD_FLOOR_MS = 5 / 1.5;
@@ -42,6 +40,7 @@ export interface BudgetRun {
   median: number;
   tail: number;
   aaMedian: number;
+  aaP10: number;
   aaP90: number;
   /** The `tailQ` quantile of the A/A ratios on the tail set */
   aaTail: number;
@@ -67,14 +66,14 @@ export interface BudgetResult {
   only?: string;
   policy: BudgetPolicy;
   runs: BudgetRun[];
-  /** The resolution checks: the policy value is more than the worst A/A value times 1 plus the margin */
+  /** The resolution checks: the policy value is more than the worst A/A value of the runs plus their spread (largest minus smallest) */
   resolution: {
-    median: { worstAaP90: number; least: number; valid: boolean };
-    tail: { worstAaTail: number; least: number; valid: boolean };
+    median: { worstAaP90: number; spread: number; least: number; valid: boolean };
+    tail: { worstAaTail: number; spread: number; least: number; valid: boolean };
   };
   median: { worst: number; limit: number; pass: boolean };
   /** The tail check. With an empty tail set in each run, `measured` is false and the check does not stop a promotion */
-  tail: { worst: number; limit: number; spread: number; measured: boolean; pass: boolean };
+  tail: { worst: number; limit: number; measured: boolean; pass: boolean };
   verdict: BudgetVerdict;
   reasons: string[];
 }
@@ -97,6 +96,7 @@ export function budgetRun(input: BudgetInput, arm: string, tailQ: number, floorM
     median: r4(quantileOf(ratios, 0.5)),
     tail: r4(quantileOf(tails, tailQ)),
     aaMedian: r4(r.noiseFloor?.median ?? Number.NaN),
+    aaP10: r4(r.noiseFloor?.p10 ?? Number.NaN),
     aaP90: r4(r.noiseFloor?.p90 ?? Number.NaN),
     aaTail: r4(quantileOf(aa, tailQ)),
     tailSet: tails.length,
@@ -109,10 +109,12 @@ export function budgetRun(input: BudgetInput, arm: string, tailQ: number, floorM
  * This function gives the verdict of the time budget of an arm over some paired runs.
  *
  * - The runs are of one corpus, one filter, mode `process` and one base, each with the A/A arm. Else the verdict is `cannot decide`.
- * - The median decision is valid when `median > worst A/A p90 * (1 + margin)`. Else the verdict is `cannot decide`.
- * - The arm passes when the worst median of the runs is at most `median`, and the tail check passes.
+ * - A run counts only when its A/A band from p10 to p90 contains 1. Else the verdict is `cannot decide`, and a new run replaces it.
+ * - The spread of the runs is the largest value minus the smallest value. The resolution has no margin factor.
+ * - The median decision is valid when `median > worst A/A p90 + spread`. Else the verdict is `cannot decide`.
+ * - The arm passes when the worst median of the runs is at most `median`, and the tail check passes. Thus each run must pass.
  * - The tail set holds the inputs with a base or an arm median of `floorMs` or more. An empty tail set gives `tail: not measured`, which does not stop a promotion.
- * - The tail check needs `tail > worst A/A tail * (1 + margin)` and a spread of the tails of at most `margin`. Else the verdict is `cannot decide`.
+ * - The tail check needs `tail > worst A/A tail + spread` on the tail set, and a tail set in each run. Else the verdict is `cannot decide`.
  */
 export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: BudgetPolicy = BUDGET_POLICY): BudgetResult {
   const reasons: string[] = [];
@@ -130,7 +132,9 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
   if (first !== undefined && mode !== "process") reasons.push(`the mode is ${mode}, not process`);
   for (const i of inputs) {
     if (!i.report.arms.includes(arm)) reasons.push(`the run ${i.run} has no arm ${arm}`);
-    if (i.report.noiseFloor === null) reasons.push(`the run ${i.run} has no A/A arm`);
+    const band = i.report.noiseFloor;
+    if (band === null) reasons.push(`the run ${i.run} has no A/A arm`);
+    else if (!(band.p10 <= 1 && band.p90 >= 1)) reasons.push(`the run ${i.run} has the A/A band ${r4(band.p10)} to ${r4(band.p90)}, without 1: it measured the runner, and a new run replaces it`);
   }
   const runs = inputs.map((i) => budgetRun(i, arm, policy.tailQ, policy.floorMs));
   const noTail = runs.length > 0 && runs.every((r) => r.tailSet === 0);
@@ -139,31 +143,33 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
     const values = runs.filter((r) => r.tailSet > 0).map(of);
     return values.length === 0 ? Number.NaN : Math.max(...values);
   };
+  const spreadOf = (values: number[]) => (values.length === 0 ? Number.NaN : r4(Math.max(...values) - Math.min(...values)));
+  const tailRuns = runs.filter((r) => r.tailSet > 0);
   const worstAaP90 = worst((r) => r.aaP90);
   const worstAaTail = worstTail((r) => r.aaTail);
-  const medianLeast = r4(worstAaP90 * (1 + policy.margin));
-  const tailLeast = r4(worstAaTail * (1 + policy.margin));
+  const medianSpread = spreadOf(runs.map((r) => r.aaP90));
+  const tailSpread = spreadOf(tailRuns.map((r) => r.aaTail));
+  const medianLeast = r4(worstAaP90 + medianSpread);
+  const tailLeast = r4(worstAaTail + tailSpread);
+  const someTails = !noTail && tailRuns.length < runs.length;
   const resolution = {
-    median: { worstAaP90, least: medianLeast, valid: policy.median > medianLeast },
-    tail: { worstAaTail, least: tailLeast, valid: noTail || policy.tail > tailLeast },
+    median: { worstAaP90, spread: medianSpread, least: medianLeast, valid: policy.median > medianLeast },
+    tail: { worstAaTail, spread: tailSpread, least: tailLeast, valid: noTail || (!someTails && policy.tail > tailLeast) },
   };
   const median = { worst: worst((r) => r.median), limit: policy.median, pass: worst((r) => r.median) <= policy.median };
-  const tails = runs.filter((r) => r.tailSet > 0).map((r) => r.tail);
-  const spread = noTail ? 0 : tails.length < runs.length ? Number.NaN : r4(Math.max(...tails) / Math.min(...tails) - 1);
-  const tail = { worst: noTail ? Number.NaN : worstTail((r) => r.tail), limit: policy.tail, spread, measured: !noTail, pass: noTail || worstTail((r) => r.tail) <= policy.tail };
+  const tail = { worst: noTail ? Number.NaN : worstTail((r) => r.tail), limit: policy.tail, measured: !noTail, pass: noTail || worstTail((r) => r.tail) <= policy.tail };
   let verdict: BudgetVerdict;
   if (reasons.length > 0) verdict = "cannot decide";
   else if (!resolution.median.valid) {
     verdict = "cannot decide";
-    reasons.push(`noise: the worst A/A p90 ${worstAaP90} times ${1 + policy.margin} is ${medianLeast}, not under the budget ${policy.median}`);
+    reasons.push(`noise: the worst A/A p90 ${worstAaP90} plus the spread ${medianSpread} is ${medianLeast}, not under the budget ${policy.median}`);
   } else if (!median.pass) {
     verdict = "not promoted";
     reasons.push(`the worst median ${median.worst} is above the budget ${policy.median}`);
-  } else if (!resolution.tail.valid || !(spread <= policy.margin)) {
+  } else if (!resolution.tail.valid) {
     verdict = "cannot decide";
-    if (!resolution.tail.valid) reasons.push(`noise: the worst A/A q${policy.tailQ * 100} ${worstAaTail} times ${1 + policy.margin} is ${tailLeast}, not under the tail budget ${policy.tail}`);
-    if (!(spread <= policy.margin)) reasons.push(`noise: the tails of the runs spread ${spread}, more than the margin ${policy.margin}`);
-    if (tails.length < runs.length && !noTail) reasons.push("noise: some runs have an empty tail set");
+    if (someTails) reasons.push("noise: some runs have an empty tail set");
+    else reasons.push(`noise: the worst A/A q${policy.tailQ * 100} ${worstAaTail} plus the spread ${tailSpread} is ${tailLeast}, not under the tail budget ${policy.tail}`);
   } else if (!tail.pass) {
     verdict = "not promoted";
     reasons.push(`the worst tail ${tail.worst} is above the budget ${policy.tail}`);
@@ -176,18 +182,18 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
 
 /** This function writes the result of the time budget as Markdown. */
 export function budgetMarkdown(b: BudgetResult): string {
-  const rows = b.runs.map((r) => `| ${r.run} | ${r.cpu} | ${r.inputs} | ${r.median} | ${r.tail} | ${r.aaMedian} | ${r.aaP90} | ${r.aaTail} | ${r.tailSet} | ${r.underOldFloor} | ${r.under01ms} |`);
+  const rows = b.runs.map((r) => `| ${r.run} | ${r.cpu} | ${r.inputs} | ${r.median} | ${r.tail} | ${r.aaMedian} | ${r.aaP10} | ${r.aaP90} | ${r.aaTail} | ${r.tailSet} | ${r.underOldFloor} | ${r.under01ms} |`);
   const q = `q${b.policy.tailQ * 100}`;
   return [
     `## The time budget of ${b.arm} against ${b.base} on ${b.corpus}: ${b.verdict}`,
     "",
     `Policy: the worst median of ${b.policy.runs} runs is at most ${b.policy.median}, and the worst ${q} is at most ${b.policy.tail}.`,
-    `Resolution: the worst A/A p90 ${b.resolution.median.worstAaP90} gives ${b.resolution.median.least} (${b.resolution.median.valid ? "valid" : "not valid"}). The worst A/A ${q} ${b.resolution.tail.worstAaTail} gives ${b.resolution.tail.least} (${b.resolution.tail.valid ? "valid" : "not valid"}).`,
-    `Median: worst ${b.median.worst}, budget ${b.median.limit}. ${b.tail.measured ? `Tail (inputs of ${b.policy.floorMs} ms or more): worst ${b.tail.worst}, budget ${b.tail.limit}, spread ${b.tail.spread}.` : `Tail: not measured, no input above ${b.policy.floorMs} ms.`}`,
+    `Resolution: the worst A/A p90 ${b.resolution.median.worstAaP90} plus the spread ${b.resolution.median.spread} gives ${b.resolution.median.least} (${b.resolution.median.valid ? "valid" : "not valid"}). The worst A/A ${q} ${b.resolution.tail.worstAaTail} plus the spread ${b.resolution.tail.spread} gives ${b.resolution.tail.least} (${b.resolution.tail.valid ? "valid" : "not valid"}).`,
+    `Median: worst ${b.median.worst}, budget ${b.median.limit}. ${b.tail.measured ? `Tail (inputs of ${b.policy.floorMs} ms or more): worst ${b.tail.worst}, budget ${b.tail.limit}.` : `Tail: not measured, no input above ${b.policy.floorMs} ms.`}`,
     ...(b.reasons.length > 0 ? ["", `Reasons: ${b.reasons.join(". ")}.`] : []),
     "",
-    `| Run | CPU | Inputs | Median | ${q} | A/A median | A/A p90 | A/A ${q} | Tail set | Base under 3.33 ms | Base under 0.1 ms |`,
-    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    `| Run | CPU | Inputs | Median | ${q} | A/A median | A/A p10 | A/A p90 | A/A ${q} | Tail set | Base under 3.33 ms | Base under 0.1 ms |`,
+    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ...rows,
     "",
   ].join("\n");
