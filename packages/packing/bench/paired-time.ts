@@ -8,9 +8,14 @@
 // - Mode `fresh`: a fresh process for each arm, each input and each round. Each input takes the arms in turn. The order rotates each round.
 //
 // Schema `paired-time/2` is `paired-time/1` with the fields `passes`, `warm` and `wallMs`. A reader of version 2 reads version 1.
+// A run with the event count (`eventProbe`) adds the field `events` to each input.
 
 import { spawn } from "node:child_process";
-import { arch, cpus, platform } from "node:os";
+import { readFileSync, rmSync } from "node:fs";
+import { arch, cpus, platform, tmpdir } from "node:os";
+import { join } from "node:path";
+import { PerformanceObserver } from "node:perf_hooks";
+import { setFlagsFromString } from "node:v8";
 
 /** The mode of a paired time run. */
 export type Mode = "process" | "fresh";
@@ -35,6 +40,14 @@ export interface ChildResult {
   peakRss?: number;
   /** The median of the last half of the timed passes over the median of the first half. Only a child with 2 passes or more gives it. */
   warm?: number;
+  /** The events of the timed passes. Only a child with the event count gives it. */
+  events?: ChildEvents;
+}
+
+/** The events of a child in its timed passes (k130): the GC events and the deopts of each half of the passes. */
+export interface ChildEvents {
+  gc: [number, number];
+  deopt: [number, number];
 }
 
 /** The computer of a paired time run. The `cpu` is the model of the first CPU. */
@@ -101,6 +114,8 @@ export interface PairedInput {
   peakRss?: Record<string, number>;
   /** The median `warm` of the children of each arm over its rounds. Only mode `fresh` with 2 passes or more has it. */
   warm?: Record<string, number>;
+  /** The sums of the events of the children of each arm over its rounds. Only a run with the event count has it. */
+  events?: Record<string, ChildEvents>;
 }
 
 /**
@@ -221,13 +236,14 @@ interface RawTimes {
   ms: Map<string, Map<string, number[]>>;
   peak: Map<string, Map<string, number>>;
   warm: Map<string, Map<string, number[]>>;
+  events: Map<string, Map<string, ChildEvents>>;
 }
 
 /** This function makes empty raw times for the inputs and the arms. */
 function rawOf(inputs: readonly { id: string }[], arms: readonly { id: string }[]): RawTimes {
   const ms = new Map(inputs.map((i) => [i.id, new Map(arms.map((a) => [a.id, [] as number[]]))]));
   const warm = new Map(inputs.map((i) => [i.id, new Map(arms.map((a) => [a.id, [] as number[]]))]));
-  return { ms, peak: new Map(inputs.map((i) => [i.id, new Map<string, number>()])), warm };
+  return { ms, peak: new Map(inputs.map((i) => [i.id, new Map<string, number>()])), warm, events: new Map(inputs.map((i) => [i.id, new Map<string, ChildEvents>()])) };
 }
 
 /** This function gives the statistics of the ratios of one arm. */
@@ -291,6 +307,8 @@ export function pairedReport<I>(
     const warms = raw.warm.get(input.id)!;
     const warm = Object.fromEntries(arms.flatMap((a) => ((warms.get(a.id) ?? []).length > 0 ? [[a.id, quantileOf(warms.get(a.id)!, 0.5)]] : [])));
     if (mode === "fresh" && Object.keys(warm).length > 0) row.warm = warm;
+    const events = raw.events.get(input.id)!;
+    if (mode === "fresh" && events.size > 0) row.events = Object.fromEntries(events);
     return row;
   });
   const rowsOf = (id: string) => rows.filter((r) => r.ratio[id] !== undefined).map((r) => ({ ...(r.group === undefined ? {} : { group: r.group }), ratio: r.ratio[id]! }));
@@ -319,21 +337,75 @@ function warmOf(values: readonly number[], band: { p10: number; p90: number } | 
 /**
  * This function does the warm-up passes of a child untimed, then the timed passes. It gives the median time and the memory peak of the process.
  * With 2 passes or more, it also gives `warm`: the median of the last half of the passes over the median of the first half.
+ * The function `mark` gets the bounds of the halves, outside the timed passes. Its passes are 0, half, passes - half and passes.
  */
-export function timeChild(run: () => unknown, warmup: number, clock: () => number = () => performance.now(), passes = 1): ChildResult & { peakRss: number } {
+export function timeChild(run: () => unknown, warmup: number, clock: () => number = () => performance.now(), passes = 1, mark?: (pass: number) => void): ChildResult & { peakRss: number } {
   for (let w = 0; w < warmup; w++) run();
   const times: number[] = [];
+  const half = Math.floor(passes / 2);
+  const bounds = new Set([0, half, passes - half]);
   for (let p = 0; p < passes; p++) {
+    if (bounds.has(p)) mark?.(p);
     const start = clock();
     run();
     times.push(clock() - start);
   }
-  const half = Math.floor(passes / 2);
+  mark?.(passes);
   const early = quantileOf(times.slice(0, half), 0.5);
   // The value maxRSS of Node.js is in kilobytes
   const out: ChildResult & { peakRss: number } = { ms: quantileOf(times, 0.5), peakRss: process.resourceUsage().maxRSS * 1024 };
   if (half > 0 && early > 0) out.warm = quantileOf(times.slice(passes - half), 0.5) / early;
   return out;
+}
+
+/**
+ * This function starts the event count of a child (k130), and gives the function `mark` of `timeChild` and the function `events`.
+ *
+ * - A `PerformanceObserver` records the start of each GC event. The V8 flag `--trace-deopt` writes each deopt to a file of the child.
+ * - Each mark records the time and the count of the deopts. The time of a mark is outside the read of the file.
+ * - The function `events` gives the counts of each half of the passes, and removes the file.
+ */
+export function eventProbe(dir: string = tmpdir()): { mark: (pass: number) => void; events: (passes: number) => Promise<ChildEvents> } {
+  const file = join(dir, `paired-deopt-${process.pid}.txt`);
+  for (const flag of ["--trace-deopt", "--redirect-code-traces", `--redirect-code-traces-to=${file}`]) setFlagsFromString(flag);
+  const gc: number[] = [];
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) gc.push(entry.startTime);
+  });
+  observer.observe({ entryTypes: ["gc"] });
+  const deopts = (): number => {
+    try {
+      return readFileSync(file, "utf8").split("\n").filter((line) => line.includes("[bailout (kind")).length;
+    } catch {
+      // V8 makes the file at the first deopt
+      return 0;
+    }
+  };
+  const marks = new Map<number, { before: number; deopt: number; after: number }>();
+  return {
+    mark: (pass) => {
+      const before = performance.now();
+      const deopt = deopts();
+      marks.set(pass, { before, deopt, after: performance.now() });
+    },
+    events: async (passes) => {
+      // The observer gets the GC entries after a turn of the event loop
+      await new Promise((done) => setTimeout(done, 10));
+      observer.disconnect();
+      setFlagsFromString("--no-trace-deopt");
+      rmSync(file, { force: true });
+      const half = Math.floor(passes / 2);
+      const span = (from: number, to: number): [number, number] => {
+        const a = marks.get(from);
+        const b = marks.get(to);
+        if (a === undefined || b === undefined) throw new Error(`The event count has no mark at the pass ${a === undefined ? from : to}.`);
+        return [gc.filter((t) => t >= a.after && t < b.before).length, b.deopt - a.deopt];
+      };
+      const early = span(0, half);
+      const late = span(passes - half, passes);
+      return { gc: [early[0], late[0]], deopt: [early[1], late[1]] };
+    },
+  };
 }
 
 /** This function starts a child with the child protocol, and gives its result. A child that exits with a code other than 0 is an error. */
@@ -353,14 +425,21 @@ function startArgv(argv: readonly string[]): Promise<string> {
   });
 }
 
-/** This function reads the last line of the stdout of a child: `{"ms": n, "peakRss"?: bytes, "warm"?: n}`. */
+/**
+ * This function reads the result of a child: the last line of its stdout that starts with `{`. It is `{"ms": n, "peakRss"?: bytes, "warm"?: n, "events"?: counts}`.
+ * The V8 flag `--trace-deopt` can write lines after the result.
+ */
 export function childResult(stdout: string): ChildResult {
-  const line = stdout.trim().split("\n").at(-1) ?? "";
-  const value = JSON.parse(line) as { ms?: unknown; peakRss?: unknown; warm?: unknown };
+  const lines = stdout.trim().split("\n").map((l) => l.trim());
+  const line = lines.findLast((l) => l.startsWith("{")) ?? lines.at(-1) ?? "";
+  const value = JSON.parse(line) as { ms?: unknown; peakRss?: unknown; warm?: unknown; events?: unknown };
   if (typeof value.ms !== "number" || !Number.isFinite(value.ms)) throw new Error(`The child gave no time: ${line}`);
   const out: ChildResult = { ms: value.ms };
   if (typeof value.peakRss === "number") out.peakRss = value.peakRss;
   if (typeof value.warm === "number" && Number.isFinite(value.warm)) out.warm = value.warm;
+  const pair = (x: unknown): x is [number, number] => Array.isArray(x) && x.length === 2 && x.every((n) => Number.isInteger(n) && n >= 0);
+  const e = value.events as { gc?: unknown; deopt?: unknown } | undefined;
+  if (e !== undefined && pair(e.gc) && pair(e.deopt)) out.events = { gc: e.gc, deopt: e.deopt };
   return out;
 }
 
@@ -401,6 +480,12 @@ async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Pr
         const result = await start(arm.command!, input.id, warmup, passes);
         raw.ms.get(input.id)!.get(arm.id)!.push(result.ms);
         if (result.warm !== undefined) raw.warm.get(input.id)!.get(arm.id)!.push(result.warm);
+        if (result.events !== undefined) {
+          const own = raw.events.get(input.id)!;
+          const sum = own.get(arm.id) ?? { gc: [0, 0], deopt: [0, 0] };
+          const e = result.events;
+          own.set(arm.id, { gc: [sum.gc[0] + e.gc[0], sum.gc[1] + e.gc[1]], deopt: [sum.deopt[0] + e.deopt[0], sum.deopt[1] + e.deopt[1]] });
+        }
         if (result.peakRss !== undefined) {
           const peak = raw.peak.get(input.id)!;
           peak.set(arm.id, Math.max(peak.get(arm.id) ?? 0, result.peakRss));

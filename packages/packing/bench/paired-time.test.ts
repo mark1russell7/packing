@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aaId, armOrder, childResult, measureIsolated, pairedMarkdown, quantileOf, timeChild, warmRule, type PairedEnv } from "./paired-time.ts";
+import { aaId, armOrder, childResult, eventProbe, measureIsolated, pairedMarkdown, quantileOf, timeChild, warmRule, type PairedEnv } from "./paired-time.ts";
 
 const ENV: PairedEnv = { cpu: "Test CPU 9000", cores: 4, os: "test", arch: "x64", node: "v0.0.0" };
 
@@ -191,6 +191,30 @@ describe("the child protocol", () => {
     expect(childResult('{"ms": 2, "warm": 0.98}')).toEqual({ ms: 2, warm: 0.98 });
     expect(childResult('{"ms": 2, "warm": null}')).toEqual({ ms: 2 });
     expect(() => childResult('{"peakRss": 10}')).toThrow("no time");
+  });
+
+  it("reads the event counts, and skips the trace lines after the result (k130)", () => {
+    expect(childResult('{"ms": 2, "events": {"gc": [1, 3], "deopt": [0, 2]}}\n) (opt id 5) for deoptimization, reason: x]\n')).toEqual({ ms: 2, events: { gc: [1, 3], deopt: [0, 2] } });
+    expect(childResult('{"ms": 2, "events": {"gc": [1], "deopt": [0, 2]}}')).toEqual({ ms: 2 });
+  });
+
+  it("marks the bounds of the halves outside the timed passes (k130)", () => {
+    const at: number[] = [];
+    let runs = 0;
+    timeChild(() => (runs += 1), 1, undefined, 5, (pass) => at.push(pass, runs));
+    // Pass p starts after 1 + p runs. The halves are the passes 0 to 1 and 3 to 4
+    expect(at).toEqual([0, 1, 2, 3, 3, 4, 5, 6]);
+  });
+
+  it("counts the deopts and the GC events of each half of the passes (k130)", async () => {
+    const probe = eventProbe();
+    const f = (o: { x: unknown }): unknown => o.x;
+    let i = 0;
+    const result = timeChild(() => (i++ < 4000 ? f({ x: i }) : f({ x: String(i) })), 4000, undefined, 6, probe.mark);
+    const events = await probe.events(6);
+    expect(result.ms).toBeGreaterThanOrEqual(0);
+    expect(events.gc.every((n) => Number.isInteger(n) && n >= 0)).toBe(true);
+    expect(events.deopt.every((n) => Number.isInteger(n) && n >= 0)).toBe(true);
   });
 
   it("times one run after the warm-up runs", () => {
