@@ -885,6 +885,7 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `repeats` | `5` | The timed rounds of each arm on each input. |
 | `warmup` | `2` | The untimed passes of each arm before each timed pass. |
 | `passes` | `1` | Mode `fresh` only: the timed passes of each child. The time of the child is their median. |
+| `events` | `false` | Mode `fresh` with 2 passes or more: each child counts its GC events and its deopts (k130). |
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
 | `only` | empty | The test uses only the inputs with this text in their id, for example `.fixed.`. |
 | `gate` | empty | The name of a time gate in `bench/gates/`, for example `k66-time`. The job fails when the gate fails. |
@@ -910,6 +911,13 @@ Schema `paired-time/2` is `paired-time/1` with three more fields (k130). A reade
 - The report gives `warm` for each arm and input. For each arm, it also gives the median, p10, p90 and `outside`. The value `outside` is the share of inputs with a warm value outside [p10, p90] of the A/A arm.
 - A warm value outside the A/A band tells that the child did not reach a warm state. That input is not a result.
 - `warmRule` gives the verdict of a report. An arm is warm when two conditions are true. Its `outside` is at most the `outside` of the A/A arm plus 0.1. Its warm median is in [0.97, 1.03].
+
+The event count (`events`, k130) finds the cause of a warm value outside the A/A band.
+
+- A `PerformanceObserver` records the start of each GC event of the child. The V8 flag `--trace-deopt` writes each deopt to a file of the child.
+- The child counts the events of the first half and of the last half of its timed passes. The reads of the file are outside the timed passes.
+- The report gives `events` for each input and arm: `{"gc": [first, last], "deopt": [first, last]}`, the sums over the rounds.
+- The observer and the trace add some work to the child. Thus a run with `events` is a diagnosis, not a time gate.
 
 The warm rule is relative, because a fixed limit failed. The prediction of the first fresh run of k130 had the limit `outside` 0.2 or less. By construction, 20 % of the A/A ratios are outside their own p10 to p90. The warm value of a child has its own noise. Thus the A/A arm itself had 0.18 to 0.32, and the limit was below the noise floor.
 

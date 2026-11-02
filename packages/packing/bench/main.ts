@@ -2,8 +2,8 @@
 //
 //   node bench/main.ts run --corpus <name> --prediction <id> [--strategies a,b|all] [--repeats 5] [--warmup 2] [--interleave] [--anchor] [--out dir] [--commit sha]
 //   node bench/main.ts list [--strategies a,b|all]
-//   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--passes 1] [--no-aa] [--only text] [--out dir]
-//   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n> [--passes <n>]
+//   node bench/main.ts paired --corpus <name> --prediction <id> --arms base,a,b [--mode fresh|process] [--repeats 5] [--warmup 1] [--passes 1] [--events] [--no-aa] [--only text] [--out dir]
+//   node bench/main.ts paired-child --corpus <name> --index <file> --arm <id> --input <id> --warmup <n> [--passes <n>] [--events]
 //   node bench/main.ts paired-gate --gate <file> --dir <paired out dir>
 //   node bench/main.ts paired-budget --dir <folder of paired runs> --arm <id>
 //   node bench/main.ts merge --out <dir> <job dir>...
@@ -35,7 +35,7 @@ import {
   pairedInputs,
   pairedPack,
 } from "./run.ts";
-import { measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
+import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
 import { budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
 import { checkTimeGate, gateMarkdown, parseTimeGate } from "./time-gate.ts";
@@ -128,6 +128,7 @@ function corpusOpt(): { name: string; corpus: ReturnType<typeof parseCorpus> } {
  * - The test uses only the inputs that each arm supports. With `--only <text>`, it uses only the inputs with that text in their id.
  * - Mode `fresh` (the default) starts a child `paired-child` for each arm, each input and each round.
  * - With `--passes <n>`, each child times n passes and gives their median and the warm check (k130).
+ * - With `--events`, each child counts its GC events and its deopts in each half of its passes (k130). It needs mode `fresh` and 2 passes or more.
  */
 async function paired(): Promise<number> {
   const { name, corpus } = corpusOpt();
@@ -147,15 +148,17 @@ async function paired(): Promise<number> {
   // A child packs one arm on one input. The helper adds --input and --warmup. The index gives the spec and the seed of each input
   const index = join(out, "paired-index.json");
   writeFileSync(index, `${JSON.stringify(Object.fromEntries(inputs.map((x) => [x.id, [x.value.spec, x.value.seed]])))}\n`);
-  const child = [process.execPath, ...process.execArgv, join(here, "main.ts"), "paired-child", "--corpus", name, "--index", index];
-  const arms: Arm<(typeof inputs)[number]["value"]>[] = ids.map((id) => ({ id, run: (at) => packs.get(id)!.get(at.id)!(), command: [...child, "--arm", id] }));
   const repeats = count("--repeats", DEFAULT_REPEATS);
   const warmup = count("--warmup", 1);
   const passes = count("--passes", 1);
+  const events = rest.includes("--events");
+  if (events && (mode !== "fresh" || passes < 2)) throw new Error("The event count needs mode fresh and 2 passes or more.");
+  const child = [process.execPath, ...process.execArgv, join(here, "main.ts"), "paired-child", "--corpus", name, "--index", index, ...(events ? ["--events"] : [])];
+  const arms: Arm<(typeof inputs)[number]["value"]>[] = ids.map((id) => ({ id, run: (at) => packs.get(id)!.get(at.id)!(), command: [...child, "--arm", id] }));
   const options = { arms, inputs, repeats, warmup, ...(mode === "fresh" ? { passes } : {}), aa: !rest.includes("--no-aa") };
   const report: PairedReport = mode === "process" ? measureIsolated({ ...options, mode }) : await measureIsolated({ ...options, mode });
   const sha = commit();
-  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, ...(mode === "fresh" ? { passes } : {}), arms: ids, ...(only !== undefined ? { only } : {}), inputs: inputs.length, skipped: all.length - inputs.length };
+  const run = { schema: "packing-paired-run/1", corpus: name, prediction, ...(sha !== undefined ? { commit: sha } : {}), mode, repeats, warmup, ...(mode === "fresh" ? { passes } : {}), ...(events ? { events } : {}), arms: ids, ...(only !== undefined ? { only } : {}), inputs: inputs.length, skipped: all.length - inputs.length };
   writeFileSync(join(out, "run.json"), `${JSON.stringify(run, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.json"), `${JSON.stringify(report, null, 2)}\n`);
   writeFileSync(join(out, "paired-time.md"), pairedMarkdown(report, `A paired time test of ${ids.join(", ")} on ${name}`));
@@ -163,8 +166,8 @@ async function paired(): Promise<number> {
   return 0;
 }
 
-/** This function packs one arm on one input in a fresh process, by the child protocol of `paired-time.ts`. It writes `{"ms": n, "peakRss": bytes, "warm"?: n}`. */
-function pairedChild(): number {
+/** This function packs one arm on one input in a fresh process, by the child protocol of `paired-time.ts`. It writes `{"ms": n, "peakRss": bytes, "warm"?: n, "events"?: counts}`. */
+async function pairedChild(): Promise<number> {
   const { corpus } = corpusOpt();
   const id = opt("--arm");
   const input = opt("--input");
@@ -176,7 +179,11 @@ function pairedChild(): number {
   if (at === undefined) throw new Error(`The corpus has no input "${input}".`);
   const pack = pairedPack(id, at);
   if (pack === undefined) throw new Error(`The arm ${id} does not support the input ${input}.`);
-  process.stdout.write(`${JSON.stringify(timeChild(pack, count("--warmup", 1), undefined, count("--passes", 1)))}\n`);
+  const passes = count("--passes", 1);
+  const probe = rest.includes("--events") ? eventProbe() : undefined;
+  const result = timeChild(pack, count("--warmup", 1), undefined, passes, probe?.mark);
+  if (probe !== undefined) result.events = await probe.events(passes);
+  process.stdout.write(`${JSON.stringify(result)}\n`);
   return 0;
 }
 

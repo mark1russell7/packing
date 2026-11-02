@@ -35,6 +35,10 @@ on:
         description: "Mode fresh: the timed passes of each child. The time is their median. With 2 or more, the report has the warm check (k130)."
         type: string
         default: "1"
+      events:
+        description: "Mode fresh, 2 passes or more: each child counts its GC events and its deopts in each half of its passes (k130)."
+        type: boolean
+        default: false
       aa:
         description: Add the A/A arm (the base against itself) for the noise floor.
         type: boolean
@@ -60,7 +64,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}-${{ inputs.gate }}-${{ inputs.only }}-${{ inputs.budget }}-${{ inputs.warmup }}-${{ inputs.passes }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.arms }}-${{ inputs.mode }}-${{ inputs.prediction }}-${{ inputs.runs }}-${{ inputs.gate }}-${{ inputs.only }}-${{ inputs.budget }}-${{ inputs.warmup }}-${{ inputs.passes }}-${{ inputs.events }}
   cancel-in-progress: false
 
 jobs:
@@ -97,6 +101,7 @@ jobs:
       WARMUP: ${{ inputs.warmup }}
       PASSES: ${{ inputs.passes }}
       AA: ${{ inputs.aa }}
+      EVENTS: ${{ inputs.events }}
       ONLY: ${{ inputs.only }}
       GATE: ${{ inputs.gate }}
     steps:
@@ -125,6 +130,7 @@ jobs:
           [ "$AA" = "true" ] || aa=(--no-aa)
           [ -z "$ONLY" ] || aa+=(--only "$ONLY")
           [ "$MODE" != fresh ] || aa+=(--passes "$PASSES")
+          [ "$EVENTS" != "true" ] || aa+=(--events)
           status=0
           node packages/packing/bench/main.ts paired --corpus "$CORPUS" --arms "$ARMS" --prediction "$PREDICTION" \
             --mode "$MODE" --repeats "$REPEATS" --warmup "$WARMUP" "${aa[@]}" --commit "$GITHUB_SHA" --out "$out" || status=$?
