@@ -1,0 +1,111 @@
+# The time gates of bench/gates in CI (k130). ci.yml uses this workflow, so the check CI OK of the ruleset needs it.
+# The job changes examines the changed files of a pull request. The job gate runs only when a file that changes the
+# time of a gate changed. A push or a release does not repeat it: the pull request of the change ran it.
+# The job gate makes one job of the paired time test with the settings of the gate record, and applies the gate.
+# The gate k130-time is one job of 3750 children, 20 to 34 minutes (run 41470082104).
+name: Time gate
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: time-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.paths.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Examine the changed files
+        id: paths
+        env:
+          EVENT: ${{ github.event_name }}
+          WORKFLOW: ${{ github.workflow }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # A manual run of this file always runs the gate
+          if [ "$EVENT" = workflow_dispatch ] && [ "$WORKFLOW" = "Time gate" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$EVENT" != pull_request ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "A push or a release does not repeat the time gate. The pull request of the change ran it." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The files of the portfolio around its members, the time tools, the gate records and the lock file
+          files="$(git diff --name-only "$BASE" "$GITHUB_SHA")"
+          if grep -qxE 'packages/packing/src/(portfolio|layout-input|measures|registry|select-key|work|contract)\.ts|packages/packing/bench/(paired-time|time-gate|run|entries|main)\.ts|packages/packing/bench/gates/[a-z0-9-]+\.json|pnpm-lock\.yaml|\.github/workflows/time-gate\.yml' <<<"$files"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No file of the time gates changed, so the job gate is skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  gate:
+    needs: changes
+    if: ${{ needs.changes.outputs.run == 'true' }}
+    name: gate (${{ matrix.gate }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        # repeats: the rounds of the runs of the derivation of each gate
+        include:
+          - gate: k130-time
+            repeats: "3"
+    env:
+      GATE: ${{ matrix.gate }}
+      REPEATS: ${{ matrix.repeats }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Run the paired time test of the gate and apply the gate
+        run: |
+          file="packages/packing/bench/gates/$GATE.json"
+          # The settings of the gate record, one per line. The arms are the base, the members of sum-median and the arm, each one time.
+          mapfile -t set < <(node -e 'const g = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); console.log([...new Set([g.base, ...(g.members ?? []), g.arm])].join(",")); for (const k of ["corpus", "mode", "only", "passes", "warmup"]) console.log(g[k] ?? "")' "$file")
+          arms="${set[0]}" corpus="${set[1]}" mode="${set[2]}" only="${set[3]}" passes="${set[4]}" warmup="${set[5]:-1}"
+          extra=()
+          [ -z "$only" ] || extra+=(--only "$only")
+          [ -z "$passes" ] || extra+=(--passes "$passes")
+          out="$RUNNER_TEMP/paired-time"
+          status=0
+          node packages/packing/bench/main.ts paired --corpus "$corpus" --arms "$arms" --prediction "gate-$GATE" \
+            --mode "$mode" --repeats "$REPEATS" --warmup "$warmup" "${extra[@]}" --commit "$GITHUB_SHA" --out "$out" || status=$?
+          [ -f "$out/paired-time.md" ] && cat "$out/paired-time.md" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = 0 ]; then
+            node packages/packing/bench/main.ts paired-gate --gate "$file" --dir "$out" || status=$?
+            [ -f "$out/gate.md" ] && cat "$out/gate.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: time-gate-${{ matrix.gate }}
+          path: ${{ runner.temp }}/paired-time
+          if-no-files-found: error
