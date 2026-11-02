@@ -1,8 +1,8 @@
 // A time gate on a paired time test (`paired-time.ts`). The gate record gives its limits and their derivation.
 //
 // A limit comes from 5 CI runs of the same test or more. The gate refuses a report that is not of its test.
-// - The old rule (STRATEGY.md 1e10f489): the limit is the worst value times 1 plus the margin.
-// - The rule of the gate limits: the limit is the worst value plus the spread (max - min) of the values, rounded up to 4 decimals.
+// The rule of the gate limits (STRATEGY.md, 2026-11-02): the limit is the worst value plus the spread (max - min) of the values, rounded up to 4 decimals.
+// A run is valid only when its A/A band p10 to p90 contains 1. No limit uses a fixed factor or a fixed A/A tolerance.
 
 import { aaId, quantileOf, warmInputs, type PairedInput, type PairedReport } from "./paired-time.ts";
 
@@ -14,19 +14,13 @@ import { aaId, quantileOf, warmInputs, type PairedInput, type PairedReport } fro
  */
 export type GateMeasure = "median" | "q95" | "sum-median";
 
-/**
- * The derivation of a limit: the values of the runs and the worst value.
- *
- * - With `margin`, the limit is `worst * (1 + margin)`.
- * - With `spread`, the spread is max - min of the values, and the limit is `spreadLimit(values)`.
- */
+/** The derivation of a limit: the values of the runs, the worst value and the spread (max - min). The limit is `spreadLimit(values)`. */
 export interface GateDerivation {
   runs: string[];
   cpus: string[];
   values: number[];
   worst: number;
-  margin?: number;
-  spread?: number;
+  spread: number;
 }
 
 /** A check of a time gate: the measure of the arm is at most `max`. */
@@ -47,9 +41,13 @@ export interface GateReportOnly {
   steady?: boolean;
 }
 
-/** A time gate of one candidate against its base on one corpus (schema `packing-time-gate/1`). */
+/**
+ * A time gate of one candidate against its base on one corpus (schema `packing-time-gate/2`).
+ *
+ * The A/A band p10 to p90 of a report contains 1, or the report does not gate. Schema 1 had a fixed A/A tolerance `aaMedian` and the margin rule.
+ */
 export interface TimeGate {
-  schema: "packing-time-gate/1";
+  schema: "packing-time-gate/2";
   id: string;
   item: string;
   rule: string;
@@ -57,10 +55,6 @@ export interface TimeGate {
   mode: PairedReport["mode"];
   base: string;
   arm: string;
-  /** The A/A median of a report is in `[1 - aaMedian, 1 + aaMedian]`, or the report does not gate. */
-  aaMedian: number;
-  /** When `true`, the A/A band p10 to p90 of a report contains 1, or the report does not gate. */
-  aaBand?: boolean;
   /** The filter `--only` of the run. A gate without it takes only a run of all the inputs. */
   only?: string;
   /** The untimed passes of each child of mode `fresh`. A report with another count does not gate. */
@@ -138,20 +132,16 @@ function entryOptions(gate: TimeGate, entry: { steady?: boolean }): Pick<TimeGat
 /** This function examines the shape of a gate record and throws a `TypeError` on a break. */
 export function parseTimeGate(text: string): TimeGate {
   const gate = JSON.parse(text) as TimeGate;
-  if (gate.schema !== "packing-time-gate/1") throw new TypeError(`A time gate has the schema packing-time-gate/1, not "${String(gate.schema)}".`);
+  if (gate.schema !== "packing-time-gate/2") throw new TypeError(`A time gate has the schema packing-time-gate/2, not "${String(gate.schema)}".`);
   for (const c of gate.checks) {
     const d = c.derivation;
     if (d.values.length < 5) throw new TypeError(`The limit of ${c.measure} needs 5 runs or more, not ${d.values.length}.`);
     const worst = Math.max(...d.values);
     if (worst !== d.worst) throw new TypeError(`The worst value of ${c.measure} is ${worst}, not ${d.worst}.`);
-    if ((d.margin === undefined) === (d.spread === undefined)) throw new TypeError(`The derivation of ${c.measure} has a margin or a spread, not both or none.`);
-    if (d.margin !== undefined) {
-      if (Math.abs(c.max - Math.round(d.worst * (1 + d.margin) * 1e4) / 1e4) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value times ${1 + d.margin}.`);
-    } else {
-      const spread = worst - Math.min(...d.values);
-      if (Math.abs(spread - d.spread!) > 1e-9) throw new TypeError(`The spread of ${c.measure} is ${spread}, not ${d.spread}.`);
-      if (Math.abs(c.max - spreadLimit(d.values)) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
-    }
+    if (typeof d.spread !== "number") throw new TypeError(`The derivation of ${c.measure} has no spread.`);
+    const spread = worst - Math.min(...d.values);
+    if (Math.abs(spread - d.spread) > 1e-9) throw new TypeError(`The spread of ${c.measure} is ${spread}, not ${d.spread}.`);
+    if (Math.abs(c.max - spreadLimit(d.values)) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
   }
   for (const e of [...gate.checks, ...gate.reports]) {
     if (e.measure === "sum-median" && (gate.members ?? []).length === 0) throw new TypeError("The measure sum-median needs the members of the gate.");
@@ -174,12 +164,9 @@ export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: stri
   const lines: GateLine[] = [];
   if (report.noiseFloor === null || !report.arms.includes(aaId(gate.base))) refused.push("the report has no A/A arm");
   else {
-    const value = report.noiseFloor.median;
-    const pass = Math.abs(value - 1) <= gate.aaMedian;
-    lines.push({ measure: "aa.median", value, max: 1 + gate.aaMedian, pass });
-    if (!pass) refused.push(`the A/A median ${value} is outside 1 ± ${gate.aaMedian}`);
-    const { p10, p90 } = report.noiseFloor;
-    if (gate.aaBand === true && !(p10 <= 1 && p90 >= 1)) refused.push(`the A/A band ${p10} to ${p90} does not contain 1`);
+    const { median, p10, p90 } = report.noiseFloor;
+    lines.push({ measure: "aa.median", value: median, max: null, pass: true });
+    if (!(p10 <= 1 && p90 >= 1)) refused.push(`the A/A band ${p10} to ${p90} does not contain 1`);
   }
   if (gate.steady !== undefined) lines.push({ measure: "steady.inputs", value: gateInputs(report, gate).length, max: null, pass: true });
   const tag = (e: { steady?: boolean }): { steady?: boolean } => (e.steady === true ? { steady: true } : {});

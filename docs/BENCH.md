@@ -969,18 +969,17 @@ An absolute time of this repository is an in-order time, if no paired test is na
 
 ### A time gate
 
-A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
+A time gate (`bench/time-gate.ts`, schema `packing-time-gate/2`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
 
 - A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A spread.
-- A derivation with `margin` uses the old rule (STRATEGY.md 1e10f489): the limit is the worst value times 1 plus the margin. `k66-time` uses it.
-- A derivation with `spread` uses the rule of the gate limits: the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
-- A measure with a spread across the 5 runs larger than the margin does not gate. The record reports it with the reason.
+- The rule of the gate limits (STRATEGY.md, 2026-11-02): the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
+- No limit uses a fixed factor. Schema 1 had the old rule, the worst value times 1.1, and a fixed A/A tolerance. Schema 2 has neither.
+- A measure that the item does not gate is a report, with the reason in the record.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
 - `time-gate.yml` makes one job of the paired test of each gate in its list, with the settings of the gate record. `ci.yml` uses it, so CI OK needs it.
 - A pull request starts these jobs only when a file of the gates changed. The workflow names the files. A push or a release does not start them again.
-- The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
+- The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A band p10 to p90 that does not contain 1. The A/A median is a report line.
 - The gate refuses a run with another filter `only` than the gate. A gate without `only` takes only a run of all the inputs.
-- With `aaBand`, the gate refuses a report with an A/A band p10 to p90 that does not contain 1.
 - With `warmup` or `passes`, the gate refuses a run of mode `fresh` with another count of passes.
 - The field `steady` of the gate gives the arms of the warm rule. A check or a report with `steady: true` uses only the inputs with each of these arms warm. The line `steady.inputs` gives their count.
 - The measure `sum-median` is the median of the time of the arm over the sum of the times of the `members` of the gate.
@@ -1025,7 +1024,7 @@ The proposal of `noiseCap` comes from the A/A arms of 3 k66 jobs of `pack-select
 
 The proposal 0.156 is the worst job plus the spread of the jobs (0.1379 + 0.0183). With it, a quiet job votes in the guard of the jobs. The merged records are under it.
 
-- After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value times 1.1).
+- After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value plus the spread of 5 runs).
 
 The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 

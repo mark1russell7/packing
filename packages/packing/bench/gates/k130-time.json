@@ -1,5 +1,5 @@
 {
-  "schema": "packing-time-gate/1",
+  "schema": "packing-time-gate/2",
   "id": "k130-time",
   "item": "k130",
   "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded up to 4 decimals (away from the data). Each run has its A/A band p10 to p90 around 1. The gate is on all the inputs, because the slow tail is what a user of the portfolio pays (the strategist, k130). The portfolio arm fails the warm rule at W=5000, so the steady inputs (all 3 arms warm) give a second number, a report.",
@@ -7,8 +7,6 @@
   "mode": "fresh",
   "base": "rows",
   "arm": "portfolio-fill-rows-bl",
-  "aaMedian": 0.05,
-  "aaBand": true,
   "only": ".fixed.",
   "warmup": 5000,
   "passes": 200,

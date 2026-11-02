@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import type { PairedReport } from "./paired-time.ts";
 import { checkTimeGate, gateMarkdown, gateValue, parseTimeGate, spreadLimit, type TimeGate } from "./time-gate.ts";
 
-const derivation = { runs: ["r1", "r2", "r3", "r4", "r5"], cpus: ["c", "c", "c", "c", "c"], values: [1.8, 2, 1.9, 1.7, 1.95], worst: 2, margin: 0.1 };
+const derivation = { runs: ["r1", "r2", "r3", "r4", "r5"], cpus: ["c", "c", "c", "c", "c"], values: [1.8, 2, 1.9, 1.7, 1.95], worst: 2, spread: 0.3 };
 const GATE: TimeGate = {
-  schema: "packing-time-gate/1",
+  schema: "packing-time-gate/2",
   id: "test-time",
   item: "k0",
   rule: "test",
@@ -14,8 +14,7 @@ const GATE: TimeGate = {
   mode: "process",
   base: "a",
   arm: "b",
-  aaMedian: 0.05,
-  checks: [{ measure: "median", max: 2.2, derivation }],
+  checks: [{ measure: "median", max: 2.3, derivation }],
   reports: [{ measure: "q95", values: [3, 4, 5, 3, 4], why: "test" }],
   aa: { median: [1, 1, 1, 1, 1], p10: [0.9, 0.9, 0.9, 0.9, 0.9], p90: [1.1, 1.1, 1.1, 1.1, 1.1] },
 };
@@ -41,25 +40,25 @@ describe("checkTimeGate", () => {
   it("passes a report with the median at most the limit, and reports the q95", () => {
     const result = checkTimeGate(GATE, report([1, 2, 2.1]), "set-v1");
     expect(result.pass).toBe(true);
-    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", 1.05], ["median", 2.2], ["q95", null]]);
-    expect(gateMarkdown(result)).toContain("| median | 2.0000 | 2.2000 | pass |");
+    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", null], ["median", 2.3], ["q95", null]]);
+    expect(gateMarkdown(result)).toContain("| median | 2.0000 | 2.3000 | pass |");
   });
 
   it("fails a report with the median above the limit", () => {
     const result = checkTimeGate(GATE, report([2.3, 2.4, 2.5]), "set-v1");
     expect(result.pass).toBe(false);
     expect(result.refused).toEqual([]);
-    expect(gateMarkdown(result)).toContain("| median | 2.4000 | 2.2000 | fail |");
+    expect(gateMarkdown(result)).toContain("| median | 2.4000 | 2.3000 | fail |");
   });
 
-  it("refuses a report of another test, without the A/A arm or with a wide A/A median", () => {
+  it("refuses a report of another test, without the A/A arm or with an A/A band off 1", () => {
     expect(checkTimeGate(GATE, report([1]), "set-v2").refused).toEqual(["the corpus is set-v2, not set-v1"]);
     expect(checkTimeGate(GATE, report([1], { mode: "fresh" }), "set-v1").refused).toEqual(["the mode is fresh, not process"]);
     expect(checkTimeGate(GATE, report([1], { noiseFloor: null }), "set-v1").refused).toEqual(["the report has no A/A arm"]);
     expect(checkTimeGate(GATE, report([1]), "set-v1", ".fixed.").refused).toEqual(["the run uses only the inputs with .fixed. in their id"]);
-    const wide = checkTimeGate(GATE, report([1], { noiseFloor: { median: 1.06, p10: 1, p90: 1.1 } }), "set-v1");
+    const wide = checkTimeGate(GATE, report([1], { noiseFloor: { median: 1.06, p10: 1.01, p90: 1.1 } }), "set-v1");
     expect(wide.pass).toBe(false);
-    expect(wide.refused).toEqual(["the A/A median 1.06 is outside 1 ± 0.05"]);
+    expect(wide.refused).toEqual(["the A/A band 1.01 to 1.1 does not contain 1"]);
   });
 
   it("gives the q95 of the ratios of the arm", () => {
@@ -74,7 +73,6 @@ const SUM: TimeGate = {
   id: "sum-time",
   mode: "fresh",
   arm: "c",
-  aaBand: true,
   only: ".fixed.",
   warmup: 5000,
   passes: 200,
@@ -116,7 +114,7 @@ describe("the sum measure on the steady inputs (k130)", () => {
   it("gates on all the inputs, and reports the steady measure and the count of steady inputs", () => {
     const result = checkTimeGate(SUM, fresh(rows), "set-v1", ".fixed.", 5000);
     expect([result.pass, result.refused]).toEqual([true, []]);
-    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", 1.05], ["steady.inputs", null], ["sum-median", 1.5], ["sum-median", null]]);
+    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", null], ["steady.inputs", null], ["sum-median", 1.5], ["sum-median", null]]);
     expect(gateMarkdown(result)).toContain("| steady.inputs | 2 | report | - |");
     expect(gateMarkdown(result)).toContain("| sum-median | 1.4000 | 1.5000 | pass |");
     expect(gateMarkdown(result)).toContain("| sum-median (steady) | 1.3000 | report | - |");
@@ -135,11 +133,11 @@ describe("the sum measure on the steady inputs (k130)", () => {
 });
 
 describe("parseTimeGate", () => {
-  it("refuses a limit that is not its worst value times 1 plus the margin", () => {
+  it("refuses a limit that is not its worst value plus its spread, and the schema 1", () => {
     expect(() => parseTimeGate(JSON.stringify(GATE))).not.toThrow();
-    expect(() => parseTimeGate(JSON.stringify({ ...GATE, checks: [{ measure: "median", max: 2.5, derivation }] }))).toThrow("worst value times");
-    expect(() => parseTimeGate(JSON.stringify({ ...GATE, checks: [{ measure: "median", max: 2.2, derivation: { ...derivation, values: [2] } }] }))).toThrow("5 runs");
-    expect(() => parseTimeGate(JSON.stringify({ ...GATE, schema: "x" }))).toThrow(TypeError);
+    expect(() => parseTimeGate(JSON.stringify({ ...GATE, checks: [{ measure: "median", max: 2.5, derivation }] }))).toThrow("worst value plus its spread");
+    expect(() => parseTimeGate(JSON.stringify({ ...GATE, checks: [{ measure: "median", max: 2.3, derivation: { ...derivation, values: [2] } }] }))).toThrow("5 runs");
+    expect(() => parseTimeGate(JSON.stringify({ ...GATE, schema: "packing-time-gate/1" }))).toThrow("packing-time-gate/2");
   });
 
   it("gives the worst value plus the spread, rounded up", () => {
@@ -156,7 +154,7 @@ describe("parseTimeGate", () => {
     expect(() => parseTimeGate(sum(1.45))).not.toThrow();
     expect(() => parseTimeGate(sum(1.5))).toThrow("worst value plus its spread");
     expect(() => parseTimeGate(sum(1.45, { spread: 0.2 }))).toThrow("The spread of sum-median is");
-    expect(() => parseTimeGate(sum(1.45, { margin: 0.1 }))).toThrow("not both or none");
+    expect(() => parseTimeGate(sum(1.45, { spread: undefined }))).toThrow("has no spread");
     expect(() => parseTimeGate(JSON.stringify({ ...JSON.parse(sum(1.45)), members: [] }))).toThrow("needs the members");
     const { steady: _arms, ...noArms } = JSON.parse(sum(1.45)) as TimeGate;
     expect(() => parseTimeGate(JSON.stringify(noArms))).toThrow("needs the arms of the warm rule");
