@@ -27,9 +27,9 @@ describe("timeBudget", () => {
     const b = timeBudget(five([1.1, 1.2, 1.3, 1.4, 1.5]), "b");
     expect(b.verdict).toBe("promoted");
     expect(b.median).toEqual({ worst: 1.3, limit: 1.5, pass: true });
-    expect(b.tail).toMatchObject({ worst: 1.485, spread: 0, measured: true, pass: true });
+    expect(b.tail).toMatchObject({ worst: 1.485, measured: true, pass: true });
     expect(b.runs[0]!.tailSet).toBe(4);
-    expect(b.resolution.median).toEqual({ worstAaP90: 1, least: 1.1, valid: true });
+    expect(b.resolution.median).toEqual({ worstAaP90: 1, spread: 0, least: 1, valid: true });
     expect(b.runs[0]).toMatchObject({ underOldFloor: 0.2, under01ms: 0.2 });
     expect(b.reasons).toEqual([]);
   });
@@ -42,18 +42,31 @@ describe("timeBudget", () => {
     expect(b.reasons).toEqual(["the worst median 1.6 is above the budget 1.5"]);
   });
 
-  it("cannot decide when the A/A p90 times 1.1 is not under the budget", () => {
-    const b = timeBudget(five([1, 1, 1, 1, 1], [1, 1, 1, 1, 1.4]), "b");
-    expect(b.verdict).toBe("cannot decide");
-    expect(b.resolution.median).toEqual({ worstAaP90: 1.4, least: 1.54, valid: false });
-  });
-
-  it("cannot decide for noise when the tails spread more than the margin", () => {
-    const runs = five([1, 1, 1, 1, 1.5]);
-    runs[0] = run("run1", [1, 1, 1, 1, 1.9]);
+  it("cannot decide when the worst A/A p90 plus the spread of the runs is not under the budget", () => {
+    // Alone, the worst A/A p90 1.4 is under 1.5. The spread 1.4 - 1.3 makes the least 1.5.
+    expect(timeBudget(five([1, 1, 1, 1, 1], [1, 1, 1, 1, 1.4]), "b").resolution.median).toEqual({ worstAaP90: 1.4, spread: 0, least: 1.4, valid: true });
+    const runs = five([1, 1, 1, 1, 1], [1, 1, 1, 1, 1.3]);
+    runs[2] = run("run3", [1, 1, 1, 1, 1], [1, 1, 1, 1, 1.4]);
     const b = timeBudget(runs, "b");
     expect(b.verdict).toBe("cannot decide");
-    expect(b.reasons[0]).toContain("noise: the tails of the runs spread");
+    expect(b.resolution.median).toEqual({ worstAaP90: 1.4, spread: 0.1, least: 1.5, valid: false });
+    expect(b.reasons).toEqual(["noise: the worst A/A p90 1.4 plus the spread 0.1 is 1.5, not under the budget 1.5"]);
+  });
+
+  it("cannot decide with a run whose A/A band from p10 to p90 does not contain 1", () => {
+    const runs = five([1.1, 1.2, 1.3, 1.4, 1.5]);
+    runs[1] = run("run2", [1.1, 1.2, 1.3, 1.4, 1.5], [0.71, 0.8, 0.9, 0.95, 0.99]);
+    const b = timeBudget(runs, "b");
+    expect(b.verdict).toBe("cannot decide");
+    expect(b.reasons).toEqual(["the run run2 has the A/A band 0.71 to 0.99, without 1: it measured the runner, and a new run replaces it"]);
+  });
+
+  it("does not promote an arm that fails in one run of 5", () => {
+    const runs = five([1, 1, 1, 1, 1]);
+    runs[4] = run("run5", [1, 1, 1, 1, 2.5]);
+    const b = timeBudget(runs, "b");
+    expect(b.verdict).toBe("not promoted");
+    expect(b.reasons).toEqual(["the worst tail 2.275 is above the budget 2"]);
   });
 
   it("records the tail as not measured with an empty tail set", () => {
@@ -87,7 +100,7 @@ describe("timeBudget", () => {
   it("writes the policy, the resolution and the runs as Markdown", () => {
     const md = budgetMarkdown(timeBudget(five([1.1, 1.2, 1.3, 1.4, 1.5]), "b", BUDGET_POLICY));
     expect(md).toContain("## The time budget of b against a on set-v1: promoted");
-    expect(md).toContain("Resolution: the worst A/A p90 1 gives 1.1 (valid).");
-    expect(md).toContain("| run1 | Test CPU | 5 | 1.3 | 1.485 | 1 | 1 | 1 | 4 | 0.2 | 0.2 |");
+    expect(md).toContain("Resolution: the worst A/A p90 1 plus the spread 0 gives 1 (valid).");
+    expect(md).toContain("| run1 | Test CPU | 5 | 1.3 | 1.485 | 1 | 1 | 1 | 1 | 4 | 0.2 | 0.2 |");
   });
 });
