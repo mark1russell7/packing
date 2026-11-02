@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aaId, armOrder, childResult, measureIsolated, pairedMarkdown, quantileOf, timeChild, type PairedEnv } from "./paired-time.ts";
+import { aaId, armOrder, childResult, measureIsolated, pairedMarkdown, quantileOf, timeChild, warmRule, type PairedEnv } from "./paired-time.ts";
 
 const ENV: PairedEnv = { cpu: "Test CPU 9000", cores: 4, os: "test", arch: "x64", node: "v0.0.0" };
 
@@ -137,6 +137,7 @@ describe("measureIsolated in mode fresh", () => {
     expect(report.context).toBe("ci --flag");
     expect(report.schema).toBe("paired-time/2");
     expect([report.passes, report.warm, x.warm]).toEqual([1, undefined, undefined]);
+    expect(() => warmRule(report)).toThrow("needs a report of mode fresh");
     expect(report.wallMs).toBeGreaterThanOrEqual(0);
   });
 
@@ -172,6 +173,14 @@ describe("measureIsolated in mode fresh", () => {
     expect(md).toContain("Each child times 4 passes after its warm-up.");
     expect(md).toContain("| Arm | Inputs | Median | p10 | p90 | Outside |");
     expect(md).toContain("| `b` | 2 |");
+    // The warm rule: b has outside 0.5, more than the outside 0 of the A/A arm plus 0.1
+    const verdict = warmRule(report);
+    expect([verdict.ok, verdict.aaOutside, verdict.inputsWarm]).toEqual([false, 0, 1]);
+    expect(verdict.arms["base"]).toEqual({ median: 1, outside: 0, ok: true });
+    expect(verdict.arms["b"]!.ok).toBe(false);
+    expect(warmRule(report, { arms: ["base"] }).ok).toBe(true);
+    expect(warmRule(report, { slack: 0.5, median: [0.7, 1.03] }).ok).toBe(true);
+    expect(() => warmRule(report, { arms: ["nope"] })).toThrow("no warm check");
   });
 });
 
