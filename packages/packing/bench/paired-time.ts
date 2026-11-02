@@ -464,9 +464,15 @@ export function warmRule(
       return [id, { median: w.median, outside, ok: outside <= aaOutside + slack && w.median >= low && w.median <= high }];
     }),
   );
+  return { ok: Object.values(arms).every((a) => a.ok), aaOutside, arms, inputsWarm: warmInputs(r, ids).length };
+}
+
+/** This function gives the inputs of a report with the warm value of each arm of `ids` in the A/A band (k130). */
+export function warmInputs(r: PairedReport, ids: readonly string[]): PairedInput[] {
+  const floor = r.noiseFloor;
+  if (floor === null) return [];
   const inside = (v: number | undefined): boolean => v !== undefined && v >= floor.p10 && v <= floor.p90;
-  const inputsWarm = r.inputs.filter((i) => ids.every((id) => inside(i.warm?.[id]))).length;
-  return { ok: Object.values(arms).every((a) => a.ok), aaOutside, arms, inputsWarm };
+  return r.inputs.filter((i) => ids.every((id) => inside(i.warm?.[id])));
 }
 
 /** This function gives a number with 3 decimals for a table. */

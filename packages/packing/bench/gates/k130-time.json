@@ -1,0 +1,91 @@
+{
+  "schema": "packing-time-gate/1",
+  "id": "k130-time",
+  "item": "k130",
+  "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded down to 4 decimals. Each run has its A/A band p10 to p90 around 1. The portfolio arm fails the warm rule at W=5000, so the gate measures only the steady inputs (the fallback of the strategist, k130).",
+  "corpus": "pack-classes-v1",
+  "mode": "fresh",
+  "base": "rows",
+  "arm": "portfolio-fill-rows-bl",
+  "aaMedian": 0.05,
+  "aaBand": true,
+  "only": ".fixed.",
+  "warmup": 5000,
+  "passes": 200,
+  "members": [
+    "rows",
+    "maxrects-bl"
+  ],
+  "steady": [
+    "rows",
+    "maxrects-bl",
+    "portfolio-fill-rows-bl"
+  ],
+  "checks": [
+    {
+      "measure": "sum-median",
+      "max": 1.451,
+      "derivation": {
+        "runs": [
+          "https://github.com/mark1russell7/packing/actions/runs/41470082104 job run1",
+          "https://github.com/mark1russell7/packing/actions/runs/41470082104 job run2",
+          "https://github.com/mark1russell7/packing/actions/runs/41470082104 job run3",
+          "https://github.com/mark1russell7/packing/actions/runs/41470082104 job run4",
+          "https://github.com/mark1russell7/packing/actions/runs/41470082104 job run5"
+        ],
+        "cpus": [
+          "AMD EPYC 9V45 96-Core Processor",
+          "AMD EPYC 7763 64-Core Processor",
+          "AMD EPYC 7763 64-Core Processor",
+          "AMD EPYC 7763 64-Core Processor",
+          "AMD EPYC 9V45 96-Core Processor"
+        ],
+        "values": [
+          1.286891,
+          1.357432,
+          1.360764,
+          1.368949,
+          1.30455
+        ],
+        "worst": 1.368949,
+        "spread": 0.082058
+      }
+    }
+  ],
+  "reports": [
+    {
+      "measure": "median",
+      "values": [
+        2.662456,
+        2.865976,
+        2.868491,
+        2.899068,
+        2.709505
+      ],
+      "why": "The ratio of the portfolio to rows alone, on the steady inputs. It is for the record. The user-facing number is the sum measure."
+    }
+  ],
+  "aa": {
+    "median": [
+      0.995039,
+      1.001851,
+      1.000052,
+      1.001332,
+      0.999174
+    ],
+    "p10": [
+      0.912354,
+      0.97386,
+      0.967399,
+      0.971337,
+      0.812658
+    ],
+    "p90": [
+      1.058316,
+      1.026745,
+      1.039025,
+      1.030991,
+      1.072229
+    ]
+  }
+}
