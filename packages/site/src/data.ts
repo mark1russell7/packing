@@ -195,6 +195,8 @@ export interface CoverageMeasure {
 
 /** The held-out result of one measure on the sampled pairs of the whole space */
 export interface CoverageSampled {
+  /** The share with the prior beside the headline, with its effective count (k122) */
+  priorBeside?: CoveragePriorBeside;
   n: number;
   hits: number;
   share: number;
@@ -226,10 +228,16 @@ export interface CoveragePrior {
   /** The weight of the families of the corpus with pairs */
   covered: number;
   /** The kind of the prior (k119): `union` of the committed corpora, or `corpus` of the grid. An older snapshot does not have it. */
-  kind?: "union" | "corpus";
+  kind?: "union" | "corpus" | "family-flat" | "tempered";
 }
 
 /** The effective count of a share with the prior, its weighted pairs and its pairs with the weight 0 (k119) */
+export interface CoveragePriorBeside {
+  kind?: string;
+  share: number | null;
+  nEff: number;
+}
+
 export interface CoveragePriorCount {
   nEff: number;
   weighted: number;
@@ -238,7 +246,7 @@ export interface CoveragePriorCount {
 
 /** The basis of the family prior (k119): its kind, its corpora, the weight of each sampler family and the families without a weight */
 export interface CoveragePriorBasis {
-  kind: "union" | "corpus";
+  kind: "union" | "corpus" | "family-flat" | "tempered";
   corpora: string[];
   inputs: number;
   families: { family: string; inputs: number; weight: number }[];
@@ -246,6 +254,10 @@ export interface CoveragePriorBasis {
   absent: string[];
   /** The corpus families that the sampler does not draw */
   unmapped: { family: string; inputs: number }[];
+  /** The families that are a stratum of their own, with no weight (k122) */
+  strata?: { family: string; inputs: number }[];
+  /** The power of the prior `tempered` (k122) */
+  power?: number;
 }
 
 /** The share of a part of the sampled pairs. A part without pairs has the share `null`. */

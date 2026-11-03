@@ -328,7 +328,7 @@ export const COVERAGE_PRIOR_SCOPE = "family prior";
  * This function gives the text of the share of a sample with the family prior, or `null` without it.
  * The text tells the pairs with the weight 0, because their families are not in the corpus.
  */
-export function priorText(s: Pick<CoverageSampled, "prior"> | undefined): string | null {
+export function priorText(s: Pick<CoverageSampled, "prior" | "priorBeside"> | undefined): string | null {
   const p = s?.prior;
   if (p === undefined) return null;
   const zero = p.zero === 0 ? "" : `, ${p.zero} ${p.zero === 1 ? "pair" : "pairs"} of other families with the weight 0`;
@@ -336,7 +336,10 @@ export function priorText(s: Pick<CoverageSampled, "prior"> | undefined): string
   const range = p.low === null || p.high === null ? "" : ` (95% interval ${percentText(p.low)} to ${percentText(p.high)})`;
   // k119: a snapshot with the kind of the prior also shows the effective count of the pairs.
   const nEff = p.kind === undefined ? "" : `, ${p.nEff} effective pairs`;
-  return `${COVERAGE_PRIOR_SCOPE} ${percentText(p.share)}${range}${nEff}, ${p.weighted} weighted pairs${zero}`;
+  // k122: a snapshot with the prior beside the headline shows it with its effective count.
+  const b = s?.priorBeside;
+  const beside = b === undefined || b.share === null ? "" : `. ${b.kind}: ${percentText(b.share)}, ${b.nEff} effective pairs`;
+  return `${COVERAGE_PRIOR_SCOPE} ${percentText(p.share)}${range}${nEff}, ${p.weighted} weighted pairs${zero}${beside}`;
 }
 
 /**
@@ -345,11 +348,19 @@ export function priorText(s: Pick<CoverageSampled, "prior"> | undefined): string
  */
 export function priorBasisText(b: CoveragePriorBasis | undefined): string | null {
   if (b === undefined) return null;
-  const from = b.kind === "union" ? `the ${b.inputs} distinct inputs of the ${b.corpora.length} committed corpora` : `the ${b.inputs} inputs of the corpus ${b.corpora.join(", ")}`;
+  const committed = `the ${b.inputs} distinct inputs of the ${b.corpora.length} committed corpora`;
+  const froms: Record<CoveragePriorBasis["kind"], string> = {
+    union: committed,
+    corpus: `the ${b.inputs} inputs of the corpus ${b.corpora.join(", ")}`,
+    tempered: `${committed}, each count to the power ${b.power}`,
+    "family-flat": `the same weight for each sampler family, not the ${b.inputs} inputs of the corpora`,
+  };
+  const from = froms[b.kind];
   const weights = b.families.map((f) => `${f.family} ${percentText(f.weight)}`).join(", ");
   const absent = b.absent.length === 0 ? "" : ` The sampler families ${b.absent.join(", ")} have no inputs, so their weight is 0.`;
   const unmapped = b.unmapped.length === 0 ? "" : ` The sampler does not draw ${b.unmapped.map((f) => `${f.family} (${f.inputs} inputs)`).join(", ")}, so these inputs give no weight.`;
-  return `The weights come from ${from}: ${weights}.${absent}${unmapped}`;
+  const strata = (b.strata ?? []).length === 0 ? "" : ` ${b.strata!.map((f) => f.family).join(", ")} is a stratum of its own.`;
+  return `The weights come from ${from}: ${weights}.${absent}${unmapped}${strata}`;
 }
 
 /**

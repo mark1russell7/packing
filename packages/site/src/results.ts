@@ -431,7 +431,7 @@ function mountCoverage(): void {
     (l.measures.some((m) => m.sampled?.prior !== undefined || l.uniform?.measures[m.id]?.prior !== undefined)
       ? l.prior === undefined
         ? ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs of the corpus as its weight. A family outside the corpus gets the weight 0.`
-        : ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs as its weight. ${esc(priorBasisText(l.prior) ?? "")} The effective pairs are the count of uniform pairs with the same precision.`
+        : ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family a weight. ${esc(priorBasisText(l.prior) ?? "")} The effective pairs are the count of uniform pairs with the same precision.`
       : "") +
     determinismText(sample);
   $("coverage-errors").innerHTML = l.measures
