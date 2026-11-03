@@ -1,10 +1,11 @@
 // The input file `layout-input/1` of `docs/FORMAT.md`: its types, its numbers, its canonical form and its hash.
 
 import { canonicalInput, type LayoutContainer, type LayoutEdge, type LayoutGenerator, type LayoutInput } from "@mark1russell7/layout-contract";
+import { fnv1a32 as homeFnv1a32 } from "@mark1russell7/rigor-generators";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { predicates } from "./probe.ts";
 import { round3 } from "./round.ts";
-import { sha256Hex, utf8 } from "./sha256.ts";
+import { sha256Hex } from "./sha256.ts";
 import type { Cell } from "./strategy.ts";
 
 export type { LayoutEdge, LayoutInput } from "@mark1russell7/layout-contract";
@@ -75,11 +76,12 @@ export interface CorpusCell extends Cell {
   mode: "offline" | "online" | "incremental";
 }
 
-/** This function gives the `fnv1a32` hash of the UTF-8 bytes of a string, as `docs/FORMAT.md` gives it. */
+/**
+ * This function gives the `fnv1a32` hash of the UTF-8 bytes of a string, as `docs/FORMAT.md` gives it. A lone surrogate
+ * is U+FFFD. Its home is `@mark1russell7/rigor-generators`. This function keeps the name and the signature of the API.
+ */
 export function fnv1a32(text: string): number {
-  let h = 0x811c9dc5;
-  for (const b of utf8(text)) h = Math.imul(h ^ b, 0x01000193) >>> 0;
-  return h;
+  return homeFnv1a32(text);
 }
 
 export { round3 } from "./round.ts";
