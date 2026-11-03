@@ -142,6 +142,8 @@ Status: done, done, waiting, next, done.
 | k133 | The time row of the win test on rigor-bench. `bench/time-budget.ts` takes the pooled verdict and the time tail of `@mark1russell7/rigor-bench`, and keeps no verdict logic of its own. The settings table gets `timeMargin`, `noiseCap` and the counts of the jobs, cases and rounds. | bench | done | |
 | k134 | No import cycles of `registry.ts` with `bbox.ts`, `select.ts` and `portfolio.ts`. The npm build of the root import then splits by module, so a bundler drops the strategies that a consumer does not import. Today the root import with only `maxrects` is 72 kB gzip | core | later | k132 |
 | k135 | The point of each strategy in `packSpace`, for layout-stack L34. `configOfStrategy(id, options)` gives the canonical config of a strategy of the registry with its options, or the reason that it has none. The param `table` of `select` gains the value `pack`, and the named config `pack` is the choice of `pack` without a strategy (`PACK_DEFAULT_TABLE`). | core | done | k68 |
+| k136 | The fallback of `force` and `relax` to their member is a typed field of the output. A host can then tell its user which strategy gave the layout. Today the fallback is only the trace measures `force.fallback` and `relax.fallback`. | core | later | |
+| k137 | `overflow` tells why each item has no place: too large for the container, or no free place. `pack()` with only `fixedWidth` also tells of a rectangle wider than that width. Today a too-large item is in `overflow`, with no reason. | core | later | |
 
 ## The queue
 
