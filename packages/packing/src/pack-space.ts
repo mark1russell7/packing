@@ -123,6 +123,9 @@ const OVERLAP_MIN_PARAMS: readonly SpaceParam[] = [
 /** The param of `relax` of roadmap item k124: the share of the move from the member layout to the target. */
 const RELAX_PARAMS: readonly SpaceParam[] = [{ name: "strength", kind: "real", min: 0, max: 1, default: 1 }];
 
+/** The param of `relax-pull` of roadmap item k137: the share of the move to the balance point of the links. A param of `relax` changes the id of each `relax` config, so the pull is its own option. */
+const RELAX_PULL_PARAMS: readonly SpaceParam[] = [{ name: "pull", kind: "real", min: 0, max: 1, default: 1 }];
+
 /** The params of `force` of roadmap item k125: the count of the force steps and the most rounds of PRISM. */
 const FORCE_PARAMS: readonly SpaceParam[] = [
   { name: "iterations", kind: "int", min: 1, max: 256, scale: "log", default: 60 },
@@ -288,6 +291,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "genetic", params: GENETIC_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "tabu", params: TABU_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "relax", params: RELAX_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "relax-pull", params: RELAX_PULL_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "force", params: FORCE_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
@@ -328,8 +332,9 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  *
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force`.
- * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` have 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force`.
+ * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force` have 1 member.
+ * - `relax-pull` is the strategy `relax` with the strength 0 and the option `pull`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
@@ -390,6 +395,8 @@ export const packSpace: StrategySpace = Object.freeze({
     "relax-maxrects-bl": metaConfig("relax", [single("maxrects-bl")]),
     "relax-skyline-bl-waste": metaConfig("relax", [single("skyline-bl-waste")]),
     relax: metaConfig("relax", [single("maxrects-bl")]),
+    "relax-pull-rows": metaConfig("relax-pull", [single("rows")]),
+    "relax-pull-maxrects-bl": metaConfig("relax-pull", [single("maxrects-bl")]),
     "force-rows": metaConfig("force", [single("rows")]),
     "force-maxrects-bl": metaConfig("force", [single("maxrects-bl")]),
     "force-skyline-bl-waste": metaConfig("force", [single("skyline-bl-waste")]),
@@ -501,7 +508,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     tenure: "combine.tabu.tenure",
     neighbors: "combine.tabu.neighbors",
   } satisfies Places<TabuStrategyOptions>,
-  relax: { member: "combine.relax.members", strength: "combine.relax.strength" } satisfies Places<RelaxStrategyOptions>,
+  relax: { member: "combine.relax.members", strength: "combine.relax.strength", pull: "combine.relax-pull.pull" } satisfies Places<RelaxStrategyOptions>,
   force: { member: "combine.force.members", iterations: "combine.force.iterations", rounds: "combine.force.rounds" } satisfies Places<ForceStrategyOptions>,
   pack: {
     sortOrder: "order",
@@ -584,6 +591,13 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
     const { strategy: inner, options: innerOptions, ...rest } = options;
     options = { ...rest, member: { strategy: inner, options: innerOptions ?? {} } };
   }
+  if (id === "relax" && options["pull"] !== undefined) {
+    // The pull with no spread is the option relax-pull of the stage combine. The pull 0 is relax.
+    const { pull, ...rest } = options;
+    if (pull === 0) options = rest;
+    else if (options["strength"] !== 0) return { ok: false, reason: "packSpace holds the option relax.pull only with the strength 0: the option relax-pull of the stage combine." };
+    else options = { pull, member: options["member"] ?? { strategy: "maxrects", options: { rule: "bl" } } };
+  }
   for (const name of Object.keys(options)) {
     const key = `${id}.${name}`;
     if (name !== "member" || id !== "aspect-fit") {
@@ -599,7 +613,10 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
     }
   }
   const base = packSpace.named![id]!;
-  const placeOf = (name: string): string => (id === "aspect-fit" && name === "member" ? "combine.aspect-fit.members" : places[name]!);
+  const placeOf = (name: string): string => {
+    if (name === "member" && id === "aspect-fit") return "combine.aspect-fit.members";
+    return name === "member" && id === "relax" && options["pull"] !== undefined ? "combine.relax-pull.members" : places[name]!;
+  };
   // The options name one option of the stage combine. Another option than the option of the named config starts with no params and no members.
   const targets = [...new Set(Object.keys(options).map((name) => placeOf(name).split(".")[1]!))];
   if (targets.length > 1) return { ok: false, reason: `The options of ${id} set the options ${targets.join(" and ")} of the stage combine. A config has one.` };
@@ -813,6 +830,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return packWith("tabu", input, { member: entryOf(members[0]!), iterations: params["iterations"], tenure: params["tenure"], neighbors: params["neighbors"], ...work }, seed);
     case "relax":
       return packWith("relax", input, { member: entryOf(members[0]!), strength: params["strength"] }, seed);
+    case "relax-pull":
+      return packWith("relax", input, { member: entryOf(members[0]!), strength: 0, pull: params["pull"] }, seed);
     case "force":
       return packWith("force", input, { member: entryOf(members[0]!), iterations: params["iterations"], rounds: params["rounds"] }, seed);
     default: {

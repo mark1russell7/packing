@@ -45,6 +45,7 @@ describe("packSpace", () => {
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
+  // Roadmap item k137 adds relax-pull: 3 meta configs for each base config with 3 levels, and 1 with 1 level.
   it("gives cell-portfolio one pool entry, and counts 2.78e20 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
@@ -68,10 +69,10 @@ describe("packSpace", () => {
     // The table pack of select (k135) gives 2 values of the param table, not 1. Thus each count grows by the select configs.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(277869295533810375192n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100061834238419076n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 276469311858023490660n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 99500446769432000n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(277869295533810384111n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100061834238419967n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 276469311858023499570n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 99500446769432890n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -476,11 +477,13 @@ describe("configOfStrategy (k135)", () => {
     expect(reason("restarts", { member: 3 })).toMatch(/not a strategy id/);
     expect(reason("restarts", { member: { strategy: "rows", options: { color: "red" } } })).toMatch(/The member rows .* no place/);
     expect(reason("portfolio", { k: 2, members: ["rows", "maxrects"] })).toMatch(/A config has one/);
+    expect(reason("relax", { pull: 1 })).toMatch(/only with the strength 0/);
   });
 
   it("keeps the configId of each named config of main", () => {
-    // The list of main before k135, with no named config pack. A change of a config or of canonicalConfig changes the hash.
-    const list = Object.entries(named).filter(([name]) => name !== "pack").map(([name, config]) => `${name}=${configId(packSpace, config)}`);
+    // The list of main before k135, with no named config pack and no named config of k137. A change of a config or of canonicalConfig changes the hash.
+    const added = ["pack", "relax-pull-rows", "relax-pull-maxrects-bl"];
+    const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });
 });

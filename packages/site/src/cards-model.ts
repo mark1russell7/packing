@@ -357,6 +357,7 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
   relax: {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
     strength: { type: "number", note: "The share of the move to the even spread, from 0 to 1. With 0, the output is the member output." },
+    pull: { type: "number", note: "The share of the move of each box to the balance point of its links, from 0 to 1. The default is 0." },
   },
   force: {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
@@ -379,7 +380,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   anneal: ["member", "budgetWork"] satisfies (keyof AnnealStrategyOptions)[],
   genetic: ["member", "budgetWork"] satisfies (keyof GeneticStrategyOptions)[],
   tabu: ["member", "budgetWork"] satisfies (keyof TabuStrategyOptions)[],
-  relax: ["member"] satisfies (keyof RelaxStrategyOptions)[],
+  relax: ["member", "pull"] satisfies (keyof RelaxStrategyOptions)[],
   force: ["member"] satisfies (keyof ForceStrategyOptions)[],
 };
 
