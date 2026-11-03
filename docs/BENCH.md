@@ -1578,6 +1578,13 @@ The paired test of the two arms (k120, `coverage.ts --active <dir> --control <di
 - The section `paired` also gives mean(d) with a 95% bootstrap interval (10 000 samples, the seed `k120-paired-<measure>`).
 - The module `bench/paired-arms.ts` uses only `@mark1russell7/rigor-statistics`. It has no verdict logic of its own.
 
+The result over the fold seeds (k120, `node bench/paired-arms.ts --out <file> <coverage.json> ...`):
+
+- The command reads the section `paired` of the coverage summary of each fold seed. It needs 5 summaries or more.
+- For each measure, `floor` is 2 sample SD of the mean(d) of the seeds, from `noiseFloor` of rigor-statistics.
+- The outcome is `gain` or `loss` only when the mean of the mean(d) is more than `floor` from 0. Otherwise it is `noise`.
+- `rejects` gives the count of the seeds where the Holm correction finds a change.
+
 `coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.
 
 - The round 1 pairs are tested against the grid model. A later round is tested against the grid and the earlier rounds.
