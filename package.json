@@ -10,8 +10,7 @@
   "scripts": {
     "package": "template package",
     "template": "template repo",
-    "test": "pnpm run check:shared && pnpm -r run test && pnpm run test:ai-review",
-    "check:shared": "node scripts/check-shared.mjs",
+    "test": "pnpm -r run test && pnpm run test:ai-review",
     "test:ai-review": "node --test \"scripts/ai-review/*.test.mjs\"",
     "typecheck": "pnpm -r run typecheck",
     "lint:ste": "ste-lint",
@@ -38,10 +37,9 @@
       "typed-scripts": {
         "ignore": [
           "scripts/ai-review/**",
-          ".dependency-cruiser.mjs",
-          "scripts/check-shared.mjs"
+          ".dependency-cruiser.mjs"
         ],
-        "reason": "The first two are template files, and the template sync brings their .ts forms. check-shared.mjs is shared with layout-contract and highways, so the three repositories change it together."
+        "reason": "These are template files, and the template sync brings their .ts forms."
       }
     }
   }
