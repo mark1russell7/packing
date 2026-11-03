@@ -19,6 +19,7 @@ export default defineConfig({
   format: "esm",
   platform: "neutral",
   sourcemap: true,
+  hash: false,
   publint: true,
   attw: { profile: "esm-only" },
 });
