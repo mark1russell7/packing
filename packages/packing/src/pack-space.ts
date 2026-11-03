@@ -532,6 +532,7 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
   "maxrects.fit": ONLY_SHELF,
   "guillotine.fit": ONLY_SHELF,
   "pack.space": "It is an object: the free space of the container. `pack` gets it from the input, not from a choice.",
+  "pack.links": "It is a list of the links between the rectangles of the input. Only a graph order reads it. It is data, not a choice.",
   "pack.turnable": "It is a set of rectangles of the input. The `rotate` params of `maxrects`, `skyline` and `guillotine` make it.",
   "pack.turned": "It is a set that `pack` fills with the turned rectangles. It holds a result, not a choice.",
 });
