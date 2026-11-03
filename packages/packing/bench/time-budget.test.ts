@@ -84,7 +84,8 @@ describe("timeBudget", () => {
     // Each job has 3 rounds with arm a first in the candidate pair and 2 in the A/A pair, of 5. Thus the balance removes 4 records of each case in each pair.
     expect(b.pooled!.trimmed).toBe(24 * 4 * 2);
     expect(b.jobs.map((j) => [j.job, j.roundOffset, j.cpu, j.outcome])).toEqual([0, 1, 2, 3, 4].map((j) => [String(j), j * 5, "Test CPU", "same"]));
-    expect(b.tail).toMatchObject({ measured: true, outcome: "within", set: 24, within: 24, beyond: 0, undecided: 0 });
+    expect(b.tail).toMatchObject({ measured: true, outcome: "within", set: 24, share: 0.95, allowed: 1 });
+    expect(b.tail!.cases.every((c) => c.outcome === "within")).toBe(true);
     expect(b.reasons).toEqual([]);
   });
 
@@ -98,10 +99,21 @@ describe("timeBudget", () => {
   it("does not promote an arm with tail cases beyond the limit", () => {
     const b = timeBudget(five({ ratio: (c) => (c < 3 ? 3 : 1) }), "b");
     expect(b.pooled!.outcome).toBe("same");
-    expect(b.tail).toMatchObject({ outcome: "beyond", beyond: 3, within: 21 });
+    expect(b.tail).toMatchObject({ outcome: "beyond", allowed: 1 });
     expect(b.tail!.cases.filter((c) => c.outcome === "beyond").map((c) => c.case)).toEqual(["case0", "case1", "case2"]);
     expect(b.verdict).toBe("not promoted");
-    expect(b.reasons[0]).toMatch(/^tail: 3 of 24 cases are beyond the limit 2\./);
+    expect(b.reasons[0]).toMatch(/^tail: 3 of 24 cases are above the limit 2, and the share 0\.95 permits 1\./);
+  });
+
+  it("promotes an arm with one tail case beyond, as the share timeTailQ permits", () => {
+    const b = timeBudget(five({ ratio: (c) => (c < 1 ? 3 : 1) }), "b");
+    expect(b.tail!.cases.filter((c) => c.outcome === "beyond").map((c) => c.case)).toEqual(["case0"]);
+    expect(b.tail).toMatchObject({ outcome: "within", share: 0.95, allowed: 1 });
+    expect(b.verdict).toBe("promoted");
+    // With timeTailQ 1, each case must be within, so the one case beyond fails the tail.
+    const strict = timeBudget(five({ ratio: (c) => (c < 1 ? 3 : 1) }), "b", { ...BUDGET_POLICY, timeTailQ: 1 });
+    expect(strict.tail).toMatchObject({ outcome: "beyond", share: 1, allowed: 0 });
+    expect(strict.verdict).toBe("not promoted");
   });
 
   it("cannot decide with a noisy A/A arm", () => {
@@ -150,7 +162,7 @@ describe("timeBudget", () => {
     expect(md).toContain("Settings: timeMargin 0.05, noiseCap 0.156, jobs 5, cases 20, rounds 5, timeFloorMs 5, timeTail 2, timeTailQ 0.95, timeTailLevel 0.95.");
     expect(md).toContain("CI run: https://example.com/runs/1");
     expect(md).toContain("The balance removed 192 records.");
-    expect(md).toContain("Tail (cases of 5 ms or more): beyond, 21 within, 3 beyond, 0 cannot decide of 24, limit 2.");
+    expect(md).toContain("Tail (cases of 5 ms or more): beyond over 24 cases, limit 2, share 0.95, 1 allowed. 3 of 24 cases are above the limit 2, and the share 0.95 permits 1.");
     expect(md).toMatch(/\| 0 \| run1 \| Test CPU \| 24 \| 5 \| same \|/);
     expect(md).toMatch(/\| case[0-2] \| [\d.]+ \| \[[\d.]+, [\d.]+\] \| [\d.]+ \| beyond \|/);
   });

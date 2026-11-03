@@ -106,6 +106,8 @@ export interface BudgetTailCase {
   high: number;
   /** The high end of the interval of the case, times the high end of the A/A band */
   bound: number;
+  /** The low end of the interval of the case, times the low end of the A/A band */
+  floor: number;
   outcome: LimitOutcome;
 }
 
@@ -118,9 +120,10 @@ export interface BudgetTail {
   limit: number;
   level: number;
   set: number;
-  within: number;
-  beyond: number;
-  undecided: number;
+  /** The share of the tail set that the tail needs `within`: the setting `timeTailQ` */
+  share: number;
+  /** The number of cases of the tail set that can be other than `within`, from `limitVerdict` */
+  allowed: number;
   reason: string;
   cases: BudgetTailCase[];
 }
@@ -128,9 +131,9 @@ export interface BudgetTail {
 /** The verdict of the time test. */
 export type BudgetVerdict = "promoted" | "not promoted" | "cannot decide";
 
-/** The record of the time test (schema `packing-time-budget/2`). */
+/** The record of the time test (schema `packing-time-budget/3`). */
 export interface BudgetResult {
-  schema: "packing-time-budget/2";
+  schema: "packing-time-budget/3";
   corpus: string;
   mode: string;
   base: string;
@@ -208,24 +211,22 @@ function tailSet(records: readonly PairedTime[], floorMs: number): Set<string> {
 /**
  * This function gives the time tail of the merged records with `limitVerdict` of rigor-bench.
  *
- * rigor-bench 0.2.2 has no share test over the tail set. Thus the outcome of the tail is the outcome of `limitVerdict` over the tail set.
- * That outcome is `within` only when each case is `within`, and `beyond` when one case is `beyond`.
- * The setting `timeTailQ` waits for that share test in rigor-bench (k133).
+ * The option `share` of `limitVerdict` is the setting `timeTailQ`. The tail is `within` when `allowed` cases or fewer are other than `within`.
+ * The tail is `beyond` when more than `allowed` cases are `beyond`.
  */
 function timeTail(candidate: readonly PairedTime[], aa: readonly PairedTime[], policy: BudgetPolicy): BudgetTail {
   const set = tailSet(candidate, policy.timeFloorMs);
-  const base = { limit: policy.timeTail, level: policy.timeTailLevel, set: set.size };
+  const base = { limit: policy.timeTail, level: policy.timeTailLevel, set: set.size, share: policy.timeTailQ };
   if (set.size === 0) {
-    return { ...base, measured: false, outcome: null, within: 0, beyond: 0, undecided: 0, reason: `tail: not measured, no input above ${policy.timeFloorMs} ms`, cases: [] };
+    return { ...base, measured: false, outcome: null, allowed: 0, reason: `tail: not measured, no input above ${policy.timeFloorMs} ms`, cases: [] };
   }
   const v = limitVerdict(
     candidate.filter((r) => set.has(r.case)),
     aa,
-    { limit: policy.timeTail, caseLevel: policy.timeTailLevel },
+    { limit: policy.timeTail, caseLevel: policy.timeTailLevel, share: policy.timeTailQ },
   );
-  const cases = v.cases.map((c) => ({ case: c.case, ratio: r4(c.ratio), low: r4(c.low), high: r4(c.high), bound: r4(c.bound), outcome: c.outcome }));
-  const count = (o: LimitOutcome) => cases.filter((c) => c.outcome === o).length;
-  return { ...base, measured: true, outcome: v.outcome, within: count("within"), beyond: count("beyond"), undecided: count("cannot decide"), reason: v.reason, cases };
+  const cases = v.cases.map((c) => ({ case: c.case, ratio: r4(c.ratio), low: r4(c.low), high: r4(c.high), bound: r4(c.bound), floor: r4(c.floor), outcome: c.outcome }));
+  return { ...base, share: v.share, measured: true, outcome: v.outcome, allowed: v.allowed, reason: v.reason, cases };
 }
 
 /**
@@ -256,7 +257,7 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
     if (!i.report.arms.includes(arm)) reasons.push(`the job ${i.run} has no arm ${arm}`);
     if (!i.report.arms.includes(aaId(i.report.base))) reasons.push(`the job ${i.run} has no A/A arm`);
   }
-  const head = { schema: "packing-time-budget/2" as const, corpus, mode, base, arm, ...(only !== undefined ? { only } : {}), ...(ci !== undefined ? { ci } : {}), policy };
+  const head = { schema: "packing-time-budget/3" as const, corpus, mode, base, arm, ...(only !== undefined ? { only } : {}), ...(ci !== undefined ? { ci } : {}), policy };
   if (reasons.length > 0) return { ...head, jobs: [], pooled: null, tail: null, verdict: "cannot decide", reasons };
 
   const span = Math.max(...inputs.map((i) => Math.max(0, ...i.report.inputs.flatMap((x) => Object.values(x.ms).map((m) => m.length)))));
@@ -308,7 +309,7 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
     reasons.push(`time: the pooled outcome is slower. ${pooled.reason}`);
   } else if (tail.outcome === "beyond") {
     verdict = "not promoted";
-    reasons.push(`tail: ${tail.beyond} of ${tail.set} cases are beyond the limit ${policy.timeTail}. ${tail.reason}`);
+    reasons.push(`tail: ${tail.reason}`);
   } else if (pooled.outcome === "cannot decide" || tail.outcome === "cannot decide") {
     verdict = "cannot decide";
     if (pooled.outcome === "cannot decide") reasons.push(`time: ${pooled.reason}`);
@@ -344,7 +345,7 @@ export function budgetMarkdown(b: BudgetResult): string {
         ]),
     ...(tail === null
       ? []
-      : [tail.measured ? `Tail (cases of ${p.timeFloorMs} ms or more): ${tail.outcome}, ${tail.within} within, ${tail.beyond} beyond, ${tail.undecided} cannot decide of ${tail.set}, limit ${tail.limit}.` : `Tail: not measured, no input above ${p.timeFloorMs} ms.`]),
+      : [tail.measured ? `Tail (cases of ${p.timeFloorMs} ms or more): ${tail.outcome} over ${tail.set} cases, limit ${tail.limit}, share ${tail.share}, ${tail.allowed} allowed. ${tail.reason}` : `Tail: not measured, no input above ${p.timeFloorMs} ms.`]),
     ...(b.reasons.length > 0 ? ["", `Reasons: ${b.reasons.join(" ")}`] : []),
     ...(rows.length === 0
       ? []
