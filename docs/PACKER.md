@@ -600,6 +600,24 @@ The counts of `packSpace`:
 - `ENTRIES` of the benchmark: 30 before, 32 after. `composites`: 5 before, 6 after. The meta options of `spaceCounts`: 6 before, 7 after.
 - The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
 
+### The order `graph-bfs` in `packSpace`
+
+- The stage `order` has the option `graph-bfs` since layout-stack item L34. It is the last option, so a config of an old option keeps its `configId`.
+- `configOfStrategy` gives a point for `rows`, `skyline`, `shelf`, `maxrects` and `guillotine` with this order. The placement `push` does not read `input.links`, so a constraint refuses it.
+- `packConfig` gives the output of `packWith`. Without links, the order is `area-desc`.
+- A meta strategy with such a member starts at the graph order. `memberOrder` reads `input.links`, and `ruin-recreate` moves the links to its new item list.
+- The base configs are 3564 and 1068, and 3561 and 1067 for `rect`. The table gives the meta counts.
+
+| `spaceSize` | Before L34 | Since L34 |
+|---|---:|---:|
+| `meta`, 3 levels | 277869295533810375192 | 688291902860755874904 |
+| `meta`, 1 level | 100061834238419076 | 248007594904236900 |
+| `meta` for `rect`, 3 levels | 276469311858023490660 | 685398465078246361680 |
+| `meta` for `rect`, 1 level | 99500446769432000 | 246846729112282916 |
+| `meta` for `circle` or `polygon`, 3 levels and 1 level | 5940 and 1780 | 7122 and 2134 |
+
+- The draws of the sampler changed, because the counts changed. A sample of a seed before L34 and after L34 has other configs.
+
 ### The overlap minimization
 
 Roadmap item k80 adds the composite strategy `overlap-min` (catalog row `nest-gls-overlap`, idea R6 of the survey). It is opt-in. No default uses it.

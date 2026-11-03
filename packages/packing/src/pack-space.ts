@@ -30,7 +30,7 @@ import type { RelaxStrategyOptions } from "./relax.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
 import { SKYLINE_RULES } from "./skyline.ts";
 import { MEASURE_SPECS } from "./measures.ts";
-import { SORT_ORDERS } from "./order.ts";
+import { GRAPH_ORDERS, SORT_ORDERS } from "./order.ts";
 import type { PackLayoutOptions } from "./pack.ts";
 import type { PortfolioEntry } from "./portfolio.ts";
 import { PORTFOLIO_FRAME_MS } from "./portfolio-cell.ts";
@@ -220,7 +220,7 @@ const pool: readonly StrategyConfig[] = Object.values(POOL);
 
 /** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
 const STAGES: readonly SpaceStage[] = [
-  { name: "order", options: SORT_ORDERS.map((id) => ({ id, params: [], supports: id === "input" ? RECT_OR_CIRCLE : RECT_ONLY })) },
+  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => ({ id, params: [], supports: id === "input" ? RECT_OR_CIRCLE : RECT_ONLY })) },
   {
     name: "size-search",
     options: [
@@ -326,6 +326,7 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * The strategy space of `packing`, schema `strategy-space/1`. It has 5 stages: `order`, `size-search`, `placement`,
  * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
  *
+ * - The order `graph-bfs` reads `input.links`. Without links it gives `area-desc`. The placement `push` does not read links, so it does not go with this order.
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
  * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force`.
@@ -349,6 +350,8 @@ export const packSpace: StrategySpace = Object.freeze({
     { if: { stage: "placement", option: "push" }, then: { stage: "size-search", option: "none" } },
     { if: { stage: "placement", option: "hole-degree" }, then: { stage: "size-search", option: "none" } },
     { if: { stage: "placement", option: "hole-degree" }, then: { stage: "order", option: "input" } },
+    // The placement `push` does not read `input.links`, so a graph order has no effect on it.
+    ...GRAPH_ORDERS.map((option) => ({ if: { stage: "placement", option: "push" }, then: { not: { stage: "order", option } } })),
     // The size search `none` goes only with the placements of `NO_SIZE_SEARCH`. Each other placement (rows to guillotine) needs `log-sweep`.
     ...placementIds.filter((option) => !NO_SIZE_SEARCH.includes(option)).map((option) => ({ if: { stage: "size-search", option: "none" }, then: { not: { stage: "placement", option } } })),
   ],
