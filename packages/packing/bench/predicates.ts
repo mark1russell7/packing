@@ -226,17 +226,47 @@ export function collectCase(id: string, work: () => void): { lines: Record<strin
   return { lines, summary: { case: id, totalPairs: totals.overlap, totals, near, touch, lines: lines.length } };
 }
 
+/** One shard of a dump: the block `index` of `count` blocks, from 0. */
+export interface PredicateShard {
+  index: number;
+  count: number;
+}
+
+/** This function reads a shard as `<index>/<count>`, and throws on a bad value. */
+export function parseShard(text: string): PredicateShard {
+  const m = /^(\d+)\/(\d+)$/.exec(text);
+  const index = m === null ? NaN : Number(m[1]);
+  const count = m === null ? NaN : Number(m[2]);
+  if (!Number.isInteger(index) || !Number.isInteger(count) || count < 1 || index >= count) throw new Error(`A shard is <index>/<count> with 0 <= index < count, not "${text}".`);
+  return { index, count };
+}
+
+/**
+ * This function gives one contiguous block of the inputs. The blocks of all shards, in the order of their index, are the inputs in their order.
+ * Thus the joined dumps of the shards are equal to the dump without shards.
+ */
+export function shardInputs<T>(inputs: readonly T[], shard: PredicateShard): T[] {
+  const n = inputs.length;
+  return inputs.slice(Math.floor((shard.index * n) / shard.count), Math.floor(((shard.index + 1) * n) / shard.count));
+}
+
 /**
  * This function packs each input of a corpus with each entry one time, with the probe on, and then checks the output with `checkHard`.
  *
  * - The case id is `<entry>/<input id>`. An entry that does not support the cell of an input skips it.
  * - `inputs` is the count of inputs of the corpus. An entry that supports no input gives 0 cases from 1 input or more.
  * - `emit` gets the lines of each case in order: the near lines, then the case line.
+ * - `shard` keeps one block of the inputs (`shardInputs`). Then `inputs` is the count of the block.
  */
-export function dumpPredicates(c: BenchCorpus, ids: readonly string[], emit: (line: string) => void): { inputs: number; cases: number; near: Record<PredicateName, number> } {
+export function dumpPredicates(
+  c: BenchCorpus,
+  ids: readonly string[],
+  emit: (line: string) => void,
+  shard: PredicateShard = { index: 0, count: 1 },
+): { inputs: number; cases: number; near: Record<PredicateName, number> } {
   const near = zeros();
   let cases = 0;
-  const inputs = pairedInputs(c);
+  const inputs = shardInputs(pairedInputs(c), shard);
   for (const at of inputs) {
     for (const id of ids) {
       const pack = pairedPack(id, at);

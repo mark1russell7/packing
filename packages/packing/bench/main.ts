@@ -37,7 +37,7 @@ import {
   pairedPack,
 } from "./run.ts";
 import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
-import { dumpPredicates, NEAR } from "./predicates.ts";
+import { dumpPredicates, NEAR, parseShard } from "./predicates.ts";
 import { deriveSizeGate, measureSizes, parseSizeGate, publishedExports, sizeCoverage, sizeMarkdown, sizeVerdict, type PublishedPackage, type SizeBundler } from "./size-gate.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
 import { BUDGET_POLICY, budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
@@ -261,17 +261,18 @@ function predicateDump(): number {
   if (!/^[a-z0-9][a-z0-9.-]*$/.test(name)) throw new Error(`The corpus name "${name}" has other characters than a-z, 0-9, dot and hyphen.`);
   const out = resolve(opt("--out") ?? join("bench-out", `predicates-${name}`));
   mkdirSync(out, { recursive: true });
+  const shardText = opt("--shard");
+  const shard = shardText === undefined ? undefined : parseShard(shardText);
   const fd = openSync(join(out, "predicates.jsonl"), "w");
   let result: ReturnType<typeof dumpPredicates>;
   try {
-    result = dumpPredicates(parseCorpus(readFileSync(join(here, "corpora", `${name}.json`), "utf8"), name), strategyIds(opt("--strategies")), (line) => writeSync(fd, `${line}
-`));
+    result = dumpPredicates(parseCorpus(readFileSync(join(here, "corpora", `${name}.json`), "utf8"), name), strategyIds(opt("--strategies")), (line) => writeSync(fd, `${line}\n`), shard);
   } finally {
     closeSync(fd);
   }
   const sha = commit();
-  writeFileSync(join(out, "run.json"), `${JSON.stringify({ corpus: name, near: NEAR, inputs: result.inputs, cases: result.cases, nearInputs: result.near, env: env(), ...(sha !== undefined ? { commit: sha } : {}) }, null, 2)}
-`);
+  const record = { corpus: name, near: NEAR, inputs: result.inputs, cases: result.cases, nearInputs: result.near, ...(shard !== undefined ? { shard } : {}), env: env(), ...(sha !== undefined ? { commit: sha } : {}) };
+  writeFileSync(join(out, "run.json"), `${JSON.stringify(record, null, 2)}\n`);
   process.stdout.write(`${result.cases} cases, near inputs ${JSON.stringify(result.near)}, in ${out}
 `);
   // A corpus without inputs fails. An entry that supports no input of the corpus has 0 cases, and that is a result.
