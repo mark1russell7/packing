@@ -1,0 +1,72 @@
+# The comparison of roadmap item k10 (docs/BENCH.md, "The gap to a proved optimum"). The job solves small generated strips with exactStrip.
+# It packs each input with each named entry, and it keeps the records as the artifact exact-<sha>. The job writes the tables to the job summary.
+# The job fails only on a break of the proof: two different outputs, a bad exact layout, or a valid layout below a proved optimum.
+name: Exact
+
+on:
+  workflow_dispatch:
+    inputs:
+      sizes:
+        description: The counts of the items, with commas
+        required: true
+        default: 6,8,10,12
+      seeds:
+        description: The count of the seeds of each family, from seed 1
+        required: true
+        default: "5"
+      nodes:
+        description: The node limit of each search
+        required: true
+        default: "5000000"
+      entries:
+        description: The entry ids with commas, or all
+        required: true
+        default: all
+
+permissions:
+  contents: read
+
+# The group has the inputs, so only a true duplicate waits for a run that is in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.sizes }}-${{ inputs.seeds }}-${{ inputs.nodes }}-${{ inputs.entries }}
+  cancel-in-progress: false
+
+jobs:
+  exact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      SIZES: ${{ inputs.sizes || '6,8,10,12' }}
+      SEEDS: ${{ inputs.seeds || '5' }}
+      NODES: ${{ inputs.nodes || '5000000' }}
+      ENTRIES: ${{ inputs.entries || 'all' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      # bench/exact.ts imports @mark1russell7/rigor-statistics at run time
+      - run: pnpm install --frozen-lockfile
+      - name: Check the inputs
+        run: |
+          [[ "$SIZES" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo "sizes must be whole numbers with commas, not '$SIZES'"; exit 1; }
+          [[ "$SEEDS" =~ ^[1-9][0-9]*$ ]] || { echo "seeds must be a whole number of 1 or more, not '$SEEDS'"; exit 1; }
+          [[ "$NODES" =~ ^[1-9][0-9]*$ ]] || { echo "nodes must be a whole number of 1 or more, not '$NODES'"; exit 1; }
+          [[ "$ENTRIES" =~ ^[a-zA-Z0-9.,_-]+$ ]] || { echo "entries must be ids with commas, not '$ENTRIES'"; exit 1; }
+      - name: Solve and compare
+        working-directory: packages/packing
+        run: |
+          status=0
+          node bench/exact.ts --sizes "$SIZES" --seeds "$SEEDS" --nodes "$NODES" --entries "$ENTRIES" --out bench-out/exact || status=$?
+          cat bench-out/exact/summary.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: exact-${{ github.sha }}
+          path: packages/packing/bench-out/exact
+          if-no-files-found: warn
