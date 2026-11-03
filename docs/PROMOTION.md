@@ -79,7 +79,7 @@ The time test of packing has these settings. The table of the parameters below k
 | `rounds` | 5 | Proposal: the least count of each job, from the joint bench of layout-contract |
 | `timeFloorMs` | 5 | The earlier time row |
 | `timeTail` | 2.0 | The earlier time row |
-| `timeTailQ` | 0.95 | The earlier time row. rigor-bench 0.2.2 has no share test, so packing does not apply it yet. |
+| `timeTailQ` | 0.95 | The earlier time row. It is the option `share` of `limitVerdict` (rigor-bench 0.2.5). |
 | `timeTailLevel` | 0.95 | The default of the linked text |
 
 <!-- shared:noise-guard -->

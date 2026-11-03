@@ -1020,7 +1020,7 @@ The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` again
 
 ### The time budget of a promotion
 
-The time budget (`bench/time-budget.ts`, schema `packing-time-budget/2`, roadmap items k128 and k133) is the time test of a new strategy. It applies the time test of the linked win test in `docs/PROMOTION.md`.
+The time budget (`bench/time-budget.ts`, schema `packing-time-budget/3`, roadmap items k128 and k133) is the time test of a new strategy. It applies the time test of the linked win test in `docs/PROMOTION.md`.
 
 - The verdict comes from `@mark1russell7/rigor-bench`: `pooledVerdict` with the options `margin` and `noiseCap`, `balanceOrders` and `limitVerdict`. packing keeps no verdict logic.
 - The settings are in `BUDGET_POLICY`, and the settings table of `docs/PROMOTION.md` gives them.
@@ -1033,7 +1033,7 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/2`, roadmap
 - The balance removes the records with the highest rounds first. Thus most removed records are records of the last job.
 - The verdict is `promoted` for a pooled outcome `same` or `faster` and a time tail `within`. An empty tail set does not stop a promotion.
 - The verdict is `not promoted` for a pooled outcome `slower` or a time tail `beyond`. Each other outcome gives `cannot decide`.
-- rigor-bench 0.2.2 has no share test over the tail set. Thus one case `beyond` fails the tail, and each case must be `within` for a pass.
+- The option `share` of `limitVerdict` is `timeTailQ` (0.95). With 24 tail cases, 1 case can be `beyond` or `cannot decide`. The record keeps `share` and `allowed`.
 - The record keeps the pooled interval, the A/A median ratio, the A/A spread, the noise cap, the margin and the count of removed records.
 - The record also keeps the verdict and the CPU of each job, the outcome of each tail case and the URL of the CI run.
 
