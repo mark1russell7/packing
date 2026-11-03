@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { corpus, packSpace, toPackInput } from "@mark1russell7/packing";
 import { checkConfig, configId, shapeKindsOf } from "@mark1russell7/layout-contract";
-import { activeOptions, activeSample, candidatePool, nextPick, pickKey, type Candidate } from "./active.ts";
+import { activeOptions, activeSample, candidatePool, controlOrder, nextPick, pickKey, type Candidate } from "./active.ts";
 import { activeCoverage, pairInput, type CoverageManifest, type CoverageRecord } from "./coverage.ts";
 import { inputFeatures } from "./input-features.ts";
 import { strataOf } from "./sample-space.ts";
@@ -86,7 +86,44 @@ describe("the active draw", () => {
     expect(cov.rounds.map((r) => r.pairs)).toEqual([2, 2]);
   });
 
+  it("measures a control arm from the same pool in a seeded order, with the same quotas and rules (k120)", () => {
+    const g = grid();
+    const run = (arm?: "control") => activeSample({ ...base, ...g, clock: fakeClock(), coverage: { features: "input" }, ...(arm === undefined ? {} : { arm }) });
+    const active = run();
+    const a = run("control");
+    const b = run("control");
+    // The measure pack.search.ms is a real time, so the test compares the outputs and the candidates.
+    expect(a.records.map((r) => [r.candidate, r.outputHash])).toEqual(b.records.map((r) => [r.candidate, r.outputHash]));
+    expect(JSON.stringify(a.summary)).toBe(JSON.stringify(b.summary));
+    expect(a.summary.active.arm).toBe("control");
+    expect("arm" in active.summary.active).toBe(false);
+    expect(a.summary.active.pool).toBe(active.summary.active.pool);
+    expect(a.summary.active.perRound.map((r) => [r.round, r.quota, r.pairs])).toEqual(active.summary.active.perRound.map((r) => [r.round, r.quota, r.pairs]));
+    expect(a.records.map((r) => r.round)).toEqual([1, 1, 2, 2]);
+    // The cap of 1 pair for each stratum in a round holds in the control arm too.
+    const strata = strataOf(packSpace).map((s) => s.id);
+    for (const k of [1, 2]) {
+      const round = a.records.filter((r) => r.round === k).map((r) => strata[r.candidate % strata.length]);
+      expect(new Set(round).size).toBe(round.length);
+    }
+    // The control order does not follow the score: on this seed it takes other candidates.
+    expect(a.records.map((r) => r.candidate)).not.toEqual(active.records.map((r) => r.candidate));
+    expect(() => activeSample({ ...base, ...g, arm: "random" as never })).toThrow(/active or control/);
+  });
+
+  it("orders a control round by the seed and the round, and not by the order of its input", () => {
+    const items = [5, 1, 9, 3, 7].map((index) => ({ c: { index } }));
+    const a = controlOrder(items, 1, 1).map((x) => x.c.index);
+    expect(controlOrder([...items].reverse(), 1, 1).map((x) => x.c.index)).toEqual(a);
+    expect([...a].sort((x, y) => x - y)).toEqual([1, 3, 5, 7, 9]);
+    const other = [controlOrder(items, 1, 2), controlOrder(items, 2, 1)].map((o) => o.map((x) => x.c.index).join());
+    expect(other.some((o) => o !== a.join())).toBe(true);
+  });
+
   it("reads the options of the command line", () => {
+    expect(activeOptions(["--arm", "control"], ENV).arm).toBe("control");
+    expect("arm" in activeOptions([], ENV)).toBe(false);
+    expect(() => activeOptions(["--arm", "random"], ENV)).toThrow(/active or control/);
     expect(activeOptions(["--draw", "active", "--n", "60", "--rounds", "3", "--pool", "5", "--features", "input"], ENV)).toMatchObject({ n: 60, rounds: 3, poolFactor: 5, coverage: { features: "input", by: "spec" } });
     expect(activeOptions([], ENV)).toMatchObject({ n: 400, rounds: 4, poolFactor: 20, coverage: { features: "family", by: "spec" } });
     expect("draw" in activeOptions([], ENV)).toBe(false);
