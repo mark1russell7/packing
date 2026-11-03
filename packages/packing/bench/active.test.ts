@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { corpus, packSpace, toPackInput } from "@mark1russell7/packing";
 import { checkConfig, configId, shapeKindsOf } from "@mark1russell7/layout-contract";
 import { activeOptions, activeSample, candidatePool, controlOrder, nextPick, pickKey, type Candidate } from "./active.ts";
-import { activeCoverage, pairInput, type CoverageManifest, type CoverageRecord } from "./coverage.ts";
+import { activeCoverage, armHits, pairInput, type CoverageManifest, type CoverageRecord } from "./coverage.ts";
+import { pairedArms } from "./paired-arms.ts";
 import { inputFeatures } from "./input-features.ts";
 import { strataOf } from "./sample-space.ts";
 
@@ -109,6 +110,10 @@ describe("the active draw", () => {
     // The control order does not follow the score: on this seed it takes other candidates.
     expect(a.records.map((r) => r.candidate)).not.toEqual(active.records.map((r) => r.candidate));
     expect(() => activeSample({ ...base, ...g, arm: "random" as never })).toThrow(/active or control/);
+    // The two arms predict the same evaluation pairs, so the paired test reads them (slice b).
+    const hits = (arm: typeof a) => armHits(g.records, g.manifest, arm.records, active.records, { features: "input" });
+    expect(hits(a).map((m) => m.at)).toEqual(hits(active).map((m) => m.at));
+    expect(pairedArms(hits(active), hits(a), { runs: 200 }).measures.map((m) => m.n)).toEqual(hits(a).map((m) => m.at.length));
   });
 
   it("orders a control round by the seed and the round, and not by the order of its input", () => {

@@ -2,12 +2,13 @@
 // For each measure, it fits a regression tree over the features of the strategy and of the input. Then it gives the
 // held-out error, the first-order sensitivity indices and the share of the cells that the model predicts.
 //
-//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>] [--active <dir>] [--features family|input] [--prior union|corpus] [--corpora <dir>]
+//   node bench/coverage.ts --records <file> --corpus <file> --out <file> [--run <id>] [--date YYYY-MM-DD] [--folds 5] [--seed 1] [--by input|spec] [--sample <dir>] [--active <dir>] [--control <dir>] [--features family|input] [--prior union|corpus] [--corpora <dir>]
 //
 // With `--sample`, the trees learn on all the grid and predict the pairs of `bench/sample-space.ts` (k112).
 // The section `strata` gives the share of each stratum of the pairs and the mean over the strata, each with the same weight (k115).
 // With `--features input`, the input features of `bench/input-features.ts` replace the family id and the params of the spec (k116).
 // With `--active <dir>`, the section `active` gives each round of an active sample of `bench/active.ts` (k116).
+// With `--control <dir>` too, the section `paired` tests the active arm against the control arm on the `--sample` pairs (k120).
 // The family prior of `bench/prior.ts` weights the sampled pairs. Its default is the union of the committed corpora (k119).
 // With `--prior corpus`, the prior uses only the manifest of the grid (k116).
 //
@@ -19,6 +20,7 @@ import { corpus, corpusFamilies, packSpace, toPackInput, type CorpusSpec, type G
 import { canonicalConfig, configId, createFamilyRegistry, type StrategyConfig } from "@mark1russell7/layout-contract";
 import { inputFeatures } from "./input-features.ts";
 import { basisLines, DEFAULT_PRIOR, familyKey, PRIOR_KINDS, priorBasis, priorWeights, SAMPLER_FAMILIES, unionPrior, type FamilyPrior, type PriorBasis, type PriorKind } from "./prior.ts";
+import { pairedArms, pairedLines, type PairedArms } from "./paired-arms.ts";
 import { determinismOf, gateLines, isClockRecord, type DeterminismCounts } from "./run.ts";
 import { CLOCK_STRATUM, SAMPLE_SET, strataOf, stratumOf } from "./sample-space.ts";
 
@@ -576,6 +578,8 @@ export interface CoverageSummary {
   readonly strata?: StrataCoverage;
   /** The rounds of an active sample (k116). Only `--active` gives it. */
   readonly active?: ActiveCoverage;
+  /** The paired test of the active arm against the control arm on the evaluation sample (k120). Only `--control` gives it. */
+  readonly paired?: PairedArms;
   /** The basis of the family prior (k119): its kind, its corpora and the weight of each family. `--sample` or `--active` gives it. */
   readonly prior?: PriorBasis;
   /** The determinism gate (k121) over the records of the grid, of the sample and of the active sample. A summary from before k121 does not have it. */
@@ -1554,6 +1558,24 @@ export function activeCoverage(
   };
 }
 
+/** The held-out hits of the evaluation sample for one measure (k120). The model learns on the grid and on all the pairs of one arm. */
+export interface ArmHits {
+  readonly id: string;
+  /** The index of each pair in the measured evaluation pairs. The two arms of one evaluation sample have the same indices. */
+  readonly at: readonly number[];
+  readonly hits: readonly boolean[];
+}
+
+/**
+ * This function gives the held-out hits of the evaluation sample for each measure (k120).
+ * The tree learns on the grid and on all the measured pairs of `arm`, as after the last round of `activeCoverage`.
+ */
+export function armHits(records: readonly CoverageRecord[], manifest: CoverageManifest, arm: readonly SampledRecord[], evalPairs: readonly SampledRecord[], options: CoverageOptions = {}): ArmHits[] {
+  const done = arm.filter((r) => r.skipped === undefined);
+  const h = heldOut(gridOf(records, manifest, options), evalPairs, options, pairFeaturer(options), done);
+  return h.measures.map(({ m, errors, at }) => ({ id: m.id, at, hits: errors.map((e) => e <= m.tolerance + 1e-12) }));
+}
+
 /** This function gives the facts of the active draw from the text of `sample.json`, or `undefined` for another draw. */
 export function activeFacts(text: string): ActiveFacts | undefined {
   const a = (JSON.parse(text) as { active?: ActiveFacts }).active;
@@ -1699,10 +1721,13 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
   const grid = coverage(rows, manifest, options);
   const sampleDir = optionOf(argv, "--sample");
   const activeDir = optionOf(argv, "--active");
+  const controlDir = optionOf(argv, "--control");
+  if (controlDir !== undefined && (activeDir === undefined || sampleDir === undefined)) throw new Error("The option --control needs --active and --sample.");
   const summary: CoverageSummary = {
     ...grid,
     ...(sampleDir === undefined ? {} : readSample(rows, manifest, sampleDir, options)),
     ...(activeDir === undefined ? {} : { active: readActive(rows, manifest, activeDir, options, sampleDir) }),
+    ...(controlDir === undefined ? {} : { paired: readPaired(rows, manifest, activeDir!, controlDir, sampleDir!, options) }),
     ...(sampleDir === undefined && activeDir === undefined ? {} : { prior: priorOf(manifest, options) }),
     determinism: coverageDeterminism(rows, sampleDir === undefined ? undefined : folderRecords(sampleDir), activeDir === undefined ? undefined : folderRecords(activeDir)),
   };
@@ -1742,8 +1767,20 @@ export function coverageMain(argv: readonly string[]): CoverageSummary | Coverag
     );
   }
   if (summary.active !== undefined) for (const line of activeLines(summary.active)) console.log(line);
+  if (summary.paired !== undefined) for (const line of pairedLines(summary.paired)) console.log(line);
   for (const line of determinismSummaryLines(summary.determinism!)) console.log(line);
   return summary;
+}
+
+/** This function gives the paired test of the active arm in `activeDir` against the control arm in `controlDir`, on the evaluation sample in `evalDir` (k120). */
+export function readPaired(records: readonly CoverageRecord[], manifest: CoverageManifest, activeDir: string, controlDir: string, evalDir: string, options: CoverageOptions = {}): PairedArms {
+  const read = (folder: string): SampledRecord[] => {
+    const file = join(folder, "records.jsonl");
+    if (!existsSync(file)) throw new Error(`The sample folder ${folder} has no records.jsonl. Start bench/sample-space.ts first.`);
+    return readRecords(readFileSync(file, "utf8")) as SampledRecord[];
+  };
+  const evalPairs = read(evalDir);
+  return pairedArms(armHits(records, manifest, read(activeDir), evalPairs, options), armHits(records, manifest, read(controlDir), evalPairs, options));
 }
 
 /** This function gives the records of `records.jsonl` in a folder of a sample, or none when the file is absent. */

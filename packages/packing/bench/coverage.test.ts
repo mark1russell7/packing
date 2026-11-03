@@ -602,6 +602,10 @@ describe("the command line", () => {
     // The pair has only a fill and a time. A measure without a value has no stratum with pairs.
     expect(s.strata!.measures.map((m) => m.equal.strata)).toEqual([0, 1, 0, 0, 1]);
     expect(() => coverageMain([...base, "--sample", join(dir, "none")])).toThrow(/no records.jsonl/);
+    // k120: the sample folder as the two arms gives the same hits, so each measure has no change.
+    const paired = coverageMain([...base, "--sample", sample, "--active", sample, "--control", sample]) as CoverageSummary;
+    expect(paired.paired!.measures.every((m) => m.meanDiff === 0 && !m.reject)).toBe(true);
+    expect(() => coverageMain([...base, "--control", sample])).toThrow(/needs --active and --sample/);
   });
 
   it("keeps the pairs with a clock limit out of the held-out test, and fails the determinism gate only without a clock limit (k121)", () => {
