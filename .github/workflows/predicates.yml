@@ -55,7 +55,8 @@ jobs:
     needs: plan
     name: dump (${{ matrix.strategy }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The probe makes each predicate call slower. ruin-recreate-skyline-k64 on pack-select-v2 needs more than 60 minutes (run 41547266012).
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       max-parallel: 3

@@ -242,11 +242,12 @@ function predicateDump(): number {
     closeSync(fd);
   }
   const sha = commit();
-  writeFileSync(join(out, "run.json"), `${JSON.stringify({ corpus: name, near: NEAR, cases: result.cases, nearInputs: result.near, env: env(), ...(sha !== undefined ? { commit: sha } : {}) }, null, 2)}
+  writeFileSync(join(out, "run.json"), `${JSON.stringify({ corpus: name, near: NEAR, inputs: result.inputs, cases: result.cases, nearInputs: result.near, env: env(), ...(sha !== undefined ? { commit: sha } : {}) }, null, 2)}
 `);
   process.stdout.write(`${result.cases} cases, near inputs ${JSON.stringify(result.near)}, in ${out}
 `);
-  return result.cases === 0 ? empty(`the corpus ${name}`) : 0;
+  // A corpus without inputs fails. An entry that supports no input of the corpus has 0 cases, and that is a result.
+  return result.inputs === 0 ? empty(`the corpus ${name}`) : 0;
 }
 
 function main(): number | Promise<number> {
