@@ -41,7 +41,7 @@ const skippedRecord = (strategy: string, input: string): SkippedRecord => ({
   ...head(strategy, input),
   measures: {},
   hard: {},
-  deterministic: true,
+  deterministic: null,
   ms: 0,
   skipped: "unsupported mode: offline",
 });

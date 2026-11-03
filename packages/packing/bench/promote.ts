@@ -226,7 +226,7 @@ export const NO_VALUE = "a record has no value of the measure";
 /** The part of a record that the win test reads. */
 export interface PromotionRecord extends ScreenRecord {
   /** The value `false` when two runs of the record gave different outputs */
-  deterministic?: boolean;
+  deterministic?: boolean | null;
   /** The times of the timed runs, in milliseconds. `ms` is their median. */
   msRuns?: number[];
   /** The corpus of the record */

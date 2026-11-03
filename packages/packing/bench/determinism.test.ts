@@ -31,6 +31,7 @@ describe("the determinism gate", () => {
     { strategy: "c", input: "y", deterministic: false, clock: true },
     { strategy: "d", input: "y", deterministic: false, pair: 16 },
     { strategy: "e", input: "z", deterministic: false, skipped: "no fit" },
+    { strategy: "f", input: "z", deterministic: null, skipped: "no fit" },
     { strategy: "f", input: "z" },
   ];
 

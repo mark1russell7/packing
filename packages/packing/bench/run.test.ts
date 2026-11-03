@@ -111,7 +111,7 @@ describe("the benchmark runner", () => {
       expect(r.measures).toEqual({});
       expect(r.hard).toEqual({});
       expect(r.ms).toBe(0);
-      expect(r.deterministic).toBe(true);
+      expect(r.deterministic).toBeNull();
       expect(r).not.toHaveProperty("msRuns");
       expect(r).not.toHaveProperty("outputHash");
       expect(first.outputs.get(r.strategy)?.has(r.input)).toBe(false);

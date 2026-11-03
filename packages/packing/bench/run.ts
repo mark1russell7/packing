@@ -95,7 +95,6 @@ interface BenchRecordHead {
    */
   shapes?: readonly ShapeKind[];
   tolerance: { overlap: number };
-  deterministic: boolean;
   prediction: string;
   /** The median time of the timed runs, in milliseconds. A skipped record has 0. */
   ms: number;
@@ -114,6 +113,8 @@ export interface MeasuredRecord extends BenchRecordHead {
   msRuns: number[];
   /** The first 16 hex characters of the SHA-256 of the canonical placements, sorted by id. */
   outputHash: string;
+  /** The value is `true` when two runs with the same seed give the same output. */
+  deterministic: boolean;
   skipped?: never;
 }
 
@@ -124,6 +125,8 @@ export interface MeasuredRecord extends BenchRecordHead {
 export interface SkippedRecord extends BenchRecordHead {
   measures: Record<string, never>;
   hard: Record<string, never>;
+  /** The runner did not pack the pair, so the record makes no claim about determinism. */
+  deterministic: null;
   /** The reason: the value of the cell that the strategy does not support. */
   skipped: string;
 }
@@ -542,7 +545,7 @@ export function hasClockLimit(config: unknown): boolean {
 export interface GateRecord {
   readonly strategy: string;
   readonly input: string;
-  readonly deterministic?: boolean;
+  readonly deterministic?: boolean | null;
   readonly skipped?: string;
   /** The value of `hasClockLimit` of a sampled record. A record without it gets the value from `config` or `options`. */
   readonly clock?: boolean;
@@ -673,7 +676,7 @@ export function runBench(options: BenchOptions): BenchResult {
           measures: {},
           hard: {},
           tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
-          deterministic: true,
+          deterministic: null,
           prediction: options.prediction,
           ms: 0,
           skipped: skipReason(dimension, value),
