@@ -38,19 +38,20 @@ describe("packSpace", () => {
   });
 
   // Roadmap item k90 adds 3 base configs with 3 levels: hole-degree with 3 levels of steps. Before k90 the count was 2970.
-  it("has 5 stages and 2973 base configs with 3 levels", () => {
+  // The order graph-bfs (layout-stack L34) adds 591 base configs with 3 levels and 177 with 1 level: each placement but push. Before L34 the counts were 2973 and 891.
+  it("has 5 stages and 3564 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(2973n);
-    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(891n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(3564n);
+    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(1068n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
-  it("gives cell-portfolio one pool entry, and counts 2.78e20 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 6.88e20 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
-    // The option portfolio gives nearly all of the count: 800 param points for each ordered list of 2 to 5 of the 2973 base configs. The count is more than the default `maxMeta` of 1e18
+    // The option portfolio gives nearly all of the count: 800 param points for each ordered list of 2 to 5 of the 3564 base configs. The count is more than the default `maxMeta` of 1e18
     // Before k90 the counts were 36862574914409402550 and 13266726236504962. Before k117 they were 37049239404514333362 and 13341577899037878.
     // The work limit of k117 gives 5 param points: no limit, then 4 values of budgetWork. The rect counts before k117 were 36862574914409402550 and 13266726236504962.
     // The ruin and recreate of k79 gives 108 param points with 3 levels and 4 with 1 level, for each base config.
@@ -66,12 +67,14 @@ describe("packSpace", () => {
     // The key fill of the portfolio (k127) gives 3 values of the param key, not 2. Thus each meta count is 1.5 times the count before.
     // Before k135 the counts were 277869295533801539436, 100061834237626086, 276469311858014672730 and 99500446768640790.
     // The table pack of select (k135) gives 2 values of the param table, not 1. Thus each count grows by the select configs.
+    // Before L34 the counts were 277869295533810375192, 100061834238419076, 276469311858023490660 and 99500446769432000.
+    // The order graph-bfs of L34 gives more base configs, so each count of member lists grows.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(277869295533810375192n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100061834238419076n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 276469311858023490660n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 99500446769432000n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(688291902860755874904n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(248007594904236900n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3561n, meta: 685398465078246361680n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1067n, meta: 246846729112282916n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -140,17 +143,17 @@ describe("packSpace and the shape kinds", () => {
   });
 
   it("counts the bbox configs for a shape, the hole-degree configs for a circle, and the rect configs for a rect", () => {
-    // A bbox config has 1 base member and the param turn: 2 times the base configs of the rect space
+    // A bbox config has 1 base member and the param turn: 2 times the base configs of the rect space. Before L34 the meta counts were 5940 and 1780, and the rect counts 2970 and 890.
     const base3 = spaceSize(packSpace, { levels: 3, shapes: ["rect"] }).base;
     const base1 = spaceSize(packSpace, { levels: 1, shapes: ["rect"] }).base;
     for (const kind of ["polygon", "free"] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 5940n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 1780n });
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 7122n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 2134n });
     }
     // Roadmap item k90: a circle input also gets the base configs of hole-degree, 1 for each level of steps
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 3n, meta: 5940n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 1n, meta: 1780n });
-    expect([base3, base1]).toEqual([2970n, 890n]);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 3n, meta: 7122n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 1n, meta: 2134n });
+    expect([base3, base1]).toEqual([3561n, 1067n]);
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 3n);
   });

@@ -5,7 +5,7 @@ import { pickMoves, portfolio, stepRandom, type Member } from "@mark1russell7/la
 import { maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { marginOf, type Item, type PackInput, type PackOutput } from "./contract.ts";
 import { byRank } from "./frame.ts";
-import type { SortOrder } from "./order.ts";
+import { graphOrderOf, isGraphOrder, type ItemLink, type ItemOrder } from "./order.ts";
 import { PORTFOLIO_LEVELS, type PortfolioEntry } from "./portfolio.ts";
 import { packWith, strategy } from "./registry.ts";
 import { measureKey, measureLevel } from "./select-key.ts";
@@ -68,11 +68,18 @@ export interface Keyed {
   key: number;
 }
 
+/** This function gives the links of an input as indexes into the keyed items. A link with a bad index gets an `undefined` end, so `graphOrderOf` refuses it. */
+function rankLinks(input: PackInput, keyed: readonly Keyed[]): ItemLink[] {
+  const at = new Map(keyed.map((k, i) => [k.item, i]));
+  return (input.links ?? []).map((link) => ({ ...link, a: at.get(input.items[link.a]!)!, b: at.get(input.items[link.b]!)! }));
+}
+
 /**
  * This function gives the items in the order of the member: the rank order, then a stable sort by the sort order.
  * The sizes are the sizes of the frame: the margins and the gap are in them. A fixed height turns the axes.
+ * A graph order reads `input.links`. Its key is the area of the item.
  */
-export function memberOrder(input: PackInput, order: SortOrder): Keyed[] {
+export function memberOrder(input: PackInput, order: ItemOrder): Keyed[] {
   const half = (input.gap ?? 0) / 2;
   const turned = input.container.fixed === "height";
   const keyed = byRank(input.items).map((item): Keyed => {
@@ -80,9 +87,10 @@ export function memberOrder(input: PackInput, order: SortOrder): Keyed[] {
     const w = item.w + m.left + m.right + 2 * half;
     const h = item.h + m.top + m.bottom + 2 * half;
     const [x, y] = turned ? [h, w] : [w, h];
-    const key = order === "height-desc" || order === "height-asc" ? y : order === "width-desc" ? x : order === "area-desc" ? x * y : 0;
+    const key = order === "height-desc" || order === "height-asc" ? y : order === "width-desc" ? x : order === "area-desc" || isGraphOrder(order) ? x * y : 0;
     return { item, key };
   });
+  if (isGraphOrder(order)) return graphOrderOf(keyed.map((k) => k.key), rankLinks(input, keyed)).map((i) => keyed[i]!);
   const down = order === "height-asc" ? 1 : -1;
   return order === "input" ? keyed : keyed.toSorted((a, b) => down * (a.key - b.key));
 }
@@ -131,7 +139,7 @@ export function rankSorted(output: PackOutput, index: ReadonlyMap<string, number
 }
 
 /** This function checks the options of `restarts`, and gives the member with its options. It throws a `RangeError` for a bad option. */
-function checked(options: RestartsStrategyOptions): { member: PortfolioEntry; sortOrder: SortOrder } {
+function checked(options: RestartsStrategyOptions): { member: PortfolioEntry; sortOrder: ItemOrder } {
   const given = options.member ?? DEFAULT_MEMBER;
   const member = typeof given === "string" ? { id: given, strategy: given } : given;
   const defaults = strategy(member.strategy).defaults as Record<string, unknown>;
@@ -142,7 +150,7 @@ function checked(options: RestartsStrategyOptions): { member: PortfolioEntry; so
   if (strength !== undefined && !(strength >= 0 && strength <= 1)) throw new RangeError(`The option strength of restarts is a number from 0 to 1, not ${String(strength)}.`);
   if (limitTime === true && budgetMs === undefined) throw new RangeError("The option limitTime of restarts needs the option budgetMs.");
   checkBudgetWork("restarts", options.budgetWork);
-  const sortOrder = ({ ...defaults, ...(member.options as object | undefined) } as { sortOrder: SortOrder }).sortOrder;
+  const sortOrder = ({ ...defaults, ...(member.options as object | undefined) } as { sortOrder: ItemOrder }).sortOrder;
   return { member, sortOrder };
 }
 

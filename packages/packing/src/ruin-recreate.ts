@@ -64,6 +64,12 @@ function ruinSupports(): Supports {
   return out as unknown as Supports;
 }
 
+/** This function gives the links of an input as indexes into a new list of its items. Only a member with a graph order reads them. */
+export function linksOfItems(input: PackInput, items: readonly Item[]): PackInput["links"] {
+  const at = new Map(items.map((item, i) => [item.id, i]));
+  return input.links?.map((link) => ({ ...link, a: at.get(input.items[link.a]!.id)!, b: at.get(input.items[link.b]!.id)! }));
+}
+
 /** This function checks the options of `ruin-recreate`, and gives the member with its options. It throws a `RangeError` for a bad option. */
 function checked(options: RuinRecreateStrategyOptions): PortfolioEntry {
   const given = options.member ?? DEFAULT_MEMBER;
@@ -301,9 +307,11 @@ class Search {
     const locked = kept.map((p): Item => ({ ...unranked(this.placed(p)), x: p.x, y: p.y, locked: true }));
     const items = [...this.fixed.map(unranked), ...locked, ...insert.map((id) => unranked(this.items.get(id)!))];
     const obstacles = [...(this.input.obstacles ?? []), ...this.holes];
+    const links = linksOfItems(this.input, items);
     return {
       container,
       items,
+      ...(links === undefined ? {} : { links }),
       ...(obstacles.length === 0 ? {} : { obstacles }),
       ...(this.input.gap === undefined ? {} : { gap: this.input.gap }),
       ...(this.input.pairGaps === undefined ? {} : { pairGaps: this.input.pairGaps }),
