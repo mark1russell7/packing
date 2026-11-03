@@ -1587,12 +1587,18 @@ The result over the fold seeds (k120, `node bench/paired-arms.ts --out <file> <c
 
 The nightly control (k120, `coverage-nightly.yml`):
 
-- The workflow starts each night at 02:52 UTC. A person can also start it, with other inputs.
+- The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
+- A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
+- A newer push cancels the run of an older push. A person can also start the workflow, with other inputs.
+- It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
+- Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.
+- The 12 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
+- `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
 - The jobs `sample` pack the held-out sample of 400 pairs in 4 shards, with no time limit. The job `held-out` joins them.
 - The merge fails on a missing pair. Thus each arm is tested on all the pairs of the sample.
 - Each job `arm` draws one arm (active or control) with one fold seed (1 to 5) on the same grid and pool.
-- The job `verdict` gives the paired test of each fold seed, then the result over the fold seeds, in the artifact `nightly-verdict`.
+- The job `verdict` gives the paired test of each cell that is not void, then the result over the fold seeds, in the artifact `nightly-verdict`.
 - The prediction `packing-k120-nightly` tells the expected outcomes. A change of the inputs needs a new prediction first.
 
 `coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.

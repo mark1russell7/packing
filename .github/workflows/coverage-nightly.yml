@@ -1,13 +1,29 @@
-# The nightly test of the active draw against a control arm (k120, docs/BENCH.md "The nightly control").
+# The control test of the active draw against a control arm (k120, docs/BENCH.md "The nightly control").
 # The job grid packs the corpus with bench.yml and no sample. The jobs sample pack the held-out sample in shards,
 # and the job held-out joins them. The merge fails on a missing pair. Each job arm draws one arm with one fold seed.
 # The job verdict gives the paired test of each fold seed and the result over the fold seeds.
 # Its prediction is packing-k120-nightly. A change of the inputs needs a new prediction first.
+#
+# Each arm has a work budget: ROUNDS rounds of SAMPLE / ROUNDS pairs, the same for both arms. Thus a cell is the same on
+# each runner. MAX_MINUTES is only a timeout: an arm that it stops voids its cell (bench/nightly-plan.ts cells).
+# The same seeds and the same code give the same result. Thus the workflow starts on a change of the files of the draw
+# and the verdict, and each week as the control. A change of src changes only the records: the weekly run measures it.
+# On 2026-10-27 to 11-03, 119 commits changed src or bench, and 17 changed the files below. The record cells.json has the commit.
 name: Coverage nightly
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/coverage-nightly.yml"
+      - "packages/packing/bench/active.ts"
+      - "packages/packing/bench/coverage.ts"
+      - "packages/packing/bench/sample-space.ts"
+      - "packages/packing/bench/paired-arms.ts"
+      - "packages/packing/bench/nightly-plan.ts"
+      - "packages/packing/bench/corpora/pack-classes-v1.json"
   schedule:
-    - cron: "52 2 * * *"
+    - cron: "52 2 * * 1"
   workflow_dispatch:
     inputs:
       corpus:
@@ -32,7 +48,8 @@ permissions:
 
 concurrency:
   group: coverage-nightly-${{ github.ref }}
-  cancel-in-progress: false
+  # A newer push replaces a run of a push. A weekly or a manual run is not cancelled.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 # The shell bash has pipefail, so a failure before a tee fails the step.
 defaults:
@@ -44,15 +61,27 @@ env:
   CORPUS: ${{ inputs.corpus || 'pack-classes-v1' }}
   SAMPLE: ${{ inputs.sample || '400' }}
   SHARDS: ${{ inputs.shards || '4' }}
+  # The work budget of an arm, and the timeout that voids its cell.
+  ROUNDS: "4"
+  MAX_MINUTES: "12"
 
 jobs:
   plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       shards: ${{ steps.plan.outputs.shards }}
       seeds: ${{ steps.plan.outputs.seeds }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Check the inputs
         id: plan
         env:
@@ -60,10 +89,7 @@ jobs:
         run: |
           [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
           [[ "$SAMPLE" =~ ^[1-9][0-9]*$ ]] || { echo "sample must be a number of 1 or more, not '$SAMPLE'"; exit 1; }
-          [[ "$SHARDS" =~ ^[1-9][0-9]*$ ]] && [ "$SHARDS" -le 16 ] || { echo "shards must be 1 to 16, not '$SHARDS'"; exit 1; }
-          seeds=$(node -e 'const s = JSON.parse(process.argv[1]); if (!Array.isArray(s) || s.length < 5 || !s.every(Number.isInteger) || new Set(s).size !== s.length) throw new Error("seeds must be a list of 5 or more different whole numbers"); console.log(JSON.stringify(s))' "$SEEDS")
-          echo "shards=$(node -e 'console.log(JSON.stringify([...Array(Number(process.argv[1])).keys()]))' "$SHARDS")" >> "$GITHUB_OUTPUT"
-          echo "seeds=$seeds" >> "$GITHUB_OUTPUT"
+          node packages/packing/bench/nightly-plan.ts plan --seeds "$SEEDS" --shards "$SHARDS" >> "$GITHUB_OUTPUT"
 
   grid:
     needs: plan
@@ -140,7 +166,7 @@ jobs:
     needs: [plan, grid]
     name: arm (${{ matrix.arm }}, ${{ matrix.seed }})
     runs-on: ubuntu-latest
-    # The rounds stop after 12 minutes each, and the fits of the rounds take some minutes.
+    # The timeout MAX_MINUTES stops the rounds, and the fits of the rounds take some minutes.
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -169,7 +195,8 @@ jobs:
         run: |
           grid="$RUNNER_TEMP/grid"
           node packages/packing/bench/active.ts --out "$RUNNER_TEMP/arm" --records "$grid/records.jsonl" --corpus "$grid/corpus.json" \
-            --n "$SAMPLE" --seed 1 --max-minutes 12 --features family --arm "$ARM" --fold-seed "$FOLD_SEED" | tee -a "$GITHUB_STEP_SUMMARY"
+            --n "$SAMPLE" --seed 1 --rounds "$ROUNDS" --max-minutes "$MAX_MINUTES" --features family --arm "$ARM" --fold-seed "$FOLD_SEED" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -179,6 +206,8 @@ jobs:
 
   verdict:
     needs: [plan, held-out, arm]
+    # A failed arm voids only its cell. The command cells fails when fewer than 5 cells are left.
+    if: ${{ !cancelled() && needs.held-out.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -206,13 +235,16 @@ jobs:
       - name: The paired test of each fold seed, and the result over the fold seeds
         env:
           SEEDS: ${{ needs.plan.outputs.seeds }}
+          EVENT: ${{ github.event_name }}
         run: |
           grid="$RUNNER_TEMP/grid"
           out="$RUNNER_TEMP/verdict"
           mkdir -p "$out"
           run_date="$(date -u +%Y-%m-%d)"
+          live=$(node packages/packing/bench/nightly-plan.ts cells --arms "$RUNNER_TEMP/arms" --seeds "$SEEDS" --out "$out/cells.json" \
+            --commit "$GITHUB_SHA" --event "$EVENT")
           files=()
-          for seed in $(node -e 'console.log(JSON.parse(process.argv[1]).join(" "))' "$SEEDS"); do
+          for seed in $live; do
             node packages/packing/bench/coverage.ts --records "$grid/records.jsonl" --corpus "$grid/corpus.json" \
               --out "$out/coverage-$seed.json" --by spec --run "$GITHUB_RUN_ID" --date "$run_date" --min-records 50 --features family \
               --sample "$RUNNER_TEMP/held-out" --active "$RUNNER_TEMP/arms/nightly-arm-active-$seed" \
