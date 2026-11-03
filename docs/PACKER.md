@@ -817,6 +817,19 @@ The trial chose the structure of a round on the seeds 1 to 20: 40 items, `freeHe
 
 Each variant won on 20 of 20 seeds in each row, with 0 hard breaks. The gain is small, because a packed layout has little free space. On `maxrects` `bl`, the share 1 is not the best share, but the differences are at most 0.003.
 
+The held-out measure uses the seeds 101 to 120, with the same inputs, block share 1 and each frame. Each cell gives the wire length, the height and the fill as a share of the same pack. The pull won on 240 of 240 inputs, with 0 hard breaks.
+
+| Member | Sizes | `freeHeight`: wire, height, fill | `fixed`: wire, height, fill |
+|---|---|---|---|
+| `rows` | `uniform` | 0.919, 0.971, 1.021 | 0.916, 0.984, 1.004 |
+| `rows` | `heavyTail` | 0.880, 0.990, 1.011 | 0.883, 1.001, 0.993 |
+| `rows` | `bimodal` | 0.907, 0.985, 1.008 | 0.899, 1.001, 0.988 |
+| `maxrects` `bl` | `uniform` | 0.973, 1.000, 0.998 | 0.973, 1.003, 0.995 |
+| `maxrects` `bl` | `heavyTail` | 0.953, 1.000, 0.998 | 0.965, 1.006, 0.993 |
+| `maxrects` `bl` | `bimodal` | 0.978, 0.998, 1.001 | 0.974, 1.002, 0.997 |
+
+A free height does not grow in these rows at 3 decimals. In a fixed frame, the height grows by at most 0.6 percent, and the fill falls by at most 1.2 percent. The rule `wire` of k136 gives a larger gain. Its wire shares are 0.49 to 0.64, and its height shares are 1.01 to 1.06. The pull keeps the pack, and the rule changes it.
+
 ### The force packer
 
 Roadmap item k125 adds the composite strategy `force` (catalog rows `overlap-spring`, Li 2005, and `overlap-prism`, Gansner 2010). It is opt-in. No default uses it. The code is `src/force.ts`.

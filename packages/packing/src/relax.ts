@@ -115,7 +115,7 @@ function pullsOf(input: PackInput, boxes: Boxes): Pull[][] {
 /** This function gives the center of a box on one axis. */
 const centerOf = (boxes: Boxes, axis: 0 | 1, i: number): number => boxes.pos[axis][i]! + boxes.size[axis][i]! / 2;
 
-/** This function gives the sum over the pulls of the weight times the distance on one axis from `center` to the center of the other box. */
+/** This function gives the sum over the pulls of the weight times the axis distance from `center` to the other box. */
 function wireAt(boxes: Boxes, list: readonly Pull[], axis: 0 | 1, center: number): number {
   let sum = 0;
   for (const { to, weight } of list) sum += weight * Math.abs(center - centerOf(boxes, axis, to));
@@ -193,7 +193,7 @@ function slideStep(boxes: Boxes, pulls: readonly (readonly Pull[])[], share: num
 /**
  * This function does the rounds of the link pull. One round is a block step, then a slide step. A block step that does
  * not make the wire length shorter goes back. The rounds stop when the wire length stops falling. Thus the wire length
- * never grows. It writes the counts to `measures`.
+ * does not grow. It writes the counts to `measures`.
  */
 function pullLinks(boxes: Boxes, pulls: readonly (readonly Pull[])[], pull: number, measures: Record<string, number>): void {
   let wire = wireOf(boxes, pulls);

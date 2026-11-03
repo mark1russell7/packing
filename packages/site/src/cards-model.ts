@@ -310,6 +310,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   iterations: { type: "number", note: "The count of the restarts, restart 0 included. Restart 0 is the member in its own order." },
   perturb: { type: oneOf(RESTART_PERTURBS), note: "The change of the order of each run after run 0." },
   strength: { type: "number", note: "The share of the positions that move, from 0 to 1." },
+  pull: { type: "number", note: "The share of the move of each box to the balance point of its links, from 0 to 1. The default is 0." },
   rounds: { type: "number", note: "The most rounds of the overlap removal of PRISM in `force`." },
   limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
   turn: { type: "boolean", note: "The value `true` lets `bbox` turn each turnable item to the lower box." },
