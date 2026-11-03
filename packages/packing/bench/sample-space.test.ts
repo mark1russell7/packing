@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { corpusFamilies, generator, type GeneratedInput, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, HOLE_DEGREE_MAX_STEPS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
+import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, corpusFamilies, generator, type GeneratedInput, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, HOLE_DEGREE_MAX_STEPS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
 import {
   checkConfig,
   checkSpace,
@@ -49,10 +49,11 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The pins of k121 come from the code: the first 4 uniform configs of the seed 20 without clock limits, and the meta counts with and without a clock limit.
 // The key fill of the portfolio (k127) adds a third value to the param key. Thus the meta counts are 1.5 times the counts before k127, and the draws changed.
 // Before k127 the pins were ce6d8bf386fbb8a6, 58da5ef5c70859cc, fb834701df83f8be, da3d8a993a6a894c, 19192758499731626819019141706 and 19192758499731625913230514340.
-const DEFAULT_UNIFORM_IDS = ["8e927552366b747d", "e7520bf93db84bc6", "fb834701df83f8be", "d49ccb0bd735314d"];
+// The 2 placement options of k25 changed the draws and the counts. Before k25 the pins were 8e927552366b747d, e7520bf93db84bc6, fb834701df83f8be, d49ccb0bd735314d, 28789137749597439801406687782 and 28789137749597438869845771510.
+const DEFAULT_UNIFORM_IDS = ["ce6d8bf386fbb8a6", "824d8cc4a595d369", "477b13cdf3a19c1f", "d49ccb0bd735314d"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
-const CLOCK_FREE_META = 28789137749597439801406687782n;
-const CLOCK_CONFIGS = 28789137749597438869845771510n;
+const CLOCK_FREE_META = 33081771280784560203714418032n;
+const CLOCK_CONFIGS = 33081771280784559244402265010n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -124,7 +125,8 @@ describe("the counts of the configs", () => {
     const counts = spaceCounts(packSpace);
     // The orders, then the samples 12 to 192 of log-sweep with rows, skyline, shelf, maxrects or guillotine, or push with 64 values of maxShovesPerItem.
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
-    const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
+    // Roadmap item k25 adds bottom-left with its rules and best-fit with its sides. Before k25 the base count was 160538.
+    const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
     expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64) + HOLE_DEGREE_MAX_STEPS + 1));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "force"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
@@ -287,8 +289,9 @@ describe("the sample of pairs", () => {
   it("keeps the uniform draw of the timing mixed: the same configs as before k115, and no strata in the summary", () => {
     // The config ids of the first 4 pairs of the seed 20 come from the sampler of main before k115, with k23, k90, k117 and k79.
     // The key fill of k127 changed the first 2. Before k127 they were ce6d8bf386fbb8a6 and 58da5ef5c70859cc.
+    // The 2 placement options of k25 changed the draws. Before k25 they were 3a60cbf146624a38, 13c0582c0bc63a88, c2b0e4f380f82b0d and d49ccb0bd735314d.
     const a = sampleSpace({ ...options, timing: "mixed", clock: fakeClock() });
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["3a60cbf146624a38", "13c0582c0bc63a88", "c2b0e4f380f82b0d", "d49ccb0bd735314d"]);
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["30493d05e02edddf", "824d8cc4a595d369", "4246962969858155", "d49ccb0bd735314d"]);
     expect(a.summary.draw).toBe("uniform");
     expect(a.summary.timing).toBe("mixed");
     expect("strata" in a.summary).toBe(false);
@@ -344,7 +347,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 25 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 27 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -354,6 +357,8 @@ describe("the strata of k115", () => {
       "maxrects:1",
       "guillotine:1",
       "push:1",
+      "bottom-left:1",
+      "best-fit:1",
       "hole-degree:1",
       "portfolio:2",
       "portfolio:3",
@@ -387,6 +392,8 @@ describe("the strata of k115", () => {
     expect(of("maxrects-bl")).toBe("maxrects:1");
     expect(of("guillotine-bssf-sas-merge")).toBe("guillotine:1");
     expect(of("hole-degree")).toBe("hole-degree:1");
+    expect(of("bottom-left-liu-teng")).toBe("bottom-left:1");
+    expect(of("best-fit-short")).toBe("best-fit:1");
     expect(of("skyline-mw-waste")).toBe("skyline:1");
     expect(of("portfolio")).toBe("cell-portfolio:cell");
     expect(of("portfolio-k2")).toBe("cell-portfolio:2");

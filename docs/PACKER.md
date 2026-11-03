@@ -1312,6 +1312,37 @@ The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/4
 - The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
 - `merge` gives no gain at the median.
 
+## The slide and best-fit families
+
+Roadmap item k25 adds the strategies `bottom-left` and `best-fit`. They ship off: they are not in `pack`, in a default or in `SELECT_TABLE`.
+
+| Method | Source | The choice | Package |
+|---|---|---|---|
+| Bottom-left slide | Baker 1980 | Each box slides from the top right: down until it stops, then left until it stops, again and again. | `bottom-left`, rule `baker` |
+| Improved bottom-left | Liu 1999 | Each box moves left only until it can move down. | `bottom-left`, rule `liu-teng` |
+| Bottom-left, fast form | Chazelle 1983 | The lowest, then leftmost place, holes included, with lists of the holes. | the output of `maxrects-bl` |
+| Bottom-left fill | Hopper 2001 | The lowest, then leftmost place, holes included. | the output of `maxrects-bl` |
+| Best fit | Burke 2004 | The lowest gap chooses its box, and not the box its gap. | `best-fit`, side `left`, `tall` or `short` |
+
+- A slide does not jump, so a closed hole stays empty. `maxrects-bl` fills that hole.
+- The lowest and leftmost place is a corner of a maximal free rectangle. Thus `maxrects` with the rule `bl` gives the rule of Chazelle 1983 and Hopper 2001. A brute-force test shows it on seeded inputs.
+- `bottom-left` costs `O(n L)`, with `L` the legs of all slides. The worst case is `O(n^3)`, and a test on a stair of pegs shows growth over `O(n^2)`.
+- `best-fit` costs `O(n^2)`: at most `2n + 1` rounds, and each round examines at most `2n + 1` segments and boxes. A test pins the count.
+- `bottom-left` accepts fixed obstacles and locked items. `best-fit` does not, and it does not accept a rank. Each strategy throws `UnsupportedCell` for such an input.
+- Neither strategy turns a box. `best-fit` has no tower step. The corpora have no turnable items.
+
+`packSpace` gets 2 placement options. The space version stays 1, because each old named config keeps its `configId`.
+
+| `spaceSize` | Before k25 | Since k25 |
+|---|---:|---:|
+| `base`, 3 levels and 1 level | 2973 and 891 | 3048 and 916 |
+| `base` for `rect`, 3 levels and 1 level | 2970 and 890 | 3045 and 915 |
+| `meta`, 3 levels | 277869295533810375192 | 314755409459887680192 |
+| `meta`, 1 level | 100061834238419076 | 114941628306944276 |
+
+- `ENTRIES` of the benchmark: 45 before, 50 after. The strata of `strataOf`: 25 before, 27 after.
+- The uniform draws of the sampler change, because the space has more configs.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.

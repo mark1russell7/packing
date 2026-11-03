@@ -1,4 +1,4 @@
-import { guillotine, maxrects, push, rows, shelf, skyline } from "./adapters.ts";
+import { bestFit, bottomLeft, guillotine, maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { aspectFit } from "./aspect-fit.ts";
 import { bboxStrategy } from "./bbox.ts";
 import { holeDegree } from "./hole-degree.ts";
@@ -13,8 +13,11 @@ import { ruinRecreateStrategy } from "./ruin-recreate.ts";
 import { selectStrategy } from "./select.ts";
 import { createContext, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 
-/** Each single strategy of the package. The benchmark starts each one on each input of the corpus. */
-export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects, guillotine] as Strategy[]);
+/**
+ * Each single strategy of the package. The benchmark starts each one on each input of the corpus.
+ * Roadmap item k25 adds `bottom-left` and `best-fit`. They are not in `pack`, in a default or in `SELECT_TABLE`.
+ */
+export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects, guillotine, bottomLeft, bestFit] as Strategy[]);
 
 /**
  * The single strategies of one shape kind that is not `rect`. Roadmap item k90 adds `hole-degree` for circles.

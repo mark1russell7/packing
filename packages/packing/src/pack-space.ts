@@ -19,8 +19,10 @@ import {
   type StrategyConfig,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import type { GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
+import type { BestFitStrategyOptions, BottomLeftStrategyOptions, GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
+import { BEST_FIT_SIDES } from "./best-fit.ts";
+import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
@@ -183,7 +185,7 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
     const placement = choice("hole-degree", { steps: o["steps"] as number });
     return { space: ENGINE, stages: { order: choice("input"), "size-search": choice("none"), placement, "local-search": choice("none") } };
   }
-  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap", "choice", "split", "merge"];
+  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap", "choice", "split", "merge", "side"];
   for (const key of Object.keys(o)) if (!known.includes(key) || (key === "fit" && id !== "shelf")) throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
   const stages: Record<string, StageChoice | null> = { order: choice(String(o["sortOrder"])), "local-search": choice("none") };
   if (id === "push") {
@@ -199,7 +201,9 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
   } else if (id === "skyline") stages["placement"] = choice("skyline", { rule: o["rule"] as string, wasteMap: o["wasteMap"] as boolean, rotate: o["rotate"] as boolean });
   else if (id === "guillotine") {
     stages["placement"] = choice("guillotine", { choice: o["choice"] as string, split: o["split"] as string, rotate: o["rotate"] as boolean, merge: o["merge"] as boolean });
-  } else if (id === "rows") stages["placement"] = choice(id);
+  } else if (id === "bottom-left") stages["placement"] = choice(id, { rule: o["rule"] as string });
+  else if (id === "best-fit") stages["placement"] = choice(id, { side: o["side"] as string });
+  else if (id === "rows") stages["placement"] = choice(id);
   else throw new RangeError(`The strategy ${id} is not a single strategy of the space packing.`);
   return { space: ENGINE, stages };
 }
@@ -263,6 +267,8 @@ const STAGES: readonly SpaceStage[] = [
         supports: RECT_ONLY,
       },
       { id: "push", params: [{ name: "maxShovesPerItem", kind: "int", min: 1, max: 64, scale: "log", default: 8 }], supports: RECT_ONLY },
+      { id: "bottom-left", params: [{ name: "rule", kind: "enum", values: [...BOTTOM_LEFT_RULES], default: "baker" }], supports: RECT_ONLY },
+      { id: "best-fit", params: [{ name: "side", kind: "enum", values: [...BEST_FIT_SIDES], default: "left" }], supports: RECT_ONLY },
       { id: "hole-degree", params: [{ name: "steps", kind: "int", min: 0, max: HOLE_DEGREE_MAX_STEPS, default: 8 }], supports: CIRCLE_ONLY },
     ],
   },
@@ -318,6 +324,11 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "guillotine-bssf-sas-merge": baseConfig("guillotine", { choice: "bssf", merge: true }),
   guillotine: baseConfig("guillotine"),
   "hole-degree": baseConfig("hole-degree"),
+  "bottom-left": baseConfig("bottom-left"),
+  "bottom-left-liu-teng": baseConfig("bottom-left", { rule: "liu-teng" }),
+  "best-fit": baseConfig("best-fit"),
+  "best-fit-tall": baseConfig("best-fit", { side: "tall" }),
+  "best-fit-short": baseConfig("best-fit", { side: "short" }),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;
@@ -450,6 +461,8 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
   } satisfies Places<GuillotineStrategyOptions>,
   push: { sortOrder: "order", maxShovesPerItem: "placement.push.maxShovesPerItem" } satisfies Places<PushStrategyOptions>,
   "hole-degree": { steps: "placement.hole-degree.steps" } satisfies Places<HoleDegreeStrategyOptions>,
+  "bottom-left": { sortOrder: "order", samples: "size-search.log-sweep.samples", rule: "placement.bottom-left.rule" } satisfies Places<BottomLeftStrategyOptions>,
+  "best-fit": { sortOrder: "order", samples: "size-search.log-sweep.samples", side: "placement.best-fit.side" } satisfies Places<BestFitStrategyOptions>,
   portfolio: PORTFOLIO_PLACES,
   "aspect-fit": {
     strategy: "combine.aspect-fit.members",
@@ -549,7 +562,7 @@ const NAMED_VALUES: Readonly<Record<string, Readonly<Record<string, unknown>>>> 
 });
 
 /** The single strategies of the registry. `baseConfig` gives their configs. */
-const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree"];
+const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree", "bottom-left", "best-fit"];
 
 /** This function tells if a value is an object and not a list. */
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -707,6 +720,8 @@ function runOf(config: StrategyConfig): Run {
     options["rotate"] = p["rotate"];
     if (p["fixedBands"] === true) options["bandHeight"] = p["bandHeight"];
   }
+  if (place.option === "bottom-left") options["rule"] = p["rule"];
+  if (place.option === "best-fit") options["side"] = p["side"];
   if (place.option === "guillotine") {
     options["choice"] = p["choice"];
     options["split"] = p["split"];

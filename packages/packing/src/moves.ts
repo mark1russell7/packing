@@ -19,6 +19,9 @@ export const MOVES: Readonly<{
   wasteFill: "move.wasteFill";
   guillotine: "move.freeChoice";
   merge: "move.merge";
+  slide: "move.slide";
+  gapPick: "move.gapPick";
+  gapRaise: "move.gapRaise";
 }> = Object.freeze({
   /** A rectangle that the gap fill of `packRow` places in a gap of a row: under a shorter neighbor, or at the row break. */
   rows: "move.gapFill",
@@ -53,6 +56,12 @@ export const MOVES: Readonly<{
   guillotine: "move.freeChoice",
   /** Two free rectangles of `guillotine` with a common full edge that the option `merge` joins into one. */
   merge: "move.merge",
+  /** A rectangle of `bottom-left` that turns down again after a move to the left. */
+  slide: "move.slide",
+  /** A rectangle that `best-fit` takes from the list before the first rectangle of the list, because that one is not the widest fit. */
+  gapPick: "move.gapPick",
+  /** A gap of `best-fit` with no box that fits. It rises to its lower neighbor. */
+  gapRaise: "move.gapRaise",
 });
 
 const counts = new Map<string, number>();

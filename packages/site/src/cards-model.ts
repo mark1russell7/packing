@@ -4,6 +4,8 @@
 
 import {
   ASPECT_FIT_FACTORS,
+  BEST_FIT_SIDES,
+  BOTTOM_LEFT_RULES,
   GUILLOTINE_CHOICES,
   GUILLOTINE_SPLITS,
   MAXRECTS_RULES,
@@ -74,6 +76,8 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   shelf: { stage: "placement" },
   maxrects: { stage: "placement" },
   guillotine: { stage: "placement" },
+  "bottom-left": { stage: "placement" },
+  "best-fit": { stage: "placement" },
   push: { stage: "local-search" },
   "aspect-fit": {
     stage: "size-search",
@@ -314,6 +318,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
   turn: { type: "boolean", note: "The value `true` lets `bbox` turn each turnable item to the lower box." },
   wasteMap: { type: "boolean", note: "The value `true` keeps the free areas below the skyline, and each box tries them first." },
+  side: { type: oneOf(BEST_FIT_SIDES), note: "The side of a gap for a box of `best-fit`: the left edge, the taller neighbor or the shorter neighbor." },
   choice: { type: oneOf(GUILLOTINE_CHOICES), note: "The rule of `guillotine` to choose a free rectangle: the best or the worst fit by area, short side or long side." },
   split: { type: oneOf(GUILLOTINE_SPLITS), note: "The rule of `guillotine` to cut the rest of a free rectangle: by the leftover axis, the axis or the area." },
   merge: { type: "boolean", note: "The value `true` joins two free rectangles of `guillotine` with a common full edge after each box." },
@@ -332,6 +337,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
 export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<string, OptionInfo>>>> = {
   skyline: { rule: { type: oneOf(SKYLINE_RULES), note: "The rule to choose a place on the skyline: bottom-left or minimum waste." } },
+  "bottom-left": { rule: { type: oneOf(BOTTOM_LEFT_RULES), note: "The rule to slide a box: down and left until it stops, or left only until it can move down." } },
   "ruin-recreate": {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout and each recreate. The default is `maxrects-bl`." },
     iterations: { type: "number", note: "The count of the ruins. Each ruin removes some boxes, and the member packs them again." },

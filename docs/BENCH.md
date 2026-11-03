@@ -54,6 +54,11 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `skyline-mw-waste` | `skyline` | `rule: "mw"`, `wasteMap: true` | `skyline` |
 | `guillotine-baf-sas` | `guillotine` | `choice: "baf"`, `split: "sas"` | none |
 | `guillotine-bssf-sas-merge` | `guillotine` | `choice: "bssf"`, `split: "sas"`, `merge: true` | none |
+| `bottom-left` | the same | the defaults | none |
+| `bottom-left-liu-teng` | `bottom-left` | `rule: "liu-teng"` | `bottom-left` |
+| `best-fit` | the same | the defaults | none |
+| `best-fit-tall` | `best-fit` | `side: "tall"` | `best-fit` |
+| `best-fit-short` | `best-fit` | `side: "short"` | `best-fit` |
 | `portfolio-k2` | `portfolio` | `k: 2` | `maxrects-bl` |
 | `portfolio-k3` | `portfolio` | `k: 3` | `maxrects-bl` |
 | `aspect-fit-maxrects-bl` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bl" }` | `maxrects-bl` |
@@ -84,6 +89,7 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
 - The 3 entries of roadmap item k22 are the skyline family: the rule `mw` and the waste map. `docs/PACKER.md` ("The skyline family") tells them.
 - The 2 entries of roadmap item k23 are the guillotine family. `docs/PACKER.md` ("The guillotine family") tells the rules. No corpus has turnable items, thus no entry turns.
+- The 5 entries of roadmap item k25 are the slide and the best-fit families. `docs/research/CATALOG.md` tells the sources. These strategies do not turn an item.
 - The strategy `guillotine` has no entry of its own, because its defaults are the entry `guillotine-baf-sas`. The two entries have no base.
 - The strategy `maxrects` has no entry of its own, because its defaults are the entry `maxrects-bssf`.
 - The base of a rule is `maxrects-bl`, because the move of each other rule is a place that `bl` does not choose.
@@ -1353,13 +1359,13 @@ Why the clock limits are outside the coverage:
 - A clock limit stops a search after a time. The output then depends on the speed and on the load of the computer.
 - Thus a result with a clock limit measures the computer, not the algorithm. No model of the config and the input can predict it.
 - The default sample draws from `clockFree` of `packSpace`: the param `limitTime` is always `false`.
-- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 25 strata stay the same.
+- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 27 strata stay the same.
 - `packSpace` keeps the clock limits. The option `--timing` of `sample-space.ts` draws them only on request.
 
 The option `--timing`:
 
 - `off` (the default) draws no clock limits.
-- `stratum` adds the timing stratum `clock:1` after the 25 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
+- `stratum` adds the timing stratum `clock:1` after the 27 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
 - `stratum` goes only with `--draw stratified`. The coverage does not read the pairs of `clock:1`, and `sampled.clockPairs` counts them.
 - `mixed` draws from the whole space, as before k121. Pair `i` of a sample with `mixed` is pair `i` of the samples of k112 to k118.
 
@@ -1379,13 +1385,13 @@ The test `bench/shuffle.test.ts` packs each bench entry and 24 sampled configs o
 A uniform draw gives almost only portfolios with 5 members. Thus its share tells little about the other families (k115).
 A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `bench/sample-space.ts` make the strata from the config.
 
-- A base config has the family of its option of the stage `placement`, and the size 1. The 7 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push` and `hole-degree`.
+- A base config has the family of its option of the stage `placement`, and the size 1. The 9 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push`, `bottom-left`, `best-fit` and `hole-degree`.
 - A meta option of the stage `combine` is its own family. Its size is its count of members.
 - `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
 - `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
 - `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` have 1 member.
 - Each one is one stratum. The family of their member does not count.
-- Thus `packSpace` has 25 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- Thus `packSpace` has 27 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
 - A new option of `placement` or `combine` gives new strata.
 
 ```sh
