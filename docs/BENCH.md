@@ -144,6 +144,25 @@ The strategy `push` has only the mode `incremental`, and each input of `smoke-v1
 
 The check reads no time. The times of this job are not a gate. Only the runs of `Bench` give times that compare.
 
+## The size gate
+
+The job `size-gate` of each pull request and of each push to `main` (k132) bundles a small consumer of each published code export. The consumer imports one name.
+
+- The job builds `packages/packing` and starts `node bench/main.ts size-gate --gate bench/gates/size.json --out <dir>` in `packages/packing`.
+- The bundler is esbuild with minify, format `esm`, platform `neutral` and tree shaking. The measure is the gzip bytes at level 9.
+- The gate fails when a bundle is above its budget. It also fails when an export of `publishConfig.exports` has no entry, or when an entry is not an export.
+- The artifact `size-gate` has `size.json` and `size.md`, with the raw bytes, the gzip bytes, the budget and the change of each entry.
+- The rule of a budget: the measured gzip bytes plus 5 %, rounded up to a whole KiB. One measure is the record, because a bundle is deterministic for one esbuild version.
+- After a change in size on purpose, start the command with `--derive`. It writes the new measures, the budgets and the commit into the record.
+
+The budgets are a committed record. Thus the size goes only down by default:
+
+- The gate does not write `bench/gates/size.json` by itself. Only `--derive` in a pull request changes it.
+- A pull request that raises a budget gives the reason and the bytes in its body.
+- A bundle more than 5 % under its measured bytes fails the gate (outcome `below`). That pull request also lowers the budget with `--derive`.
+
+- The module `bench/size-gate.ts` has no packing logic, so it can move to the planned home of gates (rigor-gates).
+
 ## The runner
 
 The runner is `packages/packing/bench/main.ts`. Node.js starts it with no build step. The script `bench` of the package starts it:
@@ -1581,8 +1600,10 @@ The paired test of the two arms (k120, `coverage.ts --active <dir> --control <di
 The result over the fold seeds (k120, `node bench/paired-arms.ts --out <file> <coverage.json> ...`):
 
 - The command reads the section `paired` of the coverage summary of each fold seed. It needs 5 summaries or more.
-- For each measure, `floor` is 2 sample SD of the mean(d) of the seeds, from `noiseFloor` of rigor-statistics.
+- For each measure, `noiseVerdict` of rigor-statistics gives `floor`: the larger of 2 sample SD of the mean(d) and `PAIRED_MARGIN`.
+- The margin is 0.05: 1 more prediction in 20 within the tolerance. A smaller gain does not pay for the per-round model fits of the active arm.
 - The outcome is `gain` or `loss` only when the mean of the mean(d) is more than `floor` from 0. Otherwise it is `noise`.
+- When each seed gives the same mean(d), the outcome is `no-spread`: the seeds pick the same pairs, so the seeds test nothing.
 - `rejects` gives the count of the seeds where the Holm correction finds a change.
 
 The nightly control (k120, `coverage-nightly.yml`):

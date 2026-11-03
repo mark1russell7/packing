@@ -41,6 +41,7 @@ import { RESTART_PERTURBS, type RestartsStrategyOptions } from "./restarts.ts";
 import type { OverlapMinStrategyOptions } from "./overlap-min.ts";
 import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 import type { SelectStrategyOptions } from "./select.ts";
+import { PACK_DEFAULT_TABLE, SELECT_TABLE, type SelectNode } from "./select-table.ts";
 import { SHELF_FITS } from "./shelf.ts";
 import { UnsupportedShape } from "./strategy.ts";
 
@@ -277,7 +278,7 @@ const STAGES: readonly SpaceStage[] = [
         members: { min: pool.length, max: pool.length, ordered: false, pool: [pool] },
         supports: RECT_ONLY,
       },
-      { id: "select", params: [{ name: "table", kind: "enum", values: ["k66"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
+      { id: "select", params: [{ name: "table", kind: "enum", values: ["k66", "pack"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
       { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "restarts", params: RESTARTS_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true, view: "bounds" }, supports: BBOX_ONLY },
@@ -364,6 +365,7 @@ export const packSpace: StrategySpace = Object.freeze({
     portfolio: metaConfig("cell-portfolio", pool),
     "aspect-fit": metaConfig("aspect-fit", [single("maxrects")]),
     select: metaConfig("select", [single("rows"), single("maxrects-bl")]),
+    pack: metaConfig("select", [single("rows"), single("maxrects-bl")], { table: "pack" }),
     "restarts-maxrects-bl-k16": metaConfig("restarts", [single("maxrects-bl")], { iterations: 16 }),
     "restarts-rows-k16": metaConfig("restarts", [single("rows")], { iterations: 16 }),
     "restarts-maxrects-bl-shuffle-k16": metaConfig("restarts", [single("maxrects-bl")], { iterations: 16, perturb: "shuffle" }),
@@ -537,6 +539,120 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
   "pack.turned": "It is a set that `pack` fills with the turned rectangles. It holds a result, not a choice.",
 });
 
+/** The point of a strategy with its options in `packSpace`, or the reason that it has no point. */
+export type StrategyPoint = { readonly ok: true; readonly config: StrategyConfig } | { readonly ok: false; readonly reason: string };
+
+/** The values of a strategy option that are not a string, a number or a boolean, by param and by the value of the param. */
+const NAMED_VALUES: Readonly<Record<string, Readonly<Record<string, unknown>>>> = Object.freeze({
+  table: Object.freeze({ k66: SELECT_TABLE, pack: PACK_DEFAULT_TABLE } satisfies Record<string, SelectNode>),
+  key: Object.freeze({ area: AREA_KEY, fill: FILL_KEY }),
+});
+
+/** The single strategies of the registry. `baseConfig` gives their configs. */
+const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree"];
+
+/** This function tells if a value is an object and not a list. */
+const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** This function gives the param value of an option value: the value itself, or the name in `NAMED_VALUES` of an equal value. */
+function paramValue(param: string, value: unknown): string | number | boolean | undefined {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  const named = NAMED_VALUES[param] ?? {};
+  const text = JSON.stringify(value);
+  return Object.keys(named).find((name) => JSON.stringify(named[name]) === text);
+}
+
+/** This function gives the strategy and the options of a member value: a strategy id, or an entry with `strategy` and `options`. */
+function memberOf(value: unknown): { strategy: string; options: Readonly<Record<string, unknown>> } | undefined {
+  if (typeof value === "string") return { strategy: value, options: {} };
+  if (!isRecord(value) || typeof value["strategy"] !== "string") return undefined;
+  const options = value["options"] ?? {};
+  return isRecord(options) ? { strategy: value["strategy"], options } : undefined;
+}
+
+/** This function gives the config of a strategy with its options before the checks of `checkConfig`. */
+function rawConfig(id: string, given: Readonly<Record<string, unknown>>): StrategyPoint {
+  let options = Object.fromEntries(Object.entries(given).filter(([, value]) => value !== undefined));
+  const places = PACK_SPACE_OPTIONS[id];
+  if (places === undefined) return { ok: false, reason: `packSpace has no strategy ${id}.` };
+  if (id === "pack") {
+    if (Object.keys(options).length > 0) return { ok: false, reason: "The point of pack is the choice of pack without options. Give the strategy of options.strategy and its options." };
+    return { ok: true, config: packSpace.named!["pack"]! };
+  }
+  if (id === "aspect-fit" && options["strategy"] !== undefined) {
+    // The options strategy and options of aspect-fit give one member together.
+    const { strategy: inner, options: innerOptions, ...rest } = options;
+    options = { ...rest, member: { strategy: inner, options: innerOptions ?? {} } };
+  }
+  for (const name of Object.keys(options)) {
+    const key = `${id}.${name}`;
+    if (name !== "member" || id !== "aspect-fit") {
+      if (places[name] === undefined) return { ok: false, reason: `PACK_SPACE_OPTIONS has no place for the option ${key}.` };
+      if (places[name] === null) return { ok: false, reason: `packSpace does not hold the option ${key}: ${PACK_SPACE_LEFT_OUT[key] ?? "PACK_SPACE_LEFT_OUT gives no reason."}` };
+    }
+  }
+  if (SINGLE_STRATEGIES.includes(id)) {
+    try {
+      return { ok: true, config: baseConfig(id, options) };
+    } catch (error) {
+      return { ok: false, reason: (error as Error).message };
+    }
+  }
+  const base = packSpace.named![id]!;
+  const placeOf = (name: string): string => (id === "aspect-fit" && name === "member" ? "combine.aspect-fit.members" : places[name]!);
+  // The options name one option of the stage combine. Another option than the option of the named config starts with no params and no members.
+  const targets = [...new Set(Object.keys(options).map((name) => placeOf(name).split(".")[1]!))];
+  if (targets.length > 1) return { ok: false, reason: `The options of ${id} set the options ${targets.join(" and ")} of the stage combine. A config has one.` };
+  const named = base.stages["combine"]!;
+  let combine: StageChoice = targets[0] === undefined || targets[0] === named.option ? named : { option: targets[0] };
+  for (const [name, value] of Object.entries(options)) {
+    const place = placeOf(name);
+    const [, , param] = place.split(".");
+    if (param === "members") {
+      const members: StrategyConfig[] = [];
+      for (const item of Array.isArray(value) ? value : [value]) {
+        const member = memberOf(item);
+        if (member === undefined) return { ok: false, reason: `The option ${id}.${name} has a member that is not a strategy id or an entry with strategy and options.` };
+        const point = rawConfig(member.strategy, member.options);
+        if (!point.ok) return { ok: false, reason: `The member ${member.strategy} of the option ${id}.${name} has no point. ${point.reason}` };
+        members.push(point.config);
+      }
+      combine = { ...combine, members };
+      continue;
+    }
+    const v = paramValue(param!, value);
+    if (v === undefined) return { ok: false, reason: `The value of the option ${id}.${name} is not a string, a number, a boolean or a value of NAMED_VALUES.` };
+    combine = { ...combine, params: { ...combine.params, [param!]: v } };
+  }
+  if (id === "aspect-fit") {
+    // A target aspect is a point only with the flag fixedTarget. A portfolio inside aspect-fit is the portfolio with the param aspectFit.
+    const target = combine.params?.["targetAspect"] === undefined ? {} : { fixedTarget: true, targetAspect: combine.params["targetAspect"] };
+    const inner = combine.members?.[0]?.stages["combine"];
+    if (inner?.option === "portfolio" || inner?.option === "cell-portfolio") {
+      return { ok: true, config: { space: ENGINE, stages: { ...combine.members![0]!.stages, combine: { ...inner, params: { ...inner.params, aspectFit: true, ...target } } } } };
+    }
+    combine = { ...combine, params: { ...combine.params, ...target } };
+  }
+  return { ok: true, config: { space: ENGINE, stages: { ...base.stages, combine } } };
+}
+
+/**
+ * This function gives the point in `packSpace` of a strategy of the registry with its options: the canonical config with the same output.
+ *
+ * - The id `pack` with no options gives the named config `pack`, the choice of `pack` without a strategy.
+ * - `baseConfig` gives the config of a single strategy. A meta strategy starts at its named config, and `PACK_SPACE_OPTIONS` gives the place of each option.
+ * - A member is a strategy id or an entry with `strategy` and `options`. Each member gets its own point in the same way.
+ * - The param `table` of `select` takes `SELECT_TABLE` or `PACK_DEFAULT_TABLE`. The param `key` takes the measure list of `area` or `fill`.
+ * - The result has a reason in place of a config when an option has no place, or when `checkConfig` finds a break.
+ */
+export function configOfStrategy(id: string, options: Readonly<Record<string, unknown>> = {}): StrategyPoint {
+  const raw = rawConfig(id, options);
+  if (!raw.ok) return raw;
+  const breaks = checkConfig(packSpace, raw.config);
+  if (breaks.length > 0) return { ok: false, reason: `The config is not a point of packSpace: ${breaks.map((b) => `${b.claim}: ${b.detail}`).join("; ")}.` };
+  return { ok: true, config: canonicalConfig(packSpace, raw.config) };
+}
+
 /**
  * The level of the shape check of a `bbox` config. A `bbox` output places each bounding box with no overlap and in the container.
  * Thus the safe counts of `no-overlap` and `in-container` on a shape are 0. A safe count of 0 tells that the rule has no break.
@@ -675,7 +791,7 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return wrapped("portfolio", { ...(params["k"] === "cell" ? {} : { k: params["k"] }), ...key, ...limits, ...work }, params, input, seed);
     }
     case "select":
-      return packWith("select", input, { members: members.map(entryOf) }, seed);
+      return packWith("select", input, { members: members.map(entryOf), ...(params["table"] === "pack" ? { table: PACK_DEFAULT_TABLE } : {}) }, seed);
     case "restarts": {
       const time = params["limitTime"] === true ? { limitTime: true, budgetMs: params["budgetMs"] } : {};
       const options = { member: entryOf(members[0]!), iterations: params["iterations"], perturb: params["perturb"], strength: params["strength"] };

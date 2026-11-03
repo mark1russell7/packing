@@ -65,6 +65,19 @@ export const SELECT_TABLE: SelectNode = Object.freeze({
   },
 } satisfies SelectNode) as SelectNode;
 
+/**
+ * The table of `pack` without a strategy (roadmap item k135): the choice of `defaultLayoutOf` as a table of `select`.
+ * Its members are the default members `rows` (0) and `maxrects-bl` (1).
+ *
+ * - A container of fixed size goes to the branch `yes` of `SELECT_TABLE`.
+ * - A container of free size goes to the leaf 7, which picks `rows`.
+ */
+export const PACK_DEFAULT_TABLE: SelectNode = Object.freeze({
+  feature: "fixed",
+  yes: (SELECT_TABLE as { readonly yes: SelectNode }).yes,
+  no: { leaf: 7, pick: 0 },
+} satisfies SelectNode) as SelectNode;
+
 /** This function gives the leaf of the features in a table. */
 export function selectLeaf(features: SelectFeatures, table: SelectNode = SELECT_TABLE): { leaf: number; pick: number } {
   let node = table;

@@ -6,7 +6,7 @@ import { strategy } from "./registry.ts";
 import { createSelect, type SelectStrategyOptions } from "./select-core.ts";
 import type { Strategy } from "./strategy.ts";
 
-export { checkSelectTable, selectLeaf, SELECT_MAX_DEPTH, SELECT_TABLE, type SelectFeatures, type SelectFlagFeature, type SelectNode, type SelectNumberFeature } from "./select-table.ts";
+export { checkSelectTable, PACK_DEFAULT_TABLE, selectLeaf, SELECT_MAX_DEPTH, SELECT_TABLE, type SelectFeatures, type SelectFlagFeature, type SelectNode, type SelectNumberFeature } from "./select-table.ts";
 export { SELECT_MEMBERS, SELECT_STAGE, selectFeatures, type SelectStrategyOptions } from "./select-core.ts";
 
 /**

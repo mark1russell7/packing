@@ -8,13 +8,13 @@
 // - The bootstrap interval of mean(d) gives the size of the change.
 //
 // `foldVerdict` reads the paired tests of 5 fold seeds or more (slice e). A change is a result only when the mean of
-// mean(d) over the seeds is more than 2 SD of those values from 0 (`noiseFloor`).
+// mean(d) over the seeds is more than 2 SD of those values and more than `PAIRED_MARGIN` from 0 (`noiseVerdict`).
 //
 //   node bench/paired-arms.ts --out <file> <coverage.json> <coverage.json> ...
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { bootstrap, holm, mean, noiseFloor, signTest } from "@mark1russell7/rigor-statistics";
+import { bootstrap, holm, mean, noiseVerdict, signTest } from "@mark1russell7/rigor-statistics";
 import type { ArmHits } from "./coverage.ts";
 import { optionOf } from "./sample-space.ts";
 
@@ -103,8 +103,17 @@ export function pairedLines(p: PairedArms): string[] {
   );
 }
 
-/** The outcome of a measure over the fold seeds: a gain or a loss of the active arm, or noise. */
-export type FoldOutcome = "gain" | "loss" | "noise";
+/**
+ * The margin of practical effect of a fold verdict, in hits per evaluation pair. The value 0.05 is 1 more prediction
+ * in 20 within the tolerance. A smaller gain does not pay for the per-round model fits of the active arm.
+ */
+export const PAIRED_MARGIN = 0.05;
+
+/**
+ * The outcome of a measure over the fold seeds: a gain or a loss of the active arm, or noise.
+ * The outcome `no-spread` tells that each seed gives the same mean(d): the seeds pick the same pairs.
+ */
+export type FoldOutcome = "gain" | "loss" | "noise" | "no-spread";
 
 /** The result of one measure over the fold seeds (k120 slice e). */
 export interface FoldMeasure {
@@ -113,11 +122,13 @@ export interface FoldMeasure {
   readonly diffs: readonly number[];
   /** The mean of `diffs`. */
   readonly mean: number;
-  /** 2 sample SD of `diffs`, from `noiseFloor` of `@mark1russell7/rigor-statistics`. */
+  /** The larger of 2 sample SD of `diffs` and `PAIRED_MARGIN`, from `noiseVerdict` of `@mark1russell7/rigor-statistics`. */
   readonly floor: number;
+  /** The margin of practical effect: `PAIRED_MARGIN`. */
+  readonly margin: number;
   /** The count of the fold seeds where the Holm correction of the paired test finds a change. */
   readonly rejects: number;
-  /** A gain or a loss only when the absolute mean is more than the floor. */
+  /** A gain or a loss only when the absolute mean is more than the floor and the seeds give different values. */
   readonly outcome: FoldOutcome;
 }
 
@@ -137,15 +148,15 @@ export function foldVerdict(results: readonly PairedArms[]): FoldVerdict {
   for (const r of results) if (r.measures.map((m) => m.id).join() !== ids.join()) throw new Error("The paired tests do not have the same measures.");
   const measures = ids.map((id, i): FoldMeasure => {
     const diffs = results.map((r) => r.measures[i]!.meanDiff);
-    const floor = noiseFloor(diffs);
-    const m = mean(diffs);
+    const v = noiseVerdict(diffs, { margin: PAIRED_MARGIN });
     return {
       id,
       diffs,
-      mean: r4(m),
-      floor: r4(floor),
+      mean: r4(v.mean),
+      floor: r4(v.threshold),
+      margin: v.margin,
       rejects: results.filter((r) => r.measures[i]!.reject).length,
-      outcome: Math.abs(m) <= floor ? "noise" : m > 0 ? "gain" : "loss",
+      outcome: v.state,
     };
   });
   return { seeds: results.length, measures };
@@ -153,7 +164,10 @@ export function foldVerdict(results: readonly PairedArms[]): FoldVerdict {
 
 /** This function gives one line of the command line for each measure of a fold verdict. */
 export function foldLines(v: FoldVerdict): string[] {
-  return v.measures.map((m) => `${m.id} over ${v.seeds} fold seeds: mean difference ${m.mean}, floor ${m.floor} (2 SD), ${m.rejects} of ${v.seeds} paired tests with a change: ${m.outcome}.`);
+  return v.measures.map((m) => {
+    const outcome = m.outcome === "no-spread" ? "no result, the seeds pick the same pairs" : m.outcome;
+    return `${m.id} over ${v.seeds} fold seeds: mean difference ${m.mean}, floor ${m.floor} (2 SD or the margin ${m.margin}), ${m.rejects} of ${v.seeds} paired tests with a change: ${outcome}.`;
+  });
 }
 
 /** This function starts the fold verdict from the command line: it reads the section `paired` of each coverage summary and writes the verdict. */

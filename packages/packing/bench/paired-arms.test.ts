@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { signTest } from "@mark1russell7/rigor-statistics";
 import type { ArmHits } from "./coverage.ts";
-import { foldLines, foldMain, foldVerdict, pairedArms, pairedLines, type PairedArms } from "./paired-arms.ts";
+import { foldLines, foldMain, foldVerdict, PAIRED_MARGIN, pairedArms, pairedLines, type PairedArms } from "./paired-arms.ts";
 
 // The paired test of the active arm against the control arm (k120 slice b), on hits made by hand.
 
@@ -38,7 +38,7 @@ describe("the paired test of two arms", () => {
     expect(one.measures[0]!.adjusted).toBe(Math.round(Math.min(1, 2 * signTest(6, 0, 2)) * 1e4) / 1e4);
   });
 
-  it("gives a result over the fold seeds only when the mean difference is more than 2 SD from 0 (slice e)", () => {
+  it("gives a result over the fold seeds only when the mean difference is more than 2 SD and the margin from 0 (slice e)", () => {
     // Each fold seed gives one paired test. A measure with the mean difference d has that d at each seed.
     const test = (a: number, b: number): PairedArms => ({
       level: 0.05,
@@ -50,10 +50,17 @@ describe("the paired test of two arms", () => {
     expect(v.seeds).toBe(5);
     const [gain, noise] = v.measures;
     expect(gain).toMatchObject({ id: "m0", mean: 0.2, rejects: 5, outcome: "gain" });
-    expect(gain!.floor).toBeCloseTo(2 * Math.sqrt(0.0002), 4);
+    // 2 SD is 0.0283, less than the margin, so the floor is PAIRED_MARGIN.
+    expect(gain).toMatchObject({ floor: PAIRED_MARGIN, margin: PAIRED_MARGIN });
     expect(noise).toMatchObject({ id: "m1", mean: 0, outcome: "noise" });
     expect(foldVerdict([test(-0.2, 0), test(-0.2, 0), test(-0.21, 0), test(-0.19, 0), test(-0.2, 0)]).measures[0]!.outcome).toBe("loss");
-    expect(foldLines(v)[0]).toBe("m0 over 5 fold seeds: mean difference 0.2, floor 0.0283 (2 SD), 5 of 5 paired tests with a change: gain.");
+    expect(foldLines(v)[0]).toBe("m0 over 5 fold seeds: mean difference 0.2, floor 0.05 (2 SD or the margin 0.05), 5 of 5 paired tests with a change: gain.");
+    // A mean of 0.03 is more than 2 SD from 0, but less than the margin: noise.
+    expect(foldVerdict([0.03, 0.031, 0.029, 0.03, 0.03].map((d) => test(d, 0))).measures[0]!.outcome).toBe("noise");
+    // Each seed gives the same mean(d): no result, also beyond the margin.
+    const same = foldVerdict([0.2, 0.2, 0.2, 0.2, 0.2].map((d) => test(d, 0)));
+    expect(same.measures.map((m) => m.outcome)).toEqual(["no-spread", "no-spread"]);
+    expect(foldLines(same)[0]).toMatch(/: no result, the seeds pick the same pairs\.$/);
     expect(() => foldVerdict([test(0.2, 0), test(0.2, 0)])).toThrow(/needs 5 or more/);
     expect(() => foldVerdict([test(0.2, 0), { ...test(0.2, 0), measures: [] }])).toThrow(/same measures/);
   });
