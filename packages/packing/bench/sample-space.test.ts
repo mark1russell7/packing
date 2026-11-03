@@ -30,6 +30,7 @@ import {
   MAX_STRATUM_MISSES,
   medianSide,
   memberListCount,
+  mergeSamples,
   paramCount,
   pickWeighted,
   resolveDraw,
@@ -238,6 +239,29 @@ describe("the sample of pairs", () => {
       expect(checkConfig(packSpace, rec.config, { shapes })).toEqual([]);
     }
     expect(a.summary.configs.drawn).toBe(a.summary.configs.rejected + a.summary.pairs + a.summary.errors.length);
+  });
+
+  it("joins the shards of a sample into the sample without shards (k120)", () => {
+    const whole = sampleSpace({ ...options, n: 5, clock: fakeClock() });
+    const parts = [2, 0, 1].map((index) => sampleSpace({ ...options, n: 5, shard: { index, count: 3 }, clock: fakeClock() }));
+    expect(parts.map((p) => p.summary.pairList)).toEqual([[3, 4], [0], [1, 2]]);
+    expect(parts[0]!.summary.shard).toEqual({ index: 2, count: 3, n: 5 });
+    expect(JSON.stringify(mergeSamples(parts))).toBe(JSON.stringify(whole));
+  });
+
+  it("refuses a merge without each shard one time, and a shard with a list of pairs", () => {
+    const part = (index: number, count = 2) => sampleSpace({ ...options, n: 2, shard: { index, count }, clock: fakeClock() });
+    expect(() => mergeSamples([part(0)])).toThrow("The shards 1/2 are missing.");
+    expect(() => mergeSamples([part(0), part(0), part(1)])).toThrow(/present two times/);
+    expect(() => mergeSamples([part(0), part(1, 3)])).toThrow(/other options/);
+    expect(() => mergeSamples([sampleSpace({ ...options, n: 1, clock: fakeClock() })])).toThrow(/needs shards/);
+    expect(() => mergeSamples([])).toThrow(/one shard or more/);
+    const stopped = part(1);
+    expect(() => mergeSamples([part(0), { ...stopped, summary: { ...stopped.summary, stopped: "time" } }])).toThrow("The time limit stopped the shard 1/2");
+    expect(() => sampleSpace({ ...options, pairs: [0], shard: { index: 0, count: 1 } })).toThrow(/does not go with a list of pairs/);
+    expect(() => sampleSpace({ ...options, shard: { index: 2, count: 2 } })).toThrow(/index from 0/);
+    expect(sampleOptions(["--shard", "1/4"], ENV).shard).toEqual({ index: 1, count: 4 });
+    expect(() => sampleOptions(["--shard", "4/4"], ENV)).toThrow(/A shard is/);
   });
 
   it("keeps the first pairs of a larger sample", () => {

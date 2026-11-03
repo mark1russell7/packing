@@ -8,7 +8,7 @@
 // `docs/BENCH.md` ("The whole space, sampled") tells how the draw works. The times of a local run do not count.
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { arch, cpus, platform } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -53,6 +53,7 @@ import {
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
 import { finite, hasClockLimit, pairValues, timeRuns, type BenchEnv } from "./run.ts";
+import { parseShard, shardInputs, type Shard } from "./shard.ts";
 
 /** The schema of the summary `sample.json` of a sample. */
 export const SAMPLE_SCHEMA = "packing-sample-space/1";
@@ -735,6 +736,11 @@ export interface SampleOptions {
    * A stratum that an earlier pair closed draws again. The default is each pair.
    */
   readonly pairs?: readonly number[];
+  /**
+   * The shard of the pairs 0 to `n - 1` (k120): one contiguous block. It does not go with `pairs`.
+   * `mergeSamples` joins the shards of a sample. For a uniform draw, the joined sample is equal to the sample without shards.
+   */
+  readonly shard?: Shard;
 }
 
 /** The summary of a sample, schema `packing-sample-space/1`. */
@@ -775,6 +781,8 @@ export interface SampleSummary {
   readonly clockPairs: number;
   /** The indexes of the pairs that the options asked for, when they are not 0 to `n - 1` (k121). */
   readonly pairList?: readonly number[];
+  /** The shard of the sample (k120), with the count `n` of the pairs of the whole sample. */
+  readonly shard?: Shard & { readonly n: number };
   readonly errors: readonly { readonly pair: number; readonly input: string; readonly config: string; readonly message: string }[];
   /** `time` when `maxMinutes` stopped the sample before its last pair. */
   readonly stopped?: "time";
@@ -935,7 +943,12 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
   if (!Number.isInteger(maxInputTries) || maxInputTries < 1) throw new RangeError("The input tries are a whole number of 1 or more.");
   const maxOverlapMoves = options.maxOverlapMoves;
   if (maxOverlapMoves !== undefined && (!Number.isInteger(maxOverlapMoves) || maxOverlapMoves < 1)) throw new RangeError("The overlap moves are a whole number of 1 or more.");
-  const pairList = options.pairs;
+  if (options.shard !== undefined && options.pairs !== undefined) throw new RangeError("A shard does not go with a list of pairs.");
+  const shard = options.shard;
+  if (shard !== undefined && !(Number.isInteger(shard.index) && Number.isInteger(shard.count) && shard.count >= 1 && shard.index >= 0 && shard.index < shard.count)) {
+    throw new RangeError("A shard has a whole count of 1 or more and an index from 0 to the count minus 1.");
+  }
+  const pairList = shard === undefined ? options.pairs : shardInputs(Array.from({ length: n }, (_, i) => i), shard);
   if (pairList !== undefined && !pairList.every((p) => Number.isInteger(p) && p >= 0)) throw new RangeError("The pairs are whole numbers of 0 or more.");
   const timing = options.timing ?? "off";
   // k121: the draws use the space of the plan. The checks, the canonical configs and the ids use the whole space.
@@ -1061,9 +1074,105 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
     timing,
     clockPairs,
     ...(pairList === undefined ? {} : { pairList: [...pairList] }),
+    ...(shard === undefined ? {} : { shard: { index: shard.index, count: shard.count, n } }),
     errors,
     ...(stopped === undefined ? {} : { stopped }),
     ...(draw === "stratified" ? { strata: Object.fromEntries(strata.map((s) => [s.id, { configs: s.configs.toString(), pairs: strataPairs[s.id] ?? 0, missed: strataMissed[s.id] ?? 0 }])) } : {}),
+  };
+  return { records, summary };
+}
+
+/** This function adds the counts of `b` to the counts of `a`, key by key. */
+function addCounts(a: Record<string, number>, b: Readonly<Record<string, number>>): void {
+  for (const [k, v] of Object.entries(b)) a[k] = (a[k] ?? 0) + v;
+}
+
+/**
+ * This function joins the shards of one sample (k120) into the sample without shards.
+ * It throws an `Error` for a missing shard, a shard that is present two times or a shard that the time limit stopped.
+ * It also throws an `Error` when the options of the shards are different.
+ * Thus a merged sample has each of its pairs. The records are in the order of the pairs.
+ */
+export function mergeSamples(parts: readonly { readonly records: readonly SampleRecord[]; readonly summary: SampleSummary }[]): { records: SampleRecord[]; summary: SampleSummary } {
+  const first = parts[0];
+  if (first === undefined) throw new Error("A merge needs one shard or more.");
+  const head = first.summary.shard;
+  if (head === undefined) throw new Error("A merge needs shards. The first part has no shard.");
+  const same = (s: SampleSummary): string =>
+    JSON.stringify([s.schema, s.seed, s.draw, s.maxCount, s.knobs, s.knobScale, s.repeats, s.warmup, s.timing, s.space, s.shard?.count, s.shard?.n, s.strata === undefined ? null : Object.fromEntries(Object.entries(s.strata).map(([id, x]) => [id, x.configs]))]);
+  const key = same(first.summary);
+  const seen = new Set<number>();
+  for (const p of parts) {
+    const s = p.summary;
+    if (s.shard === undefined) throw new Error("Each part of a merge needs a shard.");
+    if (same(s) !== key) throw new Error(`The shard ${s.shard.index}/${s.shard.count} has other options than the shard ${head.index}/${head.count}.`);
+    if (seen.has(s.shard.index)) throw new Error(`The shard ${s.shard.index}/${s.shard.count} is present two times.`);
+    if (s.stopped === "time") throw new Error(`The time limit stopped the shard ${s.shard.index}/${s.shard.count}, so the sample is not complete.`);
+    seen.add(s.shard.index);
+  }
+  const missing = Array.from({ length: head.count }, (_, i) => i).filter((i) => !seen.has(i));
+  if (missing.length > 0) throw new Error(`The shards ${missing.map((i) => `${i}/${head.count}`).join(", ")} are missing.`);
+
+  const ordered = [...parts].sort((a, b) => a.summary.shard!.index - b.summary.shard!.index);
+  const sums = { configs: { drawn: 0, rejected: 0 }, inputs: { drawn: 0, rejected: 0 }, hard: 0, nondeterministic: 0, nondeterministicClock: 0, clockPairs: 0 };
+  const configReasons: Record<string, number> = {};
+  const inputReasons: Record<string, number> = {};
+  const composition: Record<string, number> = {};
+  const families: Record<string, number> = {};
+  const hardRules: Record<string, number> = {};
+  const strata: Record<string, { configs: string; pairs: number; missed: number }> = {};
+  const records: SampleRecord[] = [];
+  const nondeterministicPairs: SampleSummary["nondeterministicPairs"][number][] = [];
+  const errors: SampleSummary["errors"][number][] = [];
+  for (const { records: rs, summary: s } of ordered) {
+    records.push(...rs);
+    sums.configs.drawn += s.configs.drawn;
+    sums.configs.rejected += s.configs.rejected;
+    sums.inputs.drawn += s.inputs.drawn;
+    sums.inputs.rejected += s.inputs.rejected;
+    sums.hard += s.hard.pairs;
+    sums.nondeterministic += s.nondeterministic;
+    sums.nondeterministicClock += s.nondeterministicClock;
+    sums.clockPairs += s.clockPairs;
+    addCounts(configReasons, s.configs.reasons);
+    addCounts(inputReasons, s.inputs.reasons);
+    addCounts(composition, s.composition);
+    addCounts(families, s.families);
+    addCounts(hardRules, s.hard.rules);
+    nondeterministicPairs.push(...s.nondeterministicPairs);
+    errors.push(...s.errors);
+    for (const [id, x] of Object.entries(s.strata ?? {})) {
+      const to = (strata[id] ??= { configs: x.configs, pairs: 0, missed: 0 });
+      to.pairs += x.pairs;
+      to.missed += x.missed;
+    }
+  }
+  records.sort((a, b) => a.pair - b.pair);
+  const f = first.summary;
+  const summary: SampleSummary = {
+    schema: SAMPLE_SCHEMA,
+    seed: f.seed,
+    requested: head.n,
+    pairs: records.length,
+    draw: f.draw,
+    maxCount: f.maxCount,
+    knobs: f.knobs,
+    knobScale: f.knobScale,
+    repeats: f.repeats,
+    warmup: f.warmup,
+    space: f.space,
+    configs: { drawn: sums.configs.drawn, rejected: sums.configs.rejected, rate: sums.configs.drawn === 0 ? 0 : round4(sums.configs.rejected / sums.configs.drawn), reasons: configReasons },
+    inputs: { drawn: sums.inputs.drawn, rejected: sums.inputs.rejected, reasons: inputReasons },
+    composition,
+    families,
+    hard: { pairs: sums.hard, rules: hardRules },
+    nondeterministic: sums.nondeterministic,
+    nondeterministicClock: sums.nondeterministicClock,
+    nondeterministicPairs,
+    timing: f.timing,
+    clockPairs: sums.clockPairs,
+    errors,
+    ...(f.strata === undefined ? {} : { strata }),
   };
   return { records, summary };
 }
@@ -1138,6 +1247,7 @@ export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOpt
   if (!(TIMINGS as readonly string[]).includes(timing)) throw new Error(`The option --timing is ${TIMINGS.join(", ")}, not ${timing}.`);
   if (timing === "stratum" && draw !== "stratified") throw new Error("The option --timing stratum goes only with --draw stratified.");
   const pairsText = optionOf(argv, "--pairs");
+  const shardText = optionOf(argv, "--shard");
   if (pairsText !== undefined && !/^\d+(,\d+)*$/.test(pairsText)) throw new Error(`The option --pairs is whole numbers with commas, for example 16,20, not ${pairsText}.`);
   return {
     n: wholeOf(argv, "--n", DEFAULT_PAIRS),
@@ -1151,6 +1261,7 @@ export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOpt
     env,
     timing: timing as Timing,
     ...(pairsText === undefined ? {} : { pairs: pairsText.split(",").map(Number) }),
+    ...(shardText === undefined ? {} : { shard: parseShard(shardText) }),
     ...(minutes === undefined ? {} : { maxMinutes: Number(minutes) }),
     ...(prediction === undefined ? {} : { prediction }),
   };
@@ -1182,6 +1293,32 @@ export function sampleMain(argv: readonly string[]): number {
   return summary.errors.length > 0 || summary.nondeterministicPairs.length > 0 ? 1 : 0;
 }
 
+/**
+ * This function joins the shard folders of a sample (k120): `merge --out <dir> <shard dir>...`. It writes `records.jsonl` and `sample.json` into `--out`.
+ * It exits with the code 1 on an error of a pair or on a pair that is not deterministic, as `sampleMain` does.
+ */
+export function mergeMain(argv: readonly string[]): number {
+  const out = optionOf(argv, "--out");
+  if (out === undefined) throw new Error("Join the shards with: node bench/sample-space.ts merge --out <dir> <shard dir>...");
+  const at = argv.indexOf("--out");
+  const dirs = argv.filter((_, i) => i > 0 && i !== at && i !== at + 1);
+  const parts = dirs.map((d) => ({
+    records: readFileSync(join(d, "records.jsonl"), "utf8")
+      .split("\n")
+      .filter((l) => l !== "")
+      .map((l) => JSON.parse(l) as SampleRecord),
+    summary: JSON.parse(readFileSync(join(d, "sample.json"), "utf8")) as SampleSummary,
+  }));
+  const { records, summary } = mergeSamples(parts);
+  const dir = resolve(out);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "records.jsonl"), records.map((r) => `${JSON.stringify(r)}\n`).join(""));
+  writeFileSync(join(dir, "sample.json"), `${JSON.stringify(summary, null, 1)}\n`);
+  console.log(`${summary.pairs} of ${summary.requested} pairs from ${parts.length} shards in ${dir}. Errors: ${summary.errors.length}.`);
+  for (const line of determinismLines(summary)) console.log(line);
+  return summary.errors.length > 0 || summary.nondeterministicPairs.length > 0 ? 1 : 0;
+}
+
 /** This function gives the lines of the determinism gate of a sample (k121): the two counts, then each pair that fails the gate. */
 export function determinismLines(summary: Pick<SampleSummary, "timing" | "clockPairs" | "nondeterministicClock" | "nondeterministicPairs">): string[] {
   const fail = summary.nondeterministicPairs;
@@ -1209,7 +1346,7 @@ if (process.argv[1]?.endsWith("sample-space.ts") === true) {
     }, fail);
   } else {
     try {
-      process.exitCode = sampleMain(argv);
+      process.exitCode = argv[0] === "merge" ? mergeMain(argv) : sampleMain(argv);
     } catch (error) {
       fail(error);
     }

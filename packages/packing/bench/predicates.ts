@@ -4,7 +4,11 @@
 
 import { checkHard, DEFAULT_TOLERANCE } from "@mark1russell7/packing";
 import { predicates, type PredicateName } from "../src/probe.ts";
+import { shardInputs, type Shard } from "./shard.ts";
 import { pairedInputs, pairedPack, type BenchCorpus } from "./run.ts";
+
+/** The parser of a shard, for the command `predicates` of `bench/main.ts`. */
+export { parseShard } from "./shard.ts";
 
 /** The relative distance to 0 of a near value. A value is near when its size is at most `NEAR` times the scale of its inputs. */
 export const NEAR = 1e-9;
@@ -226,30 +230,6 @@ export function collectCase(id: string, work: () => void): { lines: Record<strin
   return { lines, summary: { case: id, totalPairs: totals.overlap, totals, near, touch, lines: lines.length } };
 }
 
-/** One shard of a dump: the block `index` of `count` blocks, from 0. */
-export interface PredicateShard {
-  index: number;
-  count: number;
-}
-
-/** This function reads a shard as `<index>/<count>`, and throws on a bad value. */
-export function parseShard(text: string): PredicateShard {
-  const m = /^(\d+)\/(\d+)$/.exec(text);
-  const index = m === null ? NaN : Number(m[1]);
-  const count = m === null ? NaN : Number(m[2]);
-  if (!Number.isInteger(index) || !Number.isInteger(count) || count < 1 || index >= count) throw new Error(`A shard is <index>/<count> with 0 <= index < count, not "${text}".`);
-  return { index, count };
-}
-
-/**
- * This function gives one contiguous block of the inputs. The blocks of all shards, in the order of their index, are the inputs in their order.
- * Thus the joined dumps of the shards are equal to the dump without shards.
- */
-export function shardInputs<T>(inputs: readonly T[], shard: PredicateShard): T[] {
-  const n = inputs.length;
-  return inputs.slice(Math.floor((shard.index * n) / shard.count), Math.floor(((shard.index + 1) * n) / shard.count));
-}
-
 /**
  * This function packs each input of a corpus with each entry one time, with the probe on, and then checks the output with `checkHard`.
  *
@@ -262,7 +242,7 @@ export function dumpPredicates(
   c: BenchCorpus,
   ids: readonly string[],
   emit: (line: string) => void,
-  shard: PredicateShard = { index: 0, count: 1 },
+  shard: Shard = { index: 0, count: 1 },
 ): { inputs: number; cases: number; near: Record<PredicateName, number> } {
   const near = zeros();
   let cases = 0;
