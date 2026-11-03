@@ -14,7 +14,8 @@ permissions:
 
 concurrency:
   group: time-gate-${{ github.ref }}
-  cancel-in-progress: true
+  # ci.yml calls this workflow on a push to main too, so only a pull request cancels a run in progress.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
