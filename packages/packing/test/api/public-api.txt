@@ -637,11 +637,7 @@ export declare const BEASLEY_GCUT_SIDES: readonly number[];
 export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>>;
 
 ### build/index.d.ts#BEST_FIT_SIDES
-export declare const BEST_FIT_SIDES: readonly [
-  "left",
-  "tall",
-  "short"
-];
+export declare const BEST_FIT_SIDES: readonly ["left", "tall", "short"];
 
 ### build/index.d.ts#BL_TRAP_WIDTH
 export declare const BL_TRAP_WIDTH = 126;
@@ -650,10 +646,7 @@ export declare const BL_TRAP_WIDTH = 126;
 export declare const BL_TRAP_WIDTHS: Readonly<Record<2 | 3, readonly number[]>>;
 
 ### build/index.d.ts#BOTTOM_LEFT_RULES
-export declare const BOTTOM_LEFT_RULES: readonly [
-  "baker",
-  "liu-teng"
-];
+export declare const BOTTOM_LEFT_RULES: readonly ["baker", "liu-teng"];
 
 ### build/index.d.ts#BOUND_KINDS
 export declare const BOUND_KINDS: readonly BoundKind[];
@@ -692,7 +685,7 @@ interface BerkeyWangRule {
 }
 
 ### build/index.d.ts#BestFitSide
-export type BestFitSide = (typeof BEST_FIT_SIDES)[number];
+type BestFitSide = (typeof BEST_FIT_SIDES)[number];
 
 ### build/index.d.ts#BestFitStrategyOptions
 interface BestFitStrategyOptions extends Omit<LayoutStrategyOptions, "fit"> {
@@ -707,7 +700,7 @@ type BlTrapParams = {
 };
 
 ### build/index.d.ts#BottomLeftRule
-export type BottomLeftRule = (typeof BOTTOM_LEFT_RULES)[number];
+type BottomLeftRule = (typeof BOTTOM_LEFT_RULES)[number];
 
 ### build/index.d.ts#BottomLeftStrategyOptions
 interface BottomLeftStrategyOptions extends Omit<LayoutStrategyOptions, "fit"> {
@@ -1465,7 +1458,7 @@ export declare const berkeyWang: CorpusGenerator<BerkeyWangParams>;
 export declare const berkeyWangFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#bestFit
-declare const bestFit: Strategy<BestFitStrategyOptions>;
+export declare const bestFit: Strategy<BestFitStrategyOptions>;
 
 ### build/index.d.ts#binCountBound
 export declare function binCountBound(input: {
@@ -1481,7 +1474,7 @@ export declare const blTrap: CorpusGenerator<BlTrapParams>;
 export declare const blTrapFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#bottomLeft
-declare const bottomLeft: Strategy<BottomLeftStrategyOptions>;
+export declare const bottomLeft: Strategy<BottomLeftStrategyOptions>;
 
 ### build/index.d.ts#boundGap
 export declare function boundGap(result: number, bound: number, sense: "lower" | "upper"): number;

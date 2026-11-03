@@ -8,7 +8,7 @@ import { byRank } from "./frame.ts";
 import { PORTFOLIO_LEVELS, type PortfolioEntry } from "./portfolio.ts";
 import { packWith, strategy } from "./registry.ts";
 import { memberOrder, rankSorted } from "./restarts.ts";
-import type { SortOrder } from "./order.ts";
+import type { ItemOrder } from "./order.ts";
 import { measureKey } from "./select-key.ts";
 import { assertSupported, cellOf, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 import { checkBudgetWork, packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
@@ -120,7 +120,7 @@ interface Verdict {
 /** The checked common options of a search */
 interface Common {
   member: PortfolioEntry;
-  sortOrder: SortOrder;
+  sortOrder: ItemOrder;
   iterations: number;
   budgetWork: number | undefined;
 }
@@ -134,7 +134,7 @@ function checkedCommon(owner: string, options: { member?: string | PortfolioEntr
   const { iterations } = options;
   if (iterations !== undefined && !(Number.isInteger(iterations) && iterations >= 1)) throw new RangeError(`The option iterations of ${owner} is a whole number of 1 or more, not ${String(iterations)}.`);
   checkBudgetWork(owner, options.budgetWork);
-  const sortOrder = ({ ...defaults, ...(member.options as object | undefined) } as { sortOrder: SortOrder }).sortOrder;
+  const sortOrder = ({ ...defaults, ...(member.options as object | undefined) } as { sortOrder: ItemOrder }).sortOrder;
   return { member, sortOrder, iterations: iterations ?? DEFAULT_ITERATIONS, budgetWork: options.budgetWork };
 }
 

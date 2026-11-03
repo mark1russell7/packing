@@ -24,6 +24,7 @@ import {
   type GeneticStrategyOptions,
   type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
+  type BestFitStrategyOptions,
   type MaxRectsStrategyOptions,
   type OverlapMinStrategyOptions,
   type RelaxStrategyOptions,
@@ -265,6 +266,7 @@ export function cellHtml(text: string, catalogUrl: string): string {
 /** The union of the options of each strategy of the registry */
 type AnyOptions = LayoutStrategyOptions &
   MaxRectsStrategyOptions &
+  BestFitStrategyOptions &
   PushStrategyOptions &
   PortfolioStrategyOptions &
   AspectFitStrategyOptions &
