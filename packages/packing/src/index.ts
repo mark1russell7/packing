@@ -150,6 +150,7 @@ export { PORTFOLIO_SETS } from "./portfolio-sets.ts";
 export { portfolioStrategy, type PortfolioStrategyOptions } from "./portfolio-strategy.ts";
 export {
   checkSelectTable,
+  PACK_DEFAULT_TABLE,
   SELECT_MAX_DEPTH,
   SELECT_MEMBERS,
   SELECT_STAGE,
@@ -164,7 +165,7 @@ export {
   type SelectStrategyOptions,
 } from "./select.ts";
 export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
-export { PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type OptionPlace } from "./pack-space.ts";
+export { configOfStrategy, PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type OptionPlace, type StrategyPoint } from "./pack-space.ts";
 export type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export {

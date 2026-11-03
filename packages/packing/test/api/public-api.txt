@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 389 names
+## . (build/index.d.ts): 392 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -133,6 +133,7 @@ type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
 type ObstacleLayout: build/index.d.ts#ObstacleLayout
 type OptionPlace: build/index.d.ts#OptionPlace
 type OverlapMinStrategyOptions: build/index.d.ts#OverlapMinStrategyOptions
+PACK_DEFAULT_TABLE: build/index.d.ts#PACK_DEFAULT_TABLE
 PACK_SPACE_LEFT_OUT: build/index.d.ts#PACK_SPACE_LEFT_OUT
 PACK_SPACE_OPTIONS: build/index.d.ts#PACK_SPACE_OPTIONS
 PORTFOLIO_FRAME_MS: build/index.d.ts#PORTFOLIO_FRAME_MS
@@ -212,6 +213,7 @@ type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/strategy.d.ts#Strategy
 type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
+type StrategyPoint: build/index.d.ts#StrategyPoint
 type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type StripContainer: build/index.d.ts#StripContainer
 type StripCut: build/index.d.ts#StripCut
@@ -270,6 +272,7 @@ circleOverlaps: build/hole-degree.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
+configOfStrategy: build/index.d.ts#configOfStrategy
 consecutiveSquares: build/index.d.ts#consecutiveSquares
 consecutiveSquaresFamily: build/index.d.ts#consecutiveSquaresFamily
 corpus: build/index.d.ts#corpus
@@ -1038,6 +1041,9 @@ interface OverlapMinStrategyOptions {
   step?: number;
 }
 
+### build/index.d.ts#PACK_DEFAULT_TABLE
+export declare const PACK_DEFAULT_TABLE: SelectNode;
+
 ### build/index.d.ts#PACK_SPACE_LEFT_OUT
 export declare const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>>;
 
@@ -1300,6 +1306,15 @@ type SkylineGapParams = {
 ### build/index.d.ts#SpreadBand
 type SpreadBand = "identical" | "uniform" | "heavyTail";
 
+### build/index.d.ts#StrategyPoint
+type StrategyPoint = {
+  readonly ok: true;
+  readonly config: StrategyConfig$1;
+} | {
+  readonly ok: false;
+  readonly reason: string;
+};
+
 ### build/index.d.ts#StripContainer
 type StripContainer = "fixed" | "freeHeight";
 
@@ -1470,6 +1485,9 @@ export declare const classGenerators: readonly CorpusGenerator[];
 
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];
+
+### build/index.d.ts#configOfStrategy
+export declare function configOfStrategy(id: string, options?: Readonly<Record<string, unknown>>): StrategyPoint;
 
 ### build/index.d.ts#consecutiveSquares
 export declare const consecutiveSquares: CorpusGenerator<ConsecutiveSquaresParams>;
