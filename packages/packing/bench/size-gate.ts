@@ -54,7 +54,8 @@ export interface SizeRow extends SizeMeasure {
   budget: number;
   /** The gzip bytes over the measured bytes of the record, minus 1 */
   change: number;
-  outcome: "within" | "above";
+  /** The value `below` is a size more than the headroom under the measured bytes of the record. Then the budget must go down. */
+  outcome: "within" | "above" | "below";
 }
 
 /** The result of a size gate. */
@@ -132,8 +133,11 @@ export async function measureSizes(entries: readonly SizeEntry[], bundle: SizeBu
   return out;
 }
 
-/** This function applies the budgets. The verdict is `fail` when an entry is above its budget, or when a reason is present. */
-export function sizeVerdict(entries: readonly SizeEntry[], measures: readonly SizeMeasure[], reasons: readonly string[] = []): SizeResult {
+/**
+ * This function applies the budgets. The verdict is `fail` when an entry is above its budget, or when a reason is present.
+ * An entry more than `drop` under its measured bytes also fails. Then the same change lowers the budget, so the size goes only down.
+ */
+export function sizeVerdict(entries: readonly SizeEntry[], measures: readonly SizeMeasure[], reasons: readonly string[] = [], drop: number = SIZE_HEADROOM): SizeResult {
   const all = [...reasons];
   const rows: SizeRow[] = [];
   for (const e of entries) {
@@ -142,8 +146,11 @@ export function sizeVerdict(entries: readonly SizeEntry[], measures: readonly Si
       all.push(`The entry ${e.specifier} has no measure.`);
       continue;
     }
-    const outcome = m.gzip <= e.budget ? "within" : "above";
+    const outcome = m.gzip > e.budget ? "above" : m.gzip < e.measured * (1 - drop) ? "below" : "within";
     if (outcome === "above") all.push(`${e.specifier} is ${m.gzip} bytes gzip, above its budget of ${e.budget}.`);
+    if (outcome === "below") {
+      all.push(`${e.specifier} is ${m.gzip} bytes gzip, more than ${drop * 100} % under its record of ${e.measured}. Lower its budget in this change: node bench/main.ts size-gate --derive.`);
+    }
     rows.push({ ...m, budget: e.budget, change: Math.round((m.gzip / e.measured - 1) * 10000) / 10000, outcome });
   }
   return { schema: "size-gate-result/1", verdict: all.length === 0 ? "pass" : "fail", rows, reasons: all };

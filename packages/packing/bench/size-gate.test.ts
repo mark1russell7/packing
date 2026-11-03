@@ -35,6 +35,15 @@ describe("size gate", () => {
     expect(fail.reasons).toEqual(["b is 2049 bytes gzip, above its budget of 2048."]);
   });
 
+  it("fails a size more than 5 % under its record, so the same change lowers the budget", () => {
+    const entries = [entry("a", 1000, 2048)];
+    expect(sizeVerdict(entries, [{ specifier: "a", raw: 3000, gzip: 950 }]).verdict).toBe("pass");
+    const low = sizeVerdict(entries, [{ specifier: "a", raw: 3000, gzip: 949 }]);
+    expect(low.rows[0]!.outcome).toBe("below");
+    expect(low.reasons).toEqual(["a is 949 bytes gzip, more than 5 % under its record of 1000. Lower its budget in this change: node bench/main.ts size-gate --derive."]);
+    expect(sizeVerdict(entries, [{ specifier: "a", raw: 3000, gzip: 949 }], [], 0.1).verdict).toBe("pass");
+  });
+
   it("fails closed on a missing measure or a coverage reason", () => {
     expect(sizeVerdict([entry("a", 1, 2)], []).reasons).toEqual(["The entry a has no measure."]);
     expect(sizeVerdict([entry("a", 1, 2)], [{ specifier: "a", raw: 1, gzip: 1 }], ["gap"]).verdict).toBe("fail");

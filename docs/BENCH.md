@@ -154,6 +154,13 @@ The job `size-gate` of each pull request and of each push to `main` (k132) bundl
 - The artifact `size-gate` has `size.json` and `size.md`, with the raw bytes, the gzip bytes, the budget and the change of each entry.
 - The rule of a budget: the measured gzip bytes plus 5 %, rounded up to a whole KiB. One measure is the record, because a bundle is deterministic for one esbuild version.
 - After a change in size on purpose, start the command with `--derive`. It writes the new measures, the budgets and the commit into the record.
+
+The budgets are a committed record. Thus the size goes only down by default:
+
+- The gate does not write `bench/gates/size.json` by itself. Only `--derive` in a pull request changes it.
+- A pull request that raises a budget gives the reason and the bytes in its body.
+- A bundle more than 5 % under its measured bytes fails the gate (outcome `below`). That pull request also lowers the budget with `--derive`.
+
 - The module `bench/size-gate.ts` has no packing logic, so it can move to the planned home of gates (rigor-gates).
 
 ## The runner
