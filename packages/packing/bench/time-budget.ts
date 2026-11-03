@@ -1,30 +1,60 @@
-// The time budget of a promotion (k128): the paired time test of a candidate against the default, over 5 CI runs of `paired-time.yml`.
+// The time test of a promotion (k128, k133): the candidate against the default, over the CI jobs of `paired-time.yml`.
 //
-// The budget is a policy, not a measured limit. The A/A arm of each report gives the resolution of the test.
+// The rule is the time test of the linked win test (docs/WIN-TEST.md of rigor). This file keeps no verdict logic:
+// the pooled verdict, the balance of the orders and the tail verdict come from `@mark1russell7/rigor-bench`.
+// This file only turns the `paired-time/2` reports into the records of rigor-bench, and writes the record.
 
-import { aaId, quantileOf, type PairedReport } from "./paired-time.ts";
+import { balanceOrders, limitVerdict, pooledVerdict, type Arm, type JobRecords, type LimitOutcome, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
+import { aaId, armOrder, quantileOf, type PairedReport } from "./paired-time.ts";
 
-/** The policy of the time budget. The defaults are `timeRatio`, `timeTail` and `timeTailQ` of `docs/PROMOTION.md`. */
+/**
+ * The settings of the time test, as the settings table of the linked win test names them. A change of a value is a measured decision.
+ *
+ * The defaults are placeholders until a measured decision sets them. `timeMargin` 0.05 and `jobs` 5 come from the joint bench of layout-contract.
+ */
 export interface BudgetPolicy {
-  /** The worst median ratio of the runs is at most this value */
-  median: number;
-  /** The worst tail ratio of the runs is at most this value */
-  tail: number;
-  /** The quantile of the tail */
-  tailQ: number;
-  /** The runs that a decision needs */
-  runs: number;
-  /** The relevance floor `timeFloorMs`: an input with a base median and an arm median under it leaves the tail set */
-  floorMs: number;
+  /** The half width of the margin on a log scale. An interval in `[exp(-timeMargin), exp(timeMargin)]` is `same`. */
+  timeMargin: number;
+  /** The largest A/A spread on a log scale. A larger spread gives `cannot decide`. It also limits the A/A median ratio. */
+  noiseCap: number;
+  /** The count of the CI jobs that a decision needs */
+  jobs: number;
+  /** The fewest cases of each job */
+  cases: number;
+  /** The fewest rounds of each case in each job */
+  rounds: number;
+  /** The smallest median time in milliseconds of a case of the tail set */
+  timeFloorMs: number;
+  /** The largest ratio of a case of the tail set */
+  timeTail: number;
+  /** The share of the tail set that is `within` the limit `timeTail` */
+  timeTailQ: number;
+  /** The level of the interval of each case of the tail set */
+  timeTailLevel: number;
 }
 
-/** The time budget of `docs/PROMOTION.md`: median 1.5, q95 2, 5 runs and the relevance floor 5 ms. */
-export const BUDGET_POLICY: BudgetPolicy = Object.freeze({ median: 1.5, tail: 2, tailQ: 0.95, runs: 5, floorMs: 5 });
+/**
+ * The placeholder settings of the time test. Each value waits for a measured decision.
+ *
+ * - `timeMargin` 0.05, `jobs` 5, `cases` 20 and `rounds` 5 come from the joint bench of layout-contract.
+ * - `timeFloorMs` 5, `timeTail` 2 and `timeTailQ` 0.95 come from the earlier time row of packing.
+ * - `timeTailLevel` 0.95 is the default of the linked win test.
+ * - `noiseCap` 0.156 is a proposal (k133), not a decision. The A/A spreads of 3 k66 jobs alone are 0.1347, 0.1379 and 0.1196.
+ *   The proposal is the worst job plus the spread of the jobs: 0.1379 + 0.0183. The merged records of the 3 jobs give 0.0752.
+ */
+export const BUDGET_POLICY: BudgetPolicy = Object.freeze({
+  timeMargin: 0.05,
+  noiseCap: 0.156,
+  jobs: 5,
+  cases: 20,
+  rounds: 5,
+  timeFloorMs: 5,
+  timeTail: 2,
+  timeTailQ: 0.95,
+  timeTailLevel: 0.95,
+});
 
-/** The base time of the old floor `timeFloorMs / timeRatio` (5 / 1.5 ms). It is only a report field. */
-export const OLD_FLOOR_MS = 5 / 1.5;
-
-/** One paired run of the budget test: its report, the corpus of its run and its filter `--only`. */
+/** One CI job of the time test: its report, the corpus of its run and its filter `--only`. */
 export interface BudgetInput {
   run: string;
   report: PairedReport;
@@ -32,169 +62,303 @@ export interface BudgetInput {
   only?: string;
 }
 
-/** The numbers of one run. */
-export interface BudgetRun {
+/** The verdict of one job alone. */
+export interface BudgetJob {
+  /** The label of the job in the pooled verdict: its index */
+  job: string;
   run: string;
   cpu: string;
-  inputs: number;
-  median: number;
-  tail: number;
-  aaMedian: number;
-  aaP10: number;
-  aaP90: number;
-  /** The `tailQ` quantile of the A/A ratios on the tail set */
-  aaTail: number;
-  /** The inputs of the tail set: a base median or an arm median of `floorMs` or more */
-  tailSet: number;
-  /** The share of inputs with a base median under 5 / 1.5 ms, a report only */
-  underOldFloor: number;
-  /** The share of inputs with a base median under 0.1 ms, a report only */
-  under01ms: number;
+  cases: number;
+  /** The fewest rounds of a case of the job */
+  rounds: number;
+  /** The first round of the job in the merged records */
+  roundOffset: number;
+  outcome: TimeOutcome;
+  /** The interval of the candidate median over the A/A median, or `null` without an interval */
+  interval: [number, number] | null;
+  aaMedian: number | null;
+  aaSpread: number | null;
+  reason: string;
 }
 
-/** The verdict of the time budget. */
-export type BudgetVerdict = "promoted" | "not promoted" | "cannot decide";
-// A decision that is not valid for noise gives `cannot decide`, with the check and the A/A value in the reasons.
+/** The pooled verdict of the merged records of all jobs. */
+export interface BudgetPooled {
+  outcome: TimeOutcome;
+  /** The interval of the candidate median over the A/A median, or `null` without an interval */
+  interval: [number, number] | null;
+  aaMedian: number | null;
+  aaSpread: number | null;
+  noiseCap: number;
+  margin: number;
+  cases: number;
+  /** The count of the records that `balanceOrders` removed from the merged candidate and A/A records */
+  trimmed: number;
+  /** The jobs that give the opposite direction of the pooled outcome */
+  opposed: string[];
+  reason: string;
+}
 
-/** The result of the time budget (schema `packing-time-budget/1`). */
+/** The outcome of one case of the tail set. */
+export interface BudgetTailCase {
+  case: string;
+  ratio: number;
+  low: number;
+  high: number;
+  /** The high end of the interval of the case, times the high end of the A/A band */
+  bound: number;
+  outcome: LimitOutcome;
+}
+
+/** The time tail of the merged records. */
+export interface BudgetTail {
+  /** The value `false` tells that no case has a median time of `timeFloorMs` or more */
+  measured: boolean;
+  /** The outcome of `limitVerdict` over the tail set, or `null` when the tail is not measured */
+  outcome: LimitOutcome | null;
+  limit: number;
+  level: number;
+  set: number;
+  within: number;
+  beyond: number;
+  undecided: number;
+  reason: string;
+  cases: BudgetTailCase[];
+}
+
+/** The verdict of the time test. */
+export type BudgetVerdict = "promoted" | "not promoted" | "cannot decide";
+
+/** The record of the time test (schema `packing-time-budget/2`). */
 export interface BudgetResult {
-  schema: "packing-time-budget/1";
+  schema: "packing-time-budget/2";
   corpus: string;
   mode: string;
   base: string;
   arm: string;
   only?: string;
+  /** The URL of the CI run of the jobs */
+  ci?: string;
   policy: BudgetPolicy;
-  runs: BudgetRun[];
-  /** The resolution checks: the policy value is more than the worst A/A value of the runs plus their spread (largest minus smallest) */
-  resolution: {
-    median: { worstAaP90: number; spread: number; least: number; valid: boolean };
-    tail: { worstAaTail: number; spread: number; least: number; valid: boolean };
-  };
-  median: { worst: number; limit: number; pass: boolean };
-  /** The tail check. With an empty tail set in each run, `measured` is false and the check does not stop a promotion */
-  tail: { worst: number; limit: number; measured: boolean; pass: boolean };
+  jobs: BudgetJob[];
+  pooled: BudgetPooled | null;
+  tail: BudgetTail | null;
   verdict: BudgetVerdict;
   reasons: string[];
 }
 
 const r4 = (x: number): number => Math.round(x * 1e4) / 1e4;
+const pairOf = (i: { low: number; high: number } | undefined): [number, number] | null => (i === undefined ? null : [r4(i.low), r4(i.high)]);
+const orNull = (x: number | undefined): number | null => (x === undefined ? null : r4(x));
 
-/** This function gives the numbers of one report for the arm against its base. */
-export function budgetRun(input: BudgetInput, arm: string, tailQ: number, floorMs: number): BudgetRun {
-  const r = input.report;
-  const ratios = r.inputs.map((i) => i.ratio[arm]).filter((x): x is number => x !== undefined);
-  const relevant = r.inputs.filter((i) => i.ratio[arm] !== undefined && !((i.median[r.base] ?? 0) < floorMs && (i.median[arm] ?? 0) < floorMs));
-  const tails = relevant.map((i) => i.ratio[arm]!);
-  const aa = relevant.map((i) => i.ratio[aaId(r.base)]).filter((x): x is number => x !== undefined);
-  const base = r.inputs.map((i) => i.median[r.base]).filter((x): x is number => x !== undefined);
-  const share = (ms: number) => (base.length === 0 ? Number.NaN : base.filter((b) => b < ms).length / base.length);
-  return {
-    run: input.run,
-    cpu: r.env.cpu,
-    inputs: ratios.length,
-    median: r4(quantileOf(ratios, 0.5)),
-    tail: r4(quantileOf(tails, tailQ)),
-    aaMedian: r4(r.noiseFloor?.median ?? Number.NaN),
-    aaP10: r4(r.noiseFloor?.p10 ?? Number.NaN),
-    aaP90: r4(r.noiseFloor?.p90 ?? Number.NaN),
-    aaTail: r4(quantileOf(aa, tailQ)),
-    tailSet: tails.length,
-    underOldFloor: r4(share(OLD_FLOOR_MS)),
-    under01ms: r4(share(0.1)),
-  };
+/**
+ * This function gives the arm of a pair that started first in one round of mode `fresh`.
+ *
+ * - The arms of a `paired-time/2` report run in the order of `armOrder`, rotated by the round.
+ * - The pair is the arm `a` at the index `aAt` of `report.arms`, and the arm `b` at the index `bAt`.
+ */
+export function firstOfPair(arms: number, aAt: number, bAt: number, round: number): Arm {
+  const order = armOrder(arms, round, "fresh");
+  return order.indexOf(aAt) < order.indexOf(bAt) ? "a" : "b";
 }
 
 /**
- * This function gives the verdict of the time budget of an arm over some paired runs.
+ * This function gives the records of one pair of a report, for the pooled verdict of rigor-bench.
  *
- * - The runs are of one corpus, one filter, mode `fresh` and one base, each with the A/A arm. Else the verdict is `cannot decide`.
- * - A run counts only when its A/A band from p10 to p90 contains 1. Else the verdict is `cannot decide`, and a new run replaces it.
- * - The spread of the runs is the largest value minus the smallest value. The resolution has no margin factor.
- * - The median decision is valid when `median > worst A/A p90 + spread`. Else the verdict is `cannot decide`.
- * - The arm passes when the worst median of the runs is at most `median`, and the tail check passes. Thus each run must pass.
- * - The tail set holds the inputs with a base or an arm median of `floorMs` or more. An empty tail set gives `tail: not measured`, which does not stop a promotion.
- * - The tail check needs `tail > worst A/A tail + spread` on the tail set, and a tail set in each run. Else the verdict is `cannot decide`.
+ * - Each input gives one record for each round, with the times of the arms `a` and `b` of that round.
+ * - The round of a record is `offset` plus the round of the report. The first arm comes from the round of the report.
+ * - An input without the times of the two arms gives no records.
  */
-export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: BudgetPolicy = BUDGET_POLICY): BudgetResult {
+export function pairRecords(report: PairedReport, a: string, b: string, offset: number): PairedTime[] {
+  const aAt = report.arms.indexOf(a);
+  const bAt = report.arms.indexOf(b);
+  if (aAt < 0 || bAt < 0) return [];
+  return report.inputs.flatMap((input) => {
+    const as = input.ms[a];
+    const bs = input.ms[b];
+    if (as === undefined || bs === undefined) return [];
+    const rounds = Math.min(as.length, bs.length);
+    return Array.from({ length: rounds }, (_, round) => ({ case: input.id, round: offset + round, first: firstOfPair(report.arms.length, aAt, bAt, round), a: as[round]!, b: bs[round]! }));
+  });
+}
+
+/** This function gives the records of one job: the candidate pair (base, arm) and the A/A pair (base, `<base>~aa`). */
+export function jobRecords(input: BudgetInput, arm: string, job: number, offset: number): JobRecords {
+  const r = input.report;
+  return { job: String(job), candidate: pairRecords(r, r.base, arm, offset), aa: pairRecords(r, r.base, aaId(r.base), offset) };
+}
+
+/** This function gives the fewest rounds of a case of a report for the arm, or 0 with no case. */
+function roundsOf(r: PairedReport, arm: string): number {
+  const counts = r.inputs.flatMap((i) => (i.ms[r.base] === undefined || i.ms[arm] === undefined ? [] : [Math.min(i.ms[r.base]!.length, i.ms[arm]!.length)]));
+  return counts.length === 0 ? 0 : Math.min(...counts);
+}
+
+/** This function gives the cases of the tail set. Each case has a median time of `floorMs` or more in arm `a` or arm `b`. */
+function tailSet(records: readonly PairedTime[], floorMs: number): Set<string> {
+  const byCase = new Map<string, { a: number[]; b: number[] }>();
+  for (const r of records) {
+    const times = byCase.get(r.case) ?? { a: [], b: [] };
+    times.a.push(r.a);
+    times.b.push(r.b);
+    byCase.set(r.case, times);
+  }
+  return new Set([...byCase].filter(([, t]) => quantileOf(t.a, 0.5) >= floorMs || quantileOf(t.b, 0.5) >= floorMs).map(([c]) => c));
+}
+
+/**
+ * This function gives the time tail of the merged records with `limitVerdict` of rigor-bench.
+ *
+ * rigor-bench 0.2.2 has no share test over the tail set. Thus the outcome of the tail is the outcome of `limitVerdict` over the tail set.
+ * That outcome is `within` only when each case is `within`, and `beyond` when one case is `beyond`.
+ * The setting `timeTailQ` waits for that share test in rigor-bench (k133).
+ */
+function timeTail(candidate: readonly PairedTime[], aa: readonly PairedTime[], policy: BudgetPolicy): BudgetTail {
+  const set = tailSet(candidate, policy.timeFloorMs);
+  const base = { limit: policy.timeTail, level: policy.timeTailLevel, set: set.size };
+  if (set.size === 0) {
+    return { ...base, measured: false, outcome: null, within: 0, beyond: 0, undecided: 0, reason: `tail: not measured, no input above ${policy.timeFloorMs} ms`, cases: [] };
+  }
+  const v = limitVerdict(
+    candidate.filter((r) => set.has(r.case)),
+    aa,
+    { limit: policy.timeTail, caseLevel: policy.timeTailLevel },
+  );
+  const cases = v.cases.map((c) => ({ case: c.case, ratio: r4(c.ratio), low: r4(c.low), high: r4(c.high), bound: r4(c.bound), outcome: c.outcome }));
+  const count = (o: LimitOutcome) => cases.filter((c) => c.outcome === o).length;
+  return { ...base, measured: true, outcome: v.outcome, within: count("within"), beyond: count("beyond"), undecided: count("cannot decide"), reason: v.reason, cases };
+}
+
+/**
+ * This function gives the verdict of the time test of an arm over the CI jobs, with the time test of rigor-bench.
+ *
+ * - The jobs are of one corpus, one filter, mode `fresh` and one base, each with the arm and the A/A arm. Else the verdict is `cannot decide`.
+ * - A decision needs `jobs` jobs, each with `cases` cases and `rounds` rounds or more. Else the verdict is `cannot decide`.
+ * - Each job uses its own range of rounds: the job `j` starts at the round `j` times the most rounds of a job.
+ * - `pooledVerdict` gives the pooled outcome, with the options `margin` (`timeMargin`) and `noiseCap`.
+ * - `limitVerdict` gives the time tail on the merged records that `balanceOrders` keeps.
+ * - The outcome `slower` or a tail `beyond` gives `not promoted`. Each other `cannot decide` gives `cannot decide`.
+ * - The outcome `same` or `faster` with a tail `within` gives `promoted`. An empty tail set does not stop a promotion.
+ */
+export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: BudgetPolicy = BUDGET_POLICY, ci?: string): BudgetResult {
   const reasons: string[] = [];
-  const first = inputs[0];
   const one = <T>(of: (i: BudgetInput) => T, what: string): T | undefined => {
     const values = [...new Set(inputs.map(of))];
-    if (values.length > 1) reasons.push(`the runs have more than one ${what}: ${values.join(", ")}`);
+    if (values.length > 1) reasons.push(`the jobs have more than one ${what}: ${values.join(", ")}`);
     return values[0];
   };
   const corpus = one((i) => i.corpus, "corpus") ?? "";
   const mode = one((i) => i.report.mode, "mode") ?? "";
   const base = one((i) => i.report.base, "base") ?? "";
   const only = one((i) => i.only, "filter");
-  if (inputs.length < policy.runs) reasons.push(`a decision needs ${policy.runs} runs, not ${inputs.length}`);
-  if (first !== undefined && mode !== "fresh") reasons.push(`the mode is ${mode}, not fresh`);
+  if (inputs.length < policy.jobs) reasons.push(`a decision needs ${policy.jobs} jobs, not ${inputs.length}`);
+  if (inputs.length > 0 && mode !== "fresh") reasons.push(`the mode is ${mode}, not fresh`);
   for (const i of inputs) {
-    if (!i.report.arms.includes(arm)) reasons.push(`the run ${i.run} has no arm ${arm}`);
-    const band = i.report.noiseFloor;
-    if (band === null) reasons.push(`the run ${i.run} has no A/A arm`);
-    else if (!(band.p10 <= 1 && band.p90 >= 1)) reasons.push(`the run ${i.run} has the A/A band ${r4(band.p10)} to ${r4(band.p90)}, without 1: it measured the runner, and a new run replaces it`);
+    if (!i.report.arms.includes(arm)) reasons.push(`the job ${i.run} has no arm ${arm}`);
+    if (!i.report.arms.includes(aaId(i.report.base))) reasons.push(`the job ${i.run} has no A/A arm`);
   }
-  const runs = inputs.map((i) => budgetRun(i, arm, policy.tailQ, policy.floorMs));
-  const noTail = runs.length > 0 && runs.every((r) => r.tailSet === 0);
-  const worst = (of: (r: BudgetRun) => number) => (runs.length === 0 ? Number.NaN : Math.max(...runs.map(of)));
-  const worstTail = (of: (r: BudgetRun) => number) => {
-    const values = runs.filter((r) => r.tailSet > 0).map(of);
-    return values.length === 0 ? Number.NaN : Math.max(...values);
+  const head = { schema: "packing-time-budget/2" as const, corpus, mode, base, arm, ...(only !== undefined ? { only } : {}), ...(ci !== undefined ? { ci } : {}), policy };
+  if (reasons.length > 0) return { ...head, jobs: [], pooled: null, tail: null, verdict: "cannot decide", reasons };
+
+  const span = Math.max(...inputs.map((i) => Math.max(0, ...i.report.inputs.flatMap((x) => Object.values(x.ms).map((m) => m.length)))));
+  const records = inputs.map((input, j) => jobRecords(input, arm, j, j * span));
+  for (const [j, input] of inputs.entries()) {
+    const cases = new Set(records[j]!.candidate.map((r) => r.case)).size;
+    const rounds = roundsOf(input.report, arm);
+    if (cases < policy.cases) reasons.push(`the job ${input.run} has ${cases} cases, and a decision needs ${policy.cases}`);
+    if (rounds < policy.rounds) reasons.push(`the job ${input.run} has ${rounds} rounds of a case, and a decision needs ${policy.rounds}`);
+  }
+  if (reasons.length > 0) return { ...head, jobs: [], pooled: null, tail: null, verdict: "cannot decide", reasons };
+
+  const v = pooledVerdict(records, { margin: policy.timeMargin, noiseCap: policy.noiseCap });
+  const jobs = v.jobs.map(({ job, verdict }, j): BudgetJob => {
+    const input = inputs[j]!;
+    return {
+      job,
+      run: input.run,
+      cpu: input.report.env.cpu,
+      cases: verdict.cases.length,
+      rounds: roundsOf(input.report, arm),
+      roundOffset: j * span,
+      outcome: verdict.outcome,
+      interval: pairOf(verdict.interval),
+      aaMedian: orNull(verdict.noise?.aaMedian),
+      aaSpread: orNull(verdict.noise?.spread),
+      reason: verdict.reason,
+    };
+  });
+  const pooled: BudgetPooled = {
+    outcome: v.outcome,
+    interval: pairOf(v.pooled.interval),
+    aaMedian: orNull(v.pooled.noise?.aaMedian),
+    aaSpread: orNull(v.pooled.noise?.spread),
+    noiseCap: policy.noiseCap,
+    margin: policy.timeMargin,
+    cases: v.pooled.cases.length,
+    trimmed: v.trimmed,
+    opposed: v.opposed,
+    reason: v.reason,
   };
-  const spreadOf = (values: number[]) => (values.length === 0 ? Number.NaN : r4(Math.max(...values) - Math.min(...values)));
-  const tailRuns = runs.filter((r) => r.tailSet > 0);
-  const worstAaP90 = worst((r) => r.aaP90);
-  const worstAaTail = worstTail((r) => r.aaTail);
-  const medianSpread = spreadOf(runs.map((r) => r.aaP90));
-  const tailSpread = spreadOf(tailRuns.map((r) => r.aaTail));
-  const medianLeast = r4(worstAaP90 + medianSpread);
-  const tailLeast = r4(worstAaTail + tailSpread);
-  const someTails = !noTail && tailRuns.length < runs.length;
-  const resolution = {
-    median: { worstAaP90, spread: medianSpread, least: medianLeast, valid: policy.median > medianLeast },
-    tail: { worstAaTail, spread: tailSpread, least: tailLeast, valid: noTail || (!someTails && policy.tail > tailLeast) },
-  };
-  const median = { worst: worst((r) => r.median), limit: policy.median, pass: worst((r) => r.median) <= policy.median };
-  const tail = { worst: noTail ? Number.NaN : worstTail((r) => r.tail), limit: policy.tail, measured: !noTail, pass: noTail || worstTail((r) => r.tail) <= policy.tail };
+  const candidate = balanceOrders(records.flatMap((r) => r.candidate)).records;
+  const aa = balanceOrders(records.flatMap((r) => r.aa)).records;
+  const tail = timeTail(candidate, aa, policy);
+
   let verdict: BudgetVerdict;
-  if (reasons.length > 0) verdict = "cannot decide";
-  else if (!resolution.median.valid) {
-    verdict = "cannot decide";
-    reasons.push(`noise: the worst A/A p90 ${worstAaP90} plus the spread ${medianSpread} is ${medianLeast}, not under the budget ${policy.median}`);
-  } else if (!median.pass) {
+  if (pooled.outcome === "slower") {
     verdict = "not promoted";
-    reasons.push(`the worst median ${median.worst} is above the budget ${policy.median}`);
-  } else if (!resolution.tail.valid) {
-    verdict = "cannot decide";
-    if (someTails) reasons.push("noise: some runs have an empty tail set");
-    else reasons.push(`noise: the worst A/A q${policy.tailQ * 100} ${worstAaTail} plus the spread ${tailSpread} is ${tailLeast}, not under the tail budget ${policy.tail}`);
-  } else if (!tail.pass) {
+    reasons.push(`time: the pooled outcome is slower. ${pooled.reason}`);
+  } else if (tail.outcome === "beyond") {
     verdict = "not promoted";
-    reasons.push(`the worst tail ${tail.worst} is above the budget ${policy.tail}`);
+    reasons.push(`tail: ${tail.beyond} of ${tail.set} cases are beyond the limit ${policy.timeTail}. ${tail.reason}`);
+  } else if (pooled.outcome === "cannot decide" || tail.outcome === "cannot decide") {
+    verdict = "cannot decide";
+    if (pooled.outcome === "cannot decide") reasons.push(`time: ${pooled.reason}`);
+    if (tail.outcome === "cannot decide") reasons.push(`tail: ${tail.reason}`);
   } else {
     verdict = "promoted";
-    if (noTail) reasons.push(`tail: not measured, no input above ${policy.floorMs} ms`);
+    if (!tail.measured) reasons.push(tail.reason);
   }
-  return { schema: "packing-time-budget/1", corpus, mode, base, arm, ...(only !== undefined ? { only } : {}), policy, runs, resolution, median, tail, verdict, reasons };
+  return { ...head, jobs, pooled, tail, verdict, reasons };
 }
 
-/** This function writes the result of the time budget as Markdown. */
+/** The most tail cases in the Markdown of the record. The JSON record keeps each case. */
+const TAIL_ROWS = 50;
+
+/** This function writes the record of the time test as Markdown. */
 export function budgetMarkdown(b: BudgetResult): string {
-  const rows = b.runs.map((r) => `| ${r.run} | ${r.cpu} | ${r.inputs} | ${r.median} | ${r.tail} | ${r.aaMedian} | ${r.aaP10} | ${r.aaP90} | ${r.aaTail} | ${r.tailSet} | ${r.underOldFloor} | ${r.under01ms} |`);
-  const q = `q${b.policy.tailQ * 100}`;
+  const p = b.policy;
+  const range = (i: [number, number] | null) => (i === null ? "none" : `[${i[0]}, ${i[1]}]`);
+  const rows = b.jobs.map((j) => `| ${j.job} | ${j.run} | ${j.cpu} | ${j.cases} | ${j.rounds} | ${j.outcome} | ${range(j.interval)} | ${j.aaMedian ?? "none"} | ${j.aaSpread ?? "none"} |`);
+  const pooled = b.pooled;
+  const tail = b.tail;
+  const failed = (tail?.cases ?? []).filter((c) => c.outcome !== "within").toSorted((x, y) => y.bound - x.bound);
+  const shown = failed.slice(0, TAIL_ROWS);
   return [
-    `## The time budget of ${b.arm} against ${b.base} on ${b.corpus}: ${b.verdict}`,
+    `## The time test of ${b.arm} against ${b.base} on ${b.corpus}: ${b.verdict}`,
     "",
-    `Policy: the worst median of ${b.policy.runs} runs is at most ${b.policy.median}, and the worst ${q} is at most ${b.policy.tail}.`,
-    `Resolution: the worst A/A p90 ${b.resolution.median.worstAaP90} plus the spread ${b.resolution.median.spread} gives ${b.resolution.median.least} (${b.resolution.median.valid ? "valid" : "not valid"}). The worst A/A ${q} ${b.resolution.tail.worstAaTail} plus the spread ${b.resolution.tail.spread} gives ${b.resolution.tail.least} (${b.resolution.tail.valid ? "valid" : "not valid"}).`,
-    `Median: worst ${b.median.worst}, budget ${b.median.limit}. ${b.tail.measured ? `Tail (inputs of ${b.policy.floorMs} ms or more): worst ${b.tail.worst}, budget ${b.tail.limit}.` : `Tail: not measured, no input above ${b.policy.floorMs} ms.`}`,
-    ...(b.reasons.length > 0 ? ["", `Reasons: ${b.reasons.join(". ")}.`] : []),
-    "",
-    `| Run | CPU | Inputs | Median | ${q} | A/A median | A/A p10 | A/A p90 | A/A ${q} | Tail set | Base under 3.33 ms | Base under 0.1 ms |`,
-    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-    ...rows,
+    `Settings: timeMargin ${p.timeMargin}, noiseCap ${p.noiseCap}, jobs ${p.jobs}, cases ${p.cases}, rounds ${p.rounds}, timeFloorMs ${p.timeFloorMs}, timeTail ${p.timeTail}, timeTailQ ${p.timeTailQ}, timeTailLevel ${p.timeTailLevel}.`,
+    ...(b.ci !== undefined ? [`CI run: ${b.ci}`] : []),
+    ...(pooled === null
+      ? []
+      : [
+          `Pooled: ${pooled.outcome}, interval ${range(pooled.interval)} on ${pooled.cases} cases, A/A median ${pooled.aaMedian ?? "none"}, A/A spread ${pooled.aaSpread ?? "none"} (noise cap ${pooled.noiseCap}, margin ${pooled.margin}). The balance removed ${pooled.trimmed} records.${pooled.opposed.length > 0 ? ` Opposed jobs: ${pooled.opposed.join(", ")}.` : ""}`,
+        ]),
+    ...(tail === null
+      ? []
+      : [tail.measured ? `Tail (cases of ${p.timeFloorMs} ms or more): ${tail.outcome}, ${tail.within} within, ${tail.beyond} beyond, ${tail.undecided} cannot decide of ${tail.set}, limit ${tail.limit}.` : `Tail: not measured, no input above ${p.timeFloorMs} ms.`]),
+    ...(b.reasons.length > 0 ? ["", `Reasons: ${b.reasons.join(" ")}`] : []),
+    ...(rows.length === 0
+      ? []
+      : ["", "| Job | Run | CPU | Cases | Rounds | Outcome | Interval | A/A median | A/A spread |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- |", ...rows]),
+    ...(failed.length === 0
+      ? []
+      : [
+          "",
+          `The tail cases that are not within the limit, with the highest bound first${failed.length > shown.length ? ` (${shown.length} of ${failed.length}, \`budget.json\` has all)` : ""}:`,
+          "",
+          "| Tail case | Ratio | Interval | Bound | Outcome |",
+          "| --- | --- | --- | --- | --- |",
+          ...shown.map((c) => `| ${c.case} | ${c.ratio} | [${c.low}, ${c.high}] | ${c.bound} | ${c.outcome} |`),
+        ]),
     "",
   ].join("\n");
 }

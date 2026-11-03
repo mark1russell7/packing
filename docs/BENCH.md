@@ -997,18 +997,34 @@ The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` again
 
 ### The time budget of a promotion
 
-The time budget (`bench/time-budget.ts`, schema `packing-time-budget/1`, roadmap item k128) is the time test of a new strategy. It replaces the floor rule of the time row in `docs/PROMOTION.md` for packing.
+The time budget (`bench/time-budget.ts`, schema `packing-time-budget/2`, roadmap items k128 and k133) is the time test of a new strategy. It applies the time test of the linked win test in `docs/PROMOTION.md`.
 
-- The budget is a policy, not a measured limit. The worst median of 5 paired jobs is at most 1.5. The worst q95 is at most 2.
-- The measure is the raw paired ratio of the candidate against the default, in mode `fresh`, with the A/A arm. Each case starts in its own fresh processes. The Bench records do not count.
-- A run counts only when its A/A band from p10 to p90 contains 1. A new run replaces a run that does not count.
-- The A/A arm of the same runs gives the resolution. The median decision is valid only when 1.5 is more than the worst A/A p90 plus their spread.
-- The spread of the runs is the largest value minus the smallest value. The resolution has no margin factor.
-- If the median decision is not valid, the verdict is `cannot decide`, with the numbers.
-- The tail decision needs 2 more than the worst A/A q95 on the tail set plus their spread, and a tail set in each run. Else the verdict is `cannot decide`.
-- Each decision uses the worst of the 5 runs, so each run must pass.
-- The tail set holds only the inputs with a base or a candidate median of `timeFloorMs` (5 ms) or more. An empty tail set gives `tail: not measured` in the record. It does not stop a promotion.
-- The record keeps the share of inputs with a base under 3.33 ms and under 0.1 ms as a report.
+- The verdict comes from `@mark1russell7/rigor-bench`: `pooledVerdict` with the options `margin` and `noiseCap`, `balanceOrders` and `limitVerdict`. packing keeps no verdict logic.
+- The settings are in `BUDGET_POLICY`, and the settings table of `docs/PROMOTION.md` gives them.
+- Each CI job of mode `fresh` with the A/A arm gives one job of the pooled verdict. The candidate pair is (default, candidate), and the A/A pair is (default, `<default>~aa`).
+- Each input and each round of a report give one record of each pair. The two pairs share the time of the default of the round.
+- The first arm of a record comes from the order of `armOrder`. That order rotates the arms of the report by the round.
+- The job `j` uses the rounds from `j` times the rounds of a job. Thus the merged records have one record of each case and round.
+- With 3 arms, the rotation does not turn each pair in each round. In 5 rounds, the candidate pair starts with the default 3 times, and the A/A pair 2 times.
+- The balance of the orders then removes 4 records of each case in each pair from 5 jobs. The record keeps this count.
+- The balance removes the records with the highest rounds first. Thus most removed records are records of the last job.
+- The verdict is `promoted` for a pooled outcome `same` or `faster` and a time tail `within`. An empty tail set does not stop a promotion.
+- The verdict is `not promoted` for a pooled outcome `slower` or a time tail `beyond`. Each other outcome gives `cannot decide`.
+- rigor-bench 0.2.2 has no share test over the tail set. Thus one case `beyond` fails the tail, and each case must be `within` for a pass.
+- The record keeps the pooled interval, the A/A median ratio, the A/A spread, the noise cap, the margin and the count of removed records.
+- The record also keeps the verdict and the CPU of each job, the outcome of each tail case and the URL of the CI run.
+
+The proposal of `noiseCap` comes from the A/A arms of 3 k66 jobs of `pack-select-v2` (2025 cases, 5 rounds). The spread is the 0.9 quantile of `abs(log(ratio))` from `aaSpread`:
+
+| Job | CPU | A/A spread | A/A median ratio |
+| --- | --- | --- | --- |
+| k66 job 1 | AMD EPYC 9V74 | 0.1347 | 0.998 |
+| k66 job 3 | AMD EPYC 9V74 | 0.1379 | 1.0012 |
+| k66 job 5 | Intel Xeon 6973P-C | 0.1196 | 1.0005 |
+| The merged records of the 3 jobs | | 0.0752 | 0.9997 |
+
+The proposal 0.156 is the worst job plus the spread of the jobs (0.1379 + 0.0183). With it, a quiet job votes in the guard of the jobs. The merged records are under it.
+
 - After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value times 1.1).
 
 The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.

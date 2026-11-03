@@ -39,7 +39,7 @@ import {
 import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { dumpPredicates, NEAR } from "./predicates.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
-import { budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
+import { BUDGET_POLICY, budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
 import { checkTimeGate, gateMarkdown, parseTimeGate } from "./time-gate.ts";
 
 const here = import.meta.dirname;
@@ -203,7 +203,10 @@ function pairedGate(): number {
   return result.pass ? 0 : 1;
 }
 
-/** This function gives the time budget of an arm (k128) over the paired jobs in the folders of `--dir`. It writes `budget.json` and `budget.md`. */
+/**
+ * This function gives the time test of an arm (k128, k133) over the paired jobs in the folders of `--dir`. It writes `budget.json` and `budget.md`.
+ * In GitHub Actions, the record keeps the URL of the CI run.
+ */
 function pairedBudget(): number {
   const dir = opt("--dir");
   const arm = opt("--arm");
@@ -217,7 +220,9 @@ function pairedBudget(): number {
       const report = JSON.parse(readFileSync(join(dir, name, "paired-time.json"), "utf8")) as PairedReport;
       return { run: name, report, corpus: run.corpus, ...(run.only !== undefined ? { only: run.only } : {}) };
     });
-  const result = timeBudget(inputs, arm);
+  const env = process.env;
+  const ci = env["GITHUB_RUN_ID"] ? `${env["GITHUB_SERVER_URL"] ?? "https://github.com"}/${env["GITHUB_REPOSITORY"] ?? ""}/actions/runs/${env["GITHUB_RUN_ID"]}` : undefined;
+  const result = timeBudget(inputs, arm, BUDGET_POLICY, ci);
   writeFileSync(join(dir, "budget.json"), `${JSON.stringify(result, null, 2)}\n`);
   writeFileSync(join(dir, "budget.md"), budgetMarkdown(result));
   process.stdout.write(budgetMarkdown(result));

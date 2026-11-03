@@ -66,15 +66,21 @@ The win test has one home: [docs/WIN-TEST.md of rigor](https://github.com/mark1r
 - A new version of the win test changes the commit and the hash of the lock, in a pull request of each repository.
 <!-- /linked:win-test -->
 
-The linked text has the time test of rigor-bench. packing does not apply it yet. Roadmap item k133 moves packing to it.
+In packing, `bench/time-budget.ts` applies the time test of the linked text through `@mark1russell7/rigor-bench` (roadmap item k133). It keeps no verdict logic of its own. The input `budget` of `paired-time.yml` starts it, as `docs/BENCH.md` tells.
 
-Until k133, packing applies the earlier time row with the settings `timeRatio`, `timeTailQ`, `timeTail` and `timeFloorMs` of the table below:
+The time test of packing has these settings. The table of the parameters below keeps the earlier time row, because that table is a shared block. Each value with the mark "proposal" waits for a measured decision.
 
-- The time ratio of an input is `t / b` in one `paired-time/1` report. The test uses 5 CI jobs in mode `fresh`, each with the A/A arm.
-- The worst median ratio of the 5 jobs is at most `timeRatio`.
-- On the tail set, the worst `timeTailQ` quantile of the 5 jobs is at most `timeTail`.
-
-In packing, `bench/time-budget.ts` applies this time row (roadmap item k128). The input `budget` of `paired-time.yml` starts it, as `docs/BENCH.md` tells. The old ratio `t / max(b, timeFloorMs / timeRatio)` made the ratio an absolute time, because the base times of the packing corpora are under 3.33 ms on 99 % of the inputs.
+| Setting | Value | Source |
+|---|---|---|
+| `timeMargin` | 0.05 | Proposal: the joint bench of layout-contract |
+| `noiseCap` | 0.156 | Proposal: the A/A arms of 3 k66 jobs (`docs/BENCH.md`) |
+| `jobs` | 5 | Proposal: the joint bench of layout-contract |
+| `cases` | 20 | Proposal: the least count of each job, from the joint bench of layout-contract |
+| `rounds` | 5 | Proposal: the least count of each job, from the joint bench of layout-contract |
+| `timeFloorMs` | 5 | The earlier time row |
+| `timeTail` | 2.0 | The earlier time row |
+| `timeTailQ` | 0.95 | The earlier time row. rigor-bench 0.2.2 has no share test, so packing does not apply it yet. |
+| `timeTailLevel` | 0.95 | The default of the linked text |
 
 <!-- shared:noise-guard -->
 ### The noise guard
