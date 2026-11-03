@@ -124,6 +124,7 @@ describe("the active draw", () => {
     expect(activeOptions(["--arm", "control"], ENV).arm).toBe("control");
     expect("arm" in activeOptions([], ENV)).toBe(false);
     expect(() => activeOptions(["--arm", "random"], ENV)).toThrow(/active or control/);
+    expect(() => activeOptions(["--shard", "0/2"], ENV)).toThrow(/does not go with --draw active/);
     expect(activeOptions(["--draw", "active", "--n", "60", "--rounds", "3", "--pool", "5", "--features", "input"], ENV)).toMatchObject({ n: 60, rounds: 3, poolFactor: 5, coverage: { features: "input", by: "spec" } });
     expect(activeOptions([], ENV)).toMatchObject({ n: 400, rounds: 4, poolFactor: 20, coverage: { features: "family", by: "spec" } });
     expect("draw" in activeOptions([], ENV)).toBe(false);

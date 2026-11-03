@@ -83,7 +83,7 @@ export interface ActiveRecord extends SampleRecord {
 }
 
 /** The options of `activeSample`. The active draw is always without clock limits (k121), so it has no `timing` and no `pairs`. */
-export interface ActiveOptions extends Omit<SampleOptions, "draw" | "timing" | "pairs"> {
+export interface ActiveOptions extends Omit<SampleOptions, "draw" | "timing" | "pairs" | "shard"> {
   /** The records of the grid run, as `bench/coverage.ts` reads them. */
   readonly records: readonly CoverageRecord[];
   /** The manifest `corpus.json` of the grid run. */
@@ -454,6 +454,7 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   const at = argv.indexOf("--draw");
   const rest = at < 0 ? [...argv] : [...argv.slice(0, at), ...argv.slice(at + 2)];
   if (argv.includes("--pairs")) throw new Error("The option --pairs does not go with --draw active.");
+  if (argv.includes("--shard")) throw new Error("The option --shard does not go with --draw active. Each round reads the rounds before it.");
   if ((optionOf(argv, "--timing") ?? "off") !== "off") throw new Error("The active draw has no clock limits. It takes only --timing off.");
   const base = sampleOptions(rest, env);
   const features = optionOf(argv, "--features") ?? DEFAULT_FEATURES;
@@ -464,7 +465,7 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new Error(`The option --score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
   const arm = optionOf(argv, "--arm") ?? "active";
   if (!(ACTIVE_ARMS as readonly string[]).includes(arm)) throw new Error(`The option --arm is ${ACTIVE_ARMS.join(" or ")}, not ${arm}.`);
-  const { draw: _draw, timing: _timing, pairs: _pairs, ...kept } = base;
+  const { draw: _draw, timing: _timing, pairs: _pairs, shard: _shard, ...kept } = base;
   return {
     ...kept,
     rounds: wholeOf(argv, "--rounds", DEFAULT_ROUNDS),
