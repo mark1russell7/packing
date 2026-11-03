@@ -1303,6 +1303,20 @@ Why the two numbers differ:
 
 The job `merge` of `bench.yml` starts the sampler with the input `sample` (400). The value 0 turns it off. The sampler stops after 25 minutes with the pairs that it has.
 
+The shards of a sample (k120):
+
+```sh
+node bench/sample-space.ts --out <folder>/s0 --n 400 --seed 1 --shard 0/4
+node bench/sample-space.ts merge --out <folder>/sample <folder>/s0 <folder>/s1 <folder>/s2 <folder>/s3
+```
+
+- The option `--shard j/S` measures one contiguous block of the pairs 0 to `n - 1`. It does not go with `--pairs`.
+- The blocks come from `shardInputs` of `bench/shard.ts`, the same blocks as the shards of a predicate dump.
+- Each pair reads its own random stream. Thus the joined shards of a uniform draw are equal to the sample without shards.
+- A stratified draw closes a stratum after its misses, so its shards can differ from one sample.
+- The command `merge` fails on a missing shard, a shard that is present two times, a shard that the time limit stopped, or other options.
+- Thus a merged sample has all its pairs. The 12-minute limit of one job cut a held-out sample at 125 of 400 pairs.
+
 ### The determinism gate (k121)
 
 A pair that is not deterministic without a clock limit is a bug. Thus it fails the run.

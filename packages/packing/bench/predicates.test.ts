@@ -2,8 +2,9 @@ import { checkHard, outputHash, packWith, type PackInput, type PackOutput } from
 import { describe, expect, it } from "vitest";
 import { predicates } from "../src/probe.ts";
 import { readFileSync } from "node:fs";
-import { collectCase, containerNear, dumpPredicates, edgeRangeNear, overlapNear, parseShard, samePlacementsNear, shardInputs, xAtNear } from "./predicates.ts";
+import { collectCase, containerNear, dumpPredicates, edgeRangeNear, overlapNear, samePlacementsNear, xAtNear } from "./predicates.ts";
 import { parseCorpus } from "./run.ts";
+import { parseShard, shardInputs } from "./shard.ts";
 
 const box = (l: number, t: number, r: number, b: number) => ({ l, t, r, b });
 
