@@ -1573,6 +1573,14 @@ Why the fold spread:
 
 The same seed, the same grid and the same pool give the same pairs. Each candidate has its own random stream `candidate-<c>`.
 
+The control arm (k120, `--arm control`):
+
+- The control arm draws the same pool, with the same quotas, the same caps and the same `nextPick`.
+- Each round takes the candidates in a seeded random order (`controlOrder`) in place of the score order. Thus the arm tells what the score adds.
+- The order is a Fisher and Yates shuffle with the stream `control-round-<k>` of the seed, from `random` of `@mark1russell7/rigor-generators`.
+- The trees of the control arm learn only on the grid and on the pairs of the control arm. The records keep the score of this model.
+- `sample.json` has `active.arm` with the value `control`. The active arm has no field, so its files stay the same as before k120.
+
 `coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.
 
 - The round 1 pairs are tested against the grid model. A later round is tested against the grid and the earlier rounds.

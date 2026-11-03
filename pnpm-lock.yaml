@@ -215,6 +215,12 @@ importers:
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.5
         version: 0.2.5
+      '@mark1russell7/rigor-generators':
+        specifier: ^0.1.1
+        version: 0.1.1
+      '@mark1russell7/rigor-statistics':
+        specifier: ^0.1.5
+        version: 0.1.5
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6

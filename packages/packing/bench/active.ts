@@ -11,6 +11,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { corpusFamilies, generator, packSpace, toPackInput, type GeneratedInput, type PackInput } from "@mark1russell7/packing";
 import { canonicalConfig, checkConfig, configId, createFamilyRegistry, shapeKindsOf, stepRandom, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
+import { random } from "@mark1russell7/rigor-generators";
 import {
   ACTIVE_SCORE,
   ACTIVE_SCORES,
@@ -82,7 +83,7 @@ export interface ActiveRecord extends SampleRecord {
 }
 
 /** The options of `activeSample`. The active draw is always without clock limits (k121), so it has no `timing` and no `pairs`. */
-export interface ActiveOptions extends Omit<SampleOptions, "draw" | "timing" | "pairs"> {
+export interface ActiveOptions extends Omit<SampleOptions, "draw" | "timing" | "pairs" | "shard"> {
   /** The records of the grid run, as `bench/coverage.ts` reads them. */
   readonly records: readonly CoverageRecord[];
   /** The manifest `corpus.json` of the grid run. */
@@ -95,6 +96,24 @@ export interface ActiveOptions extends Omit<SampleOptions, "draw" | "timing" | "
   readonly coverage?: CoverageOptions;
   /** The score of the candidates. The default is `ACTIVE_SCORE`, `spread-iqr`. */
   readonly score?: ActiveScore;
+  /**
+   * The arm of the sample (k120). The default is `active`: each round takes the candidates from the highest score down.
+   * The arm `control` takes them in a seeded random order (`controlOrder`). The pool, the quotas and `nextPick` stay the same.
+   */
+  readonly arm?: ActiveArm;
+}
+
+/** The arms of an active sample (k120). */
+export const ACTIVE_ARMS = ["active", "control"] as const;
+export type ActiveArm = (typeof ACTIVE_ARMS)[number];
+
+/**
+ * This function gives the order of the candidates of a control round (k120): a Fisher and Yates shuffle with the stream `control-round-<k>` of the seed.
+ * The order comes before the shuffle, so the same seed and the same candidates give the same order.
+ */
+export function controlOrder<T extends { readonly c: Pick<Candidate, "index"> }>(candidates: readonly T[], seed: number, round: number): T[] {
+  const sorted = [...candidates].sort((a, b) => a.c.index - b.c.index);
+  return random(seed).fork(`control-round-${round}`).shuffle(sorted);
 }
 
 /** The facts of one round of an active draw. */
@@ -127,6 +146,8 @@ export interface ActiveSummary extends Omit<SampleSummary, "draw"> {
     readonly features: FeatureSet;
     readonly by: "input" | "spec";
     readonly perRound: readonly ActiveRoundFacts[];
+    /** The value `control` for the control arm (k120). The active arm has no field, so its summary stays the same as before k120. */
+    readonly arm?: "control";
   };
 }
 
@@ -282,6 +303,8 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   const coverage: CoverageOptions = { by: "spec", ...options.coverage };
   const score = options.score ?? ACTIVE_SCORE;
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new RangeError(`The score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
+  const arm = options.arm ?? "active";
+  if (!(ACTIVE_ARMS as readonly string[]).includes(arm)) throw new RangeError(`The arm is ${ACTIVE_ARMS.join(" or ")}, not ${arm}.`);
   const plan = drawPlan(space, "stratified", "off");
   const strataCount = plan.strata.length;
   const maxOverlapMoves = options.maxOverlapMoves;
@@ -315,10 +338,9 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   for (let k = 1; k <= rounds && stopped === undefined; k++) {
     const quota = Math.floor((n * k) / rounds) - Math.floor((n * (k - 1)) / rounds);
     const scorer = foldScorer(grid, records, { ...coverage, inputs }, score);
-    const order = pool
-      .filter((c) => !taken.has(c.index))
-      .map((c) => ({ c, s: scorer.score(c.features) }))
-      .sort((a, b) => b.s - a.s || a.c.index - b.c.index);
+    const scored = pool.filter((c) => !taken.has(c.index)).map((c) => ({ c, s: scorer.score(c.features) }));
+    // k120: the control arm keeps the scores of its own model in the records, but its order does not read them.
+    const order = arm === "control" ? controlOrder(scored, seed, k) : scored.sort((a, b) => b.s - a.s || a.c.index - b.c.index);
     const poolMean = order.length === 0 ? 0 : r4(order.reduce((sum, x) => sum + x.s, 0) / order.length);
     let got = 0;
     let rejected = 0;
@@ -420,6 +442,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
       features: coverage.features ?? DEFAULT_FEATURES,
       by: coverage.by ?? "spec",
       perRound,
+      ...(arm === "control" ? { arm } : {}),
     },
   };
   return { records, summary };
@@ -431,6 +454,7 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   const at = argv.indexOf("--draw");
   const rest = at < 0 ? [...argv] : [...argv.slice(0, at), ...argv.slice(at + 2)];
   if (argv.includes("--pairs")) throw new Error("The option --pairs does not go with --draw active.");
+  if (argv.includes("--shard")) throw new Error("The option --shard does not go with --draw active. Each round reads the rounds before it.");
   if ((optionOf(argv, "--timing") ?? "off") !== "off") throw new Error("The active draw has no clock limits. It takes only --timing off.");
   const base = sampleOptions(rest, env);
   const features = optionOf(argv, "--features") ?? DEFAULT_FEATURES;
@@ -439,13 +463,16 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   if (by !== "input" && by !== "spec") throw new Error(`The option --by is input or spec, not ${by}.`);
   const score = optionOf(argv, "--score") ?? ACTIVE_SCORE;
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new Error(`The option --score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
-  const { draw: _draw, timing: _timing, pairs: _pairs, ...kept } = base;
+  const arm = optionOf(argv, "--arm") ?? "active";
+  if (!(ACTIVE_ARMS as readonly string[]).includes(arm)) throw new Error(`The option --arm is ${ACTIVE_ARMS.join(" or ")}, not ${arm}.`);
+  const { draw: _draw, timing: _timing, pairs: _pairs, shard: _shard, ...kept } = base;
   return {
     ...kept,
     rounds: wholeOf(argv, "--rounds", DEFAULT_ROUNDS),
     poolFactor: wholeOf(argv, "--pool", DEFAULT_POOL_FACTOR),
     coverage: { features: features as FeatureSet, by },
     score: score as ActiveScore,
+    ...(arm === "control" ? { arm: "control" as const } : {}),
   };
 }
 
@@ -467,7 +494,7 @@ export function activeMain(argv: readonly string[]): number {
   writeFileSync(join(dir, "records.jsonl"), pairs.map((r) => `${JSON.stringify(r)}\n`).join(""));
   writeFileSync(join(dir, "sample.json"), `${JSON.stringify(summary, null, 1)}\n`);
   console.log(
-    `${summary.pairs} of ${summary.requested} active pairs in ${dir}, ${summary.active.features} features. Pool: ${summary.active.pool} candidates, ${summary.active.poolMissed} missed. ` +
+    `${summary.pairs} of ${summary.requested} ${summary.active.arm ?? "active"} pairs in ${dir}, ${summary.active.features} features. Pool: ${summary.active.pool} candidates, ${summary.active.poolMissed} missed. ` +
       `Errors: ${summary.errors.length}.${summary.stopped === "time" ? " The time limit stopped the sample." : ""}`,
   );
   for (const r of summary.active.perRound) {
