@@ -139,6 +139,7 @@ Status: done, done, waiting, next, done.
 | k130 | The portfolio costs about the sum of its members. A profile finds the cost of the wrapper, and the fix goes in `portfolio` itself. A CI gate `k130-time` in CI OK: the portfolio takes at most 1.4624 times the sum of its members (worst of 5 CI runs plus the spread). It took 1.31 to 1.37 times in 4 runs. The packs do not change. The tests 1 to 3 of k127 apply to `portfolio-fill-rows-bl`. The default stays `select`, except when the bench puts the portfolio on the front of fill and time | strategies | done | k127 |
 | k131 | A graph order of the items, for layout-stack L47. The option `links` of `pack` is a weighted list of the links between the items. The order `graph-bfs` goes breadth-first from the hub of each component. The input `links` of the contract (layout-contract 0.3.1) and the bench entries follow. Without links, the layouts do not change | strategies | active | k9 |
 | k132 | A package that a bundler can shake: `"sideEffects": false`, one subpath export for each strategy (for example `@mark1russell7/packing/maxrects`), and no registry that the module builds at load. A small consumer then pays only for the strategy that it imports | core | next | |
+| k133 | The time row of the win test on rigor-bench. `bench/time-budget.ts` takes the pooled verdict and the time tail of `@mark1russell7/rigor-bench`, and keeps no verdict logic of its own. The settings table gets `timeMargin`, `noiseCap` and the counts of the jobs, cases and rounds. | bench | next | |
 
 ## The queue
 
