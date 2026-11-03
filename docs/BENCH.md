@@ -1587,7 +1587,7 @@ The result over the fold seeds (k120, `node bench/paired-arms.ts --out <file> <c
 
 The nightly control (k120, `coverage-nightly.yml`):
 
-- The workflow starts each night at 02:41 UTC. A person can also start it, with other inputs.
+- The workflow starts each night at 02:52 UTC. A person can also start it, with other inputs.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
 - The jobs `sample` pack the held-out sample of 400 pairs in 4 shards, with no time limit. The job `held-out` joins them.
 - The merge fails on a missing pair. Thus each arm is tested on all the pairs of the sample.
