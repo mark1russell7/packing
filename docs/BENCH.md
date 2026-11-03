@@ -1562,6 +1562,15 @@ The control arm (k120, `--arm control`):
 - The trees of the control arm learn only on the grid and on the pairs of the control arm. The records keep the score of this model.
 - `sample.json` has `active.arm` with the value `control`. The active arm has no field, so its files stay the same as before k120.
 
+The paired test of the two arms (k120, `coverage.ts --active <dir> --control <dir> --sample <dir>`):
+
+- Each arm gives one model: the grid and all the pairs of the arm. Both models predict the pairs of `--sample`.
+- For each pair, d is the hit of the active model minus the hit of the control model.
+- The test of a measure is the exact McNemar test: the two-sided `signTest` of the pairs where only one model hits.
+- `holm` corrects the p of the measures at the level 0.05. A measure with `reject` has a change.
+- The section `paired` also gives mean(d) with a 95% bootstrap interval (10 000 samples, the seed `k120-paired-<measure>`).
+- The module `bench/paired-arms.ts` uses only `@mark1russell7/rigor-statistics`. It has no verdict logic of its own.
+
 `coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.
 
 - The round 1 pairs are tested against the grid model. A later round is tested against the grid and the earlier rounds.
