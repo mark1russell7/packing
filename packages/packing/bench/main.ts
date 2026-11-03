@@ -38,6 +38,7 @@ import {
 } from "./run.ts";
 import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { dumpPredicates, NEAR } from "./predicates.ts";
+import { deriveSizeGate, measureSizes, parseSizeGate, publishedExports, sizeCoverage, sizeMarkdown, sizeVerdict, type PublishedPackage, type SizeBundler } from "./size-gate.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
 import { BUDGET_POLICY, budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
 import { checkTimeGate, deriveTimeGate, gateMarkdown, parseTimeGate, type TimeGate } from "./time-gate.ts";
@@ -277,6 +278,50 @@ function predicateDump(): number {
   return result.inputs === 0 ? empty(`the corpus ${name}`) : 0;
 }
 
+/**
+ * This function applies the size gate (k132) to the build in `build/`. `--gate` names the record, and `--out` names a folder for `size.json` and `size.md`.
+ * With `--derive`, the function writes the new measures and budgets into the record.
+ */
+async function sizeGate(): Promise<number> {
+  const file = opt("--gate");
+  const out = opt("--out");
+  if (file === undefined || out === undefined) throw new Error("A size gate needs --gate <file> and --out <dir>.");
+  const exports = publishedExports(JSON.parse(readFileSync("package.json", "utf8")) as PublishedPackage);
+  const gate = parseSizeGate(readFileSync(file, "utf8"));
+  const esbuild = await import("esbuild");
+  const root = resolve(".");
+  const bundle: SizeBundler = async (entry, name) => {
+    const r = await esbuild.build({
+      stdin: { contents: `import { ${name} } from ${JSON.stringify(join(root, entry).replaceAll("\\", "/"))};\nglobalThis.keep = ${name};\n`, resolveDir: root, loader: "js" },
+      bundle: true,
+      minify: true,
+      format: "esm",
+      platform: "neutral",
+      treeShaking: true,
+      write: false,
+      mainFields: ["module", "main"],
+      logLevel: "silent",
+    });
+    const code = r.outputFiles[0];
+    if (code === undefined) throw new Error(`esbuild gives no output for ${entry}.`);
+    return code.contents;
+  };
+  const measures = await measureSizes(gate.entries, bundle);
+  mkdirSync(out, { recursive: true });
+  if (rest.includes("--derive")) {
+    const commit = process.env["GITHUB_SHA"] ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const next = deriveSizeGate(gate, measures, commit);
+    writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(next.entries.map((e) => [e.specifier, e.measured, e.budget]))}\n`);
+    return 0;
+  }
+  const result = sizeVerdict(gate.entries, measures, sizeCoverage(gate.entries, exports));
+  writeFileSync(join(out, "size.json"), `${JSON.stringify(result, null, 2)}\n`);
+  writeFileSync(join(out, "size.md"), sizeMarkdown(result));
+  process.stdout.write(sizeMarkdown(result));
+  return result.verdict === "pass" ? 0 : 1;
+}
+
 function main(): number | Promise<number> {
   switch (command) {
     case "paired":
@@ -289,6 +334,8 @@ function main(): number | Promise<number> {
       return pairedGateDerive();
     case "paired-budget":
       return pairedBudget();
+    case "size-gate":
+      return sizeGate();
     case "predicates":
       return predicateDump();
     case "list":
