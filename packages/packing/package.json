@@ -29,6 +29,14 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./default": "./src/entry/default.ts",
+    "./guillotine": "./src/entry/guillotine.ts",
+    "./hole-degree": "./src/entry/hole-degree.ts",
+    "./maxrects": "./src/entry/maxrects.ts",
+    "./push": "./src/entry/push.ts",
+    "./rows": "./src/entry/rows.ts",
+    "./shelf": "./src/entry/shelf.ts",
+    "./skyline": "./src/entry/skyline.ts",
     "./bench/entries": "./bench/entries.ts",
     "./package.json": "./package.json"
   },
@@ -48,6 +56,38 @@
       ".": {
         "types": "./build/index.d.ts",
         "default": "./build/index.js"
+      },
+      "./default": {
+        "types": "./build/entry/default.d.ts",
+        "default": "./build/entry/default.js"
+      },
+      "./guillotine": {
+        "types": "./build/entry/guillotine.d.ts",
+        "default": "./build/entry/guillotine.js"
+      },
+      "./hole-degree": {
+        "types": "./build/entry/hole-degree.d.ts",
+        "default": "./build/entry/hole-degree.js"
+      },
+      "./maxrects": {
+        "types": "./build/entry/maxrects.d.ts",
+        "default": "./build/entry/maxrects.js"
+      },
+      "./push": {
+        "types": "./build/entry/push.d.ts",
+        "default": "./build/entry/push.js"
+      },
+      "./rows": {
+        "types": "./build/entry/rows.d.ts",
+        "default": "./build/entry/rows.js"
+      },
+      "./shelf": {
+        "types": "./build/entry/shelf.d.ts",
+        "default": "./build/entry/shelf.js"
+      },
+      "./skyline": {
+        "types": "./build/entry/skyline.d.ts",
+        "default": "./build/entry/skyline.js"
       },
       "./package.json": "./package.json"
     }

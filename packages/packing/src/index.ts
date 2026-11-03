@@ -90,7 +90,8 @@ export {
   type PushStrategyOptions,
 } from "./adapters.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { aspectFitStrategy, composites, DEFAULT_STRATEGY, packDefault, packWith, shapeStrategies, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+export { aspectFitStrategy, composites, packWith, shapeStrategies, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
 export {
   ANCHOR_GAIN_LIMIT,
   ANCHOR_MEASURE_IDS,

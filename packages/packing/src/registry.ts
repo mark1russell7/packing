@@ -94,13 +94,4 @@ export function packWith(id: string, input: PackInput, options?: unknown, seed =
   return s.pack(input, merged, createContext(seed));
 }
 
-/**
- * The id of the default strategy of an input: `select`. It passed two fresh-seed confirmations against `rows` (roadmap
- * item k66). `pack` does not read it.
- */
-export const DEFAULT_STRATEGY = "select";
-
-/** This function packs an input with `DEFAULT_STRATEGY` and its defaults. The default seed is 0. */
-export function packDefault(input: PackInput, seed = 0): PackOutput {
-  return packWith(DEFAULT_STRATEGY, input, undefined, seed);
-}
+export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
