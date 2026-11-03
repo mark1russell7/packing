@@ -60,6 +60,9 @@ describe("the types of packing and of the contract", () => {
     };
     expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.3.3");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
+    // mulberry32 and fnv1a32 of the package come from their home at run time
+    expect(pkg.dependencies?.["@mark1russell7/rigor-generators"]).toBe("^0.1.1");
+    expect(pkg.devDependencies?.["@mark1russell7/rigor-generators"]).toBeUndefined();
   });
 
   it("gap 1 is closed: the arrays and the fields of packing are readonly, as in the contract", () => {

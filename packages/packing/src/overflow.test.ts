@@ -98,6 +98,23 @@ describe("overflowBound", () => {
     };
     expect(freeAreaBound(holes)).toBe(7500);
     expect(overflowBound(holes).forced).toBe(1);
+    // A hole with a common edge counts, and a hole over a counted hole does not
+    const threeHoles: PackInput = {
+      container: {
+        fixed: "size",
+        shape: {
+          kind: "polygon",
+          points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+          holes: [
+            [[10, 10], [30, 10], [30, 30], [10, 30]],
+            [[30, 10], [50, 10], [50, 30], [30, 30]],
+            [[20, 15], [40, 15], [40, 25], [20, 25]],
+          ],
+        },
+      },
+      items: [],
+    };
+    expect(freeAreaBound(threeHoles)).toBe(9200);
     // A rectangle obstacle in the circle counts, and an obstacle on the outline does not
     const inside: PackInput = { ...circle, obstacles: [{ id: "o", region: { kind: "rect", x: 40, y: 40, w: 20, h: 20 } }] };
     expect(freeAreaBound(inside)).toBeCloseTo(Math.PI * 2500 - 400, 9);
