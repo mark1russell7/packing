@@ -48,7 +48,7 @@ const SQUEEZE_UNEQUAL = 0.01;
 /** The relative gain of the radius that counts as a new best radius */
 const GAIN = 1e-10;
 
-/** The relative radius error that a container of fixed size allows, after the last scale */
+/** The permitted relative radius error of a container of fixed size, after the last scale */
 const FIT = 1e-9;
 
 /** The density of the first free layout */
@@ -252,8 +252,8 @@ function descend(m: Model, v: Float64Array, solve: Solve, w: Work): number {
 }
 
 /**
- * This function gives the smallest radius of a layout with no overlap: it grows the centers until no pair overlaps, then it reads
- * the outermost circle. Thus each radius that a run keeps is exact, and no energy tolerance is in it.
+ * This function gives the smallest radius of a layout with no overlap.
+ * It grows the centers until no pair overlaps, then it reads the outermost circle. Thus each radius that a run keeps is exact, and no energy tolerance is in it.
  */
 function tighten(m: Model, v: Float64Array): Tight {
   const { n, r, sep } = m;
@@ -298,7 +298,7 @@ function pointIn(rng: () => number, radius: number): [number, number] {
   }
 }
 
-/** This function gives the pain of each circle at a radius: the sum of the squares of its overlaps, as a share of its squared radius. */
+/** This function gives the pain of each circle at a radius. The pain is the sum of the squares of its overlaps, as a share of its squared radius. */
 function painOf(m: Model, v: Float64Array, radius: number): Float64Array {
   const { n, r, sep } = m;
   const pain = new Float64Array(n);
@@ -779,7 +779,8 @@ export const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions> = {
  * This function counts the placed circle items that go out of a circle container, by the distance of the centers (roadmap item k94). It is exact for circles.
  * The count `in-container` of `packHard` reads the bounding box of a circle, so it is only safe in a circle container.
  *
- * - A circle breaks the rule when its center distance, its radius, the largest side of its margin and the inset are more than the container radius plus `tolerance`.
+ * - A circle breaks the rule when the reach is more than the container radius plus `tolerance`.
+ * - The reach is the sum of the center distance, the radius, the largest side of the margin and the inset.
  * - A free container reads its radius from `size`, and its center is the corner of the shape plus that radius.
  * - An item without a circle shape and a placement of an unknown id do not count.
  * - The function throws a `RangeError` for a container that is not a circle.

@@ -199,7 +199,7 @@ export function breaksOf(records: readonly CircleRecord[]): string[] {
   return breaks;
 }
 
-/** This function gives a number of the table of the summary, or a dash for no value. */
+/** This function gives one value of the table of the summary, or a dash for no value. */
 const cell = (value: number | null, digits: number): string => (value === null ? "-" : value.toFixed(digits));
 
 /** This function gives the summary as a Markdown table. */
