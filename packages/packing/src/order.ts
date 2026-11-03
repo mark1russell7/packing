@@ -1,3 +1,4 @@
+import type { PackLink } from "@mark1russell7/layout-contract";
 import type { Rect } from "./rect.ts";
 
 /**
@@ -26,14 +27,10 @@ export function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => n
 }
 
 /**
- * A link between two items. `a` and `b` are indexes into the array of the items. The weight is a finite number above
- * 0. The default weight is 1. The physical strategies read the same list later.
+ * A link between two items: the `PackLink` of `@mark1russell7/layout-contract`. `a` and `b` are indexes into the
+ * array of the items. The weight is a finite number above 0. The default weight is 1.
  */
-export interface ItemLink {
-  a: number;
-  b: number;
-  weight?: number;
-}
+export type ItemLink = PackLink;
 
 /**
  * An order that reads the links of the items. `graph-bfs` starts at the item with the largest sum of link weights and

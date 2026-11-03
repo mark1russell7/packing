@@ -206,8 +206,8 @@ importers:
   packages/packing:
     dependencies:
       '@mark1russell7/layout-contract':
-        specifier: ^0.2.19
-        version: 0.2.21
+        specifier: ^0.3.1
+        version: 0.3.1
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -228,8 +228,8 @@ importers:
   packages/site:
     dependencies:
       '@mark1russell7/layout-contract':
-        specifier: ^0.2.19
-        version: 0.2.21
+        specifier: ^0.3.1
+        version: 0.3.1
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing
@@ -472,9 +472,13 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@0.2.21':
-    resolution: {integrity: sha512-Mls2V7uo5zGS6o5apBCJAKN3T4oZ3A2yuxUJUBzICDzIWT+YiIP+yOcBfVpjf22cPG5GMr+/abC7UJ4u4bXTlA==}
+  '@mark1russell7/layout-contract@0.3.1':
+    resolution: {integrity: sha512-aBrLRWKoaXUCoVwXJu3Ehso4P2AOfkijN130//5krB9/blJUgN/U1vgi62YVN/78c8ez7szK4iHYVkiktGbxFQ==}
     engines: {node: '>=22.12'}
+
+  '@mark1russell7/rigor-generators@0.1.1':
+    resolution: {integrity: sha512-N5o3II0AClHgsWCWtzuBzckQdReydJnLUS8Kdt9hWXVpTzb0dxucrN1bWdDN+75YompOR1rAmsIX8zuHqoQdqA==}
+    engines: {node: '>=22'}
 
   '@mark1russell7/ste-lint@0.1.1':
     resolution: {integrity: sha512-NXRB3PimE1PfXT+SuGZAEXt35EdWAXQMd4Dyn6Ep+6Yzf7YBvpHN0+xo4vHpYhmg3CHNGuNvCmspLodXi8/JQg==}
@@ -1648,7 +1652,11 @@ snapshots:
 
   '@mark1russell7/cue@1.1.0': {}
 
-  '@mark1russell7/layout-contract@0.2.21': {}
+  '@mark1russell7/layout-contract@0.3.1':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.1
+
+  '@mark1russell7/rigor-generators@0.1.1': {}
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:
