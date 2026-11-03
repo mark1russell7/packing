@@ -979,6 +979,11 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/2`) is a record in 
 - `time-gate.yml` makes one job of the paired test of each gate in its list, with the settings of the gate record. `ci.yml` uses it, so CI OK needs it.
 - A pull request starts these jobs only when a file of the gates changed. The workflow names the files. A push or a release does not start them again.
 - The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A band p10 to p90 that does not contain 1. The A/A median is a report line.
+- The noise cap (strategist, 2026-11-03): a gate does not pass on a noisy run. The A/A spread of a run is its A/A p90 minus its A/A p10.
+- The field `noise` of the gate has the A/A spreads of the derivation runs and their median, the quiet spread. The cap is 3 times the quiet spread, rounded up.
+- The line `aa.spread` gives the spread of the run and the cap. A run above the cap gets the verdict `cannot-decide`, with the exit code 3.
+- On `cannot-decide`, the job `retry` of `time-gate.yml` runs the gate one more time on a fresh runner. A second noisy run fails.
+- The limit comes from the runs of the derivation, not from the run that the gate examines. A noisy run cannot make the limit wider.
 - The gate refuses a run with another filter `only` than the gate. A gate without `only` takes only a run of all the inputs.
 - With `warmup` or `passes`, the gate refuses a run of mode `fresh` with another count of passes.
 - The field `steady` of the gate gives the arms of the warm rule. A check or a report with `steady: true` uses only the inputs with each of these arms warm. The line `steady.inputs` gives their count.

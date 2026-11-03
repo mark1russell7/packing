@@ -196,11 +196,11 @@ function pairedGate(): number {
   if (file === undefined || dir === undefined) throw new Error("A time gate needs --gate <file> and --dir <paired out dir>.");
   const gate = parseTimeGate(readFileSync(file, "utf8"));
   const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8")) as { corpus: string; only?: string; warmup?: number };
-  const result = checkTimeGate(gate, JSON.parse(readFileSync(join(dir, "paired-time.json"), "utf8")) as PairedReport, run.corpus, run.only, run.warmup);
+  const result = checkTimeGate(gate, JSON.parse(readFileSync(join(dir, "paired-time.json"), "utf8")) as PairedReport, run.corpus, run.only, run.warmup, rest.includes("--retry"));
   writeFileSync(join(dir, "gate.json"), `${JSON.stringify(result, null, 2)}\n`);
   writeFileSync(join(dir, "gate.md"), gateMarkdown(result));
   process.stdout.write(gateMarkdown(result));
-  return result.pass ? 0 : 1;
+  return result.verdict === "pass" ? 0 : result.verdict === "cannot-decide" ? 3 : 1;
 }
 
 /**

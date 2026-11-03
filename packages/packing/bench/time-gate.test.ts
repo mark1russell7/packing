@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { PairedReport } from "./paired-time.ts";
-import { checkTimeGate, gateMarkdown, gateValue, parseTimeGate, spreadLimit, type TimeGate } from "./time-gate.ts";
+import { checkTimeGate, gateMarkdown, gateValue, noiseCap, parseTimeGate, spreadLimit, type TimeGate } from "./time-gate.ts";
+import { pairedArgs } from "./time-gate-run.ts";
 
 const derivation = { runs: ["r1", "r2", "r3", "r4", "r5"], cpus: ["c", "c", "c", "c", "c"], values: [1.8, 2, 1.9, 1.7, 1.95], worst: 2, spread: 0.3 };
 const GATE: TimeGate = {
@@ -17,6 +18,7 @@ const GATE: TimeGate = {
   checks: [{ measure: "median", max: 2.3, derivation }],
   reports: [{ measure: "q95", values: [3, 4, 5, 3, 4], why: "test" }],
   aa: { median: [1, 1, 1, 1, 1], p10: [0.9, 0.9, 0.9, 0.9, 0.9], p90: [1.1, 1.1, 1.1, 1.1, 1.1] },
+  noise: { factor: 3, spreads: [0.2, 0.2, 0.2, 0.2, 0.2], quiet: 0.2, cap: 0.6 },
 };
 
 /** This function makes a made-up report: the arm `b` has the ratio of each value on its input. */
@@ -40,7 +42,8 @@ describe("checkTimeGate", () => {
   it("passes a report with the median at most the limit, and reports the q95", () => {
     const result = checkTimeGate(GATE, report([1, 2, 2.1]), "set-v1");
     expect(result.pass).toBe(true);
-    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", null], ["median", 2.3], ["q95", null]]);
+    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", null], ["aa.spread", 0.6], ["median", 2.3], ["q95", null]]);
+    expect(result.verdict).toBe("pass");
     expect(gateMarkdown(result)).toContain("| median | 2.0000 | 2.3000 | pass |");
   });
 
@@ -59,6 +62,22 @@ describe("checkTimeGate", () => {
     const wide = checkTimeGate(GATE, report([1], { noiseFloor: { median: 1.06, p10: 1.01, p90: 1.1 } }), "set-v1");
     expect(wide.pass).toBe(false);
     expect(wide.refused).toEqual(["the A/A band 1.01 to 1.1 does not contain 1"]);
+  });
+
+  it("cannot decide on a run above the noise cap, and fails a second noisy run", () => {
+    const noisy = { noiseFloor: { median: 1, p10: 0.6, p90: 1.3 } };
+    const first = checkTimeGate(GATE, report([1, 2, 2.1], noisy), "set-v1");
+    expect(first.verdict).toBe("cannot-decide");
+    expect(first.pass).toBe(false);
+    expect(first.lines.find((l) => l.measure === "aa.spread")).toEqual({ measure: "aa.spread", value: 0.7, max: 0.6, pass: false });
+    expect(gateMarkdown(first)).toContain("one more run on a fresh runner");
+    expect(checkTimeGate(GATE, report([1, 2, 2.1], noisy), "set-v1", undefined, undefined, true).verdict).toBe("fail");
+    expect(checkTimeGate(GATE, report([2.3, 2.4, 2.5]), "set-v1").verdict).toBe("fail");
+    expect(checkTimeGate(GATE, report([1], { ...noisy, mode: "fresh" }), "set-v1").verdict).toBe("fail");
+  });
+
+  it("gives the noise cap as 3 times the median A/A spread, rounded up", () => {
+    expect(noiseCap({ median: [], p10: [0.9, 0.97, 0.96, 0.95, 0.8], p90: [1.05, 1.02, 1.04, 1.03, 1.07] })).toEqual({ factor: 3, spreads: [0.15, 0.05, 0.08, 0.08, 0.27], quiet: 0.08, cap: 0.24 });
   });
 
   it("gives the q95 of the ratios of the arm", () => {
@@ -114,7 +133,7 @@ describe("the sum measure on the steady inputs (k130)", () => {
   it("gates on all the inputs, and reports the steady measure and the count of steady inputs", () => {
     const result = checkTimeGate(SUM, fresh(rows), "set-v1", ".fixed.", 5000);
     expect([result.pass, result.refused]).toEqual([true, []]);
-    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", null], ["steady.inputs", null], ["sum-median", 1.5], ["sum-median", null]]);
+    expect(result.lines.map((l) => [l.measure, l.max])).toEqual([["aa.median", null], ["aa.spread", 0.6], ["steady.inputs", null], ["sum-median", 1.5], ["sum-median", null]]);
     expect(gateMarkdown(result)).toContain("| steady.inputs | 2 | report | - |");
     expect(gateMarkdown(result)).toContain("| sum-median | 1.4000 | 1.5000 | pass |");
     expect(gateMarkdown(result)).toContain("| sum-median (steady) | 1.3000 | report | - |");
@@ -138,6 +157,8 @@ describe("parseTimeGate", () => {
     expect(() => parseTimeGate(JSON.stringify({ ...GATE, checks: [{ measure: "median", max: 2.5, derivation }] }))).toThrow("worst value plus its spread");
     expect(() => parseTimeGate(JSON.stringify({ ...GATE, checks: [{ measure: "median", max: 2.3, derivation: { ...derivation, values: [2] } }] }))).toThrow("5 runs");
     expect(() => parseTimeGate(JSON.stringify({ ...GATE, schema: "packing-time-gate/1" }))).toThrow("packing-time-gate/2");
+    expect(() => parseTimeGate(JSON.stringify({ ...GATE, noise: undefined }))).toThrow("noise cap");
+    expect(() => parseTimeGate(JSON.stringify({ ...GATE, noise: { ...GATE.noise, cap: 0.5 } }))).toThrow("median A/A spread");
   });
 
   it("gives the worst value plus the spread, rounded up", () => {
@@ -171,5 +192,17 @@ describe("parseTimeGate", () => {
     expect(gate.checks.map((c) => [c.measure, c.max, c.derivation.worst, c.derivation.spread])).toEqual([["sum-median", 1.4624, 1.380365, 0.081997]]);
     expect(gate.reports.map((r) => [r.measure, r.steady === true])).toEqual([["sum-median", true], ["median", false]]);
     expect([gate.mode, gate.only, gate.warmup, gate.passes, gate.members, gate.steady]).toEqual(["fresh", ".fixed.", 5000, 200, ["rows", "maxrects-bl"], ["rows", "maxrects-bl", "portfolio-fill-rows-bl"]]);
+  });
+});
+
+describe("pairedArgs", () => {
+  it("gives the paired run of a gate record, with its filter and passes", () => {
+    const text = JSON.stringify({ ...GATE, only: ".fixed.", passes: 200, warmup: 5000, members: ["a", "c"] });
+    expect(pairedArgs(text, "3", "out", "abc1234")).toEqual([
+      "paired",
+      ...["--corpus", "set-v1", "--arms", "a,c,b", "--prediction", "gate-test-time", "--mode", "process"],
+      ...["--repeats", "3", "--warmup", "5000", "--only", ".fixed.", "--passes", "200", "--commit", "abc1234", "--out", "out"],
+    ]);
+    expect(pairedArgs(JSON.stringify(GATE), "5", "o", "s")).not.toContain("--only");
   });
 });

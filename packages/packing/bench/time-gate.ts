@@ -67,13 +67,30 @@ export interface TimeGate {
   steady?: string[];
   checks: GateCheck[];
   reports: GateReportOnly[];
-  /** The A/A spread of the 5 runs, for the record */
+  /** The A/A band of each run of the derivation */
   aa: { median: number[]; p10: number[]; p90: number[] };
+  /** The noise cap. A run with an A/A spread above the cap cannot decide. */
+  noise: GateNoise;
 }
+
+/**
+ * The noise cap of a gate (strategist 2026-11-03). The A/A spread of a run is its A/A p90 minus its A/A p10.
+ *
+ * `quiet` is the median of the A/A spreads of the derivation runs. `cap` is `factor` times `quiet`, rounded up to 4 decimals.
+ */
+export interface GateNoise {
+  factor: number;
+  spreads: number[];
+  quiet: number;
+  cap: number;
+}
+
+/** The verdict of a gate. A run above the noise cap cannot decide: the gate starts one more run on a fresh runner. */
+export type GateVerdict = "pass" | "fail" | "cannot-decide";
 
 /** A line of the result: a measure, its value, its limit (or `null` for a report) and its result. */
 export interface GateLine {
-  measure: GateMeasure | "aa.median" | "steady.inputs";
+  measure: GateMeasure | "aa.median" | "aa.spread" | "steady.inputs";
   /** `true` for a measure on the steady inputs only */
   steady?: boolean;
   value: number;
@@ -85,6 +102,7 @@ export interface GateLine {
 export interface GateResult {
   gate: string;
   pass: boolean;
+  verdict: GateVerdict;
   /** The reasons that the report is not of the test of the gate. A report with a reason does not pass. */
   refused: string[];
   lines: GateLine[];
@@ -124,6 +142,20 @@ export function spreadLimit(values: readonly number[], digits = 4): number {
   return Math.ceil((2 * worst - Math.min(...values)) * scale - 1e-9) / scale;
 }
 
+/** This function gives the noise cap of the A/A bands of the derivation runs: `factor` times the median A/A spread, rounded up to `digits` decimals. */
+export function noiseCap(aa: TimeGate["aa"], factor = 3, digits = 4): GateNoise {
+  const spreads = aa.p90.map((hi, i) => roundTo(hi - (aa.p10[i] ?? Number.NaN), 6));
+  const quiet = roundTo(quantileOf(spreads, 0.5), 6);
+  const scale = 10 ** digits;
+  return { factor, spreads, quiet, cap: Math.ceil(factor * quiet * scale - 1e-9) / scale };
+}
+
+/** This function rounds `x` to `digits` decimals. */
+function roundTo(x: number, digits: number): number {
+  const scale = 10 ** digits;
+  return Math.round(x * scale) / scale;
+}
+
 /** This function gives the options of `gateValue` for one check or report of a gate. */
 function entryOptions(gate: TimeGate, entry: { steady?: boolean }): Pick<TimeGate, "steady" | "members"> {
   return { ...(gate.members !== undefined ? { members: gate.members } : {}), ...(entry.steady === true && gate.steady !== undefined ? { steady: gate.steady } : {}) };
@@ -143,6 +175,9 @@ export function parseTimeGate(text: string): TimeGate {
     if (Math.abs(spread - d.spread) > 1e-9) throw new TypeError(`The spread of ${c.measure} is ${spread}, not ${d.spread}.`);
     if (Math.abs(c.max - spreadLimit(d.values)) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
   }
+  if (gate.noise === undefined) throw new TypeError("A time gate has a noise cap (the field noise).");
+  const noise = noiseCap(gate.aa, gate.noise.factor);
+  if (JSON.stringify(noise) !== JSON.stringify(gate.noise)) throw new TypeError(`The noise cap is not ${gate.noise.factor} times the median A/A spread of the runs: ${JSON.stringify(noise)}.`);
   for (const e of [...gate.checks, ...gate.reports]) {
     if (e.measure === "sum-median" && (gate.members ?? []).length === 0) throw new TypeError("The measure sum-median needs the members of the gate.");
     if (e.steady === true && gate.steady === undefined) throw new TypeError(`The steady measure ${e.measure} needs the arms of the warm rule (the field steady of the gate).`);
@@ -150,8 +185,12 @@ export function parseTimeGate(text: string): TimeGate {
   return gate;
 }
 
-/** This function applies a time gate to a paired report, the corpus of its run, its filter `--only` and its warm-up. A refused report does not pass. */
-export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: string, only?: string, warmup?: number): GateResult {
+/**
+ * This function applies a time gate to a paired report, the corpus of its run, its filter `--only` and its warm-up. A refused report does not pass.
+ *
+ * A report with an A/A spread above the noise cap cannot decide. With `retry`, it is the second run, and a noisy report fails.
+ */
+export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: string, only?: string, warmup?: number, retry = false): GateResult {
   const refused: string[] = [];
   if (only !== gate.only) refused.push(only === undefined ? `the run uses all the inputs, not only the inputs with ${gate.only} in their id` : `the run uses only the inputs with ${only} in their id`);
   if (gate.warmup !== undefined && warmup !== gate.warmup) refused.push(`the warm-up is ${String(warmup)}, not ${gate.warmup}`);
@@ -162,10 +201,14 @@ export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: stri
   if (report.base !== gate.base) refused.push(`the base is ${report.base}, not ${gate.base}`);
   if (!report.arms.includes(gate.arm)) refused.push(`the report has no arm ${gate.arm}`);
   const lines: GateLine[] = [];
+  let noisy = false;
   if (report.noiseFloor === null || !report.arms.includes(aaId(gate.base))) refused.push("the report has no A/A arm");
   else {
     const { median, p10, p90 } = report.noiseFloor;
     lines.push({ measure: "aa.median", value: median, max: null, pass: true });
+    const spread = roundTo(p90 - p10, 6);
+    noisy = spread > gate.noise.cap;
+    lines.push({ measure: "aa.spread", value: spread, max: gate.noise.cap, pass: !noisy });
     if (!(p10 <= 1 && p90 >= 1)) refused.push(`the A/A band ${p10} to ${p90} does not contain 1`);
   }
   if (gate.steady !== undefined) lines.push({ measure: "steady.inputs", value: gateInputs(report, gate).length, max: null, pass: true });
@@ -175,12 +218,15 @@ export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: stri
     lines.push({ measure: c.measure, ...tag(c), value, max: c.max, pass: value <= c.max });
   }
   for (const r of gate.reports) lines.push({ measure: r.measure, ...tag(r), value: gateValue(report, gate.arm, r.measure, entryOptions(gate, r)), max: null, pass: true });
-  return { gate: gate.id, pass: refused.length === 0 && lines.every((l) => l.pass), refused, lines };
+  const pass = refused.length === 0 && lines.every((l) => l.pass);
+  const verdict: GateVerdict = pass ? "pass" : noisy && !retry && refused.length === 0 ? "cannot-decide" : "fail";
+  return { gate: gate.id, pass, verdict, refused, lines };
 }
 
 /** This function writes the result of a time gate as Markdown. */
 export function gateMarkdown(result: GateResult): string {
   const rows = result.lines.map((l) => `| ${l.measure}${l.steady === true ? " (steady)" : ""} | ${l.measure === "steady.inputs" ? String(l.value) : l.value.toFixed(4)} | ${l.max === null ? "report" : l.max.toFixed(4)} | ${l.max === null ? "-" : l.pass ? "pass" : "fail"} |`);
   const refused = result.refused.length === 0 ? [] : ["", `The gate refuses the report: ${result.refused.join(", ")}.`];
-  return [`## The time gate ${result.gate}: ${result.pass ? "pass" : "fail"}`, "", "| Measure | Value | Limit | Result |", "| --- | --- | --- | --- |", ...rows, ...refused, ""].join("\n");
+  const noisy = result.verdict === "cannot-decide" ? ["", "The A/A spread of the run is above the noise cap. The gate starts one more run on a fresh runner."] : [];
+  return [`## The time gate ${result.gate}: ${result.verdict}`,"", "| Measure | Value | Limit | Result |", "| --- | --- | --- | --- |", ...rows, ...refused, ...noisy, ""].join("\n");
 }
