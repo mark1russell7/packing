@@ -1,7 +1,7 @@
 // The paired time test of one gate of bench/gates, and the gate on its report (time-gate.yml).
 //
 // The environment gives GATE (the id of the gate record), REPEATS, OUT (the out folder), GITHUB_SHA and RETRY (1 on the second run).
-// The exit code is 0 on a pass, 1 on a fail and 3 when the A/A spread of the run is above the noise cap.
+// The exit code is 0 on a pass, 1 on a fail and 3 when the A/A noise of the run is above the noise cap.
 
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";

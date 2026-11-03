@@ -3,7 +3,7 @@
 # time of a gate changed. A push or a release does not repeat it: the pull request of the change ran it.
 # The job gate makes one job of the paired time test with the settings of the gate record, and applies the gate.
 # The gate k130-time is one job of 3750 children, 20 to 34 minutes (run 41470082104).
-# A run with an A/A spread above the noise cap of its gate cannot decide. The job retry then runs the gate one more time
+# A run with an A/A noise above the noise cap of its gate cannot decide. The job retry then runs the gate one more time
 # on a fresh runner, and a second noisy run fails. On each other verdict, the job retry only reads the verdict.
 name: Time gate
 
@@ -94,7 +94,7 @@ jobs:
           node packages/packing/bench/time-gate-run.ts || status=$?
           # A noisy run cannot decide: the job retry starts one more run on a fresh runner.
           if [ "$status" = 3 ]; then
-            echo "The A/A spread of the run is above the noise cap. The job retry decides." >> "$GITHUB_STEP_SUMMARY"
+            echo "The A/A noise of the run is above the noise cap. The job retry decides." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           exit "$status"
