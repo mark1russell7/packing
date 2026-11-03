@@ -265,17 +265,17 @@ Each run writes one line of JSON Lines: one line for each strategy, input and se
 - `inputHash` is the `hash` of the input file.
 - `hard` counts the breaks of each hard rule. A good run has 0 for each rule.
 - `tolerance` gives the tolerance of each hard rule of the run. The defaults are `overlap` 0.001 and `through` 0.5. `docs/PACKER.md` tells why. `hard` holds only the counts.
-- `deterministic` is `true` when two runs with the same seed give the same positions.
+- `deterministic` is `true` when two runs with the same seed give the same positions. A skipped record has `null`, because the runner did not pack it.
 - `ms` is the time of the run. Time runs go in CI only.
 
 A record can also have these optional fields:
 
 - `msRuns` gives the time of each timed repeat, in milliseconds. `ms` is their median.
 - `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical output of the stage. The packer hashes its placements, sorted by id.
-- `env` gives the computer of the run: `node`, `os`, `arch`, `runner`, `cpu` and `cpus`.
+- `env` gives the computer of the run: `node`, `os`, `arch`, `runner`, `cpu` and `cpus`. The optional `mode` and `context` of the contract can also be in it.
 - `skipped` gives the reason when the strategy did not start, for example a cell that the strategy does not support.
 
-A skipped record has no measures and no hard counts: `measures` and `hard` are empty objects. Its `ms` is 0, and it has no `msRuns` and no `outputHash`. A reader of the measures and the times ignores a skipped record.
+A skipped record has no measures and no hard counts: `measures` and `hard` are empty objects. Its `ms` is 0, its `deterministic` is `null`, and it has no `msRuns` and no `outputHash`. A reader of the measures and the times ignores a skipped record.
 
 ## The predictions
 
