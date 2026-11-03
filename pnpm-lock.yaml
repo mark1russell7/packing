@@ -176,14 +176,14 @@ importers:
         specifier: ^0.2.0
         version: 0.2.0(@swc/core@1.16.20)(dependency-cruiser@18.7.0)
       '@mark1russell7/conventions':
-        specifier: ^0.14.0
-        version: 0.14.0
+        specifier: ^0.18.0
+        version: 0.18.0
       '@mark1russell7/cue':
         specifier: ^1.0.2
         version: 1.1.0
       '@mark1russell7/ste-lint':
         specifier: ^0.1.1
-        version: 0.1.1
+        version: 0.1.2
       '@mark1russell7/template-cli':
         specifier: ^0.1.0
         version: 0.1.4
@@ -207,7 +207,7 @@ importers:
     dependencies:
       '@mark1russell7/layout-contract':
         specifier: ^0.3.1
-        version: 0.3.1
+        version: 0.3.2
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -229,7 +229,7 @@ importers:
     dependencies:
       '@mark1russell7/layout-contract':
         specifier: ^0.3.1
-        version: 0.3.1
+        version: 0.3.2
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing
@@ -462,8 +462,8 @@ packages:
       dependency-cruiser:
         optional: true
 
-  '@mark1russell7/conventions@0.14.0':
-    resolution: {integrity: sha512-/gUhcHXu6Q+rUuMqWp7SiyXGW6deo7FoMfVISduYBphcWH9zKtB5bLlcvBtgQUGyjJIxRDIMcQdqEglanLmzQg==}
+  '@mark1russell7/conventions@0.18.0':
+    resolution: {integrity: sha512-5VEDw5Beiqeep91iWJa+SJn445piOXKF5O8Ze4SokqI/oLFiZw+sOFUeGcfwz9eCQTzRs9jMrPBZ0glrQnXANg==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -472,16 +472,16 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@0.3.1':
-    resolution: {integrity: sha512-aBrLRWKoaXUCoVwXJu3Ehso4P2AOfkijN130//5krB9/blJUgN/U1vgi62YVN/78c8ez7szK4iHYVkiktGbxFQ==}
+  '@mark1russell7/layout-contract@0.3.2':
+    resolution: {integrity: sha512-1IT3x6PD8j8Tkn2CWe5ZvC69Uc6tisjBDd171s9ww6+xdxwTG+n8eh2kbrNxmxGTeL7L4OK0f8IWUaOJ152sPQ==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/rigor-generators@0.1.1':
     resolution: {integrity: sha512-N5o3II0AClHgsWCWtzuBzckQdReydJnLUS8Kdt9hWXVpTzb0dxucrN1bWdDN+75YompOR1rAmsIX8zuHqoQdqA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/ste-lint@0.1.1':
-    resolution: {integrity: sha512-NXRB3PimE1PfXT+SuGZAEXt35EdWAXQMd4Dyn6Ep+6Yzf7YBvpHN0+xo4vHpYhmg3CHNGuNvCmspLodXi8/JQg==}
+  '@mark1russell7/ste-lint@0.1.2':
+    resolution: {integrity: sha512-Gq7XrLLBbuaGp+a6HbmikoPR2KmU06w/XZh8TFVmG9qbMsknMjOhh50lcZ1kEpYStI++uhlxrNv+sOkOqgnN5w==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -489,6 +489,10 @@ packages:
     resolution: {integrity: sha512-wXhE7Kqjm8O0jGkxHBgFRn+d1qe8rffcrfbURPor1knmO6Sf/eQ3uKCqgCsP+PSlSVidaQu8GnUWo1jD3Fdm7A==}
     engines: {node: '>=22.12'}
     hasBin: true
+
+  '@mark1russell7/typeset@0.1.0':
+    resolution: {integrity: sha512-abRnQC3n5+ipPSKrXB8dHgleXN4Y+PiNYqMNh7S6OASzArE5fvHrX5Jfgs/jZrolFXaKb7Zz8hOTmwP+cBrPkw==}
+    engines: {node: '>=22.12'}
 
   '@oxc-project/types@0.155.0':
     resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
@@ -1648,23 +1652,26 @@ snapshots:
       '@swc/core': 1.16.20
       dependency-cruiser: 18.7.0
 
-  '@mark1russell7/conventions@0.14.0': {}
+  '@mark1russell7/conventions@0.18.0': {}
 
   '@mark1russell7/cue@1.1.0': {}
 
-  '@mark1russell7/layout-contract@0.3.1':
+  '@mark1russell7/layout-contract@0.3.2':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.1
+      '@mark1russell7/typeset': 0.1.0
 
   '@mark1russell7/rigor-generators@0.1.1': {}
 
-  '@mark1russell7/ste-lint@0.1.1':
+  '@mark1russell7/ste-lint@0.1.2':
     dependencies:
       typescript: 6.0.3
 
   '@mark1russell7/template-cli@0.1.4':
     dependencies:
       '@clack/prompts': 1.8.1
+
+  '@mark1russell7/typeset@0.1.0': {}
 
   '@oxc-project/types@0.155.0': {}
 
