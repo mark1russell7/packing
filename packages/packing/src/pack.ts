@@ -1,7 +1,7 @@
 import { packGuillotine, type GuillotineChoice, type GuillotineSplit } from "./guillotine.ts";
 import { packMaxRects, type MaxRectsRule } from "./maxrects.ts";
 import { clearMoves, countMove, moveCount, MOVES } from "./moves.ts";
-import { compareRects, type SortOrder } from "./order.ts";
+import { orderRects, type ItemLink, type ItemOrder } from "./order.ts";
 import { Rect } from "./rect.ts";
 import { selectLeaf, type SelectFeatures } from "./select-table.ts";
 import { packRowsInSpace, packShelf, type ShelfFit } from "./shelf.ts";
@@ -12,7 +12,9 @@ import { Vector } from "./vector.ts";
 /** The options of `pack` and `packRows` */
 export interface PackOptions {
   /** The order of the rectangles before the packing. The default is `height-desc`. */
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  /** The links between the rectangles, as indexes into the array of the rectangles. Only a graph order reads them. */
+  links?: readonly ItemLink[];
   /**
    * The free space of the container: `freeSpace` of the input. With a space that is not plain, each strategy packs into
    * the outline of the container and around its holes. The rows of `packRows` also go around the locked rectangles.
@@ -71,7 +73,7 @@ let lowest: { list: unknown[]; height: Float64Array; width: Float64Array } | und
  * The rectangles that it places are the entries of `placedLog` after `start`. A translation of one rectangle does not
  * change another rectangle. Thus the order of the log gives the same positions as the order of the list.
  */
-function packInto<T>(byOrder: Rect<T>[], region: Rect<T>, offset: Vector, order: SortOrder): void {
+function packInto<T>(byOrder: Rect<T>[], region: Rect<T>, offset: Vector, order: ItemOrder): void {
   const start = placedLog.length;
   fillDepth++;
   try {
@@ -96,7 +98,7 @@ function packInto<T>(byOrder: Rect<T>[], region: Rect<T>, offset: Vector, order:
  *
  * `lowest` holds the bounds only when no size is less than 0.
  */
-function packRow<T>(byOrder: Rect<T>[], outer: Rect<T>, order: SortOrder, checks?: number[]): boolean {
+function packRow<T>(byOrder: Rect<T>[], outer: Rect<T>, order: ItemOrder, checks?: number[]): boolean {
   const row: Rect<T>[] = [];
   // A gap fill puts a later rect before an earlier one, thus the order `input` fills no gaps
   const fillGaps = order !== "input";
@@ -182,7 +184,7 @@ function lowestOf<T>(byOrder: Rect<T>[]): typeof lowest {
  *   the height of that rectangle, and the next try starts again.
  * - The top call replaces these tries with one try with no height limit, when the result is the same. `rowsHeight` tells the proof.
  */
-function packSortedRows<T>(byOrder: Rect<T>[], outer: Rect<T>, order: SortOrder): void {
+function packSortedRows<T>(byOrder: Rect<T>[], outer: Rect<T>, order: ItemOrder): void {
   if (fillDepth > 0) {
     packRow(byOrder, outer, order);
     return;
@@ -211,7 +213,7 @@ function packSortedRows<T>(byOrder: Rect<T>[], outer: Rect<T>, order: SortOrder)
  * This function packs the top call with one try and no height limit. Then it gives `outer` the height of the last try
  * of the old loop, and the move count of that try.
  */
-function packRowsOnce<T>(byOrder: Rect<T>[], outer: Rect<T>, order: SortOrder): void {
+function packRowsOnce<T>(byOrder: Rect<T>[], outer: Rect<T>, order: ItemOrder): void {
   const limit = outer.size.y;
   const before = moveCount(MOVES.rows);
   const checks: number[] = [];
@@ -267,9 +269,9 @@ function rowsHeight(checks: readonly number[], limit: number): { height: number;
 export function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options: PackOptions = {}): Rect<T> {
   const order = options.sortOrder ?? "height-desc";
   const space = options.space;
-  if (space !== undefined && (!space.plain || rects.some((r) => r.locked))) return packRowsInSpace(rects, outer, order, space);
+  if (space !== undefined && (!space.plain || rects.some((r) => r.locked))) return packRowsInSpace(rects, outer, order, space, options.links);
   // toSorted gives a sorted copy, thus the order of the array of the caller stays. The sort happens once for each call.
-  packSortedRows(rects.toSorted(compareRects(order)), outer, order);
+  packSortedRows(orderRects(rects, order, options.links), outer, order);
   return outer;
 }
 

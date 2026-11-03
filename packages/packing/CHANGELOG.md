@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The graph order `graph-bfs` (roadmap item k131). It starts at the item with the largest sum of link weights and goes breadth-first. Each next component starts at its own hub. Without links, it gives `area-desc`.
+- The option `links` of `pack`, `packRows`, `packMaxRects`, `packSkyline`, `packShelf` and `packGuillotine`: a list of `ItemLink` (`a`, `b`, `weight`), as indexes into the array of the rectangles.
+- `graphOrder`, `orderRects`, `isGraphOrder`, `GRAPH_ORDERS` and the types `ItemLink`, `GraphOrder` and `ItemOrder`.
+
+### Changed
+
+- The option `sortOrder` of these functions has the type `ItemOrder`, a sort order or a graph order. Each sort order gives the same layout as before.
+
 ## 0.4.1
 
 ### Added

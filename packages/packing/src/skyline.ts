@@ -1,6 +1,6 @@
 import { cut, type Box } from "./maxrects.ts";
 import { countMove, MOVES } from "./moves.ts";
-import { compareRects, type SortOrder } from "./order.ts";
+import { orderRects, type ItemLink, type ItemOrder } from "./order.ts";
 import type { Rect } from "./rect.ts";
 import type { FreeSpace } from "./space.ts";
 
@@ -97,7 +97,9 @@ export type SkylineRule = (typeof SKYLINE_RULES)[number];
 /** The options of `packSkyline` */
 export interface SkylineOptions {
   /** The order of the rectangles before the packing. The default is `height-desc`. */
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  /** The links between the rectangles, as indexes into the array of the rectangles. Only a graph order reads them. */
+  links?: readonly ItemLink[];
   /**
    * The free space of the container: `freeSpace` of the input. Without it, or when it is plain, the skyline uses only the
    * outer rectangle and the locked rectangles.
@@ -219,7 +221,7 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
     turned.clear();
   }
   if (rule !== "bl" || options.wasteMap === true || (options.turnable !== undefined && options.turnable.size > 0)) return packSkylineVariant(rects, outer, rule, options);
-  if (options.space !== undefined && !options.space.plain) return packSkylineInSpace(rects, outer, options.sortOrder ?? "height-desc", options.space);
+  if (options.space !== undefined && !options.space.plain) return packSkylineInSpace(rects, outer, options.sortOrder ?? "height-desc", options.space, options.links);
   // a cell for each whole unit of the width: a rectangle never goes past the right edge
   const width = Math.floor(outer.size.x);
   if (width <= 0) return outer;
@@ -235,7 +237,7 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
     if (!outer.fixedSize) outer.size.y = Math.max(outer.size.y, bottom);
   }
 
-  for (const rect of rects.toSorted(compareRects(options.sortOrder ?? "height-desc"))) {
+  for (const rect of orderRects(rects, options.sortOrder ?? "height-desc", options.links)) {
     if (rect.wasPacked) continue;
     const rw = Math.ceil(rect.size.x);
     const rh = rect.size.y;
@@ -271,7 +273,7 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
  * A rectangle that needs more cells than the outer rectangle has goes at the left edge. Its y is the first y where each
  * cell is free over its height. Then each cell starts after the rectangle, as in the plain skyline.
  */
-function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrder, space: FreeSpace): Rect<T> {
+function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: ItemOrder, space: FreeSpace, links?: readonly ItemLink[]): Rect<T> {
   const width = Math.floor(outer.size.x);
   if (width <= 0) return outer;
   const ox = outer.position.x;
@@ -289,7 +291,7 @@ function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrde
   const limit = new Float64Array(width);
   for (let i = 0; i < width; i++) [skyline[i], limit[i]] = rangeOf(i, 0);
 
-  const sorted = rects.toSorted(compareRects(order)).filter((r) => !r.wasPacked && Math.ceil(r.size.x) > 0 && r.size.y > 0);
+  const sorted = orderRects(rects, order, links).filter((r) => !r.wasPacked && Math.ceil(r.size.x) > 0 && r.size.y > 0);
   // The lowest height of the rectangles from each index of the sorted list to its end
   const lowest = new Float64Array(sorted.length + 1).fill(Infinity);
   for (let k = sorted.length - 1; k >= 0; k--) lowest[k] = Math.min(lowest[k + 1]!, sorted[k]!.size.y);
@@ -382,7 +384,7 @@ function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRu
   const turnable = options.turnable;
   const waste = options.wasteMap === true;
   for (const rect of rects) if (rect.locked) rect.wasPacked = true;
-  const sorted = rects.toSorted(compareRects(options.sortOrder ?? "height-desc")).filter((r) => !r.wasPacked && Math.ceil(r.size.x) > 0 && r.size.y > 0);
+  const sorted = orderRects(rects, options.sortOrder ?? "height-desc", options.links).filter((r) => !r.wasPacked && Math.ceil(r.size.x) > 0 && r.size.y > 0);
   const turns = (r: Rect<T>): boolean => turnable?.has(r) === true && r.size.x !== r.size.y;
 
   // The smallest sides of the boxes: a free rectangle with less room has no use
