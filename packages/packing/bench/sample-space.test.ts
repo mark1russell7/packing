@@ -50,7 +50,8 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The key fill of the portfolio (k127) adds a third value to the param key. Thus the meta counts are 1.5 times the counts before k127, and the draws changed.
 // Before k127 the pins were ce6d8bf386fbb8a6, 58da5ef5c70859cc, fb834701df83f8be, da3d8a993a6a894c, 19192758499731626819019141706 and 19192758499731625913230514340.
 const DEFAULT_UNIFORM_IDS = ["8e927552366b747d", "e7520bf93db84bc6", "fb834701df83f8be", "d49ccb0bd735314d"];
-const CLOCK_FREE_META = 28789137749597439775634398876n;
+// The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
+const CLOCK_FREE_META = 28789137749597439801406687782n;
 const CLOCK_CONFIGS = 28789137749597438869845771510n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
