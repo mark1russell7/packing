@@ -51,9 +51,10 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # The files of the portfolio around its members, the time tools, the gate records and the lock file
+          # The files of the portfolio around its members, the time tools, the time gate records and the lock file.
+          # The record bench/gates/size.json of the size gate is not a time gate, so it does not start this job.
           files="$(git diff --name-only "$BASE" "$GITHUB_SHA")"
-          if grep -qxE 'packages/packing/src/(portfolio|layout-input|measures|registry|select-key|work|contract)\.ts|packages/packing/bench/(paired-time|time-gate|time-gate-run|run|entries|main)\.ts|packages/packing/bench/time-gate\.sh|packages/packing/bench/gates/[a-z0-9-]+\.json|pnpm-lock\.yaml|\.github/workflows/time-gate\.yml' <<<"$files"; then
+          if grep -qxE 'packages/packing/src/(portfolio|layout-input|measures|registry|select-key|work|contract)\.ts|packages/packing/bench/(paired-time|time-gate|time-gate-run|run|entries|main)\.ts|packages/packing/bench/time-gate\.sh|packages/packing/bench/gates/[a-z0-9-]+-time\.json|pnpm-lock\.yaml|\.github/workflows/time-gate\.yml' <<<"$files"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
