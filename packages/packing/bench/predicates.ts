@@ -230,12 +230,14 @@ export function collectCase(id: string, work: () => void): { lines: Record<strin
  * This function packs each input of a corpus with each entry one time, with the probe on, and then checks the output with `checkHard`.
  *
  * - The case id is `<entry>/<input id>`. An entry that does not support the cell of an input skips it.
+ * - `inputs` is the count of inputs of the corpus. An entry that supports no input gives 0 cases from 1 input or more.
  * - `emit` gets the lines of each case in order: the near lines, then the case line.
  */
-export function dumpPredicates(c: BenchCorpus, ids: readonly string[], emit: (line: string) => void): { cases: number; near: Record<PredicateName, number> } {
+export function dumpPredicates(c: BenchCorpus, ids: readonly string[], emit: (line: string) => void): { inputs: number; cases: number; near: Record<PredicateName, number> } {
   const near = zeros();
   let cases = 0;
-  for (const at of pairedInputs(c)) {
+  const inputs = pairedInputs(c);
+  for (const at of inputs) {
     for (const id of ids) {
       const pack = pairedPack(id, at);
       if (pack === undefined) continue;
@@ -248,5 +250,5 @@ export function dumpPredicates(c: BenchCorpus, ids: readonly string[], emit: (li
       cases += 1;
     }
   }
-  return { cases, near };
+  return { inputs: inputs.length, cases, near };
 }
