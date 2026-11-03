@@ -1,7 +1,7 @@
 // The active draw of roadmap item k116. It picks the pairs of the whole space where the expected held-out error of the coverage model is largest.
 // The pairs that it measures join the training rows before the next round. Thus the model learns the region of the space where it is weak.
 //
-//   node bench/active.ts --out <dir> --records <records.jsonl> --corpus <corpus.json> [--n 400] [--seed 1] [--rounds 4] [--pool 20]
+//   node bench/active.ts --out <dir> --records <records.jsonl> --corpus <corpus.json> [--n 400] [--seed 1] [--rounds 4] [--pool 20] [--arm active|control] [--fold-seed <r>]
 //                        [--features family|input] [--by input|spec] [--score spread-iqr|fold-spread] [--max-count 1000] [--no-knobs] [--knobs relative|absolute]
 //                        [--repeats 1] [--warmup 0] [--max-minutes <m>]
 //
@@ -101,6 +101,11 @@ export interface ActiveOptions extends Omit<SampleOptions, "draw" | "timing" | "
    * The arm `control` takes them in a seeded random order (`controlOrder`). The pool, the quotas and `nextPick` stay the same.
    */
   readonly arm?: ActiveArm;
+  /**
+   * The fold seed (k120): the seed of the folds of the score and of the control order. Without it, they use the seed of the coverage and `seed`.
+   * The pool reads only `seed`. Thus the fold seeds of one pool give repeats of the same draw with other models.
+   */
+  readonly foldSeed?: number;
 }
 
 /** The arms of an active sample (k120). */
@@ -148,6 +153,8 @@ export interface ActiveSummary extends Omit<SampleSummary, "draw"> {
     readonly perRound: readonly ActiveRoundFacts[];
     /** The value `control` for the control arm (k120). The active arm has no field, so its summary stays the same as before k120. */
     readonly arm?: "control";
+    /** The fold seed of the sample (k120). A sample without `--fold-seed` has no field. */
+    readonly foldSeed?: number;
   };
 }
 
@@ -305,6 +312,8 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new RangeError(`The score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
   const arm = options.arm ?? "active";
   if (!(ACTIVE_ARMS as readonly string[]).includes(arm)) throw new RangeError(`The arm is ${ACTIVE_ARMS.join(" or ")}, not ${arm}.`);
+  const foldSeed = options.foldSeed;
+  if (foldSeed !== undefined && !Number.isInteger(foldSeed)) throw new RangeError("The fold seed is a whole number.");
   const plan = drawPlan(space, "stratified", "off");
   const strataCount = plan.strata.length;
   const maxOverlapMoves = options.maxOverlapMoves;
@@ -337,10 +346,10 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
 
   for (let k = 1; k <= rounds && stopped === undefined; k++) {
     const quota = Math.floor((n * k) / rounds) - Math.floor((n * (k - 1)) / rounds);
-    const scorer = foldScorer(grid, records, { ...coverage, inputs }, score);
+    const scorer = foldScorer(grid, records, { ...coverage, inputs, ...(foldSeed === undefined ? {} : { seed: foldSeed }) }, score);
     const scored = pool.filter((c) => !taken.has(c.index)).map((c) => ({ c, s: scorer.score(c.features) }));
     // k120: the control arm keeps the scores of its own model in the records, but its order does not read them.
-    const order = arm === "control" ? controlOrder(scored, seed, k) : scored.sort((a, b) => b.s - a.s || a.c.index - b.c.index);
+    const order = arm === "control" ? controlOrder(scored, foldSeed ?? seed, k) : scored.sort((a, b) => b.s - a.s || a.c.index - b.c.index);
     const poolMean = order.length === 0 ? 0 : r4(order.reduce((sum, x) => sum + x.s, 0) / order.length);
     let got = 0;
     let rejected = 0;
@@ -443,6 +452,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
       by: coverage.by ?? "spec",
       perRound,
       ...(arm === "control" ? { arm } : {}),
+      ...(foldSeed === undefined ? {} : { foldSeed }),
     },
   };
   return { records, summary };
@@ -465,6 +475,9 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   if (!(ACTIVE_SCORES as readonly string[]).includes(score)) throw new Error(`The option --score is ${ACTIVE_SCORES.join(" or ")}, not ${score}.`);
   const arm = optionOf(argv, "--arm") ?? "active";
   if (!(ACTIVE_ARMS as readonly string[]).includes(arm)) throw new Error(`The option --arm is ${ACTIVE_ARMS.join(" or ")}, not ${arm}.`);
+  const foldText = optionOf(argv, "--fold-seed");
+  const foldSeed = foldText === undefined ? undefined : Number(foldText);
+  if (foldSeed !== undefined && !(/^-?\d+$/.test(foldText!) && Number.isSafeInteger(foldSeed))) throw new Error(`The option --fold-seed is a whole number, not ${foldText}.`);
   const { draw: _draw, timing: _timing, pairs: _pairs, shard: _shard, ...kept } = base;
   return {
     ...kept,
@@ -473,6 +486,7 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
     coverage: { features: features as FeatureSet, by },
     score: score as ActiveScore,
     ...(arm === "control" ? { arm: "control" as const } : {}),
+    ...(foldSeed === undefined ? {} : { foldSeed }),
   };
 }
 

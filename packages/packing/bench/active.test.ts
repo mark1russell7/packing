@@ -116,6 +116,24 @@ describe("the active draw", () => {
     expect(pairedArms(hits(active), hits(a), { runs: 200 }).measures.map((m) => m.n)).toEqual(hits(a).map((m) => m.at.length));
   });
 
+  it("keeps the pool for each fold seed, and gives the fold seed to the score and to the control order (k120)", () => {
+    const g = grid();
+    const run = (extra: { arm?: "control"; foldSeed?: number }) => activeSample({ ...base, ...g, clock: fakeClock(), coverage: { features: "input" }, ...extra });
+    const picks = (x: ReturnType<typeof run>) => x.records.map((r) => [r.candidate, r.outputHash]);
+    // The default seed of the folds is 1, so the fold seed 1 gives the same active pairs. Only the summary has the field.
+    const plain = run({});
+    const one = run({ foldSeed: 1 });
+    expect(picks(one)).toEqual(picks(plain));
+    expect(one.summary.active.foldSeed).toBe(1);
+    expect("foldSeed" in plain.summary.active).toBe(false);
+    // The control order takes the fold seed in place of the seed of the pool.
+    expect(picks(run({ arm: "control", foldSeed: base.seed }))).toEqual(picks(run({ arm: "control" })));
+    const seeds = [1, 2, 3, 4, 5].map((foldSeed) => run({ arm: "control", foldSeed }));
+    expect(new Set(seeds.map((x) => x.summary.active.pool)).size).toBe(1);
+    expect(new Set(seeds.map((x) => JSON.stringify(picks(x)))).size).toBeGreaterThan(1);
+    expect(() => run({ foldSeed: 1.5 })).toThrow(/fold seed is a whole number/);
+  });
+
   it("orders a control round by the seed and the round, and not by the order of its input", () => {
     const items = [5, 1, 9, 3, 7].map((index) => ({ c: { index } }));
     const a = controlOrder(items, 1, 1).map((x) => x.c.index);
@@ -130,6 +148,9 @@ describe("the active draw", () => {
     expect("arm" in activeOptions([], ENV)).toBe(false);
     expect(() => activeOptions(["--arm", "random"], ENV)).toThrow(/active or control/);
     expect(() => activeOptions(["--shard", "0/2"], ENV)).toThrow(/does not go with --draw active/);
+    expect(activeOptions(["--fold-seed", "3"], ENV).foldSeed).toBe(3);
+    expect("foldSeed" in activeOptions([], ENV)).toBe(false);
+    expect(() => activeOptions(["--fold-seed", "2.5"], ENV)).toThrow(/--fold-seed is a whole number/);
     expect(activeOptions(["--draw", "active", "--n", "60", "--rounds", "3", "--pool", "5", "--features", "input"], ENV)).toMatchObject({ n: 60, rounds: 3, poolFactor: 5, coverage: { features: "input", by: "spec" } });
     expect(activeOptions([], ENV)).toMatchObject({ n: 400, rounds: 4, poolFactor: 20, coverage: { features: "family", by: "spec" } });
     expect("draw" in activeOptions([], ENV)).toBe(false);

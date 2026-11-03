@@ -1562,6 +1562,13 @@ The control arm (k120, `--arm control`):
 - The trees of the control arm learn only on the grid and on the pairs of the control arm. The records keep the score of this model.
 - `sample.json` has `active.arm` with the value `control`. The active arm has no field, so its files stay the same as before k120.
 
+The fold seeds (k120, `--fold-seed <r>`):
+
+- The fold seed sets the folds of the score and the stream of the control order. The pool reads only `--seed`.
+- Thus the fold seeds of one `--seed` give repeats of one draw with other models. The pool and the evaluation sample stay the same.
+- Without `--fold-seed`, the score uses the seed of the coverage (1), and the control order uses `--seed`. The files stay the same as before.
+- `sample.json` has `active.foldSeed` only when the option is present.
+
 The paired test of the two arms (k120, `coverage.ts --active <dir> --control <dir> --sample <dir>`):
 
 - Each arm gives one model: the grid and all the pairs of the arm. Both models predict the pairs of `--sample`.
