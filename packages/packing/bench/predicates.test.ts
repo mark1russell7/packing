@@ -1,7 +1,9 @@
 import { checkHard, outputHash, packWith, type PackInput, type PackOutput } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { predicates } from "../src/probe.ts";
-import { collectCase, containerNear, edgeRangeNear, overlapNear, samePlacementsNear, xAtNear } from "./predicates.ts";
+import { readFileSync } from "node:fs";
+import { collectCase, containerNear, dumpPredicates, edgeRangeNear, overlapNear, parseShard, samePlacementsNear, shardInputs, xAtNear } from "./predicates.ts";
+import { parseCorpus } from "./run.ts";
 
 const box = (l: number, t: number, r: number, b: number) => ({ l, t, r, b });
 
@@ -117,5 +119,35 @@ describe("collectCase", () => {
     expect(probed).toBe(plain);
     expect(summary.totals.edgeRange).toBeGreaterThan(0);
     expect(summary.totals.xAt).toBeGreaterThan(0);
+  });
+});
+
+describe("shards of a dump", () => {
+  it("reads <index>/<count>, and refuses a bad shard", () => {
+    expect(parseShard("2/8")).toEqual({ index: 2, count: 8 });
+    for (const bad of ["8/8", "0/0", "-1/2", "1", "a/2", "1/2/3"]) expect(() => parseShard(bad)).toThrow("A shard is");
+  });
+
+  it("gives contiguous blocks that join to the inputs in their order", () => {
+    const all = Array.from({ length: 23 }, (_, i) => i);
+    for (const count of [1, 2, 3, 8, 23, 30]) {
+      const blocks = Array.from({ length: count }, (_, index) => shardInputs(all, { index, count }));
+      expect(blocks.flat()).toEqual(all);
+      expect(Math.max(...blocks.map((b) => b.length)) - Math.min(...blocks.map((b) => b.length))).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("gives joined shard dumps equal to the dump without shards", () => {
+    const corpus = parseCorpus(readFileSync(new URL("corpora/smoke-v1.json", import.meta.url), "utf8"), "smoke-v1");
+    const dump = (shard?: { index: number; count: number }) => {
+      const lines: string[] = [];
+      const r = dumpPredicates(corpus, ["maxrects-bl"], (line) => lines.push(line), shard);
+      return { lines, inputs: r.inputs };
+    };
+    const whole = dump();
+    const parts = [0, 1, 2].map((index) => dump({ index, count: 3 }));
+    expect(whole.lines.length).toBeGreaterThan(0);
+    expect(parts.flatMap((p) => p.lines)).toEqual(whole.lines);
+    expect(parts.reduce((s, p) => s + p.inputs, 0)).toBe(whole.inputs);
   });
 });

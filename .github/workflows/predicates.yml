@@ -1,6 +1,8 @@
 # The predicate dump of A13 of algebra (docs/BENCH.md, "Predicate dump"). Each job of the matrix packs the corpus one time
 # with one entry, with the probe of src/probe.ts on. It keeps the near inputs of the float predicates as JSON lines.
-# The job merge joins the files of all entries into the artifact predicates-<corpus>. The dump does not time.
+# With shards above 1, each entry has that count of jobs, and each job packs one contiguous block of the inputs.
+# The job merge joins the files of all jobs into the artifact predicates-<corpus>, in the order of a dump without shards.
+# The dump does not time.
 name: Predicates
 
 on:
@@ -14,13 +16,17 @@ on:
         description: "The entries, with commas, or all. bench/entries.ts lists them."
         type: string
         default: all
+      shards:
+        description: "The jobs of each entry, 1 to 32. Each job packs one block of the inputs. Use more for a slow entry."
+        type: string
+        default: "1"
 
 permissions:
   contents: read
 
 # The runner budget of the account (strategist, 2026-10-30). The group has the inputs, so only a true duplicate replaces a run that waits.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategies }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategies }}-${{ inputs.shards }}
   cancel-in-progress: false
 
 jobs:
@@ -28,7 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      strategies: ${{ steps.plan.outputs.strategies }}
+      cells: ${{ steps.plan.outputs.cells }}
+      count: ${{ steps.plan.outputs.count }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,27 +51,41 @@ jobs:
         env:
           CORPUS: ${{ inputs.corpus }}
           STRATEGIES: ${{ inputs.strategies }}
+          SHARDS: ${{ inputs.shards }}
         run: |
           [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
           [ -f "packages/packing/bench/corpora/$CORPUS.json" ] || { echo "packages/packing/bench/corpora/$CORPUS.json does not exist"; exit 1; }
+          [[ "$SHARDS" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 32 ] || { echo "shards must be a whole number from 1 to 32, not '$SHARDS'"; exit 1; }
           list=$(node packages/packing/bench/main.ts list --strategies "$STRATEGIES")
-          echo "strategies=$list" >> "$GITHUB_OUTPUT"
           echo "The strategies: $list"
+          # One cell for each entry and shard. With 1 shard the folder is the entry, as before. Else it is <entry>.sNN,
+          # and the names sort in the order of the inputs. A dot sorts after a hyphen, so the entries keep their order.
+          cells=$(node -e '
+            const [list, n] = [JSON.parse(process.argv[1]), Number(process.argv[2])];
+            const cells = list.flatMap((s) => Array.from({ length: n }, (_, i) => ({ strategy: s, shard: `${i}/${n}`, name: n === 1 ? s : `${s}.s${String(i).padStart(2, "0")}` })));
+            if (cells.length > 256) { console.error(`${cells.length} jobs, above the matrix limit of 256`); process.exit(1); }
+            console.log(JSON.stringify(cells));
+          ' "$list" "$SHARDS")
+          echo "cells=$cells" >> "$GITHUB_OUTPUT"
+          echo "count=$(echo "$cells" | jq length)" >> "$GITHUB_OUTPUT"
 
   dump:
     needs: plan
-    name: dump (${{ matrix.strategy }})
+    name: dump (${{ matrix.name }})
     runs-on: ubuntu-latest
-    # The probe makes each predicate call slower. ruin-recreate-skyline-k64 on pack-select-v2 needs more than 60 minutes (run 41547266012).
+    # The probe makes each predicate call slower. ruin-recreate-skyline-k64 on pack-select-v2 needs more than 240 minutes
+    # (runs 41547266012 and 41647640764), so it needs shards.
     timeout-minutes: 240
     strategy:
       fail-fast: false
       max-parallel: 3
       matrix:
-        strategy: ${{ fromJSON(needs.plan.outputs.strategies) }}
+        include: ${{ fromJSON(needs.plan.outputs.cells) }}
     env:
       CORPUS: ${{ inputs.corpus }}
       STRATEGY: ${{ matrix.strategy }}
+      SHARD: ${{ matrix.shard }}
+      NAME: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -76,20 +97,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Dump the near predicate inputs
-        run: node packages/packing/bench/main.ts predicates --corpus "$CORPUS" --strategies "$STRATEGY" --out "$RUNNER_TEMP/predicates/$STRATEGY"
+        run: node packages/packing/bench/main.ts predicates --corpus "$CORPUS" --strategies "$STRATEGY" --shard "$SHARD" --out "$RUNNER_TEMP/predicates/$NAME"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: predicates-${{ inputs.corpus }}-${{ matrix.strategy }}
+          name: predicates-${{ inputs.corpus }}-${{ matrix.name }}
           path: ${{ runner.temp }}/predicates
           if-no-files-found: error
 
   merge:
-    needs: dump
+    needs: [plan, dump]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       CORPUS: ${{ inputs.corpus }}
+      COUNT: ${{ needs.plan.outputs.count }}
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -121,3 +143,9 @@ jobs:
           name: predicates-${{ inputs.corpus }}
           path: ${{ runner.temp }}/predicates-${{ inputs.corpus }}
           if-no-files-found: error
+      # A dump job that failed leaves a hole in the joined file. The artifact stays for a look, but the run fails.
+      - name: Each dump job gave its part
+        run: |
+          parts=$(ls -d "$RUNNER_TEMP"/parts/*/ 2>/dev/null | wc -l)
+          echo "$parts parts of $COUNT jobs"
+          [ "$parts" -eq "$COUNT" ] || { echo "::error::$parts parts of $COUNT jobs: the joined dump is not complete"; exit 1; }
