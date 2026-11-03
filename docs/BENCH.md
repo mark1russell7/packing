@@ -855,6 +855,13 @@ node bench/main.ts predicates --corpus smoke-v1 --strategies all --out bench-out
 
 The workflow `Predicates` (`.github/workflows/predicates.yml`) dumps a full corpus in CI, with one job for each entry. Its default corpus is `pack-select-v2`. The artifact `predicates-<corpus>` has `predicates.jsonl` and `summary.json`.
 
+A slow entry needs shards. `ruin-recreate-skyline-k64` on `pack-select-v2` needs more than the 240 minutes of one job.
+
+- The option `--shard <index>/<count>` packs one contiguous block of the inputs, from index 0. The file `run.json` records the shard.
+- The input `shards` of the workflow (1 to 32, default 1) gives each entry that count of jobs.
+- The job `merge` joins the parts in the order of a dump without shards. Thus the joined file is byte-equal to one dump.
+- The job `merge` fails when a part is missing, and it keeps the artifact.
+
 The command packs each input one time with each entry, and then examines the output with `checkHard`. The probe of `src/probe.ts` sees these predicates in the pack and in the check:
 
 | `fn` | Where | The inputs of a line |
