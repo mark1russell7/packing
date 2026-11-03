@@ -40,7 +40,7 @@ import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type 
 import { dumpPredicates, NEAR } from "./predicates.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
 import { BUDGET_POLICY, budgetMarkdown, timeBudget, type BudgetInput } from "./time-budget.ts";
-import { checkTimeGate, gateMarkdown, parseTimeGate } from "./time-gate.ts";
+import { checkTimeGate, deriveTimeGate, gateMarkdown, parseTimeGate, type TimeGate } from "./time-gate.ts";
 
 const here = import.meta.dirname;
 const [command, ...rest] = process.argv.slice(2);
@@ -196,11 +196,33 @@ function pairedGate(): number {
   if (file === undefined || dir === undefined) throw new Error("A time gate needs --gate <file> and --dir <paired out dir>.");
   const gate = parseTimeGate(readFileSync(file, "utf8"));
   const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8")) as { corpus: string; only?: string; warmup?: number };
-  const result = checkTimeGate(gate, JSON.parse(readFileSync(join(dir, "paired-time.json"), "utf8")) as PairedReport, run.corpus, run.only, run.warmup);
+  const result = checkTimeGate(gate, JSON.parse(readFileSync(join(dir, "paired-time.json"), "utf8")) as PairedReport, run.corpus, run.only, run.warmup, rest.includes("--retry"));
   writeFileSync(join(dir, "gate.json"), `${JSON.stringify(result, null, 2)}\n`);
   writeFileSync(join(dir, "gate.md"), gateMarkdown(result));
   process.stdout.write(gateMarkdown(result));
-  return result.pass ? 0 : 1;
+  return result.verdict === "pass" ? 0 : result.verdict === "cannot-decide" ? 3 : 1;
+}
+
+/**
+ * This function writes the values of a gate record from its derivation runs. `--dirs` has the paired out folders. `--runs` has the run id of each folder.
+ *
+ * It keeps the settings and the reasons of the record, and writes the checks, the reports, the A/A facts and the noise cap.
+ */
+function pairedGateDerive(): number {
+  const file = opt("--gate");
+  const dirs = opt("--dirs")?.split(",");
+  const runs = opt("--runs")?.split(",");
+  if (file === undefined || dirs === undefined || runs === undefined) throw new Error("A derivation needs --gate <file>, --dirs <out dirs> and --runs <run ids>.");
+  const reports = dirs.map((d) => JSON.parse(readFileSync(join(d, "paired-time.json"), "utf8")) as PairedReport);
+  // The old record can have an older schema: the derivation writes each value of schema 3, and the parse examines the new record.
+  const gate = deriveTimeGate(JSON.parse(readFileSync(file, "utf8")) as TimeGate, reports, runs);
+  const text = `${JSON.stringify(gate, null, 2)}
+`;
+  parseTimeGate(text);
+  writeFileSync(file, text);
+  process.stdout.write(`${JSON.stringify({ checks: gate.checks.map((c) => [c.measure, c.max, c.derivation.values]), noise: gate.noise })}
+`);
+  return 0;
 }
 
 /**
@@ -263,6 +285,8 @@ function main(): number | Promise<number> {
       return pairedChild();
     case "paired-gate":
       return pairedGate();
+    case "paired-gate-derive":
+      return pairedGateDerive();
     case "paired-budget":
       return pairedBudget();
     case "predicates":

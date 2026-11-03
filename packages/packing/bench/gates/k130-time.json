@@ -1,14 +1,12 @@
 {
-  "schema": "packing-time-gate/1",
+  "schema": "packing-time-gate/3",
   "id": "k130-time",
   "item": "k130",
-  "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded up to 4 decimals (away from the data). Each run has its A/A band p10 to p90 around 1. The gate is on all the inputs, because the slow tail is what a user of the portfolio pays (the strategist, k130). The portfolio arm fails the warm rule at W=5000, so the steady inputs (all 3 arms warm) give a second number, a report.",
+  "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded up to 4 decimals (away from the data). Schema 3 (2026-11-03): the ratio of an input is the caseRatios ratio of rigor-bench, and each run has an A/A noise under the noise cap. The schema 2 limit was 1.4624. The gate is on all the inputs, because the slow tail is what a user of the portfolio pays (the strategist, k130). The portfolio arm fails the warm rule at W=5000, so the steady inputs (all 3 arms warm) give a second number, a report.",
   "corpus": "pack-classes-v1",
   "mode": "fresh",
   "base": "rows",
   "arm": "portfolio-fill-rows-bl",
-  "aaMedian": 0.05,
-  "aaBand": true,
   "only": ".fixed.",
   "warmup": 5000,
   "passes": 200,
@@ -24,7 +22,7 @@
   "checks": [
     {
       "measure": "sum-median",
-      "max": 1.4624,
+      "max": 1.4546,
       "derivation": {
         "runs": [
           "https://github.com/mark1russell7/packing/actions/runs/41470082104 job run1",
@@ -41,14 +39,14 @@
           "AMD EPYC 9V45 96-Core Processor"
         ],
         "values": [
-          1.298368,
-          1.379478,
-          1.370108,
-          1.380365,
-          1.306407
+          1.313239,
+          1.376462,
+          1.370875,
+          1.381275,
+          1.30803
         ],
-        "worst": 1.380365,
-        "spread": 0.081997
+        "worst": 1.381275,
+        "spread": 0.073245
       }
     }
   ],
@@ -57,47 +55,46 @@
       "measure": "sum-median",
       "steady": true,
       "values": [
-        1.286891,
-        1.357432,
-        1.360764,
-        1.368949,
-        1.30455
+        1.291367,
+        1.360845,
+        1.360835,
+        1.377722,
+        1.308308
       ],
       "why": "The second number: the same measure on the steady inputs only. The band that picks them comes from the data of each run, so it does not gate."
     },
     {
       "measure": "median",
       "values": [
-        2.69247,
-        2.889413,
-        2.88338,
-        2.910507,
-        2.712177
+        2.712363,
+        2.888277,
+        2.884697,
+        2.915208,
+        2.703945
       ],
       "why": "The ratio of the portfolio to rows alone, for the record. The user-facing number is the sum measure."
     }
   ],
   "aa": {
     "median": [
-      0.995039,
-      1.001851,
-      1.000052,
-      1.001332,
-      0.999174
+      0.995826,
+      1.001866,
+      0.99974,
+      1.002297,
+      0.999839
     ],
-    "p10": [
-      0.912354,
-      0.97386,
-      0.967399,
-      0.971337,
-      0.812658
-    ],
-    "p90": [
-      1.058316,
-      1.026745,
-      1.039025,
-      1.030991,
-      1.072229
+    "noise": [
+      0.046982,
+      0.027288,
+      0.026733,
+      0.030783,
+      0.062373
     ]
+  },
+  "noise": {
+    "factor": 3,
+    "level": 0.8,
+    "quiet": 0.030783,
+    "cap": 0.0924
   }
 }

@@ -969,30 +969,53 @@ An absolute time of this repository is an in-order time, if no paired test is na
 
 ### A time gate
 
-A time gate (`bench/time-gate.ts`, schema `packing-time-gate/1`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
+A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
 
-- A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A spread.
-- A derivation with `margin` uses the old rule (STRATEGY.md 1e10f489): the limit is the worst value times 1 plus the margin. `k66-time` uses it.
-- A derivation with `spread` uses the rule of the gate limits: the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
-- A measure with a spread across the 5 runs larger than the margin does not gate. The record reports it with the reason.
+- Schema 3 (strategist, 2026-11-03) takes its measures from `@mark1russell7/rigor-bench`. Each round of an input is one record of the pair (base, arm), with the arm that ran first.
+- The ratio of an input is the `caseRatios` ratio: the median of the log ratios of its rounds. Each round cancels the drift of the runner. Schema 2 divided the median times.
+- `sum-median` is the median over the inputs of the ratio of the arm to the sum of the times of the `members` in each round.
+- A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A facts of each job.
+- The rule of the gate limits (STRATEGY.md, 2026-11-02): the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
+- No limit uses a fixed factor. Schema 1 had the old rule, the worst value times 1.1, and a fixed A/A tolerance.
+- A measure that the item does not gate is a report, with the reason in the record.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
+- `node bench/main.ts paired-gate-derive --gate <file> --dirs <out dirs> --runs <run ids>` writes the values of a record from its runs.
 - `time-gate.yml` makes one job of the paired test of each gate in its list, with the settings of the gate record. `ci.yml` uses it, so CI OK needs it.
 - A pull request starts these jobs only when a file of the gates changed. The workflow names the files. A push or a release does not start them again.
-- The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A median outside 1 ± `aaMedian`.
+- The gate refuses a report of another corpus, mode or base, and a report without the A/A arm. It also refuses records that break a rule of rigor-bench.
+- The result has the time verdict of rigor-bench for the first check: `faster`, `slower`, `same` or `cannot decide`. It is a report.
+
+The noise cap (strategist, 2026-11-03) stops a pass on a noisy run.
+
+- The A/A noise of a run is the half width on a log scale of its A/A band of kind `case` at the level 0.8. The level 0.8 holds 80 % of the A/A inputs, as the band p10 to p90 of schema 2.
+- The field `noise` of the gate has the median A/A noise of the derivation runs, the quiet noise. The cap is 3 times the quiet noise, rounded up.
+- The A/A noise grows with the spread and with a shift of the A/A ratios. Thus the cap also replaces the rule of schema 2 that the A/A band contains 1.
+- The line `aa.noise` gives the noise of the run and the cap. A run above the cap gets the verdict `cannot-decide`, with the exit code 3.
+- On `cannot-decide`, the job `retry` of `time-gate.yml` runs the gate one more time on a fresh runner. A second noisy run fails.
+- The limit comes from the runs of the derivation, not from the run that the gate examines. A noisy run cannot make the limit wider.
+
+The other rules of a gate:
+
 - The gate refuses a run with another filter `only` than the gate. A gate without `only` takes only a run of all the inputs.
-- With `aaBand`, the gate refuses a report with an A/A band p10 to p90 that does not contain 1.
 - With `warmup` or `passes`, the gate refuses a run of mode `fresh` with another count of passes.
 - The field `steady` of the gate gives the arms of the warm rule. A check or a report with `steady: true` uses only the inputs with each of these arms warm. The line `steady.inputs` gives their count.
 - The measure `sum-median` is the median of the time of the arm over the sum of the times of the `members` of the gate.
 
-The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The in-order time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
+The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The in-order time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows` in mode `fresh`.
+
+- Jobs 1, 3 and 5 of run 41547217059 and jobs 1 and 2 of run 41646832894 give 1.7905, 1.8192, 1.8277, 1.7531 and 1.7536. The limit is 1.827744 + 0.074615, rounded up to 1.9024.
+- Jobs 2 and 4 of run 41547217059 stopped at the old job limit of 120 minutes, with no report. The second run replaced them.
+- The A/A noise of the 5 jobs is 0.080 to 0.105. The quiet noise is 0.0898, so the cap is 0.2694.
+- The q95 (11.3 to 13.0) is a report.
+- One job of `k66-time` takes 91 to 105 minutes. That is more than the 60 minutes of `time-gate.yml`, so `k66-time` is not in its list. A dispatch of `paired-time.yml` with the input `gate` applies it.
 
 The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` against the sum of its members `rows` and `maxrects-bl`. It uses mode `fresh` on the `.fixed.` inputs of `pack-classes-v1`, with 5000 untimed passes and 200 timed passes.
 
 - The gate measures all 250 inputs. The slow tail of the portfolio is what a user pays, so a change that makes the tail worse fails the gate.
-- The 5 jobs of run 41470082104 give 1.2984, 1.3795, 1.3701, 1.3804 and 1.3064. The limit is 1.380365 + 0.081997, rounded up to 1.4624.
+- The 5 jobs of run 41470082104 give 1.3132, 1.3765, 1.3709, 1.3813 and 1.3080. The limit is 1.381275 + 0.073245, rounded up to 1.4546. The limit of schema 2 was 1.4624.
+- The A/A noise of the 5 jobs is 0.027 to 0.062. The quiet noise is 0.0308, so the cap is 0.0924.
 - The portfolio arm fails the warm rule at 5000 untimed passes (`outside` 0.30 to 0.46). The steady inputs (101 to 151 of 250 per job) give a second number, a report.
-- On the steady inputs, the 5 jobs give 1.2869 to 1.3689. The band that picks these inputs comes from the data of each run, so this number does not gate.
+- On the steady inputs, the 5 jobs give 1.2914 to 1.3777. The band that picks these inputs comes from the data of each run, so this number does not gate.
 - On all the inputs, the portfolio costs 1.35 times the sum of its members (the mean of the 5 jobs).
 
 ### The time budget of a promotion
@@ -1025,7 +1048,7 @@ The proposal of `noiseCap` comes from the A/A arms of 3 k66 jobs of `pack-select
 
 The proposal 0.156 is the worst job plus the spread of the jobs (0.1379 + 0.0183). With it, a quiet job votes in the guard of the jobs. The merged records are under it.
 
-- After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value times 1.1).
+- After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value plus the spread of 5 runs).
 
 The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 

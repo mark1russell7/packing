@@ -1,41 +1,40 @@
 {
-  "schema": "packing-time-gate/1",
+  "schema": "packing-time-gate/3",
   "id": "k66-time",
   "item": "k66",
-  "rule": "STRATEGY.md 1e10f489: a limit is the worst value of 5 CI runs of the gate harness times 1.1. The A/A noise is well inside the margin.",
+  "rule": "Schema 3 (2026-11-03): the limit is the worst value of 5 CI runs in mode fresh plus their spread, rounded up. The values are rigor-bench caseRatios ratios. The schema 1 limit was 2.6419 (worst times 1.1, mode process).",
   "corpus": "pack-select-v2",
-  "mode": "process",
+  "mode": "fresh",
   "base": "rows",
   "arm": "select-rows-bl",
-  "aaMedian": 0.05,
   "checks": [
     {
       "measure": "median",
-      "max": 2.6419,
+      "max": 1.9024,
       "derivation": {
         "runs": [
-          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run1",
-          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run2",
-          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run3",
-          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run4",
-          "https://github.com/mark1russell7/packing/actions/runs/41355334842 job run5"
+          "https://github.com/mark1russell7/packing/actions/runs/41547217059 job run1",
+          "https://github.com/mark1russell7/packing/actions/runs/41547217059 job run3",
+          "https://github.com/mark1russell7/packing/actions/runs/41547217059 job run5",
+          "https://github.com/mark1russell7/packing/actions/runs/41646832894 job run1",
+          "https://github.com/mark1russell7/packing/actions/runs/41646832894 job run2"
         ],
         "cpus": [
-          "AMD EPYC 9V45 96-Core Processor",
-          "AMD EPYC 7763 64-Core Processor",
-          "AMD EPYC 9V45 96-Core Processor",
           "AMD EPYC 9V74 80-Core Processor",
-          "AMD EPYC 7763 64-Core Processor"
+          "AMD EPYC 9V74 80-Core Processor",
+          "Intel(R) Xeon(R) 6973P-C",
+          "Intel(R) Xeon(R) 6973P-C",
+          "AMD EPYC 9V45 96-Core Processor"
         ],
         "values": [
-          2.2859,
-          2.4017,
-          2.3037,
-          2.386,
-          2.392
+          1.790471,
+          1.819161,
+          1.827744,
+          1.753129,
+          1.753593
         ],
-        "worst": 2.4017,
-        "margin": 0.1
+        "worst": 1.827744,
+        "spread": 0.074615
       }
     }
   ],
@@ -43,36 +42,35 @@
     {
       "measure": "q95",
       "values": [
-        58.9582,
-        51.9869,
-        55.803,
-        59.4339,
-        52.3907
+        11.343664,
+        11.738445,
+        12.526361,
+        12.798839,
+        12.99701
       ],
-      "why": "The q95 of the 5 runs spans 51.9869 to 59.4339, a spread of 0.143, more than the margin 0.1. The A/A q95 is 1.09 to 1.13. So it does not gate."
+      "why": "The q95 is a report. It follows the slowest inputs, and its spread over runs is wide."
     }
   ],
   "aa": {
     "median": [
-      0.9983,
-      0.9994,
-      0.9981,
-      0.9985,
-      1.0007
+      0.997991,
+      1.001167,
+      1.000546,
+      1.000022,
+      0.999917
     ],
-    "p10": [
-      0.9412,
-      0.9331,
-      0.9375,
-      0.9356,
-      0.9291
-    ],
-    "p90": [
-      1.0631,
-      1.0614,
-      1.053,
-      1.0687,
-      1.075
+    "noise": [
+      0.089788,
+      0.095524,
+      0.080017,
+      0.079514,
+      0.105022
     ]
+  },
+  "noise": {
+    "factor": 3,
+    "level": 0.8,
+    "quiet": 0.089788,
+    "cap": 0.2694
   }
 }
