@@ -61,6 +61,22 @@ on:
         options: ["off", stratum, mixed]
         default: "off"
 
+  # k120: coverage-nightly.yml packs the grid with this workflow. The inputs are the same, with strings for the choices.
+  workflow_call:
+    inputs:
+      corpus: { type: string, default: smoke-v1 }
+      strategies: { type: string, default: all }
+      prediction: { type: string, required: true }
+      repeats: { type: string, default: "5" }
+      warmup: { type: string, default: "2" }
+      sample: { type: string, default: "400" }
+      anchor: { type: boolean, default: false }
+      stratify: { type: boolean, default: false }
+      draw: { type: string, default: uniform }
+      features: { type: string, default: family }
+      pairs: { type: string, default: "" }
+      timing: { type: string, default: "off" }
+
 permissions:
   contents: read
 

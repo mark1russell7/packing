@@ -289,6 +289,33 @@ const leaf = selectLeaf(selectFeatures(input)); // { leaf, pick }
 - The output gets the trace stage `select` (`SELECT_STAGE`) as its last stage. Its measures are `move.select`, `select.member`, `select.pick.<id>`, `select.leaf` and the 4 feature values.
 - The measure `move.select` is 1 when the pick is not member 0. A flag feature is 1 for `true`, and `select.spread` has 3 decimals.
 
+#### The refit on two measures
+
+The refit of roadmap item k70 tests each leaf of `SELECT_TABLE` on joint records. The table does not change, and leaf 6 keeps `maxrects-bl`.
+
+- The records are the run `40743187036` of `layout-contract` on `joint-v2`, with the 303 inputs of the corpus. The floor comes from all pairs of each input, at the cap 1.25.
+- Each leaf groups the inputs by `selectLeaf`. The 2 pairs are `rows+portfolio` and `maxrects-bl+portfolio`.
+- The first measure is the floor score: `joint.fill` when the pair reaches the floor of the input, else 0. The second measure is `pack.fill`.
+- A leaf changes its pick only after 3 results. On the seeds 1 and 2, `verdict()` gives `better` for the floor score, with the level 0.05. On the held-out seed 3, the mean change is above 0. On the seeds 1 and 2, `pack.fill` is not `worse`.
+
+| Leaf | Inputs (stress) | Pick | Floor score, pick and other | Only the pick, only the other | Floor verdict for the other | p | Fill verdict for the other | Held-out change |
+|---:|---:|---|---|---|---|---:|---|---:|
+| 0 | 21 (3) | `rows` | 0.587, 0.559 | 1, 2 | no verdict | 0.50 | no verdict | -0.186 |
+| 1 | 39 (9) | `maxrects-bl` | 0.360, 0.352 | 1, 1 | no verdict | 0.89 | no verdict | -0.035 |
+| 2 | 9 (3) | `rows` | 0, 0 | 0, 0 | no verdict | 1.00 | no verdict | 0 |
+| 3 | 6 (0) | `maxrects-bl` | 0.297, 0 | 3, 0 | no verdict | 0.50 | no verdict | -0.304 |
+| 4 | 138 (36) | `rows` | 0.163, 0.134 | 7, 0 | worse | 0.04 | no verdict | -0.015 |
+| 5 | 48 (15) | `rows` | 0.236, 0.278 | 1, 3 | no verdict | 0.26 | better | 0.041 |
+| 6 | 42 (15) | `maxrects-bl` | 0.069, 0.119 | 1, 4 | no verdict | 0.25 | worse | 0.011 |
+
+- The column "Only the pick, only the other" counts the inputs where 1 pair reaches the floor and the other pair misses it, on all seeds.
+- Leaf 6 has a higher floor score with `rows`, but the verdict does not support it, and `pack.fill` falls from 0.667 to 0.557.
+- The 4 inputs of leaf 6 where only `rows` reaches the floor are all stress inputs. Without the stress inputs, leaf 6 has 1 input against 0.
+- Leaf 5 is the nearest change: the fill is better and the held-out change is above 0, but 48 inputs do not support the floor score. A change needs a corpus with more inputs in this leaf.
+- The family of the verdict is the cell `sizes`. The families `containerShape` and `count`, and the run without the stress inputs, also give no change of a pick.
+- The records come from `packing` 0.2.16. A change of the table needs a new joint run, but this refit changes nothing.
+- The analysis uses the private package `joint` of `layout-contract`, so it is not a command of this repository.
+
 ### The random restarts
 
 Roadmap item k78 adds the composite strategy `restarts` (catalog row `search-random-restart`, Yang 2013). It packs with one member in some random orders and keeps the best output. It is opt-in. No default uses it.
@@ -600,6 +627,24 @@ The counts of `packSpace`:
 - `ENTRIES` of the benchmark: 30 before, 32 after. `composites`: 5 before, 6 after. The meta options of `spaceCounts`: 6 before, 7 after.
 - The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
 
+### The order `graph-bfs` in `packSpace`
+
+- The stage `order` has the option `graph-bfs` since layout-stack item L34. It is the last option, so a config of an old option keeps its `configId`.
+- `configOfStrategy` gives a point for `rows`, `skyline`, `shelf`, `maxrects` and `guillotine` with this order. The placement `push` does not read `input.links`, so a constraint refuses it.
+- `packConfig` gives the output of `packWith`. Without links, the order is `area-desc`.
+- A meta strategy with such a member starts at the graph order. `memberOrder` reads `input.links`, and `ruin-recreate` moves the links to its new item list.
+- After L34 the base configs were 3564 and 1068, and 3561 and 1067 for `rect`. The table gives the meta counts. The rule `wire` of k136 raises these counts.
+
+| `spaceSize` | Before L34 | Since L34 |
+|---|---:|---:|
+| `meta`, 3 levels | 277869295533810375192 | 688291902860755874904 |
+| `meta`, 1 level | 100061834238419076 | 248007594904236900 |
+| `meta` for `rect`, 3 levels | 276469311858023490660 | 685398465078246361680 |
+| `meta` for `rect`, 1 level | 99500446769432000 | 246846729112282916 |
+| `meta` for `circle` or `polygon`, 3 levels and 1 level | 5940 and 1780 | 7122 and 2134 |
+
+- The draws of the sampler changed, because the counts changed. A sample of a seed before L34 and after L34 has other configs.
+
 ### The overlap minimization
 
 Roadmap item k80 adds the composite strategy `overlap-min` (catalog row `nest-gls-overlap`, idea R6 of the survey). It is opt-in. No default uses it.
@@ -799,10 +844,10 @@ The counts of `packSpace`:
 
 | `spaceSize` | Before k137 | Since k137 |
 |---|---|---|
-| 3 levels, `maxMeta: 10n ** 21n` | 277869295533810375192 | 277869295533810384111 |
-| 1 level | 100061834238419076 | 100061834238419967 |
-| 3 levels, `shapes: ["rect"]` | 276469311858023490660 | 276469311858023499570 |
-| 1 level, `shapes: ["rect"]` | 99500446769432000 | 99500446769432890 |
+| 3 levels, `maxMeta: 10n ** 21n` | 839122620777889294392 | 839122620777889305516 |
+| 1 level | 277205931006817716 | 277205931006818808 |
+| 3 levels, `shapes: ["rect"]` | 835731956558436797040 | 835731956558436808155 |
+| 1 level, `shapes: ["rect"]` | 275936906614690676 | 275936906614691767 |
 
 The trial chose the structure of a round on the seeds 1 to 20: 40 items, `freeHeight`, the order `graph-bfs`, and a seeded tree of links. Each value is the sum of the pull over the sum of the same pack without it. The block share is the share of the pull in the block step. The slide step alone gave a longer wire in each row, so a round has both steps. The share 1 gave the shortest wire on `rows` and needs no second constant.
 
@@ -1229,10 +1274,27 @@ The option `rule` chooses the free rectangle. The default is `bssf`. A lower sco
 | `baf` | The leftover area, then the smaller leftover side | `move.baf` | `maxrects-baf` |
 | `bl` | The bottom edge of the box, then its left edge | `move.split` | `maxrects-bl` |
 | `cp` | The most contact length with the frame, the boxes and the obstacles | `move.cp` | `maxrects-cp` |
+| `wire` | The smallest wire length to the placed linked boxes, then the bottom edge of the box | `move.wire` | `maxrects-wire` |
 
 The moves:
 
 - The rule `bl` gives the base place. The move of each other rule counts a box when the rule chooses a place that is not the place of `bl`.
+- The rule `wire` reads the option `links` of `pack`. The wire length is the sum over the placed linked boxes of the link weight times the Manhattan distance between the centers.
+- For a box with a placed link, the rule `wire` tries the 4 corners of each free rectangle. Each other rule tries only the top-left corner.
+- A box with no placed link follows `bl`. Thus an input without links has the layout of `bl`.
+- With a free height, each unit of height under the lowest box costs `WIRE_DEPTH` (8) for each unit of link weight.
+- The rule `wire` gives 6 values of the param `rule`, not 5. The counts of `spaceSize` are then 3708 and 1092 base configs, and 3705 and 1091 for `rect`. The meta counts with 3 levels and 1 level are 839122620777889294392 and 277205931006817716, and 7410 and 2182 for `circle` or `polygon`. The configs of the 5 old rules keep their ids.
+
+The trial of `WIRE_DEPTH` used the seeds 1 to 20, 40 items, a tree of links and the order `graph-bfs`. Each cell gives the wire length and the height of `wire` as a share of `bl`:
+
+| `WIRE_DEPTH` | `uniform` | `heavyTail` | `bimodal` |
+|---:|---:|---:|---:|
+| 0 | 0.424, 1.661 | 0.553, 1.154 | 0.468, 1.699 |
+| 2 | 0.452, 1.456 | 0.550, 1.036 | 0.457, 1.355 |
+| 4 | 0.474, 1.258 | 0.583, 1.013 | 0.468, 1.151 |
+| 8 | 0.562, 1.056 | 0.621, 1.028 | 0.511, 1.054 |
+
+The test `maxrects-wire.test.ts` uses the seeds 101 to 120, because the trial chose the value on the seeds 1 to 20.
 - Thus the move of a rule counts only the choices of that rule. The other steps are the same for each rule, so they do not count.
 - The rule `bl` has no base. Its move `move.split` counts a box that cuts 2 free rectangles or more. This cut is the step that `rows`, `skyline` and `shelf` do not have.
 - The trace of `maxrects` has `move.split` for each rule. The trace of a rule other than `bl` also has the move of the rule.
