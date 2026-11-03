@@ -21,7 +21,7 @@ const place: Placer = (rects, outer, options) => {
 export const maxrects: Strategy<MaxRectsStrategyOptions> = /* @__PURE__ */ layoutStrategy(
   "maxrects",
   "maxrects",
-  ["maxrects-bssf", "maxrects-blsf", "maxrects-baf", "maxrects-bl", "maxrects-cp", "maxrects-locked"],
+  ["maxrects-bssf", "maxrects-blsf", "maxrects-baf", "maxrects-bl", "maxrects-cp", "maxrects-wire", "maxrects-locked"],
   { obstacleMove: ["fixed"], order: ["free", "soft"], rotation: ["none", "quarter"] },
   { ...LAYOUT_DEFAULTS, rule: "bssf", rotate: false },
   place,
