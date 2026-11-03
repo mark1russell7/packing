@@ -49,10 +49,12 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The pins of k121 come from the code: the first 4 uniform configs of the seed 20 without clock limits, and the meta counts with and without a clock limit.
 // The key fill of the portfolio (k127) adds a third value to the param key. Thus the meta counts are 1.5 times the counts before k127, and the draws changed.
 // Before k127 the pins were ce6d8bf386fbb8a6, 58da5ef5c70859cc, fb834701df83f8be, da3d8a993a6a894c, 19192758499731626819019141706 and 19192758499731625913230514340.
-const DEFAULT_UNIFORM_IDS = ["8e927552366b747d", "e7520bf93db84bc6", "fb834701df83f8be", "d49ccb0bd735314d"];
+// The rule wire of k136 adds configs, so the same draws give other configs. Before k136 the first 3 pins were 8e927552366b747d, e7520bf93db84bc6 and fb834701df83f8be.
+const DEFAULT_UNIFORM_IDS = ["ce6d8bf386fbb8a6", "824d8cc4a595d369", "477b13cdf3a19c1f", "d49ccb0bd735314d"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
 const CLOCK_FREE_META = 28789137749597439801406687782n;
-const CLOCK_CONFIGS = 28789137749597438869845771510n;
+// Before k136 the count was 28789137749597438869845771510.
+const CLOCK_CONFIGS = 32184755565761539323256505310n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -287,8 +289,9 @@ describe("the sample of pairs", () => {
   it("keeps the uniform draw of the timing mixed: the same configs as before k115, and no strata in the summary", () => {
     // The config ids of the first 4 pairs of the seed 20 come from the sampler of main before k115, with k23, k90, k117 and k79.
     // The key fill of k127 changed the first 2. Before k127 they were ce6d8bf386fbb8a6 and 58da5ef5c70859cc.
+    // The rule wire of k136 changed the first 3. Before k136 they were 3a60cbf146624a38, 13c0582c0bc63a88 and c2b0e4f380f82b0d.
     const a = sampleSpace({ ...options, timing: "mixed", clock: fakeClock() });
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["3a60cbf146624a38", "13c0582c0bc63a88", "c2b0e4f380f82b0d", "d49ccb0bd735314d"]);
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["30493d05e02edddf", "d35c5f9224d2bdac", "4246962969858155", "d49ccb0bd735314d"]);
     expect(a.summary.draw).toBe("uniform");
     expect(a.summary.timing).toBe("mixed");
     expect("strata" in a.summary).toBe(false);
