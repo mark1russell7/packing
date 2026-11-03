@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 382 names
+## . (build/index.d.ts): 389 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -73,12 +73,14 @@ type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
 GENETIC_STAGE: build/index.d.ts#GENETIC_STAGE
+GRAPH_ORDERS: build/index.d.ts#GRAPH_ORDERS
 GUILLOTINE_CHOICES: build/index.d.ts#GUILLOTINE_CHOICES
 GUILLOTINE_SPLITS: build/index.d.ts#GUILLOTINE_SPLITS
 type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
+type GraphOrder: build/index.d.ts#GraphOrder
 type GuillotineChoice: build/index.d.ts#GuillotineChoice
 type GuillotineOptions: build/index.d.ts#GuillotineOptions
 type GuillotineSplit: build/index.d.ts#GuillotineSplit
@@ -93,6 +95,8 @@ type HopperTurtonCategory: build/index.d.ts#HopperTurtonCategory
 type HopperTurtonParams: build/index.d.ts#HopperTurtonParams
 type HopperTurtonRule: build/index.d.ts#HopperTurtonRule
 type Item: @mark1russell7/layout-contract#Item (external)
+type ItemLink: build/index.d.ts#ItemLink
+type ItemOrder: build/index.d.ts#ItemOrder
 type KnownBest: build/index.d.ts#KnownBest
 LADDER_RUNGS: build/index.d.ts#LADDER_RUNGS
 LADDER_SIDE: build/index.d.ts#LADDER_SIDE
@@ -287,6 +291,7 @@ gapToOpt: build/index.d.ts#gapToOpt
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
 geneticStrategy: build/index.d.ts#geneticStrategy
+graphOrder: build/index.d.ts#graphOrder
 guillotine: build/index.d.ts#guillotine
 halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
@@ -298,6 +303,7 @@ hopperTurtonFamily: build/index.d.ts#hopperTurtonFamily
 hopperTurtonOf: build/index.d.ts#hopperTurtonOf
 isAnchor: build/index.d.ts#isAnchor
 isDeterministic: build/index.d.ts#isDeterministic
+isGraphOrder: build/index.d.ts#isGraphOrder
 ladder: build/index.d.ts#ladder
 ladderFamily: build/index.d.ts#ladderFamily
 ladderRung: build/index.d.ts#ladderRung
@@ -316,6 +322,7 @@ moveAnchor: build/index.d.ts#moveAnchor
 mulberry32: build/index.d.ts#mulberry32
 objectiveBound: build/index.d.ts#objectiveBound
 objectiveResult: build/index.d.ts#objectiveResult
+orderRects: build/index.d.ts#orderRects
 outputHash: build/index.d.ts#outputHash
 overlapMinStrategy: build/index.d.ts#overlapMinStrategy
 pack: build/index.d.ts#pack
@@ -734,6 +741,9 @@ interface FreeWidthTry {
 ### build/index.d.ts#GENETIC_STAGE
 export declare const GENETIC_STAGE = "genetic";
 
+### build/index.d.ts#GRAPH_ORDERS
+export declare const GRAPH_ORDERS: readonly GraphOrder[];
+
 ### build/index.d.ts#GUILLOTINE_CHOICES
 export declare const GUILLOTINE_CHOICES: readonly ["baf", "bssf", "blsf", "waf", "wssf", "wlsf"];
 
@@ -770,12 +780,16 @@ interface GeneticStrategyOptions {
   mutation?: number;
 }
 
+### build/index.d.ts#GraphOrder
+type GraphOrder = "graph-bfs";
+
 ### build/index.d.ts#GuillotineChoice
 type GuillotineChoice = (typeof GUILLOTINE_CHOICES)[number];
 
 ### build/index.d.ts#GuillotineOptions
 interface GuillotineOptions {
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
   space?: FreeSpace;
   choice?: GuillotineChoice;
   split?: GuillotineSplit;
@@ -836,6 +850,16 @@ interface HopperTurtonRule {
   readonly h: number;
   readonly counts: readonly [number, number, number];
 }
+
+### build/index.d.ts#ItemLink
+interface ItemLink {
+  a: number;
+  b: number;
+  weight?: number;
+}
+
+### build/index.d.ts#ItemOrder
+type ItemOrder = SortOrder | GraphOrder;
 
 ### build/index.d.ts#KnownBest
 interface KnownBest {
@@ -937,7 +961,8 @@ type MartelloVigoParams = {
 
 ### build/index.d.ts#MaxRectsOptions
 interface MaxRectsOptions {
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
   space?: FreeSpace;
   rule?: MaxRectsRule;
   bandHeight?: number;
@@ -1054,7 +1079,8 @@ interface PackLayoutOptions extends PackOptions {
 
 ### build/index.d.ts#PackOptions
 interface PackOptions {
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
   space?: FreeSpace;
 }
 
@@ -1333,7 +1359,8 @@ type ShelfFit = "next" | "first" | "best";
 
 ### build/index.d.ts#ShelfOptions
 interface ShelfOptions {
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
   space?: FreeSpace;
   fit?: ShelfFit;
 }
@@ -1356,7 +1383,8 @@ type SkylineGapParams = {
 
 ### build/index.d.ts#SkylineOptions
 interface SkylineOptions {
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
   space?: FreeSpace;
   rule?: SkylineRule;
   wasteMap?: boolean;
@@ -1689,6 +1717,9 @@ export declare const generators: readonly CorpusGenerator[];
 ### build/index.d.ts#geneticStrategy
 export declare const geneticStrategy: Strategy<GeneticStrategyOptions>;
 
+### build/index.d.ts#graphOrder
+export declare function graphOrder<T>(rects: readonly Rect<T>[], links?: readonly ItemLink[]): number[];
+
 ### build/index.d.ts#guillotine
 export declare const guillotine: Strategy<GuillotineStrategyOptions>;
 
@@ -1725,6 +1756,9 @@ export declare function isAnchor(input: PackInput, id: string): boolean;
 
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
+
+### build/index.d.ts#isGraphOrder
+export declare function isGraphOrder(order: ItemOrder): order is GraphOrder;
 
 ### build/index.d.ts#ladder
 export declare const ladder: CorpusGenerator<LadderParams>;
@@ -1791,6 +1825,9 @@ export declare function objectiveBound(input: PackInput, options?: BoundOptions)
 
 ### build/index.d.ts#objectiveResult
 export declare function objectiveResult(input: PackInput, output: PackOutput, bound: ObjectiveBound): number | undefined;
+
+### build/index.d.ts#orderRects
+export declare function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[];
 
 ### build/index.d.ts#outputHash
 export declare function outputHash(output: Pick<PackOutput, "placements">): string;

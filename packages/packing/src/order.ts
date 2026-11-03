@@ -24,3 +24,84 @@ export function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => n
       return () => 0;
   }
 }
+
+/**
+ * A link between two items. `a` and `b` are indexes into the array of the items. The weight is a finite number above
+ * 0. The default weight is 1. The physical strategies read the same list later.
+ */
+export interface ItemLink {
+  a: number;
+  b: number;
+  weight?: number;
+}
+
+/**
+ * An order that reads the links of the items. `graph-bfs` starts at the item with the largest sum of link weights and
+ * goes breadth-first. Each next component starts at its own hub.
+ */
+export type GraphOrder = "graph-bfs";
+
+/** This constant lists each graph order. */
+export const GRAPH_ORDERS: readonly GraphOrder[] = ["graph-bfs"];
+
+/** An order of the items: a sort order, or a graph order. */
+export type ItemOrder = SortOrder | GraphOrder;
+
+/** This function tells if an order is a graph order. */
+export function isGraphOrder(order: ItemOrder): order is GraphOrder {
+  return (GRAPH_ORDERS as readonly string[]).includes(order);
+}
+
+/**
+ * This function gives the order `graph-bfs` of the rectangles, as indexes into `rects`.
+ *
+ * - The hub of a component is the rectangle with the largest sum of link weights. Ties go to the larger area, then to the lower index.
+ * - From the hub, the order goes breadth-first. The neighbours of a rectangle are in the order of their area, the largest first.
+ * - Without links, each rectangle is a component, so the order is `area-desc`.
+ * - A link with an index outside `rects`, or with a weight that is not a finite number above 0, throws a `RangeError`.
+ */
+export function graphOrder<T>(rects: readonly Rect<T>[], links: readonly ItemLink[] = []): number[] {
+  const n = rects.length;
+  const degree = new Float64Array(n);
+  const next: number[][] = Array.from({ length: n }, () => []);
+  for (const { a, b, weight = 1 } of links) {
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a >= n || b >= n) {
+      throw new RangeError(`A link joins the items ${a} and ${b}, but the indexes go from 0 to ${n - 1}.`);
+    }
+    if (!Number.isFinite(weight) || weight <= 0) throw new RangeError(`The weight of a link is a finite number above 0, not ${weight}.`);
+    if (a === b) continue;
+    degree[a] = degree[a]! + weight;
+    degree[b] = degree[b]! + weight;
+    next[a]!.push(b);
+    next[b]!.push(a);
+  }
+  const area = rects.map((r) => r.area());
+  const byArea = (i: number, j: number): number => area[j]! - area[i]! || i - j;
+  const hubs = Array.from({ length: n }, (_, i) => i).sort((i, j) => degree[j]! - degree[i]! || byArea(i, j));
+  const seen = new Uint8Array(n);
+  const out: number[] = [];
+  for (const hub of hubs) {
+    if (seen[hub] === 1) continue;
+    seen[hub] = 1;
+    const queue = [hub];
+    for (let k = 0; k < queue.length; k++) {
+      const i = queue[k]!;
+      out.push(i);
+      for (const j of next[i]!.toSorted(byArea)) {
+        if (seen[j] === 1) continue;
+        seen[j] = 1;
+        queue.push(j);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * This function gives a copy of the rectangles in an order. A sort order gives the stable sort of `compareRects`. A
+ * graph order gives `graphOrder` of `rects` and `links`.
+ */
+export function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[] {
+  if (!isGraphOrder(order)) return rects.toSorted(compareRects(order));
+  return graphOrder(rects, links).map((i) => rects[i]!);
+}

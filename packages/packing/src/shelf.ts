@@ -1,5 +1,5 @@
 import { countMove, MOVES } from "./moves.ts";
-import { compareRects, type SortOrder } from "./order.ts";
+import { orderRects, type ItemLink, type ItemOrder } from "./order.ts";
 import type { Rect } from "./rect.ts";
 import { firstFit, type FreeSpace, type FreeSpan } from "./space.ts";
 
@@ -18,7 +18,9 @@ export const SHELF_FITS: readonly ShelfFit[] = ["next", "first", "best"];
 /** The options of `packShelf` */
 export interface ShelfOptions {
   /** The order of the rectangles before the packing. The default is `height-desc`. */
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  /** The links between the rectangles, as indexes into the array of the rectangles. Only a graph order reads them. */
+  links?: readonly ItemLink[];
   /**
    * The free space of the container: `freeSpace` of the input. Without it, or when it is plain, the packer uses only the
    * outer rectangle and the locked rectangles.
@@ -80,8 +82,8 @@ function nextTop(obstacles: readonly Box[], top: number, bottom: number): number
  * - With `fit`, `packShelvesInSpace` packs the rectangles, in each container shape. A `fit` that is not in `SHELF_FITS` throws a `RangeError`.
  */
 export function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options: ShelfOptions = {}): Rect<T> {
-  if (options.fit !== undefined) return packShelvesInSpace(rects, outer, options.sortOrder ?? "height-desc", options.fit, options.space);
-  if (options.space !== undefined && !options.space.plain) return packRowsInSpace(rects, outer, options.sortOrder ?? "height-desc", options.space);
+  if (options.fit !== undefined) return packShelvesInSpace(rects, outer, options.sortOrder ?? "height-desc", options.fit, options.space, options.links);
+  if (options.space !== undefined && !options.space.plain) return packRowsInSpace(rects, outer, options.sortOrder ?? "height-desc", options.space, options.links);
   const width = outer.size.x;
   const obstacles: Box[] = [];
   let contentBottom = 0;
@@ -99,7 +101,7 @@ export function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options: ShelfOpt
   let cursor = 0;
   let rowEmpty = true;
 
-  for (const rect of rects.toSorted(compareRects(options.sortOrder ?? "height-desc"))) {
+  for (const rect of orderRects(rects, options.sortOrder ?? "height-desc", options.links)) {
     if (rect.wasPacked) continue;
     const w = rect.size.x;
     const h = rect.size.y;
@@ -173,7 +175,7 @@ function placeInBand(obstacles: readonly Box[], spans: readonly FreeSpan[], star
  * - When the steps of an empty row find no place, the row goes back to its last top edge. Later rectangles can use it.
  * - A rectangle wider than the outer rectangle overflows. Without `fixedSize`, it goes on its own row at the left edge.
  */
-export function packRowsInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrder, space: FreeSpace): Rect<T> {
+export function packRowsInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: ItemOrder, space: FreeSpace, links?: readonly ItemLink[]): Rect<T> {
   const width = outer.size.x;
   const ox = outer.position.x;
   const oy = outer.position.y;
@@ -198,7 +200,7 @@ export function packRowsInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: Sort
   let rowBottom = 0;
   let cursor = 0;
   let rowEmpty = true;
-  for (const rect of rects.toSorted(compareRects(order))) {
+  for (const rect of orderRects(rects, order, links)) {
     if (rect.wasPacked) continue;
     const w = rect.size.x;
     const h = rect.size.y;
@@ -296,7 +298,7 @@ interface Spot {
  * - Each place is in the free space and crosses no locked rectangle. Without a space, the outer rectangle and the
  *   locked rectangles give the free space.
  */
-function packShelvesInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrder, fit: ShelfFit, space: FreeSpace | undefined): Rect<T> {
+function packShelvesInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: ItemOrder, fit: ShelfFit, space: FreeSpace | undefined, links?: readonly ItemLink[]): Rect<T> {
   if (!SHELF_FITS.includes(fit)) throw new RangeError(`The shelf fit "${String(fit)}" is not one of ${SHELF_FITS.join(", ")}.`);
   const width = outer.size.x;
   const ox = outer.position.x;
@@ -350,7 +352,7 @@ function packShelvesInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: SortOrde
   };
 
   const shelves: Shelf[] = [];
-  for (const rect of rects.toSorted(compareRects(order))) {
+  for (const rect of orderRects(rects, order, links)) {
     if (rect.wasPacked) continue;
     const w = rect.size.x;
     const h = rect.size.y;

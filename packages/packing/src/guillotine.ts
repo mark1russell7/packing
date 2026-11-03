@@ -4,7 +4,7 @@
 
 import { wallsOf, type Box } from "./maxrects.ts";
 import { countMove, MOVES } from "./moves.ts";
-import { compareRects, type SortOrder } from "./order.ts";
+import { orderRects, type ItemLink, type ItemOrder } from "./order.ts";
 import type { Rect } from "./rect.ts";
 import type { FreeSpace, SpaceRect } from "./space.ts";
 
@@ -41,7 +41,9 @@ export type GuillotineSplit = (typeof GUILLOTINE_SPLITS)[number];
 /** The options of `packGuillotine` */
 export interface GuillotineOptions {
   /** The order of the rectangles before the packing. The default is `height-desc`. */
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  /** The links between the rectangles, as indexes into the array of the rectangles. Only a graph order reads them. */
+  links?: readonly ItemLink[];
   /**
    * The free space of the container: `freeSpace` of the input. Without it, or when it is plain, the free rectangles are
    * exact. Another space gives an inner approximation with the bands of `maxrects`.
@@ -195,7 +197,7 @@ export function runGuillotine<T>(rects: Rect<T>[], outer: Rect<T>, options: Guil
   const fixed = outer.fixedSize;
   const space = options.space;
   const turnable = options.turnable;
-  const sorted = rects.toSorted(compareRects(options.sortOrder ?? "height-desc")).filter((r) => !r.wasPacked && r.size.x > 0 && r.size.y > 0);
+  const sorted = orderRects(rects, options.sortOrder ?? "height-desc", options.links).filter((r) => !r.wasPacked && r.size.x > 0 && r.size.y > 0);
 
   // The smallest width and height of the boxes. A turnable box counts its short side for the two.
   let minW = Infinity;

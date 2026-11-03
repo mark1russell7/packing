@@ -504,6 +504,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
   pack: {
     sortOrder: "order",
     space: null,
+    links: null,
     strategy: "placement",
     fit: "placement.shelf.fit",
     rule: "placement.maxrects.rule",

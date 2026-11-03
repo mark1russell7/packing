@@ -3,7 +3,7 @@
 // Then the box cuts each free rectangle that it hits into at most four parts, and the list loses each part that is in another.
 
 import { countMove, MOVES } from "./moves.ts";
-import { compareRects, type SortOrder } from "./order.ts";
+import { orderRects, type ItemLink, type ItemOrder } from "./order.ts";
 import type { Rect } from "./rect.ts";
 import { spaceParts, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 
@@ -27,7 +27,9 @@ export const MAXRECTS_BANDS = 128;
 /** The options of `packMaxRects` */
 export interface MaxRectsOptions {
   /** The order of the rectangles before the packing. The default is `height-desc`. */
-  sortOrder?: SortOrder;
+  sortOrder?: ItemOrder;
+  /** The links between the rectangles, as indexes into the array of the rectangles. Only a graph order reads them. */
+  links?: readonly ItemLink[];
   /**
    * The free space of the container: `freeSpace` of the input. Without it, or when it is plain, the free rectangles are
    * exact: the outer rectangle less the locked rectangles. Another space gives an inner approximation with bands.
@@ -273,7 +275,7 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
   const fixed = outer.fixedSize;
   const space = options.space;
   const turnable = options.turnable;
-  const sorted = rects.toSorted(compareRects(options.sortOrder ?? "height-desc")).filter((r) => !r.wasPacked && r.size.x > 0 && r.size.y > 0);
+  const sorted = orderRects(rects, options.sortOrder ?? "height-desc", options.links).filter((r) => !r.wasPacked && r.size.x > 0 && r.size.y > 0);
 
   // The smallest width and height of the boxes. A turnable box counts its short side for the two. A free rectangle with
   // less room has no use, thus the list does not keep it.
