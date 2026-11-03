@@ -146,42 +146,61 @@ Status: done, done, waiting, next, done.
 
 ## The queue
 
-The score of an item is its gain times its uncertainty, divided by its cost. Each factor is on a scale of 1 to 5. The gain is the expected change of the efficacy maps. The work takes the items in the order of the score. After its bench, an item records its measured gain next to its expected gain. Each month, the scores get a calibration from these pairs. Up to 3 build subagents run at one time, one family each, each with its prediction. The ideas of the survey (k76, `docs/research/SURVEY.md`) are the items k78 to k104, or a part of an older item.
+The score of an item is its gain times its uncertainty, divided by its cost. Each factor is on a scale of 1 to 5. The gain is the expected change of the efficacy maps. The work takes the items in the order of the score. After its bench, an item records its measured gain next to its expected gain. Each month, the scores get a calibration from these pairs, and the rank comes from the calibrated score. Up to 3 build subagents run at one time, one family each, each with its prediction. The ideas of the survey (k76, `docs/research/SURVEY.md`) are the items k78 to k104, or a part of an older item.
 
-| Rank | Item | Gain | Uncertainty | Cost | Score |
-| --- | --- | --- | --- | --- | --- |
-| 1 | k120 | 4 | 3 | 2 | 6.0 |
-| 2 | k25 | 3 | 3 | 2 | 4.5 |
-| 3 | k70 | 3 | 3 | 2 | 4.5 |
-| 4 | k13 | 3 | 3 | 2 | 4.5 |
-| 5 | k92 | 3 | 3 | 2 | 4.5 |
-| 6 | k10 | 4 | 4 | 4 | 4.0 |
-| 7 | k81 | 4 | 3 | 3 | 4.0 |
-| 8 | k82 | 3 | 4 | 3 | 4.0 |
-| 9 | k83 | 3 | 4 | 3 | 4.0 |
-| 10 | k93 | 4 | 2 | 2 | 4.0 |
-| 11 | k94 | 4 | 3 | 3 | 4.0 |
-| 12 | k95 | 4 | 3 | 3 | 4.0 |
-| 13 | k96 | 5 | 4 | 5 | 4.0 |
-| 14 | k97 | 3 | 4 | 3 | 4.0 |
-| 15 | k110 | 4 | 2 | 2 | 4.0 |
-| 16 | k84 | 3 | 5 | 4 | 3.8 |
-| 17 | k74 | 4 | 3 | 4 | 3.0 |
-| 18 | k52 | 3 | 2 | 2 | 3.0 |
-| 19 | k85 | 3 | 3 | 3 | 3.0 |
-| 20 | k86 | 3 | 5 | 5 | 3.0 |
-| 21 | k87 | 3 | 3 | 3 | 3.0 |
-| 22 | k98 | 3 | 2 | 2 | 3.0 |
-| 23 | k122 | 2 | 3 | 2 | 3.0 |
-| 24 | k109 | 4 | 2 | 3 | 2.7 |
-| 25 | k99 | 3 | 4 | 5 | 2.4 |
-| 26 | k100 | 3 | 3 | 4 | 2.3 |
-| 27 | k88 | 2 | 2 | 2 | 2.0 |
-| 28 | k101 | 4 | 2 | 4 | 2.0 |
-| 29 | k102 | 3 | 2 | 3 | 2.0 |
-| 30 | k103 | 2 | 2 | 2 | 2.0 |
-| 31 | k89 | 2 | 4 | 5 | 1.6 |
-| 32 | k104 | 2 | 3 | 5 | 1.2 |
+| Rank | Item | Gain | Uncertainty | Cost | Score | Calibrated |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | k120 | 4 | 3 | 2 | 6.0 | 5.0 |
+| 2 | k25 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 3 | k70 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 4 | k13 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 5 | k92 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 6 | k10 | 4 | 4 | 4 | 4.0 | 3.3 |
+| 7 | k81 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 8 | k82 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 9 | k83 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 10 | k93 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 11 | k94 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 12 | k95 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 13 | k97 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 14 | k110 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 15 | k84 | 3 | 5 | 4 | 3.8 | 3.1 |
+| 16 | k96 | 5 | 4 | 5 | 4.0 | 2.6 |
+| 17 | k74 | 4 | 3 | 4 | 3.0 | 2.5 |
+| 18 | k52 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 19 | k85 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 20 | k86 | 3 | 5 | 5 | 3.0 | 2.5 |
+| 21 | k87 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 22 | k98 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 23 | k122 | 2 | 3 | 2 | 3.0 | 2.4 |
+| 24 | k109 | 4 | 2 | 3 | 2.7 | 2.2 |
+| 25 | k99 | 3 | 4 | 5 | 2.4 | 2.0 |
+| 26 | k100 | 3 | 3 | 4 | 2.3 | 1.9 |
+| 27 | k101 | 4 | 2 | 4 | 2.0 | 1.7 |
+| 28 | k102 | 3 | 2 | 3 | 2.0 | 1.7 |
+| 29 | k88 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 30 | k103 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 31 | k89 | 2 | 4 | 5 | 1.6 | 1.3 |
+| 32 | k104 | 2 | 3 | 5 | 1.2 | 1.0 |
+
+### The calibration of 2026-11-03
+
+The first calibration has 21 pairs of an expected gain and a measured gain, from the items with a row in the queue and a measured gain. An item that did not ship counts as the measured gain 1.
+
+| Expected gain | Pairs | Mean measured gain | Calibrated gain |
+| --- | --- | --- | --- |
+| 2 | 0 | no pairs | 1.6 |
+| 3 | 4 | 2.5 | 2.5 |
+| 4 | 14 | 3.3 | 3.3 |
+| 5 | 3 | 3.3 | 3.3 |
+
+- The mean expected gain is 3.95, and the mean measured gain is 3.14. Thus the expected gains are too high by 0.81.
+- The factor is 0.80 for all pairs. The gain 2 has no pairs, so it takes this factor.
+- The expected gains 4 and 5 give the same measured gain, so the gain 5 tells nothing more than the gain 4.
+- The item k127 did not ship. Without it, the expected gain 3 has the mean 3.0.
+- The column "Calibrated" is the calibrated gain times the uncertainty, divided by the cost. The rank comes from this column. The columns of the factors keep the first estimate.
+- The item k130 has a result in words, and the items k128 and k129 have no row in the queue. They give no pair.
+- The next calibration comes after the items of November. It has more pairs for the gains 2 and 5.
 
 The items of the site (k71, k72, k73) are P1 work outside the queue.
 

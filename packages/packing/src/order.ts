@@ -58,7 +58,12 @@ export function isGraphOrder(order: ItemOrder): order is GraphOrder {
  * - A link with an index outside `rects`, or with a weight that is not a finite number above 0, throws a `RangeError`.
  */
 export function graphOrder<T>(rects: readonly Rect<T>[], links: readonly ItemLink[] = []): number[] {
-  const n = rects.length;
+  return graphOrderOf(rects.map((r) => r.area()), links);
+}
+
+/** This function gives the order `graph-bfs` of items with these areas, as indexes. `graphOrder` tells the rules. */
+export function graphOrderOf(area: readonly number[], links: readonly ItemLink[] = []): number[] {
+  const n = area.length;
   const degree = new Float64Array(n);
   const next: number[][] = Array.from({ length: n }, () => []);
   for (const { a, b, weight = 1 } of links) {
@@ -72,7 +77,6 @@ export function graphOrder<T>(rects: readonly Rect<T>[], links: readonly ItemLin
     next[a]!.push(b);
     next[b]!.push(a);
   }
-  const area = rects.map((r) => r.area());
   const byArea = (i: number, j: number): number => area[j]! - area[i]! || i - j;
   const hubs = Array.from({ length: n }, (_, i) => i).sort((i, j) => degree[j]! - degree[i]! || byArea(i, j));
   const seen = new Uint8Array(n);
