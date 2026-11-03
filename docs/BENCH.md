@@ -969,21 +969,33 @@ An absolute time of this repository is an in-order time, if no paired test is na
 
 ### A time gate
 
-A time gate (`bench/time-gate.ts`, schema `packing-time-gate/2`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
+A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
 
-- A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A spread.
+- Schema 3 (strategist, 2026-11-03) takes its measures from `@mark1russell7/rigor-bench`. Each round of an input is one record of the pair (base, arm), with the arm that ran first.
+- The ratio of an input is the `caseRatios` ratio: the median of the log ratios of its rounds. Each round cancels the drift of the runner. Schema 2 divided the median times.
+- `sum-median` is the median over the inputs of the ratio of the arm to the sum of the times of the `members` in each round.
+- A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A facts of each job.
 - The rule of the gate limits (STRATEGY.md, 2026-11-02): the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
-- No limit uses a fixed factor. Schema 1 had the old rule, the worst value times 1.1, and a fixed A/A tolerance. Schema 2 has neither.
+- No limit uses a fixed factor. Schema 1 had the old rule, the worst value times 1.1, and a fixed A/A tolerance.
 - A measure that the item does not gate is a report, with the reason in the record.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
+- `node bench/main.ts paired-gate-derive --gate <file> --dirs <out dirs> --runs <run ids>` writes the values of a record from its runs.
 - `time-gate.yml` makes one job of the paired test of each gate in its list, with the settings of the gate record. `ci.yml` uses it, so CI OK needs it.
 - A pull request starts these jobs only when a file of the gates changed. The workflow names the files. A push or a release does not start them again.
-- The gate refuses a report of another corpus, mode or base. It also refuses a report without the A/A arm or with an A/A band p10 to p90 that does not contain 1. The A/A median is a report line.
-- The noise cap (strategist, 2026-11-03): a gate does not pass on a noisy run. The A/A spread of a run is its A/A p90 minus its A/A p10.
-- The field `noise` of the gate has the A/A spreads of the derivation runs and their median, the quiet spread. The cap is 3 times the quiet spread, rounded up.
-- The line `aa.spread` gives the spread of the run and the cap. A run above the cap gets the verdict `cannot-decide`, with the exit code 3.
+- The gate refuses a report of another corpus, mode or base, and a report without the A/A arm. It also refuses records that break a rule of rigor-bench.
+- The result has the time verdict of rigor-bench for the first check: `faster`, `slower`, `same` or `cannot decide`. It is a report.
+
+The noise cap (strategist, 2026-11-03) stops a pass on a noisy run.
+
+- The A/A noise of a run is the half width on a log scale of its A/A band of kind `case` at the level 0.8. The level 0.8 holds 80 % of the A/A inputs, as the band p10 to p90 of schema 2.
+- The field `noise` of the gate has the median A/A noise of the derivation runs, the quiet noise. The cap is 3 times the quiet noise, rounded up.
+- The A/A noise grows with the spread and with a shift of the A/A ratios. Thus the cap also replaces the rule of schema 2 that the A/A band contains 1.
+- The line `aa.noise` gives the noise of the run and the cap. A run above the cap gets the verdict `cannot-decide`, with the exit code 3.
 - On `cannot-decide`, the job `retry` of `time-gate.yml` runs the gate one more time on a fresh runner. A second noisy run fails.
 - The limit comes from the runs of the derivation, not from the run that the gate examines. A noisy run cannot make the limit wider.
+
+The other rules of a gate:
+
 - The gate refuses a run with another filter `only` than the gate. A gate without `only` takes only a run of all the inputs.
 - With `warmup` or `passes`, the gate refuses a run of mode `fresh` with another count of passes.
 - The field `steady` of the gate gives the arms of the warm rule. A check or a report with `steady: true` uses only the inputs with each of these arms warm. The line `steady.inputs` gives their count.

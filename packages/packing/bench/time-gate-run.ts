@@ -38,7 +38,7 @@ function summary(out: string, name: string): void {
   if (target !== undefined && existsSync(file)) appendFileSync(target, readFileSync(file, "utf8"));
 }
 
-/** This function runs `bench/main.ts` with the arguments, and gives its exit code. */
+/** This function starts `bench/main.ts` with the arguments, and gives its exit code. */
 function main(args: string[]): number {
   const result = spawnSync(process.execPath, [join(here, "main.ts"), ...args], { stdio: "inherit" });
   return result.status ?? 1;
