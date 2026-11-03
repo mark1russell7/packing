@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
+
+This release raises the MINOR version. Before 1.0.0, a breaking change raises MINOR, and the two breaks below are breaking changes. The release train publishes it.
 
 ### Added
 
@@ -12,7 +14,7 @@
 ### Changed
 
 - The option `sortOrder` of these functions and of `LayoutStrategyOptions` has the type `ItemOrder`, a sort order or a graph order. Each sort order gives the same layout as before, also for an input with links.
-- The dependency `@mark1russell7/layout-contract` is `^0.3.1`.
+- The dependency `@mark1russell7/layout-contract` is `^0.3.2`. The release train sets the range.
 
 ### Breaking
 
