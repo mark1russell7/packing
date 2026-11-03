@@ -804,7 +804,7 @@ The counts of `packSpace`:
 | 3 levels, `shapes: ["rect"]` | 276469311858023490660 | 276469311858023499570 |
 | 1 level, `shapes: ["rect"]` | 99500446769432000 | 99500446769432890 |
 
-The trial chose the structure of a round on the seeds 1 to 20: 40 items, `freeHeight`, the order `graph-bfs`, and a seeded tree of links. Each value is the sum of the pull over the sum of the same pack without it. The block share is the share of the pull in the block step. The slide step alone won less on `rows`, so a round has both steps. The share 1 gave the shortest wire on `rows` and needs no second constant.
+The trial chose the structure of a round on the seeds 1 to 20: 40 items, `freeHeight`, the order `graph-bfs`, and a seeded tree of links. Each value is the sum of the pull over the sum of the same pack without it. The block share is the share of the pull in the block step. The slide step alone gave a longer wire in each row, so a round has both steps. The share 1 gave the shortest wire on `rows` and needs no second constant.
 
 | Member | Sizes | Slide only: wire, height | Share 0.25: wire, height | Share 0.5: wire, height | Share 1: wire, height |
 |---|---|---|---|---|---|
