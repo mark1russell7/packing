@@ -31,6 +31,12 @@ jobs:
     permissions:
       contents: read
 
+  # The size gate of the published exports (k132): the gzip bytes of a small consumer of each, against a budget.
+  size-gate:
+    uses: ./.github/workflows/size-gate.yml
+    permissions:
+      contents: read
+
   # The time gates of bench/gates (k130). A pull request runs them only when a file of the gates changed.
   time-gate:
     uses: ./.github/workflows/time-gate.yml
@@ -75,7 +81,7 @@ jobs:
   ci-ok:
     name: CI OK
     if: always()
-    needs: [ci, bench-smoke, site-check, time-gate, presets]
+    needs: [ci, bench-smoke, site-check, size-gate, time-gate, presets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
