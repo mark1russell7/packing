@@ -1001,14 +1001,21 @@ The other rules of a gate:
 - The field `steady` of the gate gives the arms of the warm rule. A check or a report with `steady: true` uses only the inputs with each of these arms warm. The line `steady.inputs` gives their count.
 - The measure `sum-median` is the median of the time of the arm over the sum of the times of the `members` of the gate.
 
-The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The in-order time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows`, at most 2.6419. The q95 (52 to 59) is a report.
+The gate `k66-time` replaces the time test of k66 for `select-rows-bl` on `pack-select-v2`. That time test divided by `max(b, 3.33 ms)`. The in-order time `b` of `rows` is 0.12 to 0.21 ms, so the ratio was an absolute time, and it passed or failed by the CPU. The new gate is the paired median of `select-rows-bl` / `rows` in mode `fresh`.
+
+- Jobs 1, 3 and 5 of run 41547217059 and jobs 1 and 2 of run 41646832894 give 1.7905, 1.8192, 1.8277, 1.7531 and 1.7536. The limit is 1.827744 + 0.074615, rounded up to 1.9024.
+- Jobs 2 and 4 of run 41547217059 stopped at the old job limit of 120 minutes, with no report. The second run replaced them.
+- The A/A noise of the 5 jobs is 0.080 to 0.105. The quiet noise is 0.0898, so the cap is 0.2694.
+- The q95 (11.3 to 13.0) is a report.
+- One job of `k66-time` takes 91 to 105 minutes. That is more than the 60 minutes of `time-gate.yml`, so `k66-time` is not in its list. A dispatch of `paired-time.yml` with the input `gate` applies it.
 
 The gate `k130-time` is the cost of the portfolio `portfolio-fill-rows-bl` against the sum of its members `rows` and `maxrects-bl`. It uses mode `fresh` on the `.fixed.` inputs of `pack-classes-v1`, with 5000 untimed passes and 200 timed passes.
 
 - The gate measures all 250 inputs. The slow tail of the portfolio is what a user pays, so a change that makes the tail worse fails the gate.
-- The 5 jobs of run 41470082104 give 1.2984, 1.3795, 1.3701, 1.3804 and 1.3064. The limit is 1.380365 + 0.081997, rounded up to 1.4624.
+- The 5 jobs of run 41470082104 give 1.3132, 1.3765, 1.3709, 1.3813 and 1.3080. The limit is 1.381275 + 0.073245, rounded up to 1.4546. The limit of schema 2 was 1.4624.
+- The A/A noise of the 5 jobs is 0.027 to 0.062. The quiet noise is 0.0308, so the cap is 0.0924.
 - The portfolio arm fails the warm rule at 5000 untimed passes (`outside` 0.30 to 0.46). The steady inputs (101 to 151 of 250 per job) give a second number, a report.
-- On the steady inputs, the 5 jobs give 1.2869 to 1.3689. The band that picks these inputs comes from the data of each run, so this number does not gate.
+- On the steady inputs, the 5 jobs give 1.2914 to 1.3777. The band that picks these inputs comes from the data of each run, so this number does not gate.
 - On all the inputs, the portfolio costs 1.35 times the sum of its members (the mean of the 5 jobs).
 
 ### The time budget of a promotion
