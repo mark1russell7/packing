@@ -14,6 +14,11 @@
 - The option `sortOrder` of these functions and of `LayoutStrategyOptions` has the type `ItemOrder`, a sort order or a graph order. Each sort order gives the same layout as before, also for an input with links.
 - The dependency `@mark1russell7/layout-contract` is `^0.3.1`.
 
+### Breaking
+
+- `LayoutStrategyOptions.sortOrder` is an `ItemOrder`, not a `SortOrder`. Fix: a caller that passes the option on to a `SortOrder` checks `isGraphOrder(order)` first.
+- The types of `@mark1russell7/layout-contract` 0.3 replace the types of 0.2. For example, `deterministic` of a record is `boolean | null`. Fix: read the CHANGELOG of layout-contract 0.3.0, and treat `null` as "no claim".
+
 ## 0.4.1
 
 ### Added
