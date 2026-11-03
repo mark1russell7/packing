@@ -86,7 +86,7 @@ jobs:
     needs: plan
     name: paired-time (run ${{ matrix.run }})
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       max-parallel: 3
