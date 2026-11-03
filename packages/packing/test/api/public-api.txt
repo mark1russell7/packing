@@ -852,11 +852,7 @@ interface HopperTurtonRule {
 }
 
 ### build/index.d.ts#ItemLink
-interface ItemLink {
-  a: number;
-  b: number;
-  weight?: number;
-}
+type ItemLink = PackLink;
 
 ### build/index.d.ts#ItemOrder
 type ItemOrder = SortOrder | GraphOrder;
@@ -923,7 +919,7 @@ interface LayoutMeasures {
 
 ### build/index.d.ts#LayoutStrategyOptions
 interface LayoutStrategyOptions {
-  sortOrder: SortOrder;
+  sortOrder: ItemOrder;
   samples: number;
   fit?: ShelfFit;
 }

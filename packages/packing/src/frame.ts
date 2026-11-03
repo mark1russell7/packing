@@ -5,6 +5,7 @@
 
 import { boundsOf } from "@mark1russell7/layout-contract";
 import { EPS, marginOf, turnItem, type Item, type Obstacle, type PackInput, type PackOutput, type Placement, type Region, type StageTrace } from "./contract.ts";
+import type { ItemLink } from "./order.ts";
 import { Rect } from "./rect.ts";
 
 const clock = (globalThis as { performance?: { now(): number } }).performance;
@@ -156,6 +157,34 @@ export function outerOf(frame: Frame): Rect<number> {
   outer.fixedWidth = true;
   outer.fixedSize = fixedSize;
   return outer;
+}
+
+/**
+ * This function gives the links of an input as indexes into the rectangles of a frame, or `undefined` for an input without links.
+ *
+ * - The frame has the items in the order of their rank. Thus the index of an item in the frame is not always its index in `input.items`.
+ * - A link to an item without a rectangle (an item that is too large) drops out.
+ * - A link with an index outside `input.items` throws a `RangeError`.
+ */
+export function frameLinks(input: PackInput, frame: Frame): ItemLink[] | undefined {
+  if (input.links === undefined) return undefined;
+  const at = new Map<Item, number>();
+  frame.entries.forEach((e, i) => {
+    if (e.item !== undefined) at.set(e.item, i);
+  });
+  const n = input.items.length;
+  const out: ItemLink[] = [];
+  for (const link of input.links) {
+    const { a, b } = link;
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a >= n || b >= n) {
+      throw new RangeError(`A link joins the items ${a} and ${b}, but the indexes go from 0 to ${n - 1}.`);
+    }
+    const fa = at.get(input.items[a]!);
+    const fb = at.get(input.items[b]!);
+    if (fa === undefined || fb === undefined) continue;
+    out.push(link.weight === undefined ? { a: fa, b: fb } : { a: fa, b: fb, weight: link.weight });
+  }
+  return out;
 }
 
 /** This function gives the rectangles of a frame, in the order of the entries. */

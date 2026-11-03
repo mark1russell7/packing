@@ -1,12 +1,12 @@
 // The adapters of 0.1 (docs/PACKER.md): each function of 0.1 runs behind the Packer interface as a strategy.
 
 import { EPS, type PackInput, type PackOutput } from "./contract.ts";
-import { boundsOf, buildFrame, frameTurn, now, outerOf, readFrame, rectsOf, viaAxes, type Entry, type Frame, type FrameTurns } from "./frame.ts";
+import { boundsOf, buildFrame, frameLinks, frameTurn, now, outerOf, readFrame, rectsOf, viaAxes, type Entry, type Frame, type FrameTurns } from "./frame.ts";
 import { packFree } from "./free.ts";
 import type { GuillotineChoice, GuillotineSplit } from "./guillotine.ts";
 import type { MaxRectsRule } from "./maxrects.ts";
 import { clearMoves, moveCount, MOVES } from "./moves.ts";
-import type { SortOrder } from "./order.ts";
+import type { ItemLink, ItemOrder, SortOrder } from "./order.ts";
 import { pack, type PackLayoutOptions } from "./pack.ts";
 import { pushCascade } from "./push.ts";
 import { Rect } from "./rect.ts";
@@ -17,8 +17,11 @@ import { assertSupported, cellOf, UnsupportedCell, type PackContext, type SizeSe
 
 /** The options of the strategies `rows`, `skyline` and `shelf`. */
 export interface LayoutStrategyOptions {
-  /** The order of the items before the packing. The items are in the order of their rank first. */
-  sortOrder: SortOrder;
+  /**
+   * The order of the items before the packing. The items are in the order of their rank first. A graph order
+   * (`graph-bfs`) reads `input.links`.
+   */
+  sortOrder: ItemOrder;
   /** The number of widths that the first pass of the size search `log-sweep` tries. */
   samples: number;
   /**
@@ -153,6 +156,12 @@ function movesOf(id: LayoutId, extras: PackExtras): Record<string, number> {
   return out;
 }
 
+/** This function gives the option `links` of `pack` for the links of an input, or no option for an input without links. */
+function linksOf(input: PackInput, frame: Frame): { links?: ItemLink[] } {
+  const links = frameLinks(input, frame);
+  return links === undefined ? {} : { links };
+}
+
 /** This function gives the turns of a packing for `readFrame`, or `undefined` when no rectangle can turn. */
 function turnsOf(extras: PackExtras, transposed: boolean): FrameTurns | undefined {
   return extras.turned === undefined ? undefined : { rects: extras.turned, turn: frameTurn(transposed) };
@@ -165,7 +174,7 @@ function packFixedWidth(id: LayoutId, input: PackInput, options: AnyLayoutOption
   const rects = rectsOf(frame);
   const extras = extrasOf(id, options, frame);
   clearMoves();
-  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, space: spaceOf(input, frame), ...extras });
+  if (frame.w > 0) pack(rects, outerOf(frame), { strategy: id, sortOrder: options.sortOrder, ...linksOf(input, frame), space: spaceOf(input, frame), ...extras });
   const output = readFrame(input, frame, [], [], turnsOf(extras, transposed));
   return { ...output, trace: [{ id, ms: now() - start, measures: { "pack.overflow": output.overflow.length, ...movesOf(id, extras) } }] };
 }
@@ -287,6 +296,7 @@ export const logSweep: SizeSearch = {
     const result = packFree(rectsOf(frame), new Rect<number>(), {
       strategy: id,
       sortOrder: o.sortOrder,
+      ...linksOf(input, frame),
       space: spaceOf(input, frame),
       samples: o.samples,
       aspect: input.container.aspect ?? 1,
