@@ -1,5 +1,5 @@
-import { checkConfig } from "@mark1russell7/layout-contract";
-import { composites, packConfig, packSpace, packWith, shapeStrategies, strategies, strategy, type StrategyConfig } from "@mark1russell7/packing";
+import { checkConfig, configId } from "@mark1russell7/layout-contract";
+import { composites, configOfStrategy, PACK_DEFAULT_TABLE, packConfig, packSpace, packWith, shapeStrategies, strategies, strategy, type StrategyConfig } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { AREA_KEY, ENTRIES } from "./entries.ts";
 import { result, SPACE_INPUTS, type PackResult } from "./space-inputs.ts";
@@ -40,7 +40,8 @@ describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
     expect(ENTRIES).toHaveLength(45);
     // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
-    const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...shapeStrategies, ...composites].map((s) => s.id)];
+    // The named config `pack` of k135 is the choice of `pack` without a strategy. It is not an entry and not an id of the registry.
+    const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...shapeStrategies, ...composites].map((s) => s.id), "pack"];
     for (const id of ids) {
       expect(named, id).toHaveProperty([id]);
       expect(checkConfig(packSpace, named[id]!), id).toEqual([]);
@@ -53,6 +54,18 @@ describe("packSpace and the entries of the benchmark", () => {
     // The runner gives the options of an entry over the defaults of its strategy
     const given = Object.keys(e.options).length === 0 ? undefined : { ...(strategy(e.strategy).defaults as object), ...e.options };
     expect(compare(id, (i) => result(() => packWith(e.strategy, SPACE_INPUTS[i]!, fastOptions(e.strategy, given), i))), id).toBeGreaterThanOrEqual(e.strategy === "overlap-min" ? 2 : 3);
+  });
+
+  it("gives with the named config pack the output of select with the table PACK_DEFAULT_TABLE (k135)", () => {
+    expect(compare("pack", (i) => result(() => packWith("select", SPACE_INPUTS[i]!, { table: PACK_DEFAULT_TABLE }, i)))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("gives with configOfStrategy the named config of each entry (k135)", () => {
+    for (const e of ENTRIES) {
+      const point = configOfStrategy(e.strategy, e.options);
+      expect(point, e.id).toMatchObject({ ok: true });
+      if (point.ok) expect(configId(packSpace, point.config), e.id).toBe(configId(packSpace, named[e.id]!));
+    }
   });
 
   it.each([...strategies, ...composites].map((s) => s.id))("gives the output of packWith for the id %s of the registry", (id) => {

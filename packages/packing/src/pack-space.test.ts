@@ -1,9 +1,13 @@
 import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, ruleLevel, SHAPE_KIND_IDS, shapeLevel, shapeSupportProblems, spaceSize, type PackInput } from "@mark1russell7/layout-contract";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  checkSelectTable,
   composites,
+  configOfStrategy,
   MEASURE_SPECS,
   outputHash,
+  PACK_DEFAULT_TABLE,
   PACK_SPACE_LEFT_OUT,
   PACK_SPACE_OPTIONS,
   packConfig,
@@ -11,12 +15,14 @@ import {
   packWith,
   PORTFOLIO_SETS,
   rectGrid,
+  SELECT_TABLE,
   shapeStrategies,
   strategies,
   toPackInput,
   UnsupportedCell,
   UnsupportedShape,
   type StrategyConfig,
+  type StrategyPoint,
 } from "./index.ts";
 import { baseConfig } from "./pack-space.ts";
 
@@ -58,12 +64,14 @@ describe("packSpace", () => {
     // The force packer of k125 gives 9 param points for each base config with 3 levels, and 1 with 1 level.
     // Before k127 the counts were 185246197022537840016, 66707889492022776, 184312874572013255730 and 66333631179365310.
     // The key fill of the portfolio (k127) gives 3 values of the param key, not 2. Thus each meta count is 1.5 times the count before.
+    // Before k135 the counts were 277869295533801539436, 100061834237626086, 276469311858014672730 and 99500446768640790.
+    // The table pack of select (k135) gives 2 values of the param table, not 1. Thus each count grows by the select configs.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(277869295533801539436n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100061834237626086n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 276469311858014672730n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 99500446768640790n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(277869295533810375192n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100061834238419076n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 276469311858023490660n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 99500446769432000n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -425,5 +433,54 @@ describe("packSpace and the options of the strategies", () => {
     // A value that is not in the list breaks the config, but the option of the strategy takes it
     expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 500 }), 3)).toThrow(/budgetWork/);
     expect(() => packConfig(input, restarts({ limitWork: true, budgetWork: 5000 }), 3)).toThrow(/budgetWork/);
+  });
+});
+
+describe("configOfStrategy (k135)", () => {
+  const idOf = (point: StrategyPoint): string => (point.ok ? configId(packSpace, point.config) : point.reason);
+  const reason = (id: string, options: Record<string, unknown>): string => {
+    const point = configOfStrategy(id, options);
+    return point.ok ? "a point" : point.reason;
+  };
+
+  it("gives the named config of each id of the registry", () => {
+    for (const s of [...strategies, ...shapeStrategies, ...composites]) expect(idOf(configOfStrategy(s.id)), s.id).toBe(configId(packSpace, named[s.id]!));
+  });
+
+  it("gives the named config pack for pack with no options, and for select with PACK_DEFAULT_TABLE or its name", () => {
+    const want = configId(packSpace, named["pack"]!);
+    expect(idOf(configOfStrategy("pack"))).toBe(want);
+    expect(idOf(configOfStrategy("select", { table: PACK_DEFAULT_TABLE }))).toBe(want);
+    expect(idOf(configOfStrategy("select", { table: "pack" }))).toBe(want);
+    // A copy of the table is equal to the table, so it has the same name
+    expect(idOf(configOfStrategy("select", { table: JSON.parse(JSON.stringify(PACK_DEFAULT_TABLE)) as unknown }))).toBe(want);
+    expect(idOf(configOfStrategy("select", { table: SELECT_TABLE }))).toBe(configId(packSpace, named["select"]!));
+    expect(want).not.toBe(configId(packSpace, named["select"]!));
+    expect(() => checkSelectTable(PACK_DEFAULT_TABLE, 2)).not.toThrow();
+  });
+
+  it("gives each member its own point", () => {
+    expect(idOf(configOfStrategy("restarts", { member: { strategy: "maxrects", options: { rule: "bl" } }, iterations: 16 }))).toBe(configId(packSpace, named["restarts-maxrects-bl-k16"]!));
+    expect(idOf(configOfStrategy("aspect-fit", { strategy: "maxrects", options: { rule: "bssf" } }))).toBe(configId(packSpace, named["aspect-fit-maxrects-bssf"]!));
+    const members = [{ strategy: "rows" }, { strategy: "maxrects", options: { rule: "bl" } }];
+    expect(idOf(configOfStrategy("portfolio", { members, key: "area" }))).toBe(configId(packSpace, named["portfolio-area-rows-bl"]!));
+  });
+
+  it("gives a reason for a strategy, an option or a value that packSpace does not hold", () => {
+    expect(reason("nothing", {})).toMatch(/no strategy nothing/);
+    expect(reason("rows", { color: "red" })).toMatch(/no place for the option rows\.color/);
+    expect(reason("rows", { fit: "first" })).toMatch(/does not hold the option rows\.fit/);
+    expect(reason("select", { table: { leaf: 0, pick: 0 } })).toMatch(/a value of NAMED_VALUES/);
+    expect(reason("pack", { strategy: "rows" })).toMatch(/without options/);
+    expect(reason("maxrects", { rule: "nothing" })).toMatch(/not a point of packSpace/);
+    expect(reason("restarts", { member: 3 })).toMatch(/not a strategy id/);
+    expect(reason("restarts", { member: { strategy: "rows", options: { color: "red" } } })).toMatch(/The member rows .* no place/);
+    expect(reason("portfolio", { k: 2, members: ["rows", "maxrects"] })).toMatch(/A config has one/);
+  });
+
+  it("keeps the configId of each named config of main", () => {
+    // The list of main before k135, with no named config pack. A change of a config or of canonicalConfig changes the hash.
+    const list = Object.entries(named).filter(([name]) => name !== "pack").map(([name, config]) => `${name}=${configId(packSpace, config)}`);
+    expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });
 });
