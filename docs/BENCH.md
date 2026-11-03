@@ -1589,7 +1589,9 @@ The nightly control (k120, `coverage-nightly.yml`):
 
 - The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
 - A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
-- A newer push cancels the run of an older push. A person can also start the workflow, with other inputs.
+- Thus a change of `src` shows in the next Monday run, not at once.
+- A newer push cancels the run of an older push. A cancelled run writes no `cells.json`, so the records show only the runs that finished.
+- A person can also start the workflow, with other inputs.
 - It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
 - Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.
 - The 12 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
