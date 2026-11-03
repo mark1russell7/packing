@@ -3,6 +3,7 @@
 import { canonicalInput, type LayoutContainer, type LayoutEdge, type LayoutGenerator, type LayoutInput } from "@mark1russell7/layout-contract";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { predicates } from "./probe.ts";
+import { round3 } from "./round.ts";
 import { sha256Hex, utf8 } from "./sha256.ts";
 import type { Cell } from "./strategy.ts";
 
@@ -81,11 +82,7 @@ export function fnv1a32(text: string): number {
   return h;
 }
 
-/** This function rounds the numbers of a file to 3 decimals. A half goes up, and the value `-0` becomes 0. */
-export function round3(x: number): number {
-  const v = Math.round(x * 1000) / 1000;
-  return Object.is(v, -0) ? 0 : v;
-}
+export { round3 } from "./round.ts";
 
 /**
  * This function gives the canonical form of a value: sorted keys, no whitespace and the numbers of `JSON.stringify`

@@ -42,7 +42,7 @@ type BoundOptions: build/index.d.ts#BoundOptions
 type BurkeKendallWhitwellParams: build/index.d.ts#BurkeKendallWhitwellParams
 type BurkeKendallWhitwellProblem: build/index.d.ts#BurkeKendallWhitwellProblem
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
-type Cell: build/index.d.ts#Cell
+type Cell: build/strategy-DgiXqcFQ.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ClassContainer: build/index.d.ts#ClassContainer
 type ConsecutiveSquaresParams: build/index.d.ts#ConsecutiveSquaresParams
@@ -55,10 +55,10 @@ type CorpusManifest: build/index.d.ts#CorpusManifest
 type CorpusSpec: build/index.d.ts#CorpusSpec
 type CountScale: build/index.d.ts#CountScale
 type CutPiece: build/index.d.ts#CutPiece
-DEFAULT_STRATEGY: build/index.d.ts#DEFAULT_STRATEGY
+DEFAULT_STRATEGY: build/default-CztE_vaH.d.ts#DEFAULT_STRATEGY
 DEFAULT_TOLERANCE: @mark1russell7/layout-contract#DEFAULT_TOLERANCE (external)
-type Dimension: build/index.d.ts#Dimension
-type DimensionValue: build/index.d.ts#DimensionValue
+type Dimension: build/strategy-DgiXqcFQ.d.ts#Dimension
+type DimensionValue: build/strategy-DgiXqcFQ.d.ts#DimensionValue
 type Direction: @mark1russell7/layout-contract#Direction (external)
 EPS: @mark1russell7/layout-contract#EPS (external)
 type EdgeCase: build/index.d.ts#EdgeCase
@@ -67,36 +67,36 @@ FORCE_MAX_BOXES: build/index.d.ts#FORCE_MAX_BOXES
 FORCE_MAX_FIXED: build/index.d.ts#FORCE_MAX_FIXED
 FORCE_STAGE: build/index.d.ts#FORCE_STAGE
 type ForceStrategyOptions: build/index.d.ts#ForceStrategyOptions
-type FreeSpace: build/index.d.ts#FreeSpace
-type FreeSpan: build/index.d.ts#FreeSpan
+type FreeSpace: build/layout-strategy-DqigF3bI.d.ts#FreeSpace
+type FreeSpan: build/layout-strategy-DqigF3bI.d.ts#FreeSpan
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
 type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
 GENETIC_STAGE: build/index.d.ts#GENETIC_STAGE
-GRAPH_ORDERS: build/index.d.ts#GRAPH_ORDERS
-GUILLOTINE_CHOICES: build/index.d.ts#GUILLOTINE_CHOICES
-GUILLOTINE_SPLITS: build/index.d.ts#GUILLOTINE_SPLITS
+GRAPH_ORDERS: build/order-TBXpOBqy.d.ts#GRAPH_ORDERS
+GUILLOTINE_CHOICES: build/layout-strategy-DqigF3bI.d.ts#GUILLOTINE_CHOICES
+GUILLOTINE_SPLITS: build/layout-strategy-DqigF3bI.d.ts#GUILLOTINE_SPLITS
 type GeneratedInput: build/index.d.ts#GeneratedInput
 type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
-type GraphOrder: build/index.d.ts#GraphOrder
-type GuillotineChoice: build/index.d.ts#GuillotineChoice
-type GuillotineOptions: build/index.d.ts#GuillotineOptions
-type GuillotineSplit: build/index.d.ts#GuillotineSplit
-type GuillotineStrategyOptions: build/index.d.ts#GuillotineStrategyOptions
+type GraphOrder: build/order-TBXpOBqy.d.ts#GraphOrder
+type GuillotineChoice: build/layout-strategy-DqigF3bI.d.ts#GuillotineChoice
+type GuillotineOptions: build/layout-strategy-DqigF3bI.d.ts#GuillotineOptions
+type GuillotineSplit: build/layout-strategy-DqigF3bI.d.ts#GuillotineSplit
+type GuillotineStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#GuillotineStrategyOptions
 HALF_WIDE_WIDTH: build/index.d.ts#HALF_WIDE_WIDTH
-HOLE_DEGREE_MAX_STEPS: build/index.d.ts#HOLE_DEGREE_MAX_STEPS
-HOLE_DEGREE_STAGE: build/index.d.ts#HOLE_DEGREE_STAGE
+HOLE_DEGREE_MAX_STEPS: build/hole-degree-BYlFkqWH.d.ts#HOLE_DEGREE_MAX_STEPS
+HOLE_DEGREE_STAGE: build/hole-degree-BYlFkqWH.d.ts#HOLE_DEGREE_STAGE
 HOPPER_TURTON_RULES: build/index.d.ts#HOPPER_TURTON_RULES
 type HalfWideParams: build/index.d.ts#HalfWideParams
-type HoleDegreeStrategyOptions: build/index.d.ts#HoleDegreeStrategyOptions
+type HoleDegreeStrategyOptions: build/hole-degree-BYlFkqWH.d.ts#HoleDegreeStrategyOptions
 type HopperTurtonCategory: build/index.d.ts#HopperTurtonCategory
 type HopperTurtonParams: build/index.d.ts#HopperTurtonParams
 type HopperTurtonRule: build/index.d.ts#HopperTurtonRule
 type Item: @mark1russell7/layout-contract#Item (external)
-type ItemLink: build/index.d.ts#ItemLink
-type ItemOrder: build/index.d.ts#ItemOrder
+type ItemLink: build/order-TBXpOBqy.d.ts#ItemLink
+type ItemOrder: build/order-TBXpOBqy.d.ts#ItemOrder
 type KnownBest: build/index.d.ts#KnownBest
 LADDER_RUNGS: build/index.d.ts#LADDER_RUNGS
 LADDER_SIDE: build/index.d.ts#LADDER_SIDE
@@ -108,19 +108,19 @@ type LayoutContainer: @mark1russell7/layout-contract#LayoutContainer (external)
 type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
 type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
 type LayoutMeasures: build/index.d.ts#LayoutMeasures
-type LayoutStrategyOptions: build/index.d.ts#LayoutStrategyOptions
+type LayoutStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#LayoutStrategyOptions
 type LockWall: build/index.d.ts#LockWall
 MARTELLO_VIGO_BIN: build/index.d.ts#MARTELLO_VIGO_BIN
 MARTELLO_VIGO_TYPES: build/index.d.ts#MARTELLO_VIGO_TYPES
-MAXRECTS_BANDS: build/index.d.ts#MAXRECTS_BANDS
-MAXRECTS_RULES: build/index.d.ts#MAXRECTS_RULES
+MAXRECTS_BANDS: build/layout-strategy-DqigF3bI.d.ts#MAXRECTS_BANDS
+MAXRECTS_RULES: build/layout-strategy-DqigF3bI.d.ts#MAXRECTS_RULES
 MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
 type Margin: @mark1russell7/layout-contract#Margin (external)
 type MartelloVigoClass: build/index.d.ts#MartelloVigoClass
 type MartelloVigoParams: build/index.d.ts#MartelloVigoParams
-type MaxRectsOptions: build/index.d.ts#MaxRectsOptions
-type MaxRectsRule: build/index.d.ts#MaxRectsRule
-type MaxRectsStrategyOptions: build/index.d.ts#MaxRectsStrategyOptions
+type MaxRectsOptions: build/layout-strategy-DqigF3bI.d.ts#MaxRectsOptions
+type MaxRectsRule: build/layout-strategy-DqigF3bI.d.ts#MaxRectsRule
+type MaxRectsStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#MaxRectsStrategyOptions
 type MeasureFamily: build/index.d.ts#MeasureFamily
 type MeasureId: build/index.d.ts#MeasureId
 type MeasureOptions: build/index.d.ts#MeasureOptions
@@ -140,11 +140,11 @@ PORTFOLIO_LEVELS: build/index.d.ts#PORTFOLIO_LEVELS
 PORTFOLIO_SETS: build/index.d.ts#PORTFOLIO_SETS
 PORTFOLIO_STAGE: build/index.d.ts#PORTFOLIO_STAGE
 type PackBalanceId: build/index.d.ts#PackBalanceId
-type PackContext: build/index.d.ts#PackContext
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
 type PackHard: @mark1russell7/layout-contract#PackHard (external)
 type PackInput: @mark1russell7/layout-contract#PackInput (external)
-type PackLayoutOptions: build/index.d.ts#PackLayoutOptions
-type PackOptions: build/index.d.ts#PackOptions
+type PackLayoutOptions: build/layout-strategy-DqigF3bI.d.ts#PackLayoutOptions
+type PackOptions: build/layout-strategy-DqigF3bI.d.ts#PackOptions
 type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
 type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
 type PackingMetrics: build/index.d.ts#PackingMetrics
@@ -163,8 +163,8 @@ type PortfolioSize: build/index.d.ts#PortfolioSize
 type PortfolioStrategyOptions: build/index.d.ts#PortfolioStrategyOptions
 type PortfolioTrace: @mark1russell7/layout-contract#PortfolioTrace (external)
 type PortfolioTrainScore: build/index.d.ts#PortfolioTrainScore
-type PushOptions: build/index.d.ts#PushOptions
-type PushStrategyOptions: build/index.d.ts#PushStrategyOptions
+type PushOptions: build/push-strategy-D7NE9GKp.d.ts#PushOptions
+type PushStrategyOptions: build/push-strategy-D7NE9GKp.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
 RELAX_MAX_CONSTRAINTS: build/index.d.ts#RELAX_MAX_CONSTRAINTS
 RELAX_STAGE: build/index.d.ts#RELAX_STAGE
@@ -172,7 +172,7 @@ RESTARTS_STAGE: build/index.d.ts#RESTARTS_STAGE
 RESTART_PERTURBS: build/index.d.ts#RESTART_PERTURBS
 RUIN_KINDS: build/index.d.ts#RUIN_KINDS
 RUIN_RECREATE_STAGE: build/index.d.ts#RUIN_RECREATE_STAGE
-Rect: build/index.d.ts#Rect
+Rect: build/order-TBXpOBqy.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
 type RectGridV2Params: build/index.d.ts#RectGridV2Params
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
@@ -186,9 +186,9 @@ SELECT_MAX_DEPTH: build/index.d.ts#SELECT_MAX_DEPTH
 SELECT_MEMBERS: build/index.d.ts#SELECT_MEMBERS
 SELECT_STAGE: build/index.d.ts#SELECT_STAGE
 SELECT_TABLE: build/index.d.ts#SELECT_TABLE
-SHELF_FITS: build/index.d.ts#SHELF_FITS
-SKYLINE_RULES: build/index.d.ts#SKYLINE_RULES
-SORT_ORDERS: build/index.d.ts#SORT_ORDERS
+SHELF_FITS: build/layout-strategy-DqigF3bI.d.ts#SHELF_FITS
+SKYLINE_RULES: build/layout-strategy-DqigF3bI.d.ts#SKYLINE_RULES
+SORT_ORDERS: build/order-TBXpOBqy.d.ts#SORT_ORDERS
 SPREAD_THRESHOLDS: build/index.d.ts#SPREAD_THRESHOLDS
 type SelectFeatures: build/index.d.ts#SelectFeatures
 type SelectFlagFeature: build/index.d.ts#SelectFlagFeature
@@ -196,35 +196,35 @@ type SelectLevel: @mark1russell7/layout-contract#SelectLevel (external)
 type SelectNode: build/index.d.ts#SelectNode
 type SelectNumberFeature: build/index.d.ts#SelectNumberFeature
 type SelectStrategyOptions: build/index.d.ts#SelectStrategyOptions
-type ShelfFit: build/index.d.ts#ShelfFit
-type ShelfOptions: build/index.d.ts#ShelfOptions
+type ShelfFit: build/layout-strategy-DqigF3bI.d.ts#ShelfFit
+type ShelfOptions: build/layout-strategy-DqigF3bI.d.ts#ShelfOptions
 type Side: @mark1russell7/layout-contract#Side (external)
 type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
-type SizeSearch: build/index.d.ts#SizeSearch
+type SizeSearch: build/strategy-DgiXqcFQ.d.ts#SizeSearch
 type SkylineGapParams: build/index.d.ts#SkylineGapParams
-type SkylineOptions: build/index.d.ts#SkylineOptions
-type SkylineRule: build/index.d.ts#SkylineRule
-type SkylineStrategyOptions: build/index.d.ts#SkylineStrategyOptions
-type SortOrder: build/index.d.ts#SortOrder
-type SpaceRect: build/index.d.ts#SpaceRect
+type SkylineOptions: build/layout-strategy-DqigF3bI.d.ts#SkylineOptions
+type SkylineRule: build/layout-strategy-DqigF3bI.d.ts#SkylineRule
+type SkylineStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#SkylineStrategyOptions
+type SortOrder: build/order-TBXpOBqy.d.ts#SortOrder
+type SpaceRect: build/layout-strategy-DqigF3bI.d.ts#SpaceRect
 type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
-type Strategy: build/index.d.ts#Strategy
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
 type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
 type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type StripContainer: build/index.d.ts#StripContainer
 type StripCut: build/index.d.ts#StripCut
-type Supports: build/index.d.ts#Supports
+type Supports: build/strategy-DgiXqcFQ.d.ts#Supports
 TABU_STAGE: build/index.d.ts#TABU_STAGE
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type UiParams: build/index.d.ts#UiParams
-UnsupportedCell: build/index.d.ts#UnsupportedCell
-UnsupportedShape: build/index.d.ts#UnsupportedShape
-Vector: build/index.d.ts#Vector
+UnsupportedCell: build/strategy-DgiXqcFQ.d.ts#UnsupportedCell
+UnsupportedShape: build/strategy-DgiXqcFQ.d.ts#UnsupportedShape
+Vector: build/order-TBXpOBqy.d.ts#Vector
 WALL_LOCKS_MAX: build/index.d.ts#WALL_LOCKS_MAX
 WALL_LOCK_WALLS: build/index.d.ts#WALL_LOCK_WALLS
 WORK_BUDGET: build/index.d.ts#WORK_BUDGET
@@ -241,7 +241,7 @@ annealStrategy: build/index.d.ts#annealStrategy
 aspectError: build/index.d.ts#aspectError
 aspectFit: build/index.d.ts#aspectFit
 aspectFitStrategy: build/index.d.ts#aspectFitStrategy
-assertSupported: build/index.d.ts#assertSupported
+assertSupported: build/strategy-DgiXqcFQ.d.ts#assertSupported
 balanceContainerOf: build/index.d.ts#balanceContainerOf
 bboxStrategy: build/index.d.ts#bboxStrategy
 beasleyGcut: build/index.d.ts#beasleyGcut
@@ -262,20 +262,20 @@ canonicalJson: build/index.d.ts#canonicalJson
 cards: build/index.d.ts#cards
 cardsFamily: build/index.d.ts#cardsFamily
 cellKey: build/index.d.ts#cellKey
-cellOf: build/index.d.ts#cellOf
+cellOf: build/strategy-DgiXqcFQ.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
-circleOverlaps: build/index.d.ts#circleOverlaps
+circleOverlaps: build/hole-degree-BYlFkqWH.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
-compareRects: build/index.d.ts#compareRects
+compareRects: build/order-TBXpOBqy.d.ts#compareRects
 composites: build/index.d.ts#composites
 consecutiveSquares: build/index.d.ts#consecutiveSquares
 consecutiveSquaresFamily: build/index.d.ts#consecutiveSquaresFamily
 corpus: build/index.d.ts#corpus
 corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
-createContext: build/index.d.ts#createContext
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
 defaultLayoutOf: build/index.d.ts#defaultLayoutOf
@@ -283,7 +283,7 @@ edgeCases: build/index.d.ts#edgeCases
 edgeCasesFamily: build/index.d.ts#edgeCasesFamily
 fnv1a32: build/index.d.ts#fnv1a32
 forceStrategy: build/index.d.ts#forceStrategy
-freeSpace: build/index.d.ts#freeSpace
+freeSpace: build/layout-strategy-DqigF3bI.d.ts#freeSpace
 fromRects: build/index.d.ts#fromRects
 gallery: build/index.d.ts#gallery
 galleryFamily: build/index.d.ts#galleryFamily
@@ -291,50 +291,50 @@ gapToOpt: build/index.d.ts#gapToOpt
 generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
 geneticStrategy: build/index.d.ts#geneticStrategy
-graphOrder: build/index.d.ts#graphOrder
-guillotine: build/index.d.ts#guillotine
+graphOrder: build/order-TBXpOBqy.d.ts#graphOrder
+guillotine: build/guillotine-strategy-2gmztyuQ.d.ts#guillotine
 halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
 hardBreaks: build/index.d.ts#hardBreaks
 hashInput: build/index.d.ts#hashInput
-holeDegree: build/index.d.ts#holeDegree
+holeDegree: build/hole-degree-BYlFkqWH.d.ts#holeDegree
 hopperTurton: build/index.d.ts#hopperTurton
 hopperTurtonFamily: build/index.d.ts#hopperTurtonFamily
 hopperTurtonOf: build/index.d.ts#hopperTurtonOf
 isAnchor: build/index.d.ts#isAnchor
 isDeterministic: build/index.d.ts#isDeterministic
-isGraphOrder: build/index.d.ts#isGraphOrder
+isGraphOrder: build/order-TBXpOBqy.d.ts#isGraphOrder
 ladder: build/index.d.ts#ladder
 ladderFamily: build/index.d.ts#ladderFamily
 ladderRung: build/index.d.ts#ladderRung
 logSweep: build/index.d.ts#logSweep
-lowestWindow: build/index.d.ts#lowestWindow
-marginOf: build/index.d.ts#marginOf
+lowestWindow: build/layout-strategy-DqigF3bI.d.ts#lowestWindow
+marginOf: build/strategy-DgiXqcFQ.d.ts#marginOf
 martelloVigo: build/index.d.ts#martelloVigo
 martelloVigoFamily: build/index.d.ts#martelloVigoFamily
-maxrects: build/index.d.ts#maxrects
+maxrects: build/maxrects-strategy-BaSAvo4R.d.ts#maxrects
 measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
 measureSeed: build/index.d.ts#measureSeed
 medianRatio: build/index.d.ts#medianRatio
 mmvBound: build/index.d.ts#mmvBound
 moveAnchor: build/index.d.ts#moveAnchor
-mulberry32: build/index.d.ts#mulberry32
+mulberry32: build/strategy-DgiXqcFQ.d.ts#mulberry32
 objectiveBound: build/index.d.ts#objectiveBound
 objectiveResult: build/index.d.ts#objectiveResult
-orderRects: build/index.d.ts#orderRects
+orderRects: build/order-TBXpOBqy.d.ts#orderRects
 outputHash: build/index.d.ts#outputHash
 overlapMinStrategy: build/index.d.ts#overlapMinStrategy
 pack: build/index.d.ts#pack
 packConfig: build/index.d.ts#packConfig
-packDefault: build/index.d.ts#packDefault
+packDefault: build/default-CztE_vaH.d.ts#packDefault
 packFree: build/index.d.ts#packFree
-packGuillotine: build/index.d.ts#packGuillotine
-packMaxRects: build/index.d.ts#packMaxRects
+packGuillotine: build/layout-strategy-DqigF3bI.d.ts#packGuillotine
+packMaxRects: build/layout-strategy-DqigF3bI.d.ts#packMaxRects
 packPortfolio: build/index.d.ts#packPortfolio
-packRows: build/index.d.ts#packRows
-packShelf: build/index.d.ts#packShelf
-packSkyline: build/index.d.ts#packSkyline
+packRows: build/layout-strategy-DqigF3bI.d.ts#packRows
+packShelf: build/layout-strategy-DqigF3bI.d.ts#packShelf
+packSkyline: build/layout-strategy-DqigF3bI.d.ts#packSkyline
 packSpace: build/index.d.ts#packSpace
 packWith: build/index.d.ts#packWith
 packWork: build/index.d.ts#packWork
@@ -349,8 +349,8 @@ portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
 portfolioMembers: build/index.d.ts#portfolioMembers
 portfolioSetOf: build/index.d.ts#portfolioSetOf
 portfolioStrategy: build/index.d.ts#portfolioStrategy
-push: build/index.d.ts#push
-pushCascade: build/index.d.ts#pushCascade
+push: build/push-strategy-D7NE9GKp.d.ts#push
+pushCascade: build/push-strategy-D7NE9GKp.d.ts#pushCascade
 quantile: build/index.d.ts#quantile
 rectFeatures: build/index.d.ts#rectFeatures
 rectGrid: build/index.d.ts#rectGrid
@@ -362,14 +362,14 @@ relaxStrategy: build/index.d.ts#relaxStrategy
 restartsStrategy: build/index.d.ts#restartsStrategy
 round3: build/index.d.ts#round3
 roundMeasures: build/index.d.ts#roundMeasures
-rows: build/index.d.ts#rows
+rows: build/rows-strategy-DHBMn_6a.d.ts#rows
 ruinRecreateStrategy: build/index.d.ts#ruinRecreateStrategy
 selectFeatures: build/index.d.ts#selectFeatures
 selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
 shapeStrategies: build/index.d.ts#shapeStrategies
-shelf: build/index.d.ts#shelf
-skyline: build/index.d.ts#skyline
+shelf: build/shelf-strategy-Bnh7nBYM.d.ts#shelf
+skyline: build/skyline-strategy-B3Atq4pt.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
 spreadBand: build/index.d.ts#spreadBand
@@ -378,25 +378,164 @@ stabilityUnitOf: build/index.d.ts#stabilityUnitOf
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 stripGenerators: build/index.d.ts#stripGenerators
-supportsCell: build/index.d.ts#supportsCell
+supportsCell: build/strategy-DgiXqcFQ.d.ts#supportsCell
 tabuStrategy: build/index.d.ts#tabuStrategy
 tailShare: build/index.d.ts#tailShare
 tallRow: build/index.d.ts#tallRow
 tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
-turnItem: build/index.d.ts#turnItem
+turnItem: build/strategy-DgiXqcFQ.d.ts#turnItem
 turnPoint: @mark1russell7/layout-contract#turnPoint (external)
 turnPort: @mark1russell7/layout-contract#turnPort (external)
 turnRegion: @mark1russell7/layout-contract#turnRegion (external)
-unsupportedOf: build/index.d.ts#unsupportedOf
+unsupportedOf: build/strategy-DgiXqcFQ.d.ts#unsupportedOf
 wallLocks: build/index.d.ts#wallLocks
 wallLocksFamily: build/index.d.ts#wallLocksFamily
 wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
 
+## ./default (build/entry/default.d.ts): 7 names
+
+DEFAULT_STRATEGY: build/default-CztE_vaH.d.ts#DEFAULT_STRATEGY
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+packDefault: build/default-CztE_vaH.d.ts#packDefault
+
+## ./guillotine (build/entry/guillotine.d.ts): 14 names
+
+GUILLOTINE_CHOICES: build/layout-strategy-DqigF3bI.d.ts#GUILLOTINE_CHOICES
+GUILLOTINE_SPLITS: build/layout-strategy-DqigF3bI.d.ts#GUILLOTINE_SPLITS
+type GuillotineChoice: build/layout-strategy-DqigF3bI.d.ts#GuillotineChoice
+type GuillotineOptions: build/layout-strategy-DqigF3bI.d.ts#GuillotineOptions
+type GuillotineSplit: build/layout-strategy-DqigF3bI.d.ts#GuillotineSplit
+type GuillotineStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#GuillotineStrategyOptions
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+Rect: build/order-TBXpOBqy.d.ts#Rect
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+guillotine: build/guillotine-strategy-2gmztyuQ.d.ts#guillotine
+packGuillotine: build/layout-strategy-DqigF3bI.d.ts#packGuillotine
+
+## ./hole-degree (build/entry/hole-degree.d.ts): 10 names
+
+HOLE_DEGREE_MAX_STEPS: build/hole-degree-BYlFkqWH.d.ts#HOLE_DEGREE_MAX_STEPS
+HOLE_DEGREE_STAGE: build/hole-degree-BYlFkqWH.d.ts#HOLE_DEGREE_STAGE
+type HoleDegreeStrategyOptions: build/hole-degree-BYlFkqWH.d.ts#HoleDegreeStrategyOptions
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+circleOverlaps: build/hole-degree-BYlFkqWH.d.ts#circleOverlaps
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+holeDegree: build/hole-degree-BYlFkqWH.d.ts#holeDegree
+
+## ./maxrects (build/entry/maxrects.d.ts): 13 names
+
+MAXRECTS_BANDS: build/layout-strategy-DqigF3bI.d.ts#MAXRECTS_BANDS
+MAXRECTS_RULES: build/layout-strategy-DqigF3bI.d.ts#MAXRECTS_RULES
+type MaxRectsOptions: build/layout-strategy-DqigF3bI.d.ts#MaxRectsOptions
+type MaxRectsRule: build/layout-strategy-DqigF3bI.d.ts#MaxRectsRule
+type MaxRectsStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#MaxRectsStrategyOptions
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+Rect: build/order-TBXpOBqy.d.ts#Rect
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+maxrects: build/maxrects-strategy-BaSAvo4R.d.ts#maxrects
+packMaxRects: build/layout-strategy-DqigF3bI.d.ts#packMaxRects
+
+## ./push (build/entry/push.d.ts): 10 names
+
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+type PushOptions: build/push-strategy-D7NE9GKp.d.ts#PushOptions
+type PushStrategyOptions: build/push-strategy-D7NE9GKp.d.ts#PushStrategyOptions
+Rect: build/order-TBXpOBqy.d.ts#Rect
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+push: build/push-strategy-D7NE9GKp.d.ts#push
+pushCascade: build/push-strategy-D7NE9GKp.d.ts#pushCascade
+
+## ./rows (build/entry/rows.d.ts): 10 names
+
+type LayoutStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#LayoutStrategyOptions
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOptions: build/layout-strategy-DqigF3bI.d.ts#PackOptions
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+Rect: build/order-TBXpOBqy.d.ts#Rect
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+packRows: build/layout-strategy-DqigF3bI.d.ts#packRows
+rows: build/rows-strategy-DHBMn_6a.d.ts#rows
+
+## ./shelf (build/entry/shelf.d.ts): 12 names
+
+type LayoutStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#LayoutStrategyOptions
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+Rect: build/order-TBXpOBqy.d.ts#Rect
+SHELF_FITS: build/layout-strategy-DqigF3bI.d.ts#SHELF_FITS
+type ShelfFit: build/layout-strategy-DqigF3bI.d.ts#ShelfFit
+type ShelfOptions: build/layout-strategy-DqigF3bI.d.ts#ShelfOptions
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+packShelf: build/layout-strategy-DqigF3bI.d.ts#packShelf
+shelf: build/shelf-strategy-Bnh7nBYM.d.ts#shelf
+
+## ./skyline (build/entry/skyline.d.ts): 13 names
+
+type PackContext: build/strategy-DgiXqcFQ.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+Rect: build/order-TBXpOBqy.d.ts#Rect
+SKYLINE_RULES: build/layout-strategy-DqigF3bI.d.ts#SKYLINE_RULES
+type SkylineOptions: build/layout-strategy-DqigF3bI.d.ts#SkylineOptions
+type SkylineRule: build/layout-strategy-DqigF3bI.d.ts#SkylineRule
+type SkylineStrategyOptions: build/layout-strategy-DqigF3bI.d.ts#SkylineStrategyOptions
+type Strategy: build/strategy-DgiXqcFQ.d.ts#Strategy
+createContext: build/strategy-DgiXqcFQ.d.ts#createContext
+lowestWindow: build/layout-strategy-DqigF3bI.d.ts#lowestWindow
+packSkyline: build/layout-strategy-DqigF3bI.d.ts#packSkyline
+skyline: build/skyline-strategy-B3Atq4pt.d.ts#skyline
+
 ## Declarations
+
+### build/default-CztE_vaH.d.ts#DEFAULT_STRATEGY
+declare const DEFAULT_STRATEGY = "select";
+
+### build/default-CztE_vaH.d.ts#packDefault
+declare function packDefault(input: PackInput, seed?: number): PackOutput;
+
+### build/guillotine-strategy-2gmztyuQ.d.ts#guillotine
+declare const guillotine: Strategy<GuillotineStrategyOptions>;
+
+### build/hole-degree-BYlFkqWH.d.ts#HOLE_DEGREE_MAX_STEPS
+declare const HOLE_DEGREE_MAX_STEPS = 32;
+
+### build/hole-degree-BYlFkqWH.d.ts#HOLE_DEGREE_STAGE
+declare const HOLE_DEGREE_STAGE = "hole-degree";
+
+### build/hole-degree-BYlFkqWH.d.ts#HoleDegreeStrategyOptions
+interface HoleDegreeStrategyOptions {
+  steps: number;
+}
+
+### build/hole-degree-BYlFkqWH.d.ts#circleOverlaps
+declare function circleOverlaps(input: PackInput, output: Pick<PackOutput, "placements">, tolerance?: number): number;
+
+### build/hole-degree-BYlFkqWH.d.ts#holeDegree
+declare const holeDegree: Strategy<HoleDegreeStrategyOptions>;
 
 ### build/index.d.ts#ANCHOR_GAIN_LIMIT
 export declare const ANCHOR_GAIN_LIMIT = 1;
@@ -566,17 +705,6 @@ type BurkeKendallWhitwellProblem = "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | "N7
 ### build/index.d.ts#CLASS_COUNTS
 export declare const CLASS_COUNTS: readonly number[];
 
-### build/index.d.ts#Cell
-interface Cell {
-  containerSize: DimensionValue<"containerSize">;
-  containerShape: DimensionValue<"containerShape">;
-  obstacleMove?: DimensionValue<"obstacleMove">;
-  itemShape: DimensionValue<"itemShape">;
-  rotation: DimensionValue<"rotation">;
-  order: DimensionValue<"order">;
-  groups: DimensionValue<"groups">;
-}
-
 ### build/index.d.ts#ChangeMeasures
 interface ChangeMeasures {
   "pack.stability.moved": number;
@@ -660,15 +788,6 @@ interface CutPiece {
   h: number;
 }
 
-### build/index.d.ts#DEFAULT_STRATEGY
-export declare const DEFAULT_STRATEGY = "select";
-
-### build/index.d.ts#Dimension
-type Dimension = keyof Supports;
-
-### build/index.d.ts#DimensionValue
-type DimensionValue<D extends Dimension = Dimension> = Supports[D][number];
-
 ### build/index.d.ts#EdgeCase
 type EdgeCase = "empty" | "one" | "oversize" | "exactTiling" | "touchObstacles";
 
@@ -692,24 +811,6 @@ interface ForceStrategyOptions {
   member?: string | PortfolioEntry;
   iterations?: number;
   rounds?: number;
-}
-
-### build/index.d.ts#FreeSpace
-interface FreeSpace {
-  readonly w: number;
-  readonly h: number;
-  readonly plain: boolean;
-  band(y0: number, y1: number): FreeSpan[];
-  column(x0: number, x1: number, from?: number): FreeSpan | undefined;
-  fits(rect: SpaceRect): boolean;
-  fitX(x: number, w: number, y0: number, y1: number): number;
-  nextY(y0: number, y1: number, w: number): number;
-}
-
-### build/index.d.ts#FreeSpan
-interface FreeSpan {
-  readonly start: number;
-  readonly end: number;
 }
 
 ### build/index.d.ts#FreeWidthOptions
@@ -741,15 +842,6 @@ interface FreeWidthTry {
 ### build/index.d.ts#GENETIC_STAGE
 export declare const GENETIC_STAGE = "genetic";
 
-### build/index.d.ts#GRAPH_ORDERS
-export declare const GRAPH_ORDERS: readonly GraphOrder[];
-
-### build/index.d.ts#GUILLOTINE_CHOICES
-export declare const GUILLOTINE_CHOICES: readonly ["baf", "bssf", "blsf", "waf", "wssf", "wlsf"];
-
-### build/index.d.ts#GUILLOTINE_SPLITS
-export declare const GUILLOTINE_SPLITS: readonly ["sas", "las", "sa", "la", "minas", "maxas"];
-
 ### build/index.d.ts#GeneratedInput
 interface GeneratedInput extends LayoutInput$1 {
   readonly set: string;
@@ -780,43 +872,8 @@ interface GeneticStrategyOptions {
   mutation?: number;
 }
 
-### build/index.d.ts#GraphOrder
-type GraphOrder = "graph-bfs";
-
-### build/index.d.ts#GuillotineChoice
-type GuillotineChoice = (typeof GUILLOTINE_CHOICES)[number];
-
-### build/index.d.ts#GuillotineOptions
-interface GuillotineOptions {
-  sortOrder?: ItemOrder;
-  links?: readonly ItemLink[];
-  space?: FreeSpace;
-  choice?: GuillotineChoice;
-  split?: GuillotineSplit;
-  merge?: boolean;
-  turnable?: ReadonlySet<unknown>;
-  turned?: Set<unknown>;
-}
-
-### build/index.d.ts#GuillotineSplit
-type GuillotineSplit = (typeof GUILLOTINE_SPLITS)[number];
-
-### build/index.d.ts#GuillotineStrategyOptions
-interface GuillotineStrategyOptions extends LayoutStrategyOptions {
-  choice: GuillotineChoice;
-  split: GuillotineSplit;
-  rotate: boolean;
-  merge: boolean;
-}
-
 ### build/index.d.ts#HALF_WIDE_WIDTH
 export declare const HALF_WIDE_WIDTH = 200;
-
-### build/index.d.ts#HOLE_DEGREE_MAX_STEPS
-export declare const HOLE_DEGREE_MAX_STEPS = 32;
-
-### build/index.d.ts#HOLE_DEGREE_STAGE
-export declare const HOLE_DEGREE_STAGE = "hole-degree";
 
 ### build/index.d.ts#HOPPER_TURTON_RULES
 export declare const HOPPER_TURTON_RULES: Readonly<Record<HopperTurtonCategory, HopperTurtonRule>>;
@@ -827,11 +884,6 @@ type HalfWideParams = {
   containerSize: WorstContainer;
   count: number;
 };
-
-### build/index.d.ts#HoleDegreeStrategyOptions
-interface HoleDegreeStrategyOptions {
-  steps: number;
-}
 
 ### build/index.d.ts#HopperTurtonCategory
 type HopperTurtonCategory = "C1" | "C2" | "C3" | "C4" | "C5" | "C6" | "C7";
@@ -850,12 +902,6 @@ interface HopperTurtonRule {
   readonly h: number;
   readonly counts: readonly [number, number, number];
 }
-
-### build/index.d.ts#ItemLink
-type ItemLink = PackLink;
-
-### build/index.d.ts#ItemOrder
-type ItemOrder = SortOrder | GraphOrder;
 
 ### build/index.d.ts#KnownBest
 interface KnownBest {
@@ -917,13 +963,6 @@ interface LayoutMeasures {
   "pack.balance.sideRange": number;
 }
 
-### build/index.d.ts#LayoutStrategyOptions
-interface LayoutStrategyOptions {
-  sortOrder: ItemOrder;
-  samples: number;
-  fit?: ShelfFit;
-}
-
 ### build/index.d.ts#LockWall
 type LockWall = "top" | "right" | "left" | "bottom";
 
@@ -935,12 +974,6 @@ export declare const MARTELLO_VIGO_TYPES: readonly {
   readonly w: readonly [number, number];
   readonly h: readonly [number, number];
 }[];
-
-### build/index.d.ts#MAXRECTS_BANDS
-export declare const MAXRECTS_BANDS = 128;
-
-### build/index.d.ts#MAXRECTS_RULES
-export declare const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp"];
 
 ### build/index.d.ts#MEASURE_SPECS
 export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
@@ -954,27 +987,6 @@ type MartelloVigoParams = {
   containerSize: ClassContainer;
   count: number;
 };
-
-### build/index.d.ts#MaxRectsOptions
-interface MaxRectsOptions {
-  sortOrder?: ItemOrder;
-  links?: readonly ItemLink[];
-  space?: FreeSpace;
-  rule?: MaxRectsRule;
-  bandHeight?: number;
-  turnable?: ReadonlySet<unknown>;
-  turned?: Set<unknown>;
-}
-
-### build/index.d.ts#MaxRectsRule
-type MaxRectsRule = (typeof MAXRECTS_RULES)[number];
-
-### build/index.d.ts#MaxRectsStrategyOptions
-interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
-  rule: MaxRectsRule;
-  rotate: boolean;
-  bandHeight?: number;
-}
 
 ### build/index.d.ts#MeasureFamily
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound" | "balance";
@@ -1046,39 +1058,6 @@ export declare const PORTFOLIO_STAGE = "portfolio";
 
 ### build/index.d.ts#PackBalanceId
 type PackBalanceId = `pack.${BalanceMeasureSuffix}`;
-
-### build/index.d.ts#PackContext
-interface PackContext {
-  seed: number;
-  rng: () => number;
-  budget?: {
-    ms?: number;
-    steps?: number;
-  };
-  previous?: PackOutput;
-}
-
-### build/index.d.ts#PackLayoutOptions
-interface PackLayoutOptions extends PackOptions {
-  strategy?: "rows" | "skyline" | "shelf" | "maxrects" | "guillotine";
-  fit?: ShelfFit;
-  rule?: MaxRectsRule;
-  bandHeight?: number;
-  skylineRule?: SkylineRule;
-  wasteMap?: boolean;
-  choice?: GuillotineChoice;
-  split?: GuillotineSplit;
-  merge?: boolean;
-  turnable?: ReadonlySet<unknown>;
-  turned?: Set<unknown>;
-}
-
-### build/index.d.ts#PackOptions
-interface PackOptions {
-  sortOrder?: ItemOrder;
-  links?: readonly ItemLink[];
-  space?: FreeSpace;
-}
 
 ### build/index.d.ts#PackPortfolioOptions
 interface PackPortfolioOptions {
@@ -1185,18 +1164,6 @@ interface PortfolioTrainScore {
   msMean: number;
 }
 
-### build/index.d.ts#PushOptions
-interface PushOptions {
-  gap?: number;
-  maxShoves?: number;
-}
-
-### build/index.d.ts#PushStrategyOptions
-interface PushStrategyOptions {
-  sortOrder: SortOrder;
-  maxShovesPerItem: number;
-}
-
 ### build/index.d.ts#RELAX_MAX_CONSTRAINTS
 export declare const RELAX_MAX_CONSTRAINTS = 2e5;
 
@@ -1214,27 +1181,6 @@ export declare const RUIN_KINDS: readonly RuinKind[];
 
 ### build/index.d.ts#RUIN_RECREATE_STAGE
 export declare const RUIN_RECREATE_STAGE = "ruin-recreate";
-
-### build/index.d.ts#Rect
-export declare class Rect<T = unknown> {
-  id?: T;
-  wasPacked: boolean;
-  fixedWidth: boolean;
-  fixedSize: boolean;
-  locked: boolean;
-  get position(): Vector;
-  get size(): Vector;
-  right(): number;
-  bottom(): number;
-  shrinkLeft(amount: number): this;
-  translateBy(offset: Vector): this;
-  area(): number;
-  static packed<U>(rects: Rect<U>[]): Rect<U>[];
-  static unpacked<U>(rects: Rect<U>[]): Rect<U>[];
-  static resetPacked<U>(rects: Rect<U>[]): void;
-  static maxRight<U>(rects: Rect<U>[]): number;
-  static maxBottom<U>(rects: Rect<U>[]): number;
-}
 
 ### build/index.d.ts#RectGridParams
 type RectGridParams = {
@@ -1300,15 +1246,6 @@ export declare const SELECT_STAGE = "select";
 ### build/index.d.ts#SELECT_TABLE
 export declare const SELECT_TABLE: SelectNode;
 
-### build/index.d.ts#SHELF_FITS
-export declare const SHELF_FITS: readonly ShelfFit[];
-
-### build/index.d.ts#SKYLINE_RULES
-export declare const SKYLINE_RULES: readonly ["bl", "mw"];
-
-### build/index.d.ts#SORT_ORDERS
-export declare const SORT_ORDERS: readonly SortOrder[];
-
 ### build/index.d.ts#SPREAD_THRESHOLDS
 export declare const SPREAD_THRESHOLDS: Readonly<{
   identical: number;
@@ -1350,25 +1287,8 @@ interface SelectStrategyOptions {
   table?: SelectNode;
 }
 
-### build/index.d.ts#ShelfFit
-type ShelfFit = "next" | "first" | "best";
-
-### build/index.d.ts#ShelfOptions
-interface ShelfOptions {
-  sortOrder?: ItemOrder;
-  links?: readonly ItemLink[];
-  space?: FreeSpace;
-  fit?: ShelfFit;
-}
-
 ### build/index.d.ts#SizeDistribution
 type SizeDistribution = "identical" | "nearIdentical" | "uniform" | "heavyTail" | "bimodal" | "extremeAspect";
-
-### build/index.d.ts#SizeSearch
-interface SizeSearch {
-  id: string;
-  search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
-}
 
 ### build/index.d.ts#SkylineGapParams
 type SkylineGapParams = {
@@ -1377,69 +1297,14 @@ type SkylineGapParams = {
   count: number;
 };
 
-### build/index.d.ts#SkylineOptions
-interface SkylineOptions {
-  sortOrder?: ItemOrder;
-  links?: readonly ItemLink[];
-  space?: FreeSpace;
-  rule?: SkylineRule;
-  wasteMap?: boolean;
-  turnable?: ReadonlySet<unknown>;
-  turned?: Set<unknown>;
-}
-
-### build/index.d.ts#SkylineRule
-type SkylineRule = (typeof SKYLINE_RULES)[number];
-
-### build/index.d.ts#SkylineStrategyOptions
-interface SkylineStrategyOptions extends LayoutStrategyOptions {
-  rule: SkylineRule;
-  wasteMap: boolean;
-  rotate: boolean;
-}
-
-### build/index.d.ts#SortOrder
-type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
-
-### build/index.d.ts#SpaceRect
-interface SpaceRect {
-  readonly x: number;
-  readonly y: number;
-  readonly w: number;
-  readonly h: number;
-}
-
 ### build/index.d.ts#SpreadBand
 type SpreadBand = "identical" | "uniform" | "heavyTail";
-
-### build/index.d.ts#Strategy
-interface Strategy<O = unknown> {
-  id: string;
-  family: string;
-  catalog: string[];
-  supports: Supports;
-  defaults: O;
-  deterministic: boolean;
-  pack(input: PackInput, options: O, context: PackContext): PackOutput;
-}
 
 ### build/index.d.ts#StripContainer
 type StripContainer = "fixed" | "freeHeight";
 
 ### build/index.d.ts#StripCut
 type StripCut = "guillotine" | "free";
-
-### build/index.d.ts#Supports
-type Supports = {
-  containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
-  containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
-  obstacleMove: ("fixed" | "costly" | "free")[];
-  itemShape: ("rect" | "polygon" | "circle" | "free" | "mixed")[];
-  rotation: ("none" | "quarter" | "any")[];
-  order: ("free" | "soft" | "hard")[];
-  groups: ("none" | "flat" | "nested")[];
-  mode: ("offline" | "online" | "incremental")[];
-};
 
 ### build/index.d.ts#TABU_STAGE
 export declare const TABU_STAGE = "tabu";
@@ -1468,38 +1333,6 @@ type UiParams = {
   containerSize: DimensionValue<"containerSize">;
   count: number;
 };
-
-### build/index.d.ts#UnsupportedCell
-export declare class UnsupportedCell extends Error {
-  readonly dimension: Dimension;
-  readonly value: string;
-  constructor(dimension: Dimension, value: string);
-}
-
-### build/index.d.ts#UnsupportedShape
-export declare class UnsupportedShape extends UnsupportedCell {
-  readonly breaks: readonly ClaimBreak[];
-  constructor(value: string, breaks: readonly ClaimBreak[]);
-}
-
-### build/index.d.ts#Vector
-export declare class Vector {
-  constructor(x?: number, y?: number);
-  get x(): number;
-  set x(v: number);
-  get y(): number;
-  set y(v: number);
-  set(x: number, y: number): void;
-  setTo(v: Vector): void;
-  add(other: Vector): Vector;
-  area(): number;
-  clone(): Vector;
-  clamp(min: Vector, max: Vector): Vector;
-  static of(scalar: number): Vector;
-  static min(vectors: Vector[]): Vector;
-  static max(vectors: Vector[]): Vector;
-  static get Infinity(): Vector;
-}
 
 ### build/index.d.ts#WALL_LOCKS_MAX
 export declare const WALL_LOCKS_MAX = 4;
@@ -1552,9 +1385,6 @@ export declare function aspectFit<O>(inner: Strategy<O>, options?: AspectFitOpti
 
 ### build/index.d.ts#aspectFitStrategy
 export declare const aspectFitStrategy: Strategy<AspectFitStrategyOptions>;
-
-### build/index.d.ts#assertSupported
-export declare function assertSupported(supports: Supports, input: PackInput): void;
 
 ### build/index.d.ts#balanceContainerOf
 export declare function balanceContainerOf(input: PackInput, output: PackOutput): {
@@ -1629,23 +1459,14 @@ export declare const cardsFamily: CorpusFamily<GeneratedInput>;
 ### build/index.d.ts#cellKey
 export declare function cellKey(cell: PortfolioCell): string;
 
-### build/index.d.ts#cellOf
-export declare function cellOf(input: PackInput): Cell;
-
 ### build/index.d.ts#checkHard
 export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">, options?: ContainerTest$1): PackHard$1;
 
 ### build/index.d.ts#checkSelectTable
 export declare function checkSelectTable(table: SelectNode, members: number): void;
 
-### build/index.d.ts#circleOverlaps
-export declare function circleOverlaps(input: PackInput, output: Pick<PackOutput, "placements">, tolerance?: number): number;
-
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
-
-### build/index.d.ts#compareRects
-export declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
 
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];
@@ -1664,9 +1485,6 @@ export declare const corpusFamilies: readonly CorpusFamily<GeneratedInput>[];
 
 ### build/index.d.ts#countCell
 export declare function countCell(count: number): CountScale;
-
-### build/index.d.ts#createContext
-export declare function createContext(seed?: number, more?: Omit<PackContext, "seed" | "rng">): PackContext;
 
 ### build/index.d.ts#dashboard
 export declare const dashboard: CorpusGenerator<UiParams>;
@@ -1689,9 +1507,6 @@ export declare function fnv1a32(text: string): number;
 ### build/index.d.ts#forceStrategy
 export declare const forceStrategy: Strategy<ForceStrategyOptions>;
 
-### build/index.d.ts#freeSpace
-export declare function freeSpace(input: PackInput): FreeSpace;
-
 ### build/index.d.ts#fromRects
 export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>): PackInput;
 
@@ -1713,12 +1528,6 @@ export declare const generators: readonly CorpusGenerator[];
 ### build/index.d.ts#geneticStrategy
 export declare const geneticStrategy: Strategy<GeneticStrategyOptions>;
 
-### build/index.d.ts#graphOrder
-export declare function graphOrder<T>(rects: readonly Rect<T>[], links?: readonly ItemLink[]): number[];
-
-### build/index.d.ts#guillotine
-export declare const guillotine: Strategy<GuillotineStrategyOptions>;
-
 ### build/index.d.ts#halfWide
 export declare const halfWide: CorpusGenerator<HalfWideParams>;
 
@@ -1730,9 +1539,6 @@ export declare function hardBreaks(input: PackInput, output: PackOutput): number
 
 ### build/index.d.ts#hashInput
 export declare function hashInput(file: LayoutInput$1): string;
-
-### build/index.d.ts#holeDegree
-export declare const holeDegree: Strategy<HoleDegreeStrategyOptions>;
 
 ### build/index.d.ts#hopperTurton
 export declare const hopperTurton: CorpusGenerator<HopperTurtonParams>;
@@ -1753,9 +1559,6 @@ export declare function isAnchor(input: PackInput, id: string): boolean;
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
 
-### build/index.d.ts#isGraphOrder
-export declare function isGraphOrder(order: ItemOrder): order is GraphOrder;
-
 ### build/index.d.ts#ladder
 export declare const ladder: CorpusGenerator<LadderParams>;
 
@@ -1772,23 +1575,11 @@ export declare function ladderRung(p: Pick<LadderParams, "axis" | "rung" | "coun
 ### build/index.d.ts#logSweep
 export declare const logSweep: SizeSearch;
 
-### build/index.d.ts#lowestWindow
-export declare function lowestWindow(skyline: ArrayLike<number>, width: number, rw: number, limit?: ArrayLike<number>, rh?: number): {
-  x: number;
-  y: number;
-};
-
-### build/index.d.ts#marginOf
-export declare function marginOf(item: Pick<Item$1, "margin">): Sides$1;
-
 ### build/index.d.ts#martelloVigo
 export declare const martelloVigo: CorpusGenerator<MartelloVigoParams>;
 
 ### build/index.d.ts#martelloVigoFamily
 export declare const martelloVigoFamily: CorpusFamily<GeneratedInput>;
-
-### build/index.d.ts#maxrects
-export declare const maxrects: Strategy<MaxRectsStrategyOptions>;
 
 ### build/index.d.ts#measure
 export declare function measure(input: PackInput, output: PackOutput, options?: MeasureOptions): LayoutMeasures;
@@ -1813,17 +1604,11 @@ export declare function mmvBound(pieces: readonly {
 ### build/index.d.ts#moveAnchor
 export declare function moveAnchor(input: PackInput, id: string, dx: number, dy: number): PackInput;
 
-### build/index.d.ts#mulberry32
-export declare function mulberry32(seed: number): () => number;
-
 ### build/index.d.ts#objectiveBound
 export declare function objectiveBound(input: PackInput, options?: BoundOptions): ObjectiveBound | null;
 
 ### build/index.d.ts#objectiveResult
 export declare function objectiveResult(input: PackInput, output: PackOutput, bound: ObjectiveBound): number | undefined;
-
-### build/index.d.ts#orderRects
-export declare function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[];
 
 ### build/index.d.ts#outputHash
 export declare function outputHash(output: Pick<PackOutput, "placements">): string;
@@ -1837,29 +1622,11 @@ export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: Pac
 ### build/index.d.ts#packConfig
 export declare function packConfig(input: PackInput, config: StrategyConfig$1, seed?: number): PackOutput;
 
-### build/index.d.ts#packDefault
-export declare function packDefault(input: PackInput, seed?: number): PackOutput;
-
 ### build/index.d.ts#packFree
 export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?: FreeWidthOptions): FreeWidthResult<T>;
 
-### build/index.d.ts#packGuillotine
-export declare function packGuillotine<T>(rects: Rect<T>[], outer: Rect<T>, options?: GuillotineOptions): Rect<T>;
-
-### build/index.d.ts#packMaxRects
-export declare function packMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options?: MaxRectsOptions): Rect<T>;
-
 ### build/index.d.ts#packPortfolio
 export declare function packPortfolio(members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]), options?: PackPortfolioOptions): Portfolio$1<PackInput, PackOutput>;
-
-### build/index.d.ts#packRows
-export declare function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options?: PackOptions): Rect<T>;
-
-### build/index.d.ts#packShelf
-export declare function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options?: ShelfOptions): Rect<T>;
-
-### build/index.d.ts#packSkyline
-export declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options?: SkylineOptions): Rect<T>;
 
 ### build/index.d.ts#packSpace
 export declare const packSpace: StrategySpace$1;
@@ -1908,12 +1675,6 @@ export declare function portfolioSetOf(input: PackInput, table?: PortfolioSets):
 ### build/index.d.ts#portfolioStrategy
 export declare const portfolioStrategy: Strategy<PortfolioStrategyOptions>;
 
-### build/index.d.ts#push
-export declare const push: Strategy<PushStrategyOptions>;
-
-### build/index.d.ts#pushCascade
-export declare function pushCascade<T>(placed: Rect<T>, rects: readonly Rect<T>[], options?: PushOptions): Rect<T>[];
-
 ### build/index.d.ts#quantile
 export declare function quantile(values: readonly number[], q: number): number;
 
@@ -1947,9 +1708,6 @@ export declare function round3(x: number): number;
 ### build/index.d.ts#roundMeasures
 export declare function roundMeasures<T extends object>(measures: T): T;
 
-### build/index.d.ts#rows
-export declare const rows: Strategy<LayoutStrategyOptions>;
-
 ### build/index.d.ts#ruinRecreateStrategy
 export declare const ruinRecreateStrategy: Strategy<RuinRecreateStrategyOptions>;
 
@@ -1967,12 +1725,6 @@ export declare const selectStrategy: Strategy<SelectStrategyOptions>;
 
 ### build/index.d.ts#shapeStrategies
 export declare const shapeStrategies: readonly Strategy[];
-
-### build/index.d.ts#shelf
-export declare const shelf: Strategy<LayoutStrategyOptions>;
-
-### build/index.d.ts#skyline
-export declare const skyline: Strategy<SkylineStrategyOptions>;
 
 ### build/index.d.ts#skylineGap
 export declare const skylineGap: CorpusGenerator<SkylineGapParams>;
@@ -1998,9 +1750,6 @@ export declare function strategy(id: string): Strategy;
 ### build/index.d.ts#stripGenerators
 export declare const stripGenerators: readonly CorpusGenerator[];
 
-### build/index.d.ts#supportsCell
-export declare function supportsCell(supports: Supports, cell: Partial<Record<Dimension, string>>): boolean;
-
 ### build/index.d.ts#tabuStrategy
 export declare const tabuStrategy: Strategy<TabuStrategyOptions>;
 
@@ -2019,15 +1768,6 @@ export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "box
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
 
-### build/index.d.ts#turnItem
-export declare function turnItem(item: Item$1): Item$1;
-
-### build/index.d.ts#unsupportedOf
-export declare function unsupportedOf(supports: Supports, cell: Partial<Record<Dimension, string>>): {
-  dimension: Dimension;
-  value: string;
-} | undefined;
-
 ### build/index.d.ts#wallLocks
 export declare const wallLocks: CorpusGenerator<WallLocksParams>;
 
@@ -2042,3 +1782,376 @@ export declare const wordCloudFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#worstGenerators
 export declare const worstGenerators: readonly CorpusGenerator[];
+
+### build/layout-strategy-DqigF3bI.d.ts#FreeSpace
+interface FreeSpace {
+  readonly w: number;
+  readonly h: number;
+  readonly plain: boolean;
+  band(y0: number, y1: number): FreeSpan[];
+  column(x0: number, x1: number, from?: number): FreeSpan | undefined;
+  fits(rect: SpaceRect): boolean;
+  fitX(x: number, w: number, y0: number, y1: number): number;
+  nextY(y0: number, y1: number, w: number): number;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#FreeSpan
+interface FreeSpan {
+  readonly start: number;
+  readonly end: number;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#GUILLOTINE_CHOICES
+declare const GUILLOTINE_CHOICES: readonly ["baf", "bssf", "blsf", "waf", "wssf", "wlsf"];
+
+### build/layout-strategy-DqigF3bI.d.ts#GUILLOTINE_SPLITS
+declare const GUILLOTINE_SPLITS: readonly ["sas", "las", "sa", "la", "minas", "maxas"];
+
+### build/layout-strategy-DqigF3bI.d.ts#GuillotineChoice
+type GuillotineChoice = (typeof GUILLOTINE_CHOICES)[number];
+
+### build/layout-strategy-DqigF3bI.d.ts#GuillotineOptions
+interface GuillotineOptions {
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
+  space?: FreeSpace;
+  choice?: GuillotineChoice;
+  split?: GuillotineSplit;
+  merge?: boolean;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#GuillotineSplit
+type GuillotineSplit = (typeof GUILLOTINE_SPLITS)[number];
+
+### build/layout-strategy-DqigF3bI.d.ts#GuillotineStrategyOptions
+interface GuillotineStrategyOptions extends LayoutStrategyOptions {
+  choice: GuillotineChoice;
+  split: GuillotineSplit;
+  rotate: boolean;
+  merge: boolean;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#LayoutStrategyOptions
+interface LayoutStrategyOptions {
+  sortOrder: ItemOrder;
+  samples: number;
+  fit?: ShelfFit;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#MAXRECTS_BANDS
+declare const MAXRECTS_BANDS = 128;
+
+### build/layout-strategy-DqigF3bI.d.ts#MAXRECTS_RULES
+declare const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp"];
+
+### build/layout-strategy-DqigF3bI.d.ts#MaxRectsOptions
+interface MaxRectsOptions {
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
+  space?: FreeSpace;
+  rule?: MaxRectsRule;
+  bandHeight?: number;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#MaxRectsRule
+type MaxRectsRule = (typeof MAXRECTS_RULES)[number];
+
+### build/layout-strategy-DqigF3bI.d.ts#MaxRectsStrategyOptions
+interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
+  rule: MaxRectsRule;
+  rotate: boolean;
+  bandHeight?: number;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#PackLayoutOptions
+interface PackLayoutOptions extends PackOptions {
+  strategy?: "rows" | "skyline" | "shelf" | "maxrects" | "guillotine";
+  fit?: ShelfFit;
+  rule?: MaxRectsRule;
+  bandHeight?: number;
+  skylineRule?: SkylineRule;
+  wasteMap?: boolean;
+  choice?: GuillotineChoice;
+  split?: GuillotineSplit;
+  merge?: boolean;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#PackOptions
+interface PackOptions {
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
+  space?: FreeSpace;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#SHELF_FITS
+declare const SHELF_FITS: readonly ShelfFit[];
+
+### build/layout-strategy-DqigF3bI.d.ts#SKYLINE_RULES
+declare const SKYLINE_RULES: readonly ["bl", "mw"];
+
+### build/layout-strategy-DqigF3bI.d.ts#ShelfFit
+type ShelfFit = "next" | "first" | "best";
+
+### build/layout-strategy-DqigF3bI.d.ts#ShelfOptions
+interface ShelfOptions {
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
+  space?: FreeSpace;
+  fit?: ShelfFit;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#SkylineOptions
+interface SkylineOptions {
+  sortOrder?: ItemOrder;
+  links?: readonly ItemLink[];
+  space?: FreeSpace;
+  rule?: SkylineRule;
+  wasteMap?: boolean;
+  turnable?: ReadonlySet<unknown>;
+  turned?: Set<unknown>;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#SkylineRule
+type SkylineRule = (typeof SKYLINE_RULES)[number];
+
+### build/layout-strategy-DqigF3bI.d.ts#SkylineStrategyOptions
+interface SkylineStrategyOptions extends LayoutStrategyOptions {
+  rule: SkylineRule;
+  wasteMap: boolean;
+  rotate: boolean;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#SpaceRect
+interface SpaceRect {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+### build/layout-strategy-DqigF3bI.d.ts#freeSpace
+declare function freeSpace(input: PackInput): FreeSpace;
+
+### build/layout-strategy-DqigF3bI.d.ts#lowestWindow
+declare function lowestWindow(skyline: ArrayLike<number>, width: number, rw: number, limit?: ArrayLike<number>, rh?: number): {
+  x: number;
+  y: number;
+};
+
+### build/layout-strategy-DqigF3bI.d.ts#packGuillotine
+declare function packGuillotine<T>(rects: Rect<T>[], outer: Rect<T>, options?: GuillotineOptions): Rect<T>;
+
+### build/layout-strategy-DqigF3bI.d.ts#packMaxRects
+declare function packMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options?: MaxRectsOptions): Rect<T>;
+
+### build/layout-strategy-DqigF3bI.d.ts#packRows
+declare function packRows<T>(rects: Rect<T>[], outer: Rect<T>, options?: PackOptions): Rect<T>;
+
+### build/layout-strategy-DqigF3bI.d.ts#packShelf
+declare function packShelf<T>(rects: Rect<T>[], outer: Rect<T>, options?: ShelfOptions): Rect<T>;
+
+### build/layout-strategy-DqigF3bI.d.ts#packSkyline
+declare function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options?: SkylineOptions): Rect<T>;
+
+### build/maxrects-strategy-BaSAvo4R.d.ts#maxrects
+declare const maxrects: Strategy<MaxRectsStrategyOptions>;
+
+### build/order-TBXpOBqy.d.ts#GRAPH_ORDERS
+declare const GRAPH_ORDERS: readonly GraphOrder[];
+
+### build/order-TBXpOBqy.d.ts#GraphOrder
+type GraphOrder = "graph-bfs";
+
+### build/order-TBXpOBqy.d.ts#ItemLink
+type ItemLink = PackLink;
+
+### build/order-TBXpOBqy.d.ts#ItemOrder
+type ItemOrder = SortOrder | GraphOrder;
+
+### build/order-TBXpOBqy.d.ts#Rect
+declare class Rect<T = unknown> {
+  id?: T;
+  wasPacked: boolean;
+  fixedWidth: boolean;
+  fixedSize: boolean;
+  locked: boolean;
+  get position(): Vector;
+  get size(): Vector;
+  right(): number;
+  bottom(): number;
+  shrinkLeft(amount: number): this;
+  translateBy(offset: Vector): this;
+  area(): number;
+  static packed<U>(rects: Rect<U>[]): Rect<U>[];
+  static unpacked<U>(rects: Rect<U>[]): Rect<U>[];
+  static resetPacked<U>(rects: Rect<U>[]): void;
+  static maxRight<U>(rects: Rect<U>[]): number;
+  static maxBottom<U>(rects: Rect<U>[]): number;
+}
+
+### build/order-TBXpOBqy.d.ts#SORT_ORDERS
+declare const SORT_ORDERS: readonly SortOrder[];
+
+### build/order-TBXpOBqy.d.ts#SortOrder
+type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
+
+### build/order-TBXpOBqy.d.ts#Vector
+declare class Vector {
+  constructor(x?: number, y?: number);
+  get x(): number;
+  set x(v: number);
+  get y(): number;
+  set y(v: number);
+  set(x: number, y: number): void;
+  setTo(v: Vector): void;
+  add(other: Vector): Vector;
+  area(): number;
+  clone(): Vector;
+  clamp(min: Vector, max: Vector): Vector;
+  static of(scalar: number): Vector;
+  static min(vectors: Vector[]): Vector;
+  static max(vectors: Vector[]): Vector;
+  static get Infinity(): Vector;
+}
+
+### build/order-TBXpOBqy.d.ts#compareRects
+declare function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number;
+
+### build/order-TBXpOBqy.d.ts#graphOrder
+declare function graphOrder<T>(rects: readonly Rect<T>[], links?: readonly ItemLink[]): number[];
+
+### build/order-TBXpOBqy.d.ts#isGraphOrder
+declare function isGraphOrder(order: ItemOrder): order is GraphOrder;
+
+### build/order-TBXpOBqy.d.ts#orderRects
+declare function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[];
+
+### build/push-strategy-D7NE9GKp.d.ts#PushOptions
+interface PushOptions {
+  gap?: number;
+  maxShoves?: number;
+}
+
+### build/push-strategy-D7NE9GKp.d.ts#PushStrategyOptions
+interface PushStrategyOptions {
+  sortOrder: SortOrder;
+  maxShovesPerItem: number;
+}
+
+### build/push-strategy-D7NE9GKp.d.ts#push
+declare const push: Strategy<PushStrategyOptions>;
+
+### build/push-strategy-D7NE9GKp.d.ts#pushCascade
+declare function pushCascade<T>(placed: Rect<T>, rects: readonly Rect<T>[], options?: PushOptions): Rect<T>[];
+
+### build/rows-strategy-DHBMn_6a.d.ts#rows
+declare const rows: Strategy<LayoutStrategyOptions>;
+
+### build/shelf-strategy-Bnh7nBYM.d.ts#shelf
+declare const shelf: Strategy<LayoutStrategyOptions>;
+
+### build/skyline-strategy-B3Atq4pt.d.ts#skyline
+declare const skyline: Strategy<SkylineStrategyOptions>;
+
+### build/strategy-DgiXqcFQ.d.ts#Cell
+interface Cell {
+  containerSize: DimensionValue<"containerSize">;
+  containerShape: DimensionValue<"containerShape">;
+  obstacleMove?: DimensionValue<"obstacleMove">;
+  itemShape: DimensionValue<"itemShape">;
+  rotation: DimensionValue<"rotation">;
+  order: DimensionValue<"order">;
+  groups: DimensionValue<"groups">;
+}
+
+### build/strategy-DgiXqcFQ.d.ts#Dimension
+type Dimension = keyof Supports;
+
+### build/strategy-DgiXqcFQ.d.ts#DimensionValue
+type DimensionValue<D extends Dimension = Dimension> = Supports[D][number];
+
+### build/strategy-DgiXqcFQ.d.ts#PackContext
+interface PackContext {
+  seed: number;
+  rng: () => number;
+  budget?: {
+    ms?: number;
+    steps?: number;
+  };
+  previous?: PackOutput;
+}
+
+### build/strategy-DgiXqcFQ.d.ts#SizeSearch
+interface SizeSearch {
+  id: string;
+  search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
+}
+
+### build/strategy-DgiXqcFQ.d.ts#Strategy
+interface Strategy<O = unknown> {
+  id: string;
+  family: string;
+  catalog: string[];
+  supports: Supports;
+  defaults: O;
+  deterministic: boolean;
+  pack(input: PackInput, options: O, context: PackContext): PackOutput;
+}
+
+### build/strategy-DgiXqcFQ.d.ts#Supports
+type Supports = {
+  containerSize: ("fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea")[];
+  containerShape: ("rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes")[];
+  obstacleMove: ("fixed" | "costly" | "free")[];
+  itemShape: ("rect" | "polygon" | "circle" | "free" | "mixed")[];
+  rotation: ("none" | "quarter" | "any")[];
+  order: ("free" | "soft" | "hard")[];
+  groups: ("none" | "flat" | "nested")[];
+  mode: ("offline" | "online" | "incremental")[];
+};
+
+### build/strategy-DgiXqcFQ.d.ts#UnsupportedCell
+declare class UnsupportedCell extends Error {
+  readonly dimension: Dimension;
+  readonly value: string;
+  constructor(dimension: Dimension, value: string);
+}
+
+### build/strategy-DgiXqcFQ.d.ts#UnsupportedShape
+declare class UnsupportedShape extends UnsupportedCell {
+  readonly breaks: readonly ClaimBreak[];
+  constructor(value: string, breaks: readonly ClaimBreak[]);
+}
+
+### build/strategy-DgiXqcFQ.d.ts#assertSupported
+declare function assertSupported(supports: Supports, input: PackInput): void;
+
+### build/strategy-DgiXqcFQ.d.ts#cellOf
+declare function cellOf(input: PackInput): Cell;
+
+### build/strategy-DgiXqcFQ.d.ts#createContext
+declare function createContext(seed?: number, more?: Omit<PackContext, "seed" | "rng">): PackContext;
+
+### build/strategy-DgiXqcFQ.d.ts#marginOf
+declare function marginOf(item: Pick<Item, "margin">): Sides;
+
+### build/strategy-DgiXqcFQ.d.ts#mulberry32
+declare function mulberry32(seed: number): () => number;
+
+### build/strategy-DgiXqcFQ.d.ts#supportsCell
+declare function supportsCell(supports: Supports, cell: Partial<Record<Dimension, string>>): boolean;
+
+### build/strategy-DgiXqcFQ.d.ts#turnItem
+declare function turnItem(item: Item): Item;
+
+### build/strategy-DgiXqcFQ.d.ts#unsupportedOf
+declare function unsupportedOf(supports: Supports, cell: Partial<Record<Dimension, string>>): {
+  dimension: Dimension;
+  value: string;
+} | undefined;

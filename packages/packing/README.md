@@ -184,6 +184,23 @@ checkHard(input, output); // { "no-overlap": 0, "in-container": 0, "locked-kept"
 
 `docs/PACKER.md` in the repository gives the interface in full.
 
+## Import one strategy
+
+Each single strategy has its own subpath. A bundler then adds only the code of the strategy that you import.
+
+```ts
+import { createContext, maxrects, type PackInput } from "@mark1russell7/packing/maxrects";
+
+const input: PackInput = { container: { w: 300, fixed: "width" }, items: [{ id: "a", w: 120, h: 40 }, { id: "b", w: 80, h: 30 }] };
+const output = maxrects.pack(input, { ...maxrects.defaults, rule: "bl" }, createContext(0));
+```
+
+- The subpaths are `rows`, `skyline`, `shelf`, `push`, `maxrects`, `guillotine` and `hole-degree`.
+- Each subpath exports the strategy, its options type, its packer function, `Rect` and `createContext`.
+- The subpath `default` exports `packDefault` and `DEFAULT_STRATEGY`. It gets only `select`, `rows` and `maxrects`.
+- The root import has the same names as before. Its npm build keeps all strategies in one bundle.
+- The composite strategies and `packWith` find their members by id. Thus they get all strategies of the registry.
+
 ## The strategy space
 
 `packSpace` gives the strategies of the package as data: a `StrategySpace` of the schema `strategy-space/1` of `@mark1russell7/layout-contract`.
