@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 392 names
+## . (build/index.d.ts): 397 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -41,9 +41,12 @@ type BoundObjective: build/index.d.ts#BoundObjective
 type BoundOptions: build/index.d.ts#BoundOptions
 type BurkeKendallWhitwellParams: build/index.d.ts#BurkeKendallWhitwellParams
 type BurkeKendallWhitwellProblem: build/index.d.ts#BurkeKendallWhitwellProblem
+CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/index.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+CIRCLE_QUASI_PHYSICAL_STAGE: build/index.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
+type CircleQuasiPhysicalOptions: build/index.d.ts#CircleQuasiPhysicalOptions
 type ClassContainer: build/index.d.ts#ClassContainer
 type ConsecutiveSquaresParams: build/index.d.ts#ConsecutiveSquaresParams
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
@@ -269,6 +272,8 @@ checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
+circleQuasiPhysical: build/index.d.ts#circleQuasiPhysical
+circlesOutside: build/index.d.ts#circlesOutside
 classGenerators: build/index.d.ts#classGenerators
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
@@ -705,6 +710,12 @@ type BurkeKendallWhitwellParams = {
 ### build/index.d.ts#BurkeKendallWhitwellProblem
 type BurkeKendallWhitwellProblem = "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | "N7" | "N8" | "N9" | "N10" | "N11" | "N12" | "N13";
 
+### build/index.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+export declare const CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS = 65536;
+
+### build/index.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+export declare const CIRCLE_QUASI_PHYSICAL_STAGE = "circle-quasi-physical";
+
 ### build/index.d.ts#CLASS_COUNTS
 export declare const CLASS_COUNTS: readonly number[];
 
@@ -714,6 +725,11 @@ interface ChangeMeasures {
   "pack.stability.mean": number;
   "pack.stability.q95": number;
   "pack.stability.procrustes": number;
+}
+
+### build/index.d.ts#CircleQuasiPhysicalOptions
+interface CircleQuasiPhysicalOptions {
+  iterations: number;
 }
 
 ### build/index.d.ts#ClassContainer
@@ -1479,6 +1495,12 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 
 ### build/index.d.ts#checkSelectTable
 export declare function checkSelectTable(table: SelectNode, members: number): void;
+
+### build/index.d.ts#circleQuasiPhysical
+export declare const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions>;
+
+### build/index.d.ts#circlesOutside
+export declare function circlesOutside(input: PackInput, output: Pick<PackOutput, "placements" | "size">, tolerance?: number): number;
 
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];

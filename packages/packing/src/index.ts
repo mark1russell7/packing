@@ -106,6 +106,7 @@ export {
   type AnchorStep,
   type AnchorStrategy,
 } from "./anchor.ts";
+export { CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS, CIRCLE_QUASI_PHYSICAL_STAGE, circleQuasiPhysical, circlesOutside, type CircleQuasiPhysicalOptions } from "./circle-quasi-physical.ts";
 export { circleOverlaps, HOLE_DEGREE_MAX_STEPS, HOLE_DEGREE_STAGE, holeDegree, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";

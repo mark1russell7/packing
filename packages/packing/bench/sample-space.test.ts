@@ -49,10 +49,11 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The pins of k121 come from the code: the first 4 uniform configs of the seed 20 without clock limits, and the meta counts with and without a clock limit.
 // The key fill of the portfolio (k127) adds a third value to the param key. Thus the meta counts are 1.5 times the counts before k127, and the draws changed.
 // Before k127 the pins were ce6d8bf386fbb8a6, 58da5ef5c70859cc, fb834701df83f8be, da3d8a993a6a894c, 19192758499731626819019141706 and 19192758499731625913230514340.
-const DEFAULT_UNIFORM_IDS = ["8e927552366b747d", "e7520bf93db84bc6", "fb834701df83f8be", "d49ccb0bd735314d"];
+const DEFAULT_UNIFORM_IDS = ["dae71a0de3def2a6", "e7520bf93db84bc6", "fb834701df83f8be", "d49ccb0bd735314d"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
-const CLOCK_FREE_META = 28789137749597439801406687782n;
-const CLOCK_CONFIGS = 28789137749597438869845771510n;
+const CLOCK_FREE_META = 29720021231139955137508058032n;
+// Roadmap item k94 adds the base configs of circle-quasi-physical to the members of the meta configs, and this changes the draws. Before k94 the pins were 8e927552366b747d, e7520bf93db84bc6, fb834701df83f8be, d49ccb0bd735314d, 28789137749597439801406687782 and 28789137749597438869845771510.
+const CLOCK_CONFIGS = 29720021231139954199668125010n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -124,8 +125,9 @@ describe("the counts of the configs", () => {
     const counts = spaceCounts(packSpace);
     // The orders, then the samples 12 to 192 of log-sweep with rows, skyline, shelf, maxrects or guillotine, or push with 64 values of maxShovesPerItem.
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
+    // Roadmap item k94 adds circle-quasi-physical with the order input only and the iterations 0 to 1024.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
-    expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64) + HOLE_DEGREE_MAX_STEPS + 1));
+    expect(counts.base).toBe(BigInt(SORT_ORDERS.length * (181 * placements + 64) + HOLE_DEGREE_MAX_STEPS + 1 + 1025));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "force"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
@@ -287,8 +289,9 @@ describe("the sample of pairs", () => {
   it("keeps the uniform draw of the timing mixed: the same configs as before k115, and no strata in the summary", () => {
     // The config ids of the first 4 pairs of the seed 20 come from the sampler of main before k115, with k23, k90, k117 and k79.
     // The key fill of k127 changed the first 2. Before k127 they were ce6d8bf386fbb8a6 and 58da5ef5c70859cc.
+    // The base configs of k94 changed the first one. Before k94 it was 3a60cbf146624a38.
     const a = sampleSpace({ ...options, timing: "mixed", clock: fakeClock() });
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["3a60cbf146624a38", "13c0582c0bc63a88", "c2b0e4f380f82b0d", "d49ccb0bd735314d"]);
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["8511366718f87b18", "13c0582c0bc63a88", "c2b0e4f380f82b0d", "d49ccb0bd735314d"]);
     expect(a.summary.draw).toBe("uniform");
     expect(a.summary.timing).toBe("mixed");
     expect("strata" in a.summary).toBe(false);
@@ -344,7 +347,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 25 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 26 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -355,6 +358,7 @@ describe("the strata of k115", () => {
       "guillotine:1",
       "push:1",
       "hole-degree:1",
+      "circle-quasi-physical:1",
       "portfolio:2",
       "portfolio:3",
       "portfolio:4",
@@ -387,6 +391,7 @@ describe("the strata of k115", () => {
     expect(of("maxrects-bl")).toBe("maxrects:1");
     expect(of("guillotine-bssf-sas-merge")).toBe("guillotine:1");
     expect(of("hole-degree")).toBe("hole-degree:1");
+    expect(of("circle-quasi-physical")).toBe("circle-quasi-physical:1");
     expect(of("skyline-mw-waste")).toBe("skyline:1");
     expect(of("portfolio")).toBe("cell-portfolio:cell");
     expect(of("portfolio-k2")).toBe("cell-portfolio:2");
@@ -444,11 +449,11 @@ describe("the strata of k115", () => {
     expect(a.summary.errors).toEqual([]);
     expect(a.summary.draw).toBe("stratified");
     expect(Object.keys(a.summary.strata!)).toEqual(strata);
-    // No sampled input has circles, so the stratum hole-degree:1 gets no pairs. Each other stratum gets 1 pair.
+    // No sampled input has circles, so the strata hole-degree:1 and circle-quasi-physical:1 get no pairs. Each other stratum gets 1 pair.
     // The sample is small, and a miss tries only 10 inputs: the full test is slow on the CI runner.
-    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" ? [id, 0, 1] : [id, 1, 0]);
+    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" || id === "circle-quasi-physical:1" ? [id, 0, 1] : [id, 1, 0]);
     expect(a.summary.strata!["rows:1"]!.configs).toBe("905");
-    expect(a.records).toHaveLength(strata.length - 1);
+    expect(a.records).toHaveLength(strata.length - 2);
     // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
     const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
     expect(moves).toEqual([256]);

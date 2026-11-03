@@ -101,6 +101,7 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   },
   bbox: { stage: "placement" },
   "hole-degree": { stage: "placement" },
+  "circle-quasi-physical": { stage: "placement" },
   "ruin-recreate": { stage: "local-search" },
   "overlap-min": { stage: "local-search" },
   relax: { stage: "local-search" },
@@ -332,6 +333,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
 export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<string, OptionInfo>>>> = {
   skyline: { rule: { type: oneOf(SKYLINE_RULES), note: "The rule to choose a place on the skyline: bottom-left or minimum waste." } },
+  "circle-quasi-physical": { iterations: { type: "number", note: "The count of the moves after the first layout, from 0 to 65536." } },
   "ruin-recreate": {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout and each recreate. The default is `maxrects-bl`." },
     iterations: { type: "number", note: "The count of the ruins. Each ruin removes some boxes, and the member packs them again." },

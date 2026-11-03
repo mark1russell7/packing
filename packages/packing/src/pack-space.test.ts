@@ -38,10 +38,11 @@ describe("packSpace", () => {
   });
 
   // Roadmap item k90 adds 3 base configs with 3 levels: hole-degree with 3 levels of steps. Before k90 the count was 2970.
-  it("has 5 stages and 2973 base configs with 3 levels", () => {
+  // Roadmap item k94 adds 3 more: circle-quasi-physical with 3 levels of iterations. Before k94 the counts were 2973 and 891.
+  it("has 5 stages and 2976 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(2973n);
-    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(891n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(2976n);
+    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(892n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
@@ -68,8 +69,9 @@ describe("packSpace", () => {
     // The table pack of select (k135) gives 2 values of the param table, not 1. Thus each count grows by the select configs.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(277869295533810375192n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100061834238419076n);
+    // Roadmap item k94 adds base configs to the members of the meta configs. Before k94 the counts were 277869295533810375192 and 100061834238419076.
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(279274944857694858960n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(100625752757509316n);
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 2970n, meta: 276469311858023490660n });
     expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 890n, meta: 99500446769432000n });
   });
@@ -124,13 +126,13 @@ describe("packSpace and the shape kinds", () => {
   const polygon: PackInput = { container: { fixed: "none" }, items: [...items, { id: "p", w: 10, h: 10, shape: { kind: "polygon", points: [[0, 0], [10, 0], [5, 10]] } }] };
 
   it("declares the shape kind rect on each option of each stage, but bbox and the options of hole-degree", () => {
-    // Roadmap item k90: hole-degree supports only circle. The order input and the options none also support circle.
+    // Roadmap items k90 and k94: hole-degree and circle-quasi-physical support only circle. The order input and the options none also support circle.
     const circleToo = ["order.input", "size-search.none", "local-search.none"];
     for (const s of packSpace.stages)
       for (const o of s.options) {
         const at = `${s.name}.${o.id}`;
         if (o.id === "bbox") continue;
-        const want = at === "placement.hole-degree" ? ["circle"] : circleToo.includes(at) ? ["rect", "circle"] : ["rect"];
+        const want = at === "placement.hole-degree" || at === "placement.circle-quasi-physical" ? ["circle"] : circleToo.includes(at) ? ["rect", "circle"] : ["rect"];
         expect(o.supports, at).toEqual({ shape: want });
       }
     // Roadmap item k91: the option bbox supports each kind, and its members get the bounding boxes (view bounds of contract 0.2.16)
@@ -147,12 +149,12 @@ describe("packSpace and the shape kinds", () => {
       expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 5940n });
       expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 1780n });
     }
-    // Roadmap item k90: a circle input also gets the base configs of hole-degree, 1 for each level of steps
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 3n, meta: 5940n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 1n, meta: 1780n });
+    // Roadmap items k90 and k94: a circle input also gets the base configs of hole-degree and circle-quasi-physical, 1 for each level. Before k94 the counts were 3 and 1.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 6n, meta: 5940n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 2n, meta: 1780n });
     expect([base3, base1]).toEqual([2970n, 890n]);
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 3n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 6n);
   });
 
   it("accepts each bbox config on a shape in checkConfig, and refuses a config without bbox", () => {
@@ -480,7 +482,8 @@ describe("configOfStrategy (k135)", () => {
 
   it("keeps the configId of each named config of main", () => {
     // The list of main before k135, with no named config pack. A change of a config or of canonicalConfig changes the hash.
-    const list = Object.entries(named).filter(([name]) => name !== "pack").map(([name, config]) => `${name}=${configId(packSpace, config)}`);
+    // The named config circle-quasi-physical of k94 is new. The filter leaves it out, so this old hash proves that k94 changes no old id.
+    const list = Object.entries(named).filter(([name]) => name !== "pack" && name !== "circle-quasi-physical").map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });
 });

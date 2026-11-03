@@ -586,10 +586,10 @@ These methods pack circles of equal or of different radii into a circle, a squar
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `circle-quasi-human` | Quasi-human strategies | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | Huang 1999 | density | steps x `O(n^2)` | — | planned | new item |
-| `circle-quasi-physical` | Quasi-physical energy | Treat each overlap as an elastic energy. Lower the energy with gradient steps, and jump out of each local minimum with a quasi-human move. | Wang 2002, Huang 2011b | density | steps x `O(n^2)` | — | planned | new item |
+| `circle-quasi-human` | Quasi-human strategies | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | Huang 1999 | density | steps x `O(n^2)` | — | implemented | k94 |
+| `circle-quasi-physical` | Quasi-physical energy | Treat each overlap as an elastic energy. Lower the energy with gradient steps, and jump out of each local minimum with a quasi-human move. | Wang 2002, Huang 2011b | density | steps x `O(n^2)` | — | implemented | k94 |
 | `circle-hole-degree` | Maximum hole degree | Put each circle in the corner place, where it touches two placed items, with the largest hole degree. Look one step ahead. The strategy `hole-degree` does it without the look-ahead. | Huang 2005, Huang 2006, Kubach 2009 | density, speed | `O(n^3)` to `O(n^4)` | — | implemented | k90 |
-| `circle-mbh` | Monotonic basin hopping | Change the layout at random, then do a local nonlinear solve. Keep the result only when it is better. | Addis 2008a, Addis 2008b | density | steps x local solve | — | planned | new item |
+| `circle-mbh` | Monotonic basin hopping | Change the layout at random, then do a local nonlinear solve. Keep the result only when it is better. | Addis 2008a, Addis 2008b | density | steps x local solve | — | implemented | k94 |
 | `circle-pbh` | Population basin hopping | Keep a population of `circle-mbh` runs, with a measure of how different two layouts are. | Grosso 2010 | density | population x steps x local solve | — | planned | new item |
 | `circle-fss` | Formulation space search | Change between the Cartesian form and the polar form of the same nonlinear program, to leave a local optimum of one form. | López 2011, López 2013 | density | steps x local solve | — | planned | new item |
 | `circle-its-strip` | Iterated tabu search for circles in a strip | Solve the strip as a series of fixed lengths. Solve each length with a tabu search, perturbations and a rule of acceptance. | Fu 2013 | density | lengths x steps | — | planned | new item |

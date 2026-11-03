@@ -16,6 +16,7 @@ const STRATEGY_MODULES: Readonly<Record<string, readonly string[]>> = {
   maxrects: ["maxrects-strategy.ts", "maxrects.ts"],
   guillotine: ["guillotine-strategy.ts", "guillotine.ts"],
   "hole-degree": ["hole-degree.ts"],
+  "circle-quasi-physical": ["circle-quasi-physical.ts"],
 };
 
 /**
