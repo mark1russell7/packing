@@ -396,7 +396,7 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-nmap` | Nmap | Split the items by their given points, and keep the neighbors near. | Duarte 2014 | order, neighbors | `O(n log n)` | — | planned | k27 |
 | `treemap-bounded-aspect` | Bounded aspect | Use convex cells with an aspect of `O(depth)`, or orthoconvex cells with a constant aspect. | de Berg 2011 | aspect | `O(n log n)` | cell aspect `O(depth)` (de Berg 2011) | planned | k27 |
 | `treemap-local-moves` | Stable by local moves | After a change, do the local move of the layout that gives the best mix of aspect and stability. | Sondag 2018 | stability, aspect | moves x `O(n)` | — | planned | k27 |
-| `treemap-git` | Greedy insertion treemap | Keep the old layout. Remove the old items, and add each new item into the cell that changes the least. | Vernier 2018 | stability | `O(n log n)` | — | planned | k27 |
+| `treemap-git` | Greedy insertion treemap | Keep a layout tree. A removed node gives its place to its lower subtree, or to its right subtree. A new node goes next to the cell with the worst aspect ratio. | Vernier 2018 | stability | `O(n log n)` | — | planned | k27 |
 | `treemap-evocells` | EvoCells | Map the changes of the tree onto the old layout. Grow and shrink the cells in place. | Scheibel 2018 | stability | `O(n log n)` | — | planned | k27 |
 | `treemap-sizepairs` | SizePairs | Pair the items by their change of size and by their size. Choose the direction of each split and the flips for stability and aspect. | Han 2022 | stability, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi-stable` | Stable Voronoi | Start the sites of a new Voronoi treemap at the sites of the old one. | Hahn 2014 | stability | iterations x `O(n log n)` | — | planned | k27 |
@@ -445,7 +445,7 @@ These methods keep the reading order of the input, or keep the layout when the i
 | `order-ordered-treemaps` | Ordered treemaps | `treemap-pivot-*`, `treemap-strip`, `treemap-split`, `treemap-spiral` and the curves keep the order. | Shneiderman 2001, Bederson 2002 | order | refer to [Treemaps](#treemaps) | — | planned | k29 |
 | `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n log n)` | — | planned | k29 |
 | `order-mental-map` | Keep the mental map | Keep the orthogonal order, the near neighbors and the topology of a layout when it changes. | Misue 1995, Eades 1991 | stability | depends on the method | — | planned | k29 |
-| `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | Vernier 2018 | stability | one pack | — | planned | k29 |
+| `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | this repository | stability | one pack | — | implemented: `pinUnchanged` | k29 |
 | `stable-local-moves` | Local moves | `treemap-local-moves` for packers: search the moves of a layout for the best mix of a measure and the movement. | Sondag 2018 | stability | moves x measure | — | planned | k29 |
 | `stable-voronoi` | Old sites as the start | `treemap-voronoi-stable`. | Hahn 2014 | stability | refer to [Treemaps](#treemaps) | — | planned | k29 |
 | `stable-animated` | Animated change | Move each box from the old place to the new place in steps. This changes no measure, but it helps a person follow the change. | Heer 2007 | perceived stability | `O(n)` for each frame | — | planned | k29 |
@@ -471,7 +471,7 @@ An online packer puts each box when it comes, and does not move it later. An inc
 | `incremental-vertical-compact` | Vertical compaction | After a move, move each box up as far as it goes, in order from the top. | react-grid-layout, software | stability, density | `O(n^2)` | — | planned | k30 |
 | `incremental-float` | Float grid | Do `incremental-push`, but do not compact. A box stays where the user puts it. | gridstack.js, software | stability | `O(n^2)` | — | planned | k30 |
 | `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | — | planned | k30 |
-| `incremental-git` | Greedy insertion | `treemap-git` for packers: remove the old boxes, and put each new box in the free space that changes the least. | Vernier 2018 | stability | `O(n F)` | — | planned | k30 |
+| `incremental-git` | Greedy insertion | `treemap-git` for packers: keep a layout tree, take the removed boxes out, and put each new box next to the worst box. | Vernier 2018 | stability | `O(n F)` | — | planned | k30 |
 
 Notes:
 

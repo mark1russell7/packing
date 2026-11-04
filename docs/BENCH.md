@@ -425,7 +425,7 @@ The name `screen-v1` is the screen set of the router `highways`. Thus the packer
 
 The flag `--anchor` adds the measures `pack.anchor.*` of roadmap item k111. The section "Stability when an anchor moves" tells them. Without the flag, the records do not change.
 
-No generator of the package makes an input with a `base` and a `change` yet. Thus no record has the stability measures. When the corpus has change pairs, the runner adds the measures of `measureChange` against the run on the base input.
+No generator of the package makes an input with a `base` and a `change` yet. Thus no record has the stability measures. When the corpus has change pairs, the runner adds the measures of `measureChange` against the run on the base input. The script `bench/pin.ts` makes its own pairs, so its values are not in these records.
 
 ## Stability when an anchor moves
 
@@ -1920,3 +1920,22 @@ The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap ite
 - The line `first-layout` shows the height before the search.
 
 The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
+
+## The pin of unchanged boxes
+
+`bench/pin.ts` measures `pinUnchanged` of roadmap item k29. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k29-pin-unchanged`.
+
+```bash
+node bench/pin.ts --out <file.json> [--seeds 30] [--count 100] [--share 0.05] [--steps 10]
+```
+
+The inputs are made-up strips of width 200 with 100 items. Each seed is a chain of 10 change steps. One step has 5 edits: 2 removed items, 2 added items and 1 resized item. The cost is the pinned height over the fresh height of the same step.
+
+| Entry | Moved, fresh | Moved, pinned | Cost, step 1 | Cost, step 10 | Worst cost |
+| --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | 0.757 | 0.010 | 1.072 | 1.215 | 1.328 |
+| `skyline` | 0.808 | 0.010 | 1.082 | 1.318 | 1.462 |
+
+- The moved column is the mean `pack.stability.moved`. A resized box stays in that measure, and it moves. That is the 0.010 of the pinned arm.
+- The hard rules have 0 breaks, and each item has a place.
+- These are the first values of `pack.stability.*`. They come from this script, not from a corpus.
