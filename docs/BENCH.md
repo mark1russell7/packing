@@ -1910,6 +1910,17 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
 
+## Groups as near rectangles
+
+The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has the inputs `seeds` (default 30) and `count` (default 40). The artifact `near-rects` has `near-rects.json`.
+
+- The made-up family is `raster-k92`. Each input has stars, boxes and circles. The arms are `bbox`, `near-rects` and `raster-nofit` at 64 trials.
+- The public instances are the 12 sets of the workflow `Raster no-fit`. The arms are `bbox` and `near-rects`.
+- The cell is the finest cell of the bench of `k92`: the mean box side over 32, and the strip width over 160.
+- The density is `densityOf`, and `crossingPairs` audits each output with no grid.
+- The time of the pair search is the median over 5 inputs of 100 items, in one CI process.
+
+The file holds a paired comparison for each pair of arms, with a two-sided sign test. The prediction is `packing-k97-near-rects`.
 ## The evolved place score
 
 The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
