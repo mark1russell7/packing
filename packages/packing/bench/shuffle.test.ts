@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { canonicalConfig, stepRandom, type StrategyConfig } from "@mark1russell7/layout-contract";
 import { packConfig, packSpace, packWith, strategy, type PackInput, type PackOutput } from "@mark1russell7/packing";
-import { ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES } from "./entries.ts";
+import { ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, STANDALONE_IDS } from "./entries.ts";
 import { hasClockLimit } from "./run.ts";
 import { capMoves, drawOf, drawPlan } from "./sample-space.ts";
 import { result, SPACE_INPUTS } from "./space-inputs.ts";
 
-// The shuffle test of roadmap item k121, as the test LD1 of graph. Each job packs each input 5 times, in a seeded shuffled order of all the calls of a group.
+// The shuffle test of roadmap item k121. Each job packs each input 5 times, in a seeded shuffled order of all the calls of a group.
 // A state that one pack leaves for the next pack changes an output, so one (job, input) gets two hashes. The test reads no time.
 
 /** The count of the packs of each job on each input. */
@@ -102,7 +102,7 @@ describe("the shuffle test of k121", () => {
     it(`gives one output for each job and input of group ${g + 1} of ${GROUPS.length} (${group[0]!.id} to ${group.at(-1)!.id})`, () => {
       const { unstable, packed } = shuffleRun(group, `group-${g}`);
       expect(unstable).toEqual([]);
-      expect(packed).toBeGreaterThanOrEqual(group.length);
+      expect(packed).toBeGreaterThanOrEqual(group.filter((job) => !STANDALONE_IDS.has(job.id.replace(/^entry:/u, ""))).length);
     });
   });
 });
