@@ -1,8 +1,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { gzipSync } from "node:zlib";
 import { parseResponseRecord } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
-import { navLinks } from "./chrome.ts";
-import { explorerFacts } from "./explorer-model.ts";
+import { buildLine, navLinks } from "./chrome.ts";
+import { coverageLine, explorerFacts, NO_COVERAGE_LINE, RECORD_ORIGIN } from "./explorer-model.ts";
 import { byDate, COVERAGE_LABELS, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
@@ -57,6 +58,43 @@ const KINDS: Record<string, Snapshot["kind"]> = {
   "strategies-pack-select-v2.json": "strategies",
 };
 
+/**
+ * The budget of the record of the explorer, in bytes of gzip at the default level of `node:zlib`.
+ * The size is 152,105 bytes. The budget is ceil(1.05 x size / 1024) x 1024, the formula of the size gate of the package.
+ * The server of the site sends 162,509 bytes, so this gate holds the file and not the server.
+ */
+const RECORD_GZIP_BUDGET = 159_744;
+
+describe("the line of the build", () => {
+  const line = buildLine({ release: "1.2.3", commit: "abc1234", date: "2026-11-04" });
+
+  it("gives the release, the commit and the date", () => {
+    expect(line).toContain("release 1.2.3");
+    expect(line).toContain("/commit/abc1234");
+    expect(line).toContain("of 2026-11-04");
+  });
+
+  it("escapes its values", () => {
+    expect(buildLine({ release: "<b>", commit: "x", date: "y" })).toContain("&lt;b&gt;");
+  });
+});
+
+describe("the coverage line of the explorer", () => {
+  const kpi = (value: number): string => JSON.stringify({ measures: [{ id: "picker-strategies", value: 0 }, { id: "coverage-shown", value }] });
+
+  it("names the measure while it reads 0", () => {
+    expect(coverageLine(kpi(0))).toBe(NO_COVERAGE_LINE);
+  });
+
+  it("goes away when the measure reads 1", () => {
+    expect(coverageLine(kpi(1))).toBe("");
+  });
+
+  it("makes no claim for a file with no such measure", () => {
+    expect(coverageLine("{}")).toBe("");
+  });
+});
+
 describe("the record of the response explorer", () => {
   const parsed = parseResponseRecord(JSON.parse(read("response-coverage.json")));
 
@@ -72,6 +110,17 @@ describe("the record of the response explorer", () => {
   it("has a smaller held-out error than the mean for each measure", () => {
     if (!parsed.ok) throw new Error("The record has faults.");
     for (const fit of explorerFacts(parsed.record).fits) expect(fit.mae).toBeLessThan(fit.baselineMae);
+  });
+
+  it("has the origin of its own run", () => {
+    if (!parsed.ok) throw new Error("The record has faults.");
+    expect(explorerFacts(parsed.record).run).toBe(String(RECORD_ORIGIN.run));
+  });
+
+  it("stays in its gzip budget, and the budget stays near the size", () => {
+    const size = gzipSync(read("response-coverage.json")).length;
+    expect(size).toBeLessThanOrEqual(RECORD_GZIP_BUDGET);
+    expect(size).toBeGreaterThan(RECORD_GZIP_BUDGET * 0.9);
   });
 
   it("leaves out the stored predictions, so the page stays small", () => {

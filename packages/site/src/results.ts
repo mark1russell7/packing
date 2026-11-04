@@ -2,7 +2,7 @@
 // The page reads only the snapshot files of `packages/site/data/`.
 
 import { marked } from "marked";
-import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, parseCorpusCover } from "./corpus-cover-model.ts";
+import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover, type LawCoverCount } from "./corpus-cover-model.ts";
 import strategiesText from "../content/results-strategies.md?raw";
 import speedText from "../content/results-speed.md?raw";
 import selectText from "../content/results-select.md?raw";
@@ -18,6 +18,7 @@ import gapsSelectJson from "../data/gaps-pack-select-v2.json?raw";
 import coverageText from "../content/results-coverage.md?raw";
 import corpusCoverText from "../content/results-corpus-cover.md?raw";
 import corpusCoverJson from "../data/corpus-cover.json?raw";
+import lawCoverJson from "../data/law-cover.json?raw";
 import coverageJson from "../data/coverage.json?raw";
 import { mountChrome } from "./chrome.ts";
 import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
@@ -425,6 +426,7 @@ function drawCorpusCover(): void {
   $("corpus-cover-grid").innerHTML = coverGrid(corpusCover, view, coverPair);
   $("corpus-cover-pair").innerHTML = coverPairTable(corpusCover, view, coverPair);
   $("corpus-cover-empty").innerHTML = coverEmptyLine(view);
+  $("law-cover-line").textContent = lawLine(JSON.parse(lawCoverJson) as LawCoverCount);
 }
 
 function mountCorpusCover(): void {

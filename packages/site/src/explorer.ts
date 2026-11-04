@@ -5,8 +5,8 @@ import { mountExplorer } from "@mark1russell7/site-pages/explorer";
 import "@mark1russell7/site-pages/explorer.css";
 import recordUrl from "../data/response-coverage.json?url";
 import { mountChrome } from "./chrome.ts";
-import { explorerFacts, type ExplorerFacts } from "./explorer-model.ts";
-import { esc } from "./format.ts";
+import { coverageLine, explorerFacts, RECORD_ORIGIN, type ExplorerFacts } from "./explorer-model.ts";
+import { esc, originHtml } from "./format.ts";
 import "./style.css";
 import "./pages.css";
 
@@ -15,8 +15,6 @@ const $ = <T extends HTMLElement>(id: string): T => {
   if (!el) throw new Error(`The page has no element "${id}".`);
   return el as T;
 };
-
-const RUNS = "https://github.com/mark1russell7/packing/actions/runs";
 
 /** This function gives the tiles of the facts. */
 function tilesHtml(facts: ExplorerFacts): string {
@@ -36,6 +34,14 @@ function fitsHtml(facts: ExplorerFacts): string {
 
 mountChrome($("links"), "explorer");
 
+/** This function shows the state of the coverage number. The file `kpi.json` comes from the build, so a dev server has no line. */
+async function showCoverage(): Promise<void> {
+  const response = await fetch(`${import.meta.env.BASE_URL}kpi.json`);
+  if (!response.ok) return;
+  const line = coverageLine(await response.text());
+  if (line !== "") $("explorer-coverage").textContent = line;
+}
+
 /** This function loads the record, shows its facts and mounts the explorer. */
 async function main(): Promise<void> {
   const response = await fetch(recordUrl);
@@ -46,10 +52,12 @@ async function main(): Promise<void> {
     const facts = explorerFacts(parsed.record);
     $("explorer-tiles").innerHTML = tilesHtml(facts);
     $("explorer-fits").innerHTML = fitsHtml(facts);
-    if (facts.run !== undefined) $("explorer-origin").innerHTML = `<p class="hint">The data comes from run <a href="${RUNS}/${esc(facts.run)}">${esc(facts.run)}</a>.</p>`;
+    $("explorer-origin").innerHTML = originHtml([RECORD_ORIGIN]);
   }
   mountExplorer($("explorer"), text, { initial: { x: "count" } });
 }
+
+showCoverage().catch(() => undefined);
 
 main().catch((error: unknown) => {
   $("explorer").textContent = String(error);

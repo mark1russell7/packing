@@ -6,6 +6,21 @@ import { esc } from "./format.ts";
 /** The schema of the coverage file */
 export const CORPUS_COVER_SCHEMA = "packing-corpus-cover/1";
 
+/** The fields of `data/law-cover.json` for the line of the law pairs. */
+export interface LawCoverCount {
+  readonly covered: number;
+  readonly pairs: number;
+  readonly specs: number;
+  readonly refused: number;
+  readonly floor: number;
+}
+
+/** This function gives the line of the law pairs. A spec under the floor adds no pair, so the count is a lower bound. */
+export function lawLine(cover: LawCoverCount): string {
+  const all = cover.specs + cover.refused;
+  return `The corpus emits at least ${cover.covered} of the ${cover.pairs} pairs of two item laws, read from the generated items. This is a lower bound: ${cover.refused} of ${all} specs have fewer than ${cover.floor} items, so they add no pair.`;
+}
+
 /** The largest share of the accent in a square. Above it, the text of a square has low contrast in one of the themes. */
 const COVER_FILL = 0.45;
 
