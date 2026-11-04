@@ -169,6 +169,7 @@ export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel
 export { configOfStrategy, PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type OptionPlace, type StrategyPoint } from "./pack-space.ts";
 export type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
+export { checkSideAnchors, packSideAnchors, type AnchorSide, type SideAnchor, type SideAnchorOptions, type SideAnchorResult } from "./side-anchors.ts";
 export {
   BOUND_KINDS,
   boundGap,

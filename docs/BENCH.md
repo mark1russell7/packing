@@ -1901,3 +1901,29 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The table "The active rounds" shows, for each round, the share of the new pairs and the share of the sample after the round. The first row is the grid only.
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
+
+## Side anchors
+
+`bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
+
+```bash
+node bench/side-anchors.ts --out <file.json> [--seeds 30] [--count 40] [--anchors 4]
+```
+
+The family has 40 made-up rectangles on a strip of width 200, with 4 anchors on random sides. The member is `maxrects` with the rule `bl`. The stream draws again when two anchors overlap at each height.
+
+| Measure, 30 seeds | Value |
+| --- | --- |
+| Mean height over the height with no anchors | 2.01 |
+| Median of that ratio | 1.09 |
+| Worst of that ratio | 9.55 |
+| Seeds where the anchors alone force more height | 15 |
+| Mean height over the larger of the plain and the forced height | 1.02 |
+| Worst of that ratio | 1.09 |
+| Median packs for one call | 11 |
+| Most packs for one call | 17 |
+| Breaks of the hard rules and of `anchor-kept` | 0 |
+
+The mean is high because of the input, not the search. A fraction and an offset on one side overlap over a range of heights, and the layout must go past that range.
+
+The plain band is shorter on 12 seeds, but each of those 12 layouts has an overlap of its anchors. The search is shorter on all 18 other seeds. This family has random anchors, so it says little about a designed layout.

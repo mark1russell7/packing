@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 417 names
+## . (build/index.d.ts): 423 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -14,6 +14,7 @@ ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
 type AnchorMeasures: build/index.d.ts#AnchorMeasures
+type AnchorSide: build/index.d.ts#AnchorSide
 type AnchorStability: build/index.d.ts#AnchorStability
 type AnchorStabilityOptions: build/index.d.ts#AnchorStabilityOptions
 type AnchorStep: build/index.d.ts#AnchorStep
@@ -210,6 +211,9 @@ type SelectStrategyOptions: build/index.d.ts#SelectStrategyOptions
 type ShelfFit: build/layout-strategy.d.ts#ShelfFit
 type ShelfOptions: build/layout-strategy.d.ts#ShelfOptions
 type Side: @mark1russell7/layout-contract#Side (external)
+type SideAnchor: build/index.d.ts#SideAnchor
+type SideAnchorOptions: build/index.d.ts#SideAnchorOptions
+type SideAnchorResult: build/index.d.ts#SideAnchorResult
 type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/strategy.d.ts#SizeSearch
@@ -283,6 +287,7 @@ cellOf: build/strategy.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
+checkSideAnchors: build/index.d.ts#checkSideAnchors
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
 compareRects: build/order.d.ts#compareRects
@@ -355,6 +360,7 @@ packPortfolio: build/index.d.ts#packPortfolio
 packRasterNofit: build/index.d.ts#packRasterNofit
 packRows: build/layout-strategy.d.ts#packRows
 packShelf: build/layout-strategy.d.ts#packShelf
+packSideAnchors: build/index.d.ts#packSideAnchors
 packSkyline: build/layout-strategy.d.ts#packSkyline
 packSpace: build/index.d.ts#packSpace
 packWith: build/index.d.ts#packWith
@@ -594,6 +600,9 @@ interface AnchorMeasures {
   "pack.anchor.gain": number;
   "pack.anchor.settled": number;
 }
+
+### build/index.d.ts#AnchorSide
+type AnchorSide = "top" | "bottom" | "left" | "right";
 
 ### build/index.d.ts#AnchorStability
 interface AnchorStability {
@@ -1370,6 +1379,29 @@ interface SelectStrategyOptions {
   table?: SelectNode;
 }
 
+### build/index.d.ts#SideAnchor
+interface SideAnchor {
+  readonly id: string;
+  readonly side: AnchorSide;
+  readonly at?: number;
+  readonly offset?: number;
+}
+
+### build/index.d.ts#SideAnchorOptions
+interface SideAnchorOptions {
+  readonly strategy?: string;
+  readonly strategyOptions?: unknown;
+  readonly seed?: number;
+  readonly precision?: number;
+}
+
+### build/index.d.ts#SideAnchorResult
+interface SideAnchorResult {
+  readonly output: PackOutput;
+  readonly packs: number;
+  readonly good: boolean;
+}
+
 ### build/index.d.ts#SizeDistribution
 type SizeDistribution = "identical" | "nearIdentical" | "uniform" | "heavyTail" | "bimodal" | "extremeAspect";
 
@@ -1589,6 +1621,9 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 ### build/index.d.ts#checkSelectTable
 export declare function checkSelectTable(table: SelectNode, members: number): void;
 
+### build/index.d.ts#checkSideAnchors
+export declare function checkSideAnchors(input: PackInput, output: PackOutput, anchors: readonly SideAnchor[]): number;
+
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
 
@@ -1763,6 +1798,9 @@ export declare function packPortfolio(members: readonly (string | PortfolioEntry
 
 ### build/index.d.ts#packRasterNofit
 export declare function packRasterNofit(input: PackInput, options?: RasterNofitOptions): PackOutput;
+
+### build/index.d.ts#packSideAnchors
+export declare function packSideAnchors(input: PackInput, anchors: readonly SideAnchor[], options?: SideAnchorOptions): SideAnchorResult;
 
 ### build/index.d.ts#packSpace
 export declare const packSpace: StrategySpace$1;
