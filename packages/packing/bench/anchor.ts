@@ -52,7 +52,7 @@ export function anchorClaim(specs: readonly CorpusSpec[] = anchorSpecs()): Decla
 }
 
 /** This function gives a JSON value on one line, with a space after each colon and each comma. */
-function inline(value: unknown): string {
+export function inline(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(inline).join(", ")}]`;
   if (value !== null && typeof value === "object") return `{${Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${inline(v)}`).join(", ")}}`;
   return JSON.stringify(value);
