@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.0
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
+
+- `packSpace` has the new strategy `circle-quasi-physical`, so pinned values of `spaceSize` change. With 3 levels, `base` goes from 3798 to 3801. With 1 level, `base` goes from 1122 to 1123. The `meta` counts also grow. The rect counts and the old named config ids do not change.
+- `allStrategies` goes from 21 to 31 ids. A consumer that pins the count or lists each id sees new ids.
+
+The API report of 0.6.1 and of this version shows 0 removed names, 37 added names in the root and 1 new subpath. No declaration of 0.6.1 changes. The default outputs do not change.
+
+### Added
+
+- `allStrategies` lists each standalone layout function: `sleator`, `beam`, `exact-strip`, `binary-height`, `near-rects`, `raster-nofit`, `masonry`, `treemap` and `side-anchors` (roadmap item k141). The new names are `standaloneStrategies`, `sideAnchorsStrategy`, `STANDALONE_MAX_ITEMS`, `EXACT_STRATEGY_NODE_LIMIT` and the types `MasonryMethod`, `MasonryStrategyOptions`, `SideAnchorStrategyOptions`, `TreemapMethod` and `TreemapStrategyOptions`.
+- The opt-in strategy `circle-quasi-physical` for circles, with its own subpath `./circle-quasi-physical`, and the names `circleQuasiPhysical`, `circlesOutside`, `CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS`, `CIRCLE_QUASI_PHYSICAL_STAGE` and `CircleQuasiPhysicalOptions` (roadmap item k94).
+- The Sleator strip as a baseline with a proved bound: `sleatorStrip`, `sleatorRefusal` and the type `SleatorResult` (roadmap item k52).
+- The beam search on a strip: `beamStrip`, `BEAM_WIDTH` and the types `BeamOptions` and `BeamResult` (roadmap item k85, first slice).
+- The generator `change-walk` and the corpus `pack-change-v1`: `changeWalk`, `changeGenerators`, `CHANGE_WALK_KINDS`, `CHANGE_WALK_STEPS` and the types `ChangeWalkKind` and `ChangeWalkParams` (roadmap item k48).
+- Methods that follow a change of the input: `pinUnchanged` with the type `PinnedInput` and `keepOrthogonal` (roadmap item k29), `compactUp` and `keepPrefix` (roadmap item k30), `windowOrder` and `matchPlaces` (roadmap item k31).
+- The row legalizer: `legalizeRows`, `placeRow` and the type `LegalizeOptions` (roadmap item k82).
+
 ## 0.6.1
 
 This release raises the PATCH version: it adds exports and changes no default output. The API report of 0.6.0 and of this version shows 0 removed names and 12 added names.
