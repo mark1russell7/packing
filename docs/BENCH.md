@@ -906,6 +906,23 @@ Each near line is `{"case","fn",...the inputs,"near","floatAnswer","times"}`. Th
 
 `JSON.stringify` writes each number exactly, but it writes `-0` as `0` and an infinite size as `null`. The probe does not change an answer, and the other commands do not set it. Thus their outputs stay byte-equal.
 
+## The raster no-fit
+
+The workflow `Raster no-fit` (`.github/workflows/raster-nofit.yml`) measures `packRasterNofit` (roadmap item k92). It has `workflow_dispatch` only. Its artifact `raster-nofit` has `raster-nofit.json` and `summary.jsonl`.
+
+```sh
+node bench/raster-nofit.ts --out out.json --instances <dir> --seeds 30 --trials 64 --instance-trials 1024
+```
+
+- The family `raster-k92` is made up: 30 items of stars, boxes and circles for each seed. Its cells are 1/8, 1/16 and 1/32 of the mean box side.
+- `medianGainOfFinest` is the median over the seeds of `density(finest) / density(cell) - 1`. It is the density cost of that cell, with the same trials.
+- The job fetches 12 instance files at a pinned commit of `JeroenGar/sparrow` (MIT). Their origin is `ESICUP/datasets` (CC0). This repository does not hold them.
+- `--instances` reads each `.json` file of the folder, so keep `--out` in a different folder.
+- Each instance has cells of 1/40, 1/80 and 1/160 of the strip width.
+- Each row has its `published` values and the label `turns`. Only a row with `same` compares the same problem. `docs/PACKER.md` tells the limits.
+- `crossings` is a float audit that does not read a grid. Each row must have 0. It looks for an edge crossing or a probe point inside the other shape.
+- The density does not depend on the machine. `ms` does, so read it only from a CI run.
+
 ## A paired time test
 
 Two bench runs often go on two runners with different CPUs, and their times do not compare. The workflow `Paired` (`.github/workflows/paired.yml`) times two refs of the repository in one job. Start it with the GitHub CLI:
