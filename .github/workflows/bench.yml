@@ -273,10 +273,14 @@ jobs:
           node packages/packing/bench/coverage.ts --records "$out/records.jsonl" --corpus "$out/corpus.json" \
             --out "$out/coverage.json" --by spec --run "$GITHUB_RUN_ID" --date "$run_date" --min-records 50 --features "$FEATURES" \
             "${sample[@]}" "${active[@]}" > "$RUNNER_TEMP/coverage.txt" 2>&1 || status=$?
+          # k143: the measured points of two seeds of each spec and a fitted surface. docs/BENCH.md ("The response record") tells it.
+          timeout 600 node packages/packing/bench/response.ts --records "$out/records.jsonl" --corpus "$out/corpus.json" \
+            --out "$out/response.json" --run "$GITHUB_RUN_ID" --seeds 2 > "$RUNNER_TEMP/response.txt" 2>&1 || status=$?
           {
             echo "### The space coverage (folds by spec)"
             echo '```'
             cat "$RUNNER_TEMP/coverage.txt"
+            cat "$RUNNER_TEMP/response.txt"
             echo '```'
             if [ -f "$RUNNER_TEMP/sample.txt" ]; then
               echo "### The sample of the whole space"

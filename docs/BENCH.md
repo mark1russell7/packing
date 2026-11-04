@@ -608,6 +608,26 @@ The field `coverage` of `run.json` tells which part of the corpus each strategy 
 
 A skipped record is the record of a pair that the strategy does not support. It has `skipped`, and `measures` and `hard` are empty objects. Its `ms` is 0, and it has no `msRuns` and no `outputHash`. The medians, the tables and the predictions of the summary ignore the skipped records.
 
+### The response record
+
+The file `response.json` of the merged artifact is a record `response-records/1` of `@mark1russell7/rigor-statistics` (k143). The summary `packing-coverage/1` keeps only pooled errors. This record keeps each measured point, so the response explorer of a site can show the points, a fitted surface and its held-out error.
+
+```bash
+node bench/response.ts --records <file> --corpus <file> --out <file> [--run <id>] [--seeds <n>] [--folds 5] [--seed 1]
+```
+
+- Each record of a run is one point. `--seeds` keeps the first seeds of each spec. `bench.yml` keeps 2.
+- The dimensions are the strategy and each param of the corpus with two levels or more. A number param is ordinal, and another param is categorical.
+- The family is a dimension when a param is only in some families, or when two families have the same params. A param of some families has a condition on the family.
+- A skipped record is a point with the reason `skipped`.
+- The points of one spec are one group. Thus a fold holds out a whole spec, as the coverage does with `--by spec`.
+- The fit is a ridge fit of degree 2 with the products of two dimensions. The time has a log scale, as in the coverage. Above the limit of terms, the fit has no products.
+- Each fold keeps the prediction of each held-out point, so `heldOutErrorAt` gives the error of one strategy or one cell.
+- A measure has the range of `MEASURE_SPECS` only when each value is in it. A record from before k118 can have a `pack.gap` above 1.
+- A corpus with fewer than 3 specs gives no file.
+
+The regression tree of `bench/coverage.ts` stays the coverage model. The surface of this record is for a view, and the coverage share does not read it.
+
 ## The screen guards
 
 Roadmap item k59 adds these guards to each run. Roadmap item k60 adds the ranking. The code is in `packages/packing/bench/screen.ts`. The guards come from the records, so the job `merge` makes them again from the records of all the jobs. A merge without records has no guards.

@@ -50,7 +50,7 @@ export const COVERAGE_MEASURES: readonly CoverageMeasure[] = Object.freeze([
 ]);
 
 /** The smallest time of the log scale, in milliseconds. A smaller time gets this value. */
-const LOG_FLOOR = 0.001;
+export const LOG_FLOOR = 0.001;
 
 /** The value of a feature that a row does not have. */
 export const ABSENT = "-";
@@ -611,10 +611,16 @@ function errorStats(errors: readonly number[], tolerance: number): ErrorStats {
   return { mae: r4(errors.reduce((s, e) => s + e, 0) / n), medianAe: r4(medianOf(errors)), withinTolerance: r4(within / n) };
 }
 
+/** This function gives the finite value of a measure in a record, on its own scale, or `undefined`. */
+export function rawValue(r: CoverageRecord, m: CoverageMeasure): number | undefined {
+  const raw = m.id === "ms" ? r.ms : r.measures?.[m.id];
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
 /** This function gives the value of a record for a measure on its scale, or `undefined` when the record has no finite value. */
 function valueOf(r: CoverageRecord, m: CoverageMeasure): number | undefined {
-  const raw = m.id === "ms" ? r.ms : r.measures?.[m.id];
-  if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
+  const raw = rawValue(r, m);
+  if (raw === undefined) return undefined;
   return m.scale === "log" ? Math.log10(Math.max(raw, LOG_FLOOR)) : raw;
 }
 
