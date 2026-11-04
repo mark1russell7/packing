@@ -4,7 +4,7 @@ export { defaultLayoutOf, pack, packRows, rectFeatures, type PackOptions, type P
 export { packSkyline, lowestWindow, SKYLINE_RULES, type SkylineOptions, type SkylineRule } from "./skyline.ts";
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
-export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule } from "./maxrects.ts";
+export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule, type MaxRectsScore } from "./maxrects.ts";
 export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
 export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";

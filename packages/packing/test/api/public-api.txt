@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 407 names
+## . (build/index.d.ts): 408 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -125,6 +125,7 @@ type MartelloVigoClass: build/index.d.ts#MartelloVigoClass
 type MartelloVigoParams: build/index.d.ts#MartelloVigoParams
 type MaxRectsOptions: build/layout-strategy.d.ts#MaxRectsOptions
 type MaxRectsRule: build/layout-strategy.d.ts#MaxRectsRule
+type MaxRectsScore: build/layout-strategy.d.ts#MaxRectsScore
 type MaxRectsStrategyOptions: build/layout-strategy.d.ts#MaxRectsStrategyOptions
 type MeasureFamily: build/index.d.ts#MeasureFamily
 type MeasureId: build/index.d.ts#MeasureId
@@ -1952,6 +1953,7 @@ interface MaxRectsOptions {
   links?: readonly ItemLink[];
   space?: FreeSpace;
   rule?: MaxRectsRule;
+  score?: MaxRectsScore;
   bandHeight?: number;
   turnable?: ReadonlySet<unknown>;
   turned?: Set<unknown>;
@@ -1959,6 +1961,9 @@ interface MaxRectsOptions {
 
 ### build/layout-strategy.d.ts#MaxRectsRule
 type MaxRectsRule = (typeof MAXRECTS_RULES)[number];
+
+### build/layout-strategy.d.ts#MaxRectsScore
+type MaxRectsScore = (bw: number, bh: number, lw: number, lh: number, x: number, y: number, top: number, width: number) => number;
 
 ### build/layout-strategy.d.ts#MaxRectsStrategyOptions
 interface MaxRectsStrategyOptions extends LayoutStrategyOptions {

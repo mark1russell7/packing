@@ -1798,3 +1798,17 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The table "The active rounds" shows, for each round, the share of the new pairs and the share of the sample after the round. The first row is the grid only.
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
+
+## The evolved place score
+
+The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
+
+- A score is a tree of `+`, `-`, `*`, a protected `/`, `min` and `max`. Its leaves are the box, the leftovers, the place and the top of the layout, as shares of the width.
+- The first population has the fixed rules as trees. The rule `cp` has no tree.
+- The search reads generated strips from the specs of `pack-strip-v1`, with seeds that the corpus does not hold. The search reads inputs of 200 items or fewer.
+- Each search has its own seed. Seeds that the search did not read choose one tree.
+- The program then reads the 264 free-height inputs of `pack-strip-v1`. No choice comes from them, and `--skip-held-out` keeps them out of a smoke test.
+
+The report gives the mean height over the objective bound, the gain over the best fixed rule, and a two-sided sign test. The numbers are in the artifact `gp-score`.
+
+The score tree stays in `bench/gp-score.ts`, and `packMaxRects` reads only a function. No strategy gives the option `score`, and no default uses it.
