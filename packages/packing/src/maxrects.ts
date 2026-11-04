@@ -24,6 +24,20 @@ export const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp", "wire"
 export type MaxRectsRule = (typeof MAXRECTS_RULES)[number];
 
 /**
+ * A score of a place of `packMaxRects`. Lower scores are better.
+ *
+ * @param bw - The width of the box at this place.
+ * @param bh - The height of the box at this place.
+ * @param lw - The width that stays in the free rectangle.
+ * @param lh - The height that stays in the free rectangle.
+ * @param x - The left edge of the box.
+ * @param y - The top edge of the box.
+ * @param top - The lowest edge of the layout before this box.
+ * @param width - The width of the outer rectangle.
+ */
+export type MaxRectsScore = (bw: number, bh: number, lw: number, lh: number, x: number, y: number, top: number, width: number) => number;
+
+/**
  * The cost of the rule `wire` for one unit of height under the lowest box, for one unit of link weight. Only a free height reads it.
  * Without this cost, the boxes stay near their links, and the layout is up to 1.7 times as high as with `bl`. `docs/PACKER.md` has the trial.
  */
@@ -45,6 +59,11 @@ export interface MaxRectsOptions {
   space?: FreeSpace;
   /** The rule to choose a free rectangle. The default is `bssf`. */
   rule?: MaxRectsRule;
+  /**
+   * A score that replaces the rule at each place. A tie goes to the box with the lowest bottom edge. The default is no
+   * score. The bench of roadmap item k83 reads this option. No strategy gives it.
+   */
+  score?: MaxRectsScore;
   /**
    * The largest height of a band of the approximation of a space that is not plain. The bands have equal heights. The
    * default is the height to cut divided by `MAXRECTS_BANDS`. A fixed height cuts the height. A free height cuts to the
@@ -337,6 +356,7 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
 
   const linked = rule === "wire" ? linksByRect(rects, options.links ?? []) : undefined;
   const cp = rule === "cp";
+  const { score } = options;
   const vertical: Edges = new Map();
   const horizontal: Edges = new Map();
   const mark = (b: Box): void => {
@@ -395,7 +415,10 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
             const y = under ? f.y1 - bh : f.y0;
             let s1: number;
             let s2: number;
-            switch (rule) {
+            if (score !== undefined) {
+              s1 = score(bw, bh, lw, lh, x, y, bottom, W);
+              s2 = y + bh;
+            } else switch (rule) {
               case "bssf":
                 s1 = Math.min(lw, lh);
                 s2 = Math.max(lw, lh);

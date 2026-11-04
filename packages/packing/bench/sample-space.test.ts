@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { corpusFamilies, generator, GRAPH_ORDERS, type GeneratedInput, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, HOLE_DEGREE_MAX_STEPS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
+import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, corpusFamilies, generator, GRAPH_ORDERS, type GeneratedInput, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, HOLE_DEGREE_MAX_STEPS, MAXRECTS_RULES, packSpace, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, toPackInput } from "@mark1russell7/packing";
 import {
   checkConfig,
   checkSpace,
@@ -52,11 +52,12 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The order graph-bfs (layout-stack L34) gives more base configs, so the counts and the draws changed.
 // Before L34 the pins were 8e927552366b747d, e7520bf93db84bc6, fb834701df83f8be, d49ccb0bd735314d, 28789137749597439801406687782 and 28789137749597438869845771510.
 // The rule wire of k136 adds configs too. Before k136 the pins were ce6d8bf386fbb8a6, 5ff46c2513f1c859, e0392ab28b85d0d0, 90e85a9b3b203375, 71506084854820641670444082160 and 71506084854820640540641605810.
-const DEFAULT_UNIFORM_IDS = ["99f077f73ba82661", "8a4c62b086079de4", "e764f2c6cdd482e6", "c7a8ed52072f03a8"];
+// The 2 placement options of k25 changed the draws and the counts. Before k25 the pins were 99f077f73ba82661, 8a4c62b086079de4, e764f2c6cdd482e6, c7a8ed52072f03a8, 79943291102292057106200512423 and 79943291102292055949201549490.
+const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "e824ad73e7edf6a5", "3f8e28feceedef44", "c7a8ed52072f03a8"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
 // The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
-const CLOCK_FREE_META = 79943291102292057106200512423n;
-const CLOCK_CONFIGS = 79943291102292055949201549490n;
+const CLOCK_FREE_META = 91590358728953040752342089373n;
+const CLOCK_CONFIGS = 91590358728953039561241613290n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -129,7 +130,8 @@ describe("the counts of the configs", () => {
     // The orders, then the samples 12 to 192 of log-sweep with rows, skyline, shelf, maxrects or guillotine, or push with 64 values of maxShovesPerItem.
     // The graph orders of L34 do not go with push.
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
-    const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
+    // Roadmap item k25 adds bottom-left with its rules and best-fit with its sides. Before k25 the base count was 160538.
+    const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
     expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
@@ -295,7 +297,8 @@ describe("the sample of pairs", () => {
     // The key fill of k127 changed the first 2. Before k127 they were ce6d8bf386fbb8a6 and 58da5ef5c70859cc.
     // The rule wire of k136 changed the first 3. Before k136 they were 3c8559a1a81bd1e1, 9a23adfaf96ff747 and 50c99f6adf729198.
     const a = sampleSpace({ ...options, timing: "mixed", clock: fakeClock() });
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["c284c6797a97ed1e", "d4f479379be03745", "7ae4bf3d188259b2", "d991ad41c88721cf"]);
+    // The 2 placement options of k25 changed the pins. Before k25 they were c284c6797a97ed1e, d4f479379be03745, 7ae4bf3d188259b2 and d991ad41c88721cf.
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["eee8418b2d64c90d", "2ac8900a2f37bcb8", "835bcfc36a31e5f3", "d991ad41c88721cf"]);
     expect(a.summary.draw).toBe("uniform");
     expect(a.summary.timing).toBe("mixed");
     expect("strata" in a.summary).toBe(false);
@@ -351,7 +354,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 25 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 27 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -361,6 +364,8 @@ describe("the strata of k115", () => {
       "maxrects:1",
       "guillotine:1",
       "push:1",
+      "bottom-left:1",
+      "best-fit:1",
       "hole-degree:1",
       "portfolio:2",
       "portfolio:3",
@@ -395,6 +400,8 @@ describe("the strata of k115", () => {
     expect(of("maxrects-bl")).toBe("maxrects:1");
     expect(of("guillotine-bssf-sas-merge")).toBe("guillotine:1");
     expect(of("hole-degree")).toBe("hole-degree:1");
+    expect(of("bottom-left-liu-teng")).toBe("bottom-left:1");
+    expect(of("best-fit-short")).toBe("best-fit:1");
     expect(of("skyline-mw-waste")).toBe("skyline:1");
     expect(of("portfolio")).toBe("cell-portfolio:cell");
     expect(of("portfolio-k2")).toBe("cell-portfolio:2");

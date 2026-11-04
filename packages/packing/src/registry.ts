@@ -1,4 +1,4 @@
-import { guillotine, maxrects, push, rows, shelf, skyline } from "./adapters.ts";
+import { bestFit, bottomLeft, guillotine, maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { aspectFit } from "./aspect-fit.ts";
 import { bboxStrategy } from "./bbox.ts";
 import { holeDegree } from "./hole-degree.ts";
@@ -13,8 +13,11 @@ import { ruinRecreateStrategy } from "./ruin-recreate.ts";
 import { selectStrategy } from "./select.ts";
 import { createContext, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 
-/** Each single strategy of the package. The benchmark starts each one on each input of the corpus. */
-export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects, guillotine] as Strategy[]);
+/**
+ * Each single strategy of the package. The benchmark starts each one on each input of the corpus.
+ * Roadmap item k25 adds `bottom-left` and `best-fit`. They are not in `pack`, in a default or in `SELECT_TABLE`.
+ */
+export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects, guillotine, bottomLeft, bestFit] as Strategy[]);
 
 /**
  * The single strategies of one shape kind that is not `rect`. Roadmap item k90 adds `hole-degree` for circles.
@@ -74,12 +77,44 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
  */
 export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, relaxStrategy, forceStrategy] as Strategy[]);
 
+/** The kind of a strategy: `single` packs alone, `shape` packs one shape kind that is not `rect`, and `composite` packs with other strategies. */
+export type StrategyKind = "single" | "shape" | "composite";
+
+/** One strategy of `allStrategies`, as data. `strategy` gives the strategy of the `id`. */
+export interface StrategyListing {
+  readonly id: string;
+  readonly family: string;
+  readonly kind: StrategyKind;
+  /** The cells that the strategy supports. */
+  readonly supports: Supports;
+  /** The value `true` tells that the result depends only on the input, the options and the seed. */
+  readonly deterministic: boolean;
+}
+
+/** The lists of the registry, each with its kind. A new list goes here, so `allStrategies` and `strategy` read it. */
+const LISTS: readonly (readonly [StrategyKind, readonly Strategy[]])[] = [
+  ["single", strategies],
+  ["shape", shapeStrategies],
+  ["composite", composites],
+];
+
+/** Each strategy of `LISTS`, in one array. `strategy` is on the path of each `packWith` of a composite, so this array is built one time. */
+const EACH_STRATEGY: readonly Strategy[] = LISTS.flatMap(([, list]) => list);
+
 /**
- * This function gives the strategy with an id, also a strategy of `shapeStrategies` and a composite strategy.
+ * Each strategy of the registry, with its kind and its supports (roadmap item k140). Use this list to find the strategies.
+ * The lists `strategies`, `shapeStrategies` and `composites` stay for their own uses, and each one holds only one kind.
+ */
+export const allStrategies: readonly StrategyListing[] = Object.freeze(
+  LISTS.flatMap(([kind, list]) => list.map(({ id, family, supports, deterministic }): StrategyListing => ({ id, family, kind, supports, deterministic }))),
+);
+
+/**
+ * This function gives the strategy with an id, from each list of the registry.
  * It throws a `RangeError` for an id that the registry does not have.
  */
 export function strategy(id: string): Strategy {
-  const found = strategies.find((s) => s.id === id) ?? shapeStrategies.find((s) => s.id === id) ?? composites.find((s) => s.id === id);
+  const found = EACH_STRATEGY.find((s) => s.id === id);
   if (found === undefined) throw new RangeError(`The registry has no strategy "${id}".`);
   return found;
 }

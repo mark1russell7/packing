@@ -61,9 +61,9 @@ env:
   CORPUS: ${{ inputs.corpus || 'pack-classes-v1' }}
   SAMPLE: ${{ inputs.sample || '400' }}
   SHARDS: ${{ inputs.shards || '4' }}
-  # The work budget of an arm, and the timeout that voids its cell.
+  # The work budget of an arm, and the timeout that voids its cell. docs/BENCH.md has the source of the timeout.
   ROUNDS: "4"
-  MAX_MINUTES: "12"
+  MAX_MINUTES: "40"
 
 jobs:
   plan:
@@ -167,7 +167,7 @@ jobs:
     name: arm (${{ matrix.arm }}, ${{ matrix.seed }})
     runs-on: ubuntu-latest
     # The timeout MAX_MINUTES stops the rounds, and the fits of the rounds take some minutes.
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       max-parallel: 3

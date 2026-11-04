@@ -403,7 +403,7 @@ Roadmap item k111 measures how far the other items move when one anchor moves. T
 
 The words:
 
-- **The anchor** is a locked item with a position, or a fixed rectangle obstacle. `isAnchor` tells if an id is an anchor. The side anchors of roadmap item k110 are not in the package yet.
+- **The anchor** is a locked item with a position, or a fixed rectangle obstacle. `isAnchor` tells if an id is an anchor. The side anchors of `packSideAnchors` (roadmap item k110) are not anchors of these measures.
 - **The step** is `(dx, dy)`, a small move of the anchor. Its length is `L = sqrt(dx^2 + dy^2)`, and `L` is above 0.
 - **The other items** are the items of the input other than the anchor. An item that only one of two outputs places does not count.
 - **The loop** is `k` steps of the same move. Pack `j` has the anchor at its position plus `j` times the step, for `j` from 0 to `k`.
