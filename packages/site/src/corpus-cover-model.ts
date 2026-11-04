@@ -100,23 +100,23 @@ export function coverGrid(doc: CorpusCoverDoc, view: CoverView, selected: number
   const count = doc.dimensions.length;
   const heads = doc.dimensions
     .slice(1)
-    .map((d, i) => `<span class="cgrid-head" title="${esc(d.name)}">${i + 2}</span>`)
+    .map((d, i) => `<span class="cover-grid-head" title="${esc(d.name)}">${i + 2}</span>`)
     .join("");
   const rows = doc.dimensions.slice(0, -1).map((d, row) => {
     const cells = [];
     for (let column = 1; column < count; column++) {
       const square = squares.find((s) => s.row === row && s.column === column);
       if (square === undefined) {
-        cells.push(`<span class="cgrid-none"></span>`);
+        cells.push(`<span class="cover-grid-none"></span>`);
         continue;
       }
       const value = Math.round((square.covered / square.total) * 100);
       const name = `${d.name} by ${doc.dimensions[column]!.name}: ${square.covered} of ${square.total} pairs`;
       cells.push(
-        `<button type="button" class="cgrid-cell" data-pair="${square.pair}" aria-pressed="${square.pair === selected}" aria-label="${esc(name)}" title="${esc(name)}" style="--fill:${Math.round(value * COVER_FILL)}%">${value}</button>`,
+        `<button type="button" class="cover-grid-cell" data-pair="${square.pair}" aria-pressed="${square.pair === selected}" aria-label="${esc(name)}" title="${esc(name)}" style="--fill:${Math.round(value * COVER_FILL)}%">${value}</button>`,
       );
     }
-    return `<span class="cgrid-name" title="${esc(d.name)}"><small>${row + 1}</small> <code>${esc(d.name)}</code></span>${cells.join("")}`;
+    return `<span class="cover-grid-name" title="${esc(d.name)}"><small>${row + 1}</small> <code>${esc(d.name)}</code></span>${cells.join("")}`;
   });
   return `<span></span>${heads}${rows.join("")}`;
 }

@@ -1386,7 +1386,7 @@
 }
 
 /* The corpus coverage of k50: a triangle of the pairs of dimensions */
-.cgrid {
+.cover-grid {
   display: grid;
   grid-template-columns: minmax(104px, 1fr) repeat(9, minmax(22px, 44px));
   gap: 2px;
@@ -1395,13 +1395,13 @@
   margin: 8px 0 12px;
 }
 
-.cgrid-head {
+.cover-grid-head {
   color: var(--muted);
   font-size: 0.75rem;
   text-align: center;
 }
 
-.cgrid-name {
+.cover-grid-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1409,11 +1409,11 @@
   font-size: 0.72rem;
 }
 
-.cgrid-name small {
+.cover-grid-name small {
   color: var(--muted);
 }
 
-.cgrid-cell {
+.cover-grid-cell {
   min-height: 30px;
   padding: 0;
   border: 1px solid var(--rule);
@@ -1426,7 +1426,7 @@
   cursor: pointer;
 }
 
-.cgrid-cell[aria-pressed="true"] {
+.cover-grid-cell[aria-pressed="true"] {
   outline: 2px solid var(--sel);
   outline-offset: 1px;
 }
