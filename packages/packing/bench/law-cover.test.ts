@@ -122,8 +122,11 @@ describe("the modes of a sample", () => {
     }
   });
 
-  it("counts groups of equal values", () => {
-    expect(modeCount(Array.from({ length: 1000 }, (_, i) => i % 20))).toBe(20);
+  it("keeps one mode for the log areas of whole-number sides", () => {
+    const r = mulberry32(20);
+    for (let i = 0; i < 100; i++) {
+      expect(modeCount(Array.from({ length: 900 }, () => Math.log((1 + Math.floor(r() * 20)) * (1 + Math.floor(r() * 20)))))).toBe(1);
+    }
   });
 
   it("joins clusters past the limit of the grid, and gives at least 1", () => {

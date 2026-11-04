@@ -2416,4 +2416,12 @@ The corpus covers 31 of the 87 pairs. The read gives laws for 544 specs and refu
 
 Two gaps are real. No spec over the floor gives a narrow area law or an extreme mixed aspect law. The generator `rect-grid` has `nearIdentical` and `extremeAspect` sizes, and no committed spec uses them. A spec with those sizes adds pairs.
 
-The number is under review. A refused spec adds no pair, and a misread spec can add a false pair, so the number is not a bound in either direction.
+A refused spec adds no pair, and a misread spec can add a false pair, so the number is not a bound in either direction.
+
+### The second reading
+
+The first count of modes joined many tight clusters, and with 12 clusters it could give 0. The fixed count gives 2 to 20 clusters at each tested size, and it keeps 1 for the areas of whole-number sides. The normal and log-normal scores are now exact likelihoods.
+
+The number stays 31 of 87, and the 56 missing pairs do not change. Of the 544 specs, 4 change their area law: 2 `bl-trap` specs go from bimodal to multimodal, and 2 `burke-kendall-whitwell` specs go from uniform to normal. One cell of 16 goes, and its pairs have other cells.
+
+Each of the 31 pairs has a spec with 300 items or more, or a spec with an area law that is not smooth. Under 300 items the choice of a smooth law is weak. 8 pairs have only one generator. The number stays an estimate: at 300 items the read gives the normal law for 85 percent of normal samples, and at 1,000 items for 97 percent.
