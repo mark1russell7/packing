@@ -55,7 +55,7 @@ export function staleText(pages: readonly string[], strategies: number): number 
 /** This function gives the number of the calendar week of a day, with the week from Monday to Sunday. */
 const weekOf = (day: number): number => Math.floor((day + 3 * DAY_MS) / (7 * DAY_MS));
 
-/** This function tells if the trend is weekly: it has points in two calendar weeks or more, and its last point is 7 days old or less. */
+/** This function tells if the trend is weekly. A weekly trend has points in two calendar weeks or more, and its last point is 7 days old or less. */
 export function weeklyTrend(dates: readonly string[], now: number): boolean {
   const days = dates.map((date) => Date.parse(`${date}T00:00:00Z`));
   if (days.length === 0) return false;
