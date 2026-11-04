@@ -13,7 +13,7 @@ export interface PinnedInput {
 }
 
 /** A rectangle that a pinned box does not overlap. */
-interface Blocked {
+export interface Blocked {
   readonly x: number;
   readonly y: number;
   readonly w: number;
@@ -21,7 +21,7 @@ interface Blocked {
 }
 
 /** This function gives the rectangles of the obstacles and of the locked items of an input. */
-function blockedOf(input: PackInput): readonly Blocked[] {
+export function blockedOf(input: PackInput): readonly Blocked[] {
   const blocked: Blocked[] = (input.obstacles ?? []).map((o) => boundsOf(o.region));
   for (const item of input.items) {
     if (item.locked === true && item.x !== undefined && item.y !== undefined) blocked.push({ x: item.x, y: item.y, w: item.w, h: item.h });
@@ -37,7 +37,7 @@ function insideOf(input: PackInput, item: Item, place: Placement): boolean {
 }
 
 /** This function tells if a box at a place overlaps one of the blocked rectangles. */
-function overlapsAny(blocked: readonly Blocked[], item: Item, place: Placement): boolean {
+export function overlapsAny(blocked: readonly Blocked[], item: Item, place: Placement): boolean {
   return blocked.some((b) => place.x < b.x + b.w && b.x < place.x + item.w && place.y < b.y + b.h && b.y < place.y + item.h);
 }
 

@@ -444,7 +444,7 @@ These methods keep the reading order of the input, or keep the layout when the i
 |---|---|---|---|---|---|---|---|---|
 | `order-shelf-input` | Shelf in the input order | `shelf-nf` around locked boxes. | this repository | order | `O(n)` | — | implemented: `packShelf` with `sortOrder: "input"` | k29 |
 | `order-ordered-treemaps` | Ordered treemaps | `treemap-pivot-*`, `treemap-strip`, `treemap-split`, `treemap-spiral` and the curves keep the order. | Shneiderman 2001, Bederson 2002 | order | refer to [Treemaps](#treemaps) | — | planned | k29 |
-| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n log n)` | — | planned | k29 |
+| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n^2)` here | — | implemented: `keepOrthogonal` | k29 |
 | `order-mental-map` | Keep the mental map | Keep the orthogonal order, the near neighbors and the topology of a layout when it changes. | Misue 1995, Eades 1991 | stability | depends on the method | — | planned | k29 |
 | `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | this repository | stability | one pack | — | implemented: `pinUnchanged` | k29 |
 | `stable-local-moves` | Local moves | `treemap-local-moves` for packers: search the moves of a layout for the best mix of a measure and the movement. | Sondag 2018 | stability | moves x measure | — | planned | k29 |
@@ -598,10 +598,10 @@ These methods pack circles of equal or of different radii into a circle, a squar
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `circle-quasi-human` | Quasi-human strategies | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | Huang 1999 | density | steps x `O(n^2)` | — | planned | new item |
-| `circle-quasi-physical` | Quasi-physical energy | Treat each overlap as an elastic energy. Lower the energy with gradient steps, and jump out of each local minimum with a quasi-human move. | Wang 2002, Huang 2011b | density | steps x `O(n^2)` | — | planned | new item |
+| `circle-quasi-human` | Quasi-human strategies | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | Huang 1999 | density | steps x `O(n^2)` | — | implemented | k94 |
+| `circle-quasi-physical` | Quasi-physical energy | Treat each overlap as an elastic energy. Lower the energy with gradient steps, and jump out of each local minimum with a quasi-human move. | Wang 2002, Huang 2011b | density | steps x `O(n^2)` | — | implemented | k94 |
 | `circle-hole-degree` | Maximum hole degree | Put each circle in the corner place, where it touches two placed items, with the largest hole degree. Look one step ahead. The strategy `hole-degree` does it without the look-ahead. | Huang 2005, Huang 2006, Kubach 2009 | density, speed | `O(n^3)` to `O(n^4)` | — | implemented | k90 |
-| `circle-mbh` | Monotonic basin hopping | Change the layout at random, then do a local nonlinear solve. Keep the result only when it is better. | Addis 2008a, Addis 2008b | density | steps x local solve | — | planned | new item |
+| `circle-mbh` | Monotonic basin hopping | Change the layout at random, then do a local nonlinear solve. Keep the result only when it is better. | Addis 2008a, Addis 2008b | density | steps x local solve | — | implemented | k94 |
 | `circle-pbh` | Population basin hopping | Keep a population of `circle-mbh` runs, with a measure of how different two layouts are. | Grosso 2010 | density | population x steps x local solve | — | planned | new item |
 | `circle-fss` | Formulation space search | Change between the Cartesian form and the polar form of the same nonlinear program, to leave a local optimum of one form. | López 2011, López 2013 | density | steps x local solve | — | planned | new item |
 | `circle-its-strip` | Iterated tabu search for circles in a strip | Solve the strip as a series of fixed lengths. Solve each length with a tabu search, perturbations and a rule of acceptance. | Fu 2013 | density | lengths x steps | — | planned | new item |

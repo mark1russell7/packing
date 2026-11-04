@@ -6,7 +6,7 @@ import { RECORD_EPS, marginOf, turnItem, type Item, type PackInput, type PackOut
 import { containerBounds, extentOf } from "./frame.ts";
 
 /** A rectangle with the margins and half of the gap. */
-interface Box {
+export interface Box {
   readonly x: number;
   readonly y: number;
   readonly w: number;
@@ -14,7 +14,7 @@ interface Box {
 }
 
 /** This function gives the box of a placed item, and the offset from the top of the box to the place of the item. */
-function boxOf(item: Item, place: Placement, half: number): { readonly box: Box; readonly dy: number } {
+export function boxOf(item: Item, place: Placement, half: number): { readonly box: Box; readonly dy: number } {
   const turned = place.turn === 90 ? turnItem(item) : item;
   const m = marginOf(turned);
   const dy = m.top + half;

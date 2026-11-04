@@ -21,6 +21,7 @@ import {
 } from "@mark1russell7/layout-contract";
 import type { BestFitStrategyOptions, BottomLeftStrategyOptions, GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
+import type { CircleQuasiPhysicalOptions } from "./circle-quasi-physical.ts";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
 import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
@@ -167,7 +168,13 @@ const RECT_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["rect"] 
 /** The inputs of the option `bbox` of roadmap item k91: each shape kind. Its members have `view: "bounds"`, so they get only `rect` items. */
 const BBOX_ONLY: OptionSupports = Object.freeze({ shape: BBOX_SHAPES });
 
-/** The inputs of the option `hole-degree` of roadmap item k90: only the shape kind `circle`. */
+/**
+ * The largest count of the moves of a `circle-quasi-physical` config. The strategy takes more, but each value is one base config.
+ * Without this limit, the 65537 configs are 29 % of the base configs. A draw takes them as members, and a rect input refuses them.
+ */
+const CIRCLE_SPACE_MAX_ITERATIONS = 1024;
+
+/** The inputs of the options `hole-degree` of roadmap item k90 and `circle-quasi-physical` of roadmap item k94: only the shape kind `circle`. */
 const CIRCLE_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["circle"] as const) });
 
 /** The inputs of the options that a `hole-degree` config shares with the rect configs: `rect` and `circle`. */
@@ -186,6 +193,11 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
   if (id === "hole-degree") {
     for (const key of Object.keys(o)) if (key !== "steps") throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
     const placement = choice("hole-degree", { steps: o["steps"] as number });
+    return { space: ENGINE, stages: { order: choice("input"), "size-search": choice("none"), placement, "local-search": choice("none") } };
+  }
+  if (id === "circle-quasi-physical") {
+    for (const key of Object.keys(o)) if (key !== "iterations") throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
+    const placement = choice("circle-quasi-physical", { iterations: o["iterations"] as number });
     return { space: ENGINE, stages: { order: choice("input"), "size-search": choice("none"), placement, "local-search": choice("none") } };
   }
   const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap", "choice", "split", "merge", "side"];
@@ -273,6 +285,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "bottom-left", params: [{ name: "rule", kind: "enum", values: [...BOTTOM_LEFT_RULES], default: "baker" }], supports: RECT_ONLY },
       { id: "best-fit", params: [{ name: "side", kind: "enum", values: [...BEST_FIT_SIDES], default: "left" }], supports: RECT_ONLY },
       { id: "hole-degree", params: [{ name: "steps", kind: "int", min: 0, max: HOLE_DEGREE_MAX_STEPS, default: 8 }], supports: CIRCLE_ONLY },
+      { id: "circle-quasi-physical", params: [{ name: "iterations", kind: "int", min: 0, max: CIRCLE_SPACE_MAX_ITERATIONS, default: 256 }], supports: CIRCLE_ONLY },
     ],
   },
   { name: "local-search", options: [{ id: "none", params: [], supports: RECT_OR_CIRCLE }] },
@@ -304,7 +317,7 @@ const STAGES: readonly SpaceStage[] = [
 ];
 
 /** The placements that do their own size search, or none: only they go with the size search `none`. */
-const NO_SIZE_SEARCH: readonly string[] = ["push", "hole-degree"];
+const NO_SIZE_SEARCH: readonly string[] = ["push", "hole-degree", "circle-quasi-physical"];
 
 /** The id of each option of the stage `placement`. */
 const placementIds: readonly string[] = STAGES.find((s) => s.name === "placement")!.options.map((o) => o.id);
@@ -333,6 +346,7 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "best-fit": baseConfig("best-fit"),
   "best-fit-tall": baseConfig("best-fit", { side: "tall" }),
   "best-fit-short": baseConfig("best-fit", { side: "short" }),
+  "circle-quasi-physical": baseConfig("circle-quasi-physical"),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;
@@ -342,8 +356,9 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
  *
  * - The order `graph-bfs` reads `input.links`. Without links it gives `area-desc`. The placement `push` does not read links, so it does not go with this order.
- * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
+ * - `size-search` acts only on a container of free size. The option `none` goes with `push`, `hole-degree` and `circle-quasi-physical` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
+ * - `circle-quasi-physical` of roadmap item k94 goes with the order `input` and the size search `none`. It does its own radius search, in a circle container only.
  * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force`.
  * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force` have 1 member.
  * - `relax-pull` is the strategy `relax` with the strength 0 and the option `pull`.
@@ -351,10 +366,10 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
  * - The named config `aspect-fit` wraps `maxrects`, because the registry strategy needs an inner strategy.
- * - Each option supports the shape kind `rect`, but `hole-degree` supports only `circle`. `bbox` supports each kind.
- * - The order `input` and the options `none` support `rect` and `circle`. Thus a `hole-degree` config supports `circle`.
+ * - Each option supports the shape kind `rect`, but `hole-degree` and `circle-quasi-physical` support only `circle`. `bbox` supports each kind.
+ * - The order `input` and the options `none` support `rect` and `circle`. Thus a config of these two placements supports `circle`.
  * - The members of `bbox` have `view: "bounds"`, so the checks give them the kind `rect`.
- * - Thus `spaceSize` with `polygon` or `free` counts only the configs with `bbox`. With `circle` it also counts the `hole-degree` base configs.
+ * - Thus `spaceSize` with `polygon` or `free` counts only the configs with `bbox`. With `circle` it also counts the base configs of these two placements.
  * - Each option of each strategy is a param, a stage or the members of a meta option. `PACK_SPACE_OPTIONS` tells the place.
  */
 export const packSpace: StrategySpace = Object.freeze({
@@ -366,6 +381,8 @@ export const packSpace: StrategySpace = Object.freeze({
     { if: { stage: "placement", option: "push" }, then: { stage: "size-search", option: "none" } },
     { if: { stage: "placement", option: "hole-degree" }, then: { stage: "size-search", option: "none" } },
     { if: { stage: "placement", option: "hole-degree" }, then: { stage: "order", option: "input" } },
+    { if: { stage: "placement", option: "circle-quasi-physical" }, then: { stage: "size-search", option: "none" } },
+    { if: { stage: "placement", option: "circle-quasi-physical" }, then: { stage: "order", option: "input" } },
     // The placement `push` does not read `input.links`, so a graph order has no effect on it.
     ...GRAPH_ORDERS.map((option) => ({ if: { stage: "placement", option: "push" }, then: { not: { stage: "order", option } } })),
     // The size search `none` goes only with the placements of `NO_SIZE_SEARCH`. Each other placement (rows to guillotine) needs `log-sweep`.
@@ -473,6 +490,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
   "hole-degree": { steps: "placement.hole-degree.steps" } satisfies Places<HoleDegreeStrategyOptions>,
   "bottom-left": { sortOrder: "order", samples: "size-search.log-sweep.samples", rule: "placement.bottom-left.rule" } satisfies Places<BottomLeftStrategyOptions>,
   "best-fit": { sortOrder: "order", samples: "size-search.log-sweep.samples", side: "placement.best-fit.side" } satisfies Places<BestFitStrategyOptions>,
+  "circle-quasi-physical": { iterations: "placement.circle-quasi-physical.iterations" } satisfies Places<CircleQuasiPhysicalOptions>,
   portfolio: PORTFOLIO_PLACES,
   "aspect-fit": {
     strategy: "combine.aspect-fit.members",
@@ -572,7 +590,7 @@ const NAMED_VALUES: Readonly<Record<string, Readonly<Record<string, unknown>>>> 
 });
 
 /** The single strategies of the registry. `baseConfig` gives their configs. */
-const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree", "bottom-left", "best-fit"];
+const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree", "bottom-left", "best-fit", "circle-quasi-physical"];
 
 /** This function tells if a value is an object and not a list. */
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -698,6 +716,9 @@ const BBOX_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
  */
 const CIRCLE_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
 
+/** The placements that take the level `CIRCLE_CHECK`. */
+const CIRCLE_PLACEMENTS: readonly string[] = ["hole-degree", "circle-quasi-physical"];
+
 /** The id of the input in the breaks of `checkShapes`. A `PackInput` has no id. */
 const SHAPE_INPUT_ID = "pack-input";
 
@@ -728,6 +749,7 @@ function runOf(config: StrategyConfig): Run {
   const p = place.params ?? {};
   if (place.option === "push") return { strategy: "push", options: { sortOrder, maxShovesPerItem: p["maxShovesPerItem"] } };
   if (place.option === "hole-degree") return { strategy: "hole-degree", options: { steps: p["steps"] } };
+  if (place.option === "circle-quasi-physical") return { strategy: "circle-quasi-physical", options: { iterations: p["iterations"] } };
   const options: Record<string, unknown> = { sortOrder, samples: s["size-search"]!.params?.["samples"] };
   if (place.option === "shelf" && p["fit"] !== "none") options["fit"] = p["fit"];
   if (place.option === "skyline") {
@@ -784,7 +806,7 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - The function checks the shape kinds of the items with `checkShapes` and `checkConfig`. A break causes `UnsupportedShape`.
  * - A `bbox` config supports each shape kind. The function checks only the hard rules on it, with `checkShapes` at the level `safe`.
  * - The caller checks the measures of a `bbox` output with `checkShapes`.
- * - A `hole-degree` config supports only circles. The function checks only the hard rules on it, at the level `safe`.
+ * - A `hole-degree` or `circle-quasi-physical` config supports only circles. The function checks only the hard rules on it, at the level `safe`.
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
  * - The param `limitWork` of a portfolio and of `restarts` gives the option `budgetWork` (roadmap item k117).
@@ -799,7 +821,7 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
   const found = checkConfig(packSpace, config, { shapes: shapeKindsOf(boxes) });
   const breaks = found.filter((b) => b.claim !== "shape");
   if (breaks.length > 0) throw new RangeError(`The config is not a config of the space packing: ${breaks.map((b) => b.detail).join("; ")}.`);
-  const level = combineOf(config) === "bbox" ? BBOX_CHECK : placementOf(config) === "hole-degree" ? CIRCLE_CHECK : undefined;
+  const level = combineOf(config) === "bbox" ? BBOX_CHECK : CIRCLE_PLACEMENTS.includes(String(placementOf(config))) ? CIRCLE_CHECK : undefined;
   const shapes = level === undefined ? checkShapes(boxes, [...Object.values(MEASURE_SPECS), ...PACK_HARD_RULES]) : checkShapes(boxes, PACK_HARD_RULES, level);
   const shapeBreaks = [...shapes, ...found];
   if (shapeBreaks.length > 0) throw new UnsupportedShape(itemShapeOf(boxes), shapeBreaks);

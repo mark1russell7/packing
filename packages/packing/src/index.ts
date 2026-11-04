@@ -96,7 +96,19 @@ export {
 export { BEST_FIT_SIDES, type BestFitSide } from "./best-fit.ts";
 export { BOTTOM_LEFT_RULES, type BottomLeftRule } from "./bottom-left.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { allStrategies, aspectFitStrategy, composites, packWith, shapeStrategies, strategies, strategy, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions } from "./registry.ts";
+export { aspectFitStrategy, composites, shapeStrategies, strategies, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions } from "./registry.ts";
+export {
+  EXACT_STRATEGY_NODE_LIMIT,
+  sideAnchorsStrategy,
+  STANDALONE_MAX_ITEMS,
+  standaloneStrategies,
+  type MasonryMethod,
+  type MasonryStrategyOptions,
+  type SideAnchorStrategyOptions,
+  type TreemapMethod,
+  type TreemapStrategyOptions,
+} from "./standalone-strategies.ts";
+export { allStrategies, packWith, strategy } from "./strategy-list.ts";
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
 export {
   ANCHOR_GAIN_LIMIT,
@@ -112,6 +124,7 @@ export {
   type AnchorStep,
   type AnchorStrategy,
 } from "./anchor.ts";
+export { CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS, CIRCLE_QUASI_PHYSICAL_STAGE, circleQuasiPhysical, circlesOutside, type CircleQuasiPhysicalOptions } from "./circle-quasi-physical.ts";
 export { circleOverlaps, HOLE_DEGREE_MAX_STEPS, HOLE_DEGREE_STAGE, holeDegree, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 export { ASPECT_FIT_FACTORS, ASPECT_FIT_LEVELS, ASPECT_FIT_STAGE, aspectFit, type AspectFitOptions } from "./aspect-fit.ts";
 export { hardBreaks, packPortfolio, PORTFOLIO_LEVELS, PORTFOLIO_STAGE, type PackPortfolioOptions, type PortfolioEntry } from "./portfolio.ts";
@@ -120,6 +133,7 @@ export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
 export { compactUp } from "./compact.ts";
+export { keepOrthogonal } from "./orthogonal.ts";
 export { keepPrefix, pinUnchanged, type PinnedInput } from "./pin.ts";
 export { NEAR_RECTS_STAGE, packNearRects, type NearRectsOptions } from "./near-rects.ts";
 export { packRasterNofit, RASTER_NOFIT_MAX_CELLS, RASTER_NOFIT_STAGE, rasterCell, rasterCover, type RasterCover, type RasterNofitOptions } from "./raster-nofit.ts";
@@ -343,6 +357,7 @@ export {
   type UiParams,
 } from "./generators.ts";
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
+export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
   treemapPack,
   treemapPivotSplit,

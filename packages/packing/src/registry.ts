@@ -1,6 +1,7 @@
 import { bestFit, bottomLeft, guillotine, maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { aspectFit } from "./aspect-fit.ts";
 import { bboxStrategy } from "./bbox.ts";
+import { circleQuasiPhysical } from "./circle-quasi-physical.ts";
 import { holeDegree } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { annealStrategy, geneticStrategy, tabuStrategy } from "./order-search.ts";
@@ -20,10 +21,10 @@ import { createContext, type PackContext, type Strategy, type Supports } from ".
 export const strategies: readonly Strategy[] = Object.freeze([rows, skyline, shelf, push, maxrects, guillotine, bottomLeft, bestFit] as Strategy[]);
 
 /**
- * The single strategies of one shape kind that is not `rect`. Roadmap item k90 adds `hole-degree` for circles.
+ * The single strategies of one shape kind that is not `rect`. Roadmap item k90 adds `hole-degree` for circles, and roadmap item k94 adds `circle-quasi-physical`.
  * Each corpus of the benchmark has only `rect` items. Thus these strategies are not in `strategies`, and the benchmark does not start them.
  */
-export const shapeStrategies: readonly Strategy[] = Object.freeze([holeDegree] as Strategy[]);
+export const shapeStrategies: readonly Strategy[] = Object.freeze([holeDegree, circleQuasiPhysical] as Strategy[]);
 
 /** The options of the strategy `aspect-fit` */
 export interface AspectFitStrategyOptions {

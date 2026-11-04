@@ -6,6 +6,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    "entry/circle-quasi-physical": "src/entry/circle-quasi-physical.ts",
     "entry/default": "src/entry/default.ts",
     "entry/guillotine": "src/entry/guillotine.ts",
     "entry/hole-degree": "src/entry/hole-degree.ts",
