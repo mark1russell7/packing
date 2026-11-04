@@ -7,6 +7,7 @@ import {
   Rect,
   SORT_ORDERS,
   strategy as registryStrategy,
+  supportsCell,
   UnsupportedCell,
   type FreeWidthTry,
   type Item as PackItem,
@@ -203,7 +204,7 @@ export const PRESETS: readonly Preset[] = [
   {
     id: "circles",
     label: "Circles",
-    hint: "Circles of different diameters. Only the strategies for circles pack them: hole degree and bbox.",
+    hint: "Circles of different diameters. Only the strategies for circles pack them: hole degree and bbox. Quasi-physical packs them in a circle container.",
     size: (rng) => {
       const d = between(rng, 24, 120, 8);
       return { w: d, h: d };
@@ -245,13 +246,11 @@ export function resizeItem(item: Item, w: number, h: number): void {
   item.h = nh;
 }
 
-/** This function gives the id of each strategy of the demo that supports the shape kind of the items. */
+/** This function gives the id of each strategy of the demo that supports the items, the container shape and the obstacles. */
 export function offeredStrategies(items: readonly Item[], scene?: Scene): string[] {
-  // The demo has only a rectangle container, so it does not offer a strategy of a circle container.
-  const demo = STRATEGIES.filter((id) => registryStrategy(id).supports.containerShape.includes("rect"));
-  if (items.length === 0) return demo;
-  const kind = cellOf(inputOf(items, 640, "fixed", DEFAULT_TARGET, scene)).itemShape;
-  return demo.filter((id) => registryStrategy(id).supports.itemShape.includes(kind));
+  const { containerShape, itemShape, obstacleMove } = cellOf(inputOf(items, 640, "fixed", DEFAULT_TARGET, scene));
+  const cell = { containerShape, ...(items.length === 0 ? {} : { itemShape }), ...(obstacleMove === undefined ? {} : { obstacleMove }) };
+  return STRATEGIES.filter((id) => supportsCell(registryStrategy(id).supports, cell));
 }
 
 /** The strategies that each layout takes first when its strategy does not support the items: layout A, then layout B. */

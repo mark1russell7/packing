@@ -46,7 +46,7 @@ Status: done, done, waiting, next, done.
 | k37 | Containers of each shape: a convex polygon, any polygon, a circle or an ellipse, a region with holes | strategies | done | k7, k35 |
 | k38 | Obstacles that move at a cost | strategies | later | k7, k35 |
 | k39 | Items of other shapes: circles and polygons (nesting) | strategies | later | k7, k36 |
-| k40 | The site: a picker for the container shape and the obstacles | site | active | k34, k37 |
+| k40 | The site: a picker for the container shape and the obstacles | site | done | k34, k37 |
 | k41 | Pack-around: the split of the free space as a stage of its own | core | later | k7, k35 |
 | k42 | The ways to split the free space: maximal empty rectangles, slabs, cuts at obstacle edges, cells, or one region with holes | strategies | later | k41, k36 |
 | k43 | The ways to give items to the parts: greedy in reading order, assignment, and a flow that keeps the reading order | strategies | later | k41 |

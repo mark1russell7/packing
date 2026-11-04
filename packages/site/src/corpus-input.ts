@@ -17,6 +17,7 @@ import {
 } from "@mark1russell7/layout-contract";
 import { corpusFamilies, toPackInput, type PackInput } from "@mark1russell7/packing";
 import { esc } from "./format.ts";
+import { sceneOf, type Scene } from "./model.ts";
 
 /** The registry of the site: `RECT_SCATTERED` of the contract, then each corpus family of packing. */
 export const SITE_REGISTRY: FamilyRegistry<LayoutInput> = createFamilyRegistry<LayoutInput>([RECT_SCATTERED, ...corpusFamilies]);
@@ -184,6 +185,46 @@ export function generateInput(key: string, dims: DimensionValues, seed: number):
   if (typeof own["count"] === "number") own["count"] = Math.max(0, Math.min(MAX_SITE_COUNT, Math.round(own["count"])));
   const file = SITE_REGISTRY.generate(f.name, seed, own, { version: f.version });
   return { file, input: toPackInput(file) };
+}
+
+/** The container of the demo items: its shape and the layout of its obstacles. */
+export interface FrameChoice {
+  shape: string;
+  obstacles: string;
+}
+
+/** The container of the demo items with no scene: a rectangle with no obstacles. */
+export const PLAIN_FRAME: Readonly<FrameChoice> = Object.freeze({ shape: "rect", obstacles: "none" });
+
+/** The dimension of the default family for each field of a frame. */
+const FRAME_DIMENSIONS = { shape: "containerShape", obstacles: "obstacles" } as const;
+
+/** This function gives the values of a field of a frame: each supported value of its dimension in the default family. */
+export function frameValues(field: keyof FrameChoice): string[] {
+  const control = dimensionControls(DEFAULT_FAMILY).find((c) => c.name === FRAME_DIMENSIONS[field]);
+  return control?.kind === "select" ? control.options.filter((o) => o.supported).map((o) => o.value) : [];
+}
+
+/** This function gives a value of a field of a frame from text. A value that is not in the field gives the plain value. */
+export function frameValue(field: keyof FrameChoice, text: string | null): string {
+  return text !== null && frameValues(field).includes(text) ? text : PLAIN_FRAME[field];
+}
+
+/** This function gives the link params of a frame. A plain frame has none, so a link from before the frame fields stays the same. */
+export function frameParams(frame: FrameChoice): readonly (readonly [string, string])[] {
+  const shape = frame.shape === PLAIN_FRAME.shape ? [] : [["cs", frame.shape] as const];
+  const obstacles = frame.obstacles === PLAIN_FRAME.obstacles ? [] : [["ob", frame.obstacles] as const];
+  return [...shape, ...obstacles];
+}
+
+/**
+ * This function gives the scene of the demo items in a frame. The generator of the default family makes the container
+ * and the obstacles, so their sizes come from the seed. The plain frame gives `undefined`.
+ */
+export function frameScene(frame: FrameChoice, seed: number): Scene | undefined {
+  if (frame.shape === PLAIN_FRAME.shape && frame.obstacles === PLAIN_FRAME.obstacles) return undefined;
+  const dims = { containerShape: frame.shape, obstacles: frame.obstacles, count: 1 };
+  return { ...sceneOf(generateInput(DEFAULT_FAMILY, dims, seed).input).scene, extra: new Map() };
 }
 
 /** This function gives the label of a family in a picker. */
