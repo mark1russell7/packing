@@ -99,9 +99,11 @@ export { fromRects, toRects } from "./convert.ts";
 export { aspectFitStrategy, composites, shapeStrategies, strategies, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions } from "./registry.ts";
 export {
   EXACT_STRATEGY_NODE_LIMIT,
+  MASONRY_METHOD_IDS,
   sideAnchorsStrategy,
   STANDALONE_MAX_ITEMS,
   standaloneStrategies,
+  TREEMAP_METHOD_IDS,
   type MasonryMethod,
   type MasonryStrategyOptions,
   type SideAnchorStrategyOptions,

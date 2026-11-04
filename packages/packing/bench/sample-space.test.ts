@@ -53,12 +53,14 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // Before L34 the pins were 8e927552366b747d, e7520bf93db84bc6, fb834701df83f8be, d49ccb0bd735314d, 28789137749597439801406687782 and 28789137749597438869845771510.
 // The rule wire of k136 adds configs too. Before k136 the pins were ce6d8bf386fbb8a6, 5ff46c2513f1c859, e0392ab28b85d0d0, 90e85a9b3b203375, 71506084854820641670444082160 and 71506084854820640540641605810.
 // The 2 placement options of k25 changed the draws and the counts. Before k25 the pins were 99f077f73ba82661, 8a4c62b086079de4, e764f2c6cdd482e6, c7a8ed52072f03a8, 79943291102292057106200512423 and 79943291102292055949201549490.
-const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "e824ad73e7edf6a5", "3f8e28feceedef44", "c7a8ed52072f03a8"];
+// The 8 placement options of k142 changed one draw. Before k142 the second pin was e824ad73e7edf6a5.
+const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "20963f4950107879", "3f8e28feceedef44", "c7a8ed52072f03a8"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
 // The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
 // Roadmap item k94 adds the base configs of circle-quasi-physical to the members of the meta configs. Before k94 the counts were 91590358728953040752342089373 and 91590358728953039561241613290.
-const CLOCK_FREE_META = 93933758014846374732506608748n;
-const CLOCK_CONFIGS = 93933758014846373534955689790n;
+// Roadmap item k142 adds the base configs of the standalone placements to the members, and the option side-anchors. Before k142 the counts were 93933758014846374732506608748 and 93933758014846373534955689790.
+const CLOCK_FREE_META = 97223615252208789169500820039n;
+const CLOCK_CONFIGS = 97223615252208787963100427090n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -132,10 +134,11 @@ describe("the counts of the configs", () => {
     // The graph orders of L34 do not go with push.
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
     // Roadmap item k94 adds circle-quasi-physical with the order input only and the iterations 0 to 1024.
+    // Roadmap item k142 adds the 8 standalone placements with the order input only: 1 + 64 + 3 + 1024 + 5 + 256 + 3 * 16 + 4 configs.
     // Roadmap item k25 adds bottom-left with its rules and best-fit with its sides. Before k25 the base count was 160538.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
-    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025));
-    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force"]);
+    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1405));
+    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force", "side-anchors"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
 });
@@ -356,7 +359,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 29 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 38 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -370,6 +373,14 @@ describe("the strata of k115", () => {
       "best-fit:1",
       "hole-degree:1",
       "circle-quasi-physical:1",
+      "sleator:1",
+      "beam:1",
+      "exact-strip:1",
+      "binary-height:1",
+      "near-rects:1",
+      "raster-nofit:1",
+      "masonry:1",
+      "treemap:1",
       "portfolio:2",
       "portfolio:3",
       "portfolio:4",
@@ -389,6 +400,7 @@ describe("the strata of k115", () => {
       "relax:1",
       "relax-pull:1",
       "force:1",
+      "side-anchors:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
     expect(strata.reduce((s, x) => s + x.configs, 0n)).toBe(total);
@@ -464,11 +476,12 @@ describe("the strata of k115", () => {
     expect(a.summary.draw).toBe("stratified");
     expect(Object.keys(a.summary.strata!)).toEqual(strata);
     // No sampled input has circles, so the strata hole-degree:1 and circle-quasi-physical:1 get no pairs. Each other stratum gets 1 pair.
+    // The strata exact-strip:1 and treemap:1 of k142 accept few inputs, and a miss tries only 10 inputs here, so they get no pair too.
     // The sample is small, and a miss tries only 10 inputs: the full test is slow on the CI runner.
-    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(id === "hole-degree:1" || id === "circle-quasi-physical:1" ? [id, 0, 1] : [id, 1, 0]);
+    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(["hole-degree:1", "circle-quasi-physical:1", "exact-strip:1", "treemap:1"].includes(id) ? [id, 0, 1] : [id, 1, 0]);
     // Before L34 the count of rows:1 was 905.
     expect(a.summary.strata!["rows:1"]!.configs).toBe("1086");
-    expect(a.records).toHaveLength(strata.length - 2);
+    expect(a.records).toHaveLength(strata.length - 4);
     // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
     const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
     expect(moves).toEqual([256]);
@@ -485,7 +498,13 @@ describe("the strata of k115", () => {
     // The other pairs are base configs of the space, so the test packs no composite. A pair tries at most 60 inputs.
     const at = strata.indexOf("hole-degree:1");
     const tries = 60;
-    const space = { ...packSpace, stages: packSpace.stages.filter((s) => s.name !== "combine") };
+    // Roadmap item k142: a standalone stratum accepts few inputs, so it draws many. This test counts only the draws of hole-degree:1.
+    const outside = new Set<string | null>(["sleator", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"]);
+    const space = {
+      ...packSpace,
+      stages: packSpace.stages.filter((s) => s.name !== "combine").map((s) => ({ ...s, options: s.options.filter((o) => !(s.name === "placement" && outside.has(o.id))) })),
+      constraints: packSpace.constraints!.filter((c) => !outside.has(c.if.option) && !("not" in c.then && outside.has(c.then.not.option))),
+    };
     const run = (n: number): ReturnType<typeof sampleSpace> =>
       sampleSpace({ n, seed: 4, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), space, maxInputTries: tries });
     const one = run(at + 1);

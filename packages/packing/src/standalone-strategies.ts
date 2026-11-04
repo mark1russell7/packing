@@ -1,5 +1,5 @@
 // The strategies of roadmap item k141. Each strategy here wraps one standalone function, so `packWith`, the bench and the sites reach it.
-// The functions keep their own API. These strategies are not in the registry, `pack`, `SELECT_TABLE` or `packSpace`. `strategy-list.ts` lists them.
+// The functions keep their own API. These strategies are not in the registry, `pack` or `SELECT_TABLE`. `strategy-list.ts` lists them, and `packSpace` has their points (roadmap item k142).
 
 import { beamStrip, type BeamOptions } from "./beam.ts";
 import { packBinaryHeight, type BinaryHeightOptions } from "./binary-height.ts";
@@ -20,7 +20,7 @@ export const STANDALONE_MAX_ITEMS = 256;
 export const EXACT_STRATEGY_NODE_LIMIT = 100_000;
 
 /** The trials of the strategy `binary-height`. The function `packBinaryHeight` has a higher default. */
-const BINARY_HEIGHT_TRIALS = 32;
+export const BINARY_HEIGHT_TRIALS = 32;
 
 /** The cells of a rectangle strip of a fixed width, with no obstacle and no group. */
 const STRIP_SUPPORTS: Supports = {
@@ -43,7 +43,7 @@ function cells(changes: Partial<Supports>): Supports {
 const FREE_SUPPORTS: Supports = /* @__PURE__ */ cells({ containerSize: ["freeAspect", "freeArea"] });
 
 /** This function gives an `UnsupportedCell` for a refusal of an input that no dimension of the taxonomy tells, for example a gap. */
-function refusal(reason: string): UnsupportedCell {
+export function refusal(reason: string): UnsupportedCell {
   const error = new UnsupportedCell("containerSize", "refused");
   error.message = `The strategy refuses the input: ${reason.replace(/\.$/u, "")}.`;
   return error;
@@ -163,6 +163,9 @@ export const rasterNofitStrategy: Strategy<RasterNofitOptions> = {
 /** The methods of the strategy `masonry`. */
 export type MasonryMethod = "shortest" | "lpt" | "linear-partition";
 
+/** The ids of the methods of the strategy `masonry`. */
+export const MASONRY_METHOD_IDS: readonly MasonryMethod[] = ["shortest", "lpt", "linear-partition"];
+
 /** The options of the strategy `masonry`. */
 export interface MasonryStrategyOptions extends MasonryOptions {
   /** The method of the catalog. */
@@ -204,6 +207,9 @@ const TREEMAP_METHODS: Readonly<Record<TreemapMethod, TreemapLayout>> = {
   strip: treemapStrip,
   "pivot-split": treemapPivotSplit,
 };
+
+/** The ids of the methods of the strategy `treemap`. */
+export const TREEMAP_METHOD_IDS: readonly TreemapMethod[] = ["squarified", "slice-dice", "strip", "pivot-split"];
 
 /** The strategy `treemap`: `treemapPack` of roadmap item k27 with the layout of `method`. Each box keeps its size. */
 export const treemapStrategy: Strategy<TreemapStrategyOptions> = {

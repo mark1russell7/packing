@@ -1,11 +1,11 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
+import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MASONRY_METHOD_IDS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, sideAnchorsStrategy, SKYLINE_RULES, SORT_ORDERS, standaloneStrategies, strategies, strategy, TREEMAP_METHOD_IDS, type AnchorSide, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, STANDALONE_IDS, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
-/** This constant lists each strategy of the registry: the single strategies, the strategies of one shape kind, then the composite strategies. */
-export const DEMO_STRATEGIES: readonly Strategy[] = [...strategies, ...shapeStrategies, ...composites];
+/** This constant lists each strategy of `allStrategies`: the single strategies, the strategies of one shape kind, the standalone strategies, then the composite strategies. */
+export const DEMO_STRATEGIES: readonly Strategy[] = [...strategies, ...shapeStrategies, ...standaloneStrategies, ...composites, sideAnchorsStrategy];
 
 /** This constant lists the id of each strategy of the demo. */
 export const DEMO_IDS: readonly string[] = DEMO_STRATEGIES.map((s) => s.id);
@@ -14,7 +14,7 @@ export const DEMO_IDS: readonly string[] = DEMO_STRATEGIES.map((s) => s.id);
 export const isDemoId = (id: string | undefined): id is string => id !== undefined && DEMO_IDS.includes(id);
 
 /** This function tells if a strategy is a composite strategy of the registry. */
-export const isCompositeId = (id: string): boolean => composites.some((s) => s.id === id);
+export const isCompositeId = (id: string): boolean => id === sideAnchorsStrategy.id || composites.some((s) => s.id === id);
 
 /** The known values of each option with a string value, by the name of the option. */
 export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
@@ -32,6 +32,8 @@ export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
 export const STRATEGY_SETS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
   skyline: { rule: SKYLINE_RULES },
   "bottom-left": { rule: BOTTOM_LEFT_RULES },
+  masonry: { method: MASONRY_METHOD_IDS },
+  treemap: { method: TREEMAP_METHOD_IDS },
 };
 
 /** The limits of each option with a number value, by the name of the option. */
@@ -51,12 +53,18 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   mutation: { min: 0, max: 1, step: 0.01 },
   tenure: { min: 0, max: 1024, step: 1 },
   neighbors: { min: 1, max: 1024, step: 1 },
+  columns: { min: 1, max: 16, step: 1 },
+  nodeLimit: { min: 1000, max: 1_000_000, step: 1000 },
+  trials: { min: 1, max: 1024, step: 1 },
 };
 
 /** The limits of an option with a number value of one strategy, when they are not the values of `NUMBER_LIMITS`, by strategy id. */
 export const STRATEGY_NUMBER_LIMITS: Readonly<Record<string, Readonly<Record<string, { min: number; max: number; step: number }>>>> = {
   "overlap-min": { iterations: { min: 0, max: 65536, step: 1 }, step: { min: 0.001, max: 0.5, step: 0.001 } },
 };
+
+/** The sides that the first box can touch in the strategy `side-anchors`. */
+const ANCHOR_SIDES: readonly AnchorSide[] = ["left", "right", "top", "bottom"];
 
 /** The entries that a composite strategy can take as a member. Composite entries and standalone entries are not members. */
 export const MEMBER_ENTRIES: readonly BenchEntry[] = ENTRIES.filter((e) => !isComposite(e.id) && !STANDALONE_IDS.has(e.id));
@@ -110,6 +118,12 @@ function extraControls(id: string): OptionControl[] {
       return [
         { key: "strategy", kind: "entry", values: ENTRIES.filter((e) => e.strategy !== "aspect-fit" && !STANDALONE_IDS.has(e.id)).map((e) => e.id), value: "maxrects-bl", fromDefaults: false },
         { key: "targetAspect", kind: "number", value: undefined, ...NUMBER_LIMITS["targetAspect"]!, fromDefaults: false },
+      ];
+    case "side-anchors":
+      return [
+        { key: "strategy", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false },
+        { key: "firstSide", kind: "select", values: ANCHOR_SIDES, value: "", none: "none", fromDefaults: false },
+        { key: "firstAt", kind: "number", value: 0.5, min: 0, max: 1, step: 0.01, fromDefaults: false },
       ];
     case "select":
       return [{ key: "members", kind: "members", values: members, value: ["rows", "maxrects-bl"], count: 2, fromDefaults: false }];
@@ -176,10 +190,14 @@ export function packOptions(id: string, values: OptionValues): Record<string, un
       if (c.key === "member") out["member"] = m;
       else {
         out["strategy"] = m.strategy;
-        out["options"] = m.options;
+        out[id === "side-anchors" ? "strategyOptions" : "options"] = m.options;
       }
     } else if (Array.isArray(v) && v.length > 0) out[c.key] = v.map(memberOf);
   }
   if (out["members"] !== undefined) delete out["k"];
+  if (id === "side-anchors") {
+    const { firstSide, firstAt, ...rest } = out;
+    return firstSide === undefined ? rest : { ...rest, first: { side: firstSide, at: firstAt } };
+  }
   return out;
 }

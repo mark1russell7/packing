@@ -2,7 +2,7 @@
 // A new strategy, entry or option that a page does not offer fails this test.
 
 import { readFileSync } from "node:fs";
-import { composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
+import { allStrategies, composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, sideAnchorsStrategy, standaloneStrategies, strategies, strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, STANDALONE_IDS } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
 import { optionsOf } from "./cards-model.ts";
@@ -34,8 +34,9 @@ describe("the compare page", () => {
 
 describe("the demo", () => {
   it("offers each strategy of the registry, also the strategies of one shape kind and the composite strategies", () => {
-    const registry = [...strategies, ...shapeStrategies, ...composites].map((s) => s.id);
+    const registry = [...strategies, ...shapeStrategies, ...standaloneStrategies, ...composites, sideAnchorsStrategy].map((s) => s.id);
     expect(DEMO_IDS).toEqual(registry);
+    expect([...DEMO_IDS].sort()).toEqual(allStrategies.map((s) => s.id).sort());
     expect(STRATEGIES).toEqual(registry);
   });
 
@@ -51,6 +52,13 @@ describe("the demo", () => {
         if (c!.kind === "select") expect(c!.values).toContain(value);
       }
     }
+  });
+
+  it("gives side-anchors its member, and the first anchor only when a side is set", () => {
+    const entry = ENTRIES.find((e) => e.id === "maxrects-bl")!;
+    const start = packOptions("side-anchors", startValues("side-anchors"));
+    expect(start).toEqual({ strategy: entry.strategy, strategyOptions: entry.options });
+    expect(packOptions("side-anchors", { ...startValues("side-anchors"), firstSide: "top", firstAt: 0.25 })).toEqual({ ...start, first: { side: "top", at: 0.25 } });
   });
 
   it("packs with the defaults of each strategy when no control changes", () => {

@@ -2168,7 +2168,8 @@ The values of the tables on 2026-11-03, for the default cases, are:
 Roadmap item k141 adds 14 entries to `ENTRIES`: `STANDALONE_ENTRIES` of `bench/entries.ts`. `docs/PACKER.md` tells the strategies.
 
 - Each entry supports fewer cells than the older entries. A run records a skip for each other cell. On `smoke-v1`, `exact-strip` has no measured input: 11 inputs are outside its cells, and it refuses 2. The other entries have 1 to 11 measured inputs of 13.
-- The entries are not in `packSpace`. Roadmap item k142 adds them, because each new point changes the pinned counts of the space.
+- The entries are in `packSpace` since roadmap item k142. Each entry has a named config. `bench/pack-space.test.ts` compares its output with the entry on inputs that it accepts.
+- Roadmap item k142 adds 9 strata to the sampler, 38 in all. The strata `exact-strip:1` and `treemap:1` accept few inputs, so a short sample misses them.
 - The entries are not members of the adversary or of the portfolio tools, because they do not support each cell.
 
 ## The rank window

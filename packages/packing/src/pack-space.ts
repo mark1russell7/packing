@@ -21,10 +21,15 @@ import {
 } from "@mark1russell7/layout-contract";
 import type { BestFitStrategyOptions, BottomLeftStrategyOptions, GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
+import { BEAM_WIDTH, type BeamOptions } from "./beam.ts";
+import type { BinaryHeightOptions } from "./binary-height.ts";
 import type { CircleQuasiPhysicalOptions } from "./circle-quasi-physical.ts";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
 import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
+import type { ExactStripOptions } from "./exact-strip.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
+import type { NearRectsOptions } from "./near-rects.ts";
+import type { RasterNofitOptions } from "./raster-nofit.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
 import type { AnnealStrategyOptions, GeneticStrategyOptions, TabuStrategyOptions } from "./order-search.ts";
@@ -39,13 +44,15 @@ import type { PortfolioEntry } from "./portfolio.ts";
 import { PORTFOLIO_FRAME_MS } from "./portfolio-cell.ts";
 import { PORTFOLIO_SETS } from "./portfolio-sets.ts";
 import type { PortfolioStrategyOptions } from "./portfolio-strategy.ts";
-import { packWith, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+import { strategy, type AspectFitStrategyOptions } from "./registry.ts";
 import { RESTART_PERTURBS, type RestartsStrategyOptions } from "./restarts.ts";
 import type { OverlapMinStrategyOptions } from "./overlap-min.ts";
 import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 import type { SelectStrategyOptions } from "./select.ts";
 import { PACK_DEFAULT_TABLE, SELECT_TABLE, type SelectNode } from "./select-table.ts";
 import { SHELF_FITS } from "./shelf.ts";
+import { BINARY_HEIGHT_TRIALS, EXACT_STRATEGY_NODE_LIMIT, MASONRY_METHOD_IDS, refusal, TREEMAP_METHOD_IDS, type MasonryStrategyOptions, type SideAnchorStrategyOptions, type TreemapStrategyOptions } from "./standalone-strategies.ts";
+import { packWith } from "./strategy-list.ts";
 import { UnsupportedShape } from "./strategy.ts";
 
 /** The engine name of `packSpace`. Each config of the space has it in `space`. */
@@ -162,6 +169,21 @@ const TABU_PARAMS: readonly SpaceParam[] = [
   ...WORK_PARAMS,
 ];
 
+/**
+ * The placements of the standalone strategies of roadmap item k142. Each one goes with the order `input` and the size search `none`, because it does its own search.
+ * A composite finds only a member of the registry, so `packConfig` refuses a composite with one of these members.
+ */
+const STANDALONE_PLACEMENTS: readonly string[] = ["sleator", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"];
+
+/** The values of the param `nodeLimit` of `exact-strip`. The largest value is the default of the strategy, so a draw costs no more than the named config. */
+const EXACT_NODE_LIMITS: readonly number[] = [1000, 10000, EXACT_STRATEGY_NODE_LIMIT];
+
+/** The param of `side-anchors` of roadmap item k142: the side and the place of one anchor for the first item. */
+const SIDE_ANCHOR_PARAMS: readonly SpaceParam[] = [
+  { name: "side", kind: "enum", values: ["left", "right", "top", "bottom"], default: "left" },
+  { name: "at", kind: "real", min: 0, max: 1, default: 0.5 },
+];
+
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
 const RECT_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["rect"] as const) });
 
@@ -189,6 +211,13 @@ const choice = (option: string, params: Record<string, string | number | boolean
  * It throws a `RangeError` for a composite strategy and for an option that the space does not have.
  */
 export function baseConfig(id: string, options: Readonly<Record<string, unknown>> = {}): StrategyConfig {
+  // The params of the space hold the defaults of a standalone strategy. The list of the registry does not hold it, and the named configs reach this function at import.
+  if (STANDALONE_PLACEMENTS.includes(id)) {
+    const params = STAGES.find((s) => s.name === "placement")!.options.find((option) => option.id === id)!.params;
+    for (const key of Object.keys(options)) if (!params.some((p) => p.name === key)) throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
+    const placement = choice(id, Object.fromEntries(params.map((p) => [p.name, (options[p.name] ?? p.default) as string | number | boolean])));
+    return { space: ENGINE, stages: { order: choice("input"), "size-search": choice("none"), placement, "local-search": choice("none") } };
+  }
   const o = { ...(strategy(id).defaults as Record<string, unknown>), ...options };
   if (id === "hole-degree") {
     for (const key of Object.keys(o)) if (key !== "steps") throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
@@ -286,6 +315,21 @@ const STAGES: readonly SpaceStage[] = [
       { id: "best-fit", params: [{ name: "side", kind: "enum", values: [...BEST_FIT_SIDES], default: "left" }], supports: RECT_ONLY },
       { id: "hole-degree", params: [{ name: "steps", kind: "int", min: 0, max: HOLE_DEGREE_MAX_STEPS, default: 8 }], supports: CIRCLE_ONLY },
       { id: "circle-quasi-physical", params: [{ name: "iterations", kind: "int", min: 0, max: CIRCLE_SPACE_MAX_ITERATIONS, default: 256 }], supports: CIRCLE_ONLY },
+      { id: "sleator", params: [], supports: RECT_ONLY },
+      { id: "beam", params: [{ name: "width", kind: "int", min: 1, max: 64, scale: "log", default: BEAM_WIDTH }], supports: RECT_ONLY },
+      { id: "exact-strip", params: [{ name: "nodeLimit", kind: "enum", values: [...EXACT_NODE_LIMITS], default: EXACT_STRATEGY_NODE_LIMIT }], supports: RECT_ONLY },
+      { id: "binary-height", params: [{ name: "trials", kind: "int", min: 1, max: 1024, scale: "log", default: BINARY_HEIGHT_TRIALS }], supports: RECT_ONLY },
+      { id: "near-rects", params: [{ name: "rounds", kind: "int", min: 0, max: 4, default: 2 }], supports: RECT_ONLY },
+      { id: "raster-nofit", params: [{ name: "trials", kind: "int", min: 1, max: 256, scale: "log", default: 64 }], supports: RECT_ONLY },
+      {
+        id: "masonry",
+        params: [
+          { name: "method", kind: "enum", values: [...MASONRY_METHOD_IDS], default: "shortest" },
+          { name: "columns", kind: "int", min: 1, max: 16, default: 4 },
+        ],
+        supports: RECT_ONLY,
+      },
+      { id: "treemap", params: [{ name: "method", kind: "enum", values: [...TREEMAP_METHOD_IDS], default: "squarified" }], supports: RECT_ONLY },
     ],
   },
   { name: "local-search", options: [{ id: "none", params: [], supports: RECT_OR_CIRCLE }] },
@@ -312,12 +356,13 @@ const STAGES: readonly SpaceStage[] = [
       { id: "relax", params: RELAX_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "relax-pull", params: RELAX_PULL_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "force", params: FORCE_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "side-anchors", params: SIDE_ANCHOR_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
 ];
 
 /** The placements that do their own size search, or none: only they go with the size search `none`. */
-const NO_SIZE_SEARCH: readonly string[] = ["push", "hole-degree", "circle-quasi-physical"];
+const NO_SIZE_SEARCH: readonly string[] = ["push", "hole-degree", "circle-quasi-physical", ...STANDALONE_PLACEMENTS];
 
 /** The id of each option of the stage `placement`. */
 const placementIds: readonly string[] = STAGES.find((s) => s.name === "placement")!.options.map((o) => o.id);
@@ -347,6 +392,21 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "best-fit-tall": baseConfig("best-fit", { side: "tall" }),
   "best-fit-short": baseConfig("best-fit", { side: "short" }),
   "circle-quasi-physical": baseConfig("circle-quasi-physical"),
+  sleator: baseConfig("sleator"),
+  beam: baseConfig("beam"),
+  "exact-strip": baseConfig("exact-strip"),
+  "binary-height": baseConfig("binary-height"),
+  "near-rects": baseConfig("near-rects"),
+  "raster-nofit": baseConfig("raster-nofit"),
+  masonry: baseConfig("masonry"),
+  "masonry-shortest": baseConfig("masonry", { method: "shortest" }),
+  "masonry-lpt": baseConfig("masonry", { method: "lpt" }),
+  "columns-linear-partition": baseConfig("masonry", { method: "linear-partition" }),
+  treemap: baseConfig("treemap"),
+  "treemap-squarified": baseConfig("treemap", { method: "squarified" }),
+  "treemap-slice-dice": baseConfig("treemap", { method: "slice-dice" }),
+  "treemap-strip": baseConfig("treemap", { method: "strip" }),
+  "treemap-pivot-split": baseConfig("treemap", { method: "pivot-split" }),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;
@@ -359,8 +419,10 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * - `size-search` acts only on a container of free size. The option `none` goes with `push`, `hole-degree` and `circle-quasi-physical` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
  * - `circle-quasi-physical` of roadmap item k94 goes with the order `input` and the size search `none`. It does its own radius search, in a circle container only.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force`.
- * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force` have 1 member.
+ * - The placements of `STANDALONE_PLACEMENTS` of roadmap item k142 go with the order `input` and the size search `none`. Each one does its own search.
+ * - A composite finds only a member of the registry. Thus `packConfig` refuses a composite with a member of `STANDALONE_PLACEMENTS`, and a draw goes back.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull`, `force` and `side-anchors`.
+ * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull`, `force` and `side-anchors` have 1 member.
  * - `relax-pull` is the strategy `relax` with the strength 0 and the option `pull`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
@@ -383,6 +445,10 @@ export const packSpace: StrategySpace = Object.freeze({
     { if: { stage: "placement", option: "hole-degree" }, then: { stage: "order", option: "input" } },
     { if: { stage: "placement", option: "circle-quasi-physical" }, then: { stage: "size-search", option: "none" } },
     { if: { stage: "placement", option: "circle-quasi-physical" }, then: { stage: "order", option: "input" } },
+    ...STANDALONE_PLACEMENTS.flatMap((option) => [
+      { if: { stage: "placement", option }, then: { stage: "size-search", option: "none" } },
+      { if: { stage: "placement", option }, then: { stage: "order", option: "input" } },
+    ]),
     // The placement `push` does not read `input.links`, so a graph order has no effect on it.
     ...GRAPH_ORDERS.map((option) => ({ if: { stage: "placement", option: "push" }, then: { not: { stage: "order", option } } })),
     // The size search `none` goes only with the placements of `NO_SIZE_SEARCH`. Each other placement (rows to guillotine) needs `log-sweep`.
@@ -432,6 +498,7 @@ export const packSpace: StrategySpace = Object.freeze({
     "force-maxrects-bl": metaConfig("force", [single("maxrects-bl")]),
     "force-skyline-bl-waste": metaConfig("force", [single("skyline-bl-waste")]),
     force: metaConfig("force", [single("maxrects-bl")]),
+    "side-anchors-first-left": metaConfig("side-anchors", [single("maxrects-bl")], { side: "left", at: 0.5 }),
   },
 } satisfies StrategySpace);
 
@@ -560,7 +627,28 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     turnable: null,
     turned: null,
   } satisfies Places<PackLayoutOptions>,
+  sleator: {},
+  beam: { width: "placement.beam.width" } satisfies Places<BeamOptions>,
+  "exact-strip": { nodeLimit: "placement.exact-strip.nodeLimit" } satisfies Places<ExactStripOptions>,
+  "binary-height": { trials: "placement.binary-height.trials", seed: null, precision: null } satisfies Places<BinaryHeightOptions>,
+  "near-rects": { rounds: "placement.near-rects.rounds", cell: null, seed: null } satisfies Places<NearRectsOptions>,
+  "raster-nofit": { trials: "placement.raster-nofit.trials", cell: null, seed: null } satisfies Places<RasterNofitOptions>,
+  masonry: { method: "placement.masonry.method", columns: "placement.masonry.columns", columnWidth: null } satisfies Places<MasonryStrategyOptions>,
+  treemap: { method: "placement.treemap.method" } satisfies Places<TreemapStrategyOptions>,
+  "side-anchors": {
+    first: "combine.side-anchors.side",
+    strategy: "combine.side-anchors.members",
+    strategyOptions: "combine.side-anchors.members",
+    anchors: null,
+    precision: null,
+  } satisfies Places<SideAnchorStrategyOptions>,
 });
+
+/** The reason of `seed` of a standalone strategy. */
+const SEED_ARGUMENT = "The seed is an argument of `packConfig`, not a point of the space.";
+
+/** The reason of `cell` of a strategy with a grid. */
+const CELL_OF_INPUT = "The default comes from the sizes of the input. One fixed value does not fit each input.";
 
 /** The reason of `fit` of a strategy that does not read it. */
 const ONLY_SHELF = "Only the strategy `shelf` reads it. The param `placement.shelf.fit` sets it.";
@@ -578,6 +666,15 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
   "pack.links": "It is a list of the links between the rectangles of the input. Only a graph order reads it. It is data, not a choice.",
   "pack.turnable": "It is a set of rectangles of the input. The `rotate` params of `maxrects`, `skyline` and `guillotine` make it.",
   "pack.turned": "It is a set that `pack` fills with the turned rectangles. It holds a result, not a choice.",
+  "binary-height.seed": SEED_ARGUMENT,
+  "binary-height.precision": "It is a length, so one range does not fit each input. The default stops the search.",
+  "near-rects.seed": SEED_ARGUMENT,
+  "near-rects.cell": CELL_OF_INPUT,
+  "raster-nofit.seed": SEED_ARGUMENT,
+  "raster-nofit.cell": CELL_OF_INPUT,
+  "masonry.columnWidth": "The default is the widest box of the input. One fixed value does not fit each input.",
+  "side-anchors.anchors": "It names items of one input. The option `first` gives the anchor that each input has.",
+  "side-anchors.precision": "It stops the search of the length. A param adds configs with the same kind of layout.",
 });
 
 /** The point of a strategy with its options in `packSpace`, or the reason that it has no point. */
@@ -590,7 +687,7 @@ const NAMED_VALUES: Readonly<Record<string, Readonly<Record<string, unknown>>>> 
 });
 
 /** The single strategies of the registry. `baseConfig` gives their configs. */
-const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree", "bottom-left", "best-fit", "circle-quasi-physical"];
+const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree", "bottom-left", "best-fit", "circle-quasi-physical", ...STANDALONE_PLACEMENTS];
 
 /** This function tells if a value is an object and not a list. */
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -609,6 +706,25 @@ function memberOf(value: unknown): { strategy: string; options: Readonly<Record<
   if (!isRecord(value) || typeof value["strategy"] !== "string") return undefined;
   const options = value["options"] ?? {};
   return isRecord(options) ? { strategy: value["strategy"], options } : undefined;
+}
+
+/** The reason that a standalone strategy is not a member. */
+const notMember = (member: string): string => `The strategy ${member} is not in the registry, and a composite finds only a member of the registry.`;
+
+/**
+ * This function gives the point of `side-anchors`. The option `first` gives the params, and `strategy` with `strategyOptions` gives the member.
+ * With no `first`, the strategy gives the layout of its member. Thus the point is the config of the member.
+ */
+function sideAnchorsPoint(options: Readonly<Record<string, unknown>>): StrategyPoint {
+  const inner = options["strategy"] === undefined ? "maxrects" : String(options["strategy"]);
+  if (STANDALONE_PLACEMENTS.includes(inner)) return { ok: false, reason: notMember(inner) };
+  const innerOptions = options["strategy"] === undefined ? { rule: "bl" } : isRecord(options["strategyOptions"]) ? options["strategyOptions"] : {};
+  const member = rawConfig(inner, innerOptions);
+  if (!member.ok) return { ok: false, reason: `The member ${inner} of the option side-anchors.strategy has no point. ${member.reason}` };
+  const first = options["first"];
+  if (first === undefined) return member;
+  if (!isRecord(first) || typeof first["side"] !== "string" || typeof first["at"] !== "number") return { ok: false, reason: "packSpace holds the option side-anchors.first only with side and at." };
+  return { ok: true, config: metaConfig("side-anchors", [member.config], { side: first["side"], at: first["at"] }) };
 }
 
 /** This function gives the config of a strategy with its options before the checks of `checkConfig`. */
@@ -639,6 +755,7 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
       if (places[name] === null) return { ok: false, reason: `packSpace does not hold the option ${key}: ${PACK_SPACE_LEFT_OUT[key] ?? "PACK_SPACE_LEFT_OUT gives no reason."}` };
     }
   }
+  if (id === "side-anchors") return sideAnchorsPoint(options);
   if (SINGLE_STRATEGIES.includes(id)) {
     try {
       return { ok: true, config: baseConfig(id, options) };
@@ -664,6 +781,7 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
       for (const item of Array.isArray(value) ? value : [value]) {
         const member = memberOf(item);
         if (member === undefined) return { ok: false, reason: `The option ${id}.${name} has a member that is not a strategy id or an entry with strategy and options.` };
+        if (STANDALONE_PLACEMENTS.includes(member.strategy)) return { ok: false, reason: notMember(member.strategy) };
         const point = rawConfig(member.strategy, member.options);
         if (!point.ok) return { ok: false, reason: `The member ${member.strategy} of the option ${id}.${name} has no point. ${point.reason}` };
         members.push(point.config);
@@ -750,6 +868,7 @@ function runOf(config: StrategyConfig): Run {
   if (place.option === "push") return { strategy: "push", options: { sortOrder, maxShovesPerItem: p["maxShovesPerItem"] } };
   if (place.option === "hole-degree") return { strategy: "hole-degree", options: { steps: p["steps"] } };
   if (place.option === "circle-quasi-physical") return { strategy: "circle-quasi-physical", options: { iterations: p["iterations"] } };
+  if (STANDALONE_PLACEMENTS.includes(place.option)) return { strategy: place.option, options: { ...p } };
   const options: Record<string, unknown> = { sortOrder, samples: s["size-search"]!.params?.["samples"] };
   if (place.option === "shelf" && p["fit"] !== "none") options["fit"] = p["fit"];
   if (place.option === "skyline") {
@@ -811,7 +930,8 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
  * - The param `limitWork` of a portfolio and of `restarts` gives the option `budgetWork` (roadmap item k117).
  * - The param `limitWork` of `anneal`, `genetic` and `tabu` gives the option `budgetWork` too (roadmap item k26).
- * - A base config packs with its single strategy of the registry.
+ * - A base config packs with its single strategy.
+ * - A composite with a member of `STANDALONE_PLACEMENTS` causes `UnsupportedCell`, because a composite finds only a member of the registry.
  * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` or `tabu`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
@@ -833,6 +953,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
   }
   const params = combine.params ?? {};
   const members = combine.members ?? [];
+  const outside = members.map(placementOf).find((placement) => STANDALONE_PLACEMENTS.includes(String(placement)));
+  if (outside !== undefined) throw refusal(notMember(outside));
   const key = params["key"] === "area" ? { key: AREA_KEY } : params["key"] === "fill" ? { key: FILL_KEY } : {};
   const limits = {
     ...(params["limitMembers"] === true ? { maxMembers: params["maxMembers"] } : {}),
@@ -874,6 +996,10 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return packWith("relax", input, { member: entryOf(members[0]!), strength: 0, pull: params["pull"] }, seed);
     case "force":
       return packWith("force", input, { member: entryOf(members[0]!), iterations: params["iterations"], rounds: params["rounds"] }, seed);
+    case "side-anchors": {
+      const run = runOf(members[0]!);
+      return packWith("side-anchors", input, { strategy: run.strategy, strategyOptions: run.options, first: { side: params["side"], at: params["at"] } }, seed);
+    }
     default: {
       const run = runOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);
