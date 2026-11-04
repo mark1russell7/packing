@@ -54,7 +54,7 @@ Status: done, done, waiting, next, done.
 | k45 | Inputs with a known best answer: perfect cuts that are shuffled, and the consecutive squares | measure | done | k19 |
 | k46 | The published benchmark sets for strip packing and nesting | measure | done | k19 |
 | k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | done | k19, k9 |
-| k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
+| k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | active | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
 | k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
 | k51 | Lower bounds, so each result shows its distance to the best | measure | done | k6 |

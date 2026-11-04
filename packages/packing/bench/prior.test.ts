@@ -69,8 +69,8 @@ describe("the family prior of k119", () => {
       for (const i of m.specs === undefined ? (m.inputs ?? []) : []) if (i.generator !== undefined) families.add(familyKey(i.generator.name, i.generator.version));
     }
     const mapping = Object.fromEntries([...families].sort().map((f) => [f, samplerFamilyOf(f)]));
-    expect(mapping).toEqual({ ...Object.fromEntries(SAMPLER_FAMILIES.map((f) => [f, f])), "adversary@1": null });
-    expect(PRIOR_ALIASES).toEqual({ "adversary@1": null });
+    expect(mapping).toEqual({ ...Object.fromEntries(SAMPLER_FAMILIES.map((f) => [f, f])), "adversary@1": null, "change-walk@1": null });
+    expect(PRIOR_ALIASES).toEqual({ "adversary@1": null, "change-walk@1": null });
     expect(SAMPLER_FAMILIES).toEqual(corpusFamilies.map((f) => `${f.name}@${f.version}`));
   });
 
@@ -79,10 +79,15 @@ describe("the family prior of k119", () => {
     const b = unionPrior();
     expect(b.corpora.length).toBe(readCorpora().length);
     expect(b.families.map((f) => f.family)).toEqual(SAMPLER_FAMILIES.filter((f) => !b.absent.includes(f)));
-    expect(b.unmapped).toEqual([{ family: "adversary@1", inputs: 6 }]);
+    expect(b.unmapped).toEqual([{ family: "adversary@1", inputs: 6 }, { family: "change-walk@1", inputs: 480 }]);
     expect([...priorWeights(b).values()].reduce((s, v) => s + v, 0)).toBeCloseTo(1, 12);
     expect(unionPrior()).toBe(b);
     expect(basisLines(b)[0]).toMatch(/^The family prior: the union of \d+ corpora/);
+  });
+
+  it("gives the same weights without the chains of pack-change-v1", () => {
+    const others = readCorpora().filter((m) => m.corpus !== "pack-change-v1");
+    expect(priorBasis(others, "union").families).toEqual(unionPrior().families);
   });
 
   it("reads a spec without a version as version 1, and an input without specs from its generator", () => {

@@ -212,6 +212,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
+| `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -425,7 +426,38 @@ The name `screen-v1` is the screen set of the router `highways`. Thus the packer
 
 The flag `--anchor` adds the measures `pack.anchor.*` of roadmap item k111. The section "Stability when an anchor moves" tells them. Without the flag, the records do not change.
 
-No generator of the package makes an input with a `base` and a `change` yet. Thus no record has the stability measures. When the corpus has change pairs, the runner adds the measures of `measureChange` against the run on the base input.
+The generator `change-walk` makes inputs with a `base` and a `change`. The runner adds the measures of `measureChange` against the run on the base input. The section "The change chains" tells the corpus.
+
+## The change chains
+
+The corpus `pack-change-v1` of roadmap item k48 gives the stability measures to a run for the first time. The prediction is `packing-k48-change-walk`.
+
+```bash
+node bench/change.ts                                 # writes the corpus file
+node bench/change.ts --check                         # compares the file with the builder
+node bench/change.ts --report [--strategies a,b]     # writes the table below
+```
+
+- The corpus has the 4 kinds `add`, `remove`, `resize` and `reorder`. It has the counts 20 and 60, the steps 0 to 5 and the seeds 1 to 10.
+- All data is made up.
+- It has 480 inputs, and 400 of them have a base. Each step is one edit of the step before it.
+- The container is a strip with a free height. The width is 300 to 600. The items are 20 to 60 wide and 15 to 50 high.
+- A `reorder` swaps two boxes of the input order. A `resize` keeps the id, so the box stays in the measure.
+- The generator has no corpus family, so the sampler does not draw it. The prior gives it no weight, and the other weights do not change.
+- The contract has no kind of change for a moved obstacle. Thus this corpus has 4 of the 5 kinds of the roadmap row.
+
+The report reads no time, so any computer can start it. The columns of the kinds are the mean of `pack.stability.moved` over the 100 records of the kind. The last column is the mean of `pack.stability.mean` in widths of the container.
+
+| Strategy | Records | `add` | `remove` | `resize` | `reorder` | All | Mean distance |
+|---|---|---|---|---|---|---|---|
+| `rows` | 400 | 0.404 | 0.451 | 0.561 | 0.031 | 0.362 | 0.054 |
+| `shelf` | 400 | 0.391 | 0.443 | 0.536 | 0.037 | 0.352 | 0.049 |
+| `skyline` | 400 | 0.394 | 0.450 | 0.599 | 0.065 | 0.377 | 0.074 |
+| `maxrects-bl` | 400 | 0.383 | 0.442 | 0.579 | 0.058 | 0.366 | 0.070 |
+
+- One `add`, `remove` or `resize` moves approximately half of the staying boxes of `maxrects-bl`.
+- A `reorder` moves under 7 % of the boxes of each strategy, because each default sorts the items first.
+- The share `moved` does not separate these 4 strategies: their means have a spread of 0.025. The prediction asked for 0.10. The mean distance has a larger spread, from 0.049 to 0.074.
 
 ## Stability when an anchor moves
 

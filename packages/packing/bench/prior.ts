@@ -39,8 +39,9 @@ export const SAMPLER_FAMILIES: readonly string[] = Object.freeze(corpusFamilies.
 /**
  * The corpus families that do not map to a sampler family of the same key. The value is the sampler family, or `null` for no family.
  * An `adversary` input is a searched worst case, not a draw of its origin family. Thus it gives no weight.
+ * A `change-walk` input is a step of a chain, and the sampler does not draw it. Thus it gives no weight.
  */
-export const PRIOR_ALIASES: Readonly<Record<string, string | null>> = Object.freeze({ "adversary@1": null });
+export const PRIOR_ALIASES: Readonly<Record<string, string | null>> = Object.freeze({ "adversary@1": null, "change-walk@1": null });
 
 /**
  * This function gives the sampler family of a corpus family, or `null` when the sampler does not draw it.
