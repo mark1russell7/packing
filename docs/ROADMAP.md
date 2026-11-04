@@ -146,7 +146,7 @@ Status: done, done, waiting, next, done.
 | k137 | A link pull after a pack. The option `pull` of `relax` moves each linked box along its free space toward its balance point. The boxes make no new overlap and stay in the container. The option `relax-pull` of `combine` holds it in `packSpace`. | core | done | k124, k131 |
 | k138 | The fallback of `force` and `relax` to their member is a typed field of the output. A host can then tell its user which strategy gave the layout. Today the fallback is only the trace measures `force.fallback` and `relax.fallback`. | core | later | |
 | k139 | `overflow` tells why each item has no place: too large for the container, or no free place. `pack()` with only `fixedWidth` also tells of a rectangle wider than that width. Today a too-large item is in `overflow`, with no reason. | core | later | |
-| k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | active | |
+| k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | done | |
 
 ## The queue
 
