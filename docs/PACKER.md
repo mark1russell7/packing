@@ -1670,6 +1670,16 @@ The function `pinUnchanged` is the first slice of roadmap item k29. It changes a
 
 The hole of a removed box stays, so a chain of changes adds height. `docs/BENCH.md`, "The pin of unchanged boxes", gives that cost.
 
+## The vertical compaction
+
+The function `compactUp` is the first slice of roadmap item k30. It takes a layout and moves each free box up until the box touches a box, a wall or the top of the container. No default uses it.
+
+- The order is the top of each box, then its left edge, then the order of the input. The steps come from the classic compactor of react-grid-layout.
+- A locked item and an obstacle stay at their places. A box keeps its `x`, and it does not jump past another box.
+- The function refuses a container with a shape, pair gaps and an item with a parent.
+
+After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.
