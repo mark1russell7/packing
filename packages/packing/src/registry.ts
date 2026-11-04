@@ -98,6 +98,9 @@ const LISTS: readonly (readonly [StrategyKind, readonly Strategy[]])[] = [
   ["composite", composites],
 ];
 
+/** Each strategy of `LISTS`, in one array. `strategy` is on the path of each `packWith` of a composite, so this array is built one time. */
+const EACH_STRATEGY: readonly Strategy[] = LISTS.flatMap(([, list]) => list);
+
 /**
  * Each strategy of the registry, with its kind and its supports (roadmap item k140). Use this list to find the strategies.
  * The lists `strategies`, `shapeStrategies` and `composites` stay for their own uses, and each one holds only one kind.
@@ -111,7 +114,7 @@ export const allStrategies: readonly StrategyListing[] = Object.freeze(
  * It throws a `RangeError` for an id that the registry does not have.
  */
 export function strategy(id: string): Strategy {
-  const found = LISTS.flatMap(([, list]) => list).find((s) => s.id === id);
+  const found = EACH_STRATEGY.find((s) => s.id === id);
   if (found === undefined) throw new RangeError(`The registry has no strategy "${id}".`);
   return found;
 }
