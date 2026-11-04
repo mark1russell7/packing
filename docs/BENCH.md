@@ -2199,6 +2199,40 @@ The inputs are made-up strips of width 200 with 100 items and 30 seeds. The rank
 - Window 1 has inversions of 0.177, because `maxrects` can put a box above an earlier box.
 - The count of 100 items sets the scale of the windows. This run does not measure a window as a share of the count.
 
+## Repack and match
+
+`bench/match.ts` compares `matchPlaces` of roadmap item k31 with a fresh pack, and with `pinUnchanged` and `compactUp`, on the chains of `bench/pin.ts`. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k31-move-matching`.
+
+```bash
+node bench/match.ts --out <file.json> [--seeds 30] [--count 100] [--share 0.05] [--steps 10]
+```
+
+The family `cards` rounds each size up to steps of 20 and 25, so it has 12 sizes. The family `free` has no step. The hard rules have 0 breaks, and each item has a place.
+
+| Family | Entry | Method | Moved | Distance | Cost, step 10 |
+| --- | --- | --- | --- | --- | --- |
+| `cards` | `maxrects-bl` | fresh | 0.712 | 0.323 | 1 |
+| `cards` | `maxrects-bl` | match | 0.591 | 0.250 | 1 |
+| `cards` | `maxrects-bl` | pin and compaction | 0.067 | 0.033 | 1.119 |
+| `cards` | `skyline` | fresh | 0.715 | 0.300 | 1 |
+| `cards` | `skyline` | match | 0.598 | 0.227 | 1 |
+| `cards` | `skyline` | pin and compaction | 0.136 | 0.065 | 1.213 |
+| `cards` | `rows` | fresh | 0.679 | 0.325 | 1 |
+| `cards` | `rows` | match | 0.554 | 0.261 | 1 |
+| `cards` | `rows` | pin and compaction | 0.072 | 0.038 | 1.149 |
+| `free` | `maxrects-bl` | fresh | 0.757 | 0.355 | 1 |
+| `free` | `maxrects-bl` | match | 0.756 | 0.354 | 1 |
+| `free` | `skyline` | fresh | 0.808 | 0.333 | 1 |
+| `free` | `skyline` | match | 0.808 | 0.333 | 1 |
+| `free` | `rows` | fresh | 0.751 | 0.297 | 1 |
+| `free` | `rows` | match | 0.750 | 0.296 | 1 |
+
+- The match has the height of a fresh pack at each step, on each entry and family.
+- On `cards`, the match moves 16 to 18 % fewer boxes and gives 20 to 24 % less distance. The prediction asked for 20 % fewer boxes and half the distance, so both claims failed.
+- On `free`, the match gives no gain. Almost each size has one box.
+- Pin and compaction moves far fewer boxes, and it costs 12 to 21 % of height at step 10. The match is the choice when the height cannot rise.
+- The 100 items share 12 sizes, so a class has approximately 8 boxes. This run does not measure other class sizes.
+
 ## The kept prefix
 
 `bench/prefix.ts` compares `keepPrefix` of roadmap item k30 with a fresh pack, and with `pinUnchanged` and `compactUp`, on the chains of `bench/pin.ts`. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k30-keep-prefix`.

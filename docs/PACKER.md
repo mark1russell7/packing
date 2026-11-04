@@ -1785,6 +1785,23 @@ The function `compactUp` is the first slice of roadmap item k30. It takes a layo
 
 After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
 
+## Repack and match
+
+The function `matchPlaces` is a slice of roadmap item k31, the idea `new-move-matching`. It takes a fresh layout and gives each box of one size the place of that size that is nearest to its old place. No default uses it.
+
+```ts
+const fresh = packWith("maxrects", changeInput, { rule: "bl" });
+const output = matchPlaces(baseOutput, changeInput, fresh);
+```
+
+- Two boxes change places only when they have the same size, margin, shape, ports, group, rank and turn.
+- A locked item and an item with a parent keep their places.
+- Thus the height, the width and the hard rules of the fresh layout do not change.
+- The match is greedy, so it is not always the least total distance.
+- The function refuses pair gaps, because a pair gap names two ids.
+
+The function needs sizes that repeat, such as cards on a dashboard. With free sizes, each class has one box and nothing changes. `docs/BENCH.md`, "Repack and match", has the numbers.
+
 ## The kept prefix
 
 The function `keepPrefix` locks each box before the first change of the item list (roadmap item k30). It changes an input and does not pack, as `pinUnchanged` does. No default uses it.
