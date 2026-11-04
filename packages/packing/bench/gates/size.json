@@ -73,6 +73,13 @@
       "import": "skyline",
       "measured": 12694,
       "budget": 14336
+    },
+    {
+      "specifier": "@mark1russell7/packing/strategy-catalog",
+      "file": "build/entry/strategy-catalog.js",
+      "import": "strategyCatalog",
+      "measured": 77416,
+      "budget": 81920
     }
   ]
 }
