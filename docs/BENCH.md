@@ -1901,3 +1901,27 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The table "The active rounds" shows, for each round, the share of the new pairs and the share of the sample after the round. The first row is the grid only.
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
+
+## The Sleator strip
+
+`bench/sleator.ts` measures `sleatorStrip` of roadmap item k52. A height is not a time, so any computer can start it. The prediction is `packing-k52-sleator`.
+
+```bash
+node bench/sleator.ts --out <file.json> [--seeds 30] [--counts 20,100,500]
+```
+
+The strip has a width of 200. Each family has made-up items with a height from 1 to 100. The widths of `narrow` go from 1 to 50, of `mixed` from 1 to 200, and of `wide` from 67 to 200.
+
+| Family | Items | Mean height over the larger of area / width and the tallest item | Mean height over `maxrects-bl` | Share where `maxrects-bl` is lower or equal |
+| --- | --- | --- | --- | --- |
+| narrow | 20 | 1.301 | 1.097 | 93.3 % |
+| narrow | 100 | 1.200 | 1.123 | 100 % |
+| narrow | 500 | 1.192 | 1.162 | 100 % |
+| mixed | 20 | 1.353 | 1.112 | 96.7 % |
+| mixed | 100 | 1.349 | 1.190 | 100 % |
+| mixed | 500 | 1.329 | 1.231 | 100 % |
+| wide | 20 | 1.350 | 1.064 | 100 % |
+| wide | 100 | 1.322 | 1.088 | 100 % |
+| wide | 500 | 1.312 | 1.116 | 100 % |
+
+Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.

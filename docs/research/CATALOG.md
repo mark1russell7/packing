@@ -333,7 +333,7 @@ These results give a bound on the height of a strip packer against the best heig
 | `shelf-ffdh` | FFDH | `1.7 OPT + h_max` | Coffman 1980 | yes | k21 |
 | `shelf-split-fit` | Split-Fit | `1.5 OPT + 2` with heights of 1 or less | Coffman 1980 | yes | k21 |
 | `bl-baker` | BL by decreasing width | `3 OPT` | Baker 1980 | yes | k25 |
-| `approx-sleator` | Sleator | `2 OPT + h_max / 2`: pack the wide boxes, then two halves side by side | Sleator 1980 | yes | new item |
+| `approx-sleator` | Sleator | `2 OPT + h_max / 2`: pack the wide boxes, then two halves side by side | Sleator 1980 | yes | `sleatorStrip`, k52 |
 | `approx-reverse-fit` | Reverse-Fit | `2 OPT`: pack the wide boxes, then pack the rest from the top down in the reverse direction | Schiermeyer 1994 | yes | new item |
 | `approx-steinberg` | Steinberg | `2 OPT`: a recursive split with a case for each shape of the input | Steinberg 1997 | hard | new item |
 | `approx-kenyon-remila` | APTAS of Kenyon and Rémila | `(1 + e) OPT + O(1 / e^2) h_max`: round the widths, solve a linear program over the configurations | Kenyon 2000 | theory only | none |
