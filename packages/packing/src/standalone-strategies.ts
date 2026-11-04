@@ -44,7 +44,7 @@ const FREE_SUPPORTS: Supports = /* @__PURE__ */ cells({ containerSize: ["freeAsp
 /** This function gives an `UnsupportedCell` for a refusal of an input that no dimension of the taxonomy tells, for example a gap. */
 function refusal(reason: string): UnsupportedCell {
   const error = new UnsupportedCell("containerSize", "refused");
-  error.message = `The strategy refuses the input: ${reason}.`;
+  error.message = `The strategy refuses the input: ${reason.replace(/\.$/u, "")}.`;
   return error;
 }
 
