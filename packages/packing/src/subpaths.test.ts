@@ -37,6 +37,9 @@ const SUBPATHS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /** The modules that import each strategy: the registry, the barrel, the dispatcher of `pack` and the index. */
+/** This subpath reads the live strategies on purpose, so it has no check of the modules that it reaches. The size gate holds its size. */
+const WHOLE_ENGINE = ["strategy-catalog"];
+
 const HUBS = ["index.ts", "registry.ts", "adapters.ts", "pack.ts", "free.ts", "select.ts", "portfolio-sets.ts"];
 
 /** This function gives the relative value imports and re-exports of a source file, as absolute paths. */
@@ -93,7 +96,7 @@ describe("the subpaths of the strategies (roadmap item k132)", () => {
       publishConfig: { exports: Record<string, unknown> };
     };
     const files = fs.readdirSync(path.join(src, "entry")).filter((f) => f.endsWith(".ts")).map((f) => f.slice(0, -3)).sort();
-    expect(files).toEqual(Object.keys(SUBPATHS).sort());
+    expect(files).toEqual([...Object.keys(SUBPATHS), ...WHOLE_ENGINE].sort());
     for (const name of files) {
       expect(pkg.exports[`./${name}`]).toBe(`./src/entry/${name}.ts`);
       expect(pkg.publishConfig.exports[`./${name}`]).toEqual({ types: `./build/entry/${name}.d.ts`, default: `./build/entry/${name}.js` });
