@@ -340,7 +340,7 @@ These results give a bound on the height of a strip packer against the best heig
 | `shelf-ffdh` | FFDH | `1.7 OPT + h_max` | Coffman 1980 | yes | k21 |
 | `shelf-split-fit` | Split-Fit | `1.5 OPT + 2` with heights of 1 or less | Coffman 1980 | yes | k21 |
 | `bl-baker` | BL by decreasing width | `3 OPT` | Baker 1980 | yes | k25 |
-| `approx-sleator` | Sleator | `2 OPT + h_max / 2`: pack the wide boxes, then two halves side by side | Sleator 1980 | yes | new item |
+| `approx-sleator` | Sleator | `2 OPT + h_max / 2`: pack the wide boxes, then two halves side by side | Sleator 1980 | yes | `sleatorStrip`, k52 |
 | `approx-reverse-fit` | Reverse-Fit | `2 OPT`: pack the wide boxes, then pack the rest from the top down in the reverse direction | Schiermeyer 1994 | yes | new item |
 | `approx-steinberg` | Steinberg | `2 OPT`: a recursive split with a case for each shape of the input | Steinberg 1997 | hard | new item |
 | `approx-kenyon-remila` | APTAS of Kenyon and Rémila | `(1 + e) OPT + O(1 / e^2) h_max`: round the widths, solve a linear program over the configurations | Kenyon 2000 | theory only | none |
@@ -396,7 +396,7 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-nmap` | Nmap | Split the items by their given points, and keep the neighbors near. | Duarte 2014 | order, neighbors | `O(n log n)` | — | planned | k27 |
 | `treemap-bounded-aspect` | Bounded aspect | Use convex cells with an aspect of `O(depth)`, or orthoconvex cells with a constant aspect. | de Berg 2011 | aspect | `O(n log n)` | cell aspect `O(depth)` (de Berg 2011) | planned | k27 |
 | `treemap-local-moves` | Stable by local moves | After a change, do the local move of the layout that gives the best mix of aspect and stability. | Sondag 2018 | stability, aspect | moves x `O(n)` | — | planned | k27 |
-| `treemap-git` | Greedy insertion treemap | Keep the old layout. Remove the old items, and add each new item into the cell that changes the least. | Vernier 2018 | stability | `O(n log n)` | — | planned | k27 |
+| `treemap-git` | Greedy insertion treemap | Keep a layout tree. A removed node gives its place to its lower subtree, or to its right subtree. A new node goes next to the cell with the worst aspect ratio. | Vernier 2018 | stability | `O(n log n)` | — | planned | k27 |
 | `treemap-evocells` | EvoCells | Map the changes of the tree onto the old layout. Grow and shrink the cells in place. | Scheibel 2018 | stability | `O(n log n)` | — | planned | k27 |
 | `treemap-sizepairs` | SizePairs | Pair the items by their change of size and by their size. Choose the direction of each split and the flips for stability and aspect. | Han 2022 | stability, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi-stable` | Stable Voronoi | Start the sites of a new Voronoi treemap at the sites of the old one. | Hahn 2014 | stability | iterations x `O(n log n)` | — | planned | k27 |
@@ -416,10 +416,10 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1969 | order, speed | `O(n log c)` for `c` columns | `(2 - 1/c)·OPT` for the highest column (Graham 1969, unverified) | planned | k28 |
-| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | planned | k28 |
+| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1966 | order, speed | `O(n log c)` for `c` columns, with a heap | `(2 - 1/c)·OPT` for the highest column (Graham 1966) | implemented: `masonryShortest`, in `O(n c)` with a scan | k28 |
+| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | implemented: `masonryLpt`, in `O(n log n + n c)` | k28 |
 | `masonry-differencing` | Balanced columns by differencing | Balance the column heights with the differencing method of Karmarkar and Karp. | Karmarkar 1982 (the report number is unverified) | density | `O(n log n)` | — | planned | k28 |
-| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
+| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | implemented: `columnsLinearPartition`. Equal cuts go to the least sum of squares. | k28 |
 | `columns-css-balance` | CSS multi-column balance | Fill the columns in order and balance their heights, as `column-fill: balance` does. | W3C multi-column | order | `O(n log n)` | — | planned | k28 |
 | `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | planned | k28 |
 | `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | planned | k28 |
@@ -433,7 +433,8 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 Notes:
 
 - A box of this project does not scale. Thus `justified-*` gives the row breaks, and the boxes keep their size. Then the result has raggedness, and `pack.raggedness` measures it.
-- `masonry-shortest` is the list scheduling of Graham 1969 on parallel machines. `masonry-lpt` uses at most `4/3` of the best height of the highest column.
+- `masonry-shortest` is the list scheduling of Graham 1966 on parallel machines. `masonry-lpt` uses at most `4/3` of the best height of the highest column.
+- `columnReading` gives 0 for `masonry-shortest` with equal top margins, because the top of the shortest column does not go down. `pack.order.inversions` puts overlapped boxes on one line, so it gives a higher value for the same layout.
 
 ## Order and stability
 
@@ -445,7 +446,7 @@ These methods keep the reading order of the input, or keep the layout when the i
 | `order-ordered-treemaps` | Ordered treemaps | `treemap-pivot-*`, `treemap-strip`, `treemap-split`, `treemap-spiral` and the curves keep the order. | Shneiderman 2001, Bederson 2002 | order | refer to [Treemaps](#treemaps) | — | planned | k29 |
 | `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n log n)` | — | planned | k29 |
 | `order-mental-map` | Keep the mental map | Keep the orthogonal order, the near neighbors and the topology of a layout when it changes. | Misue 1995, Eades 1991 | stability | depends on the method | — | planned | k29 |
-| `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | Vernier 2018 | stability | one pack | — | planned | k29 |
+| `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | this repository | stability | one pack | — | implemented: `pinUnchanged` | k29 |
 | `stable-local-moves` | Local moves | `treemap-local-moves` for packers: search the moves of a layout for the best mix of a measure and the movement. | Sondag 2018 | stability | moves x measure | — | planned | k29 |
 | `stable-voronoi` | Old sites as the start | `treemap-voronoi-stable`. | Hahn 2014 | stability | refer to [Treemaps](#treemaps) | — | planned | k29 |
 | `stable-animated` | Animated change | Move each box from the old place to the new place in steps. This changes no measure, but it helps a person follow the change. | Heer 2007 | perceived stability | `O(n)` for each frame | — | planned | k29 |
@@ -468,10 +469,10 @@ An online packer puts each box when it comes, and does not move it later. An inc
 | `online-bl` | Online bottom-left | Do `bl-chazelle` in the order of arrival. Its bound is a lower bound for all online packers. | Brown 1982 | online | `O(n^2)` | — | planned | k30 |
 | `online-dynamic-bins` | Dynamic bin packing | Boxes come and go. Put each new box with First Fit, and do not move the boxes left. | Coffman 1983 | stability | `O(n log n)` | — | planned | k30 |
 | `incremental-push` | Push cascade | Put a box where the user drops it. Push each box that it overlaps away on the axis of the smaller overlap, and push on in turn. | this repository | stability | `O(n^2)` | — | implemented: `pushCascade` | k30 |
-| `incremental-vertical-compact` | Vertical compaction | After a move, move each box up as far as it goes, in order from the top. | react-grid-layout, software | stability, density | `O(n^2)` | — | planned | k30 |
+| `incremental-vertical-compact` | Vertical compaction | After a move, move each box up as far as it goes, in order from the top. | react-grid-layout, software | stability, density | `O(n^2)` | — | implemented: `compactUp` | k30 |
 | `incremental-float` | Float grid | Do `incremental-push`, but do not compact. A box stays where the user puts it. | gridstack.js, software | stability | `O(n^2)` | — | planned | k30 |
 | `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | — | planned | k30 |
-| `incremental-git` | Greedy insertion | `treemap-git` for packers: remove the old boxes, and put each new box in the free space that changes the least. | Vernier 2018 | stability | `O(n F)` | — | planned | k30 |
+| `incremental-git` | Greedy insertion | `treemap-git` for packers: keep a layout tree, take the removed boxes out, and put each new box next to the worst box. | Vernier 2018 | stability | `O(n F)` | — | planned | k30 |
 
 Notes:
 
@@ -686,7 +687,7 @@ The literature uses these measures, but `docs/FORMAT.md` does not have them. Eac
 | `pack.stability.baseline` | 0 to 1 | lower | The movement minus the smallest movement that the change of the input needs. | Vernier 2020 |
 | `pack.stability.orthogonalOrder` | 0 to 1 | lower | The part of the pairs where "left of" or "above" changed. | Misue 1995 |
 | `pack.neighbors` | 0 to 1 | higher | The part of the near neighbors of each box in the input that stay near neighbors. | Duarte 2014 |
-| `pack.balance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. | Graham 1969 |
+| `pack.columnBalance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. The function `columnBalance` gives it. | Graham 1969 |
 | `pack.trapped` | 0 to 1 | lower | The part of the empty area that no box of the input can use: holes smaller than the smallest box. | Jylänki 2010 |
 | `pack.displacement` | units | lower | The mean movement of a box from a start layout, for overlap removal. | Gansner 2010 |
 
@@ -763,6 +764,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Dayama 2020.** Niraj Dayama, Kashyap Todi, Taru Saarelainen, Antti Oulasvirta. "GRIDS: interactive layout design with integer programming". CHI 2020. <https://doi.org/10.1145/3313831.3376553>
 - **de Berg 2011.** Mark de Berg, Bettina Speckmann, Vincent van der Weele. "Treemaps with bounded aspect ratio". ISAAC 2011, LNCS. <https://doi.org/10.1007/978-3-642-25591-5_28> A journal version of 2014 is unverified.
 - **Delorme 2017.** Maxence Delorme, Manuel Iori, Silvano Martello. "Logic based Benders' decomposition for orthogonal stock cutting problems". Computers and Operations Research 78:290-298. <https://doi.org/10.1016/j.cor.2016.09.009>
+- **Diaconis 1977.** Persi Diaconis, R. L. Graham. "Spearman's footrule as a measure of disarray". Journal of the Royal Statistical Society, Series B 39(2):262-268. The DOI is unverified.
 - **Duarte 2014.** Felipe S. L. G. Duarte, Fabio Sikansi, Francisco M. Fatore, Samuel G. Fadel, Fernando V. Paulovich. "Nmap: a novel neighborhood preservation space-filling algorithm". IEEE TVCG 20(12):2063-2071. <https://doi.org/10.1109/TVCG.2014.2346276>
 - **Dwyer 2006.** Tim Dwyer, Kim Marriott, Peter J. Stuckey. "Fast node overlap removal". "Graph Drawing" 2005, LNCS 3843, pages 153-164. <https://doi.org/10.1007/11618058_15>
 - **Eades 1991.** Peter Eades, Wei Lai, Kazuo Misue, Kozo Sugiyama. "Preserving the mental map of a diagram". Compugraphics 1991, pages 24-33. The record is unverified: <https://www.bibsonomy.org/bibtex/5b39c1a8aa05b91465ad0ba256d6579f>
@@ -785,6 +787,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Gilmore 1965.** P. C. Gilmore, R. E. Gomory. "Multistage cutting stock problems of two and more dimensions". Operations Research 13(1):94-120. <https://doi.org/10.1287/opre.13.1.94>
 - **Goehlsdorf 2007.** Dennis Goehlsdorf, Michael Kaufmann, Martin Siebenhaller. "Placing connected components of disconnected graphs". APVIS 2007, pages 101-108. <https://dblp.org/rec/conf/apvis/GoehlsdorfKS07.html>
 - **Gomes 2006.** A. Miguel Gomes, José F. Oliveira. "Solving Irregular Strip Packing problems by hybridising simulated annealing and linear programming". European Journal of Operational Research 171(3):811-829. <https://doi.org/10.1016/j.ejor.2004.09.008>
+- **Graham 1966.** R. L. Graham. "Bounds for certain multiprocessing anomalies". Bell System Technical Journal 45(9):1563-1581. <https://archive.org/details/bstj45-9-1563>
 - **Graham 1969.** R. L. Graham. "Bounds on multiprocessing timing anomalies". SIAM Journal on Applied Mathematics 17(2):416-429. <https://doi.org/10.1137/0117039>
 - **Grosso 2010.** A. Grosso, A. R. M. J. U. Jamali, M. Locatelli, F. Schoen. "Solving the problem of packing equal and unequal circles in a circular container". Journal of Global Optimization 47(1):63-81. <https://doi.org/10.1007/s10898-009-9458-3> Crossref gives the year 2009 of the online version.
 - **Guo 1999.** Pei-Ning Guo, Chung-Kuan Cheng, Takeshi Yoshimura. "An O-tree representation of non-slicing floorplan and its applications". DAC 1999, pages 268-273. <https://doi.org/10.1145/309847.309928>

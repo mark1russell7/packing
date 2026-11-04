@@ -40,6 +40,8 @@ import {
 
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
+/** These files have their own schema and parser, and a test of their package compares them with their script. */
+const OWN_SCHEMA = ["corpus-cover.json"];
 const KINDS: Record<string, Snapshot["kind"]> = {
   "coverage.json": "coverage",
   "gaps-pack-known-v1.json": "gaps",
@@ -77,7 +79,7 @@ describe("navLinks", () => {
 
 describe("the snapshot files", () => {
   it("has exactly the files that the pages read", () => {
-    expect(readdirSync(DATA).sort()).toEqual(Object.keys(KINDS).sort());
+    expect(readdirSync(DATA).sort()).toEqual([...Object.keys(KINDS), ...OWN_SCHEMA].sort());
   });
 
   for (const [name, kind] of Object.entries(KINDS)) {
@@ -438,6 +440,7 @@ describe("the space coverage of k105", () => {
     expect(withPrior).toContain("4% <small>family prior 6%</small>");
     expect(withPrior).toContain("10% <small>family prior -</small>");
     // k119: the union prior shows its effective pairs, and the note gives the basis of the weights.
+    expect(priorText({ prior: { ...prior, kind: "family-flat" }, priorBeside: { kind: "union", share: 0.2, nEff: 12.5 } })).toMatch(/\. union: 20%, 12\.5 effective pairs$/);
     expect(priorText({ prior: { ...prior, kind: "union" } })).toBe("family prior 8% (95% interval 3% to 20%), 41.5 effective pairs, 50 weighted pairs, 10 pairs of other families with the weight 0");
     const counted = activeRows({ active: { ...active, start: { ...active.start, prior: 0.06, priorCount: { nEff: 30.6, weighted: 37, zero: 0 } } } });
     expect(counted).toContain("4% <small>family prior 6% (30.6 effective pairs)</small>");

@@ -1172,6 +1172,7 @@ The counts of `packSpace`:
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
 const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
+const allStrategies: readonly StrategyListing[]; // each strategy of the three lists, with its kind, family, supports and deterministic flag: since k140
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```
@@ -1179,6 +1180,8 @@ function packWith(id: string, input: PackInput, options?: unknown, seed?: number
 The benchmark starts each strategy of the registry on each input of the corpus. A new strategy goes in the registry, so it gets the same benchmark as the others. No result is removed.
 
 A composite strategy packs an input with other strategies. It is not in `strategies`, but `strategy(id)` and `packWith` find it.
+
+A consumer that needs each strategy reads `allStrategies`, not one of the three lists. Each listing has a `kind`: `single`, `shape` or `composite`. A test loads each source module and fails on a strategy that the list does not have.
 
 ## The adapters of 0.1
 
@@ -1562,6 +1565,87 @@ Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. 
 
 The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
+## The Sleator strip
+
+The function `sleatorStrip` packs a strip with the algorithm of Sleator 1980 (roadmap item k52). It is a baseline with a proved bound, not a strategy. No default uses it, and the space of the bench does not change.
+
+1. The items wider than half the strip go in one stack at the left side.
+2. The other items take the order of height, tallest first.
+3. One level above the stack takes items until the next item does not fit the width.
+4. A line at half the width divides the strip above that level.
+5. The half with the lower top takes the next level, until the next item does not fit that half.
+
+The proved bound is `2 * optimum + tallest / 2`, so at most `2.5` times the optimum. The bound names the optimum, not the area. One item of width 1 and height 100 on a strip of 200 has a height of 100, and twice the area over the width is only 1.
+
+The tests compare the bound with a known optimum: 1000 perfect cuts and 100 strips of 6 items, which `exactStrip` proves. The function does not turn an item, so each item keeps its sizes. A level ends at the first item that does not fit, and a later smaller item does not fill the gap.
+
+The source of these steps is the statement in the strip packing article of Wikipedia and the catalog row. The paper is behind a paywall, so this repository has no reading of the proof itself.
+## Side anchors
+
+`packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
+
+On a free height, the place of a bottom anchor needs the final height, and the final height needs the place of the anchor. Thus the function searches on the free length:
+
+- Each try locks each anchored item at the place that the size gives, then packs the other items at a fixed size.
+- A try is good when each item has a place and the 4 hard rules have no break.
+- The search grows the length to the first good try, then halves the range. It keeps the shortest good try.
+
+A pack is not monotone in the length. Thus the result is a good layout, not a proved least length.
+
+`checkSideAnchors` is the rule `anchor-kept`. It reads the final size of the output, so a larger layout has the same rule. The rule is not in `PACK_HARD_RULES`, and the anchor is not a field of an item. Both belong to `@mark1russell7/layout-contract`, so a later slice moves them there.
+
+The function has no use in a default. It refuses a shaped container, a container with no fixed side, and an anchor on a locked item, a shaped item or an item with a margin.
+
+Two anchors can have one place at each length. Then no length is good, and the result has `good: false`. Two anchors on one side can also force a tall layout. The input sets that height, not the search.
+## Groups as near rectangles
+
+`packNearRects` is the first slice of roadmap item `k97` (idea S8 of the survey). Yang 2023 learns groups of pieces that are almost rectangles. This slice has no model. A greedy search on a raster joins the groups.
+
+- Each shape gets its cover on one grid, with the rule of `rasterCover`. A turnable item chooses one turn before the joins.
+- Each round finds, for each pair of groups, the offset with disjoint covers and the smallest box. A pair joins if it saves box cells.
+- The largest saving joins first, and a group joins once in a round. The default is 2 rounds, so a group has at most 4 shapes.
+- The member of `bbox` packs one box for each group: `maxrects` with the rule `bl`.
+
+The box of a group is the true extent of its shapes, not its cells. Thus the grid costs nothing for a shape that joins no group, and an input with no join gives the layout of `bbox`. A test pins this.
+
+The cost of a round is about `n ** 2` pair searches. Two groups with the same cells get one search. Thus an input with many equal shapes is fast.
+
+The function has no use in a default. It refuses a locked item, a margin, a gap, an inset and a container shape with a `RangeError`.
+## Masonry and columns
+
+A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. `pack()`, `packSpace`, the registry and the defaults do not know them.
+
+| Function | Catalog row | Rule | The tallest column | Reading order |
+|---|---|---|---|---|
+| `masonryShortest` | `masonry-shortest` | Each box, in the input order, goes to the shortest column. | At most `2 - 1/c` of the optimum (Graham 1966) | Keeps the order from the top |
+| `masonryLpt` | `masonry-lpt` | The boxes go by height, decreasing, to the shortest column. | At most `4/3 - 1/(3c)` of the optimum (Graham 1969) | Loses the input order |
+| `columnsLinearPartition` | `columns-linear-partition` | Cuts of the input order make the columns. | The least of all cuts (Skiena 2008) | Keeps the order in each column |
+
+Each function takes a `PackInput` and `{ columns, columnWidth? }`, and gives a `PackOutput`.
+
+- The default column width is the widest box with its margins. A wider box is a `RangeError`.
+- The container must have `fixed: "none"`, because the columns set the size. An obstacle, a locked item and `pairGaps` are a `RangeError`.
+- The input order is the `rank` of an item and then its position in the list. A box does not turn.
+- The heights of a column add the top margin, the bottom margin and the gap of each box.
+- Many cuts can have the same tallest column. `columnsLinearPartition` takes the cut with the least sum of squared heights, so a column does not stay empty next to a tall card.
+- `masonryShortest` uses a scan, not a heap, so its cost is `O(n c)`. The heap of the catalog needs a dependency, and a wall has few columns.
+
+Two functions measure a layout:
+
+- `columnBalance` gives the height of each column and `balance`, the catalog measure `pack.columnBalance`: the tallest height minus the shortest height, divided by the tallest height. It reads a column at the left edge of a box, so give it the options of the layout.
+- `columnReading` compares the input order with the visual order, which sorts by the top and then by the left. It gives the inversions of Kendall, the footrule of Spearman, each as a share of its largest value, and the largest move of one box.
+
+The function `measure` has a family `pack.balance.*` of other values, so a value with the name `pack.columnBalance` needs a decision. Thus `balance` is not in `measure` yet.
+
+These values are for the inputs of the last test of `src/masonry.test.ts`: 200 made-up inputs of 60 boxes in 4 columns, with whole heights from 1 to 100.
+
+| Function | Mean `footruleShare` | Mean `inversionShare` | Mean `balance` | Mean `pack.order.inversions` |
+|---|---|---|---|---|
+| `masonryShortest` | 0 | 0 | 0.070 | 0.046 |
+| `masonryLpt` | 0.668 | 0.498 | 0.004 | 0.498 |
+| `columnsLinearPartition` | 0.576 | 0.375 | 0.066 | 0.328 |
+
+A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
 ## The binary search on the height
 
 The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
@@ -1580,6 +1664,26 @@ This function does not copy the method of Zhang 2013 step by step, and this repo
 The function `windowOrder` is the first slice of roadmap item k31, the idea `new-rank-window`. Each step takes the tallest of the next `window` items. A `window` of 1 keeps the input order, and a `window` of the item count gives the sort `height-desc`.
 
 No item comes more than `window - 1` places before its input place. Give the result to a strategy with the option `sortOrder: "input"`. It is a function, so the space of the bench does not change.
+## The pin of unchanged boxes
+
+The function `pinUnchanged` is the first slice of roadmap item k29. It changes an input and does not pack. A strategy packs the result and goes around the locked boxes. No default uses it, and the space of the bench does not change.
+
+- An item stays at its old place when its id, width and height are the same in the two inputs, and the base output places it.
+- A turned box stays free, because a locked box does not turn. An item with a parent also stays free.
+- A box stays free when a fixed side of the container cuts its old place, or an obstacle or a locked item overlaps that place.
+- A strip with a fixed size can overflow, because the new boxes get only the free space. The function does not release a pin.
+
+The hole of a removed box stays, so a chain of changes adds height. `docs/BENCH.md`, "The pin of unchanged boxes", gives that cost.
+
+## The vertical compaction
+
+The function `compactUp` is the first slice of roadmap item k30. It takes a layout and moves each free box up until the box touches a box, a wall or the top of the container. No default uses it.
+
+- The order is the top of each box, then its left edge, then the order of the input. The steps come from the classic compactor of react-grid-layout.
+- A locked item and an obstacle stay at their places. A box keeps its `x`, and it does not jump past another box.
+- The function refuses a container with a shape, pair gaps and an item with a parent.
+
+After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
 
 ## The decisions
 

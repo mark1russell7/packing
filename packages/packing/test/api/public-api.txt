@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 430 names
+## . (build/index.d.ts): 458 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -14,6 +14,7 @@ ASPECT_FIT_FACTORS: build/index.d.ts#ASPECT_FIT_FACTORS
 ASPECT_FIT_LEVELS: build/index.d.ts#ASPECT_FIT_LEVELS
 ASPECT_FIT_STAGE: build/index.d.ts#ASPECT_FIT_STAGE
 type AnchorMeasures: build/index.d.ts#AnchorMeasures
+type AnchorSide: build/index.d.ts#AnchorSide
 type AnchorStability: build/index.d.ts#AnchorStability
 type AnchorStabilityOptions: build/index.d.ts#AnchorStabilityOptions
 type AnchorStep: build/index.d.ts#AnchorStep
@@ -54,6 +55,8 @@ CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ClassContainer: build/index.d.ts#ClassContainer
+type ColumnBalance: build/index.d.ts#ColumnBalance
+type ColumnReading: build/index.d.ts#ColumnReading
 type ConsecutiveSquaresParams: build/index.d.ts#ConsecutiveSquaresParams
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
 type Corpus: build/index.d.ts#Corpus
@@ -132,8 +135,11 @@ MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
 type Margin: @mark1russell7/layout-contract#Margin (external)
 type MartelloVigoClass: build/index.d.ts#MartelloVigoClass
 type MartelloVigoParams: build/index.d.ts#MartelloVigoParams
+type MasonryLayout: build/index.d.ts#MasonryLayout
+type MasonryOptions: build/index.d.ts#MasonryOptions
 type MaxRectsOptions: build/layout-strategy.d.ts#MaxRectsOptions
 type MaxRectsRule: build/layout-strategy.d.ts#MaxRectsRule
+type MaxRectsScore: build/layout-strategy.d.ts#MaxRectsScore
 type MaxRectsStrategyOptions: build/layout-strategy.d.ts#MaxRectsStrategyOptions
 type MeasureFamily: build/index.d.ts#MeasureFamily
 type MeasureId: build/index.d.ts#MeasureId
@@ -141,6 +147,8 @@ type MeasureOptions: build/index.d.ts#MeasureOptions
 type MeasureSpec: build/index.d.ts#MeasureSpec
 type MemberTrace: @mark1russell7/layout-contract#MemberTrace (external)
 type MetricsOptions: build/index.d.ts#MetricsOptions
+NEAR_RECTS_STAGE: build/index.d.ts#NEAR_RECTS_STAGE
+type NearRectsOptions: build/index.d.ts#NearRectsOptions
 OVERLAP_MIN_STAGE: build/index.d.ts#OVERLAP_MIN_STAGE
 type ObjectiveBound: build/index.d.ts#ObjectiveBound
 type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
@@ -165,6 +173,7 @@ type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
 type PackingMetrics: build/index.d.ts#PackingMetrics
 type PerfectCutParams: build/index.d.ts#PerfectCutParams
 type PerfectStripRule: build/index.d.ts#PerfectStripRule
+type PinnedInput: build/index.d.ts#PinnedInput
 type Placement: @mark1russell7/layout-contract#Placement (external)
 type Port: @mark1russell7/layout-contract#Port (external)
 type Portfolio: @mark1russell7/layout-contract#Portfolio (external)
@@ -219,6 +228,9 @@ type SelectStrategyOptions: build/index.d.ts#SelectStrategyOptions
 type ShelfFit: build/layout-strategy.d.ts#ShelfFit
 type ShelfOptions: build/layout-strategy.d.ts#ShelfOptions
 type Side: @mark1russell7/layout-contract#Side (external)
+type SideAnchor: build/index.d.ts#SideAnchor
+type SideAnchorOptions: build/index.d.ts#SideAnchorOptions
+type SideAnchorResult: build/index.d.ts#SideAnchorResult
 type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/strategy.d.ts#SizeSearch
@@ -226,12 +238,15 @@ type SkylineGapParams: build/index.d.ts#SkylineGapParams
 type SkylineOptions: build/layout-strategy.d.ts#SkylineOptions
 type SkylineRule: build/layout-strategy.d.ts#SkylineRule
 type SkylineStrategyOptions: build/layout-strategy.d.ts#SkylineStrategyOptions
+type SleatorResult: build/index.d.ts#SleatorResult
 type SortOrder: build/order.d.ts#SortOrder
 type SpaceRect: build/layout-strategy.d.ts#SpaceRect
 type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/strategy.d.ts#Strategy
 type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
+type StrategyKind: build/index.d.ts#StrategyKind
+type StrategyListing: build/index.d.ts#StrategyListing
 type StrategyPoint: build/index.d.ts#StrategyPoint
 type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type StripContainer: build/index.d.ts#StripContainer
@@ -260,6 +275,7 @@ WORST_COUNTS: build/index.d.ts#WORST_COUNTS
 WORST_WIDTH: build/index.d.ts#WORST_WIDTH
 type WallLocksParams: build/index.d.ts#WallLocksParams
 type WorstContainer: build/index.d.ts#WorstContainer
+allStrategies: build/index.d.ts#allStrategies
 anchorGenerators: build/index.d.ts#anchorGenerators
 anchorStability: build/index.d.ts#anchorStability
 anchorStep: build/index.d.ts#anchorStep
@@ -294,8 +310,13 @@ cellOf: build/strategy.d.ts#cellOf
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
+checkSideAnchors: build/index.d.ts#checkSideAnchors
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
+columnBalance: build/index.d.ts#columnBalance
+columnReading: build/index.d.ts#columnReading
+columnsLinearPartition: build/index.d.ts#columnsLinearPartition
+compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
 configOfStrategy: build/index.d.ts#configOfStrategy
@@ -343,6 +364,8 @@ lowestWindow: build/layout-strategy.d.ts#lowestWindow
 marginOf: build/strategy.d.ts#marginOf
 martelloVigo: build/index.d.ts#martelloVigo
 martelloVigoFamily: build/index.d.ts#martelloVigoFamily
+masonryLpt: build/index.d.ts#masonryLpt
+masonryShortest: build/index.d.ts#masonryShortest
 maxrects: build/maxrects-strategy.d.ts#maxrects
 measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
@@ -363,10 +386,12 @@ packDefault: build/default.d.ts#packDefault
 packFree: build/index.d.ts#packFree
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
+packNearRects: build/index.d.ts#packNearRects
 packPortfolio: build/index.d.ts#packPortfolio
 packRasterNofit: build/index.d.ts#packRasterNofit
 packRows: build/layout-strategy.d.ts#packRows
 packShelf: build/layout-strategy.d.ts#packShelf
+packSideAnchors: build/index.d.ts#packSideAnchors
 packSkyline: build/layout-strategy.d.ts#packSkyline
 packSpace: build/index.d.ts#packSpace
 packWith: build/index.d.ts#packWith
@@ -376,6 +401,7 @@ pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
 perfectCutFamily: build/index.d.ts#perfectCutFamily
 perfectCutOf: build/index.d.ts#perfectCutOf
+pinUnchanged: build/index.d.ts#pinUnchanged
 portPoint: @mark1russell7/layout-contract#portPoint (external)
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
@@ -407,6 +433,8 @@ shelf: build/shelf-strategy.d.ts#shelf
 skyline: build/skyline-strategy.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
+sleatorRefusal: build/index.d.ts#sleatorRefusal
+sleatorStrip: build/index.d.ts#sleatorStrip
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
@@ -608,6 +636,9 @@ interface AnchorMeasures {
   "pack.anchor.settled": number;
 }
 
+### build/index.d.ts#AnchorSide
+type AnchorSide = "top" | "bottom" | "left" | "right";
+
 ### build/index.d.ts#AnchorStability
 interface AnchorStability {
   measures: AnchorMeasures;
@@ -797,6 +828,21 @@ interface ChangeMeasures {
 
 ### build/index.d.ts#ClassContainer
 type ClassContainer = "fixed" | "freeHeight";
+
+### build/index.d.ts#ColumnBalance
+interface ColumnBalance {
+  readonly heights: readonly number[];
+  readonly balance: number;
+}
+
+### build/index.d.ts#ColumnReading
+interface ColumnReading {
+  readonly inversions: number;
+  readonly inversionShare: number;
+  readonly footrule: number;
+  readonly footruleShare: number;
+  readonly largestMove: number;
+}
 
 ### build/index.d.ts#ConsecutiveSquaresParams
 type ConsecutiveSquaresParams = {
@@ -1094,6 +1140,15 @@ type MartelloVigoParams = {
   count: number;
 };
 
+### build/index.d.ts#MasonryLayout
+type MasonryLayout = (input: PackInput, options: MasonryOptions) => PackOutput;
+
+### build/index.d.ts#MasonryOptions
+interface MasonryOptions {
+  readonly columns: number;
+  readonly columnWidth?: number;
+}
+
 ### build/index.d.ts#MeasureFamily
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound" | "balance";
 
@@ -1115,6 +1170,16 @@ interface MeasureSpec extends MeasureSpec$1<MeasureId> {
 ### build/index.d.ts#MetricsOptions
 interface MetricsOptions {
   rowTolerance?: number;
+}
+
+### build/index.d.ts#NEAR_RECTS_STAGE
+export declare const NEAR_RECTS_STAGE = "near-rects";
+
+### build/index.d.ts#NearRectsOptions
+interface NearRectsOptions {
+  cell?: number;
+  rounds?: number;
+  seed?: number;
 }
 
 ### build/index.d.ts#OVERLAP_MIN_STAGE
@@ -1205,6 +1270,12 @@ interface PerfectStripRule {
   readonly w: number;
   readonly h: number;
   readonly count: number;
+}
+
+### build/index.d.ts#PinnedInput
+interface PinnedInput {
+  readonly input: PackInput;
+  readonly pinned: readonly string[];
 }
 
 ### build/index.d.ts#PortfolioCell
@@ -1424,6 +1495,29 @@ interface SelectStrategyOptions {
   table?: SelectNode;
 }
 
+### build/index.d.ts#SideAnchor
+interface SideAnchor {
+  readonly id: string;
+  readonly side: AnchorSide;
+  readonly at?: number;
+  readonly offset?: number;
+}
+
+### build/index.d.ts#SideAnchorOptions
+interface SideAnchorOptions {
+  readonly strategy?: string;
+  readonly strategyOptions?: unknown;
+  readonly seed?: number;
+  readonly precision?: number;
+}
+
+### build/index.d.ts#SideAnchorResult
+interface SideAnchorResult {
+  readonly output: PackOutput;
+  readonly packs: number;
+  readonly good: boolean;
+}
+
 ### build/index.d.ts#SizeDistribution
 type SizeDistribution = "identical" | "nearIdentical" | "uniform" | "heavyTail" | "bimodal" | "extremeAspect";
 
@@ -1434,8 +1528,26 @@ type SkylineGapParams = {
   count: number;
 };
 
+### build/index.d.ts#SleatorResult
+interface SleatorResult {
+  readonly output: PackOutput;
+  readonly height: number;
+}
+
 ### build/index.d.ts#SpreadBand
 type SpreadBand = "identical" | "uniform" | "heavyTail";
+
+### build/index.d.ts#StrategyKind
+type StrategyKind = "single" | "shape" | "composite";
+
+### build/index.d.ts#StrategyListing
+interface StrategyListing {
+  readonly id: string;
+  readonly family: string;
+  readonly kind: StrategyKind;
+  readonly supports: Supports;
+  readonly deterministic: boolean;
+}
 
 ### build/index.d.ts#StrategyPoint
 type StrategyPoint = {
@@ -1543,6 +1655,9 @@ type WallLocksParams = {
 ### build/index.d.ts#WorstContainer
 type WorstContainer = "fixed" | "freeHeight";
 
+### build/index.d.ts#allStrategies
+export declare const allStrategies: readonly StrategyListing[];
+
 ### build/index.d.ts#anchorGenerators
 export declare const anchorGenerators: readonly CorpusGenerator[];
 
@@ -1649,8 +1764,23 @@ export declare function checkHard(input: PackInput, output: PackOutput, toleranc
 ### build/index.d.ts#checkSelectTable
 export declare function checkSelectTable(table: SelectNode, members: number): void;
 
+### build/index.d.ts#checkSideAnchors
+export declare function checkSideAnchors(input: PackInput, output: PackOutput, anchors: readonly SideAnchor[]): number;
+
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
+
+### build/index.d.ts#columnBalance
+export declare function columnBalance(input: PackInput, output: PackOutput, options: MasonryOptions): ColumnBalance;
+
+### build/index.d.ts#columnReading
+export declare function columnReading(input: PackInput, output: PackOutput): ColumnReading;
+
+### build/index.d.ts#columnsLinearPartition
+export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#compactUp
+export declare function compactUp(input: PackInput, output: PackOutput): PackOutput;
 
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];
@@ -1774,6 +1904,12 @@ export declare const martelloVigo: CorpusGenerator<MartelloVigoParams>;
 ### build/index.d.ts#martelloVigoFamily
 export declare const martelloVigoFamily: CorpusFamily<GeneratedInput>;
 
+### build/index.d.ts#masonryLpt
+export declare function masonryLpt(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#masonryShortest
+export declare function masonryShortest(input: PackInput, options: MasonryOptions): PackOutput;
+
 ### build/index.d.ts#measure
 export declare function measure(input: PackInput, output: PackOutput, options?: MeasureOptions): LayoutMeasures;
 
@@ -1821,11 +1957,17 @@ export declare function packConfig(input: PackInput, config: StrategyConfig$1, s
 ### build/index.d.ts#packFree
 export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?: FreeWidthOptions): FreeWidthResult<T>;
 
+### build/index.d.ts#packNearRects
+export declare function packNearRects(input: PackInput, options?: NearRectsOptions): PackOutput;
+
 ### build/index.d.ts#packPortfolio
 export declare function packPortfolio(members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]), options?: PackPortfolioOptions): Portfolio$1<PackInput, PackOutput>;
 
 ### build/index.d.ts#packRasterNofit
 export declare function packRasterNofit(input: PackInput, options?: RasterNofitOptions): PackOutput;
+
+### build/index.d.ts#packSideAnchors
+export declare function packSideAnchors(input: PackInput, anchors: readonly SideAnchor[], options?: SideAnchorOptions): SideAnchorResult;
 
 ### build/index.d.ts#packSpace
 export declare const packSpace: StrategySpace$1;
@@ -1854,6 +1996,9 @@ export declare function perfectCutOf(seed: number, params?: Partial<PerfectCutPa
   h: number;
   pieces: CutPiece[];
 };
+
+### build/index.d.ts#pinUnchanged
+export declare function pinUnchanged(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
 
 ### build/index.d.ts#portfolioCell
 export declare function portfolioCell(input: PackInput): PortfolioCell;
@@ -1936,6 +2081,12 @@ export declare const skylineGap: CorpusGenerator<SkylineGapParams>;
 
 ### build/index.d.ts#skylineGapFamily
 export declare const skylineGapFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#sleatorRefusal
+export declare function sleatorRefusal(input: PackInput): string | null;
+
+### build/index.d.ts#sleatorStrip
+export declare function sleatorStrip(input: PackInput): SleatorResult;
 
 ### build/index.d.ts#spreadBand
 export declare function spreadBand(spread: number): SpreadBand;
@@ -2072,6 +2223,7 @@ interface MaxRectsOptions {
   links?: readonly ItemLink[];
   space?: FreeSpace;
   rule?: MaxRectsRule;
+  score?: MaxRectsScore;
   bandHeight?: number;
   turnable?: ReadonlySet<unknown>;
   turned?: Set<unknown>;
@@ -2079,6 +2231,9 @@ interface MaxRectsOptions {
 
 ### build/layout-strategy.d.ts#MaxRectsRule
 type MaxRectsRule = (typeof MAXRECTS_RULES)[number];
+
+### build/layout-strategy.d.ts#MaxRectsScore
+type MaxRectsScore = (bw: number, bh: number, lw: number, lh: number, x: number, y: number, top: number, width: number) => number;
 
 ### build/layout-strategy.d.ts#MaxRectsStrategyOptions
 interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
