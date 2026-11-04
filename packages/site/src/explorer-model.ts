@@ -1,6 +1,10 @@
 // The facts of the response record for the text of the explorer page (roadmap item k143). Each number comes from the record, so no page copies one.
 
 import { heldOutError, type ResponseRecord } from "@mark1russell7/rigor-statistics";
+import type { Origin } from "./data.ts";
+
+/** The origin of `data/response-coverage.json`. A test compares its run with the name of the record. */
+export const RECORD_ORIGIN: Origin = { release: "0.2.17", commit: "e939842", date: "2026-10-29", run: 40805165103, source: "bench k115-strata" };
 
 /** The held-out error of one measure. */
 export interface MeasureFit {
@@ -39,4 +43,13 @@ export function explorerFacts(record: ResponseRecord): ExplorerFacts {
     run: /run (\d+)$/.exec(record.name)?.[1],
     fits,
   };
+}
+
+/** The words of the page when the site has no coverage number with a weekly trend. The measure is in `kpi.json`. */
+export const NO_COVERAGE_LINE = "The site shows no coverage number with a weekly trend yet: the measure coverage-shown of kpi.json reads 0.";
+
+/** This function gives the line about the coverage number from the bytes of `kpi.json`. It gives an empty line when the measure is not 0. */
+export function coverageLine(kpiText: string): string {
+  const file = JSON.parse(kpiText) as { measures?: readonly { id: string; value: number }[] };
+  return file.measures?.find((m) => m.id === "coverage-shown")?.value === 0 ? NO_COVERAGE_LINE : "";
 }

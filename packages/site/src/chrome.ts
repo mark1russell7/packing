@@ -1,4 +1,6 @@
-// The parts that each page of the site has: the links of the header and the theme button.
+// The parts that each page of the site has: the links of the header, the theme button and the line of the build.
+
+import { esc } from "./format.ts";
 
 /** The pages of the site that the header links to */
 export type PageId = "demo" | "compare" | "strategies" | "results" | "explorer" | "whats-new" | "status" | "releases";
@@ -37,6 +39,22 @@ export function navLinks(base: string, current: PageId): NavLink[] {
   ];
 }
 
+/** The release, the commit and the date of the build of a page. */
+export interface BuildFacts {
+  readonly release: string;
+  readonly commit: string;
+  readonly date: string;
+}
+
+/** The facts of the build. The file `vite.config.ts` sets them. */
+declare const __SITE_BUILD__: BuildFacts;
+
+/** This function gives the HTML of the line of the build. */
+export function buildLine(build: BuildFacts): string {
+  const commit = `<a href="${SOURCE_URL}/commit/${esc(build.commit)}"><code>${esc(build.commit)}</code></a>`;
+  return `This page comes from release ${esc(build.release)}, commit ${commit}, of ${esc(build.date)}.`;
+}
+
 /** The themes of the theme button, in the order of the clicks */
 export const THEMES = ["auto", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
@@ -70,8 +88,8 @@ export function mountTheme(button: HTMLButtonElement): void {
 }
 
 /**
- * This function fills the links of the header and connects the theme button. The element `nav` gets the links before
- * its first child, so a page can keep its own links after them.
+ * This function fills the links of the header, connects the theme button and adds the line of the build to the footer.
+ * The element `nav` gets the links before its first child, so a page can keep its own links after them.
  */
 export function mountChrome(nav: HTMLElement, current: PageId): void {
   const links = navLinks(import.meta.env.BASE_URL, current);
@@ -92,4 +110,7 @@ export function mountChrome(nav: HTMLElement, current: PageId): void {
     nav.append(button);
   }
   mountTheme(button);
+  const line = document.createElement("p");
+  line.innerHTML = buildLine(__SITE_BUILD__);
+  document.querySelector(".foot")?.append(line);
 }
