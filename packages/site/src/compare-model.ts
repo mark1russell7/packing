@@ -16,9 +16,10 @@ export const COMPARE_ENTRIES: readonly BenchEntry[] = ENTRIES;
 
 /**
  * This constant lists the strategies of one shape kind, as entries with no options. They are not in `ENTRIES`. The page
- * adds them after `COMPARE_ENTRIES` when they support the shape of the input.
+ * adds them after `COMPARE_ENTRIES` when they support the shape of the input. The page has only rectangle containers, so a
+ * strategy of a circle container is not here.
  */
-export const SHAPE_ENTRIES: readonly BenchEntry[] = shapeStrategies.map((s) => ({ id: s.id, strategy: s.id, options: {} }));
+export const SHAPE_ENTRIES: readonly BenchEntry[] = shapeStrategies.filter((s) => s.supports.containerShape.includes("rect")).map((s) => ({ id: s.id, strategy: s.id, options: {} }));
 
 /** This constant lists each entry that the page can show: `COMPARE_ENTRIES`, then `SHAPE_ENTRIES`. */
 const ALL_ENTRIES: readonly BenchEntry[] = [...COMPARE_ENTRIES, ...SHAPE_ENTRIES];

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 477 names
+## . (build/index.d.ts): 482 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -56,11 +56,14 @@ type BurkeKendallWhitwellParams: build/index.d.ts#BurkeKendallWhitwellParams
 type BurkeKendallWhitwellProblem: build/index.d.ts#BurkeKendallWhitwellProblem
 CHANGE_WALK_KINDS: build/index.d.ts#CHANGE_WALK_KINDS
 CHANGE_WALK_STEPS: build/index.d.ts#CHANGE_WALK_STEPS
+CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ChangeWalkKind: build/index.d.ts#ChangeWalkKind
 type ChangeWalkParams: build/index.d.ts#ChangeWalkParams
+type CircleQuasiPhysicalOptions: build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
 type ClassContainer: build/index.d.ts#ClassContainer
 type ColumnBalance: build/index.d.ts#ColumnBalance
 type ColumnReading: build/index.d.ts#ColumnReading
@@ -329,6 +332,8 @@ checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
 checkSideAnchors: build/index.d.ts#checkSideAnchors
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
+circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
+circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 classGenerators: build/index.d.ts#classGenerators
 columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
@@ -484,6 +489,19 @@ wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
 
+## ./circle-quasi-physical (build/entry/circle-quasi-physical.d.ts): 10 names
+
+CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+type CircleQuasiPhysicalOptions: build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
+type PackContext: build/strategy.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+type Strategy: build/strategy.d.ts#Strategy
+circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
+circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
+createContext: build/strategy.d.ts#createContext
+
 ## ./default (build/entry/default.d.ts): 7 names
 
 DEFAULT_STRATEGY: build/default.d.ts#DEFAULT_STRATEGY
@@ -598,6 +616,23 @@ packSkyline: build/layout-strategy.d.ts#packSkyline
 skyline: build/skyline-strategy.d.ts#skyline
 
 ## Declarations
+
+### build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+declare const CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS = 65536;
+
+### build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+declare const CIRCLE_QUASI_PHYSICAL_STAGE = "circle-quasi-physical";
+
+### build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
+interface CircleQuasiPhysicalOptions {
+  iterations: number;
+}
+
+### build/circle-quasi-physical.d.ts#circleQuasiPhysical
+declare const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions>;
+
+### build/circle-quasi-physical.d.ts#circlesOutside
+declare function circlesOutside(input: PackInput, output: Pick<PackOutput, "placements" | "size">, tolerance?: number): number;
 
 ### build/default.d.ts#DEFAULT_STRATEGY
 declare const DEFAULT_STRATEGY = "select";

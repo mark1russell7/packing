@@ -428,7 +428,7 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - Thus the hull, `pack.fill`, `pack.whitespace`, the overflow measures and `pack.shapeFill` use the same boxes. Each share stays from 0 to 1.
 - In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.
 - Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level.
-- With `polygon` or `free` it counts 0 base configs. With `circle` it counts the base configs of `hole-degree` (roadmap item k90).
+- With `polygon` or `free` it counts 0 base configs. With `circle` it counts the base configs of `hole-degree` (roadmap item k90) and `circle-quasi-physical` (roadmap item k94).
 
 ### A raster no-fit
 
@@ -538,7 +538,7 @@ The order `input` and the options `none` support `rect` and `circle`. The count 
 | Base and meta configs for `rect`, 3 levels | 2970 and 36862574914409402550 | the same |
 
 The meta counts with 3 levels are more than the default `maxMeta` of 1e18. Thus `spaceSize` gives them only with a larger `maxMeta`, for example `10n ** 20n`. Since k117, the count needs `10n ** 21n` ("The work budget").
-The size search `none` goes only with `push` and `hole-degree`. Each other placement, `guillotine` too, needs `log-sweep`, as before k90.
+The size search `none` goes only with `push`, `hole-degree` and `circle-quasi-physical` (roadmap item k94). Each other placement, `guillotine` too, needs `log-sweep`, as before k90.
 
 The limits:
 
@@ -557,6 +557,57 @@ The circle family of `bench/shape-inputs.ts` (seeds 1 to 5, 30 circles) gives th
 | Square of fixed size | 0.673 | 0.692 | 0.631 |
 
 On a square, `hole-degree` fills the 4 corners first. Thus its hull is the full square, and the hull of a `bbox` member is smaller.
+
+### Circles in a circle by the overlap energy
+
+Roadmap item k94 adds the single strategy `circle-quasi-physical` (catalog rows `circle-quasi-physical`, `circle-quasi-human` and `circle-mbh`, idea S5 of the survey). It packs circle items into a circle container. It is opt-in. No default uses it, and `pack()` does not choose it.
+
+```ts
+const input = { container: { fixed: "none", shape: { kind: "circle", cx: 0, cy: 0, r: 1 } }, items };
+const output = packWith("circle-quasi-physical", input, { iterations: 2000 }, seed);
+const radius = output.size.w / 2;
+```
+
+The method comes from these sources:
+
+1. The energy is the sum of the squares of the overlaps of each pair and of each circle with the wall (Wang 2002, Huang 2011b). A layout with energy 0 has no overlap.
+2. A limited-memory BFGS solve lowers the energy from a start layout.
+3. A move leaves a local minimum. It relocates the circle with the most overlap to the best of 24 random places (Huang 1999), swaps two circles of near radii, or shakes some near circles.
+4. The search keeps a move only when the energy after the solve is lower (Addis 2008a).
+5. The solve works at a target radius below the best radius. A second solve has the radius as a variable with a small penalty on it, as in the container adjustment of Lai 2022.
+6. A last step scales the centers until no pair overlaps, and it reads the outermost circle. Thus each radius of the output is exact. It is not a result of an energy tolerance.
+
+| Container | Result |
+|---|---|
+| `fixed: "none"` | The smallest radius of the search. `size` is the diameter, and the center is the corner of the shape plus the radius. The radius in the shape does not count. |
+| `fixed: "size"` | The radius of the shape. The search stops at the first layout with no overlap. A circle larger than the container goes to the overflow. |
+
+- At the end of the moves, a fixed container with an overlap puts the circle with the most overlap in the overflow, until the others have no overlap.
+- In a fixed container, the last scale can move a circle out of the wall by a share of `1e-9` of the radius.
+- The option `iterations` is the count of the moves. The default is 256, and the largest value is 65536. The limit `budget.steps` of the context caps it.
+- The strategy does not read the limit `budget.ms`, because it reads no clock. The time of its trace stage is 0. Thus the same input and seed give the same bytes, the trace too.
+- The random numbers come from `context.rng`. The arithmetic has only the four operations and the square root, so the bytes do not depend on a trigonometry library.
+- `gap`, `margin`, `pairGaps` and `inset` have the same meaning as for `hole-degree`. An obstacle, a locked item and a group throw `UnsupportedCell`.
+- The cost of one solve step is `O(n^2)`. Thus the strategy is for some hundreds of circles at most.
+- The function `circlesOutside(input, output, tolerance?)` counts the circles out of a circle container by the center distance. The count `in-container` of `packHard` reads a bounding box. It is only safe in a circle container.
+
+In `packSpace`, the option `placement.circle-quasi-physical` has the param `iterations` and supports only `circle`. Constraints keep the order `input` and the size search `none` with it.
+The param stops at 1024, not at 65536. Each value is one base config. Without the limit, 65537 configs are 29 % of the base configs. A draw takes them as members, and a rect input refuses them.
+Each named config keeps its id, and the output of each old config does not change. The count changes:
+
+| Count | Before k94 | After k94 |
+|---|---|---|
+| Base configs, 3 levels | 2973 | 2976 |
+| Base configs, 1 level | 891 | 892 |
+| Meta configs, 3 levels | 277869295533810375192 | 279274944857694858960 |
+| Meta configs, 1 level | 100061834238419076 | 100625752757509316 |
+| Base and meta configs for `circle`, 3 levels | 3 and 5940 | 6 and 5940 |
+| Base and meta configs for `rect`, 3 levels | 2970 and 276469311858023490660 | the same |
+
+The meta configs take base configs as members, so their count grows. The sampler of the whole space reads these counts. Thus some uniform draws of a seed change, and the space has one more stratum (`docs/BENCH.md`).
+The site lists the strategy in its cards. Its demo and its compare page have only rectangle containers, so they do not offer it.
+
+`docs/BENCH.md`, "Circles in a circle against the literature", compares the radii with the best-known radii.
 
 ### The goal-driven ruin and recreate
 
@@ -1170,7 +1221,7 @@ The counts of `packSpace`:
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
-const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
+const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90, then "circle-quasi-physical"
 const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
 const standaloneStrategies: readonly Strategy[]; // each single strategy that wraps a standalone function: since k141
 const sideAnchorsStrategy: Strategy; // the composite strategy of packSideAnchors: since k141
