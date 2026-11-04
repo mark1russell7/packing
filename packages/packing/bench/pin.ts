@@ -80,7 +80,7 @@ export function changeStep(input: PackInput, step: number, seed: number, share: 
 }
 
 /** This function counts the hard rule breaks and the unplaced items of a layout. */
-const breaksOf = (input: PackInput, output: PackOutput): number =>
+export const breaksOf = (input: PackInput, output: PackOutput): number =>
   Object.values(checkHard(input, output)).reduce<number>((sum, v) => sum + (typeof v === "number" ? v : 0), 0) + output.overflow.length;
 
 /** This function measures one chain of changes for one arm. */

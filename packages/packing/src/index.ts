@@ -134,7 +134,7 @@ export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
 export { compactUp } from "./compact.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
-export { pinUnchanged, type PinnedInput } from "./pin.ts";
+export { keepPrefix, pinUnchanged, type PinnedInput } from "./pin.ts";
 export { NEAR_RECTS_STAGE, packNearRects, type NearRectsOptions } from "./near-rects.ts";
 export { packRasterNofit, RASTER_NOFIT_MAX_CELLS, RASTER_NOFIT_STAGE, rasterCell, rasterCover, type RasterCover, type RasterNofitOptions } from "./raster-nofit.ts";
 export {

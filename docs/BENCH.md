@@ -2199,6 +2199,33 @@ The inputs are made-up strips of width 200 with 100 items and 30 seeds. The rank
 - Window 1 has inversions of 0.177, because `maxrects` can put a box above an earlier box.
 - The count of 100 items sets the scale of the windows. This run does not measure a window as a share of the count.
 
+## The kept prefix
+
+`bench/prefix.ts` compares `keepPrefix` of roadmap item k30 with a fresh pack, and with `pinUnchanged` and `compactUp`, on the chains of `bench/pin.ts`. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k30-keep-prefix`.
+
+```bash
+node bench/prefix.ts --out <file.json> [--seeds 30] [--count 100] [--share 0.05] [--steps 10]
+```
+
+The column Pinned is the share of the items that `keepPrefix` pins. The hard rules have 0 breaks, and each item has a place.
+
+| Entry | Method | Moved | Distance | Cost, step 1 | Cost, step 10 | Worst cost | Pinned |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | fresh | 0.757 | 0.355 | 1 | 1 | 1 | |
+| `maxrects-bl` | pin and compaction | 0.146 | 0.028 | 1.071 | 1.192 | 1.290 | |
+| `maxrects-bl` | prefix | 0.571 | 0.331 | 1.033 | 1.040 | 1.172 | 0.252 |
+| `skyline` | fresh | 0.808 | 0.333 | 1 | 1 | 1 | |
+| `skyline` | pin and compaction | 0.221 | 0.052 | 1.080 | 1.229 | 1.383 | |
+| `skyline` | prefix | 0.727 | 1.872 | 1.529 | 2.020 | 4.195 | 0.252 |
+| `rows` | fresh | 0.751 | 0.297 | 1 | 1 | 1 | |
+| `rows` | pin and compaction | 0.223 | 0.032 | 1.053 | 1.219 | 1.329 | |
+| `rows` | prefix | 0.651 | 0.594 | 1.304 | 1.281 | 1.876 | 0.252 |
+
+- The prediction asked for at most 0.8 of the fresh movement and a lower cost at step 10 than pin and compaction, on each entry. Only `maxrects-bl` holds both. `skyline` and `rows` fail both.
+- On `maxrects-bl`, the prefix costs 4 % of height at step 10, and pin and compaction costs 19 %. The prefix moves 3.9 times as many boxes.
+- `skyline` starts at the bottom edge of each locked box, across its width. Thus a low box of the prefix pushes the suffix below it. Its distance of 1.872 widths is more than 5 times the fresh distance.
+- The first change comes after approximately a quarter of the list, because 5 edits take random places. A change near the end of the list keeps more boxes, and this run does not measure that case.
+
 ## The orthogonal order
 
 `bench/orthogonal.ts` compares `keepOrthogonal` of roadmap item k29 with a fresh pack, and with `pinUnchanged` and `compactUp`, on the chains of `bench/pin.ts`. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k29-orthogonal`.
