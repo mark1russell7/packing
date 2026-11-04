@@ -151,6 +151,7 @@ Status: done, done, waiting, next, done.
 | k142 | Points in `packSpace` for the standalone strategies of k141, and their chips in the demo of the site. This changes the pinned counts of the space | core | active | |
 | k143 | An export of the measured points of the coverage run, with the error of each fold, in `response-records/1` of `@mark1russell7/rigor-statistics`, for the response explorer. The tree stays in this package. It starts after 0.7.0, when that format is on npm | measure | active | k50 |
 | k144 | Each option of each strategy, composite and wrapper has a declaration in the catalog format of `@mark1russell7/layout-contract`, so a consumer reads the options from one source. It starts when that format is agreed | core | later | k141 |
+| k145 | The site writes `kpi.json` at each deploy, in the format `kpi/1`. Each number comes from the registry or from a file of the site, so a reader copies no number from a page | site | active | k72 |
 
 ## The queue
 
