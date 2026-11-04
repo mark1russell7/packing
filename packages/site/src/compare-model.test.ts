@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { circleOverlaps } from "@mark1russell7/packing";
+import { STANDALONE_IDS } from "@mark1russell7/packing/bench/entries";
 import {
   bestIds,
   boardInput,
@@ -58,6 +59,8 @@ describe("the runs of the compare page", () => {
     const results = runAll(input);
     expect(results.map((r) => r.entry.id)).toEqual(COMPARE_ENTRIES.map((e) => e.id));
     for (const r of results) {
+      // A standalone strategy of k141 supports fewer cells, so the page shows why it has no layout.
+      if (r.error !== undefined && STANDALONE_IDS.has(r.entry.id)) continue;
       expect(r.error, r.entry.id).toBeUndefined();
       expect(r.measures?.["pack.fill"], r.entry.id).toBeGreaterThan(0);
       expect(drawingSvg(input, r.output!, "x")).toContain("<svg");
@@ -114,7 +117,7 @@ describe("the links to the verdicts of the results page", () => {
     const noRunYet = ["restarts-maxrects-bl-k16", "restarts-rows-k16", "restarts-maxrects-bl-shuffle-k16", "bbox-maxrects-bl", "bbox-skyline", "ruin-recreate-maxrects-bl-k64", "ruin-recreate-skyline-k64", "overlap-min-maxrects-bl-k8192", "overlap-min-skyline-k8192", "anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16", "relax-rows", "relax-maxrects-bl", "relax-skyline-bl-waste", "force-rows", "force-maxrects-bl", "force-skyline-bl-waste", "portfolio-fill-rows-bl", "skyline-mw", "skyline-bl-waste", "skyline-mw-waste", "guillotine-baf-sas", "guillotine-bssf-sas-merge", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short"];
     for (const e of COMPARE_ENTRIES) {
       if (e.id === "rows") continue;
-      if (noRunYet.includes(e.id)) expect(verdictSnapshot(snapshots, e.id), e.id).toBeUndefined();
+      if (noRunYet.includes(e.id) || STANDALONE_IDS.has(e.id)) expect(verdictSnapshot(snapshots, e.id), e.id).toBeUndefined();
       else expect(verdictSnapshot(snapshots, e.id), e.id).toBeDefined();
     }
   });

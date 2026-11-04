@@ -20,7 +20,7 @@ import {
   type PortfolioSize,
   type PortfolioTrainScore,
 } from "@mark1russell7/packing";
-import { COMPOSITE_IDS, ENTRIES } from "./entries.ts";
+import { COMPOSITE_IDS, ENTRIES, STANDALONE_IDS } from "./entries.ts";
 import { chooseSets, defaultCountOf, factsOf, prefixMedianMs, scoreText, type InputFacts, type RawScore } from "./portfolio.ts";
 import type { ScreenRecord } from "./screen.ts";
 
@@ -85,7 +85,7 @@ export function chooseTable(records: readonly ScreenRecord[], manifest: CorpusMa
   const { inputs } = corpus(manifest.corpus, manifest.specs);
   // An entry with no measured record (push skips each input offline) is not in the pool
   const used = new Set(records.filter((r) => r.skipped === undefined).map((r) => r.strategy));
-  const pool = ENTRIES.filter((e) => !COMPOSITE_IDS.has(e.id) && used.has(e.id)).map((e) => e.id);
+  const pool = ENTRIES.filter((e) => !COMPOSITE_IDS.has(e.id) && !STANDALONE_IDS.has(e.id) && used.has(e.id)).map((e) => e.id);
   const facts = factsOf(pool, records);
   const rows: ChoiceInput[] = [];
   for (const [index, file] of inputs.entries()) {
