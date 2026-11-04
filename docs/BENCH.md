@@ -1901,3 +1901,14 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The table "The active rounds" shows, for each round, the share of the new pairs and the share of the sample after the round. The first row is the grid only.
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
+
+## The binary search on the height
+
+The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap item k81) has the input families of the exact bench. It has no gate.
+
+- At 6, 8 and 10 items, it counts the cases where `packBinaryHeight` meets a height that `exactStrip` proves. A case at the node limit does not count.
+- At 20, 50 and 100 items, it gives each height as a ratio to the area bound, for each family and over all families.
+- Each line has the wins and the losses of the search against that method, with a two-sided sign test.
+- The line `first-layout` shows the height before the search.
+
+The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
