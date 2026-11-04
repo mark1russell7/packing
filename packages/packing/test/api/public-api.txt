@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 409 names
+## . (build/index.d.ts): 416 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -175,6 +175,8 @@ type PortfolioTrace: @mark1russell7/layout-contract#PortfolioTrace (external)
 type PortfolioTrainScore: build/index.d.ts#PortfolioTrainScore
 type PushOptions: build/push-strategy.d.ts#PushOptions
 type PushStrategyOptions: build/push-strategy.d.ts#PushStrategyOptions
+RASTER_NOFIT_MAX_CELLS: build/index.d.ts#RASTER_NOFIT_MAX_CELLS
+RASTER_NOFIT_STAGE: build/index.d.ts#RASTER_NOFIT_STAGE
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
 RELAX_MAX_CONSTRAINTS: build/index.d.ts#RELAX_MAX_CONSTRAINTS
 RELAX_PULL_MAX_BOXES: build/index.d.ts#RELAX_PULL_MAX_BOXES
@@ -183,6 +185,8 @@ RESTARTS_STAGE: build/index.d.ts#RESTARTS_STAGE
 RESTART_PERTURBS: build/index.d.ts#RESTART_PERTURBS
 RUIN_KINDS: build/index.d.ts#RUIN_KINDS
 RUIN_RECREATE_STAGE: build/index.d.ts#RUIN_RECREATE_STAGE
+type RasterCover: build/index.d.ts#RasterCover
+type RasterNofitOptions: build/index.d.ts#RasterNofitOptions
 Rect: build/order.d.ts#Rect
 type RectGridParams: build/index.d.ts#RectGridParams
 type RectGridV2Params: build/index.d.ts#RectGridV2Params
@@ -352,6 +356,7 @@ packFree: build/index.d.ts#packFree
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
 packPortfolio: build/index.d.ts#packPortfolio
+packRasterNofit: build/index.d.ts#packRasterNofit
 packRows: build/layout-strategy.d.ts#packRows
 packShelf: build/layout-strategy.d.ts#packShelf
 packSkyline: build/layout-strategy.d.ts#packSkyline
@@ -372,6 +377,8 @@ portfolioStrategy: build/index.d.ts#portfolioStrategy
 push: build/push-strategy.d.ts#push
 pushCascade: build/push-strategy.d.ts#pushCascade
 quantile: build/index.d.ts#quantile
+rasterCell: build/index.d.ts#rasterCell
+rasterCover: build/index.d.ts#rasterCover
 rectFeatures: build/index.d.ts#rectFeatures
 rectGrid: build/index.d.ts#rectGrid
 rectGridFamily: build/index.d.ts#rectGridFamily
@@ -1235,6 +1242,12 @@ interface PortfolioTrainScore {
   msMean: number;
 }
 
+### build/index.d.ts#RASTER_NOFIT_MAX_CELLS
+export declare const RASTER_NOFIT_MAX_CELLS: number;
+
+### build/index.d.ts#RASTER_NOFIT_STAGE
+export declare const RASTER_NOFIT_STAGE = "raster-nofit";
+
 ### build/index.d.ts#RELAX_MAX_CONSTRAINTS
 export declare const RELAX_MAX_CONSTRAINTS = 2e5;
 
@@ -1255,6 +1268,24 @@ export declare const RUIN_KINDS: readonly RuinKind[];
 
 ### build/index.d.ts#RUIN_RECREATE_STAGE
 export declare const RUIN_RECREATE_STAGE = "ruin-recreate";
+
+### build/index.d.ts#RasterCover
+interface RasterCover {
+  readonly cell: number;
+  readonly col: number;
+  readonly row: number;
+  readonly cols: number;
+  readonly rows: number;
+  readonly spans: readonly (readonly (readonly [number, number])[])[];
+  readonly count: number;
+}
+
+### build/index.d.ts#RasterNofitOptions
+interface RasterNofitOptions {
+  cell?: number;
+  trials?: number;
+  seed?: number;
+}
 
 ### build/index.d.ts#RectGridParams
 type RectGridParams = {
@@ -1736,6 +1767,9 @@ export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?:
 ### build/index.d.ts#packPortfolio
 export declare function packPortfolio(members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]), options?: PackPortfolioOptions): Portfolio$1<PackInput, PackOutput>;
 
+### build/index.d.ts#packRasterNofit
+export declare function packRasterNofit(input: PackInput, options?: RasterNofitOptions): PackOutput;
+
 ### build/index.d.ts#packSpace
 export declare const packSpace: StrategySpace$1;
 
@@ -1785,6 +1819,12 @@ export declare const portfolioStrategy: Strategy<PortfolioStrategyOptions>;
 
 ### build/index.d.ts#quantile
 export declare function quantile(values: readonly number[], q: number): number;
+
+### build/index.d.ts#rasterCell
+export declare function rasterCell(cell: number): number;
+
+### build/index.d.ts#rasterCover
+export declare function rasterCover(region: Region, cell: number): RasterCover;
 
 ### build/index.d.ts#rectFeatures
 export declare function rectFeatures<T>(rects: readonly Rect<T>[], space?: FreeSpace): SelectFeatures;

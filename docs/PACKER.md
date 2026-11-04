@@ -430,6 +430,60 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level.
 - With `polygon` or `free` it counts 0 base configs. With `circle` it counts the base configs of `hole-degree` (roadmap item k90).
 
+### A raster no-fit
+
+Roadmap item k92 adds the function `packRasterNofit` (idea S3 of the survey, catalog row `nest-raster-brkga`). It packs free forms on a grid of cells. This first slice is a standalone function. It is opt-in, and it is not in `packSpace`, `ENTRIES` or a default.
+
+```ts
+const output = packRasterNofit(input, { cell: 0.5, trials: 1024, seed: 7 });
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `cell` | a quarter of the shortest box side, at most 1024 cells across the width | The side of a cell. `rasterCell` snaps it down to 20 significant bits, so each grid line is an exact double. |
+| `trials` | `64` | The count of decoded orders. It is the only limit of the search: the function reads no clock. |
+| `seed` | `0` | The seed of the moves. The same input and seed give the same bytes. |
+
+- `rasterCover` gives the cells of a shape, as spans for each row. Each item also keeps its holes free, so a small item can nest in a hole.
+- The function places each item in an order at its first free place: the lowest row, then the lowest column.
+- The search starts from 4 orders: by area, by height, by width and in input order. Then it swaps or moves items in the best order.
+- The best order has the fewest overflow items, then the shortest length, then the smallest sum of the bottoms.
+- An item with `turnable: true` can take a turn of 90 degrees. It takes the orientation with the lower bottom.
+- The trace measures are `pack.overflow`, `raster.cell`, `raster.trials` and `raster.coverShare`. No measure holds a time.
+
+The rounding rule keeps each answer conservative. A placement that is valid on the grid is valid on the real shape.
+
+- An axis edge fills a cell only when it is strictly inside the open cell, by an exact compare of doubles. Thus an edge on a grid line fills no extra cell.
+- A sloped edge or a curve fills each cell that it enters, after the cell grows by a pad of `2**-20` cells.
+- A cell with no border in it takes the state of its center, by `regionHitsRect` of the contract.
+- The test `src/raster-nofit.test.ts` proves the claim on made-up shapes. It splits them into convex parts, and it compares the placed parts in exact `BigInt` arithmetic.
+- That test does not use the exact predicates of their home, because `@mark1russell7/predicates` is not on npm.
+- The walls use the real extent of the shape and an exact sum. Thus a partial cell of a shape can pass the wall of a rectangle container.
+- A container with a shape keeps only the cells that are fully in it.
+
+The cell side is the main cost of this method. A larger cell gives a faster pack and a lower density.
+
+- Each sloped edge wastes up to one cell of width along its length. An edge on a grid line wastes nothing. A shape on a grid has no cost.
+- The shape of the cost is `raster.coverShare`: the area of the shape over the area of its cells. The bench below measures the density that this cost removes.
+- A shape whose box does not start on a grid line can lose up to one cell at a wall.
+- A sloped edge through a grid corner fills an extra cell, because of the pad.
+- A locked item off the grid is a float sum, so each of its edges fills the cells near it by the pad.
+
+The function refuses these inputs with a `RangeError`:
+
+- A container with a `fixed` value other than `size` or `width`.
+- A container with a shape other than `rect` and no fixed height, or with an `inset`.
+- A `gap`, a list `pairGaps`, and a margin on an item.
+- A bad `trials` value, and a grid with more than `RASTER_NOFIT_MAX_CELLS` cells.
+
+The bench `bench/raster-nofit.ts` compares the density with published values. `docs/BENCH.md` tells how to read it.
+
+- The published values are from Table 2 of Gardeyn, Vanden Berghe and Wauters (2025, arXiv 2509.13329, CC BY 4.0). The density is `100 * area / (width * length)`.
+- Only `shapes0` has the same turns as this function: none. It is the one comparison of the same problem.
+- Each other instance has fewer turns here, so the row has the label `fewer`. A layout of the row is valid in the original. The row is not a fair comparison.
+- The table has the values of ROMA (Sato 2019), so this repository copies them from the table. It did not read the paper.
+- Mundim 2017 and Sato 2019 have no free full text. Thus this repository makes no claim of parity with them, and it has no value from them.
+
 ### Circles by the maximum hole degree
 
 Roadmap item k90 adds the single strategy `hole-degree` (catalog row `circle-hole-degree`, idea S1 of the survey). It packs circle items directly, not their bounding boxes. It is opt-in. No default uses it.
