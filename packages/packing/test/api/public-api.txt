@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 393 names
+## . (build/index.d.ts): 400 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -61,8 +61,13 @@ type Dimension: build/strategy.d.ts#Dimension
 type DimensionValue: build/strategy.d.ts#DimensionValue
 type Direction: @mark1russell7/layout-contract#Direction (external)
 EPS: @mark1russell7/layout-contract#EPS (external)
+EXACT_STRIP_MAX_ITEMS: build/index.d.ts#EXACT_STRIP_MAX_ITEMS
+EXACT_STRIP_MAX_SIDE: build/index.d.ts#EXACT_STRIP_MAX_SIDE
+EXACT_STRIP_NODE_LIMIT: build/index.d.ts#EXACT_STRIP_NODE_LIMIT
 type EdgeCase: build/index.d.ts#EdgeCase
 type EdgeCaseParams: build/index.d.ts#EdgeCaseParams
+type ExactStripOptions: build/index.d.ts#ExactStripOptions
+type ExactStripResult: build/index.d.ts#ExactStripResult
 FORCE_MAX_BOXES: build/index.d.ts#FORCE_MAX_BOXES
 FORCE_MAX_FIXED: build/index.d.ts#FORCE_MAX_FIXED
 FORCE_STAGE: build/index.d.ts#FORCE_STAGE
@@ -285,6 +290,8 @@ dashboardFamily: build/index.d.ts#dashboardFamily
 defaultLayoutOf: build/index.d.ts#defaultLayoutOf
 edgeCases: build/index.d.ts#edgeCases
 edgeCasesFamily: build/index.d.ts#edgeCasesFamily
+exactStrip: build/index.d.ts#exactStrip
+exactStripRefusal: build/index.d.ts#exactStripRefusal
 fnv1a32: build/index.d.ts#fnv1a32
 forceStrategy: build/index.d.ts#forceStrategy
 freeSpace: build/layout-strategy.d.ts#freeSpace
@@ -792,6 +799,15 @@ interface CutPiece {
   h: number;
 }
 
+### build/index.d.ts#EXACT_STRIP_MAX_ITEMS
+export declare const EXACT_STRIP_MAX_ITEMS = 16;
+
+### build/index.d.ts#EXACT_STRIP_MAX_SIDE
+export declare const EXACT_STRIP_MAX_SIDE = 4096;
+
+### build/index.d.ts#EXACT_STRIP_NODE_LIMIT
+export declare const EXACT_STRIP_NODE_LIMIT = 5e6;
+
 ### build/index.d.ts#EdgeCase
 type EdgeCase = "empty" | "one" | "oversize" | "exactTiling" | "touchObstacles";
 
@@ -800,6 +816,21 @@ type EdgeCaseParams = {
   case: EdgeCase;
   count: number;
 };
+
+### build/index.d.ts#ExactStripOptions
+interface ExactStripOptions {
+  readonly nodeLimit?: number;
+}
+
+### build/index.d.ts#ExactStripResult
+interface ExactStripResult {
+  readonly status: "optimal" | "limit";
+  readonly proof: "bound" | "exhausted" | null;
+  readonly height: number;
+  readonly lowerBound: number;
+  readonly output: PackOutput;
+  readonly nodes: number;
+}
 
 ### build/index.d.ts#FORCE_MAX_BOXES
 export declare const FORCE_MAX_BOXES = 1e3;
@@ -1523,6 +1554,12 @@ export declare const edgeCases: CorpusGenerator<EdgeCaseParams>;
 
 ### build/index.d.ts#edgeCasesFamily
 export declare const edgeCasesFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#exactStrip
+export declare function exactStrip(input: PackInput, options?: ExactStripOptions): ExactStripResult;
+
+### build/index.d.ts#exactStripRefusal
+export declare function exactStripRefusal(input: PackInput): string | null;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
