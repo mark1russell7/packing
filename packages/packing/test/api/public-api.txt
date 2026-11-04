@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 454 names
+## . (build/index.d.ts): 456 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -173,6 +173,7 @@ type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
 type PackingMetrics: build/index.d.ts#PackingMetrics
 type PerfectCutParams: build/index.d.ts#PerfectCutParams
 type PerfectStripRule: build/index.d.ts#PerfectStripRule
+type PinnedInput: build/index.d.ts#PinnedInput
 type Placement: @mark1russell7/layout-contract#Placement (external)
 type Port: @mark1russell7/layout-contract#Port (external)
 type Portfolio: @mark1russell7/layout-contract#Portfolio (external)
@@ -399,6 +400,7 @@ pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
 perfectCutFamily: build/index.d.ts#perfectCutFamily
 perfectCutOf: build/index.d.ts#perfectCutOf
+pinUnchanged: build/index.d.ts#pinUnchanged
 portPoint: @mark1russell7/layout-contract#portPoint (external)
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
@@ -1268,6 +1270,12 @@ interface PerfectStripRule {
   readonly count: number;
 }
 
+### build/index.d.ts#PinnedInput
+interface PinnedInput {
+  readonly input: PackInput;
+  readonly pinned: readonly string[];
+}
+
 ### build/index.d.ts#PortfolioCell
 interface PortfolioCell {
   shape: DimensionValue<"containerShape">;
@@ -1983,6 +1991,9 @@ export declare function perfectCutOf(seed: number, params?: Partial<PerfectCutPa
   h: number;
   pieces: CutPiece[];
 };
+
+### build/index.d.ts#pinUnchanged
+export declare function pinUnchanged(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
 
 ### build/index.d.ts#portfolioCell
 export declare function portfolioCell(input: PackInput): PortfolioCell;
