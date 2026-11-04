@@ -1695,6 +1695,17 @@ The options are `trials` for each height, `seed` and `precision`. The same input
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
 
+## The pin of unchanged boxes
+
+The function `pinUnchanged` is the first slice of roadmap item k29. It changes an input and does not pack. A strategy packs the result and goes around the locked boxes. No default uses it, and the space of the bench does not change.
+
+- An item stays at its old place when its id, width and height are the same in the two inputs, and the base output places it.
+- A turned box stays free, because a locked box does not turn. An item with a parent also stays free.
+- A box stays free when a fixed side of the container cuts its old place, or an obstacle or a locked item overlaps that place.
+- A strip with a fixed size can overflow, because the new boxes get only the free space. The function does not release a pin.
+
+The hole of a removed box stays, so a chain of changes adds height. `docs/BENCH.md`, "The pin of unchanged boxes", gives that cost.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.

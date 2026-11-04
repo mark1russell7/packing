@@ -2,70 +2,77 @@
   "schema": "size-gate/1",
   "rule": "budget = ceil(1.05 x measured / 1024) x 1024: the gzip bytes plus 5 %, rounded up to a whole KiB. A bundle is deterministic for one esbuild version, so one measure is the record.",
   "bundler": "esbuild ^0.28.2: bundle, minify, format esm, platform neutral, tree shaking, mainFields module and main; gzip level 9 of node:zlib. The consumer imports one name and keeps it in globalThis.keep.",
-  "commit": "39d597fdc50a6675c8edf6f1326571a3f9a21e4b",
+  "commit": "3aedfcbf3b6303c94c3d85eb485602e80667664c",
   "entries": [
     {
       "specifier": "@mark1russell7/packing",
       "file": "build/index.js",
       "import": "maxrects",
-      "measured": 72364,
-      "budget": 76800
+      "measured": 79421,
+      "budget": 83968
+    },
+    {
+      "specifier": "@mark1russell7/packing/circle-quasi-physical",
+      "file": "build/entry/circle-quasi-physical.js",
+      "import": "circleQuasiPhysical",
+      "measured": 5447,
+      "budget": 6144
     },
     {
       "specifier": "@mark1russell7/packing/default",
       "file": "build/entry/default.js",
       "import": "packDefault",
-      "measured": 13487,
-      "budget": 14336
+      "measured": 13942,
+      "budget": 15360
     },
     {
       "specifier": "@mark1russell7/packing/guillotine",
       "file": "build/entry/guillotine.js",
       "import": "guillotine",
-      "measured": 10890,
+      "measured": 10922,
       "budget": 12288
     },
     {
       "specifier": "@mark1russell7/packing/hole-degree",
       "file": "build/entry/hole-degree.js",
       "import": "holeDegree",
-      "measured": 3653,
+      "measured": 3651,
       "budget": 4096
     },
     {
       "specifier": "@mark1russell7/packing/maxrects",
       "file": "build/entry/maxrects.js",
       "import": "maxrects",
-      "measured": 11176,
+      "measured": 11607,
       "budget": 12288
     },
     {
       "specifier": "@mark1russell7/packing/push",
       "file": "build/entry/push.js",
       "import": "push",
-      "measured": 9084,
+      "measured": 9134,
       "budget": 10240
     },
     {
       "specifier": "@mark1russell7/packing/rows",
       "file": "build/entry/rows.js",
       "import": "rows",
-      "measured": 10207,
+      "measured": 10238,
       "budget": 11264
     },
     {
       "specifier": "@mark1russell7/packing/shelf",
       "file": "build/entry/shelf.js",
       "import": "shelf",
-      "measured": 10647,
+      "measured": 10677,
       "budget": 11264
     },
     {
       "specifier": "@mark1russell7/packing/skyline",
       "file": "build/entry/skyline.js",
       "import": "skyline",
-      "measured": 12666,
-      "budget": 13312
+      "measured": 12694,
+      "budget": 14336
     }
   ]
 }

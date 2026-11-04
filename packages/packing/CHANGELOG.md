@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1
+
+This release raises the PATCH version: it adds exports and changes no default output. The API report of 0.6.0 and of this version shows 0 removed names and 12 added names.
+
+### Added
+
+- `allStrategies`, the one list of every strategy, with the types `StrategyKind` and `StrategyListing` (roadmap item k140). A listing gives the id, family, kind, supports and deterministic flag of a strategy. A test fails on an exported strategy outside the list.
+- `packNearRects`, with `NEAR_RECTS_STAGE` and the type `NearRectsOptions`, which joins shapes into groups and packs one box for each group (roadmap item k97, first slice).
+- `packSideAnchors` and `checkSideAnchors`, with the types `AnchorSide`, `SideAnchor`, `SideAnchorOptions` and `SideAnchorResult`, which keep an item at a side of the container (roadmap item k110, first slice).
+
 ## 0.6.0
 
 This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:

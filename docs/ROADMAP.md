@@ -35,7 +35,7 @@ Status: done, done, waiting, next, done.
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | done | k6, k7 |
 | k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi | strategies | later | k6, k7 |
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
-| k29 | Methods that keep the reading order or the layout under change | strategies | later | k6, k7 |
+| k29 | Methods that keep the reading order or the layout under change | strategies | active | k6, k7 |
 | k30 | Online and incremental packing | strategies | later | k6, k7 |
 | k31 | New ideas of our own | strategies | later | k6, k7 |
 | k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. Part 1 (#92): the pages `results/` and `whats-new/`, from the snapshots in `packages/site/data/`. | site | active | k11, k14 |
@@ -146,7 +146,7 @@ Status: done, done, waiting, next, done.
 | k137 | A link pull after a pack. The option `pull` of `relax` moves each linked box along its free space toward its balance point. The boxes make no new overlap and stay in the container. The option `relax-pull` of `combine` holds it in `packSpace`. | core | done | k124, k131 |
 | k138 | The fallback of `force` and `relax` to their member is a typed field of the output. A host can then tell its user which strategy gave the layout. Today the fallback is only the trace measures `force.fallback` and `relax.fallback`. | core | later | |
 | k139 | `overflow` tells why each item has no place: too large for the container, or no free place. `pack()` with only `fixedWidth` also tells of a rectangle wider than that width. Today a too-large item is in `overflow`, with no reason. | core | later | |
-| k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | active | |
+| k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | done | |
 
 ## The queue
 

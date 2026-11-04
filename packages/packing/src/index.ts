@@ -120,6 +120,7 @@ export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb
 export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
+export { pinUnchanged, type PinnedInput } from "./pin.ts";
 export { NEAR_RECTS_STAGE, packNearRects, type NearRectsOptions } from "./near-rects.ts";
 export { packRasterNofit, RASTER_NOFIT_MAX_CELLS, RASTER_NOFIT_STAGE, rasterCell, rasterCover, type RasterCover, type RasterNofitOptions } from "./raster-nofit.ts";
 export {

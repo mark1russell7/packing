@@ -32,6 +32,7 @@ const SUBPATHS: Readonly<Record<string, readonly string[]>> = {
   maxrects: [],
   guillotine: ["maxrects.ts"],
   "hole-degree": [],
+  "circle-quasi-physical": [],
   default: [...STRATEGY_MODULES["rows"]!, ...STRATEGY_MODULES["maxrects"]!, "shelf.ts"],
 };
 

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 456 names
+## . (build/index.d.ts): 458 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -51,12 +51,12 @@ type BoundObjective: build/index.d.ts#BoundObjective
 type BoundOptions: build/index.d.ts#BoundOptions
 type BurkeKendallWhitwellParams: build/index.d.ts#BurkeKendallWhitwellParams
 type BurkeKendallWhitwellProblem: build/index.d.ts#BurkeKendallWhitwellProblem
-CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/index.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
-CIRCLE_QUASI_PHYSICAL_STAGE: build/index.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
-type CircleQuasiPhysicalOptions: build/index.d.ts#CircleQuasiPhysicalOptions
+type CircleQuasiPhysicalOptions: build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
 type ClassContainer: build/index.d.ts#ClassContainer
 type ColumnBalance: build/index.d.ts#ColumnBalance
 type ColumnReading: build/index.d.ts#ColumnReading
@@ -176,6 +176,7 @@ type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
 type PackingMetrics: build/index.d.ts#PackingMetrics
 type PerfectCutParams: build/index.d.ts#PerfectCutParams
 type PerfectStripRule: build/index.d.ts#PerfectStripRule
+type PinnedInput: build/index.d.ts#PinnedInput
 type Placement: @mark1russell7/layout-contract#Placement (external)
 type Port: @mark1russell7/layout-contract#Port (external)
 type Portfolio: @mark1russell7/layout-contract#Portfolio (external)
@@ -313,8 +314,8 @@ checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
 checkSideAnchors: build/index.d.ts#checkSideAnchors
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
-circleQuasiPhysical: build/index.d.ts#circleQuasiPhysical
-circlesOutside: build/index.d.ts#circlesOutside
+circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
+circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 classGenerators: build/index.d.ts#classGenerators
 columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
@@ -403,6 +404,7 @@ pairedRatio: build/index.d.ts#pairedRatio
 perfectCut: build/index.d.ts#perfectCut
 perfectCutFamily: build/index.d.ts#perfectCutFamily
 perfectCutOf: build/index.d.ts#perfectCutOf
+pinUnchanged: build/index.d.ts#pinUnchanged
 portPoint: @mark1russell7/layout-contract#portPoint (external)
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
@@ -462,6 +464,19 @@ wallLocksFamily: build/index.d.ts#wallLocksFamily
 wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
+
+## ./circle-quasi-physical (build/entry/circle-quasi-physical.d.ts): 10 names
+
+CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+type CircleQuasiPhysicalOptions: build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
+type PackContext: build/strategy.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+type Strategy: build/strategy.d.ts#Strategy
+circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
+circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
+createContext: build/strategy.d.ts#createContext
 
 ## ./default (build/entry/default.d.ts): 7 names
 
@@ -577,6 +592,23 @@ packSkyline: build/layout-strategy.d.ts#packSkyline
 skyline: build/skyline-strategy.d.ts#skyline
 
 ## Declarations
+
+### build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+declare const CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS = 65536;
+
+### build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+declare const CIRCLE_QUASI_PHYSICAL_STAGE = "circle-quasi-physical";
+
+### build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
+interface CircleQuasiPhysicalOptions {
+  iterations: number;
+}
+
+### build/circle-quasi-physical.d.ts#circleQuasiPhysical
+declare const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions>;
+
+### build/circle-quasi-physical.d.ts#circlesOutside
+declare function circlesOutside(input: PackInput, output: Pick<PackOutput, "placements" | "size">, tolerance?: number): number;
 
 ### build/default.d.ts#DEFAULT_STRATEGY
 declare const DEFAULT_STRATEGY = "select";
@@ -813,12 +845,6 @@ type BurkeKendallWhitwellParams = {
 ### build/index.d.ts#BurkeKendallWhitwellProblem
 type BurkeKendallWhitwellProblem = "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | "N7" | "N8" | "N9" | "N10" | "N11" | "N12" | "N13";
 
-### build/index.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
-export declare const CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS = 65536;
-
-### build/index.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
-export declare const CIRCLE_QUASI_PHYSICAL_STAGE = "circle-quasi-physical";
-
 ### build/index.d.ts#CLASS_COUNTS
 export declare const CLASS_COUNTS: readonly number[];
 
@@ -828,11 +854,6 @@ interface ChangeMeasures {
   "pack.stability.mean": number;
   "pack.stability.q95": number;
   "pack.stability.procrustes": number;
-}
-
-### build/index.d.ts#CircleQuasiPhysicalOptions
-interface CircleQuasiPhysicalOptions {
-  iterations: number;
 }
 
 ### build/index.d.ts#ClassContainer
@@ -1279,6 +1300,12 @@ interface PerfectStripRule {
   readonly w: number;
   readonly h: number;
   readonly count: number;
+}
+
+### build/index.d.ts#PinnedInput
+interface PinnedInput {
+  readonly input: PackInput;
+  readonly pinned: readonly string[];
 }
 
 ### build/index.d.ts#PortfolioCell
@@ -1764,12 +1791,6 @@ export declare function checkSelectTable(table: SelectNode, members: number): vo
 ### build/index.d.ts#checkSideAnchors
 export declare function checkSideAnchors(input: PackInput, output: PackOutput, anchors: readonly SideAnchor[]): number;
 
-### build/index.d.ts#circleQuasiPhysical
-export declare const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions>;
-
-### build/index.d.ts#circlesOutside
-export declare function circlesOutside(input: PackInput, output: Pick<PackOutput, "placements" | "size">, tolerance?: number): number;
-
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
 
@@ -1996,6 +2017,9 @@ export declare function perfectCutOf(seed: number, params?: Partial<PerfectCutPa
   h: number;
   pieces: CutPiece[];
 };
+
+### build/index.d.ts#pinUnchanged
+export declare function pinUnchanged(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
 
 ### build/index.d.ts#portfolioCell
 export declare function portfolioCell(input: PackInput): PortfolioCell;
