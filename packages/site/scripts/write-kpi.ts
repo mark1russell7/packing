@@ -19,6 +19,7 @@ function main(): void {
     picker: DEMO_IDS.length,
     strategies: allStrategies.length,
     families: corpusFamilies.length,
+    lawPairs: (JSON.parse(text("data/law-cover.json")) as { covered: number }).covered,
     pages: [text("index.html"), text("content/about.md")],
     trend: coverage.trend.map((point) => point.date),
     explorer: existsSync(path("explorer/index.html")),

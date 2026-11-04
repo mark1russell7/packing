@@ -152,6 +152,7 @@ Status: done, done, waiting, next, done.
 | k143 | An export of the measured points of the coverage run, with the error of each fold, in `response-records/1` of `@mark1russell7/rigor-statistics`, for the response explorer. The tree stays in this package. The page `explorer/` of the site shows the points | measure | done | k50 |
 | k144 | Each option of each strategy, composite and wrapper has a declaration in the catalog format of `@mark1russell7/layout-contract`, so a consumer reads the options from one source. It starts when that format is agreed | core | active | k141 |
 | k145 | The site writes `kpi.json` at each deploy, in the format `kpi/1`. Each number comes from the registry or from a file of the site, so a reader copies no number from a page | site | done | k72 |
+| k146 | The count of the pairs of two item laws that the corpus emits, read from the generated items and not from the labels of the generators. The target is 87 pairs. The first reading is 31 | bench | active | k50 |
 
 ## The queue
 

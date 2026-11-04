@@ -39,6 +39,8 @@ export interface KpiFacts {
   readonly strategies: number;
   /** The count of the input families of the generators. */
   readonly families: number;
+  /** The count of the pairs of two item laws that the corpus emits, from `data/law-cover.json`. */
+  readonly lawPairs: number;
   /** The text of each page that states a count. */
   readonly pages: readonly string[];
   /** The date of each point of the coverage trend, as YYYY-MM-DD. */
@@ -73,6 +75,7 @@ export function kpiFile(facts: KpiFacts, now: number, commit: string): KpiFile {
       { id: "picker-strategies", value: facts.picker, unit: "strategies" },
       { id: "stale-text", value: staleText(facts.pages, facts.strategies), unit: "places" },
       { id: "input-families", value: facts.families, unit: "families" },
+      { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs" },
       { id: "coverage-shown", value: weeklyTrend(facts.trend, now) ? 1 : 0 },
       { id: "explorer-live", value: facts.explorer ? 1 : 0 },
     ],
