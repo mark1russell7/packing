@@ -39,19 +39,20 @@ describe("packSpace", () => {
 
   // Roadmap item k90 adds 3 base configs with 3 levels: hole-degree with 3 levels of steps. Before k90 the count was 2970.
   // The order graph-bfs (layout-stack L34) adds 591 base configs with 3 levels and 177 with 1 level: each placement but push. Before L34 the counts were 2973 and 891.
-  it("has 5 stages and 3564 base configs with 3 levels", () => {
+  // The rule wire of k136 adds 144 base configs with 3 levels and 24 with 1 level. Before k136 the counts were 3564 and 1068.
+  it("has 5 stages and 3708 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(3564n);
-    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(1068n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(3708n);
+    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(1092n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
-  it("gives cell-portfolio one pool entry, and counts 6.88e20 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 8.39e20 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
     expect(ids(cell.members!.pool![0]!)).toEqual(ids(named["portfolio"]!.stages["combine"]!.members!));
-    // The option portfolio gives nearly all of the count: 800 param points for each ordered list of 2 to 5 of the 3564 base configs. The count is more than the default `maxMeta` of 1e18
+    // The option portfolio gives nearly all of the count: 800 param points for each ordered list of 2 to 5 of the 3708 base configs. The count is more than the default `maxMeta` of 1e18
     // Before k90 the counts were 36862574914409402550 and 13266726236504962. Before k117 they were 37049239404514333362 and 13341577899037878.
     // The work limit of k117 gives 5 param points: no limit, then 4 values of budgetWork. The rect counts before k117 were 36862574914409402550 and 13266726236504962.
     // The ruin and recreate of k79 gives 108 param points with 3 levels and 4 with 1 level, for each base config.
@@ -69,12 +70,13 @@ describe("packSpace", () => {
     // The table pack of select (k135) gives 2 values of the param table, not 1. Thus each count grows by the select configs.
     // Before L34 the counts were 277869295533810375192, 100061834238419076, 276469311858023490660 and 99500446769432000.
     // The order graph-bfs of L34 gives more base configs, so each count of member lists grows.
+    // The rule wire of k136 does the same. Before k136 the counts were 688291902860755874904, 248007594904236900, 685398465078246361680 and 246846729112282916.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(688291902860755874904n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(248007594904236900n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3561n, meta: 685398465078246361680n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1067n, meta: 246846729112282916n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(839122620777889294392n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(277205931006817716n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3705n, meta: 835731956558436797040n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1091n, meta: 275936906614690676n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -147,13 +149,13 @@ describe("packSpace and the shape kinds", () => {
     const base3 = spaceSize(packSpace, { levels: 3, shapes: ["rect"] }).base;
     const base1 = spaceSize(packSpace, { levels: 1, shapes: ["rect"] }).base;
     for (const kind of ["polygon", "free"] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 7122n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 2134n });
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 7410n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 2182n });
     }
     // Roadmap item k90: a circle input also gets the base configs of hole-degree, 1 for each level of steps
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 3n, meta: 7122n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 1n, meta: 2134n });
-    expect([base3, base1]).toEqual([3561n, 1067n]);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 3n, meta: 7410n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 1n, meta: 2182n });
+    expect([base3, base1]).toEqual([3705n, 1091n]);
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 3n);
   });
@@ -482,8 +484,8 @@ describe("configOfStrategy (k135)", () => {
   });
 
   it("keeps the configId of each named config of main", () => {
-    // The list of main before k135, with no named config pack. A change of a config or of canonicalConfig changes the hash.
-    const list = Object.entries(named).filter(([name]) => name !== "pack").map(([name, config]) => `${name}=${configId(packSpace, config)}`);
+    // The list of main before k135, with no named config pack and no named config of the later rule wire. A change of a config or of canonicalConfig changes the hash.
+    const list = Object.entries(named).filter(([name]) => name !== "pack" && name !== "maxrects-wire").map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });
 });
