@@ -95,4 +95,4 @@ function main(): void {
   console.log(JSON.stringify({ inputs: summary.inputs, meanRatio: summary.meanRatio, maxrectsNoWorse: summary.maxrectsNoWorse, breaks: summary.breaks }));
 }
 
-if (process.argv[1] !== undefined && resolve(process.argv[1]) === resolve(import.meta.filename)) main();
+if (process.argv[1]?.endsWith("sleator.ts")) main();

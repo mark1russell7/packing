@@ -6,6 +6,7 @@ import { sweepSearch } from "./layout-strategy.ts";
 import { placeLayout } from "./pack.ts";
 import type { PackContext, SizeSearch, Strategy } from "./strategy.ts";
 
+export { bestFit, bottomLeft, type BestFitStrategyOptions, type BottomLeftStrategyOptions } from "./bottom-left-strategy.ts";
 export { guillotine } from "./guillotine-strategy.ts";
 export type { GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, SkylineStrategyOptions } from "./layout-strategy.ts";
 export { maxrects } from "./maxrects-strategy.ts";
