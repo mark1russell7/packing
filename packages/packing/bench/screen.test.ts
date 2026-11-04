@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { packWith, rectGrid, toPackInput } from "@mark1russell7/packing";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv } from "./run.ts";
-import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, FORCE_ENTRIES, RELAX_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, BBOX_ENTRIES, BOTTOM_LEFT_VARIANTS, entry, isComposite, MAXRECTS_VARIANTS, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, FORCE_ENTRIES, RELAX_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import { BASE_OF, MOVE_OF, moveCounts, OUTSIDE_EXACT, rankingOf, screenMarkdown, screenOf, shapesOf, type ScreenRecord } from "./screen.ts";
 
 // The screen guards of k59 on hand-made records, and on a run of the tiny corpus smoke-v1. The test reads no time.
@@ -258,10 +258,10 @@ describe("the screen on smoke-v1", () => {
       if (isComposite(id)) continue;
       const skyline = e.options["rule"] === "mw" ? ["move.minWaste"] : ["move.lowerWindow"];
       const guillotine = e.options["merge"] === true ? ["move.freeChoice", "move.merge"] : ["move.freeChoice"];
-      const own = e.strategy === "guillotine" ? guillotine : e.strategy === "maxrects" ? (move === "move.split" ? [move] : [move, "move.split"]) : e.strategy === "skyline" && e.base !== undefined ? [...skyline, "move.wasteFill"].filter((m) => m !== "move.wasteFill" || e.options["wasteMap"] === true) : e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"];
+      const own = e.strategy === "bottom-left" ? ["move.slide"] : e.strategy === "best-fit" ? ["move.gapPick", "move.gapRaise"] : e.strategy === "guillotine" ? guillotine : e.strategy === "maxrects" ? (move === "move.split" ? [move] : [move, "move.split"]) : e.strategy === "skyline" && e.base !== undefined ? [...skyline, "move.wasteFill"].filter((m) => m !== "move.wasteFill" || e.options["wasteMap"] === true) : e.base === undefined ? [move] : ["move.stack", "move.firstFit", "move.bestFit"];
       expect(Object.keys(counts), id).toEqual(own);
     }
-    expect(BASE_OF).toEqual({ ...Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])), ...Object.fromEntries(MAXRECTS_VARIANTS.filter((v) => v.id !== "maxrects-bl").map((v) => [v.id, "maxrects-bl"])), ...Object.fromEntries(PORTFOLIO_ENTRIES.map((e) => [e.id, "maxrects-bl"])),
+    expect(BASE_OF).toEqual({ ...Object.fromEntries(BOTTOM_LEFT_VARIANTS.map((v) => [v.id, v.base])), ...Object.fromEntries(SHELF_VARIANTS.map((v) => [v.id, "shelf"])), ...Object.fromEntries(MAXRECTS_VARIANTS.filter((v) => v.id !== "maxrects-bl").map((v) => [v.id, "maxrects-bl"])), ...Object.fromEntries(PORTFOLIO_ENTRIES.map((e) => [e.id, "maxrects-bl"])),
       ...Object.fromEntries(ASPECT_FIT_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(SELECT_ENTRIES.map((e) => [e.id, e.base])),
       ...Object.fromEntries(RESTARTS_ENTRIES.map((e) => [e.id, e.base])),

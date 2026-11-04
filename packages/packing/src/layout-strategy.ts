@@ -33,7 +33,7 @@ export interface LayoutStrategyOptions {
 
 /** The options of the strategy `maxrects`. The strategy does not read `fit`. */
 export interface MaxRectsStrategyOptions extends LayoutStrategyOptions {
-  /** The rule to choose a free rectangle: `bssf` (the default), `blsf`, `baf`, `bl` or `cp`. `MAXRECTS_RULES` tells each rule. */
+  /** The rule to choose a free rectangle: `bssf` (the default), `blsf`, `baf`, `bl`, `cp` or `wire`. `MAXRECTS_RULES` tells each rule. */
   rule: MaxRectsRule;
   /** The value `true` lets each turnable item that is not locked turn by 90 degrees. The default is `false`. */
   rotate: boolean;

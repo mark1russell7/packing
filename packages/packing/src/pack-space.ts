@@ -19,8 +19,10 @@ import {
   type StrategyConfig,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import type { GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
+import type { BestFitStrategyOptions, BottomLeftStrategyOptions, GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
+import { BEST_FIT_SIDES } from "./best-fit.ts";
+import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
@@ -30,7 +32,7 @@ import type { RelaxStrategyOptions } from "./relax.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
 import { SKYLINE_RULES } from "./skyline.ts";
 import { MEASURE_SPECS } from "./measures.ts";
-import { SORT_ORDERS } from "./order.ts";
+import { GRAPH_ORDERS, SORT_ORDERS } from "./order.ts";
 import type { PackLayoutOptions } from "./pack.ts";
 import type { PortfolioEntry } from "./portfolio.ts";
 import { PORTFOLIO_FRAME_MS } from "./portfolio-cell.ts";
@@ -123,6 +125,9 @@ const OVERLAP_MIN_PARAMS: readonly SpaceParam[] = [
 /** The param of `relax` of roadmap item k124: the share of the move from the member layout to the target. */
 const RELAX_PARAMS: readonly SpaceParam[] = [{ name: "strength", kind: "real", min: 0, max: 1, default: 1 }];
 
+/** The param of `relax-pull` of roadmap item k137: the share of the move to the balance point of the links. A param of `relax` changes the id of each `relax` config, so the pull is its own option. */
+const RELAX_PULL_PARAMS: readonly SpaceParam[] = [{ name: "pull", kind: "real", min: 0, max: 1, default: 1 }];
+
 /** The params of `force` of roadmap item k125: the count of the force steps and the most rounds of PRISM. */
 const FORCE_PARAMS: readonly SpaceParam[] = [
   { name: "iterations", kind: "int", min: 1, max: 256, scale: "log", default: 60 },
@@ -183,7 +188,7 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
     const placement = choice("hole-degree", { steps: o["steps"] as number });
     return { space: ENGINE, stages: { order: choice("input"), "size-search": choice("none"), placement, "local-search": choice("none") } };
   }
-  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap", "choice", "split", "merge"];
+  const known = id === "push" ? ["sortOrder", "maxShovesPerItem"] : ["sortOrder", "samples", "fit", "rule", "rotate", "bandHeight", "wasteMap", "choice", "split", "merge", "side"];
   for (const key of Object.keys(o)) if (!known.includes(key) || (key === "fit" && id !== "shelf")) throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
   const stages: Record<string, StageChoice | null> = { order: choice(String(o["sortOrder"])), "local-search": choice("none") };
   if (id === "push") {
@@ -199,7 +204,9 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
   } else if (id === "skyline") stages["placement"] = choice("skyline", { rule: o["rule"] as string, wasteMap: o["wasteMap"] as boolean, rotate: o["rotate"] as boolean });
   else if (id === "guillotine") {
     stages["placement"] = choice("guillotine", { choice: o["choice"] as string, split: o["split"] as string, rotate: o["rotate"] as boolean, merge: o["merge"] as boolean });
-  } else if (id === "rows") stages["placement"] = choice(id);
+  } else if (id === "bottom-left") stages["placement"] = choice(id, { rule: o["rule"] as string });
+  else if (id === "best-fit") stages["placement"] = choice(id, { side: o["side"] as string });
+  else if (id === "rows") stages["placement"] = choice(id);
   else throw new RangeError(`The strategy ${id} is not a single strategy of the space packing.`);
   return { space: ENGINE, stages };
 }
@@ -220,7 +227,7 @@ const pool: readonly StrategyConfig[] = Object.values(POOL);
 
 /** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
 const STAGES: readonly SpaceStage[] = [
-  { name: "order", options: SORT_ORDERS.map((id) => ({ id, params: [], supports: id === "input" ? RECT_OR_CIRCLE : RECT_ONLY })) },
+  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => ({ id, params: [], supports: id === "input" ? RECT_OR_CIRCLE : RECT_ONLY })) },
   {
     name: "size-search",
     options: [
@@ -263,6 +270,8 @@ const STAGES: readonly SpaceStage[] = [
         supports: RECT_ONLY,
       },
       { id: "push", params: [{ name: "maxShovesPerItem", kind: "int", min: 1, max: 64, scale: "log", default: 8 }], supports: RECT_ONLY },
+      { id: "bottom-left", params: [{ name: "rule", kind: "enum", values: [...BOTTOM_LEFT_RULES], default: "baker" }], supports: RECT_ONLY },
+      { id: "best-fit", params: [{ name: "side", kind: "enum", values: [...BEST_FIT_SIDES], default: "left" }], supports: RECT_ONLY },
       { id: "hole-degree", params: [{ name: "steps", kind: "int", min: 0, max: HOLE_DEGREE_MAX_STEPS, default: 8 }], supports: CIRCLE_ONLY },
     ],
   },
@@ -288,6 +297,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "genetic", params: GENETIC_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "tabu", params: TABU_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "relax", params: RELAX_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      { id: "relax-pull", params: RELAX_PULL_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "force", params: FORCE_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
@@ -318,6 +328,11 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "guillotine-bssf-sas-merge": baseConfig("guillotine", { choice: "bssf", merge: true }),
   guillotine: baseConfig("guillotine"),
   "hole-degree": baseConfig("hole-degree"),
+  "bottom-left": baseConfig("bottom-left"),
+  "bottom-left-liu-teng": baseConfig("bottom-left", { rule: "liu-teng" }),
+  "best-fit": baseConfig("best-fit"),
+  "best-fit-tall": baseConfig("best-fit", { side: "tall" }),
+  "best-fit-short": baseConfig("best-fit", { side: "short" }),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;
@@ -326,10 +341,12 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * The strategy space of `packing`, schema `strategy-space/1`. It has 5 stages: `order`, `size-search`, `placement`,
  * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
  *
+ * - The order `graph-bfs` reads `input.links`. Without links it gives `area-desc`. The placement `push` does not read links, so it does not go with this order.
  * - `size-search` acts only on a container of free size. The option `none` goes with `push` and `hole-degree` only.
  * - `hole-degree` of roadmap item k90 goes with the order `input` and the size search `none`. It does its own height search.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force`.
- * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` have 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force`.
+ * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull` and `force` have 1 member.
+ * - `relax-pull` is the strategy `relax` with the strength 0 and the option `pull`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
  * - The param `aspectFit` of a portfolio puts `aspect-fit` around it. Thus `aspect-fit-portfolio-k2` keeps the depth 1.
@@ -349,6 +366,8 @@ export const packSpace: StrategySpace = Object.freeze({
     { if: { stage: "placement", option: "push" }, then: { stage: "size-search", option: "none" } },
     { if: { stage: "placement", option: "hole-degree" }, then: { stage: "size-search", option: "none" } },
     { if: { stage: "placement", option: "hole-degree" }, then: { stage: "order", option: "input" } },
+    // The placement `push` does not read `input.links`, so a graph order has no effect on it.
+    ...GRAPH_ORDERS.map((option) => ({ if: { stage: "placement", option: "push" }, then: { not: { stage: "order", option } } })),
     // The size search `none` goes only with the placements of `NO_SIZE_SEARCH`. Each other placement (rows to guillotine) needs `log-sweep`.
     ...placementIds.filter((option) => !NO_SIZE_SEARCH.includes(option)).map((option) => ({ if: { stage: "size-search", option: "none" }, then: { not: { stage: "placement", option } } })),
   ],
@@ -390,6 +409,8 @@ export const packSpace: StrategySpace = Object.freeze({
     "relax-maxrects-bl": metaConfig("relax", [single("maxrects-bl")]),
     "relax-skyline-bl-waste": metaConfig("relax", [single("skyline-bl-waste")]),
     relax: metaConfig("relax", [single("maxrects-bl")]),
+    "relax-pull-rows": metaConfig("relax-pull", [single("rows")]),
+    "relax-pull-maxrects-bl": metaConfig("relax-pull", [single("maxrects-bl")]),
     "force-rows": metaConfig("force", [single("rows")]),
     "force-maxrects-bl": metaConfig("force", [single("maxrects-bl")]),
     "force-skyline-bl-waste": metaConfig("force", [single("skyline-bl-waste")]),
@@ -450,6 +471,8 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
   } satisfies Places<GuillotineStrategyOptions>,
   push: { sortOrder: "order", maxShovesPerItem: "placement.push.maxShovesPerItem" } satisfies Places<PushStrategyOptions>,
   "hole-degree": { steps: "placement.hole-degree.steps" } satisfies Places<HoleDegreeStrategyOptions>,
+  "bottom-left": { sortOrder: "order", samples: "size-search.log-sweep.samples", rule: "placement.bottom-left.rule" } satisfies Places<BottomLeftStrategyOptions>,
+  "best-fit": { sortOrder: "order", samples: "size-search.log-sweep.samples", side: "placement.best-fit.side" } satisfies Places<BestFitStrategyOptions>,
   portfolio: PORTFOLIO_PLACES,
   "aspect-fit": {
     strategy: "combine.aspect-fit.members",
@@ -501,7 +524,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     tenure: "combine.tabu.tenure",
     neighbors: "combine.tabu.neighbors",
   } satisfies Places<TabuStrategyOptions>,
-  relax: { member: "combine.relax.members", strength: "combine.relax.strength" } satisfies Places<RelaxStrategyOptions>,
+  relax: { member: "combine.relax.members", strength: "combine.relax.strength", pull: "combine.relax-pull.pull" } satisfies Places<RelaxStrategyOptions>,
   force: { member: "combine.force.members", iterations: "combine.force.iterations", rounds: "combine.force.rounds" } satisfies Places<ForceStrategyOptions>,
   pack: {
     sortOrder: "order",
@@ -549,7 +572,7 @@ const NAMED_VALUES: Readonly<Record<string, Readonly<Record<string, unknown>>>> 
 });
 
 /** The single strategies of the registry. `baseConfig` gives their configs. */
-const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree"];
+const SINGLE_STRATEGIES: readonly string[] = ["rows", "skyline", "shelf", "maxrects", "guillotine", "push", "hole-degree", "bottom-left", "best-fit"];
 
 /** This function tells if a value is an object and not a list. */
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -584,6 +607,13 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
     const { strategy: inner, options: innerOptions, ...rest } = options;
     options = { ...rest, member: { strategy: inner, options: innerOptions ?? {} } };
   }
+  if (id === "relax" && options["pull"] !== undefined) {
+    // The pull with no spread is the option relax-pull of the stage combine. The pull 0 is relax.
+    const { pull, ...rest } = options;
+    if (pull === 0) options = rest;
+    else if (options["strength"] !== 0) return { ok: false, reason: "packSpace holds the option relax.pull only with the strength 0: the option relax-pull of the stage combine." };
+    else options = { pull, member: options["member"] ?? { strategy: "maxrects", options: { rule: "bl" } } };
+  }
   for (const name of Object.keys(options)) {
     const key = `${id}.${name}`;
     if (name !== "member" || id !== "aspect-fit") {
@@ -599,7 +629,10 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
     }
   }
   const base = packSpace.named![id]!;
-  const placeOf = (name: string): string => (id === "aspect-fit" && name === "member" ? "combine.aspect-fit.members" : places[name]!);
+  const placeOf = (name: string): string => {
+    if (name === "member" && id === "aspect-fit") return "combine.aspect-fit.members";
+    return name === "member" && id === "relax" && options["pull"] !== undefined ? "combine.relax-pull.members" : places[name]!;
+  };
   // The options name one option of the stage combine. Another option than the option of the named config starts with no params and no members.
   const targets = [...new Set(Object.keys(options).map((name) => placeOf(name).split(".")[1]!))];
   if (targets.length > 1) return { ok: false, reason: `The options of ${id} set the options ${targets.join(" and ")} of the stage combine. A config has one.` };
@@ -707,6 +740,8 @@ function runOf(config: StrategyConfig): Run {
     options["rotate"] = p["rotate"];
     if (p["fixedBands"] === true) options["bandHeight"] = p["bandHeight"];
   }
+  if (place.option === "bottom-left") options["rule"] = p["rule"];
+  if (place.option === "best-fit") options["side"] = p["side"];
   if (place.option === "guillotine") {
     options["choice"] = p["choice"];
     options["split"] = p["split"];
@@ -813,6 +848,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return packWith("tabu", input, { member: entryOf(members[0]!), iterations: params["iterations"], tenure: params["tenure"], neighbors: params["neighbors"], ...work }, seed);
     case "relax":
       return packWith("relax", input, { member: entryOf(members[0]!), strength: params["strength"] }, seed);
+    case "relax-pull":
+      return packWith("relax", input, { member: entryOf(members[0]!), strength: 0, pull: params["pull"] }, seed);
     case "force":
       return packWith("force", input, { member: entryOf(members[0]!), iterations: params["iterations"], rounds: params["rounds"] }, seed);
     default: {

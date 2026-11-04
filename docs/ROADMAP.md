@@ -11,7 +11,7 @@ Status: done, done, waiting, next, done.
 | k2 | `render-pack` re-exports `@mark1russell7/packing` | move | done | k1 |
 | k3 | The downstream app moves its imports to the new name | move | done | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | done | k2, k3 |
-| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
+| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways`: none calls this library, see [`NEIGHBOURS.md`](research/NEIGHBOURS.md) | audit | done | |
 | k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
 | k7 | One Packer interface for every strategy | core | done | k0, k18, k35 |
 | k8 | An algebra of measures | theory | done | k6, k7 |
@@ -19,7 +19,7 @@ Status: done, done, waiting, next, done.
 | k10 | An exact baseline for small inputs: branch and bound, and a constraint solver | strategies | later | k7 |
 | k11 | Benchmarks in CI, with a prediction before each run | measure | done | k8, k9 |
 | k12 | Stability: the movement when one item changes | measure | later | k8 |
-| k13 | Speed and its scaling | measure | later | k11 |
+| k13 | Speed and its scaling: the time against n for each entry on `ladder.count`, with the fitted exponent and its interval. `bench/scaling.ts` reads the records of a CI run. Memory waits for a paired run of the ladder. | measure | active | k11 |
 | k14 | A live site with interactive examples (v1: a demo of the current strategies). The site rebuilds in CI on each merge to `main`, from the source and the committed results. Each page shows the release and the date of its data, and a list of the changes with dates. | site | active | k1 |
 | k15 | The s38 checks: `conventions` and `api-report` in CI | move | done | k0 |
 | k16 | The sort order `input` | strategies | done | |
@@ -56,7 +56,7 @@ Status: done, done, waiting, next, done.
 | k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | done | k19, k9 |
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
-| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
+| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions, shown on the site | measure | done | k19, k35 |
 | k51 | Lower bounds, so each result shows its distance to the best | measure | done | k6 |
 | k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
 | k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
@@ -76,7 +76,7 @@ Status: done, done, waiting, next, done.
 | k67 | The size search `log-sweep` is slow: a free size with 100 items takes about 390 ms with `rows` and with `select`. Profile it first, then make it faster with the same outputs. Step 2 shipped in 0.2.16: `rows` sorts once (#82), and the slow inputs take about 0.11 of their time. The slowest takes 58 ms. Step 3 shipped in 0.2.17: `rows` packs each width one time (#84). The slowest takes 3.7 ms. These are in-order times of one CI process (`docs/BENCH.md`, "Absolute times"). | core | done | k33 |
 | k68 | The strategy space as data: export `packSpace` (strategy-space/1 of `layout-contract`, 5 stages) and `packConfig`. Each strategy of today is a named point with the same outputs. | strategies | done | k66 |
 | k69 | A baseline arm in the same job of `bench.yml`, so each time ratio is paired and a drift of the runner cancels. `paired.yml` (#85) does it for two refs. | measure | later | k33 |
-| k70 | Fit `SELECT_TABLE` again on two measures, the fill and the joint floor of `layout-contract`, with `verdict()`. The fit decides leaf 6: free size, a heavy tail and a shape that is not a rectangle. | strategies | next | k66 |
+| k70 | Fit `SELECT_TABLE` again on two measures, the fill and the joint floor of `layout-contract`, with `verdict()`. The fit decides leaf 6: free size, a heavy tail and a shape that is not a rectangle. | strategies | done | k66 |
 | k71 | A render check of the site in CI: headless Chromium opens each page at a phone width and a desktop width. It fails on a console error, a failed request or an empty `main`, and keeps the screenshots. Shipped in #94: 12 of 12 views pass. | site | done | k32 |
 | k72 | A compare page: one input, each named strategy side by side, with its output and its measures. The demo offers each strategy of the registry and its options. A test fails when a list of the site differs from the code. | site | done | k32 |
 | k73 | The inputs of the site come from the corpus generator: each family, with sliders for the seed, the count, the size spread, the aspect, the container and the obstacles. Compare and the demo take each generated input. | site | done | k72 |
@@ -103,7 +103,7 @@ Status: done, done, waiting, next, done.
 | k94 | Basin hopping for circles (idea S5 of the survey) | strategies | later | k75 |
 | k95 | Bottom-left fill for polygons (idea S6 of the survey) | strategies | later | k75, k101 |
 | k96 | Overlap minimization for polygons (idea S7 of the survey) | strategies | later | k75, k101 |
-| k97 | Groups of pieces as near rectangles (idea S8 of the survey) | strategies | later | k75 |
+| k97 | Groups of pieces as near rectangles (idea S8 of the survey): `packNearRects`, first slice, with no learned model | strategies | active | k75 |
 | k98 | The ESICUP nesting sets (idea S9 of the survey) | measure | later | k75 |
 | k99 | Phi-functions (idea S10 of the survey) | strategies | later | k75 |
 | k100 | The best search for circles (idea S11 of the survey) | strategies | later | k75 |
@@ -116,7 +116,7 @@ Status: done, done, waiting, next, done.
 | k107 | Input families for the worst case: adversarial inputs and scaling ladders | corpus | done | k73 |
 | k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | done | k76 |
 | k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | later | k51, k105 |
-| k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept | core | later | k6, k7 |
+| k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept. The first slice is `packSideAnchors`. The field and the rule of the contract are open. | core | active | k6, k7 |
 | k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | done | k6, k7 |
 | k112 | Whole-space coverage: configs drawn at random from `packSpace` and inputs from the ranges of the generators, a held-out share within tolerance with a Wilson interval, next to the bench grid | measure | done | k68, k105 |
 | k113 | A hull for `bbox`: `pack.fill` goes above 1 on polygon outputs, because the measure reads the item boxes and `bbox` places the tight boxes of the shapes | measure | done | k91 |
@@ -126,7 +126,7 @@ Status: done, done, waiting, next, done.
 | k117 | A work budget for composites: count placements, not milliseconds, so each result is a pure function of the input and the config. Wall-clock stays an opt-in | core | done | k112 |
 | k118 | Bounds that count margins and gaps, knobs relative to the item size, and a `pack.gap` of 1 or less on each sampled pair | measure | done | k51, k116 |
 | k119 | A prior over all families: the family weights come from the union of the committed corpora, with the effective count next to each prior share | measure | done | k116 |
-| k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | next | k116, k119 |
+| k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | done | k116, k119 |
 | k121 | Determinism as a gate: the bench fails on a pair that is not deterministic and has no clock limit, a repeat test runs each entry in a shuffled order, and the source of the 2 bad pairs is found | measure | done | k116, k118 |
 | k122 | The prior as a parameter: union, family-flat or tempered (union weights to a power in the space). The headline is family-flat, with union beside it and the effective count of each. The adversary family is its own stratum | measure | later | k119 |
 | k123 | Balance and stability on each record: the gap spread, the offset of the slack centroid, the empty share per side, and the move under an input change and a seed change. Compare shows compact against spread as a front | measure | done | k118 |
@@ -141,46 +141,70 @@ Status: done, done, waiting, next, done.
 | k132 | A package that a bundler can shake: `"sideEffects": false`, one subpath export for each strategy (for example `@mark1russell7/packing/maxrects`), and no registry that the module builds at load. A small consumer then pays only for the strategy that it imports. With `layout-contract` 0.3.3, the `maxrects` subpath is 11176 bytes gzip (17981 with 0.3.2). The CI job `size-gate` measures each export against `bench/gates/size.json` (`node bench/main.ts size-gate`) | core | done | |
 | k133 | The time row of the win test on rigor-bench. `bench/time-budget.ts` takes the pooled verdict and the time tail of `@mark1russell7/rigor-bench`, and keeps no verdict logic of its own. The settings table gets `timeMargin`, `noiseCap` and the counts of the jobs, cases and rounds. | bench | done | |
 | k134 | No import cycles of `registry.ts` with `bbox.ts`, `select.ts` and `portfolio.ts`. The npm build of the root import then splits by module, so a bundler drops the strategies that a consumer does not import. Today the root import with only `maxrects` is 72 kB gzip | core | later | k132 |
-| k135 | The point of each strategy in `packSpace`, for layout-stack L34. `configOfStrategy(id, options)` gives the canonical config of a strategy of the registry with its options, or the reason that it has none. The param `table` of `select` gains the value `pack`, and the named config `pack` is the choice of `pack` without a strategy (`PACK_DEFAULT_TABLE`). | core | active | k68 |
+| k135 | The point of each strategy in `packSpace`, for layout-stack L34. `configOfStrategy(id, options)` gives the canonical config of a strategy of the registry with its options, or the reason that it has none. The param `table` of `select` gains the value `pack`, and the named config `pack` is the choice of `pack` without a strategy (`PACK_DEFAULT_TABLE`). | core | done | k68 |
+| k136 | The rule `wire` of `maxrects`, for layout-stack L12. The rule places a box near its placed linked boxes, with a cost for height. | strategies | done | k131 |
+| k137 | A link pull after a pack. The option `pull` of `relax` moves each linked box along its free space toward its balance point. The boxes make no new overlap and stay in the container. The option `relax-pull` of `combine` holds it in `packSpace`. | core | done | k124, k131 |
+| k138 | The fallback of `force` and `relax` to their member is a typed field of the output. A host can then tell its user which strategy gave the layout. Today the fallback is only the trace measures `force.fallback` and `relax.fallback`. | core | later | |
+| k139 | `overflow` tells why each item has no place: too large for the container, or no free place. `pack()` with only `fixedWidth` also tells of a rectangle wider than that width. Today a too-large item is in `overflow`, with no reason. | core | later | |
+| k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | active | |
 
 ## The queue
 
-The score of an item is its gain times its uncertainty, divided by its cost. Each factor is on a scale of 1 to 5. The gain is the expected change of the efficacy maps. The work takes the items in the order of the score. After its bench, an item records its measured gain next to its expected gain. Each month, the scores get a calibration from these pairs. Up to 3 build subagents run at one time, one family each, each with its prediction. The ideas of the survey (k76, `docs/research/SURVEY.md`) are the items k78 to k104, or a part of an older item.
+The score of an item is its gain times its uncertainty, divided by its cost. Each factor is on a scale of 1 to 5. The gain is the expected change of the efficacy maps. The work takes the items in the order of the score. After its bench, an item records its measured gain next to its expected gain. Each month, the scores get a calibration from these pairs, and the rank comes from the calibrated score. Up to 3 build subagents run at one time, one family each, each with its prediction. The ideas of the survey (k76, `docs/research/SURVEY.md`) are the items k78 to k104, or a part of an older item.
 
-| Rank | Item | Gain | Uncertainty | Cost | Score |
-| --- | --- | --- | --- | --- | --- |
-| 1 | k120 | 4 | 3 | 2 | 6.0 |
-| 2 | k25 | 3 | 3 | 2 | 4.5 |
-| 3 | k70 | 3 | 3 | 2 | 4.5 |
-| 4 | k13 | 3 | 3 | 2 | 4.5 |
-| 5 | k92 | 3 | 3 | 2 | 4.5 |
-| 6 | k10 | 4 | 4 | 4 | 4.0 |
-| 7 | k81 | 4 | 3 | 3 | 4.0 |
-| 8 | k82 | 3 | 4 | 3 | 4.0 |
-| 9 | k83 | 3 | 4 | 3 | 4.0 |
-| 10 | k93 | 4 | 2 | 2 | 4.0 |
-| 11 | k94 | 4 | 3 | 3 | 4.0 |
-| 12 | k95 | 4 | 3 | 3 | 4.0 |
-| 13 | k96 | 5 | 4 | 5 | 4.0 |
-| 14 | k97 | 3 | 4 | 3 | 4.0 |
-| 15 | k110 | 4 | 2 | 2 | 4.0 |
-| 16 | k84 | 3 | 5 | 4 | 3.8 |
-| 17 | k74 | 4 | 3 | 4 | 3.0 |
-| 18 | k52 | 3 | 2 | 2 | 3.0 |
-| 19 | k85 | 3 | 3 | 3 | 3.0 |
-| 20 | k86 | 3 | 5 | 5 | 3.0 |
-| 21 | k87 | 3 | 3 | 3 | 3.0 |
-| 22 | k98 | 3 | 2 | 2 | 3.0 |
-| 23 | k122 | 2 | 3 | 2 | 3.0 |
-| 24 | k109 | 4 | 2 | 3 | 2.7 |
-| 25 | k99 | 3 | 4 | 5 | 2.4 |
-| 26 | k100 | 3 | 3 | 4 | 2.3 |
-| 27 | k88 | 2 | 2 | 2 | 2.0 |
-| 28 | k101 | 4 | 2 | 4 | 2.0 |
-| 29 | k102 | 3 | 2 | 3 | 2.0 |
-| 30 | k103 | 2 | 2 | 2 | 2.0 |
-| 31 | k89 | 2 | 4 | 5 | 1.6 |
-| 32 | k104 | 2 | 3 | 5 | 1.2 |
+| Rank | Item | Gain | Uncertainty | Cost | Score | Calibrated |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | k25 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 2 | k13 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 3 | k92 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 4 | k10 | 4 | 4 | 4 | 4.0 | 3.3 |
+| 5 | k81 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 6 | k82 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 7 | k83 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 8 | k93 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 9 | k94 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 10 | k95 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 11 | k97 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 12 | k110 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 13 | k84 | 3 | 5 | 4 | 3.8 | 3.1 |
+| 14 | k96 | 5 | 4 | 5 | 4.0 | 2.6 |
+| 15 | k74 | 4 | 3 | 4 | 3.0 | 2.5 |
+| 16 | k52 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 17 | k85 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 18 | k86 | 3 | 5 | 5 | 3.0 | 2.5 |
+| 19 | k87 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 20 | k98 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 21 | k122 | 2 | 3 | 2 | 3.0 | 2.4 |
+| 22 | k109 | 4 | 2 | 3 | 2.7 | 2.2 |
+| 23 | k99 | 3 | 4 | 5 | 2.4 | 2.0 |
+| 24 | k100 | 3 | 3 | 4 | 2.3 | 1.9 |
+| 25 | k101 | 4 | 2 | 4 | 2.0 | 1.7 |
+| 26 | k102 | 3 | 2 | 3 | 2.0 | 1.7 |
+| 27 | k88 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 28 | k103 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 29 | k89 | 2 | 4 | 5 | 1.6 | 1.3 |
+| 30 | k104 | 2 | 3 | 5 | 1.2 | 1.0 |
+
+The order of 2026-11-04 makes k50 next, ahead of this table, so it has no score here.
+
+### The calibration of 2026-11-03
+
+The first calibration has 21 pairs of an expected gain and a measured gain, from the items with a row in the queue and a measured gain. An item that did not ship counts as the measured gain 1.
+
+| Expected gain | Pairs | Mean measured gain | Calibrated gain |
+| --- | --- | --- | --- |
+| 2 | 0 | no pairs | 1.6 |
+| 3 | 4 | 2.5 | 2.5 |
+| 4 | 14 | 3.3 | 3.3 |
+| 5 | 3 | 3.3 | 3.3 |
+
+- The mean expected gain is 3.95, and the mean measured gain is 3.14. Thus the expected gains are too high by 0.81.
+- The factor is 0.80 for all pairs. The gain 2 has no pairs, so it takes this factor.
+- The expected gains 4 and 5 give the same measured gain, so the gain 5 tells nothing more than the gain 4.
+- The item k127 did not ship. Without it, the expected gain 3 has the mean 3.0.
+- The column "Calibrated" is the calibrated gain times the uncertainty, divided by the cost. The rank comes from this column. The columns of the factors keep the first estimate.
+- The item k130 has a result in words, and the items k128 and k129 have no row in the queue. They give no pair.
+- The next calibration comes after the items of November. It has more pairs for the gains 2 and 5.
 
 The items of the site (k71, k72, k73) are P1 work outside the queue.
 

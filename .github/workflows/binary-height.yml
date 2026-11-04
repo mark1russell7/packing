@@ -1,0 +1,54 @@
+# The bench of roadmap item k81 (docs/BENCH.md, "The binary search on the height"). It compares the search with proved
+# heights at small sizes, and with named entries at large sizes. The numbers are in the artifact.
+name: Binary height
+
+on:
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: "The seeds of each family and size, 1 to 200."
+        type: string
+        default: "20"
+      trials:
+        description: "The decoded orders at each height, 1 to 4096."
+        type: string
+        default: "256"
+
+permissions:
+  contents: read
+
+# The group has the inputs, so only a true duplicate waits behind a run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.seeds }}-${{ inputs.trials }}
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      SEEDS: ${{ inputs.seeds }}
+      TRIALS: ${{ inputs.trials }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the inputs
+        run: |
+          [[ "$SEEDS" =~ ^[0-9]+$ ]] && [ "$SEEDS" -ge 1 ] && [ "$SEEDS" -le 200 ] || { echo "seeds out of range"; exit 1; }
+          [[ "$TRIALS" =~ ^[0-9]+$ ]] && [ "$TRIALS" -ge 1 ] && [ "$TRIALS" -le 4096 ] || { echo "trials out of range"; exit 1; }
+      - name: Measure
+        working-directory: packages/packing
+        run: |
+          mkdir -p "$RUNNER_TEMP/binary-height"
+          node bench/binary-height.ts --out "$RUNNER_TEMP/binary-height/binary-height.json" --seeds "$SEEDS" --trials "$TRIALS" | tee "$RUNNER_TEMP/binary-height/summary.txt"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: binary-height
+          path: ${{ runner.temp }}/binary-height

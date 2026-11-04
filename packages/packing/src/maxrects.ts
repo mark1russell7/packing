@@ -1,5 +1,6 @@
 // The MaxRects family of roadmap item k24 (docs/PACKER.md, "The MaxRects family"). The packer keeps a list of the
 // maximal free rectangles. Each box goes to the top-left corner of one free rectangle. A rule chooses the free rectangle.
+// The rule `wire` also tries the other three corners, for a box with a link to a placed box.
 // Then the box cuts each free rectangle that it hits into at most four parts, and the list loses each part that is in another.
 
 import { countMove, MOVES } from "./moves.ts";
@@ -15,11 +16,32 @@ import { spaceParts, type FreeSpace, type FreeSpan, type SpaceRect } from "./spa
  * - `baf`: the best area fit. The leftover area is the smallest.
  * - `bl`: the bottom-left rule. The bottom edge of the box is the highest, then the left edge is the leftmost.
  * - `cp`: the contact point rule. The box touches the most length of the edges of the frame, the boxes and the obstacles.
+ * - `wire`: the wire length rule. The weighted distance from the box to its placed linked boxes is the smallest. A free height adds a cost under the lowest box. A box with no placed link follows `bl`.
  */
-export const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp"] = Object.freeze(["bssf", "blsf", "baf", "bl", "cp"] as const);
+export const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp", "wire"] = Object.freeze(["bssf", "blsf", "baf", "bl", "cp", "wire"] as const);
 
-/** A rule of `maxrects`: `bssf`, `blsf`, `baf`, `bl` or `cp`. `MAXRECTS_RULES` tells each rule. */
+/** A rule of `maxrects`: `bssf`, `blsf`, `baf`, `bl`, `cp` or `wire`. `MAXRECTS_RULES` tells each rule. */
 export type MaxRectsRule = (typeof MAXRECTS_RULES)[number];
+
+/**
+ * A score of a place of `packMaxRects`. Lower scores are better.
+ *
+ * @param bw - The width of the box at this place.
+ * @param bh - The height of the box at this place.
+ * @param lw - The width that stays in the free rectangle.
+ * @param lh - The height that stays in the free rectangle.
+ * @param x - The left edge of the box.
+ * @param y - The top edge of the box.
+ * @param top - The lowest edge of the layout before this box.
+ * @param width - The width of the outer rectangle.
+ */
+export type MaxRectsScore = (bw: number, bh: number, lw: number, lh: number, x: number, y: number, top: number, width: number) => number;
+
+/**
+ * The cost of the rule `wire` for one unit of height under the lowest box, for one unit of link weight. Only a free height reads it.
+ * Without this cost, the boxes stay near their links, and the layout is up to 1.7 times as high as with `bl`. `docs/PACKER.md` has the trial.
+ */
+const WIRE_DEPTH = 8;
 
 /** The number of bands that the default band height gives. The default band height is the height to cut divided by this number. */
 export const MAXRECTS_BANDS = 128;
@@ -28,7 +50,7 @@ export const MAXRECTS_BANDS = 128;
 export interface MaxRectsOptions {
   /** The order of the rectangles before the packing. The default is `height-desc`. */
   sortOrder?: ItemOrder;
-  /** The links between the rectangles, as indexes into the array of the rectangles. Only a graph order reads them. */
+  /** The links between the rectangles, as indexes into the array of the rectangles. Only a graph order and the rule `wire` read them. */
   links?: readonly ItemLink[];
   /**
    * The free space of the container: `freeSpace` of the input. Without it, or when it is plain, the free rectangles are
@@ -37,6 +59,11 @@ export interface MaxRectsOptions {
   space?: FreeSpace;
   /** The rule to choose a free rectangle. The default is `bssf`. */
   rule?: MaxRectsRule;
+  /**
+   * A score that replaces the rule at each place. A tie goes to the box with the lowest bottom edge. The default is no
+   * score. The bench of roadmap item k83 reads this option. No strategy gives it.
+   */
+  score?: MaxRectsScore;
   /**
    * The largest height of a band of the approximation of a space that is not plain. The bands have equal heights. The
    * default is the height to cut divided by `MAXRECTS_BANDS`. A fixed height cuts the height. A free height cuts to the
@@ -63,6 +90,7 @@ export interface Box {
 /** A place for a box: a free rectangle, the turn, and the two scores of the rule. Lower scores are better. */
 interface Choice {
   index: number;
+  corner: number;
   turn: boolean;
   x: number;
   y: number;
@@ -72,11 +100,43 @@ interface Choice {
   s2: number;
 }
 
+/** A pull on a box: the center of a placed linked box, and the weight of the link. */
+interface Pull {
+  x: number;
+  y: number;
+  weight: number;
+}
+
 /** The result of `runMaxRects`: the outer rectangle and the free rectangles at the end. */
 export interface MaxRectsRun<T> {
   outer: Rect<T>;
   /** The free rectangles at the end, in the coordinates of the rectangles. Each one is as wide as the narrowest box and as high as the lowest box. */
   free: SpaceRect[];
+}
+
+/** This function gives the linked rectangles of each rectangle, with the weights. A link of a rectangle to itself or to no rectangle has no effect. */
+function linksByRect<T>(rects: readonly Rect<T>[], links: readonly ItemLink[]): Map<Rect<T>, { to: Rect<T>; weight: number }[]> {
+  const out = new Map<Rect<T>, { to: Rect<T>; weight: number }[]>();
+  const add = (from: Rect<T>, to: Rect<T>, weight: number): void => {
+    const list = out.get(from);
+    if (list === undefined) out.set(from, [{ to, weight }]);
+    else list.push({ to, weight });
+  };
+  for (const { a, b, weight = 1 } of links) {
+    const first = rects[a];
+    const second = rects[b];
+    if (first === undefined || second === undefined || a === b) continue;
+    add(first, second, weight);
+    add(second, first, weight);
+  }
+  return out;
+}
+
+/** This function gives the sum over the pulls of the weight times the Manhattan distance from the point `(x, y)`. */
+function wireLength(pulls: readonly Pull[], x: number, y: number): number {
+  let sum = 0;
+  for (const p of pulls) sum += p.weight * (Math.abs(x - p.x) + Math.abs(y - p.y));
+  return sum;
 }
 
 /** This function tells if the box `a` is fully in the box `b`. */
@@ -294,7 +354,9 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
   let free: Box[] = [{ x0: 0, y0: 0, x1: W, y1: H }];
   for (const wall of walls) free = cut(free, wall, minW, minH).free;
 
+  const linked = rule === "wire" ? linksByRect(rects, options.links ?? []) : undefined;
   const cp = rule === "cp";
+  const { score } = options;
   const vertical: Edges = new Map();
   const horizontal: Edges = new Map();
   const mark = (b: Box): void => {
@@ -322,6 +384,14 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
     const w = rect.size.x;
     const h = rect.size.y;
     const turns = turnable?.has(rect) === true && w !== h;
+    // The centers of the placed linked boxes. A locked rectangle counts as placed.
+    const pulls: Pull[] = [];
+    for (const { to, weight } of linked?.get(rect) ?? []) {
+      if (to.wasPacked) pulls.push({ x: to.position.x - ox + to.size.x / 2, y: to.position.y - oy + to.size.y / 2, weight });
+    }
+    const corners = pulls.length > 0 ? 4 : 1;
+    let depth = 0;
+    if (!fixed) for (const p of pulls) depth += WIRE_DEPTH * p.weight;
     const banned = new Set<number>();
     let best: Choice | undefined;
     let low: Choice | undefined;
@@ -331,50 +401,62 @@ export function runMaxRects<T>(rects: Rect<T>[], outer: Rect<T>, options: MaxRec
       for (let i = 0; i < free.length; i++) {
         const f = free[i]!;
         for (let t = 0; t < (turns ? 2 : 1); t++) {
-          if (banned.has(2 * i + t)) continue;
           const bw = t === 1 ? h : w;
           const bh = t === 1 ? w : h;
           if (f.x0 + bw > f.x1 || f.y0 + bh > f.y1) continue;
           const lw = f.x1 - f.x0 - bw;
           const lh = f.y1 - f.y0 - bh;
-          let s1: number;
-          let s2: number;
-          switch (rule) {
-            case "bssf":
-              s1 = Math.min(lw, lh);
-              s2 = Math.max(lw, lh);
-              break;
-            case "blsf":
-              s1 = Math.max(lw, lh);
-              s2 = Math.min(lw, lh);
-              break;
-            case "baf":
-              s1 = (f.x1 - f.x0) * (f.y1 - f.y0) - bw * bh;
-              s2 = Math.min(lw, lh);
-              break;
-            case "bl":
-              s1 = f.y0 + bh;
-              s2 = f.x0;
-              break;
-            case "cp":
-              s1 = -contact(f.x0, f.y0, bw, bh);
-              s2 = f.y0 + bh;
-              break;
+          // The corners are 0 top left, 1 top right, 2 bottom left and 3 bottom right. A side with no leftover has one corner.
+          for (let c = 0; c < corners; c++) {
+            const right = c % 2 === 1;
+            const under = c >= 2;
+            if ((right && lw === 0) || (under && lh === 0) || banned.has(8 * i + 2 * c + t)) continue;
+            const x = right ? f.x1 - bw : f.x0;
+            const y = under ? f.y1 - bh : f.y0;
+            let s1: number;
+            let s2: number;
+            if (score !== undefined) {
+              s1 = score(bw, bh, lw, lh, x, y, bottom, W);
+              s2 = y + bh;
+            } else switch (rule) {
+              case "bssf":
+                s1 = Math.min(lw, lh);
+                s2 = Math.max(lw, lh);
+                break;
+              case "blsf":
+                s1 = Math.max(lw, lh);
+                s2 = Math.min(lw, lh);
+                break;
+              case "baf":
+                s1 = (f.x1 - f.x0) * (f.y1 - f.y0) - bw * bh;
+                s2 = Math.min(lw, lh);
+                break;
+              case "bl":
+                s1 = y + bh;
+                s2 = x;
+                break;
+              case "cp":
+                s1 = -contact(x, y, bw, bh);
+                s2 = y + bh;
+                break;
+              case "wire":
+                s1 = pulls.length > 0 ? wireLength(pulls, x + bw / 2, y + bh / 2) + depth * Math.max(0, y + bh - bottom) : y + bh;
+                s2 = pulls.length > 0 ? y + bh : x;
+                break;
+            }
+            // A choice object comes only for a better place
+            if (best === undefined || s1 < best.s1 || (s1 === best.s1 && (s2 < best.s2 || (s2 === best.s2 && (y < best.y || (y === best.y && x < best.x)))))) {
+              best = { index: i, corner: c, turn: t === 1, x, y, w: bw, h: bh, s1, s2 };
+            }
+            // Only the move count of a rule other than `bl` reads the place of `bl`
+            if (rule === "bl") continue;
+            const ly = y + bh;
+            if (low === undefined || ly < low.s1 || (ly === low.s1 && x < low.s2)) low = { index: i, corner: c, turn: t === 1, x, y, w: bw, h: bh, s1: ly, s2: x };
           }
-          const x = f.x0;
-          const y = f.y0;
-          // A choice object comes only for a better place
-          if (best === undefined || s1 < best.s1 || (s1 === best.s1 && (s2 < best.s2 || (s2 === best.s2 && (y < best.y || (y === best.y && x < best.x)))))) {
-            best = { index: i, turn: t === 1, x, y, w: bw, h: bh, s1, s2 };
-          }
-          // Only the move count of a rule other than `bl` reads the place of `bl`
-          if (rule === "bl") continue;
-          const ly = y + bh;
-          if (low === undefined || ly < low.s1 || (ly === low.s1 && x < low.s2)) low = { index: i, turn: t === 1, x, y, w: bw, h: bh, s1: ly, s2: x };
         }
       }
       if (best === undefined || !check || space.fits({ x: best.x + ox, y: best.y + oy, w: best.w, h: best.h })) break;
-      banned.add(2 * best.index + (best.turn ? 1 : 0));
+      banned.add(8 * best.index + 2 * best.corner + (best.turn ? 1 : 0));
     }
 
     let place: Box;

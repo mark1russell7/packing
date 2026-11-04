@@ -40,6 +40,8 @@ import {
 
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
+/** These files have their own schema and parser, and a test of their package compares them with their script. */
+const OWN_SCHEMA = ["corpus-cover.json"];
 const KINDS: Record<string, Snapshot["kind"]> = {
   "coverage.json": "coverage",
   "gaps-pack-known-v1.json": "gaps",
@@ -77,7 +79,7 @@ describe("navLinks", () => {
 
 describe("the snapshot files", () => {
   it("has exactly the files that the pages read", () => {
-    expect(readdirSync(DATA).sort()).toEqual(Object.keys(KINDS).sort());
+    expect(readdirSync(DATA).sort()).toEqual([...Object.keys(KINDS), ...OWN_SCHEMA].sort());
   });
 
   for (const [name, kind] of Object.entries(KINDS)) {

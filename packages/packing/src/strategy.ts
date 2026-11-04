@@ -1,4 +1,5 @@
 import { itemShapeOf as contractItemShape, type ClaimBreak } from "@mark1russell7/layout-contract";
+import { mulberry32 as homeMulberry32 } from "@mark1russell7/rigor-generators";
 import type { LayoutContainer, PackInput, PackOutput, Region } from "./contract.ts";
 
 /**
@@ -109,15 +110,12 @@ export class UnsupportedShape extends UnsupportedCell {
   }
 }
 
-/** This function gives a generator of random numbers in `[0, 1)`: `mulberry32` of `docs/FORMAT.md`. */
+/**
+ * This function gives a generator of random numbers in `[0, 1)`: `mulberry32` of `docs/FORMAT.md`.
+ * Its home is `@mark1russell7/rigor-generators`. This function keeps the name and the signature of the API.
+ */
 export function mulberry32(seed: number): () => number {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  return homeMulberry32(seed);
 }
 
 /** This function makes the context of one packing from a seed. */
