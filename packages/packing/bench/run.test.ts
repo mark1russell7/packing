@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
-import { composites, strategies } from "@mark1russell7/packing";
-import { ASPECT_FIT_ENTRIES, ENTRIES, entry, GUILLOTINE_VARIANTS, MAXRECTS_VARIANTS, BBOX_ENTRIES, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, FORCE_ENTRIES, RELAX_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { strategies, strategy } from "@mark1russell7/packing";
+import { ASPECT_FIT_ENTRIES, ENTRIES, entry, STANDALONE_IDS, GUILLOTINE_VARIANTS, MAXRECTS_VARIANTS, BBOX_ENTRIES, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, FORCE_ENTRIES, RELAX_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import {
   boundsMarkdown,
   checkPrediction,
@@ -167,7 +167,7 @@ describe("the benchmark runner", () => {
     // The strategies of k25 pack only a rectangle container, and best-fit packs no obstacle
     const k25 = ENTRIES.filter((e) => e.strategy === "bottom-left" || e.strategy === "best-fit").map((e) => e.id);
     for (const id of k25) expect(skips.filter((r) => r.strategy === id).map((r) => r.skipped).filter((s) => !/^unsupported (containerShape|obstacleMove): [a-z]+$/.test(s)), id).toEqual([]);
-    expect(skips.filter((r) => r.strategy !== "push" && !strips.includes(r.strategy) && !relax.includes(r.strategy) && !force.includes(r.strategy) && !k25.includes(r.strategy))).toEqual([]);
+    expect(skips.filter((r) => r.strategy !== "push" && !strips.includes(r.strategy) && !relax.includes(r.strategy) && !force.includes(r.strategy) && !k25.includes(r.strategy) && !STANDALONE_IDS.has(r.strategy))).toEqual([]);
   });
 
   it("gives each variant of the shelf family its options in each record, over the defaults of shelf", () => {
@@ -179,7 +179,7 @@ describe("the benchmark runner", () => {
     ]);
     for (const r of first.records) {
       const e = entry(r.strategy);
-      const defaults = [...strategies, ...composites].find((s) => s.id === e.strategy)!.defaults as Record<string, unknown>;
+      const defaults = strategy(e.strategy).defaults as Record<string, unknown>;
       expect(r.options, r.strategy).toEqual({ ...defaults, ...e.options });
     }
     for (const v of SHELF_VARIANTS) {

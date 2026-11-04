@@ -199,6 +199,29 @@ export function isComposite(id: string): boolean {
   return COMPOSITE_IDS.has(id);
 }
 
+/**
+ * The entries of the standalone strategies of roadmap item k141: one for each method. They are not members of the single entries of
+ * the adversary or of the sets of a portfolio. Thus the results of those tools do not change.
+ */
+export const STANDALONE_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "sleator", strategy: "sleator", options: {} },
+  { id: "exact-strip", strategy: "exact-strip", options: {} },
+  { id: "binary-height", strategy: "binary-height", options: {} },
+  { id: "near-rects", strategy: "near-rects", options: {} },
+  { id: "raster-nofit", strategy: "raster-nofit", options: {} },
+  { id: "masonry-shortest", strategy: "masonry", options: { method: "shortest" } },
+  { id: "masonry-lpt", strategy: "masonry", options: { method: "lpt" } },
+  { id: "columns-linear-partition", strategy: "masonry", options: { method: "linear-partition" } },
+  { id: "treemap-squarified", strategy: "treemap", options: { method: "squarified" } },
+  { id: "treemap-slice-dice", strategy: "treemap", options: { method: "slice-dice" } },
+  { id: "treemap-strip", strategy: "treemap", options: { method: "strip" } },
+  { id: "treemap-pivot-split", strategy: "treemap", options: { method: "pivot-split" } },
+  { id: "side-anchors-first-left", strategy: "side-anchors", options: { first: { side: "left", at: 0.5 } } },
+]);
+
+/** The ids of `STANDALONE_ENTRIES`. */
+export const STANDALONE_IDS: ReadonlySet<string> = new Set(STANDALONE_ENTRIES.map((e) => e.id));
+
 /** The strategies of the registry with no entry of their own. The variants of each rule replace them. */
 const VARIANTS_ONLY: ReadonlySet<string> = new Set(["maxrects", "guillotine"]);
 
@@ -220,6 +243,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...ORDER_SEARCH_ENTRIES,
   ...RELAX_ENTRIES,
   ...FORCE_ENTRIES,
+  ...STANDALONE_ENTRIES,
 ]);
 
 /** This function gives the entry of an id. It throws a `RangeError` for an id that is not an entry. */

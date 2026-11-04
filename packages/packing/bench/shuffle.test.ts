@@ -102,7 +102,7 @@ describe("the shuffle test of k121", () => {
     it(`gives one output for each job and input of group ${g + 1} of ${GROUPS.length} (${group[0]!.id} to ${group.at(-1)!.id})`, () => {
       const { unstable, packed } = shuffleRun(group, `group-${g}`);
       expect(unstable).toEqual([]);
-      expect(packed).toBeGreaterThan(group.length);
+      expect(packed).toBeGreaterThanOrEqual(group.length);
     });
   });
 });

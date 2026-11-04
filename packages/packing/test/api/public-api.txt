@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 457 names
+## . (build/index.d.ts): 466 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -73,6 +73,7 @@ type Dimension: build/strategy.d.ts#Dimension
 type DimensionValue: build/strategy.d.ts#DimensionValue
 type Direction: @mark1russell7/layout-contract#Direction (external)
 EPS: @mark1russell7/layout-contract#EPS (external)
+EXACT_STRATEGY_NODE_LIMIT: build/index.d.ts#EXACT_STRATEGY_NODE_LIMIT
 EXACT_STRIP_MAX_ITEMS: build/index.d.ts#EXACT_STRIP_MAX_ITEMS
 EXACT_STRIP_MAX_SIDE: build/index.d.ts#EXACT_STRIP_MAX_SIDE
 EXACT_STRIP_NODE_LIMIT: build/index.d.ts#EXACT_STRIP_NODE_LIMIT
@@ -136,7 +137,9 @@ type Margin: @mark1russell7/layout-contract#Margin (external)
 type MartelloVigoClass: build/index.d.ts#MartelloVigoClass
 type MartelloVigoParams: build/index.d.ts#MartelloVigoParams
 type MasonryLayout: build/index.d.ts#MasonryLayout
+type MasonryMethod: build/index.d.ts#MasonryMethod
 type MasonryOptions: build/index.d.ts#MasonryOptions
+type MasonryStrategyOptions: build/index.d.ts#MasonryStrategyOptions
 type MaxRectsOptions: build/layout-strategy.d.ts#MaxRectsOptions
 type MaxRectsRule: build/layout-strategy.d.ts#MaxRectsRule
 type MaxRectsScore: build/layout-strategy.d.ts#MaxRectsScore
@@ -219,6 +222,7 @@ SHELF_FITS: build/layout-strategy.d.ts#SHELF_FITS
 SKYLINE_RULES: build/layout-strategy.d.ts#SKYLINE_RULES
 SORT_ORDERS: build/order.d.ts#SORT_ORDERS
 SPREAD_THRESHOLDS: build/index.d.ts#SPREAD_THRESHOLDS
+STANDALONE_MAX_ITEMS: build/index.d.ts#STANDALONE_MAX_ITEMS
 type SelectFeatures: build/index.d.ts#SelectFeatures
 type SelectFlagFeature: build/index.d.ts#SelectFlagFeature
 type SelectLevel: @mark1russell7/layout-contract#SelectLevel (external)
@@ -231,6 +235,7 @@ type Side: @mark1russell7/layout-contract#Side (external)
 type SideAnchor: build/index.d.ts#SideAnchor
 type SideAnchorOptions: build/index.d.ts#SideAnchorOptions
 type SideAnchorResult: build/index.d.ts#SideAnchorResult
+type SideAnchorStrategyOptions: build/index.d.ts#SideAnchorStrategyOptions
 type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/strategy.d.ts#SizeSearch
@@ -260,7 +265,9 @@ type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type TreemapCell: build/index.d.ts#TreemapCell
 type TreemapFrame: build/index.d.ts#TreemapFrame
 type TreemapLayout: build/index.d.ts#TreemapLayout
+type TreemapMethod: build/index.d.ts#TreemapMethod
 type TreemapNode: build/index.d.ts#TreemapNode
+type TreemapStrategyOptions: build/index.d.ts#TreemapStrategyOptions
 type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/strategy.d.ts#UnsupportedCell
@@ -430,6 +437,7 @@ selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
 shapeStrategies: build/index.d.ts#shapeStrategies
 shelf: build/shelf-strategy.d.ts#shelf
+sideAnchorsStrategy: build/index.d.ts#sideAnchorsStrategy
 skyline: build/skyline-strategy.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
@@ -438,6 +446,7 @@ sleatorStrip: build/index.d.ts#sleatorStrip
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
+standaloneStrategies: build/index.d.ts#standaloneStrategies
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 stripGenerators: build/index.d.ts#stripGenerators
@@ -915,6 +924,9 @@ interface CutPiece {
   h: number;
 }
 
+### build/index.d.ts#EXACT_STRATEGY_NODE_LIMIT
+export declare const EXACT_STRATEGY_NODE_LIMIT = 1e5;
+
 ### build/index.d.ts#EXACT_STRIP_MAX_ITEMS
 export declare const EXACT_STRIP_MAX_ITEMS = 16;
 
@@ -1142,10 +1154,18 @@ type MartelloVigoParams = {
 ### build/index.d.ts#MasonryLayout
 type MasonryLayout = (input: PackInput, options: MasonryOptions) => PackOutput;
 
+### build/index.d.ts#MasonryMethod
+type MasonryMethod = "shortest" | "lpt" | "linear-partition";
+
 ### build/index.d.ts#MasonryOptions
 interface MasonryOptions {
   readonly columns: number;
   readonly columnWidth?: number;
+}
+
+### build/index.d.ts#MasonryStrategyOptions
+interface MasonryStrategyOptions extends MasonryOptions {
+  readonly method: MasonryMethod;
 }
 
 ### build/index.d.ts#MeasureFamily
@@ -1459,6 +1479,9 @@ export declare const SPREAD_THRESHOLDS: Readonly<{
   uniform: number;
 }>;
 
+### build/index.d.ts#STANDALONE_MAX_ITEMS
+export declare const STANDALONE_MAX_ITEMS = 256;
+
 ### build/index.d.ts#SelectFeatures
 interface SelectFeatures {
   count: number;
@@ -1515,6 +1538,12 @@ interface SideAnchorResult {
   readonly output: PackOutput;
   readonly packs: number;
   readonly good: boolean;
+}
+
+### build/index.d.ts#SideAnchorStrategyOptions
+interface SideAnchorStrategyOptions extends Omit<SideAnchorOptions, "seed"> {
+  readonly anchors?: readonly SideAnchor[];
+  readonly first?: Omit<SideAnchor, "id">;
 }
 
 ### build/index.d.ts#SizeDistribution
@@ -1601,6 +1630,9 @@ interface TreemapFrame {
 ### build/index.d.ts#TreemapLayout
 type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
 
+### build/index.d.ts#TreemapMethod
+type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split";
+
 ### build/index.d.ts#TreemapNode
 type TreemapNode = {
   readonly id: string;
@@ -1611,6 +1643,11 @@ type TreemapNode = {
   readonly children: readonly TreemapNode[];
   readonly weight?: undefined;
 };
+
+### build/index.d.ts#TreemapStrategyOptions
+interface TreemapStrategyOptions {
+  readonly method: TreemapMethod;
+}
 
 ### build/index.d.ts#TreemapStripOptions
 interface TreemapStripOptions {
@@ -2075,6 +2112,9 @@ export declare const selectStrategy: Strategy<SelectStrategyOptions>;
 ### build/index.d.ts#shapeStrategies
 export declare const shapeStrategies: readonly Strategy[];
 
+### build/index.d.ts#sideAnchorsStrategy
+export declare const sideAnchorsStrategy: Strategy<SideAnchorStrategyOptions>;
+
 ### build/index.d.ts#skylineGap
 export declare const skylineGap: CorpusGenerator<SkylineGapParams>;
 
@@ -2095,6 +2135,9 @@ export declare function spreadOf(input: PackInput): number;
 
 ### build/index.d.ts#stabilityUnitOf
 export declare function stabilityUnitOf(input: PackInput, output: PackOutput): number;
+
+### build/index.d.ts#standaloneStrategies
+export declare const standaloneStrategies: readonly Strategy[];
 
 ### build/index.d.ts#strategies
 export declare const strategies: readonly Strategy[];

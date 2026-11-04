@@ -96,7 +96,19 @@ export {
 export { BEST_FIT_SIDES, type BestFitSide } from "./best-fit.ts";
 export { BOTTOM_LEFT_RULES, type BottomLeftRule } from "./bottom-left.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { allStrategies, aspectFitStrategy, composites, packWith, shapeStrategies, strategies, strategy, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions } from "./registry.ts";
+export { aspectFitStrategy, composites, shapeStrategies, strategies, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions } from "./registry.ts";
+export {
+  EXACT_STRATEGY_NODE_LIMIT,
+  sideAnchorsStrategy,
+  STANDALONE_MAX_ITEMS,
+  standaloneStrategies,
+  type MasonryMethod,
+  type MasonryStrategyOptions,
+  type SideAnchorStrategyOptions,
+  type TreemapMethod,
+  type TreemapStrategyOptions,
+} from "./standalone-strategies.ts";
+export { allStrategies, packWith, strategy } from "./strategy-list.ts";
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
 export {
   ANCHOR_GAIN_LIMIT,

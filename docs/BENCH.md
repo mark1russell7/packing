@@ -2053,6 +2053,14 @@ The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap ite
 
 The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
 
+## The standalone strategies
+
+Roadmap item k141 adds 13 entries to `ENTRIES`: `STANDALONE_ENTRIES` of `bench/entries.ts`. `docs/PACKER.md` tells the strategies.
+
+- Each entry supports fewer cells than the older entries. A run records a skip for each other cell. On `smoke-v1`, `exact-strip` has no measured input: 11 inputs are outside its cells, and it refuses 2. The other entries have 1 to 11 measured inputs of 13.
+- The entries are not in `packSpace`. Roadmap item k142 adds them, because each new point changes the pinned counts of the space.
+- The entries are not members of the adversary or of the portfolio tools, because they do not support each cell.
+
 ## The pin of unchanged boxes
 
 `bench/pin.ts` measures `pinUnchanged` of roadmap item k29. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k29-pin-unchanged`.
