@@ -12,7 +12,6 @@ import {
   type NoDefaultReason,
   type OptionSchema,
   type StrategyCatalogSource,
-  type ValueOption,
 } from "@mark1russell7/layout-contract";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
 import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
@@ -130,9 +129,6 @@ const CELL = {
   ...none("derived", "Without a side, the strategy calculates it from the boxes."),
 } as const;
 
-/** The schema of the options `O` with a member option named `strategy`. The type of the contract reads a string option as an enum, so this key has its own declaration. */
-type WithStrategy<O> = OptionSchema<Omit<O, "strategy">> & { readonly strategy: ValueOption };
-
 /** The schema of `rows`. `fit` is only an option of `shelf`. */
 const ROWS = { sortOrder: SORT_ORDER, samples: SAMPLES } satisfies OptionSchema<Omit<LayoutStrategyOptions, "fit">>;
 
@@ -155,7 +151,7 @@ const ASPECT_FIT = {
     scale: "log",
     ...none("derived", "Without a target, the strategy uses the aspect of the container, else 1."),
   },
-} satisfies WithStrategy<AspectFitStrategyOptions>;
+} satisfies OptionSchema<AspectFitStrategyOptions>;
 
 /** The schema of a search of orders: the options of `anneal`, `genetic` and `tabu` that are the same. */
 const ORDER_SEARCH = { member: MEMBER, iterations: ITERATIONS, budgetWork: BUDGET_WORK } as const;
@@ -258,7 +254,7 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
     turn: { type: "boolean", describe: "This option lets the strategy turn each turnable item that is not locked. Without it, the member decides the turns." },
   } satisfies OptionSchema<BboxStrategyOptions>,
   "ruin-recreate": {
-    member: MEMBER,
+    member: { ...MEMBER, needs: { obstacleMove: "fixed" } },
     iterations: { ...ITERATIONS, describe: "The count of the ruin and recreate steps after the member layout." },
     ruin: { type: "enum", describe: "The rule that chooses the items to remove.", values: RUIN_KINDS },
     strength: { type: "number", describe: "The largest share of the placed items that one ruin removes.", min: 0, max: 1 },
@@ -330,7 +326,7 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
     strategyOptions: { type: "object", describe: "The options of the member.", default: { rule: "bl" } },
     anchors: { type: "list", describe: "The anchors of named items.", of: { type: "object" }, default: [] },
     precision: { type: "number", describe: "The search stops when the range is at most this share of its top.", min: 0.0001, max: 0.1, scale: "log", default: 0.005 },
-  } satisfies WithStrategy<SideAnchorStrategyOptions>,
+  } satisfies OptionSchema<SideAnchorStrategyOptions>,
 };
 
 /** The line of each strategy for a chooser, by id. */

@@ -1895,6 +1895,9 @@
           ],
           "inlineOptions": true,
           "optIn": false,
+          "needs": {
+            "obstacleMove": "fixed"
+          },
           "default": {
             "id": "maxrects-bl",
             "strategy": "maxrects",

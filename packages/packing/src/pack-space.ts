@@ -681,7 +681,7 @@ export const PACK_SPACE_LEFT_OUT: Readonly<Record<string, string>> = Object.free
 export type StrategyPoint = { readonly ok: true; readonly config: StrategyConfig } | { readonly ok: false; readonly reason: string };
 
 /** The values of a strategy option that are not a string, a number or a boolean, by param and by the value of the param. */
-const NAMED_VALUES: Readonly<Record<string, Readonly<Record<string, unknown>>>> = Object.freeze({
+export const NAMED_VALUES: Readonly<Record<string, Readonly<Record<string, unknown>>>> = Object.freeze({
   table: Object.freeze({ k66: SELECT_TABLE, pack: PACK_DEFAULT_TABLE } satisfies Record<string, SelectNode>),
   key: Object.freeze({ area: AREA_KEY, fill: FILL_KEY }),
 });
