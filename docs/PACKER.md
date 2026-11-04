@@ -288,6 +288,7 @@ const leaf = selectLeaf(selectFeatures(input)); // { leaf, pick }
 - The option `members` replaces the members, and the option `table` replaces the table. `checkSelectTable` refuses a path of more than 3 tests, a bad pick and a threshold that is not a number.
 - The output gets the trace stage `select` (`SELECT_STAGE`) as its last stage. Its measures are `move.select`, `select.member`, `select.pick.<id>`, `select.leaf` and the 4 feature values.
 - The measure `move.select` is 1 when the pick is not member 0. A flag feature is 1 for `true`, and `select.spread` has 3 decimals.
+- A member of the leaf that does not take the cell of the input gives its place to the next member. The trace names the member that packed. With no such member, the member of the leaf throws its error.
 
 #### The refit on two measures
 
@@ -1907,6 +1908,29 @@ Roadmap item k142 gives each strategy of this section a point in `packSpace`. Th
 | 1 level | 318923941470455703 | 340836128598216010 |
 | 3 levels, `shapes: ["rect"]`, `maxMeta: 10n ** 21n` | 942344896950158904645 | 978922285586167319104 |
 | 1 level, `shapes: ["rect"]` | 316089581715756337 | 337846878693009516 |
+
+## The strategy catalog
+
+Roadmap item k144 declares each strategy and each option as data, in the schema `strategy-catalog/1` of `@mark1russell7/layout-contract`. A chooser renders them with no code for each strategy.
+
+```ts
+import { strategyCatalog } from "@mark1russell7/packing/strategy-catalog";
+import { checkCatalog, writeStrategyCatalog } from "@mark1russell7/layout-contract";
+```
+
+- The subpath `./strategy-catalog` exports the constant. The package root does not export it, because the constant imports each strategy.
+- The file `strategy-catalog.json` holds the same data with the version of the package. The export `./strategy-catalog.json` gives this file to a reader with no engine code.
+- The ids, the families, the kinds, the supports and the defaults come from the live strategies. The catalog module holds only the text and the ranges.
+- The range of a number option is the range of a control. A strategy can take a value outside this range.
+- A strategy of `standaloneStrategies` has the flag `optIn`, because the registry of `pack` does not hold it.
+
+A version pull request starts this command, because a test compares the file with the writer output and with the version of `package.json`:
+
+```sh
+node --no-warnings bench/write-catalog.ts
+```
+
+The test `src/strategy-catalog.test.ts` packs each strategy, each probe of the supports and each choice of a strategy option. It pins the findings of `checkCatalog`, each with its reason.
 
 ## The decisions
 

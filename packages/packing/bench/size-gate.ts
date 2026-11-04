@@ -95,13 +95,13 @@ export interface PublishedPackage {
 
 /**
  * This function gives the code exports of a package as it is published: specifier to file, relative to the package folder.
- * It reads `publishConfig.exports` when it is present, and `exports` when not. The export `./package.json` is not code.
+ * It reads `publishConfig.exports` when it is present, and `exports` when not. A JSON export is not code.
  */
 export function publishedExports(pkg: PublishedPackage): Record<string, string> {
   const map = pkg.publishConfig?.exports ?? pkg.exports ?? {};
   const out: Record<string, string> = {};
   for (const [key, value] of Object.entries(map)) {
-    if (key === "./package.json") continue;
+    if (key.endsWith(".json")) continue;
     const target = typeof value === "string" ? value : value.default;
     out[key === "." ? pkg.name : `${pkg.name}/${key.slice(2)}`] = target.replace(/^\.\//, "");
   }

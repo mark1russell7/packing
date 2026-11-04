@@ -38,11 +38,14 @@
     "./rows": "./src/entry/rows.ts",
     "./shelf": "./src/entry/shelf.ts",
     "./skyline": "./src/entry/skyline.ts",
+    "./strategy-catalog": "./src/entry/strategy-catalog.ts",
+    "./strategy-catalog.json": "./strategy-catalog.json",
     "./bench/entries": "./bench/entries.ts",
     "./package.json": "./package.json"
   },
   "files": [
     "build",
+    "strategy-catalog.json",
     "src",
     "!src/**/*.test.ts",
     "!src/**/*.test.tsx",
@@ -94,6 +97,11 @@
         "types": "./build/entry/skyline.d.ts",
         "default": "./build/entry/skyline.js"
       },
+      "./strategy-catalog": {
+        "types": "./build/entry/strategy-catalog.d.ts",
+        "default": "./build/entry/strategy-catalog.js"
+      },
+      "./strategy-catalog.json": "./strategy-catalog.json",
       "./package.json": "./package.json"
     }
   },
@@ -102,7 +110,7 @@
   },
   "dependencies": {
     "@mark1russell7/collections": "^0.1.0",
-    "@mark1russell7/layout-contract": "^0.3.3",
+    "@mark1russell7/layout-contract": "^0.3.9",
     "@mark1russell7/rigor-generators": "^0.1.1"
   },
   "scripts": {

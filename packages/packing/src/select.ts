@@ -15,7 +15,8 @@ export { SELECT_MEMBERS, SELECT_STAGE, selectFeatures, type SelectStrategyOption
  * - The seed of the context goes to the member. The output of the member does not change.
  * - The output gets the trace stage `select` (`SELECT_STAGE`) after the stages of the member.
  * - The stage has `move.select`, `select.member` (the index of the pick), `select.pick.<member id>` (1), `select.leaf` and each feature.
- * - Its supports are the union of the supports of `rows` and `maxrects`. A member that does not support the cell throws its error.
+ * - Its supports are the union of the supports of `rows` and `maxrects`. A member that does not support the cell gives its place to the next member.
+ * - With no member that supports the cell, the member of the leaf throws its error.
  * - The strategy throws a `RangeError` for an unknown strategy of a member and for a table that `checkSelectTable` refuses.
  */
 export const selectStrategy: Strategy<SelectStrategyOptions> = /* @__PURE__ */ createSelect(strategy);

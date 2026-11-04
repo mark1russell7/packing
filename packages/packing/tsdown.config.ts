@@ -15,6 +15,7 @@ export default defineConfig({
     "entry/rows": "src/entry/rows.ts",
     "entry/shelf": "src/entry/shelf.ts",
     "entry/skyline": "src/entry/skyline.ts",
+    "entry/strategy-catalog": "src/entry/strategy-catalog.ts",
   },
   outDir: "build",
   format: "esm",
