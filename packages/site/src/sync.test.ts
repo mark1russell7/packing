@@ -32,6 +32,14 @@ describe("the compare page", () => {
   });
 });
 
+describe("the text of the home page", () => {
+  it("states no count of strategies that differs from the package", () => {
+    const pages = ["../index.html", "../content/about.md"].map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
+    const counts = pages.flatMap((text) => [...text.matchAll(/(\d+) strategies/g)].map((m) => Number(m[1])));
+    for (const count of counts) expect(count).toBe(allStrategies.length);
+  });
+});
+
 describe("the demo", () => {
   it("offers each strategy of the registry, also the strategies of one shape kind and the composite strategies", () => {
     const registry = [...strategies, ...shapeStrategies, ...standaloneStrategies, ...composites, sideAnchorsStrategy].map((s) => s.id);

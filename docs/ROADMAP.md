@@ -46,7 +46,7 @@ Status: done, done, waiting, next, done.
 | k37 | Containers of each shape: a convex polygon, any polygon, a circle or an ellipse, a region with holes | strategies | done | k7, k35 |
 | k38 | Obstacles that move at a cost | strategies | later | k7, k35 |
 | k39 | Items of other shapes: circles and polygons (nesting) | strategies | later | k7, k36 |
-| k40 | The site: a picker for the container shape and the obstacles | site | later | k34, k37 |
+| k40 | The site: a picker for the container shape and the obstacles | site | active | k34, k37 |
 | k41 | Pack-around: the split of the free space as a stage of its own | core | later | k7, k35 |
 | k42 | The ways to split the free space: maximal empty rectangles, slabs, cuts at obstacle edges, cells, or one region with holes | strategies | later | k41, k36 |
 | k43 | The ways to give items to the parts: greedy in reading order, assignment, and a flow that keeps the reading order | strategies | later | k41 |
@@ -115,7 +115,7 @@ Status: done, done, waiting, next, done.
 | k106 | Input families from the literature: the 2D strip packing and bin packing benchmark sets, each with dimensions and ranges | corpus | done | k73 |
 | k107 | Input families for the worst case: adversarial inputs and scaling ladders | corpus | done | k73 |
 | k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | done | k76 |
-| k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | later | k51, k105 |
+| k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | active | k51, k105 |
 | k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept. The first slice is `packSideAnchors`. The field and the rule of the contract are open. | core | active | k6, k7 |
 | k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | done | k6, k7 |
 | k112 | Whole-space coverage: configs drawn at random from `packSpace` and inputs from the ranges of the generators, a held-out share within tolerance with a Wilson interval, next to the bench grid | measure | done | k68, k105 |
@@ -149,7 +149,7 @@ Status: done, done, waiting, next, done.
 | k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | done | |
 | k141 | Each standalone layout function is a strategy: `sleator`, `beam`, `exact-strip`, `binary-height`, `near-rects`, `raster-nofit`, `masonry`, `treemap` and `side-anchors` are in `allStrategies`, the bench and the sites. A test fails on a new layout function that is not on the list | core | done | |
 | k142 | Points in `packSpace` for the standalone strategies of k141, and their chips in the demo of the site. This changes the pinned counts of the space | core | active | |
-| k143 | An export of the measured points of the coverage run, with the error of each fold, in `response-records/1` of `@mark1russell7/rigor-statistics`, for the response explorer. The tree stays in this package. It starts after 0.7.0, when that format is on npm | measure | later | k50 |
+| k143 | An export of the measured points of the coverage run, with the error of each fold, in `response-records/1` of `@mark1russell7/rigor-statistics`, for the response explorer. The tree stays in this package. It starts after 0.7.0, when that format is on npm | measure | active | k50 |
 | k144 | Each option of each strategy, composite and wrapper has a declaration in the catalog format of `@mark1russell7/layout-contract`, so a consumer reads the options from one source. It starts when that format is agreed | core | active | k141 |
 
 ## The queue
