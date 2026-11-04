@@ -1,6 +1,6 @@
 // The first masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first and ordered columns.
 // A card wall has columns of one width, and each box goes to one column. The functions of this file are standalone.
-// They are not in `packSpace`, in the registry or in a default. `columnBalance` and `columnReading` read their outputs.
+// The strategy `masonry` of `src/standalone-strategies.ts` wraps them. They are not in `packSpace` or in a default. `columnBalance` and `columnReading` read their outputs.
 
 import { marginOf, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 

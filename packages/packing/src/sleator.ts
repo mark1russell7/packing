@@ -1,5 +1,5 @@
 // The Sleator strip packer of roadmap item k52 (docs/PACKER.md, "The Sleator strip"): a baseline with a proved bound.
-// The function is not a strategy, and no default uses it. Thus the space of the bench does not change.
+// The strategy `sleator` of `src/standalone-strategies.ts` wraps the function. No default uses it.
 
 import { marginOf, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 import { pairedIds } from "./overflow.ts";

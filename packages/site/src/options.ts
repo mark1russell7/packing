@@ -2,7 +2,7 @@
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
 import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
-import { ENTRIES, isComposite, type BenchEntry } from "@mark1russell7/packing/bench/entries";
+import { ENTRIES, isComposite, STANDALONE_IDS, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
 /** This constant lists each strategy of the registry: the single strategies, the strategies of one shape kind, then the composite strategies. */
 export const DEMO_STRATEGIES: readonly Strategy[] = [...strategies, ...shapeStrategies, ...composites];
@@ -58,8 +58,8 @@ export const STRATEGY_NUMBER_LIMITS: Readonly<Record<string, Readonly<Record<str
   "overlap-min": { iterations: { min: 0, max: 65536, step: 1 }, step: { min: 0.001, max: 0.5, step: 0.001 } },
 };
 
-/** The entries that a composite strategy can take as a member: the entries that are not composite entries. */
-export const MEMBER_ENTRIES: readonly BenchEntry[] = ENTRIES.filter((e) => !isComposite(e.id));
+/** The entries that a composite strategy can take as a member. Composite entries and standalone entries are not members. */
+export const MEMBER_ENTRIES: readonly BenchEntry[] = ENTRIES.filter((e) => !isComposite(e.id) && !STANDALONE_IDS.has(e.id));
 
 /**
  * The control of one option.
@@ -108,7 +108,7 @@ function extraControls(id: string): OptionControl[] {
       ];
     case "aspect-fit":
       return [
-        { key: "strategy", kind: "entry", values: ENTRIES.filter((e) => e.strategy !== "aspect-fit").map((e) => e.id), value: "maxrects-bl", fromDefaults: false },
+        { key: "strategy", kind: "entry", values: ENTRIES.filter((e) => e.strategy !== "aspect-fit" && !STANDALONE_IDS.has(e.id)).map((e) => e.id), value: "maxrects-bl", fromDefaults: false },
         { key: "targetAspect", kind: "number", value: undefined, ...NUMBER_LIMITS["targetAspect"]!, fromDefaults: false },
       ];
     case "select":

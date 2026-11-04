@@ -1,6 +1,6 @@
 // The exact baseline of roadmap item k10 (docs/PACKER.md, "The exact strip"): a branch and bound for a strip with a small count of items.
 // The search places one item at a time on the corners of a staircase: the placement of Scheithauer 1997, as in Martello 2003.
-// The function is not a strategy, and no default uses it. The bench compares the named entries with its proved heights.
+// The strategy `exact-strip` of `src/standalone-strategies.ts` wraps it, and no default uses it. The bench compares the named entries with its proved heights.
 
 import { mmvBound, objectiveBound } from "./bounds.ts";
 import { marginOf, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";

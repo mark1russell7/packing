@@ -1172,7 +1172,9 @@ The counts of `packSpace`:
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
 const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
-const allStrategies: readonly StrategyListing[]; // each strategy of the three lists, with its kind, family, supports and deterministic flag: since k140
+const standaloneStrategies: readonly Strategy[]; // each single strategy that wraps a standalone function: since k141
+const sideAnchorsStrategy: Strategy; // the composite strategy of packSideAnchors: since k141
+const allStrategies: readonly StrategyListing[]; // each strategy of these lists, with its kind, family, supports and deterministic flag: since k140
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```
@@ -1181,7 +1183,7 @@ The benchmark starts each strategy of the registry on each input of the corpus. 
 
 A composite strategy packs an input with other strategies. It is not in `strategies`, but `strategy(id)` and `packWith` find it.
 
-A consumer that needs each strategy reads `allStrategies`, not one of the three lists. Each listing has a `kind`: `single`, `shape` or `composite`. A test loads each source module and fails on a strategy that the list does not have.
+A consumer that needs each strategy reads `allStrategies`, not one of the other lists. Each listing has a `kind`: `single`, `shape` or `composite`. A test loads each source module and fails on a strategy that the list does not have.
 
 ## The adapters of 0.1
 
@@ -1567,7 +1569,7 @@ The function is the branch and bound half of k10. The constraint solver half is 
 
 ## The Sleator strip
 
-The function `sleatorStrip` packs a strip with the algorithm of Sleator 1980 (roadmap item k52). It is a baseline with a proved bound, not a strategy. No default uses it, and the space of the bench does not change.
+The function `sleatorStrip` packs a strip with the algorithm of Sleator 1980 (roadmap item k52). It is a baseline with a proved bound, and the strategy `sleator` wraps it. No default uses it.
 
 1. The items wider than half the strip go in one stack at the left side.
 2. The other items take the order of height, tallest first.
@@ -1648,7 +1650,7 @@ These values are for the inputs of the last test of `src/masonry.test.ts`: 200 m
 A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
 ## The binary search on the height
 
-The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
+The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. The strategy `binary-height` wraps it, and no default uses it.
 
 - The range goes from the area bound to the height of the best of 3 first layouts.
 - Each step takes the middle of the range as a limit. A seeded swap search looks for an order that places each item under the limit.
@@ -1660,7 +1662,7 @@ The options are `trials` for each height, `seed` and `precision`. The same input
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
 ## The beam search
 
-The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). It is not a strategy. No default uses it, and the space of the bench does not change.
+The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). The strategy `beam` wraps it. No default uses it, and the space of the bench does not change.
 
 1. A state is a partial layout with a skyline. Each level adds one item to each state.
 2. The valley of the skyline closest to the origin takes the next item. A valley that no item fits rises to its lower neighbor.
@@ -1701,6 +1703,45 @@ The function `compactUp` is the first slice of roadmap item k30. It takes a layo
 - The function refuses a container with a shape, pair gaps and an item with a parent.
 
 After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
+
+## The standalone strategies
+
+Roadmap item k141 gives each standalone layout function a strategy, so `packWith`, the bench and the sites reach it. The functions keep their API. The strategies are in `allStrategies`. No default uses them.
+
+The registry does not hold these strategies. `strategy`, `packWith` and `allStrategies` read the registry and `src/strategy-list.ts`. Thus an import of `pack` or `maxrects` does not grow, and a composite finds only a member of the registry.
+
+| Id | Function | Family | Kind | Container | Item shape |
+| --- | --- | --- | --- | --- | --- |
+| `sleator` | `sleatorStrip` | `sleator` | `single` | `freeHeight` | `rect` |
+| `exact-strip` | `exactStrip` | `exact` | `single` | `freeHeight` | `rect` |
+| `binary-height` | `packBinaryHeight` | `binary-height` | `single` | `freeHeight` | `rect` |
+| `beam` | `beamStrip` | `beam` | `single` | `freeHeight` | `rect` |
+| `near-rects` | `packNearRects` | `near-rects` | `single` | `fixed`, `freeHeight` | `rect`, `polygon`, `circle`, `mixed` |
+| `raster-nofit` | `packRasterNofit` | `raster-nofit` | `single` | `fixed`, `freeHeight` | `rect`, `polygon`, `circle`, `mixed` |
+| `masonry` | `masonryShortest`, `masonryLpt`, `columnsLinearPartition` | `masonry` | `single` | `freeAspect`, `freeArea` | `rect` |
+| `treemap` | `treemapPack` | `treemap` | `single` | `freeAspect`, `freeArea` | `rect` |
+| `side-anchors` | `packSideAnchors` | `side-anchors` | `composite` | `fixed`, `freeHeight`, `freeWidth` | `rect` |
+
+- The option `method` of `masonry` picks one of its three functions. The option `method` of `treemap` picks one of its four layouts.
+- `beam` has no catalog row. The first slice is neither the filtered search of Chen 2025 nor the parallel search of Wen 2025.
+- `exact-strip` has a limit of 100,000 nodes, and `binary-height` has 32 trials. The functions have higher defaults. These strategies take less time in a bench or on a page.
+- `binary-height`, `near-rects` and `raster-nofit` refuse more than 256 items, because the time of their search grows fast with the count.
+- A refusal of a function becomes an `UnsupportedCell` with the dimension `containerSize` and the value `refused`. The taxonomy has no dimension for the reason. The message tells it.
+- The option `first` of `side-anchors` anchors the first item. An entry of the bench uses it, because an entry cannot name the items of each input. With no anchor, the strategy gives the layout of its member.
+
+These functions take an input, but they are not strategies:
+
+| Function | Reason |
+| --- | --- |
+| `packConfig` | It packs a point of `packSpace`, so it reads each strategy. |
+| `packDefault` | It packs with the default strategy of the registry. |
+| `packFree` | It searches the width around the strategy of an option. |
+| `packWith` | It reads the registry, so it starts each strategy by id. |
+| `packWork` | It is a measure of an output, and it gives no layout. |
+| `sweepSearch` | It is a size search that a strategy uses. |
+| `viaAxes` | It turns the axes around a strategy. |
+
+The test `src/all-strategies.test.ts` fails on a new layout function that is in neither of these lists.
 
 ## The decisions
 

@@ -1,6 +1,6 @@
 // The strip search of roadmap item k81 (idea R10 of the survey, Zhang 2013): a binary search on the height of the strip.
 // Each height gets a seeded swap search for a layout that places each item. A skyline decoder gives the layout of an order.
-// The function is not a strategy, and no default uses it. The bench compares it with proved heights and with the named entries.
+// The strategy `binary-height` of `src/standalone-strategies.ts` wraps it, and no default uses it. The bench compares it with proved heights and with the named entries.
 
 import { EPS, stepRandom } from "@mark1russell7/layout-contract";
 import { marginOf, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
