@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 431 names
+## . (build/index.d.ts): 432 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -297,6 +297,7 @@ checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
+compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
 configOfStrategy: build/index.d.ts#configOfStrategy
@@ -1658,6 +1659,9 @@ export declare function checkSelectTable(table: SelectNode, members: number): vo
 
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
+
+### build/index.d.ts#compactUp
+export declare function compactUp(input: PackInput, output: PackOutput): PackOutput;
 
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];

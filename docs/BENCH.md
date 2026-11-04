@@ -1939,3 +1939,13 @@ The inputs are made-up strips of width 200 with 100 items. Each seed is a chain 
 - The moved column is the mean `pack.stability.moved`. A resized box stays in that measure, and it moves. That is the 0.010 of the pinned arm.
 - The hard rules have 0 breaks, and each item has a place.
 - These are the first values of `pack.stability.*`. They come from this script, not from a corpus.
+
+The third arm pins, packs and then applies `compactUp` (roadmap item k30). The prediction is `packing-k30-compact-up`.
+
+| Entry | Moved | Distance, fresh | Distance, compacted | Cost, step 1 | Cost, step 10 | Worst cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | 0.146 | 0.355 | 0.028 | 1.071 | 1.192 | 1.290 |
+| `skyline` | 0.221 | 0.333 | 0.052 | 1.080 | 1.229 | 1.383 |
+
+- The distance is the mean `pack.stability.mean`. Its unit is the width of the strip.
+- The compaction takes back only a small part of the height cost: 1.215 goes to 1.192 for `maxrects-bl`. It moves few boxes, and each move is short.
