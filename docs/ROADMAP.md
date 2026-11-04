@@ -19,7 +19,7 @@ Status: done, done, waiting, next, done.
 | k10 | An exact baseline for small inputs: branch and bound, and a constraint solver | strategies | later | k7 |
 | k11 | Benchmarks in CI, with a prediction before each run | measure | done | k8, k9 |
 | k12 | Stability: the movement when one item changes | measure | later | k8 |
-| k13 | Speed and its scaling | measure | later | k11 |
+| k13 | Speed and its scaling: the time against n for each entry on `ladder.count`, with the fitted exponent and its interval. `bench/scaling.ts` reads the records of a CI run. Memory waits for a paired run of the ladder. | measure | active | k11 |
 | k14 | A live site with interactive examples (v1: a demo of the current strategies). The site rebuilds in CI on each merge to `main`, from the source and the committed results. Each page shows the release and the date of its data, and a list of the changes with dates. | site | active | k1 |
 | k15 | The s38 checks: `conventions` and `api-report` in CI | move | done | k0 |
 | k16 | The sort order `input` | strategies | done | |
