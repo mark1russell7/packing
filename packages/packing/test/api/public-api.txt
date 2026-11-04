@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 448 names
+## . (build/index.d.ts): 451 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -243,6 +243,8 @@ type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/strategy.d.ts#Strategy
 type StrategyConfig: @mark1russell7/layout-contract#StrategyConfig (external)
+type StrategyKind: build/index.d.ts#StrategyKind
+type StrategyListing: build/index.d.ts#StrategyListing
 type StrategyPoint: build/index.d.ts#StrategyPoint
 type StrategySpace: @mark1russell7/layout-contract#StrategySpace (external)
 type StripContainer: build/index.d.ts#StripContainer
@@ -271,6 +273,7 @@ WORST_COUNTS: build/index.d.ts#WORST_COUNTS
 WORST_WIDTH: build/index.d.ts#WORST_WIDTH
 type WallLocksParams: build/index.d.ts#WallLocksParams
 type WorstContainer: build/index.d.ts#WorstContainer
+allStrategies: build/index.d.ts#allStrategies
 anchorGenerators: build/index.d.ts#anchorGenerators
 anchorStability: build/index.d.ts#anchorStability
 anchorStep: build/index.d.ts#anchorStep
@@ -1515,6 +1518,18 @@ type SkylineGapParams = {
 ### build/index.d.ts#SpreadBand
 type SpreadBand = "identical" | "uniform" | "heavyTail";
 
+### build/index.d.ts#StrategyKind
+type StrategyKind = "single" | "shape" | "composite";
+
+### build/index.d.ts#StrategyListing
+interface StrategyListing {
+  readonly id: string;
+  readonly family: string;
+  readonly kind: StrategyKind;
+  readonly supports: Supports;
+  readonly deterministic: boolean;
+}
+
 ### build/index.d.ts#StrategyPoint
 type StrategyPoint = {
   readonly ok: true;
@@ -1620,6 +1635,9 @@ type WallLocksParams = {
 
 ### build/index.d.ts#WorstContainer
 type WorstContainer = "fixed" | "freeHeight";
+
+### build/index.d.ts#allStrategies
+export declare const allStrategies: readonly StrategyListing[];
 
 ### build/index.d.ts#anchorGenerators
 export declare const anchorGenerators: readonly CorpusGenerator[];
