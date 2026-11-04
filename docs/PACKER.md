@@ -1633,6 +1633,7 @@ The proved bound is `2 * optimum + tallest / 2`, so at most `2.5` times the opti
 The tests compare the bound with a known optimum: 1000 perfect cuts and 100 strips of 6 items, which `exactStrip` proves. The function does not turn an item, so each item keeps its sizes. A level ends at the first item that does not fit, and a later smaller item does not fill the gap.
 
 The source of these steps is the statement in the strip packing article of Wikipedia and the catalog row. The paper is behind a paywall, so this repository has no reading of the proof itself.
+
 ## Side anchors
 
 `packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
@@ -1650,6 +1651,7 @@ A pack is not monotone in the length. Thus the result is a good layout, not a pr
 The function has no use in a default. It refuses a shaped container, a container with no fixed side, and an anchor on a locked item, a shaped item or an item with a margin.
 
 Two anchors can have one place at each length. Then no length is good, and the result has `good: false`. Two anchors on one side can also force a tall layout. The input sets that height, not the search.
+
 ## Groups as near rectangles
 
 `packNearRects` is the first slice of roadmap item `k97` (idea S8 of the survey). Yang 2023 learns groups of pieces that are almost rectangles. This slice has no model. A greedy search on a raster joins the groups.
@@ -1664,6 +1666,7 @@ The box of a group is the true extent of its shapes, not its cells. Thus the gri
 The cost of a round is about `n ** 2` pair searches. Two groups with the same cells get one search. Thus an input with many equal shapes is fast.
 
 The function has no use in a default. It refuses a locked item, a margin, a gap, an inset and a container shape with a `RangeError`.
+
 ## Masonry and columns
 
 A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. `pack()`, `packSpace`, the registry and the defaults do not know them.
@@ -1699,6 +1702,7 @@ These values are for the inputs of the last test of `src/masonry.test.ts`: 200 m
 | `columnsLinearPartition` | 0.576 | 0.375 | 0.066 | 0.328 |
 
 A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
+
 ## The binary search on the height
 
 The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. The strategy `binary-height` wraps it, and no default uses it.
@@ -1711,6 +1715,7 @@ The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip
 The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
+
 ## The beam search
 
 The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). The strategy `beam` wraps it. No default uses it, and the space of the bench does not change.
@@ -1734,6 +1739,7 @@ This slice has no blocks of paired boxes, no turns and no time limit. Thus this 
 The function `windowOrder` is the first slice of roadmap item k31, the idea `new-rank-window`. Each step takes the tallest of the next `window` items. A `window` of 1 keeps the input order, and a `window` of the item count gives the sort `height-desc`.
 
 No item comes more than `window - 1` places before its input place. Give the result to a strategy with the option `sortOrder: "input"`. It is a function, so the space of the bench does not change.
+
 ## The pin of unchanged boxes
 
 The function `pinUnchanged` is the first slice of roadmap item k29. It changes an input and does not pack. A strategy packs the result and goes around the locked boxes. No default uses it, and the space of the bench does not change.
@@ -1754,6 +1760,25 @@ The function `compactUp` is the first slice of roadmap item k30. It takes a layo
 - The function refuses a container with a shape, pair gaps and an item with a parent.
 
 After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
+
+## The legalization of rows
+
+`legalizeRows(baseInput, baseOutput, changeInput, options)` gives a layout of rows for a changed input, with the boxes near their places in the base layout. No entry uses it (roadmap item k82). The steps come from the abstract and the slides of Abacus (Spindler 2008), not from the full paper.
+
+1. A row of the base layout is a band of boxes that overlap in `y`.
+2. A box of a row, with the boxes that the gap fill of `rows` puts under it, is one rigid cell. When a box of the cell changes size, each box of the cell becomes one cell.
+3. The cells come in order of target `x`. Each cell tries each row, and it takes the row with the least distance.
+4. `placeRow` gives the cells of the row the least sum of squared moves. Clusters of cells merge from left to right, so the work is linear. With `placeRow: false`, a placed cell stays, as in Tetris (Hill 2002).
+5. A cell that fits no row opens a new row at the bottom.
+6. A row keeps its top when the row above it leaves the space. Otherwise the row moves down.
+
+These parts are not in the paper:
+
+- The rows of the paper have one height. Here a taller cell raises its row and moves each row under it. The trial cost of a row does not count that move.
+- The cells of the gap fill are new. They keep the layout of `rows` on a chain.
+- A row that keeps its top can leave a gap above it.
+
+The first slice takes a strip of a fixed width, with no shape. It refuses obstacles, gaps, margins, locks, parents, turns and a base layout with overflow. `docs/BENCH.md`, "The row legalizer", has the measures.
 
 ## The standalone strategies
 

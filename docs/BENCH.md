@@ -2004,6 +2004,38 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
 
+## The row legalizer
+
+`bench/legalize.ts` compares three arms on the chains of `change-walk` (roadmap item k82). The counts are 20 and 60, the steps are 1 to 5, and the seeds are 1 to 10. Each arm starts from `rows` on step 0.
+
+- `fresh` packs each step again with `rows`.
+- `legalizeRows` starts each step from the layout of the step before it.
+- `Tetris` is the same code with `placeRow: false`.
+
+A value of this table is the mean of the 100 chains of a kind. `moved` and `distance` come from `pack.stability.*`. The height is the height at step 5.
+
+| Arm | Edit | `moved` | `distance` | Height |
+| --- | --- | --- | --- | --- |
+| `fresh` | add | 0.404 | 0.0641 | 137.7 |
+| `fresh` | remove | 0.451 | 0.0694 | 112.6 |
+| `fresh` | resize | 0.561 | 0.0804 | 125.5 |
+| `fresh` | reorder | 0.031 | 0.0029 | 126.7 |
+| `legalizeRows` | add | 0.249 | 0.0137 | 170.7 |
+| `legalizeRows` | remove | 0 | 0 | 125.6 |
+| `legalizeRows` | resize | 0.129 | 0.0030 | 150.5 |
+| `legalizeRows` | reorder | 0 | 0 | 126.7 |
+| `Tetris` | add | 0.242 | 0.0142 | 232.6 |
+| `Tetris` | remove | 0 | 0 | 125.6 |
+| `Tetris` | resize | 0.104 | 0.0031 | 159.2 |
+| `Tetris` | reorder | 0 | 0 | 126.7 |
+
+- Over add, remove and resize, `legalizeRows` moves 0.267 of the share of `fresh`.
+- All 400 steps have 0 breaks and no overflow.
+- `placeRow` gives 0.963 of the distance of `Tetris`. The paper reports 0.68 on circuits, and that claim does not transfer here. The main gain of `placeRow` here is the height after add: 170.7 against 232.6.
+- The mean height over the four edits is 1.142 times the height of `fresh`. Add is the largest cost: 1.240 times `fresh`.
+
+These values are from one bench on made-up chains, and they have no interval. `pack.time.ms` is not a part of this bench.
+
 ## The Sleator strip
 
 `bench/sleator.ts` measures `sleatorStrip` of roadmap item k52. A height is not a time, so any computer can start it. The prediction is `packing-k52-sleator`.
@@ -2027,6 +2059,7 @@ The strip has a width of 200. Each family has made-up items with a height from 1
 | wide | 500 | 1.312 | 1.116 | 100 % |
 
 Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
+
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
@@ -2052,6 +2085,7 @@ The family has 40 made-up rectangles on a strip of width 200, with 4 anchors on 
 The mean is high because of the input, not the search. A fraction and an offset on one side overlap over a range of heights, and the layout must go past that range.
 
 The plain band is shorter on 12 seeds, but each of those 12 layouts has an overlap of its anchors. The search is shorter on all 18 other seeds. This family has random anchors, so it says little about a designed layout.
+
 ## Groups as near rectangles
 
 The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has the inputs `seeds` (default 30) and `count` (default 40). The artifact `near-rects` has `near-rects.json`.
@@ -2063,6 +2097,7 @@ The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has
 - The time of the pair search is the median over 5 inputs of 100 items, in one CI process.
 
 The file holds a paired comparison for each pair of arms, with a two-sided sign test. The prediction is `packing-k97-near-rects`.
+
 ## The evolved place score
 
 The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
@@ -2076,6 +2111,7 @@ The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) sea
 The report gives the mean height over the objective bound, the gain over the best fixed rule, and a two-sided sign test. The numbers are in the artifact `gp-score`.
 
 The score tree stays in `bench/gp-score.ts`, and `packMaxRects` reads only a function. No strategy gives the option `score`, and no default uses it.
+
 ## The binary search on the height
 
 The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap item k81) has the input families of the exact bench. It has no gate.

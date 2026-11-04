@@ -88,7 +88,7 @@ Status: done, done, waiting, next, done.
 | k79 | Goal-driven ruin and recreate (idea R5 of the survey) | strategies | done | k6, k7 |
 | k80 | Overlap minimization for rectangles (idea R6 of the survey) | strategies | done | k6, k7 |
 | k81 | Binary search on the height (idea R10 of the survey) | strategies | later | k6, k7 |
-| k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
+| k82 | Legalization for stability (idea R11 of the survey) | strategies | active | k12 |
 | k83 | Genetic programming of the score (idea R12 of the survey) | strategies | later | k6, k7 |
 | k84 | Priority code that a language model evolves (idea R13 of the survey) | strategies | later | k6, k7 |
 | k85 | Beam search (idea R14 of the survey) | strategies | active | k6, k7 |
