@@ -2416,4 +2416,4 @@ The corpus covers 31 of the 87 pairs. The read gives laws for 544 specs and refu
 
 Two gaps are real. No spec over the floor gives a narrow area law or an extreme mixed aspect law. The generator `rect-grid` has `nearIdentical` and `extremeAspect` sizes, and no committed spec uses them. A spec with those sizes adds pairs.
 
-The number is the lower bound of what the corpus emits, because a refused spec adds no pair.
+The number is under review. A refused spec adds no pair, and a misread spec can add a false pair, so the number is not a bound in either direction.
