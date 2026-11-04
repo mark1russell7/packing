@@ -3,6 +3,7 @@
 // The trees of `bench/coverage.ts` stay the coverage model: a tree is a fact of the bench, and a record holds measurements.
 //
 //   node bench/response.ts --records <file> --corpus <file> --out <file> [--run <id>] [--seeds <n>] [--folds 5] [--seed 1]
+//   node bench/response.ts --site <response.json> --out <file>
 //
 // A corpus with fewer than 3 specs gives no file: a fit needs 3 groups. `docs/BENCH.md` tells the record.
 
@@ -11,6 +12,7 @@ import { dirname, resolve } from "node:path";
 import { MEASURE_SPECS, type MeasureId } from "@mark1russell7/packing";
 import {
   fitResponse,
+  parseResponseRecord,
   RESPONSE_RECORDS_SCHEMA,
   type ResponseData,
   type ResponseDimension,
@@ -192,8 +194,31 @@ function countOption(argv: readonly string[], name: string, otherwise?: number):
   return value;
 }
 
+/**
+ * This function gives the record of the site: each measured point, each model and the error of each fold. It leaves out the stored predictions,
+ * because they are 60 % of the gzip size and the page does not read them. Thus `heldOutErrorAt` needs the record of the artifact.
+ */
+export function siteRecord(record: ResponseRecord): ResponseRecord {
+  return { ...record, folds: record.folds.map((fold) => ({ heldOut: fold.heldOut, errors: fold.errors })) };
+}
+
+/** This function writes the record of the site from a record of a run, and it gives the record. It throws for a bad record. */
+function writeSiteRecord(file: string, out: string | undefined): ResponseRecord {
+  if (out === undefined) throw new Error("Start the export of the site with: node bench/response.ts --site <file> --out <file>");
+  const parsed = parseResponseRecord(JSON.parse(readFileSync(file, "utf8")));
+  if (!parsed.ok) throw new Error(`The record ${file} has faults: ${parsed.faults.map((f) => `${f.path}: ${f.message}`).join(" ")}`);
+  const record = siteRecord(parsed.record);
+  const path = resolve(out);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(record)}
+`);
+  return record;
+}
+
 /** This function writes the record of a run, and it gives the record. It gives `undefined`, and it writes no file, for a corpus with fewer than 3 specs. */
 export function responseMain(argv: readonly string[]): ResponseRecord | undefined {
+  const site = optionOf(argv, "--site");
+  if (site !== undefined) return writeSiteRecord(site, optionOf(argv, "--out"));
   const records = optionOf(argv, "--records");
   const corpusFile = optionOf(argv, "--corpus");
   const out = optionOf(argv, "--out");

@@ -186,6 +186,28 @@ describe("the command", () => {
     expect(parseResponseRecord(JSON.parse(readFileSync(out, "utf8"))).ok).toBe(true);
   });
 
+  it("writes the record of the site with each point and each fold error, and with no predictions", () => {
+    const files = write(grid());
+    const full = join(dir, "full.json");
+    const record = responseMain(["--records", files.records, "--corpus", files.corpus, "--out", full, "--folds", "3"])!;
+    const out = join(dir, "site", "site.json");
+    const site = responseMain(["--site", full, "--out", out])!;
+    const parsed = parseResponseRecord(JSON.parse(readFileSync(out, "utf8")));
+    expect(parsed.ok).toBe(true);
+    expect(site.points).toEqual(record.points);
+    expect(site.folds.map((f) => f.errors)).toEqual(record.folds.map((f) => f.errors));
+    expect(site.folds.some((f) => f.predictions !== undefined)).toBe(false);
+    expect(heldOutError(site, "pack.fill")).toEqual(heldOutError(record, "pack.fill"));
+    expect(() => heldOutErrorAt(site, "pack.fill", [site.points[0]!.id])).toThrow("no predictions");
+  });
+
+  it("refuses a site record with no output file, and a bad record", () => {
+    const bad = join(dir, "bad.json");
+    writeFileSync(bad, "{}");
+    expect(() => responseMain(["--site", bad])).toThrow("Start the export of the site");
+    expect(() => responseMain(["--site", bad, "--out", join(dir, "x.json")])).toThrow("has faults");
+  });
+
   it("writes no file with fewer than 3 specs", () => {
     const files = write(grid().slice(0, 2));
     const out = join(dir, "none.json");

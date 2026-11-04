@@ -623,6 +623,14 @@ node bench/response.ts --records <file> --corpus <file> --out <file> [--run <id>
 - The points of one spec are one group. Thus a fold holds out a whole spec, as the coverage does with `--by spec`.
 - The fit is a ridge fit of degree 2 with the products of two dimensions. The time has a log scale, as in the coverage. Above the limit of terms, the fit has no products.
 - Each fold keeps the prediction of each held-out point, so `heldOutErrorAt` gives the error of one strategy or one cell.
+
+The page `explorer/` of the site reads `packages/site/data/response-coverage.json`. This command writes that file from `response.json`:
+
+```bash
+node bench/response.ts --site <response.json> --out packages/site/data/response-coverage.json
+```
+
+The file keeps each point, each model and the error of each fold. It leaves out the predictions of the folds, because they are 60 % of the gzip size and the page does not read them.
 - A measure has the range of `MEASURE_SPECS` only when each value is in it. A record from before k118 can have a `pack.gap` above 1.
 - A corpus with fewer than 3 specs gives no file.
 
