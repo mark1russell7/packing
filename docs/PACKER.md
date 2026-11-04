@@ -1565,6 +1565,21 @@ Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. 
 
 The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
+## The Sleator strip
+
+The function `sleatorStrip` packs a strip with the algorithm of Sleator 1980 (roadmap item k52). It is a baseline with a proved bound, not a strategy. No default uses it, and the space of the bench does not change.
+
+1. The items wider than half the strip go in one stack at the left side.
+2. The other items take the order of height, tallest first.
+3. One level above the stack takes items until the next item does not fit the width.
+4. A line at half the width divides the strip above that level.
+5. The half with the lower top takes the next level, until the next item does not fit that half.
+
+The proved bound is `2 * optimum + tallest / 2`, so at most `2.5` times the optimum. The bound names the optimum, not the area. One item of width 1 and height 100 on a strip of 200 has a height of 100, and twice the area over the width is only 1.
+
+The tests compare the bound with a known optimum: 1000 perfect cuts and 100 strips of 6 items, which `exactStrip` proves. The function does not turn an item, so each item keeps its sizes. A level ends at the first item that does not fit, and a later smaller item does not fill the gap.
+
+The source of these steps is the statement in the strip packing article of Wikipedia and the catalog row. The paper is behind a paywall, so this repository has no reading of the proof itself.
 ## Side anchors
 
 `packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 454 names
+## . (build/index.d.ts): 457 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -238,6 +238,7 @@ type SkylineGapParams: build/index.d.ts#SkylineGapParams
 type SkylineOptions: build/layout-strategy.d.ts#SkylineOptions
 type SkylineRule: build/layout-strategy.d.ts#SkylineRule
 type SkylineStrategyOptions: build/layout-strategy.d.ts#SkylineStrategyOptions
+type SleatorResult: build/index.d.ts#SleatorResult
 type SortOrder: build/order.d.ts#SortOrder
 type SpaceRect: build/layout-strategy.d.ts#SpaceRect
 type SpreadBand: build/index.d.ts#SpreadBand
@@ -432,6 +433,8 @@ shelf: build/shelf-strategy.d.ts#shelf
 skyline: build/skyline-strategy.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
+sleatorRefusal: build/index.d.ts#sleatorRefusal
+sleatorStrip: build/index.d.ts#sleatorStrip
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
@@ -1524,6 +1527,12 @@ type SkylineGapParams = {
   count: number;
 };
 
+### build/index.d.ts#SleatorResult
+interface SleatorResult {
+  readonly output: PackOutput;
+  readonly height: number;
+}
+
 ### build/index.d.ts#SpreadBand
 type SpreadBand = "identical" | "uniform" | "heavyTail";
 
@@ -2071,6 +2080,12 @@ export declare const skylineGap: CorpusGenerator<SkylineGapParams>;
 
 ### build/index.d.ts#skylineGapFamily
 export declare const skylineGapFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#sleatorRefusal
+export declare function sleatorRefusal(input: PackInput): string | null;
+
+### build/index.d.ts#sleatorStrip
+export declare function sleatorStrip(input: PackInput): SleatorResult;
 
 ### build/index.d.ts#spreadBand
 export declare function spreadBand(spread: number): SpreadBand;
