@@ -101,6 +101,7 @@
     "node": ">=22.12"
   },
   "dependencies": {
+    "@mark1russell7/collections": "^0.1.0",
     "@mark1russell7/layout-contract": "^0.3.3",
     "@mark1russell7/rigor-generators": "^0.1.1"
   },

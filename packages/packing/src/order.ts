@@ -1,3 +1,4 @@
+import { hubBreadthFirstOrder } from "@mark1russell7/collections/graph";
 import type { PackLink } from "@mark1russell7/layout-contract";
 import type { Rect } from "./rect.ts";
 
@@ -83,39 +84,7 @@ export function graphOrder<T>(rects: readonly Rect<T>[], links: readonly ItemLin
 
 /** This function gives the order `graph-bfs` of items with these areas, as indexes. `graphOrder` tells the rules. */
 export function graphOrderOf(area: readonly number[], links: readonly ItemLink[] = []): number[] {
-  const n = area.length;
-  const degree = new Float64Array(n);
-  const next: number[][] = Array.from({ length: n }, () => []);
-  for (const { a, b, weight = 1 } of links) {
-    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a >= n || b >= n) {
-      throw new RangeError(`A link joins the items ${a} and ${b}, but the indexes go from 0 to ${n - 1}.`);
-    }
-    if (!Number.isFinite(weight) || weight <= 0) throw new RangeError(`The weight of a link is a finite number above 0, not ${weight}.`);
-    if (a === b) continue;
-    degree[a] = degree[a]! + weight;
-    degree[b] = degree[b]! + weight;
-    next[a]!.push(b);
-    next[b]!.push(a);
-  }
-  const byArea = (i: number, j: number): number => area[j]! - area[i]! || i - j;
-  const hubs = Array.from({ length: n }, (_, i) => i).sort((i, j) => degree[j]! - degree[i]! || byArea(i, j));
-  const seen = new Uint8Array(n);
-  const out: number[] = [];
-  for (const hub of hubs) {
-    if (seen[hub] === 1) continue;
-    seen[hub] = 1;
-    const queue = [hub];
-    for (let k = 0; k < queue.length; k++) {
-      const i = queue[k]!;
-      out.push(i);
-      for (const j of next[i]!.toSorted(byArea)) {
-        if (seen[j] === 1) continue;
-        seen[j] = 1;
-        queue.push(j);
-      }
-    }
-  }
-  return out;
+  return hubBreadthFirstOrder(area.length, links, (i, j) => area[j]! - area[i]!);
 }
 
 /**
