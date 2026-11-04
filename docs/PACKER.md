@@ -1676,6 +1676,11 @@ The expansion and the ranking come from Wen 2025, with three changes:
 
 This slice has no blocks of paired boxes, no turns and no time limit. Thus this function is not a copy of the method of the paper.
 
+## The window order
+
+The function `windowOrder` is the first slice of roadmap item k31, the idea `new-rank-window`. Each step takes the tallest of the next `window` items. A `window` of 1 keeps the input order, and a `window` of the item count gives the sort `height-desc`.
+
+No item comes more than `window - 1` places before its input place. Give the result to a strategy with the option `sortOrder: "input"`. It is a function, so the space of the bench does not change.
 ## The pin of unchanged boxes
 
 The function `pinUnchanged` is the first slice of roadmap item k29. It changes an input and does not pack. A strategy packs the result and goes around the locked boxes. No default uses it, and the space of the bench does not change.

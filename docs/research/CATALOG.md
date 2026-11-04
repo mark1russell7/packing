@@ -665,6 +665,10 @@ These ideas are new for this project. Some of them join two published methods. E
 | `new-group-recursive` | Pack the groups recursively | Pack the children of each parent first. Then pack each parent as one box. Choose the strategy of each level by its count. | Component packing does one level. This idea uses the nesting of `layout-input/1`. | Less `pack.area` than a flat pack on the inputs with groups, because the groups stay together. | k31 |
 | `new-port-aware` | Pack for short edges | Add to the score of each place the length of the edges from the box to the boxes that are already placed. | The joint stage packs and then routes. This idea lets the packer see the edges. | Less `joint` edge length than `maxrects-bl`, at a small cost of `pack.whitespace`. | k31 |
 
+Results:
+
+- `new-rank-window` (k31): the prediction of its row failed. On made-up strips of 100 items, window 6 gives 9 % of the height gain, and half of the gain needs window 32. `docs/BENCH.md`, "The rank window", has the curve.
+
 ## Measures to add
 
 The literature uses these measures, but `docs/FORMAT.md` does not have them. Each has a lowercase name with the stage first.

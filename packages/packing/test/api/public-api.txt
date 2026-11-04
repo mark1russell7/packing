@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 461 names
+## . (build/index.d.ts): 462 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -464,6 +464,7 @@ turnRegion: @mark1russell7/layout-contract#turnRegion (external)
 unsupportedOf: build/strategy.d.ts#unsupportedOf
 wallLocks: build/index.d.ts#wallLocks
 wallLocksFamily: build/index.d.ts#wallLocksFamily
+windowOrder: build/order.d.ts#windowOrder
 wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
@@ -2427,6 +2428,11 @@ declare function isGraphOrder(order: ItemOrder): order is GraphOrder;
 
 ### build/order.d.ts#orderRects
 declare function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[];
+
+### build/order.d.ts#windowOrder
+declare function windowOrder<T extends {
+  readonly h: number;
+}>(items: readonly T[], window: number): T[];
 
 ### build/push-strategy.d.ts#PushOptions
 interface PushOptions {
