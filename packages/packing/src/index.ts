@@ -189,6 +189,7 @@ export {
   type BoundOptions,
   type ObjectiveBound,
 } from "./bounds.ts";
+export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
 export { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE, EXACT_STRIP_NODE_LIMIT, exactStrip, exactStripRefusal, type ExactStripOptions, type ExactStripResult } from "./exact-strip.ts";
 export {
   canonicalJson,
@@ -319,3 +320,15 @@ export {
   type UiParams,
 } from "./generators.ts";
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
+export {
+  treemapPack,
+  treemapPivotSplit,
+  treemapSliceDice,
+  treemapSquarified,
+  treemapStrip,
+  type TreemapCell,
+  type TreemapFrame,
+  type TreemapLayout,
+  type TreemapNode,
+  type TreemapStripOptions,
+} from "./treemap.ts";

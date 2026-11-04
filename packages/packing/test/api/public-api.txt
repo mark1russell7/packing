@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 415 names
+## . (build/index.d.ts): 429 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -26,6 +26,7 @@ BEASLEY_GCUT_COUNTS: build/index.d.ts#BEASLEY_GCUT_COUNTS
 BEASLEY_GCUT_SIDES: build/index.d.ts#BEASLEY_GCUT_SIDES
 BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
 BEST_FIT_SIDES: build/index.d.ts#BEST_FIT_SIDES
+BINARY_HEIGHT_STAGE: build/index.d.ts#BINARY_HEIGHT_STAGE
 BL_TRAP_WIDTH: build/index.d.ts#BL_TRAP_WIDTH
 BL_TRAP_WIDTHS: build/index.d.ts#BL_TRAP_WIDTHS
 BOTTOM_LEFT_RULES: build/index.d.ts#BOTTOM_LEFT_RULES
@@ -38,6 +39,8 @@ type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
 type BerkeyWangRule: build/index.d.ts#BerkeyWangRule
 type BestFitSide: build/index.d.ts#BestFitSide
 type BestFitStrategyOptions: build/index.d.ts#BestFitStrategyOptions
+type BinaryHeightOptions: build/index.d.ts#BinaryHeightOptions
+type BinaryHeightResult: build/index.d.ts#BinaryHeightResult
 type BlTrapParams: build/index.d.ts#BlTrapParams
 type BottomLeftRule: build/index.d.ts#BottomLeftRule
 type BottomLeftStrategyOptions: build/index.d.ts#BottomLeftStrategyOptions
@@ -239,6 +242,11 @@ THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
+type TreemapCell: build/index.d.ts#TreemapCell
+type TreemapFrame: build/index.d.ts#TreemapFrame
+type TreemapLayout: build/index.d.ts#TreemapLayout
+type TreemapNode: build/index.d.ts#TreemapNode
+type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/strategy.d.ts#UnsupportedCell
 UnsupportedShape: build/strategy.d.ts#UnsupportedShape
@@ -349,6 +357,7 @@ orderRects: build/order.d.ts#orderRects
 outputHash: build/index.d.ts#outputHash
 overlapMinStrategy: build/index.d.ts#overlapMinStrategy
 pack: build/index.d.ts#pack
+packBinaryHeight: build/index.d.ts#packBinaryHeight
 packConfig: build/index.d.ts#packConfig
 packDefault: build/default.d.ts#packDefault
 packFree: build/index.d.ts#packFree
@@ -411,6 +420,11 @@ tallRow: build/index.d.ts#tallRow
 tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
+treemapPack: build/index.d.ts#treemapPack
+treemapPivotSplit: build/index.d.ts#treemapPivotSplit
+treemapSliceDice: build/index.d.ts#treemapSliceDice
+treemapSquarified: build/index.d.ts#treemapSquarified
+treemapStrip: build/index.d.ts#treemapStrip
 turnItem: build/strategy.d.ts#turnItem
 turnPoint: @mark1russell7/layout-contract#turnPoint (external)
 turnPort: @mark1russell7/layout-contract#turnPort (external)
@@ -654,6 +668,9 @@ export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyW
 ### build/index.d.ts#BEST_FIT_SIDES
 export declare const BEST_FIT_SIDES: readonly ["left", "tall", "short"];
 
+### build/index.d.ts#BINARY_HEIGHT_STAGE
+export declare const BINARY_HEIGHT_STAGE: string;
+
 ### build/index.d.ts#BL_TRAP_WIDTH
 export declare const BL_TRAP_WIDTH = 126;
 
@@ -705,6 +722,22 @@ type BestFitSide = (typeof BEST_FIT_SIDES)[number];
 ### build/index.d.ts#BestFitStrategyOptions
 interface BestFitStrategyOptions extends Omit<LayoutStrategyOptions, "fit"> {
   side: BestFitSide;
+}
+
+### build/index.d.ts#BinaryHeightOptions
+interface BinaryHeightOptions {
+  readonly trials?: number;
+  readonly seed?: number;
+  readonly precision?: number;
+}
+
+### build/index.d.ts#BinaryHeightResult
+interface BinaryHeightResult {
+  readonly output: PackOutput;
+  readonly height: number;
+  readonly firstHeight: number;
+  readonly steps: number;
+  readonly decoded: number;
 }
 
 ### build/index.d.ts#BlTrapParams
@@ -1440,6 +1473,38 @@ type TallRowParams = {
   count: number;
 };
 
+### build/index.d.ts#TreemapCell
+interface TreemapCell extends TreemapFrame {
+  readonly id: string;
+}
+
+### build/index.d.ts#TreemapFrame
+interface TreemapFrame {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+### build/index.d.ts#TreemapLayout
+type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
+
+### build/index.d.ts#TreemapNode
+type TreemapNode = {
+  readonly id: string;
+  readonly weight: number;
+  readonly children?: undefined;
+} | {
+  readonly id: string;
+  readonly children: readonly TreemapNode[];
+  readonly weight?: undefined;
+};
+
+### build/index.d.ts#TreemapStripOptions
+interface TreemapStripOptions {
+  readonly lookahead?: boolean;
+}
+
 ### build/index.d.ts#UiParams
 type UiParams = {
   containerSize: DimensionValue<"containerSize">;
@@ -1746,6 +1811,9 @@ export declare const overlapMinStrategy: Strategy<OverlapMinStrategyOptions>;
 ### build/index.d.ts#pack
 export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;
 
+### build/index.d.ts#packBinaryHeight
+export declare function packBinaryHeight(input: PackInput, options?: BinaryHeightOptions): BinaryHeightResult;
+
 ### build/index.d.ts#packConfig
 export declare function packConfig(input: PackInput, config: StrategyConfig$1, seed?: number): PackOutput;
 
@@ -1903,6 +1971,21 @@ export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "box
 
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
+
+### build/index.d.ts#treemapPack
+export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
+
+### build/index.d.ts#treemapPivotSplit
+export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapSliceDice
+export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapSquarified
+export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapStrip
+export declare function treemapStrip(nodes: readonly TreemapNode[], frame: TreemapFrame, options?: TreemapStripOptions): TreemapCell[];
 
 ### build/index.d.ts#wallLocks
 export declare const wallLocks: CorpusGenerator<WallLocksParams>;
