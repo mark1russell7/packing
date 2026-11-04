@@ -1298,6 +1298,16 @@ The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspec
 
 The column `ms sum` is the sum of the medians. The time of a job is longer, because each pair also has the runs for determinism and the warm-up runs.
 
+## Treemaps against the literature
+
+The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts` with the three log-normal tables of Bederson 2002. The workflow `treemap-literature.yml` starts it. Only `workflow_dispatch` starts this workflow, because the output is a report and not a gate.
+
+- The data is made up, in the form of section 2.3.2 of the paper. It has a log-normal start and a log-normal walk, in a square of side 100.
+- The measures are those of section 2.3.1: the unweighted mean aspect, the mean distance of `(x, y, w, h)` and the readability.
+- The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
+- The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
+- Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
+
 ## The snapshots of the site
 
 The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
