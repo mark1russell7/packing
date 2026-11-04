@@ -54,8 +54,11 @@ export interface CorpusGenerator<P extends GeneratorParams = GeneratorParams> {
   generate(seed: number, params?: Partial<P>, set?: string): GeneratedInput;
 }
 
-/** The parts of a file that a generator makes. A generator of known-best inputs also gives the known best value. */
-type Parts = Pick<GeneratedInput, "container" | "boxes"> & { obstacles: Obstacle[]; known?: KnownBest };
+/** The edit of a step of a chain: its kind, and the family of the step before it. */
+type PartChange = { readonly kind: NonNullable<GeneratedInput["change"]>; readonly baseFamily: string };
+
+/** The parts of a file that a generator makes. A generator of known-best inputs also gives the known best value. A step of a chain gives its edit. */
+type Parts = Pick<GeneratedInput, "container" | "boxes"> & { obstacles: Obstacle[]; known?: KnownBest; change?: PartChange };
 
 /** The data of a generator, before `defineGenerator` adds the common steps. */
 interface GeneratorSpec<P extends GeneratorParams> {
@@ -180,7 +183,7 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
       if (!Number.isInteger(seed) || seed < 0) throw new RangeError(`The seed is a whole number from 0. It is ${seed}.`);
       const full = withDefaults(params);
       const family = spec.family(full);
-      const { container, obstacles, boxes, known } = spec.build(seed, full);
+      const { container, obstacles, boxes, known, change } = spec.build(seed, full);
       // An input without a known best value has no field known. Thus it keeps its bytes and its hash.
       const file: Omit<GeneratedInput, "hash"> = roundNumbers({
         schema: "layout-input/1" as const,
@@ -195,6 +198,8 @@ function defineGenerator<P extends GeneratorParams>(spec: GeneratorSpec<P>): Cor
         boxes,
         edges: [],
         ...(known === undefined ? {} : { known }),
+        // Only a step of a chain has the fields of a change. Thus each other input keeps its bytes and its hash.
+        ...(change === undefined ? {} : { base: `${set}/${change.baseFamily}/s${seed}`, change: change.kind }),
       });
       return { ...file, hash: hashInput(file) };
     },
@@ -1563,15 +1568,87 @@ export const wallLocks: CorpusGenerator<WallLocksParams> = defineGenerator<WallL
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The generator `change-walk` of roadmap item k48: chains of inputs for the stability measures. The data is made up.
+
+/** The kinds of edit of `change-walk`. Each name is a value of the field `change` of the contract. */
+export const CHANGE_WALK_KINDS: readonly ["add", "remove", "resize", "reorder"] = Object.freeze(["add", "remove", "resize", "reorder"]) as readonly ["add", "remove", "resize", "reorder"];
+
+/** The kind of edit of a chain of `change-walk`. */
+export type ChangeWalkKind = (typeof CHANGE_WALK_KINDS)[number];
+
+/** The largest step of `change-walk`. */
+export const CHANGE_WALK_STEPS = 5;
+
+/** The parameters of `change-walk`. */
+export type ChangeWalkParams = { kind: ChangeWalkKind; step: number; count: number };
+
+/** This function gives the family of one step of a chain of `change-walk`. */
+const walkFamily = (p: ChangeWalkParams, step: number): string => `change-walk.${p.kind}.n${p.count}.step${step}`;
+
+/** This function gives the sides of one box of `change-walk`. */
+const walkBox = (r: () => number): { w: number; h: number } => {
+  const w = int(r, 20, 60);
+  return { w, h: int(r, 15, 50) };
+};
+
+/** This function applies one edit of a kind to a list of boxes, in place. The step gives the id of an added box. */
+function walkEdit(boxes: Item[], kind: ChangeWalkKind, step: number, r: () => number): void {
+  const at = int(r, 0, boxes.length - 1);
+  if (kind === "add") boxes.splice(at, 0, { id: `a${step}`, ...walkBox(r) });
+  else if (kind === "remove") boxes.splice(at, 1);
+  else if (kind === "resize") boxes[at] = { ...boxes[at]!, ...walkBox(r) };
+  else {
+    // The second place is another place of the list, so a reorder is never empty
+    const other = (at + int(r, 1, boxes.length - 1)) % boxes.length;
+    [boxes[at], boxes[other]] = [boxes[other]!, boxes[at]!];
+  }
+}
+
+/**
+ * The generator `change-walk`, version 1: a chain of one kind of edit on a strip with a free height (roadmap item k48).
+ *
+ * - The width is 300 to 600. The items are 20 to 60 wide and 15 to 50 high, with the ids `b0` and on.
+ * - Step 0 has no base. Each later step is the step before it with one edit, and it names that step as its `base`.
+ * - `add` puts in a new box, `remove` takes out a box, `resize` gives new sides to a box, and `reorder` swaps two boxes.
+ * - A chain of a seed uses the same boxes at step 0 for each kind. It is not in `corpusFamilies`, so the sampler does not draw it.
+ */
+export const changeWalk: CorpusGenerator<ChangeWalkParams> = defineGenerator<ChangeWalkParams>({
+  name: "change-walk",
+  version: 1,
+  set: "change-v1",
+  defaults: { kind: "add", step: 0, count: 40 },
+  values: { kind: CHANGE_WALK_KINDS },
+  ranges: { step: [0, CHANGE_WALK_STEPS] },
+  family: (p) => walkFamily(p, p.step),
+  cell: (p) => cellWith("freeHeight", "rect", "none", "uniform", p.count),
+  build(seed, p) {
+    if (p.count <= CHANGE_WALK_STEPS) throw new RangeError(`The generator "change-walk" needs a count above ${CHANGE_WALK_STEPS}.`);
+    const w = int(stepRandom(seed, "container"), 300, 600);
+    const r = stepRandom(seed, "boxes");
+    const boxes: Item[] = Array.from({ length: p.count }, (_, i) => ({ id: `b${i}`, ...walkBox(r) }));
+    for (let step = 1; step <= p.step; step++) walkEdit(boxes, p.kind, step, stepRandom(seed, `step${step}`));
+    return {
+      container: { fixed: "width", w },
+      obstacles: [],
+      boxes,
+      ...(p.step === 0 ? {} : { change: { kind: p.kind, baseFamily: walkFamily(p, p.step - 1) } }),
+    };
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder,hopperTurton, burkeKendallWhitwell, beasleyGcut, wallLocks] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder,hopperTurton, burkeKendallWhitwell, beasleyGcut, wallLocks, changeWalk] as CorpusGenerator[]);
 
 /** The generators of the classes of the literature (roadmap item k106). */
 export const classGenerators: readonly CorpusGenerator[] = Object.freeze([berkeyWang, martelloVigo] as CorpusGenerator[]);
 
 /** The generators of the inputs with locked items on the walls (roadmap item k111). */
 export const anchorGenerators: readonly CorpusGenerator[] = Object.freeze([wallLocks] as CorpusGenerator[]);
+
+/** The generators of the chains of changes (roadmap item k48). They have no corpus family, so the sampler does not draw them. */
+export const changeGenerators: readonly CorpusGenerator[] = Object.freeze([changeWalk] as CorpusGenerator[]);
 
 /** The generators of the inputs for the worst case (roadmap item k107). */
 export const worstGenerators: readonly CorpusGenerator[] = Object.freeze([tallRow, skylineGap, blTrap, halfWide, ladder] as CorpusGenerator[]);
