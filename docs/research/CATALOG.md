@@ -471,7 +471,7 @@ An online packer puts each box when it comes, and does not move it later. An inc
 | `incremental-push` | Push cascade | Put a box where the user drops it. Push each box that it overlaps away on the axis of the smaller overlap, and push on in turn. | this repository | stability | `O(n^2)` | — | implemented: `pushCascade` | k30 |
 | `incremental-vertical-compact` | Vertical compaction | After a move, move each box up as far as it goes, in order from the top. | react-grid-layout, software | stability, density | `O(n^2)` | — | implemented: `compactUp` | k30 |
 | `incremental-float` | Float grid | Do `incremental-push`, but do not compact. A box stays where the user puts it. | gridstack.js, software | stability | `O(n^2)` | — | planned | k30 |
-| `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | — | planned | k30 |
+| `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | — | implemented: `keepPrefix` | k30 |
 | `incremental-git` | Greedy insertion | `treemap-git` for packers: keep a layout tree, take the removed boxes out, and put each new box next to the worst box. | Vernier 2018 | stability | `O(n F)` | — | planned | k30 |
 
 Notes:

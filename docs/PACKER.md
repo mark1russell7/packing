@@ -1702,6 +1702,23 @@ The function `compactUp` is the first slice of roadmap item k30. It takes a layo
 
 After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
 
+## The kept prefix
+
+The function `keepPrefix` locks each box before the first change of the item list (roadmap item k30). It changes an input and does not pack, as `pinUnchanged` does. No default uses it.
+
+```ts
+const { input, pinned } = keepPrefix(baseInput, baseOutput, changeInput);
+const output = packWith("maxrects", input, { rule: "bl" });
+```
+
+- The first change is the first index where the two inputs have different ids, or where `pinUnchanged` leaves the box free.
+- No box before that index moves. Each box after that index is free, also an unchanged box.
+- A locked item before that index does not change.
+
+The function gives a baseline for a change in an ordered list. The box count of the prefix depends on the place of the first change, and not on the count of the changes.
+
+The result depends on the strategy. `skyline` starts at the bottom edge of each locked box, across its width. Thus a low box in the prefix pushes the suffix below it. Use `maxrects` with this function. `docs/BENCH.md`, "The kept prefix", has the numbers.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.
