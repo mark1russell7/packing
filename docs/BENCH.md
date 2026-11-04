@@ -2198,6 +2198,7 @@ The inputs are made-up strips of width 200 with 100 items and 30 seeds. The rank
 - The mean height falls at each listed window. The hard rules have 0 breaks.
 - Window 1 has inversions of 0.177, because `maxrects` can put a box above an earlier box.
 - The count of 100 items sets the scale of the windows. This run does not measure a window as a share of the count.
+
 ## The kept prefix
 
 `bench/prefix.ts` compares `keepPrefix` of roadmap item k30 with a fresh pack, and with `pinUnchanged` and `compactUp`, on the chains of `bench/pin.ts`. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k30-keep-prefix`.

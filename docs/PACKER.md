@@ -1801,6 +1801,7 @@ const output = packWith("maxrects", input, { rule: "bl" });
 The function gives a baseline for a change in an ordered list. The box count of the prefix depends on the place of the first change, and not on the count of the changes.
 
 The result depends on the strategy. `skyline` starts at the bottom edge of each locked box, across its width. Thus a low box in the prefix pushes the suffix below it. Use `maxrects` with this function. `docs/BENCH.md`, "The kept prefix", has the numbers.
+
 ## The legalization of rows
 
 `legalizeRows(baseInput, baseOutput, changeInput, options)` gives a layout of rows for a changed input, with the boxes near their places in the base layout. No entry uses it (roadmap item k82). The steps come from the abstract and the slides of Abacus (Spindler 2008), not from the full paper.
