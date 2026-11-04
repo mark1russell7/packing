@@ -32,12 +32,18 @@ import {
   familyKey,
   familyOf,
   familyOptionsHtml,
+  frameParams,
+  frameScene,
+  frameValue,
+  frameValues,
   generateInput,
+  PLAIN_FRAME,
   readDimensions,
   sliderValue,
   withDimension,
   writeDimensions,
   type DimensionValues,
+  type FrameChoice,
 } from "./corpus-input.ts";
 import { regionSvg } from "./region.ts";
 import { DEMO_STRATEGIES, isCompositeId, isDemoId, optionControls, startValues, type OptionControl, type OptionValues } from "./options.ts";
@@ -144,6 +150,23 @@ const OPTION_LABELS: Record<string, string> = {
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 
+/** The name of each value of the container and the obstacles. A value with no entry shows its id. */
+const FRAME_LABELS: Record<string, string> = {
+  rect: "Rectangle",
+  convex: "Cut corners",
+  polygon: "L shape",
+  circle: "Circle",
+  ellipse: "Ellipse",
+  holes: "With holes",
+  none: "None",
+  center: "One in the center",
+  scattered: "Scattered",
+  wall: "A wall",
+  corridors: "Corridors",
+  touching: "Touching",
+  edge: "On the edge",
+};
+
 /** The source of the items: the demo presets, or a corpus family of the registry of the site. */
 type Source = "preset" | "family";
 
@@ -153,8 +176,10 @@ interface State {
   family: string;
   /** The values of the dimensions of the family that differ from their defaults. */
   dims: DimensionValues;
-  /** The scene of the generated input. Only the source `family` has it. */
+  /** The scene of the generated input, or of the frame of the demo items. */
   scene: Scene | undefined;
+  /** The container of the demo items. */
+  frame: FrameChoice;
   /** The text of the error of the generated input. */
   genError: string | undefined;
   preset: string;
@@ -178,6 +203,7 @@ const state: State = {
   family: DEFAULT_FAMILY,
   dims: {},
   scene: undefined,
+  frame: { ...PLAIN_FRAME },
   genError: undefined,
   compare: false,
   settings: [
@@ -205,6 +231,7 @@ function readHash(): void {
   state.family = familyKey(familyOf(p.get("g") ?? DEFAULT_FAMILY));
   state.dims = readDimensions(state.family, (k) => p.get(k));
   state.preset = presetOf(p.get("p") ?? DEFAULTS.preset).id;
+  state.frame = { shape: frameValue("shape", p.get("cs")), obstacles: frameValue("obstacles", p.get("ob")) };
   state.count = int("n", DEFAULTS.count, 1, 80);
   state.seed = int("s", DEFAULTS.seed, 0, 999999);
   state.width = int("w", DEFAULTS.width, 160, 1200);
@@ -277,6 +304,8 @@ function writeHash(): void {
     const changed = changedOptions(s);
     if (Object.keys(changed).length > 0) p.set(name, JSON.stringify(changed));
   }
+  // A plain frame adds no key, so the links of the demo presets stay the same.
+  for (const [key, value] of frameParams(state.frame)) p.set(key, value);
   // The source `preset` adds no key, so the links of the demo presets stay the same.
   if (state.source === "family") {
     p.set("src", "family");
@@ -299,7 +328,10 @@ function regenerate(): void {
       state.items = [];
       state.genError = e instanceof Error ? e.message : String(e);
     }
-  } else state.items = makeItems(state.preset, state.count, state.seed);
+  } else {
+    state.items = makeItems(state.preset, state.count, state.seed);
+    state.scene = frameScene(state.frame, state.seed);
+  }
   state.nextKey = state.items.length;
   state.selected = undefined;
   fitSettings();
@@ -375,6 +407,35 @@ dimsEl.addEventListener("input", (e) => {
   if (d !== undefined && out !== null) out.textContent = dimensionText(sliderValue(d, Number(el.value)));
 });
 
+/** This function gives the text of a container. */
+function containerText(c: Scene["container"] | undefined): string {
+  if (c === undefined) return "";
+  if (c.fixed === "size") return `a fixed size ${c.w} × ${c.h}`;
+  if (c.fixed === "width") return `a fixed width ${c.w}`;
+  return c.fixed === "height" ? `a fixed height ${c.h}` : "a free size";
+}
+
+/** This function gives the line under the frame fields. */
+function frameHint(scene: Scene): string {
+  const obstacles = scene.obstacles?.length ?? 0;
+  return `${containerText(scene.container)}${obstacles === 0 ? "." : `, ${obstacles} obstacles. The seed changes them.`}`;
+}
+
+/** This function gives the options of a field of the frame. */
+const frameOptions = (field: keyof FrameChoice): string => frameValues(field).map((v) => `<option value="${esc(v)}">${esc(FRAME_LABELS[v] ?? v)}</option>`).join("");
+
+const shapeEl = $<HTMLSelectElement>("shape");
+const obstaclesEl = $<HTMLSelectElement>("obstacles");
+shapeEl.innerHTML = frameOptions("shape");
+obstaclesEl.innerHTML = frameOptions("obstacles");
+for (const [el, field] of [[shapeEl, "shape"], [obstaclesEl, "obstacles"]] as const) {
+  el.addEventListener("change", () => {
+    state.frame[field] = frameValue(field, el.value);
+    regenerate();
+    update();
+  });
+}
+
 /** This function draws the controls of the source: the family picker and one control for each dimension. */
 function drawSource(): void {
   const family = state.source === "family";
@@ -382,7 +443,11 @@ function drawSource(): void {
   $("gen").hidden = !family;
   $("preset-field").hidden = family;
   $("count-field").hidden = family;
-  $("width-field").hidden = family;
+  $("frame-field").hidden = family;
+  $("width-field").hidden = family || state.scene !== undefined;
+  shapeEl.value = state.frame.shape;
+  obstaclesEl.value = state.frame.obstacles;
+  $("frame-hint").textContent = family || state.scene === undefined ? "" : frameHint(state.scene);
   const hint = $("source-hint");
   if (!family) {
     hint.textContent = "";
@@ -392,8 +457,7 @@ function drawSource(): void {
   familyEl.value = state.family;
   familyEl.title = familyOf(state.family).meaning;
   dimsEl.innerHTML = controlsHtml(dimensionControls(state.family, state.dims), "demo");
-  const c = state.scene?.container;
-  const size = c === undefined ? "" : c.fixed === "size" ? `a fixed size ${c.w} × ${c.h}` : c.fixed === "width" ? `a fixed width ${c.w}` : c.fixed === "height" ? `a fixed height ${c.h}` : "a free size";
+  const size = containerText(state.scene?.container);
   hint.textContent =
     state.genError === undefined
       ? `${state.items.length} boxes, ${size}, ${state.scene?.obstacles?.length ?? 0} obstacles. The generate function of the shared family registry makes this input.`

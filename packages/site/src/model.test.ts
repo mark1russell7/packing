@@ -16,6 +16,7 @@ import {
   STRATEGIES,
   strategyFor,
   type Placed,
+  type Scene,
 } from "./model.ts";
 
 // The items of the rect presets are rectangles. A strategy of one other shape kind (`hole-degree` of k90) refuses them.
@@ -269,6 +270,23 @@ describe("the circle preset", () => {
     const rects = offeredStrategies(makeItems("cards", 10, 1));
     expect(rects).not.toContain("hole-degree");
     expect(rects).toEqual(RECT_STRATEGIES);
+  });
+
+  it("offers only the strategies of the shape of the container", () => {
+    const shape = { kind: "circle", cx: 200, cy: 200, r: 200 } as const;
+    const scene: Scene = { container: { fixed: "size", w: 400, h: 400, shape }, extra: new Map() };
+    const offered = offeredStrategies(items, scene);
+    expect(offered).toContain("circle-quasi-physical");
+    expect(offered).not.toContain("rows");
+    for (const id of offered) expect(registryStrategy(id).supports.containerShape).toContain("circle");
+    expect(offeredStrategies(items)).not.toContain("circle-quasi-physical");
+  });
+
+  it("offers each strategy for some items and some container", () => {
+    const circle = { kind: "circle", cx: 200, cy: 200, r: 200 } as const;
+    const scene: Scene = { container: { fixed: "size", w: 400, h: 400, shape: circle }, extra: new Map() };
+    const reached = new Set([makeItems("cards", 8, 1), items].flatMap((list) => [undefined, scene].flatMap((s) => offeredStrategies(list, s))));
+    expect([...STRATEGIES].filter((id) => !reached.has(id))).toEqual([]);
   });
 
   it("gives each layout a strategy for circles", () => {

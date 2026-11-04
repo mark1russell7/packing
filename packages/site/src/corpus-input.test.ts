@@ -5,9 +5,14 @@ import {
   dimensionControls,
   familyKey,
   familyOf,
+  frameScene,
+  frameValue,
+  frameValues,
   generateInput,
   MAX_SITE_COUNT,
   parseDimension,
+  frameParams,
+  PLAIN_FRAME,
   readDimensions,
   siteDimension,
   SITE_FAMILIES,
@@ -17,7 +22,7 @@ import {
   withDimension,
   writeDimensions,
 } from "./corpus-input.ts";
-import { inputOf, runPacking, sceneOf } from "./model.ts";
+import { inputOf, makeItems, offeredStrategies, runPacking, sceneOf } from "./model.ts";
 
 // Roadmap item k73: the pages take their generated inputs and their sliders from the shared family registry.
 
@@ -137,5 +142,52 @@ describe("the scene of the demo", () => {
     const items = [{ key: 0, w: 10, h: 20 }];
     expect(inputOf(items, 300, "fixed")).toEqual({ container: { fixed: "width", w: 300 }, items: [{ id: "0", w: 10, h: 20 }] });
     expect(runPacking(items, 300, { strategy: "rows" }, () => 0).frame).toBeUndefined();
+  });
+});
+
+describe("the frame of the demo items", () => {
+  it("has each container shape and each obstacle layout of the generator", () => {
+    expect(frameValues("shape")).toEqual(["rect", "convex", "polygon", "circle", "ellipse", "holes"]);
+    expect(frameValues("obstacles")).toEqual(["none", "center", "scattered", "wall", "corridors", "touching", "edge"]);
+  });
+
+  it("gives the plain value for a value that is not in the field", () => {
+    expect(frameValue("shape", "circle")).toBe("circle");
+    expect(frameValue("shape", "cube")).toBe("rect");
+    expect(frameValue("obstacles", null)).toBe("none");
+  });
+
+  it("adds no link param for a plain frame, so an old link stays the same", () => {
+    expect(frameParams(PLAIN_FRAME)).toEqual([]);
+    expect(frameParams({ shape: "circle", obstacles: "none" })).toEqual([["cs", "circle"]]);
+    expect(frameParams({ shape: "rect", obstacles: "scattered" })).toEqual([["ob", "scattered"]]);
+  });
+
+  it("has no scene for the plain frame", () => {
+    expect(frameScene(PLAIN_FRAME, 1)).toBeUndefined();
+  });
+
+  it("gives the same scene for the same seed, and it keeps no field of a generated box", () => {
+    const frame = { shape: "circle", obstacles: "scattered" };
+    const scene = frameScene(frame, 7)!;
+    expect(scene.extra.size).toBe(0);
+    expect(scene.container.shape?.kind).toBe("circle");
+    expect(frameScene(frame, 7)).toEqual(scene);
+    expect(frameScene(frame, 8)).not.toEqual(scene);
+  });
+
+  const frames = frameValues("shape").flatMap((shape) => frameValues("obstacles").map((obstacles) => ({ shape, obstacles })));
+  const presets = ["cards", "circles"].map((preset) => makeItems(preset, 12, 1));
+
+  it.each(frames)("offers a strategy that packs in $shape with $obstacles", (frame) => {
+    const scene = frameScene(frame, 1);
+    const offers = presets.map((items) => offeredStrategies(items, scene));
+    expect(offers.some((list) => list.length > 0)).toBe(true);
+    presets.forEach((items, at) => {
+      for (const strategy of offers[at]!.slice(0, 3)) {
+        const run = runPacking(items, 640, { strategy }, () => 0, undefined, undefined, scene);
+        expect(run.error, `${strategy} in ${frame.shape} with ${frame.obstacles}`).toBeUndefined();
+      }
+    });
   });
 });
