@@ -2099,6 +2099,34 @@ The inputs are made-up strips of width 200 with 100 items. Each seed is a chain 
 - The hard rules have 0 breaks, and each item has a place.
 - These are the first values of `pack.stability.*`. They come from this script, not from a corpus.
 
+## The beam search
+
+`bench/beam.ts` measures `beamStrip` of roadmap item k85. A height is not a time, so any computer can start it. The prediction is `packing-k85-beam`.
+
+```bash
+node bench/beam.ts --out <file.json> [--seeds 10] [--count 100] [--widths 1,4,16]
+```
+
+The family is the 10 classes of `berkeyWang` and `martelloVigo`, with 100 items and 10 seeds. The gap is `(height / (area / width) - 1) * 100`, the form of Wen 2025. Lower is better.
+
+| Class | `maxrects-bl` | Width 1 | Width 4 | Width 16 |
+| --- | --- | --- | --- | --- |
+| Berkey and Wang I | 7.19 | 6.97 | 4.21 | 3.79 |
+| Berkey and Wang II | 2.37 | 3.80 | 1.19 | 0.88 |
+| Berkey and Wang III | 13.92 | 15.53 | 9.52 | 8.82 |
+| Berkey and Wang IV | 7.09 | 7.65 | 3.61 | 2.81 |
+| Berkey and Wang V | 13.20 | 15.54 | 10.02 | 9.91 |
+| Berkey and Wang VI | 8.12 | 8.83 | 4.76 | 4.00 |
+| Martello and Vigo VII | 19.71 | 18.85 | 16.06 | 15.70 |
+| Martello and Vigo VIII | 11.63 | 10.92 | 6.56 | 5.36 |
+| Martello and Vigo IX | 25.42 | 24.56 | 24.12 | 23.89 |
+| Martello and Vigo X | 9.63 | 11.84 | 6.73 | 6.16 |
+| Mean | 11.83 | 12.45 | 8.68 | 8.13 |
+
+- Width 16 is lower than or equal to `maxrects-bl` on 100 of 100 inputs.
+- The hard rules have 0 breaks. The three widths together have a mean of 18084 greedy completions for one input.
+- Wen 2025 gives a gap of 7.56 for the set BWMV with no turns at 60 seconds. Those instances are not these inputs, and that method has blocks. The value is only a scale, and this table makes no parity claim.
+- The gap uses a lower bound, not the optimum. In class IX, large items make that bound weak.
 The third arm pins, packs and then applies `compactUp` (roadmap item k30). The prediction is `packing-k30-compact-up`.
 
 | Entry | Moved | Distance, fresh | Distance, compacted | Cost, step 1 | Cost, step 10 | Worst cost |

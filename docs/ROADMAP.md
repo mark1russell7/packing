@@ -91,7 +91,7 @@ Status: done, done, waiting, next, done.
 | k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
 | k83 | Genetic programming of the score (idea R12 of the survey) | strategies | later | k6, k7 |
 | k84 | Priority code that a language model evolves (idea R13 of the survey) | strategies | later | k6, k7 |
-| k85 | Beam search (idea R14 of the survey) | strategies | later | k6, k7 |
+| k85 | Beam search (idea R14 of the survey) | strategies | active | k6, k7 |
 | k86 | Global placement for large inputs (idea R16 of the survey) | strategies | later | k6, k7 |
 | k87 | Dynamic reduction of the width (idea R17 of the survey) | strategies | later | k33 |
 | k88 | Identical boxes in five blocks (idea R19 of the survey) | strategies | later | k6, k7 |

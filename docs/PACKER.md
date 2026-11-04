@@ -1658,6 +1658,23 @@ The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip
 The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
+## The beam search
+
+The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). It is not a strategy. No default uses it, and the space of the bench does not change.
+
+1. A state is a partial layout with a skyline. Each level adds one item to each state.
+2. The valley of the skyline closest to the origin takes the next item. A valley that no item fits rises to its lower neighbor.
+3. A state has `width` children: the largest items that fit the valley.
+4. A greedy completion gives the height of each child. The level keeps the `width` lowest children.
+5. The result is the lowest completion of the search.
+
+The expansion and the ranking come from Wen 2025, with three changes:
+
+- The state is a skyline, not a list of overlapping free spaces, because a strip has a free height. The rule closest to the origin applies only to the valleys of the skyline. On each other segment, a lift of the skyline can move it down, and items then overlap.
+- The order of the children is the area of the item. This is the first term of the score of the paper.
+- The paper does not give its greedy completion, so this one is my choice: the largest item that fits each valley.
+
+This slice has no blocks of paired boxes, no turns and no time limit. Thus this function is not a copy of the method of the paper.
 
 ## The window order
 

@@ -195,6 +195,7 @@ export {
 } from "./bounds.ts";
 export { sleatorRefusal, sleatorStrip, type SleatorResult } from "./sleator.ts";
 export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
+export { BEAM_WIDTH, beamStrip, type BeamOptions, type BeamResult } from "./beam.ts";
 export { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE, EXACT_STRIP_NODE_LIMIT, exactStrip, exactStripRefusal, type ExactStripOptions, type ExactStripResult } from "./exact-strip.ts";
 export {
   columnBalance,
