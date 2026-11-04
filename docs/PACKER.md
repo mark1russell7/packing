@@ -809,6 +809,72 @@ The counts of `packSpace`:
 
 The bench (prediction `packing-k124-relax`): rows, maxrects-bl and skyline-bl-waste, each alone and in `relax`, on `pack-screen-v1`. The measures are the balance measures, fill, the order inversions, the time and the hard breaks.
 
+### The link pull
+
+Roadmap item k137 adds the option `pull` to `relax`. After a pack, the pull moves the boxes along their free space toward the boxes that they link to. It is opt-in. The default is 0, and no default uses it.
+
+```ts
+const output = packWith("relax", input, { member: "rows", strength: 0, pull: 1 });
+```
+
+The steps of one round:
+
+1. **The block step.** Each linked box gets a target toward its balance point: the weighted mean of the centers of its links. The satisfy step of VPSC moves the boxes on each axis, so a box can push a row of boxes. A block step that does not make the wire length shorter goes back.
+2. **The slide step.** Each linked box in turn moves on each axis along its free interval. A move goes ahead only when it makes the wires of the box shorter.
+
+The rounds stop when the wire length stops falling, and at most 16 rounds occur.
+
+The rules:
+
+- The wire length is the sum over the links of the weight times the Manhattan distance between the centers.
+- With no links, the output is the member output. A link of an item to itself, a link to an item with no box and a link with no positive weight have no effect.
+- The pull reads no seed. Obstacles and locked boxes stay fixed.
+- The pull keeps the output size of the member, also on a free side. So the height does not grow.
+- The pull reads the same containers as `relax`: `fixed`, `freeHeight` and `freeWidth`. It does not read `freeAspect` or `freeArea`.
+- The guard of `relax` also examines the pull.
+- Above `RELAX_PULL_MAX_BOXES` (1000) boxes, the pull does not start. The slide step is O(n^2) in one round.
+- The trace stage `relax` also has `relax.pull.rounds`, `relax.pull.before` and `relax.pull.after`.
+
+The counts of `packSpace`:
+
+- A new param of `relax` changes the id of each `relax` config. So `combine` gets a new option `relax-pull` with 1 member, `RECT_ONLY` and the param `pull`. It is `relax` with the strength 0.
+- The named configs are `relax-pull-rows` and `relax-pull-maxrects-bl`.
+- `configOfStrategy` gives a point only for the strength 0 or the pull 0.
+- With 3 levels, each base config gives 3 new meta configs. With 1 level, it gives 1.
+
+| `spaceSize` | Before k137 | Since k137 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 839122620777889294392 | 839122620777889305516 |
+| 1 level | 277205931006817716 | 277205931006818808 |
+| 3 levels, `shapes: ["rect"]` | 835731956558436797040 | 835731956558436808155 |
+| 1 level, `shapes: ["rect"]` | 275936906614690676 | 275936906614691767 |
+
+The trial chose the structure of a round on the seeds 1 to 20: 40 items, `freeHeight`, the order `graph-bfs`, and a seeded tree of links. Each value is the sum of the pull over the sum of the same pack without it. The block share is the share of the pull in the block step. The slide step alone gave a longer wire in each row, so a round has both steps. The share 1 gave the shortest wire on `rows` and needs no second constant.
+
+| Member | Sizes | Slide only: wire, height | Share 0.25: wire, height | Share 0.5: wire, height | Share 1: wire, height |
+|---|---|---|---|---|---|
+| `rows` | `uniform` | 0.933, 0.965 | 0.919, 0.930 | 0.910, 0.915 | 0.888, 0.946 |
+| `rows` | `heavyTail` | 0.912, 0.991 | 0.879, 0.979 | 0.878, 0.981 | 0.877, 0.989 |
+| `rows` | `bimodal` | 0.930, 0.983 | 0.910, 0.960 | 0.898, 0.956 | 0.881, 0.978 |
+| `maxrects` `bl` | `uniform` | 0.984, 0.997 | 0.977, 0.997 | 0.979, 0.997 | 0.979, 0.997 |
+| `maxrects` `bl` | `heavyTail` | 0.971, 1.000 | 0.958, 1.000 | 0.959, 1.000 | 0.961, 1.000 |
+| `maxrects` `bl` | `bimodal` | 0.978, 1.000 | 0.973, 1.000 | 0.974, 1.000 | 0.975, 1.000 |
+
+Each variant won on 20 of 20 seeds in each row, with 0 hard breaks. The gain is small, because a packed layout has little free space. On `maxrects` `bl`, the share 1 is not the best share, but the differences are at most 0.003.
+
+The held-out measure uses the seeds 101 to 120, with the same inputs, block share 1 and each frame. Each cell gives the wire length, the height and the fill as a share of the same pack. The pull won on 240 of 240 inputs, with 0 hard breaks.
+
+| Member | Sizes | `freeHeight`: wire, height, fill | `fixed`: wire, height, fill |
+|---|---|---|---|
+| `rows` | `uniform` | 0.919, 0.971, 1.021 | 0.916, 0.984, 1.004 |
+| `rows` | `heavyTail` | 0.880, 0.990, 1.011 | 0.883, 1.001, 0.993 |
+| `rows` | `bimodal` | 0.907, 0.985, 1.008 | 0.899, 1.001, 0.988 |
+| `maxrects` `bl` | `uniform` | 0.973, 1.000, 0.998 | 0.973, 1.003, 0.995 |
+| `maxrects` `bl` | `heavyTail` | 0.953, 1.000, 0.998 | 0.965, 1.006, 0.993 |
+| `maxrects` `bl` | `bimodal` | 0.978, 0.998, 1.001 | 0.974, 1.002, 0.997 |
+
+A free height does not grow in these rows at 3 decimals. In a fixed frame, the height grows by at most 0.6 percent, and the fill falls by at most 1.2 percent. The rule `wire` of k136 gives a larger gain. Its wire shares are 0.49 to 0.64, and its height shares are 1.01 to 1.06. The pull keeps the pack, and the rule changes it.
+
 ### The force packer
 
 Roadmap item k125 adds the composite strategy `force` (catalog rows `overlap-spring`, Li 2005, and `overlap-prism`, Gansner 2010). It is opt-in. No default uses it. The code is `src/force.ts`.
@@ -1373,6 +1439,43 @@ The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/4
 - The 3000 records have 0 hard breaks, and each one is deterministic.
 - The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
 - `merge` gives no gain at the median.
+
+## The exact strip
+
+The function `exactStrip` gives the least height of a small strip (roadmap item k10). The bench uses this height as a baseline, so each heuristic has a gap to the optimum, not only to the other heuristics. The function is not a strategy. `pack()`, `packWith()` and the registry do not know it, and no default uses it.
+
+The problem is strip packing with a fixed width and the least height, the problem of Martello, Monaci and Vigo 2003. The function accepts whole sizes, and an item with `turnable` can turn by 90 degrees. `exactStripRefusal` gives the reason for each input that it refuses: a shape, an inset, an obstacle, a gap, a margin, a lock, more than `EXACT_STRIP_MAX_ITEMS` items or a side above `EXACT_STRIP_MAX_SIDE`.
+
+### The search
+
+1. The range of the height starts at the k51 bound with no tolerance. It ends at the height of a first layout.
+2. Each pass looks for a layout of a height up to a target in the range. The first target is the bound itself, because an input with no free space ends there. The next targets halve the range.
+3. A node puts one item on a corner of the staircase of the placed items. This is the staircase placement of Scheithauer 1997. The doc comment of `exactStrip` has the proof that the corners are enough.
+4. Four tests cut a branch: the lowest top of each item that is left, `mmvBound` above the last step, and the free rows and columns with the rasters of Herz 1972.
+5. Equal items are one kind, so they make no extra branches. A state that failed at a target also fails at each lower target, so a memo keeps it.
+
+### What a result claims
+
+| `status` | `proof` | The claim |
+|---|---|---|
+| `optimal` | `bound` | The height meets the k51 bound. |
+| `optimal` | `exhausted` | The search looked at each lower height and found no layout. |
+| `limit` | `null` | The node limit stopped the search. The optimum is in the range from `lowerBound` to `height`. This is not a claim of an optimum. |
+
+The search has a node limit and no clock, so the same input and limit give the same bytes and the same `nodes` on each machine. The default limit is `EXACT_STRIP_NODE_LIMIT`. The memo and the raster cache have caps. A full cache makes the search slower, and the result stays exact.
+
+### The limit of the size
+
+The size limit comes from counts of nodes, because a count of nodes does not change with the load of a computer. A test with 1,000,000 nodes used 9 made-up families and 4 seeds of each family:
+
+| Items | Proved inputs | Inputs that the limit stopped |
+|---|---|---|
+| 8 | 36 of 36, each in 232,268 nodes or fewer | none |
+| 10 | 28 of 36 | 4 inputs of the Beasley family with the side 250, 3 of the Martello and Vigo class X, and 1 of the Berkey and Wang class III |
+
+Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. At 12 items, the limit stopped 8 of 18 inputs in a test with 2 seeds of each family. `EXACT_STRIP_MAX_ITEMS` is 16 only to keep the arrays small, and it is not a promise of a proof. The workflow `Exact` measures this with the default limit: see "The gap to a proved optimum" in `docs/BENCH.md`.
+
+The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
 ## The decisions
 

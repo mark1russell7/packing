@@ -1181,6 +1181,34 @@ The records of `bench.yml` have no memory field. A report of mode `fresh` has `p
 
 A peak of a process is a coarse measure of a small heap. A better measure is the heap of one pass in each record. That needs a change to `bench/run.ts`, which is the next part of k13.
 
+## The gap to a proved optimum
+
+The workflow `Exact` (`.github/workflows/exact.yml`) compares each named entry with the proved optimum of `exactStrip` (roadmap item k10, `docs/PACKER.md`, "The exact strip"). It uses small made-up strips from 9 families. The script is `packages/packing/bench/exact.ts`, and it is not a command of `bench/main.ts`.
+
+Start it with the GitHub CLI:
+
+```
+gh workflow run exact.yml -f sizes=6,8,10,12 -f seeds=5 -f nodes=5000000 -f entries=all
+```
+
+These values are the defaults. The artifact `exact-<sha>` has `records.jsonl`, `summary.json` and `summary.md`. The job summary shows `summary.md`:
+
+- For each count of items: the proved inputs, the best entry and its mean gap.
+- The costs: the nodes, the nodes in each second and the peak memory.
+- For each family and count of items: the proved inputs.
+- For each entry: the mean gap, the worst gap, the inputs at the optimum and the Wilson interval of that share.
+
+A gap is `height / optimum - 1`, with the height of the hull. Only an input with a proved optimum has a gap. An input that the node limit stopped keeps its `height` and `lowerBound` in the records, and it is not in the table of the entries. An entry layout with a hard break is not in that table too.
+
+The job fails only on a break of a proof:
+
+- Two searches of one input give different bytes.
+- An exact layout breaks a hard rule.
+- The lower bound is under the k51 bound, or the k51 bound is above a proved optimum.
+- A layout with no overlap is below a proved optimum.
+
+The times in the records are only for the cost line. No gate reads them.
+
 ## The cells of a candidate
 
 `packages/packing/bench/cells.ts` finds the cells where a candidate fills more than the default (roadmap item k66). It reads the records of one run. It does not start a packer.
