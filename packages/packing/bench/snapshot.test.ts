@@ -416,12 +416,14 @@ describe("the coverage snapshot (k105)", () => {
       rounds: [{ round: 1, pairs: 4, measures: [{ id: "pack.fill", tolerance: 0.02, n: 4, hits: 1, share: 0.25, wilson: { low: 0, high: 0.6 }, mae: 0.3, prior: 0.3, priorCount, after: evalAt }] }],
     };
     const prior = { share: 0.08, wilson: { low: 0.03, high: 0.2 }, nEff: 41.5, weighted: 50, zero: 0, covered: 1, kind: "union" as const, families: [{ family: "x@1", weight: 0.8, pairs: 40, hits: 3 }] };
+    const priorBeside = { ...prior, kind: "union" as const, share: 0.2, nEff: 12.5 };
     const sampled = {
       pairs: 50,
-      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n: 50, hits: 4, share: 0.08, wilson: { low: 0.03, high: 0.19 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 }, prior }],
+      measures: [{ id: "pack.fill", scale: "linear" as const, tolerance: 0.02, n: 50, hits: 4, share: 0.08, wilson: { low: 0.03, high: 0.19 }, mae: 0.4, medianAe: 0.3, baseline: { mae: 0.5, medianAe: 0.4, withinTolerance: 0 }, prior, priorBeside }],
     };
     const snap = coverageSnapshot({ ...summary("2026-10-29", 0.5), sampled, active, prior: basis }, origin);
     expect(snap.latest.prior).toEqual(basis);
+    expect(snap.latest.measures[0]!.sampled!.priorBeside).toEqual({ kind: "union", share: 0.2, nEff: 12.5 });
     expect(snap.latest.measures[0]!.sampled!.prior).toEqual({ share: 0.08, low: 0.03, high: 0.2, nEff: 41.5, weighted: 50, zero: 0, covered: 1, kind: "union" });
     const a = snap.latest.measures[0]!.active!;
     expect(a.start).toEqual({ share: 0.05, mae: 0.2, equal: 0.05, prior: 0.04, priorCount });

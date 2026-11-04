@@ -1682,9 +1682,26 @@ The field `prior` gives each generator family a weight. `bench/prior.ts` compute
 The effective count `nEff` tells the precision of the share. A share with the prior and `nEff` 30 is approximately as precise as a uniform share of 30 pairs.
 The sampler draws each family with the same chance. A family with a large weight and few pairs thus makes `nEff` small.
 
+##### The kinds of the prior (k122)
+
+The prior is a parameter. The option `--prior` gives the kind, and `--prior-power` gives the power of `tempered`.
+
+| Kind | The weight of a family |
+|---|---|
+| `family-flat` | The same weight for each sampler family, also a family with no inputs in the corpora. This is the default. |
+| `union` | Its share of the distinct inputs of all the committed corpora. |
+| `tempered` | Its count of `union` to a power from 0 to 1, then scaled. The default power is 0.5. The power 1 gives `union`. |
+| `corpus` | Its share of the inputs of the grid manifest only. |
+
+- The headline is `family-flat`. A realistic input means the families, not the count of the grids in the corpora.
+- With another headline than `union`, each measure of `sampled` also has `priorBeside`: the share with `union` and its effective count.
+- The field `strata` of the basis gives the `adversary` family apart. It has no weight, and the sampler does not draw it, so it has no share.
+- `bench/paired-arms.ts` does not read the prior. Thus the fold verdict of the nightly control does not change.
+- The headline changes the published prior share of the coverage. The uniform share and the grid numbers do not change.
+
 ##### The union of the corpora (k119)
 
-The default prior `union` uses all the committed corpora of `bench/corpora`. The option `--prior corpus` gives the k116 prior of the grid manifest only.
+The prior `union` uses all the committed corpora of `bench/corpora`.
 
 1. Each corpus gives its inputs: each spec with each seed, or each input with its generator.
 2. The union keeps each distinct input one time. Two inputs are the same when their family, params and seed are the same.
