@@ -28,6 +28,7 @@
         <a href="#speed">Speed</a>
         <a href="#select">Select</a>
         <a href="#coverage">Coverage</a>
+        <a href="#corpus-cover">Corpus</a>
       </nav>
 
       <section class="panel" id="strategies" aria-labelledby="strategies-h">
@@ -109,6 +110,21 @@
           <div class="scroll"><table class="vtable" id="coverage-table"></table></div>
         </details>
         <div id="coverage-origin"></div>
+      </section>
+
+      <section class="panel" id="corpus-cover">
+        <div class="prose" id="corpus-cover-text"></div>
+        <div class="controls">
+          <label class="label" for="corpus-cover-view">Corpus</label>
+          <select id="corpus-cover-view"></select>
+        </div>
+        <p class="hint" id="corpus-cover-note"></p>
+        <div class="tiles" id="corpus-cover-tiles"></div>
+        <h3>The pairs of dimensions</h3>
+        <p class="hint">Select a square to read its table. The number is the percent of the value pairs with an input.</p>
+        <div class="cover-grid" id="corpus-cover-grid"></div>
+        <div class="scroll"><table class="vtable ctable" id="corpus-cover-pair"></table></div>
+        <p class="hint" id="corpus-cover-empty"></p>
       </section>
     </main>
 

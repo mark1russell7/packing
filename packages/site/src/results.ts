@@ -2,6 +2,7 @@
 // The page reads only the snapshot files of `packages/site/data/`.
 
 import { marked } from "marked";
+import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, parseCorpusCover } from "./corpus-cover-model.ts";
 import strategiesText from "../content/results-strategies.md?raw";
 import speedText from "../content/results-speed.md?raw";
 import selectText from "../content/results-select.md?raw";
@@ -15,6 +16,8 @@ import gapsText from "../content/results-gaps.md?raw";
 import gapsKnownJson from "../data/gaps-pack-known-v1.json?raw";
 import gapsSelectJson from "../data/gaps-pack-select-v2.json?raw";
 import coverageText from "../content/results-coverage.md?raw";
+import corpusCoverText from "../content/results-corpus-cover.md?raw";
+import corpusCoverJson from "../data/corpus-cover.json?raw";
 import coverageJson from "../data/coverage.json?raw";
 import { mountChrome } from "./chrome.ts";
 import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
@@ -68,6 +71,7 @@ const paired = parseSnapshot(pairedJson, "paired");
 const select = parseSnapshot(selectJson, "select");
 const gapSnaps = [gapsKnownJson, gapsSelectJson].map((t) => parseSnapshot(t, "gaps"));
 const cover = parseSnapshot(coverageJson, "coverage");
+const corpusCover = parseCorpusCover(corpusCoverJson);
 
 mountChrome($("links"), "results");
 
@@ -408,6 +412,39 @@ function trendSvg(): string {
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="The share of the covered cells of each measure, by week">${grid}${ticks}${lines}</svg>`;
 }
 
+// ---- The corpus coverage of k50 ----
+
+let coverViewAt = 0;
+let coverPair = 0;
+
+function drawCorpusCover(): void {
+  const view = corpusCover.views[coverViewAt]!;
+  const skipped = corpusCover.skipped.map((id) => `<code>${esc(id)}</code>`).join(", ");
+  $("corpus-cover-note").innerHTML = `${view.specs} specs, ${view.inputs} inputs. The count does not read ${skipped}, because it has no specs.`;
+  $("corpus-cover-tiles").innerHTML = coverTiles(corpusCover, view);
+  $("corpus-cover-grid").innerHTML = coverGrid(corpusCover, view, coverPair);
+  $("corpus-cover-pair").innerHTML = coverPairTable(corpusCover, view, coverPair);
+  $("corpus-cover-empty").innerHTML = coverEmptyLine(view);
+}
+
+function mountCorpusCover(): void {
+  $("corpus-cover-text").innerHTML = marked.parse(corpusCoverText, { async: false });
+  const select = $<HTMLSelectElement>("corpus-cover-view");
+  select.innerHTML = corpusCover.views.map((v, i) => `<option value="${i}">${v.id === "all" ? "All the corpora" : esc(v.id)}</option>`).join("");
+  select.addEventListener("change", () => {
+    coverViewAt = Number(select.value);
+    drawCorpusCover();
+  });
+  $("corpus-cover-grid").addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-pair]");
+    if (button === null) return;
+    coverPair = Number(button.dataset["pair"]);
+    drawCorpusCover();
+    $("corpus-cover-grid").querySelector<HTMLButtonElement>(`button[data-pair="${coverPair}"]`)?.focus();
+  });
+  drawCorpusCover();
+}
+
 function mountCoverage(): void {
   const l = cover.latest;
   $("coverage-text").innerHTML = marked.parse(coverageText, { async: false });
@@ -431,7 +468,7 @@ function mountCoverage(): void {
     (l.measures.some((m) => m.sampled?.prior !== undefined || l.uniform?.measures[m.id]?.prior !== undefined)
       ? l.prior === undefined
         ? ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs of the corpus as its weight. A family outside the corpus gets the weight 0.`
-        : ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family its share of the inputs as its weight. ${esc(priorBasisText(l.prior) ?? "")} The effective pairs are the count of uniform pairs with the same precision.`
+        : ` The number "${COVERAGE_PRIOR_SCOPE}" gives each generator family a weight. ${esc(priorBasisText(l.prior) ?? "")} The effective pairs are the count of uniform pairs with the same precision.`
       : "") +
     determinismText(sample);
   $("coverage-errors").innerHTML = l.measures
@@ -479,3 +516,4 @@ mountGaps();
 mountSpeed();
 mountSelect();
 mountCoverage();
+mountCorpusCover();

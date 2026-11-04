@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildFrame, outerOf, rectsOf } from "./frame.ts";
-import { checkHard, MAXRECTS_RULES, mulberry32, packMaxRects, packWith, Rect, rectGrid, toPackInput, type MaxRectsRule, type PackInput, type PackOutput } from "./index.ts";
+import { checkHard, MAXRECTS_RULES, mulberry32, packMaxRects, packWith, Rect, rectGrid, toPackInput, type MaxRectsRule, type MaxRectsScore, type PackInput, type PackOutput } from "./index.ts";
 import { runMaxRects } from "./maxrects.ts";
 import { clearMoves, moveCount, MOVES } from "./moves.ts";
 import { spaceOf } from "./space.ts";
@@ -242,5 +242,40 @@ describe("maxrects: the turn of an item", () => {
     const output = packWith("maxrects", input, { rotate: true });
     expect(output.overflow).toEqual([]);
     expect(checkHard(input, output)).toEqual(CLEAN);
+  });
+});
+
+describe("maxrects: the option score", () => {
+  const scored = (score: MaxRectsScore, rule?: MaxRectsRule): { x: number; y: number } => {
+    const r = box(30, 20, 1);
+    packMaxRects([lockedAt(50, 50), r], square(), { score, ...(rule === undefined ? {} : { rule }) });
+    expect(r.wasPacked).toBe(true);
+    return { x: r.position.x, y: r.position.y };
+  };
+
+  it("replaces the rule at each place", () => {
+    expect(scored((_bw, _bh, _lw, _lh, x) => x)).toEqual({ x: 0, y: 50 });
+    expect(scored((_bw, _bh, _lw, _lh, x) => -x)).toEqual({ x: 50, y: 0 });
+    expect(scored((_bw, _bh, _lw, _lh, x) => x, "bl")).toEqual({ x: 0, y: 50 });
+  });
+
+  it("gives a tie to the lowest bottom edge of the box", () => {
+    expect(scored(() => 0)).toEqual({ x: 50, y: 0 });
+  });
+
+  it("reads the sizes, the leftovers, the place, the top and the width", () => {
+    const seen: number[][] = [];
+    const r = box(30, 20, 1);
+    packMaxRects([r], square(), {
+      score: (...place) => {
+        seen.push(place);
+        return 0;
+      },
+    });
+    expect(seen).toEqual([[30, 20, 70, 80, 0, 0, 0, 100]]);
+  });
+
+  it("leaves the layout of the rule without a score", () => {
+    expect(one("bssf", [50, 50], [30, 45])).toMatchObject({ x: 0, y: 50 });
   });
 });

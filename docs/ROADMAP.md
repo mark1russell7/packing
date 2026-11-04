@@ -35,9 +35,9 @@ Status: done, done, waiting, next, done.
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | done | k6, k7 |
 | k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi | strategies | later | k6, k7 |
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
-| k29 | Methods that keep the reading order or the layout under change | strategies | later | k6, k7 |
-| k30 | Online and incremental packing | strategies | later | k6, k7 |
-| k31 | New ideas of our own | strategies | later | k6, k7 |
+| k29 | Methods that keep the reading order or the layout under change | strategies | active | k6, k7 |
+| k30 | Online and incremental packing | strategies | active | k6, k7 |
+| k31 | New ideas of our own | strategies | active | k6, k7 |
 | k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. Part 1 (#92): the pages `results/` and `whats-new/`, from the snapshots in `packages/site/data/`. | site | active | k11, k14 |
 | k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
 | k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | done | k33 |
@@ -56,9 +56,9 @@ Status: done, done, waiting, next, done.
 | k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | done | k19, k9 |
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | active | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
-| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
+| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions, shown on the site | measure | done | k19, k35 |
 | k51 | Lower bounds, so each result shows its distance to the best | measure | done | k6 |
-| k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
+| k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | active | k6, k7 |
 | k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
 | k54 | Compaction: a constraint graph in one direction, mixed constraints and the exact form | strategies | later | k6, k7 |
 | k55 | Component packing: polyominoes and the placement of the parts of a graph | strategies | later | k6, k7 |
@@ -91,7 +91,7 @@ Status: done, done, waiting, next, done.
 | k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
 | k83 | Genetic programming of the score (idea R12 of the survey) | strategies | later | k6, k7 |
 | k84 | Priority code that a language model evolves (idea R13 of the survey) | strategies | later | k6, k7 |
-| k85 | Beam search (idea R14 of the survey) | strategies | later | k6, k7 |
+| k85 | Beam search (idea R14 of the survey) | strategies | active | k6, k7 |
 | k86 | Global placement for large inputs (idea R16 of the survey) | strategies | later | k6, k7 |
 | k87 | Dynamic reduction of the width (idea R17 of the survey) | strategies | later | k33 |
 | k88 | Identical boxes in five blocks (idea R19 of the survey) | strategies | later | k6, k7 |
@@ -103,7 +103,7 @@ Status: done, done, waiting, next, done.
 | k94 | Basin hopping for circles (idea S5 of the survey) | strategies | later | k75 |
 | k95 | Bottom-left fill for polygons (idea S6 of the survey) | strategies | later | k75, k101 |
 | k96 | Overlap minimization for polygons (idea S7 of the survey) | strategies | later | k75, k101 |
-| k97 | Groups of pieces as near rectangles (idea S8 of the survey) | strategies | later | k75 |
+| k97 | Groups of pieces as near rectangles (idea S8 of the survey): `packNearRects`, first slice, with no learned model | strategies | active | k75 |
 | k98 | The ESICUP nesting sets (idea S9 of the survey) | measure | later | k75 |
 | k99 | Phi-functions (idea S10 of the survey) | strategies | later | k75 |
 | k100 | The best search for circles (idea S11 of the survey) | strategies | later | k75 |
@@ -116,7 +116,7 @@ Status: done, done, waiting, next, done.
 | k107 | Input families for the worst case: adversarial inputs and scaling ladders | corpus | done | k73 |
 | k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | done | k76 |
 | k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | later | k51, k105 |
-| k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept | core | later | k6, k7 |
+| k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept. The first slice is `packSideAnchors`. The field and the rule of the contract are open. | core | active | k6, k7 |
 | k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | done | k6, k7 |
 | k112 | Whole-space coverage: configs drawn at random from `packSpace` and inputs from the ranges of the generators, a held-out share within tolerance with a Wilson interval, next to the bench grid | measure | done | k68, k105 |
 | k113 | A hull for `bbox`: `pack.fill` goes above 1 on polygon outputs, because the measure reads the item boxes and `bbox` places the tight boxes of the shapes | measure | done | k91 |
@@ -126,7 +126,7 @@ Status: done, done, waiting, next, done.
 | k117 | A work budget for composites: count placements, not milliseconds, so each result is a pure function of the input and the config. Wall-clock stays an opt-in | core | done | k112 |
 | k118 | Bounds that count margins and gaps, knobs relative to the item size, and a `pack.gap` of 1 or less on each sampled pair | measure | done | k51, k116 |
 | k119 | A prior over all families: the family weights come from the union of the committed corpora, with the effective count next to each prior share | measure | done | k116 |
-| k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | next | k116, k119 |
+| k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | done | k116, k119 |
 | k121 | Determinism as a gate: the bench fails on a pair that is not deterministic and has no clock limit, a repeat test runs each entry in a shuffled order, and the source of the 2 bad pairs is found | measure | done | k116, k118 |
 | k122 | The prior as a parameter: union, family-flat or tempered (union weights to a power in the space). The headline is family-flat, with union beside it and the effective count of each. The adversary family is its own stratum | measure | later | k119 |
 | k123 | Balance and stability on each record: the gap spread, the offset of the slack centroid, the empty share per side, and the move under an input change and a seed change. Compare shows compact against spread as a front | measure | done | k118 |
@@ -146,6 +146,7 @@ Status: done, done, waiting, next, done.
 | k137 | A link pull after a pack. The option `pull` of `relax` moves each linked box along its free space toward its balance point. The boxes make no new overlap and stay in the container. The option `relax-pull` of `combine` holds it in `packSpace`. | core | done | k124, k131 |
 | k138 | The fallback of `force` and `relax` to their member is a typed field of the output. A host can then tell its user which strategy gave the layout. Today the fallback is only the trace measures `force.fallback` and `relax.fallback`. | core | later | |
 | k139 | `overflow` tells why each item has no place: too large for the container, or no free place. `pack()` with only `fixedWidth` also tells of a rectangle wider than that width. Today a too-large item is in `overflow`, with no reason. | core | later | |
+| k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | done | |
 
 ## The queue
 
@@ -153,37 +154,38 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score | Calibrated |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | k120 | 4 | 3 | 2 | 6.0 | 5.0 |
-| 2 | k25 | 3 | 3 | 2 | 4.5 | 3.8 |
-| 3 | k13 | 3 | 3 | 2 | 4.5 | 3.8 |
-| 4 | k92 | 3 | 3 | 2 | 4.5 | 3.8 |
-| 5 | k10 | 4 | 4 | 4 | 4.0 | 3.3 |
-| 6 | k81 | 4 | 3 | 3 | 4.0 | 3.3 |
-| 7 | k82 | 3 | 4 | 3 | 4.0 | 3.3 |
-| 8 | k83 | 3 | 4 | 3 | 4.0 | 3.3 |
-| 9 | k93 | 4 | 2 | 2 | 4.0 | 3.3 |
-| 10 | k94 | 4 | 3 | 3 | 4.0 | 3.3 |
-| 11 | k95 | 4 | 3 | 3 | 4.0 | 3.3 |
-| 12 | k97 | 3 | 4 | 3 | 4.0 | 3.3 |
-| 13 | k110 | 4 | 2 | 2 | 4.0 | 3.3 |
-| 14 | k84 | 3 | 5 | 4 | 3.8 | 3.1 |
-| 15 | k96 | 5 | 4 | 5 | 4.0 | 2.6 |
-| 16 | k74 | 4 | 3 | 4 | 3.0 | 2.5 |
-| 17 | k52 | 3 | 2 | 2 | 3.0 | 2.5 |
-| 18 | k85 | 3 | 3 | 3 | 3.0 | 2.5 |
-| 19 | k86 | 3 | 5 | 5 | 3.0 | 2.5 |
-| 20 | k87 | 3 | 3 | 3 | 3.0 | 2.5 |
-| 21 | k98 | 3 | 2 | 2 | 3.0 | 2.5 |
-| 22 | k122 | 2 | 3 | 2 | 3.0 | 2.4 |
-| 23 | k109 | 4 | 2 | 3 | 2.7 | 2.2 |
-| 24 | k99 | 3 | 4 | 5 | 2.4 | 2.0 |
-| 25 | k100 | 3 | 3 | 4 | 2.3 | 1.9 |
-| 26 | k101 | 4 | 2 | 4 | 2.0 | 1.7 |
-| 27 | k102 | 3 | 2 | 3 | 2.0 | 1.7 |
-| 28 | k88 | 2 | 2 | 2 | 2.0 | 1.6 |
-| 29 | k103 | 2 | 2 | 2 | 2.0 | 1.6 |
-| 30 | k89 | 2 | 4 | 5 | 1.6 | 1.3 |
-| 31 | k104 | 2 | 3 | 5 | 1.2 | 1.0 |
+| 1 | k25 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 2 | k13 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 3 | k92 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 4 | k10 | 4 | 4 | 4 | 4.0 | 3.3 |
+| 5 | k81 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 6 | k82 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 7 | k83 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 8 | k93 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 9 | k94 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 10 | k95 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 11 | k97 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 12 | k110 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 13 | k84 | 3 | 5 | 4 | 3.8 | 3.1 |
+| 14 | k96 | 5 | 4 | 5 | 4.0 | 2.6 |
+| 15 | k74 | 4 | 3 | 4 | 3.0 | 2.5 |
+| 16 | k52 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 17 | k85 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 18 | k86 | 3 | 5 | 5 | 3.0 | 2.5 |
+| 19 | k87 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 20 | k98 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 21 | k122 | 2 | 3 | 2 | 3.0 | 2.4 |
+| 22 | k109 | 4 | 2 | 3 | 2.7 | 2.2 |
+| 23 | k99 | 3 | 4 | 5 | 2.4 | 2.0 |
+| 24 | k100 | 3 | 3 | 4 | 2.3 | 1.9 |
+| 25 | k101 | 4 | 2 | 4 | 2.0 | 1.7 |
+| 26 | k102 | 3 | 2 | 3 | 2.0 | 1.7 |
+| 27 | k88 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 28 | k103 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 29 | k89 | 2 | 4 | 5 | 1.6 | 1.3 |
+| 30 | k104 | 2 | 3 | 5 | 1.2 | 1.0 |
+
+The order of 2026-11-04 makes k50 next, ahead of this table, so it has no score here.
 
 ### The calibration of 2026-11-03
 

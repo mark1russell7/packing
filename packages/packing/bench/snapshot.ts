@@ -46,6 +46,7 @@ import {
   type StrataMeasure,
 } from "./coverage.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
+import type { PriorKind } from "./prior.ts";
 
 /** The schema of each snapshot file */
 export const SNAPSHOT_SCHEMA = "packing-site-snapshot/1";
@@ -742,13 +743,13 @@ export interface CoverageSnapshotPrior {
   zero: number;
   /** The weight of the families of the corpus with pairs, from 0 to 1 */
   covered: number;
-  /** The kind of the prior (k119): `union` of the committed corpora, or `corpus` of the grid. An older summary does not have it. */
-  kind?: "union" | "corpus";
+  /** The kind of the prior (k119, k122): a kind of `PRIOR_KINDS`. An older summary does not have it. */
+  kind?: PriorKind;
 }
 
 /** The basis of the family prior (k119): its kind, its corpora, the weight of each sampler family and the families without a weight */
 export interface CoverageSnapshotBasis {
-  kind: "union" | "corpus";
+  kind: PriorKind;
   corpora: string[];
   /** The count of the distinct inputs of the corpora in a sampler family */
   inputs: number;
@@ -757,6 +758,10 @@ export interface CoverageSnapshotBasis {
   absent: string[];
   /** The corpus families that the sampler does not draw */
   unmapped: { family: string; inputs: number }[];
+  /** The families that are a stratum of their own, with no weight (k122). An older snapshot does not have them. */
+  strata?: { family: string; inputs: number }[];
+  /** The power of the prior `tempered` (k122) */
+  power?: number;
 }
 
 /** The rounds of the active sample for one measure (k116) */
@@ -803,6 +808,8 @@ export interface CoverageSnapshotSampled {
   forced?: { heavy: CoverageSnapshotPart; rest: CoverageSnapshotPart };
   /** The share with the family prior of the corpus (k116), when the summary has it */
   prior?: CoverageSnapshotPrior;
+  /** The share with the prior beside the headline, with its effective count (k122), when the summary has it */
+  priorBeside?: { kind?: PriorKind; share: number | null; nEff: number };
 }
 
 /** One point of the trend of the coverage: the share of each measure on one date */
@@ -917,6 +924,7 @@ const sampledOf = (m: SampledMeasure): CoverageSnapshotSampled => ({
           ...(m.prior.kind === undefined ? {} : { kind: m.prior.kind }),
         },
       }),
+  ...(m.priorBeside === undefined ? {} : { priorBeside: { ...(m.priorBeside.kind === undefined ? {} : { kind: m.priorBeside.kind }), share: m.priorBeside.share, nEff: m.priorBeside.nEff } }),
 });
 
 /** This function gives the share with the prior and its counts, as the summary has them. */
@@ -1056,6 +1064,8 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
               families: summary.prior.families.map((f) => ({ ...f })),
               absent: [...summary.prior.absent],
               unmapped: summary.prior.unmapped.map((f) => ({ ...f })),
+              ...(summary.prior.strata === undefined ? {} : { strata: summary.prior.strata.map((f) => ({ ...f })) }),
+              ...(summary.prior.power === undefined ? {} : { power: summary.prior.power }),
             },
           }),
     },
@@ -1188,7 +1198,7 @@ export function snapshotMain(argv: readonly string[]): void {
       ...grid,
       ...(hasSample ? readSample(records, manifest, sampleDir, options) : {}),
       ...(hasActive ? { active: readActive(records, manifest, activeDir, { ...options, by: "spec" }, hasSample ? sampleDir : undefined) } : {}),
-      // k119: the basis of the family prior, the union of the committed corpora by default
+      // k119, k122: the basis of the family prior, the same weight for each family by default
       ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
     writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
