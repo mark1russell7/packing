@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 392 names
+## . (build/index.d.ts): 401 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -223,6 +223,10 @@ THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
+type TreemapCell: build/index.d.ts#TreemapCell
+type TreemapLayout: build/index.d.ts#TreemapLayout
+type TreemapNode: build/index.d.ts#TreemapNode
+type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/strategy.d.ts#UnsupportedCell
 UnsupportedShape: build/strategy.d.ts#UnsupportedShape
@@ -388,6 +392,11 @@ tallRow: build/index.d.ts#tallRow
 tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
+treemapPack: build/index.d.ts#treemapPack
+treemapPivotSplit: build/index.d.ts#treemapPivotSplit
+treemapSliceDice: build/index.d.ts#treemapSliceDice
+treemapSquarified: build/index.d.ts#treemapSquarified
+treemapStrip: build/index.d.ts#treemapStrip
 turnItem: build/strategy.d.ts#turnItem
 turnPoint: @mark1russell7/layout-contract#turnPoint (external)
 turnPort: @mark1russell7/layout-contract#turnPort (external)
@@ -1343,6 +1352,30 @@ type TallRowParams = {
   count: number;
 };
 
+### build/index.d.ts#TreemapCell
+interface TreemapCell extends Rect$1 {
+  readonly id: string;
+}
+
+### build/index.d.ts#TreemapLayout
+type TreemapLayout = (nodes: readonly TreemapNode[], frame: Rect$1) => TreemapCell[];
+
+### build/index.d.ts#TreemapNode
+type TreemapNode = {
+  readonly id: string;
+  readonly weight: number;
+  readonly children?: undefined;
+} | {
+  readonly id: string;
+  readonly children: readonly TreemapNode[];
+  readonly weight?: undefined;
+};
+
+### build/index.d.ts#TreemapStripOptions
+interface TreemapStripOptions {
+  readonly lookahead?: boolean;
+}
+
 ### build/index.d.ts#UiParams
 type UiParams = {
   containerSize: DimensionValue<"containerSize">;
@@ -1785,6 +1818,21 @@ export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "box
 
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
+
+### build/index.d.ts#treemapPack
+export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
+
+### build/index.d.ts#treemapPivotSplit
+export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: Rect$1): TreemapCell[];
+
+### build/index.d.ts#treemapSliceDice
+export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: Rect$1): TreemapCell[];
+
+### build/index.d.ts#treemapSquarified
+export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: Rect$1): TreemapCell[];
+
+### build/index.d.ts#treemapStrip
+export declare function treemapStrip(nodes: readonly TreemapNode[], frame: Rect$1, options?: TreemapStripOptions): TreemapCell[];
 
 ### build/index.d.ts#wallLocks
 export declare const wallLocks: CorpusGenerator<WallLocksParams>;
