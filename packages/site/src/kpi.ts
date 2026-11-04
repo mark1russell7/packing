@@ -1,8 +1,5 @@
 // The numbers of the file `kpi.json` of the site (roadmap item k145). Each value comes from the registry or from a file of the site,
-// so no reader copies a number from a page. The script `scripts/write-kpi.ts` writes the file after the build.
-
-/** The format of the file. */
-export const KPI_FORMAT = "kpi/1";
+// so no reader copies a number from a page. The build writes the file with `siteKpi` of `@mark1russell7/site-pages`.
 
 /** The name of the project in the file. */
 export const KPI_PROJECT = "packing";
@@ -16,19 +13,18 @@ const TREND_MIN_WEEKS = 2;
 const DAY_MS = 86_400_000;
 
 /** One measure of the file. */
-export interface KpiMeasure {
+export interface SiteMeasure {
   readonly id: string;
   readonly value: number;
   readonly unit?: string;
+  readonly at: string;
 }
 
-/** The file `kpi.json`. */
-export interface KpiFile {
-  readonly format: typeof KPI_FORMAT;
+/** The data of the file, for the writer of the file. The time `at` is the time of the oldest measure. */
+export interface SiteKpi {
   readonly project: string;
   readonly at: string;
-  readonly commit: string;
-  readonly measures: readonly KpiMeasure[];
+  measures: SiteMeasure[];
 }
 
 /** The facts that the measures read. */
@@ -47,6 +43,12 @@ export interface KpiFacts {
   readonly trend: readonly string[];
   /** The value `true` when the site has the page of the response explorer. */
   readonly explorer: boolean;
+  /** The time of the commit of the build, in UTC. */
+  readonly commitAt: string;
+  /** The time of the last commit of `data/law-cover.json`, in UTC. */
+  readonly lawPairsAt: string;
+  /** The time of the last commit of `data/coverage.json`, in UTC. */
+  readonly coverageAt: string;
 }
 
 /** This function counts the places in the text of the pages that state a count of strategies that differs from the registry. */
@@ -64,20 +66,19 @@ export function weeklyTrend(dates: readonly string[], now: number): boolean {
   return new Set(days.map(weekOf)).size >= TREND_MIN_WEEKS && now - Math.max(...days) <= TREND_MAX_DAYS * DAY_MS;
 }
 
-/** This function gives the file from the facts, the time of the build and the commit. */
-export function kpiFile(facts: KpiFacts, now: number, commit: string): KpiFile {
-  return {
-    format: KPI_FORMAT,
-    project: KPI_PROJECT,
-    at: new Date(now).toISOString().replace(/\.\d+Z$/, "Z"),
-    commit,
-    measures: [
-      { id: "picker-strategies", value: facts.picker, unit: "strategies" },
-      { id: "stale-text", value: staleText(facts.pages, facts.strategies), unit: "places" },
-      { id: "input-families", value: facts.families, unit: "families" },
-      { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs" },
-      { id: "coverage-shown", value: weeklyTrend(facts.trend, now) ? 1 : 0 },
-      { id: "explorer-live", value: facts.explorer ? 1 : 0 },
-    ],
-  };
+/**
+ * This function gives the data of the file from the facts. Each time is the time of the data of its measure, and not the time of the
+ * build. The measures of the registry and the pages have the time of the commit. Only the test of a weekly trend reads the time `now`.
+ */
+export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
+  const coverageAt = facts.trend.length === 0 ? facts.coverageAt : `${[...facts.trend].sort().at(-1)!}T00:00:00Z`;
+  const measures: SiteMeasure[] = [
+    { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
+    { id: "stale-text", value: staleText(facts.pages, facts.strategies), unit: "places", at: facts.commitAt },
+    { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
+    { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
+    { id: "coverage-shown", value: weeklyTrend(facts.trend, now) ? 1 : 0, at: coverageAt },
+    { id: "explorer-live", value: facts.explorer ? 1 : 0, at: facts.commitAt },
+  ];
+  return { project: KPI_PROJECT, at: measures.map((m) => m.at).sort()[0]!, measures };
 }

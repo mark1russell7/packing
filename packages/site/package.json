@@ -7,7 +7,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node --no-warnings scripts/write-kpi.ts",
+    "build": "vite build",
     "preview": "vite preview",
     "render-check": "node scripts/render-check.ts",
     "test": "vitest run",
@@ -26,7 +26,7 @@
     "@mark1russell7/layout-contract": "^0.3.10",
     "@mark1russell7/packing": "workspace:*",
     "@mark1russell7/rigor-statistics": "^0.1.9",
-    "@mark1russell7/site-pages": "^0.2.3",
+    "@mark1russell7/site-pages": "^0.2.6",
     "marked": "^18.1.2"
   },
   "description": "The GitHub Pages site of packing: a live demo of the strategies, the sort orders and the measures."
