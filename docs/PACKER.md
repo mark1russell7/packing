@@ -432,7 +432,7 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 
 ### A raster no-fit
 
-Roadmap item k92 adds the function `packRasterNofit` (idea S3 of the survey, catalog row `nest-raster-brkga`). It packs free forms on a grid of cells. This first slice is a standalone function. It is opt-in, and it is not in `packSpace`, `ENTRIES` or a default.
+Roadmap item k92 adds the function `packRasterNofit` (idea S3 of the survey, catalog row `nest-raster-brkga`). It packs free forms on a grid of cells. This first slice is a standalone function. It is opt-in. The strategy `raster-nofit` wraps it, and no default uses it.
 
 ```ts
 const output = packRasterNofit(input, { cell: 0.5, trials: 1024, seed: 7 });
@@ -1669,7 +1669,7 @@ The function has no use in a default. It refuses a locked item, a margin, a gap,
 
 ## Masonry and columns
 
-A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. `pack()`, `packSpace`, the registry and the defaults do not know them.
+A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. The strategy `masonry` wraps them. `pack()`, the registry and the defaults do not use them.
 
 | Function | Catalog row | Rule | The tallest column | Reading order |
 |---|---|---|---|---|
@@ -1718,7 +1718,7 @@ This function does not copy the method of Zhang 2013 step by step, and this repo
 
 ## The beam search
 
-The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). The strategy `beam` wraps it. No default uses it, and the space of the bench does not change.
+The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). The strategy `beam` wraps it. No default uses it.
 
 1. A state is a partial layout with a skyline. Each level adds one item to each state.
 2. The valley of the skyline closest to the origin takes the next item. A valley that no item fits rises to its lower neighbor.
@@ -1876,6 +1876,37 @@ These functions take an input, but they are not strategies:
 | `viaAxes` | It turns the axes around a strategy. |
 
 The test `src/all-strategies.test.ts` fails on a new layout function that is in neither of these lists.
+
+### The points in `packSpace`
+
+Roadmap item k142 gives each strategy of this section a point in `packSpace`. The space version stays 1, because each old named config keeps its `configId`. No default uses a new point.
+
+| Option | Stage | Param | Values | Default |
+| --- | --- | --- | --- | --- |
+| `sleator` | `placement` | none | | |
+| `beam` | `placement` | `width` | 1 to 64, log scale | 16 |
+| `exact-strip` | `placement` | `nodeLimit` | 1,000, 10,000, 100,000 | 100,000 |
+| `binary-height` | `placement` | `trials` | 1 to 1,024, log scale | 32 |
+| `near-rects` | `placement` | `rounds` | 0 to 4 | 2 |
+| `raster-nofit` | `placement` | `trials` | 1 to 256, log scale | 64 |
+| `masonry` | `placement` | `method`, `columns` | 3 methods, 1 to 16 | `shortest`, 4 |
+| `treemap` | `placement` | `method` | 4 methods | `squarified` |
+| `side-anchors` | `combine` | `side`, `at` | 4 sides, 0 to 1 | `left`, 0.5 |
+
+- Constraints keep the order `input` and the size search `none` with each placement option.
+- The `combine` option `side-anchors` has 1 member. The params tell the anchor of the first item.
+- `configOfStrategy` and the named configs reach each id. The named config `side-anchors-first-left` is the bench entry of that name.
+- `packConfig` refuses a composite with a standalone member. A composite finds only a member of the registry. The refusal is an `UnsupportedCell`, so the sampler draws again.
+- The contract has no rule that keeps a placement out of the members. Thus 10 of the 18 placements in a member draw give a refusal, and the sampler misses more strata.
+- The points of `near-rects` and `raster-nofit` support only `rect` in this slice. Their strategies also take polygons and circles.
+- `PACK_SPACE_LEFT_OUT` lists each option with no param: `seed`, `cell`, `precision`, `columnWidth` and `anchors`.
+
+| `spaceSize` | Before k142 | Since k142 |
+| --- | --- | --- |
+| 3 levels, `maxMeta: 10n ** 21n` | 949821414192258872763 | 986629892909639107990 |
+| 1 level | 318923941470455703 | 340836128598216010 |
+| 3 levels, `shapes: ["rect"]`, `maxMeta: 10n ** 21n` | 942344896950158904645 | 978922285586167319104 |
+| 1 level, `shapes: ["rect"]` | 316089581715756337 | 337846878693009516 |
 
 ## The decisions
 

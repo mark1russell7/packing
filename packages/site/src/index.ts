@@ -89,6 +89,15 @@ const STRATEGY_LABELS: Record<string, string> = {
   tabu: "Tabu search",
   relax: "Relax",
   force: "Force",
+  sleator: "Sleator",
+  beam: "Beam search",
+  "exact-strip": "Exact strip",
+  "binary-height": "Binary height",
+  "near-rects": "Near rects",
+  "raster-nofit": "Raster no-fit",
+  masonry: "Masonry",
+  treemap: "Treemap",
+  "side-anchors": "Side anchors",
 };
 const strategyLabel = (id: string): string => STRATEGY_LABELS[id] ?? id;
 
@@ -126,6 +135,12 @@ const OPTION_LABELS: Record<string, string> = {
   mutation: "Mutation",
   tenure: "Tabu tenure",
   neighbors: "Moves per step",
+  method: "Method",
+  columns: "Columns",
+  nodeLimit: "Node limit",
+  trials: "Trials",
+  firstSide: "First box: side",
+  firstAt: "First box: place",
 };
 const MODE_LABELS: Record<WidthMode, string> = { fixed: "Fixed", free: "Free" };
 

@@ -17,6 +17,8 @@ import {
   rectGrid,
   SELECT_TABLE,
   shapeStrategies,
+  sideAnchorsStrategy,
+  standaloneStrategies,
   strategies,
   toPackInput,
   UnsupportedCell,
@@ -44,8 +46,8 @@ describe("packSpace", () => {
   // Roadmap item k94 adds 3 base configs with 3 levels and 1 with 1 level: circle-quasi-physical with its levels of iterations. Before k94 the counts were 3798 and 1122.
   it("has 5 stages and 3801 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(3801n);
-    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(1123n);
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(3830n);
+    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(1138n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
@@ -78,10 +80,10 @@ describe("packSpace", () => {
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
     // Roadmap item k94 adds base configs to the members of the meta configs. Before k94 the counts were 946077247154414479086 and 317504231368154898.
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(949821414192258872763n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(318923941470455703n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3795n, meta: 942344896950158904645n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1121n, meta: 316089581715756337n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(986629892909639107990n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(340836128598216010n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3824n, meta: 978922285586167319104n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1136n, meta: 337846878693009516n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -154,14 +156,14 @@ describe("packSpace and the shape kinds", () => {
     const base3 = spaceSize(packSpace, { levels: 3, shapes: ["rect"] }).base;
     const base1 = spaceSize(packSpace, { levels: 1, shapes: ["rect"] }).base;
     for (const kind of ["polygon", "free"] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 7590n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 2242n });
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 7648n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 2272n });
     }
     // Roadmap item k25 adds 75 rect configs with 3 levels and 25 with 1 level. Before k25 the rect counts were 2970 and 890, and the bbox counts were 5940 and 1780.
     // Roadmap items k90 and k94: a circle input also gets the base configs of hole-degree and circle-quasi-physical, 1 for each level. Before k94 the counts were 3 and 1.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 6n, meta: 7590n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 2n, meta: 2242n });
-    expect([base3, base1]).toEqual([3795n, 1121n]);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 6n, meta: 7648n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 2n, meta: 2272n });
+    expect([base3, base1]).toEqual([3824n, 1136n]);
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 6n);
   });
@@ -331,7 +333,7 @@ describe("packSpace and the options of the strategies", () => {
   });
 
   it("has a record for each strategy of the registry, with each key of its defaults", () => {
-    for (const s of [...strategies, ...shapeStrategies, ...composites]) {
+    for (const s of [...strategies, ...shapeStrategies, ...composites, ...standaloneStrategies, sideAnchorsStrategy]) {
       expect(PACK_SPACE_OPTIONS, s.id).toHaveProperty([s.id]);
       for (const key of Object.keys(s.defaults as object)) expect(PACK_SPACE_OPTIONS[s.id], `${s.id}.${key}`).toHaveProperty([key]);
     }
@@ -491,8 +493,9 @@ describe("configOfStrategy (k135)", () => {
   });
 
   it("keeps the configId of each named config of main", () => {
-    // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137, of k25 or of k94. A change of a config or of canonicalConfig changes the hash.
-    const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical"];
+    // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137, of k25, of k94 or of k142. A change of a config or of canonicalConfig changes the hash.
+    const standaloneNames = ["sleator", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "masonry-shortest", "masonry-lpt", "columns-linear-partition", "treemap", "treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "side-anchors-first-left"];
+    const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", ...standaloneNames];
     const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });

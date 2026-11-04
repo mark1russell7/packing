@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 488 names
+## . (build/index.d.ts): 490 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -141,6 +141,7 @@ type LegalizeOptions: build/index.d.ts#LegalizeOptions
 type LockWall: build/index.d.ts#LockWall
 MARTELLO_VIGO_BIN: build/index.d.ts#MARTELLO_VIGO_BIN
 MARTELLO_VIGO_TYPES: build/index.d.ts#MARTELLO_VIGO_TYPES
+MASONRY_METHOD_IDS: build/index.d.ts#MASONRY_METHOD_IDS
 MAXRECTS_BANDS: build/layout-strategy.d.ts#MAXRECTS_BANDS
 MAXRECTS_RULES: build/layout-strategy.d.ts#MAXRECTS_RULES
 MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
@@ -270,6 +271,7 @@ type StripCut: build/index.d.ts#StripCut
 type Supports: build/strategy.d.ts#Supports
 TABU_STAGE: build/index.d.ts#TABU_STAGE
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
+TREEMAP_METHOD_IDS: build/index.d.ts#TREEMAP_METHOD_IDS
 type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
@@ -1226,6 +1228,9 @@ export declare const MARTELLO_VIGO_TYPES: readonly {
   readonly h: readonly [number, number];
 }[];
 
+### build/index.d.ts#MASONRY_METHOD_IDS
+export declare const MASONRY_METHOD_IDS: readonly MasonryMethod[];
+
 ### build/index.d.ts#MEASURE_SPECS
 export declare const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>>;
 
@@ -1685,6 +1690,9 @@ export declare const TABU_STAGE = "tabu";
 
 ### build/index.d.ts#THIN_INPUTS
 export declare const THIN_INPUTS = 12;
+
+### build/index.d.ts#TREEMAP_METHOD_IDS
+export declare const TREEMAP_METHOD_IDS: readonly TreemapMethod[];
 
 ### build/index.d.ts#TabuStrategyOptions
 interface TabuStrategyOptions {

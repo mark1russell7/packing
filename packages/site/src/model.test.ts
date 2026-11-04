@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { circleOverlaps, packFree, Rect, strategy as registryStrategy } from "@mark1russell7/packing";
+import { circleOverlaps, packFree, Rect, sideAnchorsStrategy, standaloneStrategies, strategy as registryStrategy } from "@mark1russell7/packing";
 import {
   chosenTry,
   inputOf,
@@ -20,6 +20,9 @@ import {
 
 // The items of the rect presets are rectangles. A strategy of one other shape kind (`hole-degree` of k90) refuses them.
 const RECT_STRATEGIES = STRATEGIES.filter((id) => registryStrategy(id).supports.itemShape.includes("rect"));
+
+/** The rectangle strategies that take each input: a standalone strategy refuses most inputs. */
+const WIDE_STRATEGIES = RECT_STRATEGIES.filter((id) => ![...standaloneStrategies, sideAnchorsStrategy].some((s) => s.id === id));
 
 const overlaps = (a: Placed, b: Placed): boolean =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -54,9 +57,20 @@ describe("makeItems", () => {
 });
 
 describe("runPacking", () => {
+  it("gives each standalone strategy a layout or the text of its refusal", () => {
+    const items = makeItems("mixed", 12, 3).map((item) => ({ ...item, w: Math.round(item.w), h: Math.round(item.h) }));
+    for (const { id } of [...standaloneStrategies, sideAnchorsStrategy]) {
+      for (const mode of ["fixed", "free"] as const) {
+        const run = runPacking(items, 640, { strategy: id, mode });
+        if (run.error === undefined) expect(run.placed.every((p) => p.packed), `${id} ${mode}`).toBe(true);
+        else expect(run.unsupported, `${id} ${mode}`).toBe(true);
+      }
+    }
+  });
+
   it("packs each item in the width, with no overlap, for each strategy and sort order", () => {
     const items = makeItems("mixed", 30, 3);
-    for (const strategy of RECT_STRATEGIES) {
+    for (const strategy of WIDE_STRATEGIES) {
       for (const order of ORDERS) {
         const run = runPacking(items, 640, { strategy, options: { sortOrder: order } });
         expect(run.placed).toHaveLength(30);

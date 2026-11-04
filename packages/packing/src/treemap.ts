@@ -1,6 +1,6 @@
 // The first treemaps of `docs/research/CATALOG.md` (roadmap item k27): slice and dice, squarified, strip and pivot by split size.
 // A treemap cuts a rectangle into cells. The area of each cell is in proportion to the weight of its item. The functions
-// of this file are standalone. They are not in `packSpace`, in the registry or in a default. `treemapPack` is the
+// of this file are standalone. They are not in the registry or in a default. `treemapPack` is the
 // comparison of the catalog: each box goes to the center of its cell, and the cells scale up until each box fits.
 
 import { marginOf, type PackInput, type PackOutput } from "./contract.ts";
