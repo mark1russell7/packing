@@ -3,7 +3,7 @@ import { kpiFile, staleText, weeklyTrend, type KpiFacts } from "./kpi.ts";
 
 const at = (date: string): number => Date.parse(`${date}T12:00:00Z`);
 
-const FACTS: KpiFacts = { picker: 31, strategies: 31, families: 20, pages: ["The 31 strategies."], trend: [], explorer: false };
+const FACTS: KpiFacts = { picker: 31, strategies: 31, families: 20, lawPairs: 40, pages: ["The 31 strategies."], trend: [], explorer: false };
 
 describe("the stale text", () => {
   it("counts each place with another count of strategies", () => {
@@ -28,10 +28,10 @@ describe("the weekly trend", () => {
 });
 
 describe("the file", () => {
-  it("has the format, the time, the commit and the five measures", () => {
+  it("has the format, the time, the commit and the six measures", () => {
     const file = kpiFile(FACTS, Date.parse("2026-11-04T17:00:00.500Z"), "abc");
     expect(file).toMatchObject({ format: "kpi/1", project: "packing", at: "2026-11-04T17:00:00Z", commit: "abc" });
-    expect(Object.fromEntries(file.measures.map((m) => [m.id, m.value]))).toEqual({ "picker-strategies": 31, "stale-text": 0, "input-families": 20, "coverage-shown": 0, "explorer-live": 0 });
+    expect(Object.fromEntries(file.measures.map((m) => [m.id, m.value]))).toEqual({ "picker-strategies": 31, "stale-text": 0, "input-families": 20, "law-pairs-covered": 40, "coverage-shown": 0, "explorer-live": 0 });
   });
 
   it("tells the page of the explorer", () => {

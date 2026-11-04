@@ -2373,3 +2373,47 @@ The third arm pins, packs and then applies `compactUp` (roadmap item k30). The p
 
 - The distance is the mean `pack.stability.mean`. Its unit is the width of the strip.
 - The compaction takes back only a small part of the height cost: 1.215 goes to 1.192 for `maxrects-bl`. It moves few boxes, and each move is short.
+
+## The law pairs
+
+`bench/law-cover.ts` (roadmap item k146) counts the item laws that the corpus really emits. It generates each committed spec and examines the boxes. The label of a generator has no effect on the result, so one generator with law params gets each pair that it emits.
+
+Each spec gets three laws. A pair of two laws is covered when some spec has both.
+
+| Dimension | Levels | Count |
+| --- | --- | --- |
+| Area law | identical, narrow, uniform, normal, exponential, log-normal, Pareto, bimodal, multimodal | 9 |
+| Aspect law | fixed, narrow, wide, extreme mixed, discrete | 5 |
+| Assortment | all differ, few types, cut from a box | 3 |
+
+There are 87 pairs: 45 of area and aspect, 27 of area and assortment, 15 of aspect and assortment. The full cross of the three dimensions has 135 cells, and it is a later rung.
+
+### The rules of the read
+
+- The read pools the items of each spec over its seeds. It takes out the mean log area of each input only when the means differ by more than the count of items explains.
+- A spread of the log area of at most 0.02 is identical, and at most `ln 1.5` is narrow.
+- A mode needs 10 percent of the items and a valley under half of its height. Two modes are bimodal, and three or more are multimodal.
+- The other areas get the smooth law with the highest likelihood. Each candidate has 2 fitted numbers, so the values compare directly.
+- An aspect is discrete with 2 to 8 clusters. It is extreme mixed with 15 percent of the items past `ln 3` each way and at most 15 percent within `ln 2`.
+- An assortment is a cut when the areas of each input fill the container exactly. For an open strip, the sides are whole and the sum of the areas is a multiple of the width. It is few types when most inputs have at most 16 types and 4 items for each type.
+
+### The floor of items
+
+A spec with fewer than 200 pooled items gives no law, and the result counts it as refused. The floor comes from the recovery of 100 made-up samples for each level, on the seeds of the tuning.
+
+| Items | The worst level | Its recovery |
+| --- | --- | --- |
+| 100 | log-normal | 59 of 100 |
+| 150 | log-normal | 80 of 100 |
+| 200 | log-normal | 92 of 100 |
+| 400 | each level | 100 of 100 |
+
+The test `bench/law-cover.test.ts` holds each of the 14 levels at 90 of 100 or more at the floor. Its seeds are not the seeds of the tuning.
+
+### The first reading
+
+The corpus covers 31 of the 87 pairs. The read gives laws for 544 specs and refuses 321. Of the refused specs, 156 are `rect-grid` specs with 150 or 170 items. `packages/site/data/law-cover.json` holds the cells and the missing pairs, and a test compares it with the read. The manifest `pack-adversary-v1` holds its inputs with no specs, so the read leaves it out.
+
+Two gaps are real. No spec over the floor gives a narrow area law or an extreme mixed aspect law. The generator `rect-grid` has `nearIdentical` and `extremeAspect` sizes, and no committed spec uses them. A spec with those sizes adds pairs.
+
+The number is the lower bound of what the corpus emits, because a refused spec adds no pair.
