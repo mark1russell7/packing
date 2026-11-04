@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 421 names
+## . (build/index.d.ts): 429 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -25,9 +25,11 @@ BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
 BEASLEY_GCUT_COUNTS: build/index.d.ts#BEASLEY_GCUT_COUNTS
 BEASLEY_GCUT_SIDES: build/index.d.ts#BEASLEY_GCUT_SIDES
 BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
+BEST_FIT_SIDES: build/index.d.ts#BEST_FIT_SIDES
 BINARY_HEIGHT_STAGE: build/index.d.ts#BINARY_HEIGHT_STAGE
 BL_TRAP_WIDTH: build/index.d.ts#BL_TRAP_WIDTH
 BL_TRAP_WIDTHS: build/index.d.ts#BL_TRAP_WIDTHS
+BOTTOM_LEFT_RULES: build/index.d.ts#BOTTOM_LEFT_RULES
 BOUND_KINDS: build/index.d.ts#BOUND_KINDS
 BURKE_KENDALL_WHITWELL_RULES: build/index.d.ts#BURKE_KENDALL_WHITWELL_RULES
 type BboxStrategyOptions: build/index.d.ts#BboxStrategyOptions
@@ -35,9 +37,13 @@ type BeasleyGcutParams: build/index.d.ts#BeasleyGcutParams
 type BerkeyWangClass: build/index.d.ts#BerkeyWangClass
 type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
 type BerkeyWangRule: build/index.d.ts#BerkeyWangRule
+type BestFitSide: build/index.d.ts#BestFitSide
+type BestFitStrategyOptions: build/index.d.ts#BestFitStrategyOptions
 type BinaryHeightOptions: build/index.d.ts#BinaryHeightOptions
 type BinaryHeightResult: build/index.d.ts#BinaryHeightResult
 type BlTrapParams: build/index.d.ts#BlTrapParams
+type BottomLeftRule: build/index.d.ts#BottomLeftRule
+type BottomLeftStrategyOptions: build/index.d.ts#BottomLeftStrategyOptions
 type BoundKind: build/index.d.ts#BoundKind
 type BoundMeasures: build/index.d.ts#BoundMeasures
 type BoundObjective: build/index.d.ts#BoundObjective
@@ -269,9 +275,11 @@ beasleyGcutFamily: build/index.d.ts#beasleyGcutFamily
 beasleyGcutRange: build/index.d.ts#beasleyGcutRange
 berkeyWang: build/index.d.ts#berkeyWang
 berkeyWangFamily: build/index.d.ts#berkeyWangFamily
+bestFit: build/index.d.ts#bestFit
 binCountBound: build/index.d.ts#binCountBound
 blTrap: build/index.d.ts#blTrap
 blTrapFamily: build/index.d.ts#blTrapFamily
+bottomLeft: build/index.d.ts#bottomLeft
 boundGap: build/index.d.ts#boundGap
 boundMeasures: build/index.d.ts#boundMeasures
 boundShare: build/index.d.ts#boundShare
@@ -657,6 +665,9 @@ export declare const BEASLEY_GCUT_SIDES: readonly number[];
 ### build/index.d.ts#BERKEY_WANG_RULES
 export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>>;
 
+### build/index.d.ts#BEST_FIT_SIDES
+export declare const BEST_FIT_SIDES: readonly ["left", "tall", "short"];
+
 ### build/index.d.ts#BINARY_HEIGHT_STAGE
 export declare const BINARY_HEIGHT_STAGE: string;
 
@@ -665,6 +676,9 @@ export declare const BL_TRAP_WIDTH = 126;
 
 ### build/index.d.ts#BL_TRAP_WIDTHS
 export declare const BL_TRAP_WIDTHS: Readonly<Record<2 | 3, readonly number[]>>;
+
+### build/index.d.ts#BOTTOM_LEFT_RULES
+export declare const BOTTOM_LEFT_RULES: readonly ["baker", "liu-teng"];
 
 ### build/index.d.ts#BOUND_KINDS
 export declare const BOUND_KINDS: readonly BoundKind[];
@@ -702,6 +716,14 @@ interface BerkeyWangRule {
   readonly max: number;
 }
 
+### build/index.d.ts#BestFitSide
+type BestFitSide = (typeof BEST_FIT_SIDES)[number];
+
+### build/index.d.ts#BestFitStrategyOptions
+interface BestFitStrategyOptions extends Omit<LayoutStrategyOptions, "fit"> {
+  side: BestFitSide;
+}
+
 ### build/index.d.ts#BinaryHeightOptions
 interface BinaryHeightOptions {
   readonly trials?: number;
@@ -724,6 +746,14 @@ type BlTrapParams = {
   containerSize: WorstContainer;
   count: number;
 };
+
+### build/index.d.ts#BottomLeftRule
+type BottomLeftRule = (typeof BOTTOM_LEFT_RULES)[number];
+
+### build/index.d.ts#BottomLeftStrategyOptions
+interface BottomLeftStrategyOptions extends Omit<LayoutStrategyOptions, "fit"> {
+  rule: BottomLeftRule;
+}
 
 ### build/index.d.ts#BoundKind
 type BoundKind = "strip.area" | "strip.tallest" | "strip.mmv" | "strip.margin" | "hull.area" | "hull.extent" | "hull.margin" | "placed.free";
@@ -1559,6 +1589,9 @@ export declare const berkeyWang: CorpusGenerator<BerkeyWangParams>;
 ### build/index.d.ts#berkeyWangFamily
 export declare const berkeyWangFamily: CorpusFamily<GeneratedInput>;
 
+### build/index.d.ts#bestFit
+export declare const bestFit: Strategy<BestFitStrategyOptions>;
+
 ### build/index.d.ts#binCountBound
 export declare function binCountBound(input: {
   readonly container: LayoutContainer;
@@ -1571,6 +1604,9 @@ export declare const blTrap: CorpusGenerator<BlTrapParams>;
 
 ### build/index.d.ts#blTrapFamily
 export declare const blTrapFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#bottomLeft
+export declare const bottomLeft: Strategy<BottomLeftStrategyOptions>;
 
 ### build/index.d.ts#boundGap
 export declare function boundGap(result: number, bound: number, sense: "lower" | "upper"): number;

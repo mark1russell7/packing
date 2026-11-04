@@ -150,7 +150,7 @@
         "k25"
       ],
       "status": "not queued",
-      "note": "k22 shipped the skyline rules `bl` and `mw`, not this search. The best-fit rule is a part of k25.",
+      "note": "k22 shipped the skyline rules `bl` and `mw`, not this search. k25 shipped the best-fit rule as the strategy `best-fit`, not this search.",
       "survey": {
         "gain": 4,
         "uncertainty": 3,
@@ -1518,7 +1518,7 @@
         "k25"
       ],
       "status": "not queued",
-      "note": null,
+      "note": "k25 shipped the strategy `best-fit`. This form gives the same output with balanced trees, so it is only a matter of speed.",
       "survey": null,
       "queue": null,
       "round": 2

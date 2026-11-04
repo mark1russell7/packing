@@ -192,14 +192,14 @@ These methods put each box in a corner of the boxes before it. Bottom-left moves
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n^2)` | `3·OPT` with the decreasing width order (Baker 1980) | planned | k25 |
-| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | — | planned | k25 |
-| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | — | planned | k25 |
-| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | — | planned | k25 |
-| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n^2)` | — | planned | k25 |
-| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | planned | k25 |
-| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | planned | k25 |
-| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | planned | k25 |
+| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n L)`, `L` the legs of all slides, worst `O(n^3)` | `3·OPT` with the decreasing width order (Baker 1980) | implemented: `bottom-left` with the rule `baker` | k25 |
+| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | — | implemented: same output as `maxrects` with the rule `bl` | k25 |
+| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | — | implemented: same output as `maxrects` with the rule `bl` | k25 |
+| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | — | not built: see the notes | k25 |
+| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n L)`, `L` the legs of all slides, worst `O(n^3)` | — | implemented: `bottom-left` with the rule `liu-teng` | k25 |
+| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | implemented: `best-fit`, without the turn and the tower step | k25 |
+| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | not built: the output of `best-fit`, only faster | k25 |
+| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | not built: no source | k25 |
 | `touching-perimeter` | Touching Perimeter (TP) | Put each box in the corner place where the part of its edge that touches walls and boxes is the largest. | Lodi 1999 | density | `O(n^3)` | — | planned | k25 |
 | `corner-degree` | Corner-occupying action with a degree | Put each box only in a corner of two edges. Choose the corner with the highest degree, a measure of how close the box is to the other boxes. | Wu 2002 | density | `O(n^4)` | — | planned | k25 |
 | `caving-degree` | Caving degree | Do `corner-degree` with the caving degree: the box that fits closest into a corner wins. | Huang 2007 | density | `O(n^4)` | — | planned | k25 |
@@ -214,6 +214,13 @@ These methods put each box in a corner of the boxes before it. Bottom-left moves
 Notes:
 
 - `bl-baker` with a decreasing width order uses at most three times the best height. Baker 1980 proves this bound.
+- Roadmap item k25 builds `bl-baker` and `bl-liu-teng` as the strategy `bottom-left`, and `best-fit-bkw` as the strategy `best-fit`. They ship off.
+- A slide does not jump, so a closed hole stays empty. That is the difference between `bl-baker` and the rule of `blf-hopper`.
+- The cost of `bl-baker` and `bl-liu-teng` is the cost of this code, with a linear scan of the walls for each leg. A test of `src/bottom-left.test.ts` shows growth over `O(n^2)` on a stair of pegs.
+- `bl-chazelle` and `blf-hopper` give the rule "lowest, then leftmost, holes included". The lowest and leftmost place is a corner of a maximal free rectangle, so `maxrects` with the rule `bl` gives the same places. A brute-force test of `src/bottom-left.test.ts` shows it on seeded inputs.
+- Thus `bl-chazelle` differs from `blf-hopper` only in its data structure. The package has no strategy for each, and it does not claim the `O(n^2)` of `bl-chazelle`.
+- Aşık 2009 tells `bl-jakobs` as a slide that repeats until the box stops, and that is `bl-baker`. We did not find the one-pass rule of this table in a source, so the package has no strategy for it.
+- `best-fit` puts the widest box that fits. The default order `height-desc` breaks a tie by height. It does not turn a box, and it has no tower step. The corpora have no turnable items.
 - The gap rules (`best-fit-bkw`, `lowest-gap-fill`) do not use a fixed order of the boxes. Thus they make many inversions of the rank.
 
 ## Searches over orders and encodings

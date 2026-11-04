@@ -186,7 +186,8 @@ output.size; // the size of the container
 checkHard(input, output); // { "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 }
 ```
 
-- The registry `strategies` has `rows`, `skyline`, `shelf`, `push` and `maxrects`. `strategy(id)` gives one, and `packWith(id, input, options, seed)` packs with it.
+- The registry `strategies` has `rows`, `skyline`, `shelf`, `push`, `maxrects`, `guillotine`, `bottom-left` and `best-fit`. `strategy(id)` gives one, and `packWith(id, input, options, seed)` packs with it.
+- `bottom-left` slides each box down and left, so it does not jump into a closed hole. `best-fit` puts the widest box that fits into the lowest gap. They are not in `pack`, in a default or in `SELECT_TABLE`.
 - `packDefault(input, seed)` packs with `DEFAULT_STRATEGY`, the composite strategy `select`. It passed the win test against `rows` on two fresh-seed corpora.
 - `fixed` is `size`, `width`, `height` or `none`. A fixed height turns the axes. The value `none` uses the size search `logSweep`, which wraps `packFree`.
 - Each strategy declares its cells in `supports`. `cellOf(input)` gives the cell of an input. A strategy throws `UnsupportedCell` for an input outside its cells.
