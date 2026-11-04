@@ -459,6 +459,8 @@ The report reads no time, so any computer can start it. The columns of the kinds
 - A `reorder` moves under 7 % of the boxes of each strategy, because each default sorts the items first.
 - The share `moved` does not separate these 4 strategies: their means have a spread of 0.025. The prediction asked for 0.10. The mean distance has a larger spread, from 0.049 to 0.074.
 
+The script `bench/pin.ts` makes its own pairs, so its values are not in these records.
+
 ## Stability when an anchor moves
 
 The measures `pack.anchor.*` of `docs/MEASURES.md` need `k + 1` packs for each locked item. Thus the runner computes them only when a run asks for them.
@@ -1374,6 +1376,32 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 - The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
 - The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
 
+## The corpus coverage
+
+The script `bench/corpus-cover.ts` gives the coverage of the taxonomy as numbers (k50). It reads the manifests in `bench/corpora/`, and it generates no input. The cell of a spec comes from `cell` of its generator.
+
+```sh
+node bench/corpus-cover.ts [--out <file>]
+```
+
+The default output is `packages/site/data/corpus-cover.json`. A test compares that file with the output of the script, so a new corpus needs a new file. The results page shows the numbers, a grid of the dimension pairs and the inputs of each pair.
+
+The output has three counts, for the union of the corpora and for each corpus:
+
+| Count | Meaning |
+| --- | --- |
+| `cells` | The distinct cells of the specs, against the product of the 10 dimensions |
+| `pairs` | The distinct pairs of values of two dimensions, against all the pairs |
+| `values` | The values with an input. `empty` lists the other values |
+
+Read these limits:
+
+- The product counts cells that no input can be. So `cellShare` is a lower limit, not a target.
+- The dimensions are `containerSize`, `containerShape`, `obstacles`, `itemShape`, `rotation`, `sizes`, `count`, `order`, `groups` and `mode`. `obstacleMove` is not a dimension here, because only a cell with obstacles has it. A cell has no `objective`.
+- A cell is the statement of the generator. The script does not compare it with the generated input.
+- `pack-adversary-v1` has no specs, so the script lists it in `skipped`.
+- A value outside `COVER_DIMENSIONS` stops the script with a `RangeError`.
+
 ## The space coverage
 
 The script `bench/coverage.ts` tells how much of the space of strategies and inputs a regression tree can predict (k105). It reads the records and the manifest of one run.
@@ -1688,9 +1716,26 @@ The field `prior` gives each generator family a weight. `bench/prior.ts` compute
 The effective count `nEff` tells the precision of the share. A share with the prior and `nEff` 30 is approximately as precise as a uniform share of 30 pairs.
 The sampler draws each family with the same chance. A family with a large weight and few pairs thus makes `nEff` small.
 
+##### The kinds of the prior (k122)
+
+The prior is a parameter. The option `--prior` gives the kind, and `--prior-power` gives the power of `tempered`.
+
+| Kind | The weight of a family |
+|---|---|
+| `family-flat` | The same weight for each sampler family, also a family with no inputs in the corpora. This is the default. |
+| `union` | Its share of the distinct inputs of all the committed corpora. |
+| `tempered` | Its count of `union` to a power from 0 to 1, then scaled. The default power is 0.5. The power 1 gives `union`. |
+| `corpus` | Its share of the inputs of the grid manifest only. |
+
+- The headline is `family-flat`. A realistic input means the families, not the count of the grids in the corpora.
+- With another headline than `union`, each measure of `sampled` also has `priorBeside`: the share with `union` and its effective count.
+- The field `strata` of the basis gives the `adversary` family apart. It has no weight, and the sampler does not draw it, so it has no share.
+- `bench/paired-arms.ts` does not read the prior. Thus the fold verdict of the nightly control does not change.
+- The headline changes the published prior share of the coverage. The uniform share and the grid numbers do not change.
+
 ##### The union of the corpora (k119)
 
-The default prior `union` uses all the committed corpora of `bench/corpora`. The option `--prior corpus` gives the k116 prior of the grid manifest only.
+The prior `union` uses all the committed corpora of `bench/corpora`.
 
 1. Each corpus gives its inputs: each spec with each seed, or each input with its generator.
 2. The union keeps each distinct input one time. Two inputs are the same when their family, params and seed are the same.
@@ -1793,6 +1838,23 @@ The result over the fold seeds (k120, `node bench/paired-arms.ts --out <file> <c
 - `rejects` gives the count of the seeds where the Holm correction finds a change.
 
 The nightly control (k120, `coverage-nightly.yml`):
+
+The first valid result of the control (k120):
+
+Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257557) has 5 of 5 valid cells, and each held-out sample has 400 of 400 pairs. A push of commit `92d441a` started it, not the Monday schedule. A positive value tells that the active arm is better than the control.
+
+| Measure | mean(d) over the seeds | Floor | Seeds with a Holm change | Outcome |
+| --- | --- | --- | --- | --- |
+| `pack.gap` | 0.0506 | 0.05 | 1 of 5 | `gain` |
+| `pack.gapToBound` | -0.0297 | 0.05 | 0 of 5 | `noise` |
+| `pack.fill` | -0.014 | 0.05 | 0 of 5 | `noise` |
+| `pack.overflow.excessArea` | -0.0225 | 0.0704 | 1 of 5 | `noise` |
+| `ms` | -0.0525 | 0.2056 | 3 of 5 | `noise` |
+
+- The active draw beats the control on 1 measure of 5, by 0.0006 over the floor.
+- All 5 seeds of `pack.gap` are positive, but only 1 seed has a Holm change.
+- Do not read this as a general gain of the active draw. The 4 other measures show no gain.
+- The Monday run repeats the test with the same seeds and new code.
 
 - The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
 - A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
@@ -1974,6 +2036,79 @@ A value of this table is the mean of the 100 chains of a kind. `moved` and `dist
 
 These values are from one bench on made-up chains, and they have no interval. `pack.time.ms` is not a part of this bench.
 
+## The Sleator strip
+
+`bench/sleator.ts` measures `sleatorStrip` of roadmap item k52. A height is not a time, so any computer can start it. The prediction is `packing-k52-sleator`.
+
+```bash
+node bench/sleator.ts --out <file.json> [--seeds 30] [--counts 20,100,500]
+```
+
+The strip has a width of 200. Each family has made-up items with a height from 1 to 100. The widths of `narrow` go from 1 to 50, of `mixed` from 1 to 200, and of `wide` from 67 to 200.
+
+| Family | Items | Mean height over the larger of area / width and the tallest item | Mean height over `maxrects-bl` | Share where `maxrects-bl` is lower or equal |
+| --- | --- | --- | --- | --- |
+| narrow | 20 | 1.301 | 1.097 | 93.3 % |
+| narrow | 100 | 1.200 | 1.123 | 100 % |
+| narrow | 500 | 1.192 | 1.162 | 100 % |
+| mixed | 20 | 1.353 | 1.112 | 96.7 % |
+| mixed | 100 | 1.349 | 1.190 | 100 % |
+| mixed | 500 | 1.329 | 1.231 | 100 % |
+| wide | 20 | 1.350 | 1.064 | 100 % |
+| wide | 100 | 1.322 | 1.088 | 100 % |
+| wide | 500 | 1.312 | 1.116 | 100 % |
+
+Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
+## Side anchors
+
+`bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
+
+```bash
+node bench/side-anchors.ts --out <file.json> [--seeds 30] [--count 40] [--anchors 4]
+```
+
+The family has 40 made-up rectangles on a strip of width 200, with 4 anchors on random sides. The member is `maxrects` with the rule `bl`. The stream draws again when two anchors overlap at each height.
+
+| Measure, 30 seeds | Value |
+| --- | --- |
+| Mean height over the height with no anchors | 2.01 |
+| Median of that ratio | 1.09 |
+| Worst of that ratio | 9.55 |
+| Seeds where the anchors alone force more height | 15 |
+| Mean height over the larger of the plain and the forced height | 1.02 |
+| Worst of that ratio | 1.09 |
+| Median packs for one call | 11 |
+| Most packs for one call | 17 |
+| Breaks of the hard rules and of `anchor-kept` | 0 |
+
+The mean is high because of the input, not the search. A fraction and an offset on one side overlap over a range of heights, and the layout must go past that range.
+
+The plain band is shorter on 12 seeds, but each of those 12 layouts has an overlap of its anchors. The search is shorter on all 18 other seeds. This family has random anchors, so it says little about a designed layout.
+## Groups as near rectangles
+
+The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has the inputs `seeds` (default 30) and `count` (default 40). The artifact `near-rects` has `near-rects.json`.
+
+- The made-up family is `raster-k92`. Each input has stars, boxes and circles. The arms are `bbox`, `near-rects` and `raster-nofit` at 64 trials.
+- The public instances are the 12 sets of the workflow `Raster no-fit`. The arms are `bbox` and `near-rects`.
+- The cell is the finest cell of the bench of `k92`: the mean box side over 32, and the strip width over 160.
+- The density is `densityOf`, and `crossingPairs` audits each output with no grid.
+- The time of the pair search is the median over 5 inputs of 100 items, in one CI process.
+
+The file holds a paired comparison for each pair of arms, with a two-sided sign test. The prediction is `packing-k97-near-rects`.
+## The evolved place score
+
+The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
+
+- A score is a tree of `+`, `-`, `*`, a protected `/`, `min` and `max`. Its leaves are the box, the leftovers, the place and the top of the layout, as shares of the width.
+- The first population has the fixed rules as trees. The rule `cp` has no tree.
+- The search reads generated strips from the specs of `pack-strip-v1`, with seeds that the corpus does not hold. The search reads inputs of 200 items or fewer.
+- Each search has its own seed. Seeds that the search did not read choose one tree.
+- The program then reads the 264 free-height inputs of `pack-strip-v1`. No choice comes from them, and `--skip-held-out` keeps them out of a smoke test.
+
+The report gives the mean height over the objective bound, the gain over the best fixed rule, and a two-sided sign test. The numbers are in the artifact `gp-score`.
+
+The score tree stays in `bench/gp-score.ts`, and `packMaxRects` reads only a function. No strategy gives the option `score`, and no default uses it.
+
 ## The binary search on the height
 
 The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap item k81) has the input families of the exact bench. It has no gate.
@@ -1984,3 +2119,87 @@ The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap ite
 - The line `first-layout` shows the height before the search.
 
 The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
+
+## The rank window
+
+`bench/window.ts` measures the curve of the idea `new-rank-window` of roadmap item k31. A height and an order are not a time, so any computer can start it. The prediction is `packing-k31-rank-window`.
+
+```bash
+node bench/window.ts --out <file.json> [--seeds 30] [--count 100] [--windows 1,2,3,4,6,8,12,16,32,100]
+```
+
+The inputs are made-up strips of width 200 with 100 items and 30 seeds. The rank of an item is its input place. The pack is `maxrects` with the rule `bl` and the option `sortOrder: "input"`. The gain is the share of the height gain from window 1 to window 100.
+
+| Window | Mean height | Gain | `pack.order.inversions` |
+| --- | --- | --- | --- |
+| 1 | 888.9 | 0.00 | 0.177 |
+| 2 | 887.1 | 0.02 | 0.177 |
+| 3 | 885.7 | 0.04 | 0.181 |
+| 4 | 884.5 | 0.06 | 0.183 |
+| 6 | 881.9 | 0.09 | 0.192 |
+| 8 | 877.3 | 0.15 | 0.197 |
+| 12 | 874.3 | 0.19 | 0.230 |
+| 16 | 860.3 | 0.38 | 0.251 |
+| 32 | 831.1 | 0.76 | 0.360 |
+| 100 | 813.3 | 1.00 | 0.503 |
+
+- The curve has no knee at a small window. Half of the gain comes only between window 16 and window 32.
+- The mean height falls at each listed window. The hard rules have 0 breaks.
+- Window 1 has inversions of 0.177, because `maxrects` can put a box above an earlier box.
+- The count of 100 items sets the scale of the windows. This run does not measure a window as a share of the count.
+## The pin of unchanged boxes
+
+`bench/pin.ts` measures `pinUnchanged` of roadmap item k29. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k29-pin-unchanged`.
+
+```bash
+node bench/pin.ts --out <file.json> [--seeds 30] [--count 100] [--share 0.05] [--steps 10]
+```
+
+The inputs are made-up strips of width 200 with 100 items. Each seed is a chain of 10 change steps. One step has 5 edits: 2 removed items, 2 added items and 1 resized item. The cost is the pinned height over the fresh height of the same step.
+
+| Entry | Moved, fresh | Moved, pinned | Cost, step 1 | Cost, step 10 | Worst cost |
+| --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | 0.757 | 0.010 | 1.072 | 1.215 | 1.328 |
+| `skyline` | 0.808 | 0.010 | 1.082 | 1.318 | 1.462 |
+
+- The moved column is the mean `pack.stability.moved`. A resized box stays in that measure, and it moves. That is the 0.010 of the pinned arm.
+- The hard rules have 0 breaks, and each item has a place.
+- These are the first values of `pack.stability.*`. They come from this script, not from a corpus.
+
+## The beam search
+
+`bench/beam.ts` measures `beamStrip` of roadmap item k85. A height is not a time, so any computer can start it. The prediction is `packing-k85-beam`.
+
+```bash
+node bench/beam.ts --out <file.json> [--seeds 10] [--count 100] [--widths 1,4,16]
+```
+
+The family is the 10 classes of `berkeyWang` and `martelloVigo`, with 100 items and 10 seeds. The gap is `(height / (area / width) - 1) * 100`, the form of Wen 2025. Lower is better.
+
+| Class | `maxrects-bl` | Width 1 | Width 4 | Width 16 |
+| --- | --- | --- | --- | --- |
+| Berkey and Wang I | 7.19 | 6.97 | 4.21 | 3.79 |
+| Berkey and Wang II | 2.37 | 3.80 | 1.19 | 0.88 |
+| Berkey and Wang III | 13.92 | 15.53 | 9.52 | 8.82 |
+| Berkey and Wang IV | 7.09 | 7.65 | 3.61 | 2.81 |
+| Berkey and Wang V | 13.20 | 15.54 | 10.02 | 9.91 |
+| Berkey and Wang VI | 8.12 | 8.83 | 4.76 | 4.00 |
+| Martello and Vigo VII | 19.71 | 18.85 | 16.06 | 15.70 |
+| Martello and Vigo VIII | 11.63 | 10.92 | 6.56 | 5.36 |
+| Martello and Vigo IX | 25.42 | 24.56 | 24.12 | 23.89 |
+| Martello and Vigo X | 9.63 | 11.84 | 6.73 | 6.16 |
+| Mean | 11.83 | 12.45 | 8.68 | 8.13 |
+
+- Width 16 is lower than or equal to `maxrects-bl` on 100 of 100 inputs.
+- The hard rules have 0 breaks. The three widths together have a mean of 18084 greedy completions for one input.
+- Wen 2025 gives a gap of 7.56 for the set BWMV with no turns at 60 seconds. Those instances are not these inputs, and that method has blocks. The value is only a scale, and this table makes no parity claim.
+- The gap uses a lower bound, not the optimum. In class IX, large items make that bound weak.
+The third arm pins, packs and then applies `compactUp` (roadmap item k30). The prediction is `packing-k30-compact-up`.
+
+| Entry | Moved | Distance, fresh | Distance, compacted | Cost, step 1 | Cost, step 10 | Worst cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | 0.146 | 0.355 | 0.028 | 1.071 | 1.192 | 1.290 |
+| `skyline` | 0.221 | 0.333 | 0.052 | 1.080 | 1.229 | 1.383 |
+
+- The distance is the mean `pack.stability.mean`. Its unit is the width of the strip.
+- The compaction takes back only a small part of the height cost: 1.215 goes to 1.192 for `maxrects-bl`. It moves few boxes, and each move is short.

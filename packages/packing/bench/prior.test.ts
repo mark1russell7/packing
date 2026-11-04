@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { corpusFamilies } from "@mark1russell7/packing";
 import { priorShare } from "./coverage.ts";
-import { basisLines, DEFAULT_PRIOR, familyKey, PRIOR_ALIASES, priorBasis, priorWeights, readCorpora, SAMPLER_FAMILIES, samplerFamilyOf, unionPrior, type PriorManifest } from "./prior.ts";
+import { basisLines, BESIDE_PRIOR, corporaPrior, DEFAULT_PRIOR, familyKey, PRIOR_ALIASES, PRIOR_KINDS, PRIOR_STRATA, priorBasis, priorWeights, readCorpora, SAMPLER_FAMILIES, samplerFamilyOf, unionPrior, type PriorManifest } from "./prior.ts";
 
 /** Three small corpora. The corpora `b` and `c` share one input of `x@1`. The family `q@1` is not in the sampler. */
 const A: PriorManifest = { corpus: "a", specs: [{ generator: "x", version: 1, params: { n: 1 }, seeds: [1, 2, 3] }] };
@@ -34,6 +34,7 @@ describe("the family prior of k119", () => {
       ],
       absent: ["z@1"],
       unmapped: [{ family: "q@1", inputs: 2 }],
+      strata: [],
     });
     const w = priorWeights(b);
     expect([...w.values()].reduce((s, v) => s + v, 0)).toBeCloseTo(1, 12);
@@ -74,8 +75,7 @@ describe("the family prior of k119", () => {
     expect(SAMPLER_FAMILIES).toEqual(corpusFamilies.map((f) => `${f.name}@${f.version}`));
   });
 
-  it("gives the union of the committed corpora as the default, with each sampler family", () => {
-    expect(DEFAULT_PRIOR).toBe("union");
+  it("gives the union of the committed corpora, with each sampler family", () => {
     const b = unionPrior();
     expect(b.corpora.length).toBe(readCorpora().length);
     expect(b.families.map((f) => f.family)).toEqual(SAMPLER_FAMILIES.filter((f) => !b.absent.includes(f)));
@@ -88,6 +88,43 @@ describe("the family prior of k119", () => {
   it("gives the same weights without the chains of pack-change-v1", () => {
     const others = readCorpora().filter((m) => m.corpus !== "pack-change-v1");
     expect(priorBasis(others, "union").families).toEqual(unionPrior().families);
+  });
+
+  it("has family-flat as the headline, with union beside it, and the 4 kinds", () => {
+    expect(DEFAULT_PRIOR).toBe("family-flat");
+    expect(BESIDE_PRIOR).toBe("union");
+    expect(PRIOR_KINDS).toEqual(["union", "corpus", "family-flat", "tempered"]);
+  });
+
+  it("gives each sampler family the same weight with family-flat, also a family with no inputs", () => {
+    const b = corporaPrior("family-flat");
+    expect(b.families.map((f) => f.family)).toEqual(SAMPLER_FAMILIES);
+    expect(b.absent).toEqual([]);
+    const weights = [...priorWeights(b).values()];
+    for (const w of weights) expect(w).toBeCloseTo(1 / SAMPLER_FAMILIES.length, 12);
+    expect(basisLines(b)[0]).toMatch(/^The family prior: the same weight for each family, over \d+ corpora/);
+  });
+
+  it("takes the inputs to the power with tempered: the power 1 is union, and the power 0 is flat over the families with inputs", () => {
+    const m: PriorManifest = { corpus: "t", specs: [{ generator: "a", seeds: [1, 2, 3, 4] }, { generator: "b", seeds: [1] }] };
+    const families = ["a@1", "b@1", "c@1"];
+    const of = (power: number): number[] => [...priorWeights(priorBasis([m], "tempered", families, power)).values()];
+    expect(of(1)).toEqual([...priorWeights(priorBasis([m], "union", families)).values()]);
+    expect(of(0)).toEqual([0.5, 0.5]);
+    expect(of(0.5)).toEqual([2 / 3, 1 / 3]);
+    expect(priorBasis([m], "tempered", families, 0.5)).toMatchObject({ power: 0.5, absent: ["c@1"] });
+    expect(() => priorBasis([m], "tempered", families, 1.5)).toThrow(RangeError);
+    expect(priorBasis([m], "union", families).power).toBeUndefined();
+  });
+
+  it("keeps the adversary family as a stratum of its own, with no weight", () => {
+    expect(PRIOR_STRATA).toEqual(["adversary@1"]);
+    for (const kind of ["union", "family-flat", "tempered"] as const) {
+      const b = corporaPrior(kind);
+      expect(b.strata).toEqual([{ family: "adversary@1", inputs: 6 }]);
+      expect(priorWeights(b).has("adversary@1")).toBe(false);
+    }
+    expect(basisLines(unionPrior()).at(-1)).toBe("Strata of their own: adversary@1 (6).");
   });
 
   it("reads a spec without a version as version 1, and an input without specs from its generator", () => {
