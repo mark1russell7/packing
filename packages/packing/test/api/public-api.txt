@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 429 names
+## . (build/index.d.ts): 438 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -54,6 +54,8 @@ CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ClassContainer: build/index.d.ts#ClassContainer
+type ColumnBalance: build/index.d.ts#ColumnBalance
+type ColumnReading: build/index.d.ts#ColumnReading
 type ConsecutiveSquaresParams: build/index.d.ts#ConsecutiveSquaresParams
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
 type Corpus: build/index.d.ts#Corpus
@@ -132,6 +134,8 @@ MEASURE_SPECS: build/index.d.ts#MEASURE_SPECS
 type Margin: @mark1russell7/layout-contract#Margin (external)
 type MartelloVigoClass: build/index.d.ts#MartelloVigoClass
 type MartelloVigoParams: build/index.d.ts#MartelloVigoParams
+type MasonryLayout: build/index.d.ts#MasonryLayout
+type MasonryOptions: build/index.d.ts#MasonryOptions
 type MaxRectsOptions: build/layout-strategy.d.ts#MaxRectsOptions
 type MaxRectsRule: build/layout-strategy.d.ts#MaxRectsRule
 type MaxRectsStrategyOptions: build/layout-strategy.d.ts#MaxRectsStrategyOptions
@@ -296,6 +300,9 @@ checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
 classGenerators: build/index.d.ts#classGenerators
+columnBalance: build/index.d.ts#columnBalance
+columnReading: build/index.d.ts#columnReading
+columnsLinearPartition: build/index.d.ts#columnsLinearPartition
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
 configOfStrategy: build/index.d.ts#configOfStrategy
@@ -343,6 +350,8 @@ lowestWindow: build/layout-strategy.d.ts#lowestWindow
 marginOf: build/strategy.d.ts#marginOf
 martelloVigo: build/index.d.ts#martelloVigo
 martelloVigoFamily: build/index.d.ts#martelloVigoFamily
+masonryLpt: build/index.d.ts#masonryLpt
+masonryShortest: build/index.d.ts#masonryShortest
 maxrects: build/maxrects-strategy.d.ts#maxrects
 measure: build/index.d.ts#measure
 measureChange: build/index.d.ts#measureChange
@@ -797,6 +806,21 @@ interface ChangeMeasures {
 ### build/index.d.ts#ClassContainer
 type ClassContainer = "fixed" | "freeHeight";
 
+### build/index.d.ts#ColumnBalance
+interface ColumnBalance {
+  readonly heights: readonly number[];
+  readonly balance: number;
+}
+
+### build/index.d.ts#ColumnReading
+interface ColumnReading {
+  readonly inversions: number;
+  readonly inversionShare: number;
+  readonly footrule: number;
+  readonly footruleShare: number;
+  readonly largestMove: number;
+}
+
 ### build/index.d.ts#ConsecutiveSquaresParams
 type ConsecutiveSquaresParams = {
   containerSize: "freeHeight" | "freeArea";
@@ -1092,6 +1116,15 @@ type MartelloVigoParams = {
   containerSize: ClassContainer;
   count: number;
 };
+
+### build/index.d.ts#MasonryLayout
+type MasonryLayout = (input: PackInput, options: MasonryOptions) => PackOutput;
+
+### build/index.d.ts#MasonryOptions
+interface MasonryOptions {
+  readonly columns: number;
+  readonly columnWidth?: number;
+}
 
 ### build/index.d.ts#MeasureFamily
 type MeasureFamily = "density" | "aspect" | "order" | "raggedness" | "overflow" | "stability" | "determinism" | "speed" | "bound" | "balance";
@@ -1651,6 +1684,15 @@ export declare function checkSelectTable(table: SelectNode, members: number): vo
 ### build/index.d.ts#classGenerators
 export declare const classGenerators: readonly CorpusGenerator[];
 
+### build/index.d.ts#columnBalance
+export declare function columnBalance(input: PackInput, output: PackOutput, options: MasonryOptions): ColumnBalance;
+
+### build/index.d.ts#columnReading
+export declare function columnReading(input: PackInput, output: PackOutput): ColumnReading;
+
+### build/index.d.ts#columnsLinearPartition
+export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;
+
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];
 
@@ -1772,6 +1814,12 @@ export declare const martelloVigo: CorpusGenerator<MartelloVigoParams>;
 
 ### build/index.d.ts#martelloVigoFamily
 export declare const martelloVigoFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#masonryLpt
+export declare function masonryLpt(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#masonryShortest
+export declare function masonryShortest(input: PackInput, options: MasonryOptions): PackOutput;
 
 ### build/index.d.ts#measure
 export declare function measure(input: PackInput, output: PackOutput, options?: MeasureOptions): LayoutMeasures;

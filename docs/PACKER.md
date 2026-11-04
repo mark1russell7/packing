@@ -1562,6 +1562,41 @@ Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. 
 
 The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
+## Masonry and columns
+
+A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. `pack()`, `packSpace`, the registry and the defaults do not know them.
+
+| Function | Catalog row | Rule | The tallest column | Reading order |
+|---|---|---|---|---|
+| `masonryShortest` | `masonry-shortest` | Each box, in the input order, goes to the shortest column. | At most `2 - 1/c` of the optimum (Graham 1966) | Keeps the order from the top |
+| `masonryLpt` | `masonry-lpt` | The boxes go by height, decreasing, to the shortest column. | At most `4/3 - 1/(3c)` of the optimum (Graham 1969) | Loses the input order |
+| `columnsLinearPartition` | `columns-linear-partition` | Cuts of the input order make the columns. | The least of all cuts (Skiena 2008) | Keeps the order in each column |
+
+Each function takes a `PackInput` and `{ columns, columnWidth? }`, and gives a `PackOutput`.
+
+- The default column width is the widest box with its margins. A wider box is a `RangeError`.
+- The container must have `fixed: "none"`, because the columns set the size. An obstacle, a locked item and `pairGaps` are a `RangeError`.
+- The input order is the `rank` of an item and then its position in the list. A box does not turn.
+- The heights of a column add the top margin, the bottom margin and the gap of each box.
+- Many cuts can have the same tallest column. `columnsLinearPartition` takes the cut with the least sum of squared heights, so a column does not stay empty next to a tall card.
+- `masonryShortest` uses a scan, not a heap, so its cost is `O(n c)`. The heap of the catalog needs a dependency, and a wall has few columns.
+
+Two functions measure a layout:
+
+- `columnBalance` gives the height of each column and `balance`, the catalog measure `pack.columnBalance`: the tallest height minus the shortest height, divided by the tallest height. It reads a column at the left edge of a box, so give it the options of the layout.
+- `columnReading` compares the input order with the visual order, which sorts by the top and then by the left. It gives the inversions of Kendall, the footrule of Spearman, each as a share of its largest value, and the largest move of one box.
+
+The function `measure` has a family `pack.balance.*` of other values, so a value with the name `pack.columnBalance` needs a decision. Thus `balance` is not in `measure` yet.
+
+These values are for the inputs of the last test of `src/masonry.test.ts`: 200 made-up inputs of 60 boxes in 4 columns, with whole heights from 1 to 100.
+
+| Function | Mean `footruleShare` | Mean `inversionShare` | Mean `balance` | Mean `pack.order.inversions` |
+|---|---|---|---|---|
+| `masonryShortest` | 0 | 0 | 0.070 | 0.046 |
+| `masonryLpt` | 0.668 | 0.498 | 0.004 | 0.498 |
+| `columnsLinearPartition` | 0.576 | 0.375 | 0.066 | 0.328 |
+
+A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
 ## The binary search on the height
 
 The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
