@@ -1342,6 +1342,32 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 - The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
 - The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
 
+## The corpus coverage
+
+The script `bench/corpus-cover.ts` gives the coverage of the taxonomy as numbers (k50). It reads the manifests in `bench/corpora/`, and it generates no input. The cell of a spec comes from `cell` of its generator.
+
+```sh
+node bench/corpus-cover.ts [--out <file>]
+```
+
+The default output is `packages/site/data/corpus-cover.json`. A test compares that file with the output of the script, so a new corpus needs a new file. The results page shows the numbers, a grid of the dimension pairs and the inputs of each pair.
+
+The output has three counts, for the union of the corpora and for each corpus:
+
+| Count | Meaning |
+| --- | --- |
+| `cells` | The distinct cells of the specs, against the product of the 10 dimensions |
+| `pairs` | The distinct pairs of values of two dimensions, against all the pairs |
+| `values` | The values with an input. `empty` lists the other values |
+
+Read these limits:
+
+- The product counts cells that no input can be. So `cellShare` is a lower limit, not a target.
+- The dimensions are `containerSize`, `containerShape`, `obstacles`, `itemShape`, `rotation`, `sizes`, `count`, `order`, `groups` and `mode`. `obstacleMove` is not a dimension here, because only a cell with obstacles has it. A cell has no `objective`.
+- A cell is the statement of the generator. The script does not compare it with the generated input.
+- `pack-adversary-v1` has no specs, so the script lists it in `skipped`.
+- A value outside `COVER_DIMENSIONS` stops the script with a `RangeError`.
+
 ## The space coverage
 
 The script `bench/coverage.ts` tells how much of the space of strategies and inputs a regression tree can predict (k105). It reads the records and the manifest of one run.
@@ -1762,6 +1788,23 @@ The result over the fold seeds (k120, `node bench/paired-arms.ts --out <file> <c
 
 The nightly control (k120, `coverage-nightly.yml`):
 
+The first valid result of the control (k120):
+
+Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257557) has 5 of 5 valid cells, and each held-out sample has 400 of 400 pairs. A push of commit `92d441a` started it, not the Monday schedule. A positive value tells that the active arm is better than the control.
+
+| Measure | mean(d) over the seeds | Floor | Seeds with a Holm change | Outcome |
+| --- | --- | --- | --- | --- |
+| `pack.gap` | 0.0506 | 0.05 | 1 of 5 | `gain` |
+| `pack.gapToBound` | -0.0297 | 0.05 | 0 of 5 | `noise` |
+| `pack.fill` | -0.014 | 0.05 | 0 of 5 | `noise` |
+| `pack.overflow.excessArea` | -0.0225 | 0.0704 | 1 of 5 | `noise` |
+| `ms` | -0.0525 | 0.2056 | 3 of 5 | `noise` |
+
+- The active draw beats the control on 1 measure of 5, by 0.0006 over the floor.
+- All 5 seeds of `pack.gap` are positive, but only 1 seed has a Holm change.
+- Do not read this as a general gain of the active draw. The 4 other measures show no gain.
+- The Monday run repeats the test with the same seeds and new code.
+
 - The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
 - A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
 - Thus a change of `src` shows in the next Monday run, not at once.
@@ -1910,6 +1953,55 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
 
+## Side anchors
+
+`bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
+
+```bash
+node bench/side-anchors.ts --out <file.json> [--seeds 30] [--count 40] [--anchors 4]
+```
+
+The family has 40 made-up rectangles on a strip of width 200, with 4 anchors on random sides. The member is `maxrects` with the rule `bl`. The stream draws again when two anchors overlap at each height.
+
+| Measure, 30 seeds | Value |
+| --- | --- |
+| Mean height over the height with no anchors | 2.01 |
+| Median of that ratio | 1.09 |
+| Worst of that ratio | 9.55 |
+| Seeds where the anchors alone force more height | 15 |
+| Mean height over the larger of the plain and the forced height | 1.02 |
+| Worst of that ratio | 1.09 |
+| Median packs for one call | 11 |
+| Most packs for one call | 17 |
+| Breaks of the hard rules and of `anchor-kept` | 0 |
+
+The mean is high because of the input, not the search. A fraction and an offset on one side overlap over a range of heights, and the layout must go past that range.
+
+The plain band is shorter on 12 seeds, but each of those 12 layouts has an overlap of its anchors. The search is shorter on all 18 other seeds. This family has random anchors, so it says little about a designed layout.
+## Groups as near rectangles
+
+The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has the inputs `seeds` (default 30) and `count` (default 40). The artifact `near-rects` has `near-rects.json`.
+
+- The made-up family is `raster-k92`. Each input has stars, boxes and circles. The arms are `bbox`, `near-rects` and `raster-nofit` at 64 trials.
+- The public instances are the 12 sets of the workflow `Raster no-fit`. The arms are `bbox` and `near-rects`.
+- The cell is the finest cell of the bench of `k92`: the mean box side over 32, and the strip width over 160.
+- The density is `densityOf`, and `crossingPairs` audits each output with no grid.
+- The time of the pair search is the median over 5 inputs of 100 items, in one CI process.
+
+The file holds a paired comparison for each pair of arms, with a two-sided sign test. The prediction is `packing-k97-near-rects`.
+## The evolved place score
+
+The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
+
+- A score is a tree of `+`, `-`, `*`, a protected `/`, `min` and `max`. Its leaves are the box, the leftovers, the place and the top of the layout, as shares of the width.
+- The first population has the fixed rules as trees. The rule `cp` has no tree.
+- The search reads generated strips from the specs of `pack-strip-v1`, with seeds that the corpus does not hold. The search reads inputs of 200 items or fewer.
+- Each search has its own seed. Seeds that the search did not read choose one tree.
+- The program then reads the 264 free-height inputs of `pack-strip-v1`. No choice comes from them, and `--skip-held-out` keeps them out of a smoke test.
+
+The report gives the mean height over the objective bound, the gain over the best fixed rule, and a two-sided sign test. The numbers are in the artifact `gp-score`.
+
+The score tree stays in `bench/gp-score.ts`, and `packMaxRects` reads only a function. No strategy gives the option `score`, and no default uses it.
 ## The binary search on the height
 
 The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap item k81) has the input families of the exact bench. It has no gate.

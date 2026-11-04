@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.6.1
+
+This release raises the PATCH version: it adds exports and changes no default output. The API report of 0.6.0 and of this version shows 0 removed names and 12 added names.
+
+### Added
+
+- `allStrategies`, the one list of every strategy, with the types `StrategyKind` and `StrategyListing` (roadmap item k140). A listing gives the id, family, kind, supports and deterministic flag of a strategy. A test fails on an exported strategy outside the list.
+- `packNearRects`, with `NEAR_RECTS_STAGE` and the type `NearRectsOptions`, which joins shapes into groups and packs one box for each group (roadmap item k97, first slice).
+- `packSideAnchors` and `checkSideAnchors`, with the types `AnchorSide`, `SideAnchor`, `SideAnchorOptions` and `SideAnchorResult`, which keep an item at a side of the container (roadmap item k110, first slice).
+
+## 0.6.0
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
+
+- `MAXRECTS_RULES` gains `wire`, so the type `MaxRectsRule` gains a value. A consumer with an exhaustive `Record<MaxRectsRule, T>` gets a type error.
+- `packSpace` has more options, so a pinned value of `spaceSize` changes.
+
+The API report of 0.5.0 and of this version shows 0 removed names and 50 added names. `MaxRectsOptions` and `RelaxStrategyOptions` each gain one optional field.
+
+### Added
+
+- The strategies `bottom-left` and `best-fit`, with `bottomLeft`, `bestFit`, `BOTTOM_LEFT_RULES`, `BEST_FIT_SIDES` and their option types (roadmap item k25).
+- The treemaps `treemapSliceDice`, `treemapSquarified`, `treemapStrip`, `treemapPivotSplit` and `treemapPack`, with their types (roadmap item k27).
+- Masonry and ordered columns: `masonryShortest`, `masonryLpt`, `columnsLinearPartition`, `columnBalance` and `columnReading`, with their types (roadmap item k28).
+- The raster no-fit for free forms: `packRasterNofit`, `rasterCell`, `rasterCover`, `RASTER_NOFIT_MAX_CELLS` and `RASTER_NOFIT_STAGE`, with their types (roadmap item k92, first slice).
+- The exact strip baseline: `exactStrip`, `exactStripRefusal` and the limits `EXACT_STRIP_MAX_ITEMS`, `EXACT_STRIP_MAX_SIDE` and `EXACT_STRIP_NODE_LIMIT`, with their types (roadmap item k10, first slice).
+- The binary search on the strip height: `packBinaryHeight`, `BINARY_HEIGHT_STAGE`, `BinaryHeightOptions` and `BinaryHeightResult` (roadmap item k81, first slice).
+- The rule `wire` of `maxrects` places a box near its linked boxes (roadmap item k136). The named config is `maxrects-wire`.
+- The option `pull` of `relax` moves boxes toward their links (roadmap item k137). The constant is `RELAX_PULL_MAX_BOXES`, and `packSpace` has the meta option `relax-pull`.
+- The option `score` of `MaxRectsOptions`, with the type `MaxRectsScore` (roadmap item k83, first slice).
+- `configOfStrategy`, the type `StrategyPoint` and the named config `pack` of `packSpace`, with `PACK_DEFAULT_TABLE` (roadmap item k135).
+- The order `graph-bfs` in `packSpace`, which reads `input.links`.
+- A subpath export for each of `default`, `guillotine`, `hole-degree`, `maxrects`, `push`, `rows`, `shelf` and `skyline` (roadmap item k132).
+
+### Changed
+
+- `packSpace` has more options, so `spaceSize` is larger. The ids of the 60 named configs of 0.5.0 do not change, and 9 named configs are new.
+- The dependency `@mark1russell7/layout-contract` is `^0.3.3`.
+- The new dependency `@mark1russell7/rigor-generators` is `^0.1.1`. `mulberry32`, `fnv1a32` and `boxesOverlap` use their homes.
+
 ## 0.5.0
 
 This release raises the MINOR version. Before 1.0.0, a breaking change raises MINOR, and the two breaks below are breaking changes. The release train publishes it.
