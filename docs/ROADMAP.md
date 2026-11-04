@@ -56,7 +56,7 @@ Status: done, done, waiting, next, done.
 | k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | done | k19, k9 |
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
-| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
+| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions, shown on the site | measure | next | k19, k35 |
 | k51 | Lower bounds, so each result shows its distance to the best | measure | done | k6 |
 | k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
 | k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
@@ -184,6 +184,8 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 | 29 | k103 | 2 | 2 | 2 | 2.0 | 1.6 |
 | 30 | k89 | 2 | 4 | 5 | 1.6 | 1.3 |
 | 31 | k104 | 2 | 3 | 5 | 1.2 | 1.0 |
+
+The order of 2026-11-04 makes k50 next, ahead of this table, so it has no score here.
 
 ### The calibration of 2026-11-03
 
