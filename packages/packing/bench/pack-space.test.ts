@@ -41,7 +41,8 @@ describe("packSpace and the entries of the benchmark", () => {
     expect(ENTRIES).toHaveLength(45);
     // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
     // The named config `pack` of k135 is the choice of `pack` without a strategy. It is not an entry and not an id of the registry.
-    const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...shapeStrategies, ...composites].map((s) => s.id), "pack"];
+    // The named config `maxrects-wire` of k136 is the rule wire of `maxrects`. It is not an entry, because the screen has no links.
+    const ids = [...ENTRIES.map((e) => e.id), ...[...strategies, ...shapeStrategies, ...composites].map((s) => s.id), "pack", "maxrects-wire"];
     for (const id of ids) {
       expect(named, id).toHaveProperty([id]);
       expect(checkConfig(packSpace, named[id]!), id).toEqual([]);

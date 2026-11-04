@@ -14,6 +14,7 @@ export const MOVES: Readonly<{
   blsf: "move.blsf";
   baf: "move.baf";
   cp: "move.cp";
+  wire: "move.wire";
   split: "move.split";
   minWaste: "move.minWaste";
   wasteFill: "move.wasteFill";
@@ -43,6 +44,8 @@ export const MOVES: Readonly<{
   baf: "move.baf",
   /** A rectangle that the rule `cp` of `maxrects` puts in another place than the rule `bl` on the same free rectangles. */
   cp: "move.cp",
+  /** A rectangle that the rule `wire` of `maxrects` puts in another place than the rule `bl` on the same free rectangles. */
+  wire: "move.wire",
   /** A rectangle of `maxrects` that cuts two free rectangles or more. A shelf or a skyline has no such step. */
   split: "move.split",
   /** A rectangle that the skyline rule `mw` puts in another place than the rule `bl` on the same skyline. */

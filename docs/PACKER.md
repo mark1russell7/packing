@@ -633,7 +633,7 @@ The counts of `packSpace`:
 - `configOfStrategy` gives a point for `rows`, `skyline`, `shelf`, `maxrects` and `guillotine` with this order. The placement `push` does not read `input.links`, so a constraint refuses it.
 - `packConfig` gives the output of `packWith`. Without links, the order is `area-desc`.
 - A meta strategy with such a member starts at the graph order. `memberOrder` reads `input.links`, and `ruin-recreate` moves the links to its new item list.
-- The base configs are 3564 and 1068, and 3561 and 1067 for `rect`. The table gives the meta counts.
+- After L34 the base configs were 3564 and 1068, and 3561 and 1067 for `rect`. The table gives the meta counts. The rule `wire` of k136 raises these counts.
 
 | `spaceSize` | Before L34 | Since L34 |
 |---|---:|---:|
@@ -1208,10 +1208,27 @@ The option `rule` chooses the free rectangle. The default is `bssf`. A lower sco
 | `baf` | The leftover area, then the smaller leftover side | `move.baf` | `maxrects-baf` |
 | `bl` | The bottom edge of the box, then its left edge | `move.split` | `maxrects-bl` |
 | `cp` | The most contact length with the frame, the boxes and the obstacles | `move.cp` | `maxrects-cp` |
+| `wire` | The smallest wire length to the placed linked boxes, then the bottom edge of the box | `move.wire` | `maxrects-wire` |
 
 The moves:
 
 - The rule `bl` gives the base place. The move of each other rule counts a box when the rule chooses a place that is not the place of `bl`.
+- The rule `wire` reads the option `links` of `pack`. The wire length is the sum over the placed linked boxes of the link weight times the Manhattan distance between the centers.
+- For a box with a placed link, the rule `wire` tries the 4 corners of each free rectangle. Each other rule tries only the top-left corner.
+- A box with no placed link follows `bl`. Thus an input without links has the layout of `bl`.
+- With a free height, each unit of height under the lowest box costs `WIRE_DEPTH` (8) for each unit of link weight.
+- The rule `wire` gives 6 values of the param `rule`, not 5. The counts of `spaceSize` are then 3708 and 1092 base configs, and 3705 and 1091 for `rect`. The meta counts with 3 levels and 1 level are 839122620777889294392 and 277205931006817716, and 7410 and 2182 for `circle` or `polygon`. The configs of the 5 old rules keep their ids.
+
+The trial of `WIRE_DEPTH` used the seeds 1 to 20, 40 items, a tree of links and the order `graph-bfs`. Each cell gives the wire length and the height of `wire` as a share of `bl`:
+
+| `WIRE_DEPTH` | `uniform` | `heavyTail` | `bimodal` |
+|---:|---:|---:|---:|
+| 0 | 0.424, 1.661 | 0.553, 1.154 | 0.468, 1.699 |
+| 2 | 0.452, 1.456 | 0.550, 1.036 | 0.457, 1.355 |
+| 4 | 0.474, 1.258 | 0.583, 1.013 | 0.468, 1.151 |
+| 8 | 0.562, 1.056 | 0.621, 1.028 | 0.511, 1.054 |
+
+The test `maxrects-wire.test.ts` uses the seeds 101 to 120, because the trial chose the value on the seeds 1 to 20.
 - Thus the move of a rule counts only the choices of that rule. The other steps are the same for each rule, so they do not count.
 - The rule `bl` has no base. Its move `move.split` counts a box that cuts 2 free rectangles or more. This cut is the step that `rows`, `skyline` and `shelf` do not have.
 - The trace of `maxrects` has `move.split` for each rule. The trace of a rule other than `bl` also has the move of the rule.
