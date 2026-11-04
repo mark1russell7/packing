@@ -76,6 +76,8 @@ export {
   type Supports,
 } from "./strategy.ts";
 export {
+  bestFit,
+  bottomLeft,
   guillotine,
   logSweep,
   maxrects,
@@ -83,12 +85,16 @@ export {
   rows,
   shelf,
   skyline,
+  type BestFitStrategyOptions,
+  type BottomLeftStrategyOptions,
   type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
   type MaxRectsStrategyOptions,
   type SkylineStrategyOptions,
   type PushStrategyOptions,
 } from "./adapters.ts";
+export { BEST_FIT_SIDES, type BestFitSide } from "./best-fit.ts";
+export { BOTTOM_LEFT_RULES, type BottomLeftRule } from "./bottom-left.ts";
 export { fromRects, toRects } from "./convert.ts";
 export { aspectFitStrategy, composites, packWith, shapeStrategies, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
@@ -183,7 +189,19 @@ export {
   type BoundOptions,
   type ObjectiveBound,
 } from "./bounds.ts";
+export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
 export { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE, EXACT_STRIP_NODE_LIMIT, exactStrip, exactStripRefusal, type ExactStripOptions, type ExactStripResult } from "./exact-strip.ts";
+export {
+  columnBalance,
+  columnReading,
+  columnsLinearPartition,
+  masonryLpt,
+  masonryShortest,
+  type ColumnBalance,
+  type ColumnReading,
+  type MasonryLayout,
+  type MasonryOptions,
+} from "./masonry.ts";
 export {
   canonicalJson,
   countCell,
@@ -313,3 +331,15 @@ export {
   type UiParams,
 } from "./generators.ts";
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
+export {
+  treemapPack,
+  treemapPivotSplit,
+  treemapSliceDice,
+  treemapSquarified,
+  treemapStrip,
+  type TreemapCell,
+  type TreemapFrame,
+  type TreemapLayout,
+  type TreemapNode,
+  type TreemapStripOptions,
+} from "./treemap.ts";

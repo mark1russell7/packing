@@ -57,6 +57,16 @@ export const MAXRECTS_VARIANTS: readonly BenchEntry[] = Object.freeze([
 ]);
 
 /**
+ * The variants of the strategies of roadmap item k25. The base of each one is its strategy with the defaults: the rule `baker`, or the side `left`.
+ * The corpora have no turnable items, and these strategies do not turn an item.
+ */
+export const BOTTOM_LEFT_VARIANTS: readonly BenchEntry[] = Object.freeze([
+  { id: "bottom-left-liu-teng", strategy: "bottom-left", options: { rule: "liu-teng" }, base: "bottom-left" },
+  { id: "best-fit-tall", strategy: "best-fit", options: { side: "tall" }, base: "best-fit" },
+  { id: "best-fit-short", strategy: "best-fit", options: { side: "short" }, base: "best-fit" },
+]);
+
+/**
  * The composite entries of roadmap item k20, part 2: the strategy `portfolio` with a set of 2 or 3 members for each cell.
  * Their base is `maxrects-bl`, the best single entry of `pack-screen-v1`. Their activation move is `move.pick`.
  * They are not in the pool of the oracle, the greedy sets, the sole wins and the losers.
@@ -199,6 +209,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...MAXRECTS_VARIANTS,
   ...SKYLINE_VARIANTS,
   ...GUILLOTINE_VARIANTS,
+  ...BOTTOM_LEFT_VARIANTS,
   ...PORTFOLIO_ENTRIES,
   ...ASPECT_FIT_ENTRIES,
   ...SELECT_ENTRIES,
