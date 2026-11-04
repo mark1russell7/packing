@@ -81,6 +81,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   restarts: "Restarts",
   bbox: "Bounding boxes",
   "hole-degree": "Hole degree (circles)",
+  "circle-quasi-physical": "Quasi-physical (circle container)",
   "ruin-recreate": "Ruin-recreate",
   "overlap-min": "Overlap min",
   anneal: "Annealing",

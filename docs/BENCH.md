@@ -212,6 +212,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
+| `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
 
 A corpus file can have the field `heldOut`: a seed, or `all`. It sets the held-out split of the portfolio report. The default is the seed 3.
 
@@ -425,7 +426,40 @@ The name `screen-v1` is the screen set of the router `highways`. Thus the packer
 
 The flag `--anchor` adds the measures `pack.anchor.*` of roadmap item k111. The section "Stability when an anchor moves" tells them. Without the flag, the records do not change.
 
-No generator of the package makes an input with a `base` and a `change` yet. Thus no record has the stability measures. When the corpus has change pairs, the runner adds the measures of `measureChange` against the run on the base input. The script `bench/pin.ts` makes its own pairs, so its values are not in these records.
+The generator `change-walk` makes inputs with a `base` and a `change`. The runner adds the measures of `measureChange` against the run on the base input. The section "The change chains" tells the corpus.
+
+## The change chains
+
+The corpus `pack-change-v1` of roadmap item k48 gives the stability measures to a run for the first time. The prediction is `packing-k48-change-walk`.
+
+```bash
+node bench/change.ts                                 # writes the corpus file
+node bench/change.ts --check                         # compares the file with the builder
+node bench/change.ts --report [--strategies a,b]     # writes the table below
+```
+
+- The corpus has the 4 kinds `add`, `remove`, `resize` and `reorder`. It has the counts 20 and 60, the steps 0 to 5 and the seeds 1 to 10.
+- All data is made up.
+- It has 480 inputs, and 400 of them have a base. Each step is one edit of the step before it.
+- The container is a strip with a free height. The width is 300 to 600. The items are 20 to 60 wide and 15 to 50 high.
+- A `reorder` swaps two boxes of the input order. A `resize` keeps the id, so the box stays in the measure.
+- The generator has no corpus family, so the sampler does not draw it. The prior gives it no weight, and the other weights do not change.
+- The contract has no kind of change for a moved obstacle. Thus this corpus has 4 of the 5 kinds of the roadmap row.
+
+The report reads no time, so any computer can start it. The columns of the kinds are the mean of `pack.stability.moved` over the 100 records of the kind. The last column is the mean of `pack.stability.mean` in widths of the container.
+
+| Strategy | Records | `add` | `remove` | `resize` | `reorder` | All | Mean distance |
+|---|---|---|---|---|---|---|---|
+| `rows` | 400 | 0.404 | 0.451 | 0.561 | 0.031 | 0.362 | 0.054 |
+| `shelf` | 400 | 0.391 | 0.443 | 0.536 | 0.037 | 0.352 | 0.049 |
+| `skyline` | 400 | 0.394 | 0.450 | 0.599 | 0.065 | 0.377 | 0.074 |
+| `maxrects-bl` | 400 | 0.383 | 0.442 | 0.579 | 0.058 | 0.366 | 0.070 |
+
+- One `add`, `remove` or `resize` moves approximately half of the staying boxes of `maxrects-bl`.
+- A `reorder` moves under 7 % of the boxes of each strategy, because each default sorts the items first.
+- The share `moved` does not separate these 4 strategies: their means have a spread of 0.025. The prediction asked for 0.10. The mean distance has a larger spread, from 0.049 to 0.074.
+
+The script `bench/pin.ts` makes its own pairs, so its values are not in these records.
 
 ## Stability when an anchor moves
 
@@ -1533,13 +1567,13 @@ Why the clock limits are outside the coverage:
 - A clock limit stops a search after a time. The output then depends on the speed and on the load of the computer.
 - Thus a result with a clock limit measures the computer, not the algorithm. No model of the config and the input can predict it.
 - The default sample draws from `clockFree` of `packSpace`: the param `limitTime` is always `false`.
-- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 27 strata stay the same.
+- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 29 strata stay the same.
 - `packSpace` keeps the clock limits. The option `--timing` of `sample-space.ts` draws them only on request.
 
 The option `--timing`:
 
 - `off` (the default) draws no clock limits.
-- `stratum` adds the timing stratum `clock:1` after the 27 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
+- `stratum` adds the timing stratum `clock:1` after the 29 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
 - `stratum` goes only with `--draw stratified`. The coverage does not read the pairs of `clock:1`, and `sampled.clockPairs` counts them.
 - `mixed` draws from the whole space, as before k121. Pair `i` of a sample with `mixed` is pair `i` of the samples of k112 to k118.
 
@@ -1559,13 +1593,13 @@ The test `bench/shuffle.test.ts` packs each bench entry and 24 sampled configs o
 A uniform draw gives almost only portfolios with 5 members. Thus its share tells little about the other families (k115).
 A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `bench/sample-space.ts` make the strata from the config.
 
-- A base config has the family of its option of the stage `placement`, and the size 1. The 9 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push`, `bottom-left`, `best-fit` and `hole-degree`.
+- A base config has the family of its option of the stage `placement`, and the size 1. The 10 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push`, `bottom-left`, `best-fit`, `hole-degree` and `circle-quasi-physical`.
 - A meta option of the stage `combine` is its own family. Its size is its count of members.
 - `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
 - `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
 - `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` have 1 member.
 - Each one is one stratum. The family of their member does not count.
-- Thus `packSpace` has 27 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- Thus `packSpace` has 29 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
 - A new option of `placement` or `combine` gives new strata.
 
 ```sh
@@ -1574,7 +1608,7 @@ node bench/sample-space.ts --out <folder>/sample --n 400 --seed 1 --stratify
 
 The stratified draw:
 
-1. Pair `i` takes the stratum `i` modulo 23. Thus the counts of the strata differ by 1 or less, also after the time limit.
+1. Pair `i` takes the stratum `i` modulo the count of the strata. Thus the counts of the strata differ by 1 or less, also after the time limit.
 2. The config is uniform over the configs of its stratum. The draw of the input and the rejections stay as in the uniform draw.
 3. A rejected config goes back, and the script draws a new config of the same stratum.
 4. The same seed gives the same pairs. `--draw stratified` is the same as `--stratify`. The default draw stays `uniform`.
@@ -1582,7 +1616,7 @@ The stratified draw:
 6. One miss closes the stratum (`MAX_STRATUM_MISSES` is 1). The later pairs of a closed stratum draw nothing and count as missed.
 
 The cap keeps the cost of a stratum that no sampled input accepts to 200 inputs and 4000 configs.
-For example, `hole-degree` packs only circles, and no corpus family gives circles. Thus `hole-degree:1` gets no pairs.
+For example, `hole-degree` and `circle-quasi-physical` pack only circles, and no corpus family gives circles. Thus `hole-degree:1` and `circle-quasi-physical:1` get no pairs.
 A stratum that some inputs accept gets a miss only when 200 inputs in a sequence refuse it.
 
 `sample.json` of a stratified sample has `draw: "stratified"` and the field `strata`.
@@ -1970,6 +2004,38 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
 
+## The row legalizer
+
+`bench/legalize.ts` compares three arms on the chains of `change-walk` (roadmap item k82). The counts are 20 and 60, the steps are 1 to 5, and the seeds are 1 to 10. Each arm starts from `rows` on step 0.
+
+- `fresh` packs each step again with `rows`.
+- `legalizeRows` starts each step from the layout of the step before it.
+- `Tetris` is the same code with `placeRow: false`.
+
+A value of this table is the mean of the 100 chains of a kind. `moved` and `distance` come from `pack.stability.*`. The height is the height at step 5.
+
+| Arm | Edit | `moved` | `distance` | Height |
+| --- | --- | --- | --- | --- |
+| `fresh` | add | 0.404 | 0.0641 | 137.7 |
+| `fresh` | remove | 0.451 | 0.0694 | 112.6 |
+| `fresh` | resize | 0.561 | 0.0804 | 125.5 |
+| `fresh` | reorder | 0.031 | 0.0029 | 126.7 |
+| `legalizeRows` | add | 0.249 | 0.0137 | 170.7 |
+| `legalizeRows` | remove | 0 | 0 | 125.6 |
+| `legalizeRows` | resize | 0.129 | 0.0030 | 150.5 |
+| `legalizeRows` | reorder | 0 | 0 | 126.7 |
+| `Tetris` | add | 0.242 | 0.0142 | 232.6 |
+| `Tetris` | remove | 0 | 0 | 125.6 |
+| `Tetris` | resize | 0.104 | 0.0031 | 159.2 |
+| `Tetris` | reorder | 0 | 0 | 126.7 |
+
+- Over add, remove and resize, `legalizeRows` moves 0.267 of the share of `fresh`.
+- All 400 steps have 0 breaks and no overflow.
+- `placeRow` gives 0.963 of the distance of `Tetris`. The paper reports 0.68 on circuits, and that claim does not transfer here. The main gain of `placeRow` here is the height after add: 170.7 against 232.6.
+- The mean height over the four edits is 1.142 times the height of `fresh`. Add is the largest cost: 1.240 times `fresh`.
+
+These values are from one bench on made-up chains, and they have no interval. `pack.time.ms` is not a part of this bench.
+
 ## The Sleator strip
 
 `bench/sleator.ts` measures `sleatorStrip` of roadmap item k52. A height is not a time, so any computer can start it. The prediction is `packing-k52-sleator`.
@@ -1993,6 +2059,7 @@ The strip has a width of 200. Each family has made-up items with a height from 1
 | wide | 500 | 1.312 | 1.116 | 100 % |
 
 Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
+
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
@@ -2018,6 +2085,7 @@ The family has 40 made-up rectangles on a strip of width 200, with 4 anchors on 
 The mean is high because of the input, not the search. A fraction and an offset on one side overlap over a range of heights, and the layout must go past that range.
 
 The plain band is shorter on 12 seeds, but each of those 12 layouts has an overlap of its anchors. The search is shorter on all 18 other seeds. This family has random anchors, so it says little about a designed layout.
+
 ## Groups as near rectangles
 
 The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has the inputs `seeds` (default 30) and `count` (default 40). The artifact `near-rects` has `near-rects.json`.
@@ -2029,6 +2097,7 @@ The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has
 - The time of the pair search is the median over 5 inputs of 100 items, in one CI process.
 
 The file holds a paired comparison for each pair of arms, with a two-sided sign test. The prediction is `packing-k97-near-rects`.
+
 ## The evolved place score
 
 The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
@@ -2042,6 +2111,7 @@ The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) sea
 The report gives the mean height over the objective bound, the gain over the best fixed rule, and a two-sided sign test. The numbers are in the artifact `gp-score`.
 
 The score tree stays in `bench/gp-score.ts`, and `packMaxRects` reads only a function. No strategy gives the option `score`, and no default uses it.
+
 ## The binary search on the height
 
 The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap item k81) has the input families of the exact bench. It has no gate.
@@ -2052,6 +2122,54 @@ The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap ite
 - The line `first-layout` shows the height before the search.
 
 The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
+
+## Circles in a circle against the literature
+
+Roadmap item k94 compares the strategy `circle-quasi-physical` with the best-known packings. The comparison has its own script and its own workflow, because the corpora of the benchmark have only rectangles.
+
+```sh
+gh workflow run circles.yml -R mark1russell7/packing --ref main -f sizes=10,20,30,50,100 -f seeds=5 -f iterations=2000
+```
+
+The workflow `circles.yml` does these steps:
+
+1. It fetches the two tables of Packomania. The repository and the package do not keep them, because the site states no license.
+2. It starts `bench/circles.ts`, which packs each case with seeds 1 to `seeds`, two times for each seed.
+3. It writes the table of the gaps and the hash of each table to the job summary.
+4. It keeps `records.json` and `summary.md` as the artifact `circles-<sha>`.
+
+| Family | Radii | Table |
+|---|---|---|
+| `equal` | `r_i = 1` | <https://www.packomania.com/cci/txt/ratio.txt> |
+| `unit` | `r_i = i` | <https://www.packomania.com/ccin/txt/ratio.txt> |
+
+A record has the radius, the gap to the table in percent, the density, the time, the counts of the moves and the exact checks. The checks read the geometry of the input at the tolerance `1e-9`.
+The job fails only on an exact break: an overlap, a circle outside or two different outputs of one seed. A gap does not fail the job.
+
+The values of the tables on 2026-11-03, for the default cases, are:
+
+| `n` | `equal` | `unit` |
+|---|---|---|
+| 10 | 3.8130256313981 | 22.0001930127 |
+| 20 | 5.1223207369915 | 58.4005674790 |
+| 30 | 6.1977410708792 | 104.5403637652 |
+| 50 | 7.9475152747835 | 220.5654002624 |
+| 100 | 11.0821497243104 | 615.8160668874 |
+
+- The tables change when a better packing arrives. Thus the job reads the current table, and the hash in the summary tells which one it was.
+- The table of Grosso 2010 is not here. The paper is behind a paywall, so its values are not verified. The table of Packomania has the later records.
+- The baseline is `hole-degree` in its smallest square, from a search by halving. Its container is a square and the other one is a circle, so only the density compares them.
+- The front chain of Wang 2006 (roadmap item k93) is not built. Thus the comparison has no row for it.
+- The constants of the moves came from short local packs of the same two families, seeds 1 to 3. Thus a gap of these families is not a held-out measure.
+- The time of a move is a CI measure. A local time is not a record.
+
+## The standalone strategies
+
+Roadmap item k141 adds 14 entries to `ENTRIES`: `STANDALONE_ENTRIES` of `bench/entries.ts`. `docs/PACKER.md` tells the strategies.
+
+- Each entry supports fewer cells than the older entries. A run records a skip for each other cell. On `smoke-v1`, `exact-strip` has no measured input: 11 inputs are outside its cells, and it refuses 2. The other entries have 1 to 11 measured inputs of 13.
+- The entries are not in `packSpace`. Roadmap item k142 adds them, because each new point changes the pinned counts of the space.
+- The entries are not members of the adversary or of the portfolio tools, because they do not support each cell.
 
 ## The rank window
 

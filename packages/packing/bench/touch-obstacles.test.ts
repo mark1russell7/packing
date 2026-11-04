@@ -1,7 +1,7 @@
 import { createFamilyRegistry, packHard, type PackHard } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
-import { cellOf, checkHard, corpusFamilies, DEFAULT_TOLERANCE, packWith, strategies, strategy, supportsCell, toPackInput, UnsupportedCell, type GeneratedInput, type PackInput } from "@mark1russell7/packing";
-import { ENTRIES } from "./entries.ts";
+import { cellOf, checkHard, corpusFamilies, DEFAULT_TOLERANCE, packWith, strategies, strategy, supportsCell, toPackInput, UnsupportedCell, type GeneratedInput, type PackInput, type PackOutput } from "@mark1russell7/packing";
+import { ENTRIES, STANDALONE_IDS } from "./entries.ts";
 
 // Roadmap item k114: the case `touchObstacles` of `edge-cases` with the knobs. Its locked box touches an obstacle.
 // Before k114, the knob `margin` also went on the locked box. Then its margin went into the obstacle, and each strategy
@@ -29,12 +29,24 @@ function runsOf(input: PackInput): typeof RUNS {
   return out;
 }
 
+/** This function packs with a run. It gives `undefined` when a standalone strategy of k141 refuses a margin or a gap of a cell that it supports. */
+function packOf(run: (typeof RUNS)[number], input: PackInput, seed: number): PackOutput | undefined {
+  try {
+    return packWith(run.strategy, input, run.options, seed);
+  } catch (error) {
+    if (error instanceof UnsupportedCell && STANDALONE_IDS.has(run.id)) return undefined;
+    throw error;
+  }
+}
+
 /** This function gives the breaks of each run that is not clean, by the id of the run. */
 function breaksOf(file: GeneratedInput): Record<string, PackHard> {
   const input = toPackInput(file);
   const out: Record<string, PackHard> = {};
   for (const run of runsOf(input)) {
-    const hard = packHard(file, packWith(run.strategy, input, run.options, file.seed), DEFAULT_TOLERANCE.overlap);
+    const output = packOf(run, input, file.seed);
+    if (output === undefined) continue;
+    const hard = packHard(file, output, DEFAULT_TOLERANCE.overlap);
     if (Object.values(hard).some((v) => v > 0)) out[run.id] = hard;
   }
   return out;
@@ -86,6 +98,9 @@ describe("touchObstacles with the knobs (k114)", () => {
   it("keep each rule clean in the form of checkHard too", () => {
     const file = touch(2, 1, 29.924, 0);
     const input = toPackInput(file);
-    for (const run of runsOf(input)) expect(checkHard(input, packWith(run.strategy, input, run.options, file.seed)), run.id).toEqual(CLEAN);
+    for (const run of runsOf(input)) {
+      const output = packOf(run, input, file.seed);
+      if (output !== undefined) expect(checkHard(input, output), run.id).toEqual(CLEAN);
+    }
   });
 });

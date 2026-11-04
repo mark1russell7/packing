@@ -198,7 +198,7 @@ describe("hole-degree: the inputs that it refuses", () => {
 
 describe("hole-degree in the registry and in packSpace", () => {
   it("is a strategy of shapeStrategies, not of strategies", () => {
-    expect(shapeStrategies.map((s) => s.id)).toEqual(["hole-degree"]);
+    expect(shapeStrategies.map((s) => s.id)).toEqual(["hole-degree", "circle-quasi-physical"]);
     expect(strategies.map((s) => s.id)).not.toContain("hole-degree");
     expect(strategy("hole-degree")).toBe(holeDegree);
   });

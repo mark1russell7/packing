@@ -428,7 +428,7 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - Thus the hull, `pack.fill`, `pack.whitespace`, the overflow measures and `pack.shapeFill` use the same boxes. Each share stays from 0 to 1.
 - In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.
 - Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level.
-- With `polygon` or `free` it counts 0 base configs. With `circle` it counts the base configs of `hole-degree` (roadmap item k90).
+- With `polygon` or `free` it counts 0 base configs. With `circle` it counts the base configs of `hole-degree` (roadmap item k90) and `circle-quasi-physical` (roadmap item k94).
 
 ### A raster no-fit
 
@@ -538,7 +538,7 @@ The order `input` and the options `none` support `rect` and `circle`. The count 
 | Base and meta configs for `rect`, 3 levels | 2970 and 36862574914409402550 | the same |
 
 The meta counts with 3 levels are more than the default `maxMeta` of 1e18. Thus `spaceSize` gives them only with a larger `maxMeta`, for example `10n ** 20n`. Since k117, the count needs `10n ** 21n` ("The work budget").
-The size search `none` goes only with `push` and `hole-degree`. Each other placement, `guillotine` too, needs `log-sweep`, as before k90.
+The size search `none` goes only with `push`, `hole-degree` and `circle-quasi-physical` (roadmap item k94). Each other placement, `guillotine` too, needs `log-sweep`, as before k90.
 
 The limits:
 
@@ -557,6 +557,57 @@ The circle family of `bench/shape-inputs.ts` (seeds 1 to 5, 30 circles) gives th
 | Square of fixed size | 0.673 | 0.692 | 0.631 |
 
 On a square, `hole-degree` fills the 4 corners first. Thus its hull is the full square, and the hull of a `bbox` member is smaller.
+
+### Circles in a circle by the overlap energy
+
+Roadmap item k94 adds the single strategy `circle-quasi-physical` (catalog rows `circle-quasi-physical`, `circle-quasi-human` and `circle-mbh`, idea S5 of the survey). It packs circle items into a circle container. It is opt-in. No default uses it, and `pack()` does not choose it.
+
+```ts
+const input = { container: { fixed: "none", shape: { kind: "circle", cx: 0, cy: 0, r: 1 } }, items };
+const output = packWith("circle-quasi-physical", input, { iterations: 2000 }, seed);
+const radius = output.size.w / 2;
+```
+
+The method comes from these sources:
+
+1. The energy is the sum of the squares of the overlaps of each pair and of each circle with the wall (Wang 2002, Huang 2011b). A layout with energy 0 has no overlap.
+2. A limited-memory BFGS solve lowers the energy from a start layout.
+3. A move leaves a local minimum. It relocates the circle with the most overlap to the best of 24 random places (Huang 1999), swaps two circles of near radii, or shakes some near circles.
+4. The search keeps a move only when the energy after the solve is lower (Addis 2008a).
+5. The solve works at a target radius below the best radius. A second solve has the radius as a variable with a small penalty on it, as in the container adjustment of Lai 2022.
+6. A last step scales the centers until no pair overlaps, and it reads the outermost circle. Thus each radius of the output is exact. It is not a result of an energy tolerance.
+
+| Container | Result |
+|---|---|
+| `fixed: "none"` | The smallest radius of the search. `size` is the diameter, and the center is the corner of the shape plus the radius. The radius in the shape does not count. |
+| `fixed: "size"` | The radius of the shape. The search stops at the first layout with no overlap. A circle larger than the container goes to the overflow. |
+
+- At the end of the moves, a fixed container with an overlap puts the circle with the most overlap in the overflow, until the others have no overlap.
+- In a fixed container, the last scale can move a circle out of the wall by a share of `1e-9` of the radius.
+- The option `iterations` is the count of the moves. The default is 256, and the largest value is 65536. The limit `budget.steps` of the context caps it.
+- The strategy does not read the limit `budget.ms`, because it reads no clock. The time of its trace stage is 0. Thus the same input and seed give the same bytes, the trace too.
+- The random numbers come from `context.rng`. The arithmetic has only the four operations and the square root, so the bytes do not depend on a trigonometry library.
+- `gap`, `margin`, `pairGaps` and `inset` have the same meaning as for `hole-degree`. An obstacle, a locked item and a group throw `UnsupportedCell`.
+- The cost of one solve step is `O(n^2)`. Thus the strategy is for some hundreds of circles at most.
+- The function `circlesOutside(input, output, tolerance?)` counts the circles out of a circle container by the center distance. The count `in-container` of `packHard` reads a bounding box. It is only safe in a circle container.
+
+In `packSpace`, the option `placement.circle-quasi-physical` has the param `iterations` and supports only `circle`. Constraints keep the order `input` and the size search `none` with it.
+The param stops at 1024, not at 65536. Each value is one base config. Without the limit, 65537 configs are 29 % of the base configs. A draw takes them as members, and a rect input refuses them.
+Each named config keeps its id, and the output of each old config does not change. The count changes:
+
+| Count | Before k94 | After k94 |
+|---|---|---|
+| Base configs, 3 levels | 2973 | 2976 |
+| Base configs, 1 level | 891 | 892 |
+| Meta configs, 3 levels | 277869295533810375192 | 279274944857694858960 |
+| Meta configs, 1 level | 100061834238419076 | 100625752757509316 |
+| Base and meta configs for `circle`, 3 levels | 3 and 5940 | 6 and 5940 |
+| Base and meta configs for `rect`, 3 levels | 2970 and 276469311858023490660 | the same |
+
+The meta configs take base configs as members, so their count grows. The sampler of the whole space reads these counts. Thus some uniform draws of a seed change, and the space has one more stratum (`docs/BENCH.md`).
+The site lists the strategy in its cards. Its demo and its compare page have only rectangle containers, so they do not offer it.
+
+`docs/BENCH.md`, "Circles in a circle against the literature", compares the radii with the best-known radii.
 
 ### The goal-driven ruin and recreate
 
@@ -1170,9 +1221,11 @@ The counts of `packSpace`:
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
-const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
+const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90, then "circle-quasi-physical"
 const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
-const allStrategies: readonly StrategyListing[]; // each strategy of the three lists, with its kind, family, supports and deterministic flag: since k140
+const standaloneStrategies: readonly Strategy[]; // each single strategy that wraps a standalone function: since k141
+const sideAnchorsStrategy: Strategy; // the composite strategy of packSideAnchors: since k141
+const allStrategies: readonly StrategyListing[]; // each strategy of these lists, with its kind, family, supports and deterministic flag: since k140
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```
@@ -1181,7 +1234,7 @@ The benchmark starts each strategy of the registry on each input of the corpus. 
 
 A composite strategy packs an input with other strategies. It is not in `strategies`, but `strategy(id)` and `packWith` find it.
 
-A consumer that needs each strategy reads `allStrategies`, not one of the three lists. Each listing has a `kind`: `single`, `shape` or `composite`. A test loads each source module and fails on a strategy that the list does not have.
+A consumer that needs each strategy reads `allStrategies`, not one of the other lists. Each listing has a `kind`: `single`, `shape` or `composite`. A test loads each source module and fails on a strategy that the list does not have.
 
 ## The adapters of 0.1
 
@@ -1567,7 +1620,7 @@ The function is the branch and bound half of k10. The constraint solver half is 
 
 ## The Sleator strip
 
-The function `sleatorStrip` packs a strip with the algorithm of Sleator 1980 (roadmap item k52). It is a baseline with a proved bound, not a strategy. No default uses it, and the space of the bench does not change.
+The function `sleatorStrip` packs a strip with the algorithm of Sleator 1980 (roadmap item k52). It is a baseline with a proved bound, and the strategy `sleator` wraps it. No default uses it.
 
 1. The items wider than half the strip go in one stack at the left side.
 2. The other items take the order of height, tallest first.
@@ -1580,6 +1633,7 @@ The proved bound is `2 * optimum + tallest / 2`, so at most `2.5` times the opti
 The tests compare the bound with a known optimum: 1000 perfect cuts and 100 strips of 6 items, which `exactStrip` proves. The function does not turn an item, so each item keeps its sizes. A level ends at the first item that does not fit, and a later smaller item does not fill the gap.
 
 The source of these steps is the statement in the strip packing article of Wikipedia and the catalog row. The paper is behind a paywall, so this repository has no reading of the proof itself.
+
 ## Side anchors
 
 `packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
@@ -1597,6 +1651,7 @@ A pack is not monotone in the length. Thus the result is a good layout, not a pr
 The function has no use in a default. It refuses a shaped container, a container with no fixed side, and an anchor on a locked item, a shaped item or an item with a margin.
 
 Two anchors can have one place at each length. Then no length is good, and the result has `good: false`. Two anchors on one side can also force a tall layout. The input sets that height, not the search.
+
 ## Groups as near rectangles
 
 `packNearRects` is the first slice of roadmap item `k97` (idea S8 of the survey). Yang 2023 learns groups of pieces that are almost rectangles. This slice has no model. A greedy search on a raster joins the groups.
@@ -1611,6 +1666,7 @@ The box of a group is the true extent of its shapes, not its cells. Thus the gri
 The cost of a round is about `n ** 2` pair searches. Two groups with the same cells get one search. Thus an input with many equal shapes is fast.
 
 The function has no use in a default. It refuses a locked item, a margin, a gap, an inset and a container shape with a `RangeError`.
+
 ## Masonry and columns
 
 A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. `pack()`, `packSpace`, the registry and the defaults do not know them.
@@ -1646,9 +1702,10 @@ These values are for the inputs of the last test of `src/masonry.test.ts`: 200 m
 | `columnsLinearPartition` | 0.576 | 0.375 | 0.066 | 0.328 |
 
 A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
+
 ## The binary search on the height
 
-The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
+The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. The strategy `binary-height` wraps it, and no default uses it.
 
 - The range goes from the area bound to the height of the best of 3 first layouts.
 - Each step takes the middle of the range as a limit. A seeded swap search looks for an order that places each item under the limit.
@@ -1658,9 +1715,10 @@ The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip
 The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
+
 ## The beam search
 
-The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). It is not a strategy. No default uses it, and the space of the bench does not change.
+The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). The strategy `beam` wraps it. No default uses it, and the space of the bench does not change.
 
 1. A state is a partial layout with a skyline. Each level adds one item to each state.
 2. The valley of the skyline closest to the origin takes the next item. A valley that no item fits rises to its lower neighbor.
@@ -1681,6 +1739,7 @@ This slice has no blocks of paired boxes, no turns and no time limit. Thus this 
 The function `windowOrder` is the first slice of roadmap item k31, the idea `new-rank-window`. Each step takes the tallest of the next `window` items. A `window` of 1 keeps the input order, and a `window` of the item count gives the sort `height-desc`.
 
 No item comes more than `window - 1` places before its input place. Give the result to a strategy with the option `sortOrder: "input"`. It is a function, so the space of the bench does not change.
+
 ## The pin of unchanged boxes
 
 The function `pinUnchanged` is the first slice of roadmap item k29. It changes an input and does not pack. A strategy packs the result and goes around the locked boxes. No default uses it, and the space of the bench does not change.
@@ -1725,6 +1784,64 @@ The function `compactUp` is the first slice of roadmap item k30. It takes a layo
 - The function refuses a container with a shape, pair gaps and an item with a parent.
 
 After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
+
+## The legalization of rows
+
+`legalizeRows(baseInput, baseOutput, changeInput, options)` gives a layout of rows for a changed input, with the boxes near their places in the base layout. No entry uses it (roadmap item k82). The steps come from the abstract and the slides of Abacus (Spindler 2008), not from the full paper.
+
+1. A row of the base layout is a band of boxes that overlap in `y`.
+2. A box of a row, with the boxes that the gap fill of `rows` puts under it, is one rigid cell. When a box of the cell changes size, each box of the cell becomes one cell.
+3. The cells come in order of target `x`. Each cell tries each row, and it takes the row with the least distance.
+4. `placeRow` gives the cells of the row the least sum of squared moves. Clusters of cells merge from left to right, so the work is linear. With `placeRow: false`, a placed cell stays, as in Tetris (Hill 2002).
+5. A cell that fits no row opens a new row at the bottom.
+6. A row keeps its top when the row above it leaves the space. Otherwise the row moves down.
+
+These parts are not in the paper:
+
+- The rows of the paper have one height. Here a taller cell raises its row and moves each row under it. The trial cost of a row does not count that move.
+- The cells of the gap fill are new. They keep the layout of `rows` on a chain.
+- A row that keeps its top can leave a gap above it.
+
+The first slice takes a strip of a fixed width, with no shape. It refuses obstacles, gaps, margins, locks, parents, turns and a base layout with overflow. `docs/BENCH.md`, "The row legalizer", has the measures.
+
+## The standalone strategies
+
+Roadmap item k141 gives each standalone layout function a strategy, so `packWith`, the bench and the sites reach it. The functions keep their API. The strategies are in `allStrategies`. No default uses them.
+
+The registry does not hold these strategies. `strategy`, `packWith` and `allStrategies` read the registry and `src/strategy-list.ts`. Thus an import of `pack` or `maxrects` does not grow, and a composite finds only a member of the registry.
+
+| Id | Function | Family | Kind | Container | Item shape |
+| --- | --- | --- | --- | --- | --- |
+| `sleator` | `sleatorStrip` | `sleator` | `single` | `freeHeight` | `rect` |
+| `exact-strip` | `exactStrip` | `exact` | `single` | `freeHeight` | `rect` |
+| `binary-height` | `packBinaryHeight` | `binary-height` | `single` | `freeHeight` | `rect` |
+| `beam` | `beamStrip` | `beam` | `single` | `freeHeight` | `rect` |
+| `near-rects` | `packNearRects` | `near-rects` | `single` | `fixed`, `freeHeight` | `rect`, `polygon`, `circle`, `mixed` |
+| `raster-nofit` | `packRasterNofit` | `raster-nofit` | `single` | `fixed`, `freeHeight` | `rect`, `polygon`, `circle`, `mixed` |
+| `masonry` | `masonryShortest`, `masonryLpt`, `columnsLinearPartition` | `masonry` | `single` | `freeAspect`, `freeArea` | `rect` |
+| `treemap` | `treemapPack` | `treemap` | `single` | `freeAspect`, `freeArea` | `rect` |
+| `side-anchors` | `packSideAnchors` | `side-anchors` | `composite` | `fixed`, `freeHeight`, `freeWidth` | `rect` |
+
+- The option `method` of `masonry` picks one of its three functions. The option `method` of `treemap` picks one of its four layouts.
+- `beam` has no catalog row. The first slice is neither the filtered search of Chen 2025 nor the parallel search of Wen 2025.
+- `exact-strip` has a limit of 100,000 nodes, and `binary-height` has 32 trials. The functions have higher defaults. These strategies take less time in a bench or on a page.
+- `binary-height`, `near-rects` and `raster-nofit` refuse more than 256 items, because the time of their search grows fast with the count.
+- A refusal of a function becomes an `UnsupportedCell` with the dimension `containerSize` and the value `refused`. The taxonomy has no dimension for the reason. The message tells it.
+- The option `first` of `side-anchors` anchors the first item. An entry of the bench uses it, because an entry cannot name the items of each input. With no anchor, the strategy gives the layout of its member.
+
+These functions take an input, but they are not strategies:
+
+| Function | Reason |
+| --- | --- |
+| `packConfig` | It packs a point of `packSpace`, so it reads each strategy. |
+| `packDefault` | It packs with the default strategy of the registry. |
+| `packFree` | It searches the width around the strategy of an option. |
+| `packWith` | It reads the registry, so it starts each strategy by id. |
+| `packWork` | It is a measure of an output, and it gives no layout. |
+| `sweepSearch` | It is a size search that a strategy uses. |
+| `viaAxes` | It turns the axes around a strategy. |
+
+The test `src/all-strategies.test.ts` fails on a new layout function that is in neither of these lists.
 
 ## The decisions
 

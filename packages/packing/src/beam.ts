@@ -1,5 +1,5 @@
 // The beam search of roadmap item k85 (docs/PACKER.md, "The beam search"): the expansion and the greedy ranking of Wen 2025, on a skyline.
-// The function is not a strategy, and no default uses it. Thus the space of the bench does not change.
+// The strategy `beam` wraps the function, and no default uses it. Thus the space of the bench does not change.
 
 import type { Item, PackInput, PackOutput, Placement } from "./contract.ts";
 import { sleatorRefusal } from "./sleator.ts";

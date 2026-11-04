@@ -12,6 +12,7 @@ import {
   edgeCases,
   gallery,
   generator,
+  changeGenerators,
   generators,
   packWith,
   rectGrid,
@@ -48,8 +49,8 @@ const CASES: Case[] = (() => {
   };
   for (const gen of generators) {
     // The class generators of k106 have their own pinned hashes in `classes.test.ts`, the generators of k107 in `worst.test.ts`, and the generators of k46 in `strip.test.ts`
-    // The generator of k111 has its pinned hashes in `wall-locks.test.ts`
-    if (gen === rectGridV2 || classGenerators.includes(gen) || worstGenerators.includes(gen) || stripGenerators.includes(gen) || anchorGenerators.includes(gen)) continue;
+    // The generator of k111 has its pinned hashes in `wall-locks.test.ts`, and the generator of k48 in `bench/change.test.ts`
+    if (changeGenerators.includes(gen) || gen === rectGridV2 || classGenerators.includes(gen) || worstGenerators.includes(gen) || stripGenerators.includes(gen) || anchorGenerators.includes(gen)) continue;
     add(gen, {});
     for (const [key, values] of Object.entries(gen.values)) for (const value of values ?? []) add(gen, { [key]: value });
     if (gen.name === "rect-grid") for (const count of COUNTS) add(gen, { count });
@@ -461,7 +462,7 @@ describe("the corpus families through the registry", () => {
 
   it("has one family for each generator other than rect-scattered, in the order of the generators", () => {
     const kinds = (list: readonly { name: string; version: number }[]): string[] => list.map((x) => familyKind(x.name, x.version));
-    expect(kinds(corpusFamilies)).toEqual(kinds(generators.filter((g) => g !== rectScattered)));
+    expect(kinds(corpusFamilies)).toEqual(kinds(generators.filter((g) => !changeGenerators.includes(g) && g !== rectScattered)));
     expect(registry.families()).toEqual(corpusFamilies);
   });
 
