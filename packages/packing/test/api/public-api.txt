@@ -623,6 +623,15 @@ lowestWindow: build/layout-strategy.d.ts#lowestWindow
 packSkyline: build/layout-strategy.d.ts#packSkyline
 skyline: build/skyline-strategy.d.ts#skyline
 
+## ./strategy-catalog (build/entry/strategy-catalog.d.ts): 2 names
+
+STRATEGY_CATALOG_ENGINE: build/entry/strategy-catalog.d.ts#STRATEGY_CATALOG_ENGINE
+strategyCatalog: build/entry/strategy-catalog.d.ts#strategyCatalog
+
+## ./strategy-catalog.json: no declaration file for ./strategy-catalog.json
+
+file ./strategy-catalog.json: strategy-catalog.json
+
 ## Declarations
 
 ### build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
@@ -647,6 +656,12 @@ declare const DEFAULT_STRATEGY = "select";
 
 ### build/default.d.ts#packDefault
 declare function packDefault(input: PackInput, seed?: number): PackOutput;
+
+### build/entry/strategy-catalog.d.ts#STRATEGY_CATALOG_ENGINE
+export declare const STRATEGY_CATALOG_ENGINE = "packing";
+
+### build/entry/strategy-catalog.d.ts#strategyCatalog
+export declare const strategyCatalog: StrategyCatalogSource;
 
 ### build/guillotine-strategy.d.ts#guillotine
 declare const guillotine: Strategy<GuillotineStrategyOptions>;

@@ -87,6 +87,7 @@ describe("size gate", () => {
   it("reads the published code exports, with publishConfig before exports", () => {
     const exports = { ".": "./src/index.ts", "./a": { default: "./src/a.ts" } };
     expect(publishedExports({ name: "p", exports })).toEqual({ p: "src/index.ts", "p/a": "src/a.ts" });
+    expect(publishedExports({ name: "p", exports: { ...exports, "./data.json": "./data.json" } })).toEqual({ p: "src/index.ts", "p/a": "src/a.ts" });
     expect(publishedExports({ name: "p", exports, publishConfig: { exports: { ".": { default: "./build/index.js" }, "./package.json": "./package.json" } } })).toEqual({ p: "build/index.js" });
   });
 
