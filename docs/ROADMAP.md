@@ -58,7 +58,7 @@ Status: done, done, waiting, next, done.
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
 | k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions | measure | later | k19, k35 |
 | k51 | Lower bounds, so each result shows its distance to the best | measure | done | k6 |
-| k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
+| k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | active | k6, k7 |
 | k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
 | k54 | Compaction: a constraint graph in one direction, mixed constraints and the exact form | strategies | later | k6, k7 |
 | k55 | Component packing: polyominoes and the placement of the parts of a graph | strategies | later | k6, k7 |
@@ -91,7 +91,7 @@ Status: done, done, waiting, next, done.
 | k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
 | k83 | Genetic programming of the score (idea R12 of the survey) | strategies | later | k6, k7 |
 | k84 | Priority code that a language model evolves (idea R13 of the survey) | strategies | later | k6, k7 |
-| k85 | Beam search (idea R14 of the survey) | strategies | later | k6, k7 |
+| k85 | Beam search (idea R14 of the survey) | strategies | active | k6, k7 |
 | k86 | Global placement for large inputs (idea R16 of the survey) | strategies | later | k6, k7 |
 | k87 | Dynamic reduction of the width (idea R17 of the survey) | strategies | later | k33 |
 | k88 | Identical boxes in five blocks (idea R19 of the survey) | strategies | later | k6, k7 |

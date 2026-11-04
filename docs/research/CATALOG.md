@@ -230,7 +230,7 @@ A search changes the input of a fast packer, the "decoder", and keeps the best r
 | `search-naive-evolution` | Naive evolution | Change the order at random and keep the better order. | Hopper 2001 | density | steps x decoder | — | planned | k26 |
 | `search-grasp` | Reactive GRASP | Build an order with a random greedy rule. Improve it with a local search. Learn the best amount of randomness from the results. | Alvarez-Valdes 2008 | density | starts x decoder | — | planned | k26 |
 | `search-ils` | Local search in three stages | Build an order with a greedy rule. Improve it with a local search that has no randomness. Then do a local search with random changes. | Wei 2016 | density | steps x decoder | — | planned | k26 |
-| `search-beam` | Filtered beam search | Keep the best `k` partial layouts. Grow each with each box left, remove the weak children with a fast filter, and keep the best `k` again. | Chen 2025 | density | `O(n^2 k)` x decoder | — | planned | k26 |
+| `search-beam` | Filtered beam search | Keep the best `k` partial layouts. Grow each with each box left, remove the weak children with a fast filter, and keep the best `k` again. | Chen 2025 | density | `O(n^2 k)` x decoder | — | first slice | k26 |
 | `search-random-restart` | Randomized search | Do a greedy packer with random changes of the order, many times. Keep the best result. | Yang 2013 | density | restarts x decoder | — | implemented | k78 |
 | `search-two-stage` | Two-stage intelligent search | Do a greedy search with a fit score. Then improve the order with annealing. | Leung 2011 | density | steps x decoder | — | planned | k26 |
 | `enc-sequence-pair` | Sequence pair | Encode the layout as two orders of the boxes. The two orders give each pair "left of" or "below". A longest path gives the places. | Murata 1996 | density | `O(n^2)` for each decode | — | planned | k26 |
@@ -333,7 +333,7 @@ These results give a bound on the height of a strip packer against the best heig
 | `shelf-ffdh` | FFDH | `1.7 OPT + h_max` | Coffman 1980 | yes | k21 |
 | `shelf-split-fit` | Split-Fit | `1.5 OPT + 2` with heights of 1 or less | Coffman 1980 | yes | k21 |
 | `bl-baker` | BL by decreasing width | `3 OPT` | Baker 1980 | yes | k25 |
-| `approx-sleator` | Sleator | `2 OPT + h_max / 2`: pack the wide boxes, then two halves side by side | Sleator 1980 | yes | new item |
+| `approx-sleator` | Sleator | `2 OPT + h_max / 2`: pack the wide boxes, then two halves side by side | Sleator 1980 | yes | `sleatorStrip`, k52 |
 | `approx-reverse-fit` | Reverse-Fit | `2 OPT`: pack the wide boxes, then pack the rest from the top down in the reverse direction | Schiermeyer 1994 | yes | new item |
 | `approx-steinberg` | Steinberg | `2 OPT`: a recursive split with a case for each shape of the input | Steinberg 1997 | hard | new item |
 | `approx-kenyon-remila` | APTAS of Kenyon and Rémila | `(1 + e) OPT + O(1 / e^2) h_max`: round the widths, solve a linear program over the configurations | Kenyon 2000 | theory only | none |

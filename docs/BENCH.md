@@ -1912,3 +1912,55 @@ The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap ite
 - The line `first-layout` shows the height before the search.
 
 The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
+## The Sleator strip
+
+`bench/sleator.ts` measures `sleatorStrip` of roadmap item k52. A height is not a time, so any computer can start it. The prediction is `packing-k52-sleator`.
+
+```bash
+node bench/sleator.ts --out <file.json> [--seeds 30] [--counts 20,100,500]
+```
+
+The strip has a width of 200. Each family has made-up items with a height from 1 to 100. The widths of `narrow` go from 1 to 50, of `mixed` from 1 to 200, and of `wide` from 67 to 200.
+
+| Family | Items | Mean height over the larger of area / width and the tallest item | Mean height over `maxrects-bl` | Share where `maxrects-bl` is lower or equal |
+| --- | --- | --- | --- | --- |
+| narrow | 20 | 1.301 | 1.097 | 93.3 % |
+| narrow | 100 | 1.200 | 1.123 | 100 % |
+| narrow | 500 | 1.192 | 1.162 | 100 % |
+| mixed | 20 | 1.353 | 1.112 | 96.7 % |
+| mixed | 100 | 1.349 | 1.190 | 100 % |
+| mixed | 500 | 1.329 | 1.231 | 100 % |
+| wide | 20 | 1.350 | 1.064 | 100 % |
+| wide | 100 | 1.322 | 1.088 | 100 % |
+| wide | 500 | 1.312 | 1.116 | 100 % |
+
+Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
+
+## The beam search
+
+`bench/beam.ts` measures `beamStrip` of roadmap item k85. A height is not a time, so any computer can start it. The prediction is `packing-k85-beam`.
+
+```bash
+node bench/beam.ts --out <file.json> [--seeds 10] [--count 100] [--widths 1,4,16]
+```
+
+The family is the 10 classes of `berkeyWang` and `martelloVigo`, with 100 items and 10 seeds. The gap is `(height / (area / width) - 1) * 100`, the form of Wen 2025. Lower is better.
+
+| Class | `maxrects-bl` | Width 1 | Width 4 | Width 16 |
+| --- | --- | --- | --- | --- |
+| Berkey and Wang I | 7.19 | 6.97 | 4.21 | 3.79 |
+| Berkey and Wang II | 2.37 | 3.80 | 1.19 | 0.88 |
+| Berkey and Wang III | 13.92 | 15.53 | 9.52 | 8.82 |
+| Berkey and Wang IV | 7.09 | 7.65 | 3.61 | 2.81 |
+| Berkey and Wang V | 13.20 | 15.54 | 10.02 | 9.91 |
+| Berkey and Wang VI | 8.12 | 8.83 | 4.76 | 4.00 |
+| Martello and Vigo VII | 19.71 | 18.85 | 16.06 | 15.70 |
+| Martello and Vigo VIII | 11.63 | 10.92 | 6.56 | 5.36 |
+| Martello and Vigo IX | 25.42 | 24.56 | 24.12 | 23.89 |
+| Martello and Vigo X | 9.63 | 11.84 | 6.73 | 6.16 |
+| Mean | 11.83 | 12.45 | 8.68 | 8.13 |
+
+- Width 16 is lower than or equal to `maxrects-bl` on 100 of 100 inputs.
+- The hard rules have 0 breaks. The three widths together have a mean of 18084 greedy completions for one input.
+- Wen 2025 gives a gap of 7.56 for the set BWMV with no turns at 60 seconds. Those instances are not these inputs, and that method has blocks. The value is only a scale, and this table makes no parity claim.
+- The gap uses a lower bound, not the optimum. In class IX, large items make that bound weak.
