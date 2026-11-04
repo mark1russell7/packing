@@ -55,6 +55,16 @@ const SPAN_FACTOR = 0.1;
 const SPAN_QUANTILE = 0.25;
 const TIGHT_RATIO = 0.1;
 const HALF_LOG_2PI_E = 0.5 * Math.log(2 * Math.PI * Math.E);
+const GRID = 96;
+const SAME_VALUE = 1e-9;
+const FEW_VALUES = GRID / 4;
+const MIN_REPEATS = 4;
+const MIN_BELL_VALUES = 5;
+const FLAT_RATIO = 3;
+const SHAPE_RATIO = 1.75;
+const RARE_VALUE = 0.01;
+const MIN_HUMP_VALUES = 3;
+const COUNT_Z = 3;
 const EXTREME_ASPECT = Math.log(3);
 const CENTRAL_ASPECT = Math.log(2);
 const CLUSTER_GAP = 0.03;
@@ -69,33 +79,113 @@ const share = (values: readonly number[], test: (x: number) => boolean): number 
 /**
  * This function gives the width of the kernel. The width from the quartiles follows the distance between clusters, so it hides many
  * tight clusters. A low quantile of the spans of neighbouring values follows the width of a cluster. The function uses that tight
- * width only when it is far under the other width, so a smooth sample keeps its width. The tight width stays over the grid step and
- * over the median gap of the distinct values, so the areas of whole-number sides keep the modes of their shape.
+ * width only when it is far under the other width, so a smooth sample keeps its width. The tight width stays over the grid step, and
+ * no width of a tight sample goes under the median gap of the distinct values, so the areas of whole-number sides keep the modes of
+ * their shape at each size.
  */
-function kernelWidth(values: readonly number[], low: number, high: number, grid: number): number {
+function kernelWidth(values: readonly number[], low: number, high: number): number {
   const order = [...values].sort((a, b) => a - b);
   const scale = Math.min(at(values, 0.75) - at(values, 0.25), high - low) / 1.34;
-  const wide = KERNEL_FACTOR * Math.max(scale, (high - low) / grid) * values.length ** -0.2;
+  const wide = KERNEL_FACTOR * Math.max(scale, (high - low) / GRID) * values.length ** -0.2;
   const neighbours = Math.min(values.length - 1, Math.ceil(SPAN_FACTOR * values.length ** 0.8));
   const tight = at(order.slice(neighbours).map((x, i) => x - order[i]!), SPAN_QUANTILE);
   if (tight >= TIGHT_RATIO * wide) return wide;
   const distinct = order.filter((x, i) => i === 0 || x !== order[i - 1]);
   const resolution = at(distinct.slice(1).map((x, i) => x - distinct[i]!), 0.5);
-  return Math.min(wide, Math.max(tight, resolution, (high - low) / grid));
+  return Math.max(resolution, Math.min(wide, Math.max(tight, (high - low) / GRID)));
+}
+
+/** This function gives the count of each distinct value, in the order of the values. */
+function valueCounts(values: readonly number[], low: number, high: number): number[] {
+  const tie = SAME_VALUE * (high - low);
+  const counts: number[] = [];
+  let last = -Infinity;
+  for (const x of [...values].sort((a, b) => a - b)) {
+    if (x - last > tie) {
+      counts.push(0);
+      last = x;
+    }
+    counts[counts.length - 1]!++;
+  }
+  return counts;
 }
 
 /**
- * This function counts the modes of a sample with a kernel estimate on a grid. A mode counts when it holds 10 percent of the mass, or
- * half of the mass of the largest mode, and the valley to the next mode is under half of the lower height. The result is at least 1.
- * The grid joins more than approximately 24 evenly spaced clusters. A copy of this count is in rigor-statistics, and this one goes
- * with the release of that package.
+ * This function tells that the counts are flat. The highest third of the counts stays under `FLAT_RATIO` times the lowest third, so a
+ * list of heavy and light values is not flat. The means of the first, the middle and the last third of the list stay under
+ * `SHAPE_RATIO` of each other. The noise of a sample cancels in those means, and a bell does not.
+ */
+function flatCounts(counts: readonly number[]): boolean {
+  const order = [...counts].sort((a, b) => a - b);
+  const third = Math.ceil(order.length / 3);
+  if (mean(order.slice(-third)) >= FLAT_RATIO * mean(order.slice(0, third))) return false;
+  const parts = [counts.slice(0, third), counts.slice(third, -third), counts.slice(-third)].map((part) => mean(part));
+  return Math.max(...parts) < SHAPE_RATIO * Math.min(...parts);
+}
+
+/** This function tells that a count stands over a lower count by more than the noise of a sample. */
+const standsOver = (upper: number, lower: number): boolean => (upper - lower) / Math.sqrt(upper + lower) >= COUNT_Z;
+
+/** This function splits the counts at each valley that is deeper than the noise of a sample. */
+function humpsOf(counts: readonly number[]): { count: number; values: number }[] {
+  const humps: { count: number; values: number }[] = [];
+  const sum = (from: number, to: number): number => counts.slice(from, to).reduce((total, c) => total + c, 0);
+  let start = 0;
+  let top = counts[0]!;
+  let low = top;
+  let lowAt = 0;
+  counts.forEach((count, i) => {
+    if (count < low) {
+      low = count;
+      lowAt = i;
+    }
+    if (standsOver(top, low) && standsOver(count, low)) {
+      humps.push({ count: sum(start, lowAt), values: lowAt - start });
+      start = lowAt;
+      top = count;
+      low = count;
+      lowAt = i;
+    } else if (count > top) {
+      top = count;
+      low = count;
+      lowAt = i;
+    }
+  });
+  humps.push({ count: sum(start, counts.length), values: counts.length - start });
+  return humps;
+}
+
+/**
+ * This function counts the modes of a sample with few distinct values, from the counts of those values. The result does not change
+ * with the size of the sample. Flat counts are a discrete law with one mode for each value, so the noise of a sample does not take a
+ * value out. Counts with one rise and one fall are a rounded smooth law with one mode.
+ */
+function fewValueModes(allCounts: readonly number[], total: number): number {
+  const counts = allCounts.filter((count) => count / total >= RARE_VALUE);
+  const each = counts.map((count) => count / total);
+  const overLimit = (masses: readonly number[], limit: number): number => masses.filter((part) => part >= limit).length;
+  if (counts.length < MIN_BELL_VALUES) return overLimit(each, Math.min(MIN_MODE_SHARE, Math.max(...each) / 2));
+  if (flatCounts(counts)) return overLimit(each, Math.min(MIN_MODE_SHARE, at(each, 0.5) / FLAT_RATIO));
+  const humps = humpsOf(counts);
+  const narrow = humps.filter((hump) => hump.values < MIN_HUMP_VALUES).length;
+  const masses = 2 * narrow > humps.length ? each : humps.map((hump) => hump.count / total);
+  return overLimit(masses, Math.min(MIN_MODE_SHARE, Math.max(...masses) / 2));
+}
+
+/**
+ * This function counts the modes of a sample. A mode counts when it holds 10 percent of the mass, or half of the mass of the largest
+ * mode. The result is at least 1. A sample with 24 or fewer distinct values, and 4 or more copies of each value on average, gets a
+ * direct read of the counts of those values, so the result does not change with the size of the sample. A kernel estimate on a grid
+ * reads each other sample. The valley to the next mode is under half of the lower height, and the grid joins more than approximately
+ * 24 evenly spaced clusters. A copy of this count is in rigor-statistics, and this one goes with the release of that package.
  */
 export function modeCount(values: readonly number[]): number {
-  const GRID = 96;
   const low = at(values, 0);
   const high = at(values, 1);
   if (high === low) return 1;
-  const h = kernelWidth(values, low, high, GRID);
+  const counts = valueCounts(values, low, high);
+  if (counts.length <= FEW_VALUES && values.length >= MIN_REPEATS * counts.length) return fewValueModes(counts, values.length);
+  const h = kernelWidth(values, low, high);
   const step = (high - low + 6 * h) / (GRID - 1);
   const density = new Float64Array(GRID);
   for (const x of values) {

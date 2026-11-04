@@ -122,6 +122,21 @@ describe("the modes of a sample", () => {
     }
   });
 
+  it("gives one result for few discrete sizes at each size of a sample", () => {
+    for (const sizes of [2, 4, 6, 12, 24]) {
+      for (const each of [10, 50, 200, 1000]) expect(modeCount(Array.from({ length: sizes * each }, (_, i) => i % sizes))).toBe(sizes);
+    }
+    expect(modeCount(Array.from({ length: 2500 }, (_, i) => i % 25))).toBe(1);
+  });
+
+  it("keeps one mode for a rounded bell at each size from 300 to 3,000", () => {
+    const r = mulberry32(21);
+    const normal = (): number => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+    for (const n of [300, 1000, 3000]) {
+      for (let i = 0; i < 20; i++) expect(modeCount(Array.from({ length: n }, () => Math.round(2 * normal())))).toBe(1);
+    }
+  });
+
   it("keeps one mode for the log areas of whole-number sides", () => {
     const r = mulberry32(20);
     for (let i = 0; i < 100; i++) {
