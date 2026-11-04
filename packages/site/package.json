@@ -23,7 +23,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "@mark1russell7/layout-contract": "^0.3.9",
+    "@mark1russell7/layout-contract": "^0.3.10",
     "@mark1russell7/packing": "workspace:*",
     "@mark1russell7/rigor-statistics": "^0.1.9",
     "@mark1russell7/site-pages": "^0.2.3",
