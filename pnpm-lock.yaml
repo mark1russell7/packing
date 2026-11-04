@@ -208,6 +208,9 @@ importers:
       '@mark1russell7/layout-contract':
         specifier: ^0.3.3
         version: 0.3.3
+      '@mark1russell7/rigor-generators':
+        specifier: ^0.1.1
+        version: 0.1.1
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -215,9 +218,6 @@ importers:
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.5
         version: 0.2.5
-      '@mark1russell7/rigor-generators':
-        specifier: ^0.1.1
-        version: 0.1.1
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.6
         version: 0.1.6

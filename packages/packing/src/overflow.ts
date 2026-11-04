@@ -1,7 +1,7 @@
 // The forced overflow of roadmap item k59 (docs/MEASURES.md, "Overflow"): a lower bound of the count of items that no
 // packer can place in a fixed container. `measure` uses it for `pack.overflow.forced` and `pack.overflow.forcedArea`.
 
-import { boundsOf } from "@mark1russell7/layout-contract";
+import { boundsOf, overlapOf } from "@mark1russell7/layout-contract";
 import { DEFAULT_TOLERANCE, marginOf, type Item, type PackInput, type Region, type Sides } from "./contract.ts";
 
 /** A rectangle: its top-left corner and its size. */
@@ -64,7 +64,8 @@ function blockedArea(region: Region): number {
 
 /** This function tells if the insides of two rectangles have a common point. Two rectangles with a common edge do not. */
 function boxesOverlap(a: Box, b: Box): boolean {
-  return Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0;
+  const overlap = overlapOf(a, b);
+  return overlap.x > 0 && overlap.y > 0;
 }
 
 /** This function tells if rectangle `a` is in rectangle `b`. */

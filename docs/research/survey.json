@@ -601,18 +601,14 @@
       "related": [
         "k66"
       ],
-      "status": "queued",
+      "status": "built",
       "note": null,
       "survey": {
         "gain": 3,
         "uncertainty": 3,
         "cost": 3
       },
-      "queue": {
-        "gain": 3,
-        "uncertainty": 3,
-        "cost": 2
-      },
+      "queue": null,
       "round": 1
     },
     {

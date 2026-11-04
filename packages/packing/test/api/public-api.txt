@@ -1898,7 +1898,7 @@ interface LayoutStrategyOptions {
 declare const MAXRECTS_BANDS = 128;
 
 ### build/layout-strategy.d.ts#MAXRECTS_RULES
-declare const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp"];
+declare const MAXRECTS_RULES: readonly ["bssf", "blsf", "baf", "bl", "cp", "wire"];
 
 ### build/layout-strategy.d.ts#MaxRectsOptions
 interface MaxRectsOptions {

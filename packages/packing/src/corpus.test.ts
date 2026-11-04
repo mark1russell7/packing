@@ -8,6 +8,7 @@ import {
   corpus,
   corpusFamilies,
   fnv1a32,
+  mulberry32,
   packWith,
   rectScattered,
   strategies,
@@ -34,6 +35,33 @@ const nodeHash = (file: LayoutInput): string => {
 describe("the shared generator rect-scattered v1", () => {
   it("has the check value of fnv1a32", () => {
     expect(fnv1a32("1:container")).toBe(3139901265);
+  });
+
+  // The values below come from the copies of packing before the move to @mark1russell7/rigor-generators.
+  it.each([
+    ["", 2166136261],
+    ["é", 513665217],
+    ["日本語", 2153733351],
+    ["😀", 866293256],
+    ["a\ude00b", 1982953453],
+  ])("keeps the fnv1a32 of %j", (text, hash) => {
+    expect(fnv1a32(text)).toBe(hash);
+  });
+
+  it("reads a lone surrogate as U+FFFD in fnv1a32, as FORMAT.md reads UTF-8", () => {
+    expect(fnv1a32("\ud83d")).toBe(55024714);
+    expect(fnv1a32("\ud83d")).toBe(fnv1a32("\ufffd"));
+  });
+
+  it.each([
+    [0, [0.26642920868471265, 0.0003297457005828619, 0.2232720274478197]],
+    [-1, [0.8964226141106337, 0.189478256739676, 0.7156526781618595]],
+    [2 ** 31, [0.8205775609239936, 0.4481089550536126, 0.7836112855002284]],
+    [2 ** 53 + 2, [0.7342509443406016, 0.32499843230471015, 0.28529605525545776]],
+    [1.5, [0.6270739405881613, 0.002735721180215478, 0.5274470399599522]],
+  ])("keeps the mulberry32 stream of seed %d", (seed, stream) => {
+    const next = mulberry32(seed);
+    expect(stream.map(() => next())).toEqual(stream);
   });
 
   it.each(EXPECTED)("gives the expected file for seed $seed", (e) => {
