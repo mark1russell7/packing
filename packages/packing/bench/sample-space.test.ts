@@ -52,10 +52,11 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The order graph-bfs (layout-stack L34) gives more base configs, so the counts and the draws changed.
 // Before L34 the pins were 8e927552366b747d, e7520bf93db84bc6, fb834701df83f8be, d49ccb0bd735314d, 28789137749597439801406687782 and 28789137749597438869845771510.
 // The rule wire of k136 adds configs too. Before k136 the pins were ce6d8bf386fbb8a6, 5ff46c2513f1c859, e0392ab28b85d0d0, 90e85a9b3b203375, 71506084854820641670444082160 and 71506084854820640540641605810.
-// The 2 placement options of k25 changed the draws and the counts. Before k25 the pins were 99f077f73ba82661, 8a4c62b086079de4, e764f2c6cdd482e6, c7a8ed52072f03a8, 79943291102292057106200315504 and 79943291102292055949201549490.
+// The 2 placement options of k25 changed the draws and the counts. Before k25 the pins were 99f077f73ba82661, 8a4c62b086079de4, e764f2c6cdd482e6, c7a8ed52072f03a8, 79943291102292057106200512423 and 79943291102292055949201549490.
 const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "e824ad73e7edf6a5", "3f8e28feceedef44", "c7a8ed52072f03a8"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
-const CLOCK_FREE_META = 91590358728953040752341887024n;
+// The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
+const CLOCK_FREE_META = 91590358728953040752342089373n;
 const CLOCK_CONFIGS = 91590358728953039561241613290n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
@@ -132,7 +133,7 @@ describe("the counts of the configs", () => {
     // Roadmap item k25 adds bottom-left with its rules and best-fit with its sides. Before k25 the base count was 160538.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
     expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1));
-    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "force"]);
+    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
 });
@@ -383,6 +384,7 @@ describe("the strata of k115", () => {
       "genetic:1",
       "tabu:1",
       "relax:1",
+      "relax-pull:1",
       "force:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);

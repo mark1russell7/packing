@@ -130,7 +130,7 @@ export {
   type GeneticStrategyOptions,
   type TabuStrategyOptions,
 } from "./order-search.ts";
-export { RELAX_MAX_CONSTRAINTS, RELAX_STAGE, relaxStrategy, type RelaxStrategyOptions } from "./relax.ts";
+export { RELAX_MAX_CONSTRAINTS, RELAX_PULL_MAX_BOXES, RELAX_STAGE, relaxStrategy, type RelaxStrategyOptions } from "./relax.ts";
 export { FORCE_MAX_BOXES, FORCE_MAX_FIXED, FORCE_STAGE, forceStrategy, type ForceStrategyOptions } from "./force.ts";
 export { RUIN_KINDS, RUIN_RECREATE_STAGE, ruinRecreateStrategy, type RuinKind, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
 export {

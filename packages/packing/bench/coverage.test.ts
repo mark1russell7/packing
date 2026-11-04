@@ -350,8 +350,8 @@ describe("the strata of the whole space of k115", () => {
     expect(out.pairs).toBe(4);
     expect(out.draw).toBeNull();
     expect(out.strata.map((s) => s.id).slice(0, 9)).toEqual(["rows:1", "skyline:1", "shelf:1", "maxrects:1", "guillotine:1", "push:1", "bottom-left:1", "best-fit:1", "hole-degree:1"]);
-    // Without the strata of sample.json, the section has the 25 strata of packSpace. Roadmap item k80 adds overlap-min:1, k26 adds anneal:1, genetic:1 and tabu:1, k124 adds relax:1, and k125 adds force:1.
-    expect(out.strata).toHaveLength(27);
+    // Without the strata of sample.json, the section has the 28 strata of packSpace. Roadmap item k137 adds relax-pull:1. Roadmap item k80 adds overlap-min:1, k26 adds anneal:1, genetic:1 and tabu:1, k124 adds relax:1, and k125 adds force:1.
+    expect(out.strata).toHaveLength(28);
     expect(out.strata.at(-1)!.id).toBe("force:1");
     expect(out.strata.filter((s) => s.pairs > 0)).toEqual([
       { id: "rows:1", pairs: 2 },

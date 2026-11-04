@@ -809,6 +809,72 @@ The counts of `packSpace`:
 
 The bench (prediction `packing-k124-relax`): rows, maxrects-bl and skyline-bl-waste, each alone and in `relax`, on `pack-screen-v1`. The measures are the balance measures, fill, the order inversions, the time and the hard breaks.
 
+### The link pull
+
+Roadmap item k137 adds the option `pull` to `relax`. After a pack, the pull moves the boxes along their free space toward the boxes that they link to. It is opt-in. The default is 0, and no default uses it.
+
+```ts
+const output = packWith("relax", input, { member: "rows", strength: 0, pull: 1 });
+```
+
+The steps of one round:
+
+1. **The block step.** Each linked box gets a target toward its balance point: the weighted mean of the centers of its links. The satisfy step of VPSC moves the boxes on each axis, so a box can push a row of boxes. A block step that does not make the wire length shorter goes back.
+2. **The slide step.** Each linked box in turn moves on each axis along its free interval. A move goes ahead only when it makes the wires of the box shorter.
+
+The rounds stop when the wire length stops falling, and at most 16 rounds occur.
+
+The rules:
+
+- The wire length is the sum over the links of the weight times the Manhattan distance between the centers.
+- With no links, the output is the member output. A link of an item to itself, a link to an item with no box and a link with no positive weight have no effect.
+- The pull reads no seed. Obstacles and locked boxes stay fixed.
+- The pull keeps the output size of the member, also on a free side. So the height does not grow.
+- The pull reads the same containers as `relax`: `fixed`, `freeHeight` and `freeWidth`. It does not read `freeAspect` or `freeArea`.
+- The guard of `relax` also examines the pull.
+- Above `RELAX_PULL_MAX_BOXES` (1000) boxes, the pull does not start. The slide step is O(n^2) in one round.
+- The trace stage `relax` also has `relax.pull.rounds`, `relax.pull.before` and `relax.pull.after`.
+
+The counts of `packSpace`:
+
+- A new param of `relax` changes the id of each `relax` config. So `combine` gets a new option `relax-pull` with 1 member, `RECT_ONLY` and the param `pull`. It is `relax` with the strength 0.
+- The named configs are `relax-pull-rows` and `relax-pull-maxrects-bl`.
+- `configOfStrategy` gives a point only for the strength 0 or the pull 0.
+- With 3 levels, each base config gives 3 new meta configs. With 1 level, it gives 1.
+
+| `spaceSize` | Before k137 | Since k137 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 839122620777889294392 | 839122620777889305516 |
+| 1 level | 277205931006817716 | 277205931006818808 |
+| 3 levels, `shapes: ["rect"]` | 835731956558436797040 | 835731956558436808155 |
+| 1 level, `shapes: ["rect"]` | 275936906614690676 | 275936906614691767 |
+
+The trial chose the structure of a round on the seeds 1 to 20: 40 items, `freeHeight`, the order `graph-bfs`, and a seeded tree of links. Each value is the sum of the pull over the sum of the same pack without it. The block share is the share of the pull in the block step. The slide step alone gave a longer wire in each row, so a round has both steps. The share 1 gave the shortest wire on `rows` and needs no second constant.
+
+| Member | Sizes | Slide only: wire, height | Share 0.25: wire, height | Share 0.5: wire, height | Share 1: wire, height |
+|---|---|---|---|---|---|
+| `rows` | `uniform` | 0.933, 0.965 | 0.919, 0.930 | 0.910, 0.915 | 0.888, 0.946 |
+| `rows` | `heavyTail` | 0.912, 0.991 | 0.879, 0.979 | 0.878, 0.981 | 0.877, 0.989 |
+| `rows` | `bimodal` | 0.930, 0.983 | 0.910, 0.960 | 0.898, 0.956 | 0.881, 0.978 |
+| `maxrects` `bl` | `uniform` | 0.984, 0.997 | 0.977, 0.997 | 0.979, 0.997 | 0.979, 0.997 |
+| `maxrects` `bl` | `heavyTail` | 0.971, 1.000 | 0.958, 1.000 | 0.959, 1.000 | 0.961, 1.000 |
+| `maxrects` `bl` | `bimodal` | 0.978, 1.000 | 0.973, 1.000 | 0.974, 1.000 | 0.975, 1.000 |
+
+Each variant won on 20 of 20 seeds in each row, with 0 hard breaks. The gain is small, because a packed layout has little free space. On `maxrects` `bl`, the share 1 is not the best share, but the differences are at most 0.003.
+
+The held-out measure uses the seeds 101 to 120, with the same inputs, block share 1 and each frame. Each cell gives the wire length, the height and the fill as a share of the same pack. The pull won on 240 of 240 inputs, with 0 hard breaks.
+
+| Member | Sizes | `freeHeight`: wire, height, fill | `fixed`: wire, height, fill |
+|---|---|---|---|
+| `rows` | `uniform` | 0.919, 0.971, 1.021 | 0.916, 0.984, 1.004 |
+| `rows` | `heavyTail` | 0.880, 0.990, 1.011 | 0.883, 1.001, 0.993 |
+| `rows` | `bimodal` | 0.907, 0.985, 1.008 | 0.899, 1.001, 0.988 |
+| `maxrects` `bl` | `uniform` | 0.973, 1.000, 0.998 | 0.973, 1.003, 0.995 |
+| `maxrects` `bl` | `heavyTail` | 0.953, 1.000, 0.998 | 0.965, 1.006, 0.993 |
+| `maxrects` `bl` | `bimodal` | 0.978, 0.998, 1.001 | 0.974, 1.002, 0.997 |
+
+A free height does not grow in these rows at 3 decimals. In a fixed frame, the height grows by at most 0.6 percent, and the fill falls by at most 1.2 percent. The rule `wire` of k136 gives a larger gain. Its wire shares are 0.49 to 0.64, and its height shares are 1.01 to 1.06. The pull keeps the pack, and the rule changes it.
+
 ### The force packer
 
 Roadmap item k125 adds the composite strategy `force` (catalog rows `overlap-spring`, Li 2005, and `overlap-prism`, Gansner 2010). It is opt-in. No default uses it. The code is `src/force.ts`.
@@ -1399,10 +1465,10 @@ Roadmap item k25 adds the strategies `bottom-left` and `best-fit`. They ship off
 |---|---:|---:|
 | `base`, 3 levels and 1 level | 3708 and 1092 | 3798 and 1122 |
 | `base` for `rect`, 3 levels and 1 level | 3705 and 1091 | 3795 and 1121 |
-| `meta`, 3 levels | 839122620777889294392 | 946077247154414467692 |
-| `meta`, 1 level | 277205931006817716 | 317504231368153776 |
+| `meta`, 3 levels | 839122620777889305516 | 946077247154414479086 |
+| `meta`, 1 level | 277205931006818808 | 317504231368154898 |
 
-- `ENTRIES` of the benchmark: 45 before, 50 after. The strata of `strataOf`: 25 before, 27 after.
+- `ENTRIES` of the benchmark: 45 before, 50 after. The strata of `strataOf`: 26 before, 28 after.
 - The uniform draws of the sampler change, because the space has more configs.
 
 ## The decisions

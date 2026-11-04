@@ -48,6 +48,7 @@ describe("packSpace", () => {
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
+  // Roadmap item k137 adds relax-pull: 3 meta configs for each base config with 3 levels, and 1 with 1 level.
   it("gives cell-portfolio one pool entry, and counts 9.46e20 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
@@ -72,13 +73,13 @@ describe("packSpace", () => {
     // Before L34 the counts were 277869295533810375192, 100061834238419076, 276469311858023490660 and 99500446769432000.
     // The order graph-bfs of L34 gives more base configs, so each count of member lists grows.
     // The rule wire of k136 does the same. Before k136 the counts were 688291902860755874904, 248007594904236900, 685398465078246361680 and 246846729112282916.
-    // Roadmap item k25 adds 2 placement options, so each count grows again. Before k25 the counts were 839122620777889294392, 277205931006817716, 835731956558436797040 and 275936906614690676.
+    // Roadmap item k25 adds 2 placement options, so each count grows again. Before k25 the counts were 839122620777889305516, 277205931006818808, 835731956558436808155 and 275936906614691767.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(946077247154414467692n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(317504231368153776n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3795n, meta: 942344896950158893260n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1121n, meta: 316089581715755216n });
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(946077247154414479086n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(317504231368154898n);
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3795n, meta: 942344896950158904645n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1121n, meta: 316089581715756337n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -484,13 +485,13 @@ describe("configOfStrategy (k135)", () => {
     expect(reason("restarts", { member: 3 })).toMatch(/not a strategy id/);
     expect(reason("restarts", { member: { strategy: "rows", options: { color: "red" } } })).toMatch(/The member rows .* no place/);
     expect(reason("portfolio", { k: 2, members: ["rows", "maxrects"] })).toMatch(/A config has one/);
+    expect(reason("relax", { pull: 1 })).toMatch(/only with the strength 0/);
   });
 
   it("keeps the configId of each named config of main", () => {
-    // The list of main before k135, with no named config pack and no named config of the later rule wire. A change of a config or of canonicalConfig changes the hash.
-    // Roadmap item k25 adds 5 named configs. The filter keeps them out, so the hash of the old names does not change.
-    const k25 = ["bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short"];
-    const list = Object.entries(named).filter(([name]) => name !== "pack" && name !== "maxrects-wire" && !k25.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
+    // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137 or of k25. A change of a config or of canonicalConfig changes the hash.
+    const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short"];
+    const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });
 });
