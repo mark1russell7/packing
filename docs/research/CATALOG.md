@@ -444,7 +444,7 @@ These methods keep the reading order of the input, or keep the layout when the i
 |---|---|---|---|---|---|---|---|---|
 | `order-shelf-input` | Shelf in the input order | `shelf-nf` around locked boxes. | this repository | order | `O(n)` | — | implemented: `packShelf` with `sortOrder: "input"` | k29 |
 | `order-ordered-treemaps` | Ordered treemaps | `treemap-pivot-*`, `treemap-strip`, `treemap-split`, `treemap-spiral` and the curves keep the order. | Shneiderman 2001, Bederson 2002 | order | refer to [Treemaps](#treemaps) | — | planned | k29 |
-| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n log n)` | — | planned | k29 |
+| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n^2)` here | — | implemented: `keepOrthogonal` | k29 |
 | `order-mental-map` | Keep the mental map | Keep the orthogonal order, the near neighbors and the topology of a layout when it changes. | Misue 1995, Eades 1991 | stability | depends on the method | — | planned | k29 |
 | `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | this repository | stability | one pack | — | implemented: `pinUnchanged` | k29 |
 | `stable-local-moves` | Local moves | `treemap-local-moves` for packers: search the moves of a layout for the best mix of a measure and the movement. | Sondag 2018 | stability | moves x measure | — | planned | k29 |

@@ -2080,6 +2080,34 @@ The inputs are made-up strips of width 200 with 100 items and 30 seeds. The rank
 - The mean height falls at each listed window. The hard rules have 0 breaks.
 - Window 1 has inversions of 0.177, because `maxrects` can put a box above an earlier box.
 - The count of 100 items sets the scale of the windows. This run does not measure a window as a share of the count.
+## The orthogonal order
+
+`bench/orthogonal.ts` compares `keepOrthogonal` of roadmap item k29 with a fresh pack, and with `pinUnchanged` and `compactUp`, on the chains of `bench/pin.ts`. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k29-orthogonal`.
+
+```bash
+node bench/orthogonal.ts --out <file.json> [--seeds 30] [--count 100] [--share 0.05] [--steps 10]
+```
+
+The column Flips is the share of the ordered pairs of staying boxes that change their strict order on `x` or `y`, over each step. The column Pinned is the share of the staying boxes that `keepOrthogonal` pins. The hard rules have 0 breaks.
+
+| Entry | Method | Moved | Distance | Flips | Cost, step 1 | Cost, step 10 | Worst cost | Pinned |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | fresh | 0.757 | 0.355 | 0.190 | 1 | 1 | 1 | |
+| `maxrects-bl` | pin and compaction | 0.146 | 0.028 | 0.008 | 1.071 | 1.192 | 1.290 | |
+| `maxrects-bl` | orthogonal | 0.437 | 0.070 | 0.016 | 1.074 | 1.278 | 1.422 | 0.966 |
+| `skyline` | fresh | 0.808 | 0.333 | 0.178 | 1 | 1 | 1 | |
+| `skyline` | pin and compaction | 0.221 | 0.052 | 0.011 | 1.080 | 1.229 | 1.383 | |
+| `skyline` | orthogonal | 0.540 | 0.115 | 0.020 | 1.110 | 1.398 | 1.607 | 0.972 |
+
+- `keepOrthogonal` loses to pin and compaction on each column. The prediction asked for fewer flips, a lower cost at step 10 and a movement of at most half of a fresh pack. Each of these 3 claims failed on both entries.
+- The flips of `keepOrthogonal` come from the boxes that it leaves free. The test of 200 made-up inputs has 0 flips of pinned boxes.
+- The cause is the weak order. A pushed box moves each box with an old `x` between its old and its new `x`, also a box in another row. Thus one wider box moves many boxes, and some of them go past the right side.
+
+Two other forms were measured after the first read of this table, and neither stays in the code. They are not a new prediction.
+
+- A second pass pulled the boxes back from the right side. The cost at step 10 rose to 1.330 for `maxrects-bl` and 1.496 for `skyline`, and the share of pinned boxes fell to 0.960 for `maxrects-bl`.
+- With both that pass and a hold of each `y` until a push, the moved share fell to 0.292 and 0.278. The cost at step 10 rose to 1.371 and 1.638.
+
 ## The pin of unchanged boxes
 
 `bench/pin.ts` measures `pinUnchanged` of roadmap item k29. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k29-pin-unchanged`.
