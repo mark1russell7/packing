@@ -1342,6 +1342,32 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 - The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
 - The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
 
+## The corpus coverage
+
+The script `bench/corpus-cover.ts` gives the coverage of the taxonomy as numbers (k50). It reads the manifests in `bench/corpora/`, and it generates no input. The cell of a spec comes from `cell` of its generator.
+
+```sh
+node bench/corpus-cover.ts [--out <file>]
+```
+
+The default output is `packages/site/data/corpus-cover.json`. A test compares that file with the output of the script, so a new corpus needs a new file. The results page shows the numbers, a grid of the dimension pairs and the inputs of each pair.
+
+The output has three counts, for the union of the corpora and for each corpus:
+
+| Count | Meaning |
+| --- | --- |
+| `cells` | The distinct cells of the specs, against the product of the 10 dimensions |
+| `pairs` | The distinct pairs of values of two dimensions, against all the pairs |
+| `values` | The values with an input. `empty` lists the other values |
+
+Read these limits:
+
+- The product counts cells that no input can be. So `cellShare` is a lower limit, not a target.
+- The dimensions are `containerSize`, `containerShape`, `obstacles`, `itemShape`, `rotation`, `sizes`, `count`, `order`, `groups` and `mode`. `obstacleMove` is not a dimension here, because only a cell with obstacles has it. A cell has no `objective`.
+- A cell is the statement of the generator. The script does not compare it with the generated input.
+- `pack-adversary-v1` has no specs, so the script lists it in `skipped`.
+- A value outside `COVER_DIMENSIONS` stops the script with a `RangeError`.
+
 ## The space coverage
 
 The script `bench/coverage.ts` tells how much of the space of strategies and inputs a regression tree can predict (k105). It reads the records and the manifest of one run.
