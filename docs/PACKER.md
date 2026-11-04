@@ -1751,6 +1751,30 @@ The function `pinUnchanged` is the first slice of roadmap item k29. It changes a
 
 The hole of a removed box stays, so a chain of changes adds height. `docs/BENCH.md`, "The pin of unchanged boxes", gives that cost.
 
+## The orthogonal order
+
+The function `keepOrthogonal` keeps the relation "left of" and the relation "above" of each pair of staying boxes (roadmap item k29, second slice). The idea comes from Misue 1995. It changes an input and does not pack, as `pinUnchanged` does. No default uses it.
+
+```ts
+const { input, pinned } = keepOrthogonal(baseInput, baseOutput, changeInput);
+const output = packWith("maxrects", input, { rule: "bl" });
+```
+
+1. Each staying box keeps its `x` until a box on its left pushes it. A pair with a common part of its old `y` spans keeps its order with no overlap.
+2. Each staying box rises to the highest place that keeps the order. A pair with a common part of its new `x` spans keeps its order with no overlap.
+3. Each other pair keeps a weak order: two boxes can share an edge value.
+4. The function locks each box at its new place. The strategy then packs the new boxes around them.
+
+The difference from `pinUnchanged` is the resized box. `pinUnchanged` leaves a resized box free, and the strategy can put it far from its old place. `keepOrthogonal` keeps it in the order, and the other boxes make room.
+
+- A new box, a turned box and an item with a parent stay free.
+- A locked item does not change, and the order does not apply to it.
+- A box stays free when its new place is outside a fixed side, or overlaps an obstacle or a locked item. Thus the order applies only to the ids in `pinned`.
+- The function refuses a container with a shape and pair gaps.
+- The time is the square of the count of the boxes.
+
+Use this function only when the order is a hard need. On the dense strips of `bench/orthogonal.ts`, `pinUnchanged` with `compactUp` moves fewer boxes and gives a lower height. `docs/BENCH.md`, "The orthogonal order", has the numbers.
+
 ## The vertical compaction
 
 The function `compactUp` is the first slice of roadmap item k30. It takes a layout and moves each free box up until the box touches a box, a wall or the top of the container. No default uses it.
