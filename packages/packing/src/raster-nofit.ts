@@ -489,15 +489,15 @@ function startOrders(pieces: readonly Piece[]): Piece[][] {
 }
 
 /** This function gives a copy of an order with one random move: a swap of two items, or one item at a new place. */
-function moved(order: readonly Piece[], r: () => number): Piece[] {
+export function moved<T>(order: readonly T[], r: () => number): T[] {
   const next = [...order];
   const i = randomInt(r, 0, next.length - 1);
   const j = randomInt(r, 0, next.length - 1);
   if (r() < 0.5) {
     [next[i], next[j]] = [next[j]!, next[i]!];
   } else {
-    const [piece] = next.splice(i, 1);
-    next.splice(j, 0, piece!);
+    const [one] = next.splice(i, 1);
+    next.splice(j, 0, one!);
   }
   return next;
 }

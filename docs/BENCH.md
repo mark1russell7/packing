@@ -54,6 +54,11 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `skyline-mw-waste` | `skyline` | `rule: "mw"`, `wasteMap: true` | `skyline` |
 | `guillotine-baf-sas` | `guillotine` | `choice: "baf"`, `split: "sas"` | none |
 | `guillotine-bssf-sas-merge` | `guillotine` | `choice: "bssf"`, `split: "sas"`, `merge: true` | none |
+| `bottom-left` | the same | the defaults | none |
+| `bottom-left-liu-teng` | `bottom-left` | `rule: "liu-teng"` | `bottom-left` |
+| `best-fit` | the same | the defaults | none |
+| `best-fit-tall` | `best-fit` | `side: "tall"` | `best-fit` |
+| `best-fit-short` | `best-fit` | `side: "short"` | `best-fit` |
 | `portfolio-k2` | `portfolio` | `k: 2` | `maxrects-bl` |
 | `portfolio-k3` | `portfolio` | `k: 3` | `maxrects-bl` |
 | `aspect-fit-maxrects-bl` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bl" }` | `maxrects-bl` |
@@ -84,6 +89,7 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
 - The 3 entries of roadmap item k22 are the skyline family: the rule `mw` and the waste map. `docs/PACKER.md` ("The skyline family") tells them.
 - The 2 entries of roadmap item k23 are the guillotine family. `docs/PACKER.md` ("The guillotine family") tells the rules. No corpus has turnable items, thus no entry turns.
+- The 5 entries of roadmap item k25 are the slide and the best-fit families. `docs/research/CATALOG.md` tells the sources. These strategies do not turn an item.
 - The strategy `guillotine` has no entry of its own, because its defaults are the entry `guillotine-baf-sas`. The two entries have no base.
 - The strategy `maxrects` has no entry of its own, because its defaults are the entry `maxrects-bssf`.
 - The base of a rule is `maxrects-bl`, because the move of each other rule is a place that `bl` does not choose.
@@ -1298,6 +1304,16 @@ The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspec
 
 The column `ms sum` is the sum of the medians. The time of a job is longer, because each pair also has the runs for determinism and the warm-up runs.
 
+## Treemaps against the literature
+
+The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts` with the three log-normal tables of Bederson 2002. The workflow `treemap-literature.yml` starts it. Only `workflow_dispatch` starts this workflow, because the output is a report and not a gate.
+
+- The data is made up, in the form of section 2.3.2 of the paper. It has a log-normal start and a log-normal walk, in a square of side 100.
+- The measures are those of section 2.3.1: the unweighted mean aspect, the mean distance of `(x, y, w, h)` and the readability.
+- The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
+- The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
+- Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
+
 ## The snapshots of the site
 
 The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
@@ -1491,13 +1507,13 @@ Why the clock limits are outside the coverage:
 - A clock limit stops a search after a time. The output then depends on the speed and on the load of the computer.
 - Thus a result with a clock limit measures the computer, not the algorithm. No model of the config and the input can predict it.
 - The default sample draws from `clockFree` of `packSpace`: the param `limitTime` is always `false`.
-- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 25 strata stay the same.
+- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 27 strata stay the same.
 - `packSpace` keeps the clock limits. The option `--timing` of `sample-space.ts` draws them only on request.
 
 The option `--timing`:
 
 - `off` (the default) draws no clock limits.
-- `stratum` adds the timing stratum `clock:1` after the 25 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
+- `stratum` adds the timing stratum `clock:1` after the 27 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
 - `stratum` goes only with `--draw stratified`. The coverage does not read the pairs of `clock:1`, and `sampled.clockPairs` counts them.
 - `mixed` draws from the whole space, as before k121. Pair `i` of a sample with `mixed` is pair `i` of the samples of k112 to k118.
 
@@ -1517,13 +1533,13 @@ The test `bench/shuffle.test.ts` packs each bench entry and 24 sampled configs o
 A uniform draw gives almost only portfolios with 5 members. Thus its share tells little about the other families (k115).
 A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `bench/sample-space.ts` make the strata from the config.
 
-- A base config has the family of its option of the stage `placement`, and the size 1. The 7 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push` and `hole-degree`.
+- A base config has the family of its option of the stage `placement`, and the size 1. The 9 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push`, `bottom-left`, `best-fit` and `hole-degree`.
 - A meta option of the stage `combine` is its own family. Its size is its count of members.
 - `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
 - `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
 - `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` have 1 member.
 - Each one is one stratum. The family of their member does not count.
-- Thus `packSpace` has 25 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- Thus `packSpace` has 27 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
 - A new option of `placement` or `combine` gives new strata.
 
 ```sh
@@ -1753,7 +1769,9 @@ The nightly control (k120, `coverage-nightly.yml`):
 - A person can also start the workflow, with other inputs.
 - It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
 - Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.
-- The 12 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
+- The 40 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
+- The first timeout was 12 minutes. In run [41735018676](https://github.com/mark1russell7/packing/actions/runs/41735018676), it stopped 4 of the 5 control arms, at 382, 219, 195 and 196 of 400 pairs. Only 1 of 5 cells stayed, so the run has no verdict.
+- The new timeout comes from that run. The slowest arm gives 12 x 400 / 195 = 24.6 minutes, and the arm that finished took approximately 10 minutes. The limit is 24.6 + 14.6 = 39.2, so 40. This is an estimate from arms that the timeout stopped, because the run has no finished slow arm. A later run replaces it.
 - `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
 - The jobs `sample` pack the held-out sample of 400 pairs in 4 shards, with no time limit. The job `held-out` joins them.
@@ -1903,3 +1921,26 @@ The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has
 - The time of the pair search is the median over 5 inputs of 100 items, in one CI process.
 
 The file holds a paired comparison for each pair of arms, with a two-sided sign test. The prediction is `packing-k97-near-rects`.
+## The evolved place score
+
+The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
+
+- A score is a tree of `+`, `-`, `*`, a protected `/`, `min` and `max`. Its leaves are the box, the leftovers, the place and the top of the layout, as shares of the width.
+- The first population has the fixed rules as trees. The rule `cp` has no tree.
+- The search reads generated strips from the specs of `pack-strip-v1`, with seeds that the corpus does not hold. The search reads inputs of 200 items or fewer.
+- Each search has its own seed. Seeds that the search did not read choose one tree.
+- The program then reads the 264 free-height inputs of `pack-strip-v1`. No choice comes from them, and `--skip-held-out` keeps them out of a smoke test.
+
+The report gives the mean height over the objective bound, the gain over the best fixed rule, and a two-sided sign test. The numbers are in the artifact `gp-score`.
+
+The score tree stays in `bench/gp-score.ts`, and `packMaxRects` reads only a function. No strategy gives the option `score`, and no default uses it.
+## The binary search on the height
+
+The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap item k81) has the input families of the exact bench. It has no gate.
+
+- At 6, 8 and 10 items, it counts the cases where `packBinaryHeight` meets a height that `exactStrip` proves. A case at the node limit does not count.
+- At 20, 50 and 100 items, it gives each height as a ratio to the area bound, for each family and over all families.
+- Each line has the wins and the losses of the search against that method, with a two-sided sign test.
+- The line `first-layout` shows the height before the search.
+
+The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
