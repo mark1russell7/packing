@@ -188,6 +188,7 @@ export {
   type BoundOptions,
   type ObjectiveBound,
 } from "./bounds.ts";
+export { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE, EXACT_STRIP_NODE_LIMIT, exactStrip, exactStripRefusal, type ExactStripOptions, type ExactStripResult } from "./exact-strip.ts";
 export {
   canonicalJson,
   countCell,
