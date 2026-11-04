@@ -8,13 +8,14 @@ import {
   writeStrategyCatalog,
   type AnyOption,
   type CatalogEntry,
+  type ParamRoute,
   type RegistryEntry,
   type SupportProbe,
 } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import pkg from "../package.json" with { type: "json" };
 import { strategyCatalog } from "./strategy-catalog.ts";
-import { packSpace } from "./pack-space.ts";
+import { NAMED_VALUES, packSpace } from "./pack-space.ts";
 import type { Item, PackInput, PackOutput } from "./contract.ts";
 import { outputHash } from "./layout-input.ts";
 import { STANDALONE_MAX_ITEMS } from "./standalone-strategies.ts";
@@ -215,54 +216,56 @@ function refusesChoice(owner: string, option: string, choice: string): boolean |
   }
 }
 
-/**
- * The faults that the format of the catalog cannot state today. Each one goes away with a change of the format, and a new fault fails the test.
- *
- * - A param of the space has the name of an option, and it holds another form of the value: a name for a list, a table or a key. The rule of the format has no mapped param.
- * - `ruin-recreate` packs around locked items, and `best-fit` has no `obstacleMove`. A choice filter of the format reads no `supports`.
- */
-const FORMAT_FAULTS: readonly string[] = [
-  'portfolio: the space packing is outside the declaration. The option "key" takes a list.',
-  'restarts: the space packing is outside the declaration. The option "key" takes a list.',
-  'ruin-recreate: the option "member" with best-fit: the option offers this strategy, and the engine refuses it.',
-  'select: the space packing is outside the declaration. The option "table" takes an object.',
-  'shelf: the space packing is outside the declaration. The option "fit" takes next, first, best, not none.',
-];
+const WORK_FLAG = "This flag of the space turns on the param `budgetWork`.";
+const TARGET_FLAG = "This flag of the space turns on the param `targetAspect`.";
+const ORDER_VALUE = "This value of the stage is a value of the option `sortOrder` of the placement.";
+const STAGE_OFF = "This value turns the stage off.";
 
-/**
- * The params of the space that are not options of the engine. Each one is a value of an order, a step that a stage turns off, or a flag of the space that turns on other params.
- * A new param with no option fails the test.
- */
-const SPACE_ONLY: readonly string[] = [
-  "combine/anneal.limitWork",
-  "combine/aspect-fit.fixedTarget",
-  "combine/cell-portfolio",
-  "combine/genetic.limitWork",
-  "combine/portfolio.aspectFit",
-  "combine/portfolio.fixedTarget",
-  "combine/portfolio.limitMembers",
-  "combine/portfolio.limitTime",
-  "combine/portfolio.limitWork",
-  "combine/portfolio.targetAspect",
-  "combine/relax-pull",
-  "combine/restarts.limitWork",
-  "combine/side-anchors.at",
-  "combine/side-anchors.side",
-  "combine/tabu.limitWork",
-  "local-search/none",
-  "order/area-desc",
-  "order/graph-bfs",
-  "order/height-asc",
-  "order/height-desc",
-  "order/input",
-  "order/width-desc",
-  "placement/maxrects.fixedBands",
-  "size-search/log-sweep",
-  "size-search/none",
-];
+/** The params of the space that hold another form of an option value, with the function that gives the value. */
+const VALUE_ROUTES: Readonly<Record<string, ParamRoute>> = {
+  "combine/portfolio.key": { value: (v) => NAMED_VALUES["key"]![String(v)] },
+  "combine/restarts.key": { value: (v) => NAMED_VALUES["key"]![String(v)] },
+  "combine/select.table": { value: (v) => NAMED_VALUES["table"]![String(v)] },
+  "combine/side-anchors.at": { option: "first", value: (v) => ({ side: "left", at: v }) },
+  "combine/side-anchors.side": { option: "first", value: (v) => ({ side: v, at: 0.5 }) },
+  "placement/shelf.fit": { value: (v) => (v === "none" ? undefined : v) },
+};
+
+/** The places of the space that set no option of the engine, each with its reason. A new param with no option fails the test. */
+const SPACE_ONLY_REASONS: Readonly<Record<string, string>> = {
+  "combine/anneal.limitWork": WORK_FLAG,
+  "combine/aspect-fit.fixedTarget": TARGET_FLAG,
+  "combine/cell-portfolio": "This option of the space is a `portfolio` with the members of one portfolio set.",
+  "combine/genetic.limitWork": WORK_FLAG,
+  "combine/portfolio.aspectFit": "This flag of the space puts the strategy `aspect-fit` around the portfolio.",
+  "combine/portfolio.fixedTarget": TARGET_FLAG,
+  "combine/portfolio.limitMembers": "This flag of the space turns on the param `maxMembers`.",
+  "combine/portfolio.limitTime": "This flag of the space turns on the param `budgetMs`.",
+  "combine/portfolio.limitWork": WORK_FLAG,
+  "combine/portfolio.targetAspect": "This param goes to the strategy `aspect-fit` around the portfolio.",
+  "combine/relax-pull": "This option of the space is `relax` with the strength 0 and the option `pull`.",
+  "combine/restarts.limitWork": WORK_FLAG,
+  "combine/tabu.limitWork": WORK_FLAG,
+  "local-search/none": STAGE_OFF,
+  "order/area-desc": ORDER_VALUE,
+  "order/graph-bfs": ORDER_VALUE,
+  "order/height-asc": ORDER_VALUE,
+  "order/height-desc": ORDER_VALUE,
+  "order/input": ORDER_VALUE,
+  "order/width-desc": ORDER_VALUE,
+  "placement/maxrects.fixedBands": "This flag of the space turns on the param `bandHeight`.",
+  "size-search/log-sweep": "This stage of the space gives the option `samples` of the placement.",
+  "size-search/none": STAGE_OFF,
+};
+
+/** The route of each place of the space that does not hold an option value with the name of the option. */
+const paramRoutes: Readonly<Record<string, ParamRoute>> = {
+  ...VALUE_ROUTES,
+  ...Object.fromEntries(Object.entries(SPACE_ONLY_REASONS).map(([place, spaceOnly]) => [place, { spaceOnly }])),
+};
 
 /** The result of the whole check, one time for all the tests of this file. */
-const check = checkCatalog(strategyCatalog, live, { spaces: [packSpace], probes, refusesChoice });
+const check = checkCatalog(strategyCatalog, live, { spaces: [packSpace], paramRoutes, probes, refusesChoice });
 
 describe("the strategy catalog (k144)", () => {
   it("has each strategy of the engine, with a line and the live fields", () => {
@@ -292,20 +295,25 @@ describe("the strategy catalog (k144)", () => {
     expect(() => packWith("exact-strip", { container: { w: EXACT_STRIP_MAX_SIDE * 2, fixed: "width" }, items: [{ id: "a", w: EXACT_STRIP_MAX_SIDE + 1, h: 1 }] })).toThrow(UnsupportedCell);
   });
 
-  it("passes the check of the contract, with only the faults of the format", () => {
-    expect([...new Set(check.faults)].sort()).toEqual(FORMAT_FAULTS);
+  it("passes the check of the contract with no fault", () => {
+    expect(check.faults).toEqual([]);
   });
 
-  it("refuses best-fit in ruin-recreate for the locked items of a recreate", () => {
+  it("does not offer best-fit in ruin-recreate, because the engine refuses it for the locked items of a recreate", () => {
     expect(() => packWith("ruin-recreate", fixture("ruin-recreate"), { member: "best-fit" }, 1)).toThrow(UnsupportedCell);
+    const member = entries.get("ruin-recreate")!.options["member"]!;
+    const offered = catalogChoices(strategyCatalog.strategies, member).map((e) => e.key);
+    expect(offered).not.toContain("best-fit");
+    expect(offered).toContain("maxrects");
   });
 
   it("runs each probe of each strategy", () => {
     expect(check.notRun).toEqual([]);
   });
 
-  it("states each param of the space with no option", () => {
-    expect([...check.notMatched].sort()).toEqual(SPACE_ONLY);
+  it("has a route for each param of the space with no option", () => {
+    expect(check.notMatched).toEqual([]);
+    expect(check.spaceOnly.map((line) => line.split(": ")[0]).sort()).toEqual(Object.keys(SPACE_ONLY_REASONS).sort());
   });
 });
 
