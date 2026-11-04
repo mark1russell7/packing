@@ -1531,6 +1531,19 @@ Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. 
 
 The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
+## The binary search on the height
+
+The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
+
+- The range goes from the area bound to the height of the best of 3 first layouts.
+- Each step takes the middle of the range as a limit. A seeded swap search looks for an order that places each item under the limit.
+- A skyline decoder gives the layout of an order. Each box goes to the lowest place, against the left or the right end of a skyline piece.
+- A layout lowers the top of the range. A failed search raises the bottom of the range, and this gives no proof.
+
+The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
+
+This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.

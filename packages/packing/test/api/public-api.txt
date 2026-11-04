@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 407 names
+## . (build/index.d.ts): 411 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -25,6 +25,7 @@ BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
 BEASLEY_GCUT_COUNTS: build/index.d.ts#BEASLEY_GCUT_COUNTS
 BEASLEY_GCUT_SIDES: build/index.d.ts#BEASLEY_GCUT_SIDES
 BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
+BINARY_HEIGHT_STAGE: build/index.d.ts#BINARY_HEIGHT_STAGE
 BL_TRAP_WIDTH: build/index.d.ts#BL_TRAP_WIDTH
 BL_TRAP_WIDTHS: build/index.d.ts#BL_TRAP_WIDTHS
 BOUND_KINDS: build/index.d.ts#BOUND_KINDS
@@ -34,6 +35,8 @@ type BeasleyGcutParams: build/index.d.ts#BeasleyGcutParams
 type BerkeyWangClass: build/index.d.ts#BerkeyWangClass
 type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
 type BerkeyWangRule: build/index.d.ts#BerkeyWangRule
+type BinaryHeightOptions: build/index.d.ts#BinaryHeightOptions
+type BinaryHeightResult: build/index.d.ts#BinaryHeightResult
 type BlTrapParams: build/index.d.ts#BlTrapParams
 type BoundKind: build/index.d.ts#BoundKind
 type BoundMeasures: build/index.d.ts#BoundMeasures
@@ -341,6 +344,7 @@ orderRects: build/order.d.ts#orderRects
 outputHash: build/index.d.ts#outputHash
 overlapMinStrategy: build/index.d.ts#overlapMinStrategy
 pack: build/index.d.ts#pack
+packBinaryHeight: build/index.d.ts#packBinaryHeight
 packConfig: build/index.d.ts#packConfig
 packDefault: build/default.d.ts#packDefault
 packFree: build/index.d.ts#packFree
@@ -643,6 +647,9 @@ export declare const BEASLEY_GCUT_SIDES: readonly number[];
 ### build/index.d.ts#BERKEY_WANG_RULES
 export declare const BERKEY_WANG_RULES: Readonly<Record<BerkeyWangClass, BerkeyWangRule>>;
 
+### build/index.d.ts#BINARY_HEIGHT_STAGE
+export declare const BINARY_HEIGHT_STAGE: string;
+
 ### build/index.d.ts#BL_TRAP_WIDTH
 export declare const BL_TRAP_WIDTH = 126;
 
@@ -683,6 +690,22 @@ interface BerkeyWangRule {
   readonly bin: number;
   readonly min: number;
   readonly max: number;
+}
+
+### build/index.d.ts#BinaryHeightOptions
+interface BinaryHeightOptions {
+  readonly trials?: number;
+  readonly seed?: number;
+  readonly precision?: number;
+}
+
+### build/index.d.ts#BinaryHeightResult
+interface BinaryHeightResult {
+  readonly output: PackOutput;
+  readonly height: number;
+  readonly firstHeight: number;
+  readonly steps: number;
+  readonly decoded: number;
 }
 
 ### build/index.d.ts#BlTrapParams
@@ -1709,6 +1732,9 @@ export declare const overlapMinStrategy: Strategy<OverlapMinStrategyOptions>;
 
 ### build/index.d.ts#pack
 export declare function pack<T>(rects: Rect<T>[], outer?: Rect<T>, options?: PackLayoutOptions): Rect<T>;
+
+### build/index.d.ts#packBinaryHeight
+export declare function packBinaryHeight(input: PackInput, options?: BinaryHeightOptions): BinaryHeightResult;
 
 ### build/index.d.ts#packConfig
 export declare function packConfig(input: PackInput, config: StrategyConfig$1, seed?: number): PackOutput;
