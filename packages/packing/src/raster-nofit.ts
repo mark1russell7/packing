@@ -269,7 +269,7 @@ export function rasterCover(region: Region, cell: number): RasterCover {
 }
 
 /** This function gives the outline of an item: its shape, or its box. */
-function outlineOf(item: Item): Region {
+export function outlineOf(item: Item): Region {
   return item.shape ?? { kind: "rect", x: 0, y: 0, w: item.w, h: item.h };
 }
 
@@ -288,7 +288,7 @@ function checkRasterInput(input: PackInput, trials: number): void {
 }
 
 /** This function gives the walls of the container, less the inset. A free height has an infinite bottom wall. */
-function wallsOf(input: PackInput): Extent {
+export function wallsOf(input: PackInput): Extent {
   const { container } = input;
   const inset = container.inset ?? 0;
   const shape = container.shape === undefined ? undefined : boundsOf(container.shape);
@@ -301,7 +301,7 @@ function wallsOf(input: PackInput): Extent {
 }
 
 /** This function gives the cell side: the option, or a quarter of the shortest box side with at most 1024 cells in the width. */
-function cellOf(input: PackInput, walls: Extent, option: number | undefined): number {
+export function cellOf(input: PackInput, walls: Extent, option: number | undefined): number {
   if (option !== undefined) return rasterCell(option);
   const sides = input.items.flatMap((i) => [i.w, i.h]).filter((v) => v > 0);
   const least = (walls.x1 - walls.x0) / DEFAULT_WIDTH_CELLS;

@@ -1531,6 +1531,21 @@ Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. 
 
 The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
+## Groups as near rectangles
+
+`packNearRects` is the first slice of roadmap item `k97` (idea S8 of the survey). Yang 2023 learns groups of pieces that are almost rectangles. This slice has no model. A greedy search on a raster joins the groups.
+
+- Each shape gets its cover on one grid, with the rule of `rasterCover`. A turnable item chooses one turn before the joins.
+- Each round finds, for each pair of groups, the offset with disjoint covers and the smallest box. A pair joins if it saves box cells.
+- The largest saving joins first, and a group joins once in a round. The default is 2 rounds, so a group has at most 4 shapes.
+- The member of `bbox` packs one box for each group: `maxrects` with the rule `bl`.
+
+The box of a group is the true extent of its shapes, not its cells. Thus the grid costs nothing for a shape that joins no group, and an input with no join gives the layout of `bbox`. A test pins this.
+
+The cost of a round is about `n ** 2` pair searches. Two groups with the same cells get one search. Thus an input with many equal shapes is fast.
+
+The function has no use in a default. It refuses a locked item, a margin, a gap, an inset and a container shape with a `RangeError`.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.

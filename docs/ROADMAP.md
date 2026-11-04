@@ -103,7 +103,7 @@ Status: done, done, waiting, next, done.
 | k94 | Basin hopping for circles (idea S5 of the survey) | strategies | later | k75 |
 | k95 | Bottom-left fill for polygons (idea S6 of the survey) | strategies | later | k75, k101 |
 | k96 | Overlap minimization for polygons (idea S7 of the survey) | strategies | later | k75, k101 |
-| k97 | Groups of pieces as near rectangles (idea S8 of the survey) | strategies | later | k75 |
+| k97 | Groups of pieces as near rectangles (idea S8 of the survey): `packNearRects`, first slice, with no learned model | strategies | active | k75 |
 | k98 | The ESICUP nesting sets (idea S9 of the survey) | measure | later | k75 |
 | k99 | Phi-functions (idea S10 of the survey) | strategies | later | k75 |
 | k100 | The best search for circles (idea S11 of the survey) | strategies | later | k75 |
