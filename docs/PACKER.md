@@ -1610,6 +1610,25 @@ The options are `trials` for each height, `seed` and `precision`. The same input
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
 
+## The legalization of rows
+
+`legalizeRows(baseInput, baseOutput, changeInput, options)` gives a layout of rows for a changed input, with the boxes near their places in the base layout. No entry uses it (roadmap item k82). The steps come from the abstract and the slides of Abacus (Spindler 2008), not from the full paper.
+
+1. A row of the base layout is a band of boxes that overlap in `y`.
+2. A box of a row, with the boxes that the gap fill of `rows` puts under it, is one rigid cell. When a box of the cell changes size, each box of the cell becomes one cell.
+3. The cells come in order of target `x`. Each cell tries each row, and it takes the row with the least distance.
+4. `placeRow` gives the cells of the row the least sum of squared moves. Clusters of cells merge from left to right, so the work is linear. With `placeRow: false`, a placed cell stays, as in Tetris (Hill 2002).
+5. A cell that fits no row opens a new row at the bottom.
+6. A row keeps its top when the row above it leaves the space. Otherwise the row moves down.
+
+These parts are not in the paper:
+
+- The rows of the paper have one height. Here a taller cell raises its row and moves each row under it. The trial cost of a row does not count that move.
+- The cells of the gap fill are new. They keep the layout of `rows` on a chain.
+- A row that keeps its top can leave a gap above it.
+
+The first slice takes a strip of a fixed width, with no shape. It refuses obstacles, gaps, margins, locks, parents, turns and a base layout with overflow. `docs/BENCH.md`, "The row legalizer", has the measures.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.
