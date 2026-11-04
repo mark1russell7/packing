@@ -4,7 +4,7 @@ A layout has many boxes: cards, photos, labels or rows of a list. A packer gives
 
 There is no single best layout. A dense layout can mix up the order of the boxes. A layout in the order of the boxes can leave gaps. The measures at the side of each layout show this cost.
 
-- **The strategy** is one of the 8 strategies of the registry. Each option of the strategy has a control under its name.
+- **The strategy** is your choice of the strategies of the package. Each option of the strategy has a control under its name.
 - **Rows** fills the container row by row, from left to right. It also fills the space under the short boxes of a row.
 - **Skyline** puts each box at the lowest place where it fits.
 - **Shelf** and **MaxRects** fill shelves or free rectangles. **Push** shoves each box that overlaps another box, until no box overlaps.
@@ -15,13 +15,8 @@ There is no single best layout. A dense layout can mix up the order of the boxes
 - **The objective** is the area of the box times (1 + weight × aspect error). The aspect error is the distance from the target aspect, on a log scale.
 - **The chart of the search** shows the objective of each width that `packFree` tried. The large dot shows the width that it kept.
 
-## What comes next
+## The work
 
-This site is the first version. It will grow with the package:
-
-- Many strategies behind one interface: shelf, guillotine, maxrects, skyline and an exact search for small inputs.
-- An algebra of measures: density and waste, aspect, reading order, stability and speed.
-- Stability: how far the boxes move when one box changes.
-- Benchmarks that run in CI, with a prediction before each run.
+The [strategies page](strategies/) lists each strategy, and the [results page](results/) has the measures. The [What's new page](whats-new/) lists each release.
 
 The source, the tests and the roadmap are in [the repository on GitHub](https://github.com/mark1russell7/packing). The package is [`@mark1russell7/packing` on npm](https://www.npmjs.com/package/@mark1russell7/packing). All of the data on this page is made up.
