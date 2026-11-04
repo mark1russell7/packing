@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.1
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH, and this release has no breaking change. The API report of 0.5.0 and of this version shows 0 removed names and 50 added names. Three declarations grow: `MAXRECTS_RULES`, `MaxRectsOptions` and `RelaxStrategyOptions`.
+
+### Added
+
+- The strategies `bottom-left` and `best-fit`, with `bottomLeft`, `bestFit`, `BOTTOM_LEFT_RULES`, `BEST_FIT_SIDES` and their option types (roadmap item k25).
+- The treemaps `treemapSliceDice`, `treemapSquarified`, `treemapStrip`, `treemapPivotSplit` and `treemapPack`, with their types (roadmap item k27).
+- Masonry and ordered columns: `masonryShortest`, `masonryLpt`, `columnsLinearPartition`, `columnBalance` and `columnReading`, with their types (roadmap item k28).
+- The raster no-fit for free forms: `packRasterNofit`, `rasterCell`, `rasterCover`, `RASTER_NOFIT_MAX_CELLS` and `RASTER_NOFIT_STAGE`, with their types (roadmap item k92, first slice).
+- The exact strip baseline: `exactStrip`, `exactStripRefusal` and the limits `EXACT_STRIP_MAX_ITEMS`, `EXACT_STRIP_MAX_SIDE` and `EXACT_STRIP_NODE_LIMIT`, with their types (roadmap item k10, first slice).
+- The binary search on the strip height: `packBinaryHeight`, `BINARY_HEIGHT_STAGE`, `BinaryHeightOptions` and `BinaryHeightResult` (roadmap item k81, first slice).
+- The rule `wire` of `maxrects` places a box near its linked boxes (roadmap item k136). The named config is `maxrects-wire`.
+- The option `pull` of `relax` moves boxes toward their links (roadmap item k137). The constant is `RELAX_PULL_MAX_BOXES`, and `packSpace` has the meta option `relax-pull`.
+- The option `score` of `MaxRectsOptions`, with the type `MaxRectsScore` (roadmap item k83, first slice).
+- `configOfStrategy`, the type `StrategyPoint` and the named config `pack` of `packSpace`, with `PACK_DEFAULT_TABLE` (roadmap item k135).
+- The order `graph-bfs` in `packSpace`, which reads `input.links`.
+- A subpath export for each of `default`, `guillotine`, `hole-degree`, `maxrects`, `push`, `rows`, `shelf` and `skyline` (roadmap item k132).
+
+### Changed
+
+- `packSpace` has more options, so `spaceSize` is larger. The ids of the 60 named configs of 0.5.0 do not change, and 9 named configs are new.
+- The dependency `@mark1russell7/layout-contract` is `^0.3.3`.
+- The new dependency `@mark1russell7/rigor-generators` is `^0.1.1`. `mulberry32`, `fnv1a32` and `boxesOverlap` use their homes.
+
 ## 0.5.0
 
 This release raises the MINOR version. Before 1.0.0, a breaking change raises MINOR, and the two breaks below are breaking changes. The release train publishes it.
