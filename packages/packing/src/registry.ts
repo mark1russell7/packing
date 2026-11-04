@@ -77,12 +77,41 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
  */
 export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, relaxStrategy, forceStrategy] as Strategy[]);
 
+/** The kind of a strategy: `single` packs alone, `shape` packs one shape kind that is not `rect`, and `composite` packs with other strategies. */
+export type StrategyKind = "single" | "shape" | "composite";
+
+/** One strategy of `allStrategies`, as data. `strategy` gives the strategy of the `id`. */
+export interface StrategyListing {
+  readonly id: string;
+  readonly family: string;
+  readonly kind: StrategyKind;
+  /** The cells that the strategy supports. */
+  readonly supports: Supports;
+  /** The value `true` tells that the result depends only on the input, the options and the seed. */
+  readonly deterministic: boolean;
+}
+
+/** The lists of the registry, each with its kind. A new list goes here, so `allStrategies` and `strategy` read it. */
+const LISTS: readonly (readonly [StrategyKind, readonly Strategy[]])[] = [
+  ["single", strategies],
+  ["shape", shapeStrategies],
+  ["composite", composites],
+];
+
 /**
- * This function gives the strategy with an id, also a strategy of `shapeStrategies` and a composite strategy.
+ * Each strategy of the registry, with its kind and its supports (roadmap item k140). Use this list to find the strategies.
+ * The lists `strategies`, `shapeStrategies` and `composites` stay for their own uses, and each one holds only one kind.
+ */
+export const allStrategies: readonly StrategyListing[] = Object.freeze(
+  LISTS.flatMap(([kind, list]) => list.map(({ id, family, supports, deterministic }): StrategyListing => ({ id, family, kind, supports, deterministic }))),
+);
+
+/**
+ * This function gives the strategy with an id, from each list of the registry.
  * It throws a `RangeError` for an id that the registry does not have.
  */
 export function strategy(id: string): Strategy {
-  const found = strategies.find((s) => s.id === id) ?? shapeStrategies.find((s) => s.id === id) ?? composites.find((s) => s.id === id);
+  const found = LISTS.flatMap(([, list]) => list).find((s) => s.id === id);
   if (found === undefined) throw new RangeError(`The registry has no strategy "${id}".`);
   return found;
 }

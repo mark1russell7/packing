@@ -96,7 +96,7 @@ export {
 export { BEST_FIT_SIDES, type BestFitSide } from "./best-fit.ts";
 export { BOTTOM_LEFT_RULES, type BottomLeftRule } from "./bottom-left.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { aspectFitStrategy, composites, packWith, shapeStrategies, strategies, strategy, type AspectFitStrategyOptions } from "./registry.ts";
+export { allStrategies, aspectFitStrategy, composites, packWith, shapeStrategies, strategies, strategy, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions } from "./registry.ts";
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
 export {
   ANCHOR_GAIN_LIMIT,
