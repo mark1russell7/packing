@@ -2059,6 +2059,7 @@ The strip has a width of 200. Each family has made-up items with a height from 1
 | wide | 500 | 1.312 | 1.116 | 100 % |
 
 Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
+
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
@@ -2084,6 +2085,7 @@ The family has 40 made-up rectangles on a strip of width 200, with 4 anchors on 
 The mean is high because of the input, not the search. A fraction and an offset on one side overlap over a range of heights, and the layout must go past that range.
 
 The plain band is shorter on 12 seeds, but each of those 12 layouts has an overlap of its anchors. The search is shorter on all 18 other seeds. This family has random anchors, so it says little about a designed layout.
+
 ## Groups as near rectangles
 
 The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has the inputs `seeds` (default 30) and `count` (default 40). The artifact `near-rects` has `near-rects.json`.
@@ -2095,6 +2097,7 @@ The workflow `Near rects` measures `packNearRects` of roadmap item `k97`. It has
 - The time of the pair search is the median over 5 inputs of 100 items, in one CI process.
 
 The file holds a paired comparison for each pair of arms, with a two-sided sign test. The prediction is `packing-k97-near-rects`.
+
 ## The evolved place score
 
 The workflow `GP score` (`.github/workflows/gp-score.yml`, roadmap item k83) searches for a place score of `maxrects` with genetic programming. It has no gate.
