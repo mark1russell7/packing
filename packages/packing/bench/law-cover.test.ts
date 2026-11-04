@@ -114,6 +114,22 @@ describe("the modes of a sample", () => {
     expect(modeCount(Array.from({ length: 400 }, () => normal(r)))).toBe(1);
     expect(modeCount(Array.from({ length: 400 }, (_, i) => (i % 3 === 0 ? 4 : 0) + 0.3 * normal(r)))).toBe(2);
   });
+
+  it.each([6, 9, 12, 20])("counts %i tight clusters at 50 and at 1,000 values each", (count) => {
+    for (const size of [50, 1000]) {
+      const r = mulberry32(count * size);
+      expect(modeCount(Array.from({ length: count * size }, (_, i) => 100 * (i % count) + 0.5 * normal(r)))).toBe(count);
+    }
+  });
+
+  it("counts groups of equal values", () => {
+    expect(modeCount(Array.from({ length: 1000 }, (_, i) => i % 20))).toBe(20);
+  });
+
+  it("joins clusters past the limit of the grid, and gives at least 1", () => {
+    const r = mulberry32(30);
+    expect(modeCount(Array.from({ length: 1500 }, (_, i) => 100 * (i % 30) + 0.5 * normal(r)))).toBe(1);
+  });
 });
 
 describe("the count of the pairs", () => {

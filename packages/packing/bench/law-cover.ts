@@ -50,6 +50,10 @@ const SPREAD_NARROW_AREA = Math.log(1.5);
 const SPREAD_NARROW_ASPECT = Math.log(2);
 const SCALE_RATIO = 3;
 const MIN_MODE_SHARE = 0.1;
+const KERNEL_FACTOR = 0.45;
+const SPAN_FACTOR = 0.1;
+const SPAN_QUANTILE = 0.25;
+const TIGHT_RATIO = 0.1;
 const HALF_LOG_2PI_E = 0.5 * Math.log(2 * Math.PI * Math.E);
 const EXTREME_ASPECT = Math.log(3);
 const CENTRAL_ASPECT = Math.log(2);
@@ -63,16 +67,35 @@ const spread = (values: readonly number[]): number => at(values, 0.95) - at(valu
 const share = (values: readonly number[], test: (x: number) => boolean): number => values.filter(test).length / values.length;
 
 /**
- * This function counts the modes of a sample with a kernel estimate on a grid. A mode counts when it holds 5 percent of the mass and
- * the valley to a higher mode is under half of its own height.
+ * This function gives the width of the kernel. The width from the quartiles follows the distance between clusters, so it hides many
+ * tight clusters. A low quantile of the spans of neighbouring values follows the width of a cluster. The function uses that tight
+ * width only when it is far under the other width, so a smooth sample keeps its width. The tight width stays over the grid step and
+ * over the median gap of the distinct values, so the areas of whole-number sides keep the modes of their shape.
+ */
+function kernelWidth(values: readonly number[], low: number, high: number, grid: number): number {
+  const order = [...values].sort((a, b) => a - b);
+  const scale = Math.min(at(values, 0.75) - at(values, 0.25), high - low) / 1.34;
+  const wide = KERNEL_FACTOR * Math.max(scale, (high - low) / grid) * values.length ** -0.2;
+  const neighbours = Math.min(values.length - 1, Math.ceil(SPAN_FACTOR * values.length ** 0.8));
+  const tight = at(order.slice(neighbours).map((x, i) => x - order[i]!), SPAN_QUANTILE);
+  if (tight >= TIGHT_RATIO * wide) return wide;
+  const distinct = order.filter((x, i) => i === 0 || x !== order[i - 1]);
+  const resolution = at(distinct.slice(1).map((x, i) => x - distinct[i]!), 0.5);
+  return Math.min(wide, Math.max(tight, resolution, (high - low) / grid));
+}
+
+/**
+ * This function counts the modes of a sample with a kernel estimate on a grid. A mode counts when it holds 10 percent of the mass, or
+ * half of the mass of the largest mode, and the valley to the next mode is under half of the lower height. The result is at least 1.
+ * The grid joins more than approximately 24 evenly spaced clusters. A copy of this count is in rigor-statistics, and this one goes
+ * with the release of that package.
  */
 export function modeCount(values: readonly number[]): number {
   const GRID = 96;
   const low = at(values, 0);
   const high = at(values, 1);
   if (high === low) return 1;
-  const scale = Math.min(at(values, 0.75) - at(values, 0.25), high - low) / 1.34;
-  const h = 0.45 * Math.max(scale, (high - low) / GRID) * values.length ** -0.2;
+  const h = kernelWidth(values, low, high, GRID);
   const step = (high - low + 6 * h) / (GRID - 1);
   const density = new Float64Array(GRID);
   for (const x of values) {
@@ -108,7 +131,9 @@ export function modeCount(values: readonly number[]): number {
     for (let i = peak.start; i <= peak.end; i++) sum += density[i]!;
     return sum / total;
   };
-  return kept.filter((peak) => mass(peak) >= MIN_MODE_SHARE).length;
+  const masses = kept.map(mass);
+  const limit = Math.min(MIN_MODE_SHARE, Math.max(...masses) / 2);
+  return masses.filter((share) => share >= limit).length;
 }
 
 /**
@@ -127,19 +152,21 @@ function logAreas(inputs: readonly LawInput[]): number[] {
 }
 
 /**
- * This function gives the smooth law with the highest likelihood. Each candidate has 2 fitted numbers, so the values compare with
- * no penalty. The value of each law is the mean log density at its best fit, from the closed form of that law.
+ * This function gives the smooth law with the highest likelihood. The value of each law is the exact mean log density at its best
+ * fit, from the closed form of that law. The laws with a fitted end have a benefit at small sizes, and the floor of 200 items keeps
+ * the read over the sizes where the result is poor.
  */
 function smoothLaw(logs: readonly number[]): AreaLaw {
   const areas = logs.map(Math.exp);
   const low = at(areas, 0);
   const meanArea = mean(areas);
   const meanLog = mean(logs);
-  const logNormal = -Math.log(sd(logs)) - HALF_LOG_2PI_E - meanLog;
+  const toExact = 0.5 * Math.log(logs.length / (logs.length - 1));
+  const logNormal = -Math.log(sd(logs)) - HALF_LOG_2PI_E - meanLog + toExact;
   const alpha = 1 / (meanLog - Math.log(low));
   const scores: readonly (readonly [AreaLaw, number])[] = [
     ["uniform", -Math.log(at(areas, 1) - low)],
-    ["normal", -Math.log(sd(areas)) - HALF_LOG_2PI_E],
+    ["normal", -Math.log(sd(areas)) - HALF_LOG_2PI_E + toExact],
     ["exponential", -Math.log(meanArea - low) - 1],
     ["log-normal", logNormal],
     ["pareto", Math.log(alpha) + alpha * Math.log(low) - (alpha + 1) * meanLog],
