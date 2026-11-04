@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 462 names
+## . (build/index.d.ts): 468 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -54,9 +54,13 @@ type BoundObjective: build/index.d.ts#BoundObjective
 type BoundOptions: build/index.d.ts#BoundOptions
 type BurkeKendallWhitwellParams: build/index.d.ts#BurkeKendallWhitwellParams
 type BurkeKendallWhitwellProblem: build/index.d.ts#BurkeKendallWhitwellProblem
+CHANGE_WALK_KINDS: build/index.d.ts#CHANGE_WALK_KINDS
+CHANGE_WALK_STEPS: build/index.d.ts#CHANGE_WALK_STEPS
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
+type ChangeWalkKind: build/index.d.ts#ChangeWalkKind
+type ChangeWalkParams: build/index.d.ts#ChangeWalkParams
 type ClassContainer: build/index.d.ts#ClassContainer
 type ColumnBalance: build/index.d.ts#ColumnBalance
 type ColumnReading: build/index.d.ts#ColumnReading
@@ -311,6 +315,8 @@ cards: build/index.d.ts#cards
 cardsFamily: build/index.d.ts#cardsFamily
 cellKey: build/index.d.ts#cellKey
 cellOf: build/strategy.d.ts#cellOf
+changeGenerators: build/index.d.ts#changeGenerators
+changeWalk: build/index.d.ts#changeWalk
 checkHard: build/index.d.ts#checkHard
 checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
@@ -834,6 +840,12 @@ type BurkeKendallWhitwellParams = {
 ### build/index.d.ts#BurkeKendallWhitwellProblem
 type BurkeKendallWhitwellProblem = "N1" | "N2" | "N3" | "N4" | "N5" | "N6" | "N7" | "N8" | "N9" | "N10" | "N11" | "N12" | "N13";
 
+### build/index.d.ts#CHANGE_WALK_KINDS
+export declare const CHANGE_WALK_KINDS: readonly ["add", "remove", "resize", "reorder"];
+
+### build/index.d.ts#CHANGE_WALK_STEPS
+export declare const CHANGE_WALK_STEPS = 5;
+
 ### build/index.d.ts#CLASS_COUNTS
 export declare const CLASS_COUNTS: readonly number[];
 
@@ -844,6 +856,16 @@ interface ChangeMeasures {
   "pack.stability.q95": number;
   "pack.stability.procrustes": number;
 }
+
+### build/index.d.ts#ChangeWalkKind
+type ChangeWalkKind = (typeof CHANGE_WALK_KINDS)[number];
+
+### build/index.d.ts#ChangeWalkParams
+type ChangeWalkParams = {
+  kind: ChangeWalkKind;
+  step: number;
+  count: number;
+};
 
 ### build/index.d.ts#ClassContainer
 type ClassContainer = "fixed" | "freeHeight";
@@ -1779,6 +1801,12 @@ export declare const cardsFamily: CorpusFamily<GeneratedInput>;
 
 ### build/index.d.ts#cellKey
 export declare function cellKey(cell: PortfolioCell): string;
+
+### build/index.d.ts#changeGenerators
+export declare const changeGenerators: readonly CorpusGenerator[];
+
+### build/index.d.ts#changeWalk
+export declare const changeWalk: CorpusGenerator<ChangeWalkParams>;
 
 ### build/index.d.ts#checkHard
 export declare function checkHard(input: PackInput, output: PackOutput, tolerance?: Pick<Tolerance, "overlap">, options?: ContainerTest$1): PackHard$1;

@@ -1,0 +1,142 @@
+// The builder of the corpus `pack-change-v1` of roadmap item k48: chains of inputs, where each step names the step before
+// it as its base. The file `bench/corpora/pack-change-v1.json` is its output. A test compares the file with the builder.
+//
+//   node bench/change.ts                                 writes the file
+//   node bench/change.ts --check                         exits with the code 1 when the file is not the output of the builder
+//   node bench/change.ts --report [--strategies a,b]     packs the corpus and writes the mean of pack.stability.moved for each kind
+//
+// The report reads no time. Its numbers are the same on each computer.
+
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { mean } from "@mark1russell7/rigor-statistics";
+import { CHANGE_WALK_KINDS, CHANGE_WALK_STEPS, corpus, toPackInput, type CorpusSpec } from "@mark1russell7/packing";
+import type { DeclaredClaim } from "@mark1russell7/layout-contract";
+import { inline } from "./anchor.ts";
+import { declaredCounts } from "./claims.ts";
+import { isMeasured, parseCorpus, runBench, type BenchEnv, type BenchRecord } from "./run.ts";
+
+/** The name of the corpus. */
+export const CHANGE_CORPUS = "pack-change-v1";
+
+/** The seeds of each spec. */
+export const CHANGE_SEEDS: readonly number[] = Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+/** The counts of the boxes of a chain. */
+export const CHANGE_COUNTS: readonly number[] = Object.freeze([20, 60]);
+
+/** The file of the corpus. */
+export const CHANGE_FILE: string = join(import.meta.dirname, "corpora", `${CHANGE_CORPUS}.json`);
+
+/** The strategies of the report: 4 entries of `bench/entries.ts`. */
+export const CHANGE_STRATEGIES: readonly string[] = Object.freeze(["rows", "shelf", "skyline", "maxrects-bl"]);
+
+/** This function gives the specs of the corpus. The steps of a chain come in order, because the runner needs each base first. */
+export function changeSpecs(): CorpusSpec[] {
+  const specs: CorpusSpec[] = [];
+  for (const kind of CHANGE_WALK_KINDS) {
+    for (const count of CHANGE_COUNTS) {
+      for (let step = 0; step <= CHANGE_WALK_STEPS; step++) specs.push({ generator: "change-walk", version: 1, params: { kind, step, count }, seeds: CHANGE_SEEDS });
+    }
+  }
+  return specs;
+}
+
+/** This function gives the claim `declared` of the corpus. Each property with fewer inputs than `minCount` is in `thin`. */
+export function changeClaim(specs: readonly CorpusSpec[] = changeSpecs()): DeclaredClaim {
+  const counts = declaredCounts(corpus(CHANGE_CORPUS, specs).inputs.map(toPackInput));
+  const minCount = 10;
+  return { minCount, thin: Object.keys(counts).filter((id) => counts[id]! < minCount), counts };
+}
+
+/** This function gives the text of the corpus file, in the form of the other files of `bench/corpora`: one spec on each line. */
+export function changeCorpusText(): string {
+  const specs = changeSpecs();
+  const lines = [
+    "{",
+    `  "schema": "layout-corpus/1",`,
+    `  "corpus": ${JSON.stringify(CHANGE_CORPUS)},`,
+    `  "heldOut": "all",`,
+    `  "claims": ${inline({ declared: changeClaim(specs) })},`,
+    `  "specs": [`,
+    specs.map((s) => `    ${inline(s)}`).join(",\n"),
+    "  ]",
+    "}",
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+/** One row of the report: the mean of `pack.stability.moved` of one strategy for each kind of edit. */
+export interface ChangeRow {
+  strategy: string;
+  /** The count of the records with the measure. */
+  records: number;
+  moved: Record<string, number>;
+  /** The mean over the records of all kinds. */
+  all: number;
+  /** The mean of `pack.stability.mean` over the records of all kinds, in widths of the container. */
+  distance: number;
+}
+
+/** This function gives the kind of a record from its input id. */
+const kindOf = (input: string): string => /change-walk\.([a-z]+)\./.exec(input)![1]!;
+
+/** This function gives the rows of the report from the records of a run. A record without a base has no stability measure. */
+export function changeRows(records: readonly BenchRecord[], strategies: readonly string[]): ChangeRow[] {
+  return strategies.map((strategy) => {
+    const mine = records.filter((r) => r.strategy === strategy && isMeasured(r) && r.measures["pack.stability.moved"] !== undefined);
+    const of = (r: BenchRecord, id: string): number => (r.measures as Record<string, number>)[id]!;
+    const value = (r: BenchRecord): number => of(r, "pack.stability.moved");
+    const moved = Object.fromEntries(CHANGE_WALK_KINDS.map((kind) => [kind, mean(mine.filter((r) => kindOf(r.input) === kind).map(value))]));
+    return { strategy, records: mine.length, moved, all: mean(mine.map(value)), distance: mean(mine.map((r) => of(r, "pack.stability.mean"))) };
+  });
+}
+
+/** This function gives the report as a Markdown table. The numbers have at most 3 decimals. */
+export function changeMarkdown(rows: readonly ChangeRow[]): string {
+  const n = (x: number): string => String(Math.round(x * 1000) / 1000);
+  const lines = [
+    `| Strategy | Records | ${CHANGE_WALK_KINDS.map((k) => `\`${k}\``).join(" | ")} | All | Mean distance |`,
+    `|---|---|${CHANGE_WALK_KINDS.map(() => "---").join("|")}|---|---|`,
+    ...rows.map((r) => `| \`${r.strategy}\` | ${r.records} | ${CHANGE_WALK_KINDS.map((k) => n(r.moved[k]!)).join(" | ")} | ${n(r.all)} | ${n(r.distance)} |`),
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+/** The facts of the computer of a report. The report reads no time, so they do not count. */
+const ENV: BenchEnv = { node: process.version, os: "local", arch: "local", runner: "local", cpu: "local", cpus: 1 };
+
+/** This function gives the records of the report of some strategies. */
+export function changeRecords(strategies: readonly string[], text: string = changeCorpusText()): readonly BenchRecord[] {
+  let t = 0;
+  const { records } = runBench({
+    corpus: parseCorpus(text, CHANGE_CORPUS),
+    prediction: "k48-change-report",
+    strategies,
+    repeats: 1,
+    warmup: 0,
+    env: ENV,
+    clock: () => t++,
+  });
+  return records;
+}
+
+/** This function starts the builder. */
+function main(): void {
+  const text = changeCorpusText();
+  if (process.argv.includes("--check")) {
+    if (readFileSync(CHANGE_FILE, "utf8") !== text) {
+      console.error(`${CHANGE_FILE} is not the output of the builder. Start node bench/change.ts.`);
+      process.exitCode = 1;
+    }
+  } else if (process.argv.includes("--report")) {
+    const at = process.argv.indexOf("--strategies");
+    const strategies = at === -1 ? CHANGE_STRATEGIES : process.argv[at + 1]!.split(",");
+    process.stdout.write(changeMarkdown(changeRows(changeRecords(strategies), strategies)));
+  } else {
+    writeFileSync(CHANGE_FILE, text);
+    console.log(`${CHANGE_FILE}: ${changeSpecs().length} specs`);
+  }
+}
+
+if (process.argv[1]?.endsWith("change.ts")) main();
