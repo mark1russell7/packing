@@ -1788,6 +1788,23 @@ The result over the fold seeds (k120, `node bench/paired-arms.ts --out <file> <c
 
 The nightly control (k120, `coverage-nightly.yml`):
 
+The first valid result of the control (k120):
+
+Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257557) has 5 of 5 valid cells, and each held-out sample has 400 of 400 pairs. A push of commit `92d441a` started it, not the Monday schedule. A positive value tells that the active arm is better than the control.
+
+| Measure | mean(d) over the seeds | Floor | Seeds with a Holm change | Outcome |
+| --- | --- | --- | --- | --- |
+| `pack.gap` | 0.0506 | 0.05 | 1 of 5 | `gain` |
+| `pack.gapToBound` | -0.0297 | 0.05 | 0 of 5 | `noise` |
+| `pack.fill` | -0.014 | 0.05 | 0 of 5 | `noise` |
+| `pack.overflow.excessArea` | -0.0225 | 0.0704 | 1 of 5 | `noise` |
+| `ms` | -0.0525 | 0.2056 | 3 of 5 | `noise` |
+
+- The active draw beats the control on 1 measure of 5, by 0.0006 over the floor.
+- All 5 seeds of `pack.gap` are positive, but only 1 seed has a Holm change.
+- Do not read this as a general gain of the active draw. The 4 other measures show no gain.
+- The Monday run repeats the test with the same seeds and new code.
+
 - The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
 - A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
 - Thus a change of `src` shows in the next Monday run, not at once.

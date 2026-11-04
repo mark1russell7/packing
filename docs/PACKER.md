@@ -1172,6 +1172,7 @@ The counts of `packSpace`:
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90
 const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
+const allStrategies: readonly StrategyListing[]; // each strategy of the three lists, with its kind, family, supports and deterministic flag: since k140
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```
@@ -1179,6 +1180,8 @@ function packWith(id: string, input: PackInput, options?: unknown, seed?: number
 The benchmark starts each strategy of the registry on each input of the corpus. A new strategy goes in the registry, so it gets the same benchmark as the others. No result is removed.
 
 A composite strategy packs an input with other strategies. It is not in `strategies`, but `strategy(id)` and `packWith` find it.
+
+A consumer that needs each strategy reads `allStrategies`, not one of the three lists. Each listing has a `kind`: `single`, `shape` or `composite`. A test loads each source module and fails on a strategy that the list does not have.
 
 ## The adapters of 0.1
 
