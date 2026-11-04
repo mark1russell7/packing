@@ -1498,10 +1498,10 @@ Each function takes a `PackInput` and `{ columns, columnWidth? }`, and gives a `
 
 Two functions measure a layout:
 
-- `columnBalance` gives the height of each column and `balance`, the catalog measure `pack.balance`: the tallest height minus the shortest height, divided by the tallest height. It reads a column at the left edge of a box, so give it the options of the layout.
+- `columnBalance` gives the height of each column and `balance`, the catalog measure `pack.columnBalance`: the tallest height minus the shortest height, divided by the tallest height. It reads a column at the left edge of a box, so give it the options of the layout.
 - `columnReading` compares the input order with the visual order, which sorts by the top and then by the left. It gives the inversions of Kendall, the footrule of Spearman, each as a share of its largest value, and the largest move of one box.
 
-The function `measure` has a family `pack.balance.*` of other values, so a value with the name `pack.balance` needs a decision. Thus `balance` is not in `measure` yet.
+The function `measure` has a family `pack.balance.*` of other values, so a value with the name `pack.columnBalance` needs a decision. Thus `balance` is not in `measure` yet.
 
 These values are for the inputs of the last test of `src/masonry.test.ts`: 200 made-up inputs of 60 boxes in 4 columns, with whole heights from 1 to 100.
 

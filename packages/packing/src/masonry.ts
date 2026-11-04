@@ -19,7 +19,7 @@ export type MasonryLayout = (input: PackInput, options: MasonryOptions) => PackO
 export interface ColumnBalance {
   /** The height of each column from the left. A column with no box has the height 0. */
   readonly heights: readonly number[];
-  /** The tallest height minus the shortest height, divided by the tallest height. This is `pack.balance` of the catalog. 0 is level. */
+  /** The tallest height minus the shortest height, divided by the tallest height. This is `pack.columnBalance` of the catalog. 0 is level. */
   readonly balance: number;
 }
 
@@ -226,7 +226,7 @@ export function columnsLinearPartition(input: PackInput, options: MasonryOptions
 }
 
 /**
- * This function gives the heights of the columns of a masonry layout and the measure `pack.balance` of the catalog. Give
+ * This function gives the heights of the columns of a masonry layout and the measure `pack.columnBalance` of the catalog. Give
  * it the options of the layout. The height of a column is the lowest bottom of its boxes with their margins. The measure
  * reads the columns from the left edges of the boxes. An item that is not on a column is a `RangeError`.
  */

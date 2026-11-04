@@ -674,7 +674,7 @@ The literature uses these measures, but `docs/FORMAT.md` does not have them. Eac
 | `pack.stability.baseline` | 0 to 1 | lower | The movement minus the smallest movement that the change of the input needs. | Vernier 2020 |
 | `pack.stability.orthogonalOrder` | 0 to 1 | lower | The part of the pairs where "left of" or "above" changed. | Misue 1995 |
 | `pack.neighbors` | 0 to 1 | higher | The part of the near neighbors of each box in the input that stay near neighbors. | Duarte 2014 |
-| `pack.balance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. The function `columnBalance` gives it. | Graham 1969 |
+| `pack.columnBalance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. The function `columnBalance` gives it. | Graham 1969 |
 | `pack.trapped` | 0 to 1 | lower | The part of the empty area that no box of the input can use: holes smaller than the smallest box. | Jylänki 2010 |
 | `pack.displacement` | units | lower | The mean movement of a box from a start layout, for overlap removal. | Gansner 2010 |
 
