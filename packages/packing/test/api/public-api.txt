@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 401 names
+## . (build/index.d.ts): 403 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -168,6 +168,7 @@ type PushOptions: build/push-strategy.d.ts#PushOptions
 type PushStrategyOptions: build/push-strategy.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
 RELAX_MAX_CONSTRAINTS: build/index.d.ts#RELAX_MAX_CONSTRAINTS
+RELAX_PULL_MAX_BOXES: build/index.d.ts#RELAX_PULL_MAX_BOXES
 RELAX_STAGE: build/index.d.ts#RELAX_STAGE
 RESTARTS_STAGE: build/index.d.ts#RESTARTS_STAGE
 RESTART_PERTURBS: build/index.d.ts#RESTART_PERTURBS
@@ -224,6 +225,7 @@ type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type TreemapCell: build/index.d.ts#TreemapCell
+type TreemapFrame: build/index.d.ts#TreemapFrame
 type TreemapLayout: build/index.d.ts#TreemapLayout
 type TreemapNode: build/index.d.ts#TreemapNode
 type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
@@ -1182,6 +1184,9 @@ interface PortfolioTrainScore {
 ### build/index.d.ts#RELAX_MAX_CONSTRAINTS
 export declare const RELAX_MAX_CONSTRAINTS = 2e5;
 
+### build/index.d.ts#RELAX_PULL_MAX_BOXES
+export declare const RELAX_PULL_MAX_BOXES = 1e3;
+
 ### build/index.d.ts#RELAX_STAGE
 export declare const RELAX_STAGE = "relax";
 
@@ -1220,6 +1225,7 @@ type RectScatteredParams = {
 interface RelaxStrategyOptions {
   member?: string | PortfolioEntry;
   strength?: number;
+  pull?: number;
 }
 
 ### build/index.d.ts#RestartPerturb
@@ -1353,12 +1359,20 @@ type TallRowParams = {
 };
 
 ### build/index.d.ts#TreemapCell
-interface TreemapCell extends Rect$1 {
+interface TreemapCell extends TreemapFrame {
   readonly id: string;
 }
 
+### build/index.d.ts#TreemapFrame
+interface TreemapFrame {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
 ### build/index.d.ts#TreemapLayout
-type TreemapLayout = (nodes: readonly TreemapNode[], frame: Rect$1) => TreemapCell[];
+type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
 
 ### build/index.d.ts#TreemapNode
 type TreemapNode = {
@@ -1823,16 +1837,16 @@ export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: 
 export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
 
 ### build/index.d.ts#treemapPivotSplit
-export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: Rect$1): TreemapCell[];
+export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapSliceDice
-export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: Rect$1): TreemapCell[];
+export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapSquarified
-export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: Rect$1): TreemapCell[];
+export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapStrip
-export declare function treemapStrip(nodes: readonly TreemapNode[], frame: Rect$1, options?: TreemapStripOptions): TreemapCell[];
+export declare function treemapStrip(nodes: readonly TreemapNode[], frame: TreemapFrame, options?: TreemapStripOptions): TreemapCell[];
 
 ### build/index.d.ts#wallLocks
 export declare const wallLocks: CorpusGenerator<WallLocksParams>;

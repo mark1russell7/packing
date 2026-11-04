@@ -3,8 +3,17 @@
 // of this file are standalone. They are not in `packSpace`, in the registry or in a default. `treemapPack` is the
 // comparison of the catalog: each box goes to the center of its cell, and the cells scale up until each box fits.
 
-import type { Rect } from "@mark1russell7/layout-contract";
 import { marginOf, type PackInput, type PackOutput } from "./contract.ts";
+
+/**
+ * The rectangle of a treemap. It has the fields of `Rect` of the contract. A public signature with that name renames the class `Rect` of this package in the built types.
+ */
+export interface TreemapFrame {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
 
 /** A node of a treemap. A leaf has a positive weight. A branch has children, and its weight is the sum of its leaves. */
 export type TreemapNode =
@@ -12,12 +21,12 @@ export type TreemapNode =
   | { readonly id: string; readonly children: readonly TreemapNode[]; readonly weight?: undefined };
 
 /** The cell of a leaf: a rectangle of the frame, with the id of the leaf. */
-export interface TreemapCell extends Rect {
+export interface TreemapCell extends TreemapFrame {
   readonly id: string;
 }
 
 /** A treemap method. It gives one cell for each leaf, in the depth-first order of the leaves. */
-export type TreemapLayout = (nodes: readonly TreemapNode[], frame: Rect) => TreemapCell[];
+export type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
 
 /** The options of `treemapStrip`. */
 export interface TreemapStripOptions {
@@ -36,7 +45,7 @@ interface Sized {
 }
 
 /** The method of one level: it gives one rectangle for each weight, in the order of the weights. */
-type LevelLayout = (weights: readonly number[], frame: Rect, depth: number) => Rect[];
+type LevelLayout = (weights: readonly number[], frame: TreemapFrame, depth: number) => TreemapFrame[];
 
 /** This function gives a node with the weights of its subtree. A weight that is not positive and finite is a `RangeError`. */
 function sizedOf(node: TreemapNode): Sized {
@@ -62,10 +71,10 @@ function aspectOf(w: number, h: number): number {
 }
 
 /** This function gives the leaf cells of a tree. It applies `level` to the children of each node, from the root down. */
-function layoutTree(nodes: readonly TreemapNode[], frame: Rect, level: LevelLayout): TreemapCell[] {
+function layoutTree(nodes: readonly TreemapNode[], frame: TreemapFrame, level: LevelLayout): TreemapCell[] {
   if (!(frame.w > 0) || !(frame.h > 0) || !Number.isFinite(frame.w) || !Number.isFinite(frame.h)) throw new RangeError("A treemap frame needs a positive, finite width and height.");
   const cells: TreemapCell[] = [];
-  const visit = (group: readonly Sized[], area: Rect, depth: number): void => {
+  const visit = (group: readonly Sized[], area: TreemapFrame, depth: number): void => {
     const rects = level(group.map((node) => node.weight), area, depth);
     for (const [index, node] of group.entries()) {
       const rect = rects[index]!;
@@ -78,7 +87,7 @@ function layoutTree(nodes: readonly TreemapNode[], frame: Rect, level: LevelLayo
 }
 
 /** This function cuts a frame into parallel strips in the order of the weights. With `alongX` the strips stand side by side. */
-function slice(weights: readonly number[], frame: Rect, alongX: boolean): Rect[] {
+function slice(weights: readonly number[], frame: TreemapFrame, alongX: boolean): TreemapFrame[] {
   const total = sumOf(weights);
   let before = 0;
   return weights.map((weight) => {
@@ -95,7 +104,7 @@ function slice(weights: readonly number[], frame: Rect, alongX: boolean): Rect[]
  * This function gives the slice and dice treemap of Shneiderman 1992. The root cuts along x, and each level of the tree
  * turns the direction. The cells keep the input order. A flat list gives one row of thin cells. The cost is `O(n)`.
  */
-export function treemapSliceDice(nodes: readonly TreemapNode[], frame: Rect): TreemapCell[] {
+export function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
   return layoutTree(nodes, frame, (weights, area, depth) => slice(weights, area, depth % 2 === 0));
 }
 
@@ -110,10 +119,10 @@ function worstAspect(sum: number, largest: number, smallest: number, side: numbe
 }
 
 /** This function gives the squarified cells of one level: a row grows along the short side of the free space. */
-function squarify(weights: readonly number[], frame: Rect): Rect[] {
+function squarify(weights: readonly number[], frame: TreemapFrame): TreemapFrame[] {
   const scale = (frame.w * frame.h) / sumOf(weights);
   const order = weights.map((_, index) => index).sort((a, b) => weights[b]! - weights[a]! || a - b);
-  const rects: Rect[] = new Array<Rect>(weights.length);
+  const rects: TreemapFrame[] = new Array<TreemapFrame>(weights.length);
   let free = frame;
   let start = 0;
   while (start < order.length) {
@@ -146,7 +155,7 @@ function squarify(weights: readonly number[], frame: Rect): Rect[] {
  * This function gives the squarified treemap of Bruls 2000. Each level sorts by weight, from the largest. A row grows
  * along the short side of the free space while its worst aspect does not get higher. The cost is `O(n log n)`.
  */
-export function treemapSquarified(nodes: readonly TreemapNode[], frame: Rect): TreemapCell[] {
+export function treemapSquarified(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
   return layoutTree(nodes, frame, (weights, area) => squarify(weights, area));
 }
 
@@ -158,7 +167,7 @@ function prefixOf(weights: readonly number[]): number[] {
 }
 
 /** This function gives the strip cells of one level, always in horizontal strips. */
-function strips(weights: readonly number[], frame: Rect, lookahead: boolean): Rect[] {
+function strips(weights: readonly number[], frame: TreemapFrame, lookahead: boolean): TreemapFrame[] {
   const prefix = prefixOf(weights);
   const total = prefix[weights.length]!;
   const heightOf = (from: number, to: number): number => (frame.h * (prefix[to]! - prefix[from]!)) / total;
@@ -181,7 +190,7 @@ function strips(weights: readonly number[], frame: Rect, lookahead: boolean): Re
     }
     return end;
   };
-  const rects: Rect[] = [];
+  const rects: TreemapFrame[] = [];
   let start = 0;
   while (start < weights.length) {
     let end = grow(start);
@@ -202,18 +211,18 @@ function strips(weights: readonly number[], frame: Rect, lookahead: boolean): Re
  * joins a strip while the mean aspect of the strip does not get higher. The cost is `O(n sqrt n)` on average and
  * `O(n^2)` at most.
  */
-export function treemapStrip(nodes: readonly TreemapNode[], frame: Rect, options: TreemapStripOptions = {}): TreemapCell[] {
+export function treemapStrip(nodes: readonly TreemapNode[], frame: TreemapFrame, options: TreemapStripOptions = {}): TreemapCell[] {
   const lookahead = options.lookahead ?? true;
   return layoutTree(nodes, frame, (weights, area) => strips(weights, area, lookahead));
 }
 
 /** This function gives the mean aspect of a list of rectangles. */
-function meanAspect(rects: readonly Rect[]): number {
+function meanAspect(rects: readonly TreemapFrame[]): number {
   return sumOf(rects.map((rect) => aspectOf(rect.w, rect.h))) / rects.length;
 }
 
 /** This function gives the cells of one level of the pivot treemap. */
-function pivots(weights: readonly number[], frame: Rect): Rect[] {
+function pivots(weights: readonly number[], frame: TreemapFrame): TreemapFrame[] {
   const prefix = prefixOf(weights);
   const between = (from: number, to: number): number => prefix[to]! - prefix[from]!;
 
@@ -232,7 +241,7 @@ function pivots(weights: readonly number[], frame: Rect): Rect[] {
   };
 
   /** One pivot step: `R1`, then the pivot above `R2`, then `R3`. In a tall frame, the arrangement turns along `y = x`. */
-  const pivotStep = (from: number, to: number, area: Rect): Rect[] => {
+  const pivotStep = (from: number, to: number, area: TreemapFrame): TreemapFrame[] => {
     const wide = area.w >= area.h;
     const long = wide ? area.w : area.h;
     const cross = wide ? area.h : area.w;
@@ -255,7 +264,7 @@ function pivots(weights: readonly number[], frame: Rect): Rect[] {
         pivotCross = height;
       }
     }
-    const at = (u: number, v: number, lengthU: number, lengthV: number): Rect =>
+    const at = (u: number, v: number, lengthU: number, lengthV: number): TreemapFrame =>
       wide ? { x: area.x + u, y: area.y + v, w: lengthU, h: lengthV } : { x: area.x + v, y: area.y + u, w: lengthV, h: lengthU };
     return [
       ...cellsOf(from, pivot, at(0, 0, firstLength, cross)),
@@ -266,13 +275,13 @@ function pivots(weights: readonly number[], frame: Rect): Rect[] {
   };
 
   /** The quad of four items: two rows of two items, in the reading order. */
-  const quad = (from: number, area: Rect): Rect[] => {
+  const quad = (from: number, area: TreemapFrame): TreemapFrame[] => {
     const rows = slice([between(from, from + 2), between(from + 2, from + 4)], area, false);
     return [...slice(weights.slice(from, from + 2), rows[0]!, true), ...slice(weights.slice(from + 2, from + 4), rows[1]!, true)];
   };
 
   /** The cells of the items `from` up to `to`. Four items or fewer take the best of the pivot, the quad and the two snakes. */
-  const cellsOf = (from: number, to: number, area: Rect): Rect[] => {
+  const cellsOf = (from: number, to: number, area: TreemapFrame): TreemapFrame[] => {
     const count = to - from;
     if (count === 0) return [];
     if (count === 1) return [area];
@@ -300,7 +309,7 @@ function pivots(weights: readonly number[], frame: Rect): Rect[] {
  * weights before it and after it. Four items or fewer take the best of the pivot, the quad and the snake layouts. The
  * order of the input is near in the layout, but not exact. The cost is `O(n log n)` on average and `O(n^2)` at most.
  */
-export function treemapPivotSplit(nodes: readonly TreemapNode[], frame: Rect): TreemapCell[] {
+export function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
   return layoutTree(nodes, frame, (weights, area) => pivots(weights, area));
 }
 

@@ -15,6 +15,10 @@ on:
         required: false
         default: "100"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

@@ -274,10 +274,7 @@ function settle(b: Boxes, gap: number, block: boolean, iterations: number, round
  */
 function framed(input: PackInput, base: PackOutput): Boxes {
   const b = new Boxes(input, base);
-  const inset = input.container.inset ?? 0;
-  const half = (input.gap ?? 0) / 2;
-  if (!Number.isFinite(b.span[0])) b.span[0] = base.size.w - 2 * inset + 2 * half;
-  if (!Number.isFinite(b.span[1])) b.span[1] = base.size.h - 2 * inset + 2 * half;
+  b.closeFreeSides(input, base);
   return b;
 }
 
