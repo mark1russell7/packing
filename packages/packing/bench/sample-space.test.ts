@@ -467,7 +467,8 @@ describe("the strata of k115", () => {
     }
   });
 
-  it("gives the same count of pairs to each stratum, and the same pairs for the same seed", () => {
+  // This test packs each stratum two times. A CI runner took 4.7 s and 5.2 s with 38 strata, so the default limit of 5 s is too small.
+  it("gives the same count of pairs to each stratum, and the same pairs for the same seed", { timeout: 30_000 }, () => {
     const strata = strataOf(packSpace).map((s) => s.id);
     // The pair of overlap-min:1 (k80) gets at most 256 moves, so the test stays fast. Its stratum and its config stay the same.
     const run = (): ReturnType<typeof sampleSpace> => sampleSpace({ n: strata.length, seed: 2, env: ENV, maxCount: 60, knobs: false, draw: "stratified", clock: fakeClock(), maxInputTries: 10, maxOverlapMoves: 256 });
@@ -485,7 +486,7 @@ describe("the strata of k115", () => {
     // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
     const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
     expect(moves).toEqual([256]);
-    // Pair i takes the stratum i modulo 23.
+    // Pair i takes the stratum i modulo the count of strata.
     a.records.forEach((rec) => expect(stratumOf(packSpace, rec.config)).toBe(strata[rec.pair % strata.length]));
     const b = run();
     expect(b.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash])).toEqual(a.records.map((r) => [r.pair, configId(packSpace, r.config), r.inputHash]));
