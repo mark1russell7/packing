@@ -1,0 +1,71 @@
+# The bench of roadmap item k92 (docs/BENCH.md, "The raster no-fit"). It measures the density cost of the cell side on a made-up
+# family, and the density on the public instances of Table 2 of Gardeyn 2025. The instance files stay out of this repository: the job
+# fetches them at a pinned commit of JeroenGar/sparrow (MIT). Their origin is ESICUP/datasets (CC0). The numbers are in the artifact.
+name: Raster no-fit
+
+on:
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: "The seeds of the made-up family, 1 to 200."
+        type: string
+        default: "30"
+      trials:
+        description: "The decoded orders of each made-up input, 1 to 4096."
+        type: string
+        default: "64"
+      instance-trials:
+        description: "The decoded orders of each public instance, 1 to 65536."
+        type: string
+        default: "1024"
+
+permissions:
+  contents: read
+
+# The group has the inputs, so only a true duplicate waits behind a run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.seeds }}-${{ inputs.trials }}-${{ inputs.instance-trials }}
+  cancel-in-progress: false
+
+env:
+  SPARROW_COMMIT: 6067f007f02758b1a477be51b5a03a2f72db298b
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      SEEDS: ${{ inputs.seeds }}
+      TRIALS: ${{ inputs.trials }}
+      INSTANCE_TRIALS: ${{ inputs.instance-trials }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the inputs
+        run: |
+          [[ "$SEEDS" =~ ^[0-9]+$ ]] && [ "$SEEDS" -ge 1 ] && [ "$SEEDS" -le 200 ] || { echo "seeds must be a whole number from 1 to 200, not '$SEEDS'"; exit 1; }
+          [[ "$TRIALS" =~ ^[0-9]+$ ]] && [ "$TRIALS" -ge 1 ] && [ "$TRIALS" -le 4096 ] || { echo "trials must be a whole number from 1 to 4096, not '$TRIALS'"; exit 1; }
+          [[ "$INSTANCE_TRIALS" =~ ^[0-9]+$ ]] && [ "$INSTANCE_TRIALS" -ge 1 ] && [ "$INSTANCE_TRIALS" -le 65536 ] || { echo "instance-trials must be a whole number from 1 to 65536, not '$INSTANCE_TRIALS'"; exit 1; }
+      - name: Fetch the instances at the pinned commit
+        run: |
+          mkdir -p "$RUNNER_TEMP/instances"
+          for name in albano dagli fu jakobs1 jakobs2 mao marques shapes0 shapes1 shirts swim trousers; do
+            curl -fsSL "https://raw.githubusercontent.com/JeroenGar/sparrow/$SPARROW_COMMIT/data/input/$name.json" -o "$RUNNER_TEMP/instances/$name.json"
+          done
+      - name: Measure
+        working-directory: packages/packing
+        run: |
+          mkdir -p "$RUNNER_TEMP/raster-nofit"
+          node bench/raster-nofit.ts --out "$RUNNER_TEMP/raster-nofit/raster-nofit.json" --instances "$RUNNER_TEMP/instances" --seeds "$SEEDS" --trials "$TRIALS" --instance-trials "$INSTANCE_TRIALS" | tee "$RUNNER_TEMP/raster-nofit/summary.jsonl"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: raster-nofit
+          path: ${{ runner.temp }}/raster-nofit
+          if-no-files-found: error
