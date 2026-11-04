@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 392 names
+## . (build/index.d.ts): 393 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -168,6 +168,7 @@ type PushOptions: build/push-strategy.d.ts#PushOptions
 type PushStrategyOptions: build/push-strategy.d.ts#PushStrategyOptions
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
 RELAX_MAX_CONSTRAINTS: build/index.d.ts#RELAX_MAX_CONSTRAINTS
+RELAX_PULL_MAX_BOXES: build/index.d.ts#RELAX_PULL_MAX_BOXES
 RELAX_STAGE: build/index.d.ts#RELAX_STAGE
 RESTARTS_STAGE: build/index.d.ts#RESTARTS_STAGE
 RESTART_PERTURBS: build/index.d.ts#RESTART_PERTURBS
@@ -1173,6 +1174,9 @@ interface PortfolioTrainScore {
 ### build/index.d.ts#RELAX_MAX_CONSTRAINTS
 export declare const RELAX_MAX_CONSTRAINTS = 2e5;
 
+### build/index.d.ts#RELAX_PULL_MAX_BOXES
+export declare const RELAX_PULL_MAX_BOXES = 1e3;
+
 ### build/index.d.ts#RELAX_STAGE
 export declare const RELAX_STAGE = "relax";
 
@@ -1211,6 +1215,7 @@ type RectScatteredParams = {
 interface RelaxStrategyOptions {
   member?: string | PortfolioEntry;
   strength?: number;
+  pull?: number;
 }
 
 ### build/index.d.ts#RestartPerturb

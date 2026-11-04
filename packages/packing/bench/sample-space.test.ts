@@ -54,7 +54,8 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The rule wire of k136 adds configs too. Before k136 the pins were ce6d8bf386fbb8a6, 5ff46c2513f1c859, e0392ab28b85d0d0, 90e85a9b3b203375, 71506084854820641670444082160 and 71506084854820640540641605810.
 const DEFAULT_UNIFORM_IDS = ["99f077f73ba82661", "8a4c62b086079de4", "e764f2c6cdd482e6", "c7a8ed52072f03a8"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
-const CLOCK_FREE_META = 79943291102292057106200315504n;
+// The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
+const CLOCK_FREE_META = 79943291102292057106200512423n;
 const CLOCK_CONFIGS = 79943291102292055949201549490n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
@@ -130,7 +131,7 @@ describe("the counts of the configs", () => {
     // Roadmap item k90 adds hole-degree with the order input only and the steps 0 to 32.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4;
     expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1));
-    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "force"]);
+    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
 });
@@ -378,6 +379,7 @@ describe("the strata of k115", () => {
       "genetic:1",
       "tabu:1",
       "relax:1",
+      "relax-pull:1",
       "force:1",
     ]);
     const total = counts.base + counts.meta.reduce((s, m) => s + m.weight, 0n);
