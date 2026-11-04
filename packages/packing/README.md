@@ -115,6 +115,19 @@ The sort orders are `height-desc` (the default), `height-asc`, `width-desc`, `ar
 
 The order `input` keeps the order of your array. Use it for a ranked list. `packRows` then fills no gaps, so the rows read in your order: left to right, and top to bottom. `packSkyline` places the rectangles in your order, but a later rectangle can go higher than an earlier one. For a ranked list with `locked` rectangles, use `packShelf`.
 
+## Treemaps
+
+`treemapSliceDice`, `treemapSquarified`, `treemapStrip` and `treemapPivotSplit` cut a rectangle into cells, one cell for each leaf of a list or a tree. The area of each cell is in proportion to the weight of its leaf. `treemapPack` puts each box at the center of its cell, and scales the cells until each box fits. These functions are standalone. They are not strategies of `pack` or of the registry.
+
+```ts
+import { treemapSquarified } from "@mark1russell7/packing";
+
+const cells = treemapSquarified(
+  [{ id: "a", weight: 6 }, { id: "b", weight: 3 }, { id: "c", weight: 1 }],
+  { x: 0, y: 0, w: 400, h: 300 },
+);
+```
+
 ## Free width
 
 `packFree` searches the width. It tries many widths with one strategy of `pack`, and keeps the width with the lowest objective: the area of the bounding box times `1 + aspectWeight * aspectError`.

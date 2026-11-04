@@ -370,12 +370,12 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | — | planned | k27 |
-| `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | — | planned | k27 |
-| `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips. | Bederson 2002 | order, aspect | `O(n^2)` | — | planned | k27 |
+| `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | — | implemented | k27 |
+| `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | — | implemented | k27 |
+| `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips, with the mean aspect of the strip in place of the worst aspect. | Bederson 2002 | order, aspect | `O(n sqrt n)` on average, `O(n^2)` at most | — | implemented | k27 |
 | `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | — | planned | k27 |
 | `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | — | planned | k27 |
-| `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | implemented | k27 |
 | `treemap-split` | Split | Split the ordered list into two parts of near equal weight. Cut the rectangle along its longer side. Recurse. | Engdahl 2005 (unverified) | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | — | planned | k27 |
 | `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
@@ -400,6 +400,8 @@ Notes:
 - Shneiderman 2001 measures the stability as the mean change of distance of the corners of the cells. Bederson 2002 adds a measure of how easy the order is to read. Tu 2007 adds a measure of continuity.
 - Vernier 2020 compares many time-dependent treemaps on the same data. It measures the change with corner travel and relative position change, and it removes the change that the data needs. These measures go into [Measures to add](#measures-to-add).
 - The cells of the Voronoi and bounded-aspect treemaps are polygons. A box in such a cell needs the largest rectangle in the polygon.
+- `treemapSliceDice`, `treemapSquarified`, `treemapStrip` and `treemapPivotSplit` are standalone functions. They are not strategies of the registry. `treemapPack` is the comparison with a packer of the section [The measures and the families](#the-measures-and-the-families).
+- Tables I to III of Bederson 2002 measure the three pivots of this section. The package has the pivot by split size. The comparison with those tables is in [`docs/BENCH.md`](../BENCH.md#treemaps-against-the-literature).
 
 ## Masonry, columns and justified rows
 

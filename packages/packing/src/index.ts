@@ -314,3 +314,15 @@ export {
   type UiParams,
 } from "./generators.ts";
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
+export {
+  treemapPack,
+  treemapPivotSplit,
+  treemapSliceDice,
+  treemapSquarified,
+  treemapStrip,
+  type TreemapCell,
+  type TreemapFrame,
+  type TreemapLayout,
+  type TreemapNode,
+  type TreemapStripOptions,
+} from "./treemap.ts";
