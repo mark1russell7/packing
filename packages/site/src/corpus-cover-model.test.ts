@@ -3,10 +3,11 @@ import corpusCoverJson from "../data/corpus-cover.json?raw";
 import { coverEmptyLine, coverGrid, lawLine, coverPairTable, coverSquares, coverTiles, parseCorpusCover, percent, type CorpusCoverDoc, type CoverView } from "./corpus-cover-model.ts";
 
 describe("the line of the law pairs", () => {
-  it("calls the count a lower bound and gives the refused specs", () => {
+  it("calls the count under review and gives the refused specs", () => {
     const line = lawLine({ covered: 31, pairs: 87, specs: 544, refused: 321, floor: 200 });
-    expect(line).toContain("at least 31 of the 87 pairs");
-    expect(line).toContain("lower bound: 321 of 865 specs have fewer than 200 items");
+    expect(line).toContain("gives 31 of the 87 pairs");
+    expect(line).toContain("under review: a misread spec can add a false pair");
+    expect(line).toContain("321 of 865 specs have fewer than 200 items");
   });
 });
 

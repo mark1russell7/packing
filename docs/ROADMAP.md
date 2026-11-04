@@ -20,7 +20,7 @@ Status: done, done, waiting, next, done.
 | k11 | Benchmarks in CI, with a prediction before each run | measure | done | k8, k9 |
 | k12 | Stability: the movement when one item changes | measure | later | k8 |
 | k13 | Speed and its scaling: the time against n for each entry on `ladder.count`, with the fitted exponent and its interval. `bench/scaling.ts` reads the records of a CI run. Memory waits for a paired run of the ladder. | measure | active | k11 |
-| k14 | A live site with interactive examples (v1: a demo of the current strategies). The site rebuilds in CI on each merge to `main`, from the source and the committed results. Each page shows the release and the date of its data, and a list of the changes with dates. | site | done | k1 |
+| k14 | A live site with interactive examples (v1: a demo of the current strategies). The site rebuilds in CI on each merge to `main`, from the source and the committed results. Each page shows the release and the date of its data, and a list of the changes with dates. | site | active | k1 |
 | k15 | The s38 checks: `conventions` and `api-report` in CI | move | done | k0 |
 | k16 | The sort order `input` | strategies | done | |
 | k17 | `packShelf`: rows in the input order around obstacles | strategies | done | k1 |
@@ -152,7 +152,7 @@ Status: done, done, waiting, next, done.
 | k143 | An export of the measured points of the coverage run, with the error of each fold, in `response-records/1` of `@mark1russell7/rigor-statistics`, for the response explorer. The tree stays in this package. The page `explorer/` of the site shows the points | measure | done | k50 |
 | k144 | Each option of each strategy, composite and wrapper has a declaration in the catalog format of `@mark1russell7/layout-contract`, so a consumer reads the options from one source. It starts when that format is agreed | core | done | k141 |
 | k145 | The site writes `kpi.json` at each deploy, in the format `kpi/1`. Each number comes from the registry or from a file of the site, so a reader copies no number from a page | site | done | k72 |
-| k146 | The count of the pairs of two item laws that the corpus emits, read from the generated items and not from the labels of the generators. The target is 87 pairs. The first reading is 31, a lower bound | bench | done | k50 |
+| k146 | The count of the pairs of two item laws that the corpus emits, read from the generated items and not from the labels of the generators. The target is 87 pairs. The first reading is 31, and this count is under review | bench | active | k50 |
 | k147 | The fit of a law and the count of the modes move from the bench of this package to `@mark1russell7/rigor-statistics`, so one home holds them. The law count stays the same | bench | active | k146 |
 
 ## The queue
