@@ -1920,3 +1920,31 @@ The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap ite
 - The line `first-layout` shows the height before the search.
 
 The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.
+
+## The rank window
+
+`bench/window.ts` measures the curve of the idea `new-rank-window` of roadmap item k31. A height and an order are not a time, so any computer can start it. The prediction is `packing-k31-rank-window`.
+
+```bash
+node bench/window.ts --out <file.json> [--seeds 30] [--count 100] [--windows 1,2,3,4,6,8,12,16,32,100]
+```
+
+The inputs are made-up strips of width 200 with 100 items and 30 seeds. The rank of an item is its input place. The pack is `maxrects` with the rule `bl` and the option `sortOrder: "input"`. The gain is the share of the height gain from window 1 to window 100.
+
+| Window | Mean height | Gain | `pack.order.inversions` |
+| --- | --- | --- | --- |
+| 1 | 888.9 | 0.00 | 0.177 |
+| 2 | 887.1 | 0.02 | 0.177 |
+| 3 | 885.7 | 0.04 | 0.181 |
+| 4 | 884.5 | 0.06 | 0.183 |
+| 6 | 881.9 | 0.09 | 0.192 |
+| 8 | 877.3 | 0.15 | 0.197 |
+| 12 | 874.3 | 0.19 | 0.230 |
+| 16 | 860.3 | 0.38 | 0.251 |
+| 32 | 831.1 | 0.76 | 0.360 |
+| 100 | 813.3 | 1.00 | 0.503 |
+
+- The curve has no knee at a small window. Half of the gain comes only between window 16 and window 32.
+- The mean height falls at each listed window. The hard rules have 0 breaks.
+- Window 1 has inversions of 0.177, because `maxrects` can put a box above an earlier box.
+- The count of 100 items sets the scale of the windows. This run does not measure a window as a share of the count.

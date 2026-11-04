@@ -1575,6 +1575,12 @@ The options are `trials` for each height, `seed` and `precision`. The same input
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
 
+## The window order
+
+The function `windowOrder` is the first slice of roadmap item k31, the idea `new-rank-window`. Each step takes the tallest of the next `window` items. A `window` of 1 keeps the input order, and a `window` of the item count gives the sort `height-desc`.
+
+No item comes more than `window - 1` places before its input place. Give the result to a strategy with the option `sortOrder: "input"`. It is a function, so the space of the bench does not change.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.
