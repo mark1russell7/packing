@@ -1565,6 +1565,23 @@ Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. 
 
 The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
+## Side anchors
+
+`packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
+
+On a free height, the place of a bottom anchor needs the final height, and the final height needs the place of the anchor. Thus the function searches on the free length:
+
+- Each try locks each anchored item at the place that the size gives, then packs the other items at a fixed size.
+- A try is good when each item has a place and the 4 hard rules have no break.
+- The search grows the length to the first good try, then halves the range. It keeps the shortest good try.
+
+A pack is not monotone in the length. Thus the result is a good layout, not a proved least length.
+
+`checkSideAnchors` is the rule `anchor-kept`. It reads the final size of the output, so a larger layout has the same rule. The rule is not in `PACK_HARD_RULES`, and the anchor is not a field of an item. Both belong to `@mark1russell7/layout-contract`, so a later slice moves them there.
+
+The function has no use in a default. It refuses a shaped container, a container with no fixed side, and an anchor on a locked item, a shaped item or an item with a margin.
+
+Two anchors can have one place at each length. Then no length is good, and the result has `good: false`. Two anchors on one side can also force a tall layout. The input sets that height, not the search.
 ## Groups as near rectangles
 
 `packNearRects` is the first slice of roadmap item `k97` (idea S8 of the survey). Yang 2023 learns groups of pieces that are almost rectangles. This slice has no model. A greedy search on a raster joins the groups.

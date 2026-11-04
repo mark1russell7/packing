@@ -56,7 +56,7 @@ Status: done, done, waiting, next, done.
 | k47 | Hard inputs: the known worst cases of each heuristic, and a search for inputs where one strategy loses most to another | measure | done | k19, k9 |
 | k48 | Change sequences for stability: insert, delete, resize, reorder, move an obstacle | measure | later | k19 |
 | k49 | Property fuzzing with shrinking: no overlap, inside the container, obstacles kept, deterministic | measure | later | k7 |
-| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions, shown on the site | measure | next | k19, k35 |
+| k50 | The coverage of the corpus as a number: cells covered and pairwise coverage of the dimensions, shown on the site | measure | done | k19, k35 |
 | k51 | Lower bounds, so each result shows its distance to the best | measure | done | k6 |
 | k52 | Baselines with a known guarantee: Sleator, Reverse-Fit and Steinberg | strategies | later | k6, k7 |
 | k53 | Overlap removal: PRISM, VPSC, force-scan and the orthogonal order | strategies | later | k6, k7 |
@@ -116,7 +116,7 @@ Status: done, done, waiting, next, done.
 | k107 | Input families for the worst case: adversarial inputs and scaling ladders | corpus | done | k73 |
 | k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | done | k76 |
 | k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | later | k51, k105 |
-| k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept | core | later | k6, k7 |
+| k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept. The first slice is `packSideAnchors`. The field and the rule of the contract are open. | core | active | k6, k7 |
 | k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | done | k6, k7 |
 | k112 | Whole-space coverage: configs drawn at random from `packSpace` and inputs from the ranges of the generators, a held-out share within tolerance with a Wilson interval, next to the bench grid | measure | done | k68, k105 |
 | k113 | A hull for `bbox`: `pack.fill` goes above 1 on polygon outputs, because the measure reads the item boxes and `bbox` places the tight boxes of the shapes | measure | done | k91 |
