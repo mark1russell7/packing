@@ -1682,9 +1682,26 @@ The field `prior` gives each generator family a weight. `bench/prior.ts` compute
 The effective count `nEff` tells the precision of the share. A share with the prior and `nEff` 30 is approximately as precise as a uniform share of 30 pairs.
 The sampler draws each family with the same chance. A family with a large weight and few pairs thus makes `nEff` small.
 
+##### The kinds of the prior (k122)
+
+The prior is a parameter. The option `--prior` gives the kind, and `--prior-power` gives the power of `tempered`.
+
+| Kind | The weight of a family |
+|---|---|
+| `family-flat` | The same weight for each sampler family, also a family with no inputs in the corpora. This is the default. |
+| `union` | Its share of the distinct inputs of all the committed corpora. |
+| `tempered` | Its count of `union` to a power from 0 to 1, then scaled. The default power is 0.5. The power 1 gives `union`. |
+| `corpus` | Its share of the inputs of the grid manifest only. |
+
+- The headline is `family-flat`. A realistic input means the families, not the count of the grids in the corpora.
+- With another headline than `union`, each measure of `sampled` also has `priorBeside`: the share with `union` and its effective count.
+- The field `strata` of the basis gives the `adversary` family apart. It has no weight, and the sampler does not draw it, so it has no share.
+- `bench/paired-arms.ts` does not read the prior. Thus the fold verdict of the nightly control does not change.
+- The headline changes the published prior share of the coverage. The uniform share and the grid numbers do not change.
+
 ##### The union of the corpora (k119)
 
-The default prior `union` uses all the committed corpora of `bench/corpora`. The option `--prior corpus` gives the k116 prior of the grid manifest only.
+The prior `union` uses all the committed corpora of `bench/corpora`.
 
 1. Each corpus gives its inputs: each spec with each seed, or each input with its generator.
 2. The union keeps each distinct input one time. Two inputs are the same when their family, params and seed are the same.
@@ -2083,3 +2100,12 @@ The family is the 10 classes of `berkeyWang` and `martelloVigo`, with 100 items 
 - The hard rules have 0 breaks. The three widths together have a mean of 18084 greedy completions for one input.
 - Wen 2025 gives a gap of 7.56 for the set BWMV with no turns at 60 seconds. Those instances are not these inputs, and that method has blocks. The value is only a scale, and this table makes no parity claim.
 - The gap uses a lower bound, not the optimum. In class IX, large items make that bound weak.
+The third arm pins, packs and then applies `compactUp` (roadmap item k30). The prediction is `packing-k30-compact-up`.
+
+| Entry | Moved | Distance, fresh | Distance, compacted | Cost, step 1 | Cost, step 10 | Worst cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | 0.146 | 0.355 | 0.028 | 1.071 | 1.192 | 1.290 |
+| `skyline` | 0.221 | 0.333 | 0.052 | 1.080 | 1.229 | 1.383 |
+
+- The distance is the mean `pack.stability.mean`. Its unit is the width of the strip.
+- The compaction takes back only a small part of the height cost: 1.215 goes to 1.192 for `maxrects-bl`. It moves few boxes, and each move is short.

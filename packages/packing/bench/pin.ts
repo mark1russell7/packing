@@ -8,7 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { mean } from "@mark1russell7/rigor-statistics";
-import { checkHard, measureChange, mulberry32, packWith, pinUnchanged, type Item, type PackInput, type PackOutput } from "../src/index.ts";
+import { checkHard, compactUp, measureChange, mulberry32, packWith, pinUnchanged, type Item, type PackInput, type PackOutput } from "../src/index.ts";
 import { ENTRIES } from "./entries.ts";
 
 /** The width of each strip. */
@@ -33,8 +33,14 @@ export interface PinCase {
   /** The share of the staying boxes that moved, for each step. */
   readonly freshMoved: readonly number[];
   readonly pinnedMoved: readonly number[];
+  readonly compactMoved: readonly number[];
+  /** The mean distance of the staying boxes, for each step, in units of the width. */
+  readonly freshDistance: readonly number[];
+  readonly compactDistance: readonly number[];
   /** The pinned height over the fresh height, for each step. */
   readonly cost: readonly number[];
+  /** The compacted height over the fresh height, for each step. */
+  readonly compactCost: readonly number[];
   /** The hard rule breaks and the unplaced items of each layout. */
   readonly breaks: number;
 }
@@ -84,24 +90,37 @@ export function measure(arm: string, seed: number, count: number, share: number,
   let input = firstStrip(seed, count);
   let fresh = pack(input);
   let pinned = fresh;
+  let compacted = fresh;
   let breaks = breaksOf(input, fresh);
   const freshMoved: number[] = [];
   const pinnedMoved: number[] = [];
+  const compactMoved: number[] = [];
+  const freshDistance: number[] = [];
+  const compactDistance: number[] = [];
   const cost: number[] = [];
+  const compactCost: number[] = [];
   for (let step = 1; step <= steps; step++) {
     const next = changeStep(input, step, seed, share);
     const nextFresh = pack(next);
     const pin = pinUnchanged(input, pinned, next);
     const nextPinned = pack(pin.input);
-    freshMoved.push(measureChange(input, fresh, next, nextFresh)["pack.stability.moved"]);
+    const nextCompacted = compactUp(next, pack(pinUnchanged(input, compacted, next).input));
+    const freshChange = measureChange(input, fresh, next, nextFresh);
+    const compactChange = measureChange(input, compacted, next, nextCompacted);
+    freshMoved.push(freshChange["pack.stability.moved"]);
     pinnedMoved.push(measureChange(input, pinned, next, nextPinned)["pack.stability.moved"]);
+    compactMoved.push(compactChange["pack.stability.moved"]);
+    freshDistance.push(freshChange["pack.stability.mean"]);
+    compactDistance.push(compactChange["pack.stability.mean"]);
     cost.push(nextPinned.size.h / nextFresh.size.h);
-    breaks += breaksOf(next, nextFresh) + breaksOf(pin.input, nextPinned);
+    compactCost.push(nextCompacted.size.h / nextFresh.size.h);
+    breaks += breaksOf(next, nextFresh) + breaksOf(pin.input, nextPinned) + breaksOf(next, nextCompacted);
     input = next;
     fresh = nextFresh;
     pinned = nextPinned;
+    compacted = nextCompacted;
   }
-  return { arm, seed, freshMoved, pinnedMoved, cost, breaks };
+  return { arm, seed, freshMoved, pinnedMoved, compactMoved, freshDistance, compactDistance, cost, compactCost, breaks };
 }
 
 /** This function starts the bench. */
@@ -125,9 +144,15 @@ function main(): void {
       arm,
       freshMoved: mean(here.flatMap((c) => c.freshMoved)),
       pinnedMoved: mean(here.flatMap((c) => c.pinnedMoved)),
+      compactMoved: mean(here.flatMap((c) => c.compactMoved)),
+      freshDistance: mean(here.flatMap((c) => c.freshDistance)),
+      compactDistance: mean(here.flatMap((c) => c.compactDistance)),
       costFirst: mean(here.map((c) => c.cost[0]!)),
       costLast: mean(here.map((c) => c.cost[steps - 1]!)),
       costWorst: Math.max(...here.flatMap((c) => c.cost)),
+      compactCostFirst: mean(here.map((c) => c.compactCost[0]!)),
+      compactCostLast: mean(here.map((c) => c.compactCost[steps - 1]!)),
+      compactCostWorst: Math.max(...here.flatMap((c) => c.compactCost)),
       breaks: here.reduce((sum, c) => sum + c.breaks, 0),
     };
   });
