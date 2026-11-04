@@ -247,9 +247,11 @@ export function resizeItem(item: Item, w: number, h: number): void {
 
 /** This function gives the id of each strategy of the demo that supports the shape kind of the items. */
 export function offeredStrategies(items: readonly Item[], scene?: Scene): string[] {
-  if (items.length === 0) return [...STRATEGIES];
+  // The demo has only a rectangle container, so it does not offer a strategy of a circle container.
+  const demo = STRATEGIES.filter((id) => registryStrategy(id).supports.containerShape.includes("rect"));
+  if (items.length === 0) return demo;
   const kind = cellOf(inputOf(items, 640, "fixed", DEFAULT_TARGET, scene)).itemShape;
-  return STRATEGIES.filter((id) => registryStrategy(id).supports.itemShape.includes(kind));
+  return demo.filter((id) => registryStrategy(id).supports.itemShape.includes(kind));
 }
 
 /** The strategies that each layout takes first when its strategy does not support the items: layout A, then layout B. */

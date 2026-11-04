@@ -33,7 +33,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { ENTRIES, entry, isComposite } from "./entries.ts";
+import { ENTRIES, entry, isComposite, STANDALONE_IDS } from "./entries.ts";
 
 /** The name of the corpus. */
 export const ADVERSARY_CORPUS = "pack-adversary-v1";
@@ -217,7 +217,7 @@ function valueOf(id: string, input: PackInput, cell: CorpusCell, seed: number, k
 }
 
 /** The single entries of the benchmark: the pool of `best`. */
-export const SINGLE_ENTRIES: readonly string[] = Object.freeze(ENTRIES.filter((e) => !isComposite(e.id)).map((e) => e.id));
+export const SINGLE_ENTRIES: readonly string[] = Object.freeze(ENTRIES.filter((e) => !isComposite(e.id) && !STANDALONE_IDS.has(e.id)).map((e) => e.id));
 
 /** This function gives the measure of the loss on a container: `fill` for a fixed size, else `gap`. */
 export const lossMeasureOf = (container: LayoutContainer): LossMeasure => (container.fixed === "size" ? "fill" : "gap");

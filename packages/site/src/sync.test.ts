@@ -3,7 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
-import { ENTRIES, isComposite } from "@mark1russell7/packing/bench/entries";
+import { ENTRIES, isComposite, STANDALONE_IDS } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
 import { optionsOf } from "./cards-model.ts";
 import { navLinks } from "./chrome.ts";
@@ -62,7 +62,7 @@ describe("the demo", () => {
   });
 
   it("picks the members of portfolio, select, aspect-fit, restarts, bbox, ruin-recreate, overlap-min, anneal, genetic and tabu from the named entries", () => {
-    expect(MEMBER_ENTRIES.map((e) => e.id)).toEqual(ENTRIES.filter((e) => !isComposite(e.id)).map((e) => e.id));
+    expect(MEMBER_ENTRIES.map((e) => e.id)).toEqual(ENTRIES.filter((e) => !isComposite(e.id) && !STANDALONE_IDS.has(e.id)).map((e) => e.id));
     const ids = ENTRIES.map((e) => e.id);
     for (const id of ["portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu"]) {
       const pickers = optionControls(id).filter((c) => c.kind === "entry" || c.kind === "members");

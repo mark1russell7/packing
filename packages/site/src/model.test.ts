@@ -184,7 +184,7 @@ describe("runPacking with a free width", () => {
   });
 
   it("tells that a strategy of circles does not support the rectangles of the demo", () => {
-    expect(STRATEGIES.filter((id) => !RECT_STRATEGIES.includes(id))).toEqual(["hole-degree"]);
+    expect(STRATEGIES.filter((id) => !RECT_STRATEGIES.includes(id))).toEqual(["hole-degree", "circle-quasi-physical"]);
     const run = runPacking(makeItems("mixed", 10, 3), 640, { strategy: "hole-degree" });
     expect(run.unsupported).toBe(true);
     expect(run.error).toContain("itemShape");
