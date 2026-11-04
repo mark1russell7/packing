@@ -126,7 +126,7 @@ Status: done, done, waiting, next, done.
 | k117 | A work budget for composites: count placements, not milliseconds, so each result is a pure function of the input and the config. Wall-clock stays an opt-in | core | done | k112 |
 | k118 | Bounds that count margins and gaps, knobs relative to the item size, and a `pack.gap` of 1 or less on each sampled pair | measure | done | k51, k116 |
 | k119 | A prior over all families: the family weights come from the union of the committed corpora, with the effective count next to each prior share | measure | done | k116 |
-| k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | next | k116, k119 |
+| k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | done | k116, k119 |
 | k121 | Determinism as a gate: the bench fails on a pair that is not deterministic and has no clock limit, a repeat test runs each entry in a shuffled order, and the source of the 2 bad pairs is found | measure | done | k116, k118 |
 | k122 | The prior as a parameter: union, family-flat or tempered (union weights to a power in the space). The headline is family-flat, with union beside it and the effective count of each. The adversary family is its own stratum | measure | later | k119 |
 | k123 | Balance and stability on each record: the gap spread, the offset of the slack centroid, the empty share per side, and the move under an input change and a seed change. Compare shows compact against spread as a front | measure | done | k118 |
@@ -153,37 +153,36 @@ The score of an item is its gain times its uncertainty, divided by its cost. Eac
 
 | Rank | Item | Gain | Uncertainty | Cost | Score | Calibrated |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | k120 | 4 | 3 | 2 | 6.0 | 5.0 |
-| 2 | k25 | 3 | 3 | 2 | 4.5 | 3.8 |
-| 3 | k13 | 3 | 3 | 2 | 4.5 | 3.8 |
-| 4 | k92 | 3 | 3 | 2 | 4.5 | 3.8 |
-| 5 | k10 | 4 | 4 | 4 | 4.0 | 3.3 |
-| 6 | k81 | 4 | 3 | 3 | 4.0 | 3.3 |
-| 7 | k82 | 3 | 4 | 3 | 4.0 | 3.3 |
-| 8 | k83 | 3 | 4 | 3 | 4.0 | 3.3 |
-| 9 | k93 | 4 | 2 | 2 | 4.0 | 3.3 |
-| 10 | k94 | 4 | 3 | 3 | 4.0 | 3.3 |
-| 11 | k95 | 4 | 3 | 3 | 4.0 | 3.3 |
-| 12 | k97 | 3 | 4 | 3 | 4.0 | 3.3 |
-| 13 | k110 | 4 | 2 | 2 | 4.0 | 3.3 |
-| 14 | k84 | 3 | 5 | 4 | 3.8 | 3.1 |
-| 15 | k96 | 5 | 4 | 5 | 4.0 | 2.6 |
-| 16 | k74 | 4 | 3 | 4 | 3.0 | 2.5 |
-| 17 | k52 | 3 | 2 | 2 | 3.0 | 2.5 |
-| 18 | k85 | 3 | 3 | 3 | 3.0 | 2.5 |
-| 19 | k86 | 3 | 5 | 5 | 3.0 | 2.5 |
-| 20 | k87 | 3 | 3 | 3 | 3.0 | 2.5 |
-| 21 | k98 | 3 | 2 | 2 | 3.0 | 2.5 |
-| 22 | k122 | 2 | 3 | 2 | 3.0 | 2.4 |
-| 23 | k109 | 4 | 2 | 3 | 2.7 | 2.2 |
-| 24 | k99 | 3 | 4 | 5 | 2.4 | 2.0 |
-| 25 | k100 | 3 | 3 | 4 | 2.3 | 1.9 |
-| 26 | k101 | 4 | 2 | 4 | 2.0 | 1.7 |
-| 27 | k102 | 3 | 2 | 3 | 2.0 | 1.7 |
-| 28 | k88 | 2 | 2 | 2 | 2.0 | 1.6 |
-| 29 | k103 | 2 | 2 | 2 | 2.0 | 1.6 |
-| 30 | k89 | 2 | 4 | 5 | 1.6 | 1.3 |
-| 31 | k104 | 2 | 3 | 5 | 1.2 | 1.0 |
+| 1 | k25 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 2 | k13 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 3 | k92 | 3 | 3 | 2 | 4.5 | 3.8 |
+| 4 | k10 | 4 | 4 | 4 | 4.0 | 3.3 |
+| 5 | k81 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 6 | k82 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 7 | k83 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 8 | k93 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 9 | k94 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 10 | k95 | 4 | 3 | 3 | 4.0 | 3.3 |
+| 11 | k97 | 3 | 4 | 3 | 4.0 | 3.3 |
+| 12 | k110 | 4 | 2 | 2 | 4.0 | 3.3 |
+| 13 | k84 | 3 | 5 | 4 | 3.8 | 3.1 |
+| 14 | k96 | 5 | 4 | 5 | 4.0 | 2.6 |
+| 15 | k74 | 4 | 3 | 4 | 3.0 | 2.5 |
+| 16 | k52 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 17 | k85 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 18 | k86 | 3 | 5 | 5 | 3.0 | 2.5 |
+| 19 | k87 | 3 | 3 | 3 | 3.0 | 2.5 |
+| 20 | k98 | 3 | 2 | 2 | 3.0 | 2.5 |
+| 21 | k122 | 2 | 3 | 2 | 3.0 | 2.4 |
+| 22 | k109 | 4 | 2 | 3 | 2.7 | 2.2 |
+| 23 | k99 | 3 | 4 | 5 | 2.4 | 2.0 |
+| 24 | k100 | 3 | 3 | 4 | 2.3 | 1.9 |
+| 25 | k101 | 4 | 2 | 4 | 2.0 | 1.7 |
+| 26 | k102 | 3 | 2 | 3 | 2.0 | 1.7 |
+| 27 | k88 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 28 | k103 | 2 | 2 | 2 | 2.0 | 1.6 |
+| 29 | k89 | 2 | 4 | 5 | 1.6 | 1.3 |
+| 30 | k104 | 2 | 3 | 5 | 1.2 | 1.0 |
 
 The order of 2026-11-04 makes k50 next, ahead of this table, so it has no score here.
 
