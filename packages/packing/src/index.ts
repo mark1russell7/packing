@@ -4,7 +4,7 @@ export { defaultLayoutOf, pack, packRows, rectFeatures, type PackOptions, type P
 export { packSkyline, lowestWindow, SKYLINE_RULES, type SkylineOptions, type SkylineRule } from "./skyline.ts";
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
-export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule } from "./maxrects.ts";
+export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule, type MaxRectsScore } from "./maxrects.ts";
 export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
 export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
@@ -120,6 +120,7 @@ export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
 export { pinUnchanged, type PinnedInput } from "./pin.ts";
+export { NEAR_RECTS_STAGE, packNearRects, type NearRectsOptions } from "./near-rects.ts";
 export { packRasterNofit, RASTER_NOFIT_MAX_CELLS, RASTER_NOFIT_STAGE, rasterCell, rasterCover, type RasterCover, type RasterNofitOptions } from "./raster-nofit.ts";
 export {
   ANNEAL_STAGE,
@@ -176,6 +177,7 @@ export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel
 export { configOfStrategy, PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type OptionPlace, type StrategyPoint } from "./pack-space.ts";
 export type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
+export { checkSideAnchors, packSideAnchors, type AnchorSide, type SideAnchor, type SideAnchorOptions, type SideAnchorResult } from "./side-anchors.ts";
 export {
   BOUND_KINDS,
   boundGap,
@@ -192,6 +194,17 @@ export {
 } from "./bounds.ts";
 export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
 export { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE, EXACT_STRIP_NODE_LIMIT, exactStrip, exactStripRefusal, type ExactStripOptions, type ExactStripResult } from "./exact-strip.ts";
+export {
+  columnBalance,
+  columnReading,
+  columnsLinearPartition,
+  masonryLpt,
+  masonryShortest,
+  type ColumnBalance,
+  type ColumnReading,
+  type MasonryLayout,
+  type MasonryOptions,
+} from "./masonry.ts";
 export {
   canonicalJson,
   countCell,
