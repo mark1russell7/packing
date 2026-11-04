@@ -149,6 +149,7 @@ Status: done, done, waiting, next, done.
 | k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | done | |
 | k141 | Each standalone layout function is a strategy: `sleator`, `beam`, `exact-strip`, `binary-height`, `near-rects`, `raster-nofit`, `masonry`, `treemap` and `side-anchors` are in `allStrategies`, the bench and the sites. A test fails on a new layout function that is not on the list | core | active | |
 | k142 | Points in `packSpace` for the standalone strategies of k141, and their chips in the demo of the site. This changes the pinned counts of the space | core | later | |
+| k143 | An export of the measured points of the coverage run, with the error of each fold, in `response-records/1` of `@mark1russell7/rigor-statistics`, for the response explorer. The tree stays in this package. It starts after 0.7.0, when that format is on npm | measure | later | k50 |
 
 ## The queue
 
