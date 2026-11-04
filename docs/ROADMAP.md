@@ -144,6 +144,8 @@ Status: done, done, waiting, next, done.
 | k135 | The point of each strategy in `packSpace`, for layout-stack L34. `configOfStrategy(id, options)` gives the canonical config of a strategy of the registry with its options, or the reason that it has none. The param `table` of `select` gains the value `pack`, and the named config `pack` is the choice of `pack` without a strategy (`PACK_DEFAULT_TABLE`). | core | done | k68 |
 | k136 | The rule `wire` of `maxrects`, for layout-stack L12. The rule places a box near its placed linked boxes, with a cost for height. | strategies | done | k131 |
 | k137 | A link pull after a pack. The option `pull` of `relax` moves each linked box along its free space toward its balance point. The boxes make no new overlap and stay in the container. The option `relax-pull` of `combine` holds it in `packSpace`. | core | done | k124, k131 |
+| k138 | The fallback of `force` and `relax` to their member is a typed field of the output. A host can then tell its user which strategy gave the layout. Today the fallback is only the trace measures `force.fallback` and `relax.fallback`. | core | later | |
+| k139 | `overflow` tells why each item has no place: too large for the container, or no free place. `pack()` with only `fixedWidth` also tells of a rectangle wider than that width. Today a too-large item is in `overflow`, with no reason. | core | later | |
 
 ## The queue
 

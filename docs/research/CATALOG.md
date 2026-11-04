@@ -262,7 +262,7 @@ An exact method finds the best layout or proves that no layout fits. Its time gr
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
 | `exact-bb-bins` | Branch and bound for bins | Put the boxes into bins one at a time, in the corner places. Cut a branch when a lower bound is not less than the best count of bins. | Martello 1998 | density | exponential | exact: `OPT` | planned | k10 |
-| `exact-bb-strip` | Branch and bound for a strip | Search the height of the strip from a lower bound up. For each height, do a branch and bound on the corner places. | Martello 2003 | density | exponential | exact: `OPT` | planned | k10 |
+| `exact-bb-strip` | Branch and bound for a strip | Search the height of the strip between a lower bound and a first layout. For each height, do a branch and bound on the corner places. | Martello 2003 | density | exponential | exact: `OPT` | implemented | k10 |
 | `exact-bb-strip-avpt` | Branch and bound with better bounds | Do `exact-bb-strip` with new lower bounds and rules that remove equal layouts. | Alvarez-Valdes 2009 | density | exponential | exact: `OPT` | planned | k10 |
 | `exact-strip-boschetti` | Exact strip with a relaxation | Solve a relaxation first, then search the places of the boxes. | Boschetti 2010 | density | exponential | exact: `OPT` | planned | k10 |
 | `exact-strip-kenmochi` | Exact strip with a staircase | Branch on the places of a staircase of boxes. | Kenmochi 2009 | density | exponential | exact: `OPT` | planned | k10 |
@@ -288,6 +288,7 @@ An exact method finds the best layout or proves that no layout fits. Its time gr
 
 Notes:
 
+- `exact-bb-strip` is the function `exactStrip`, and it is not a registered strategy. It uses the staircase placement of Scheithauer 1997, as Iori 2021 tells of Martello 2003. It does not copy the rule of Martello 2003 against symmetric layouts: a memo of failed states does that work. We did not read the full text of Martello 2003, and we do not compare with its tables.
 - The three-dimensional branch and bound of Martello 2000 uses corner places. The exact strip method of Martello 2003 uses the same idea. The brief of k6 named a "Martello, Pisinger and Vigo" strip method. We found only the three-dimensional paper by these authors, and the strip method by Martello, Monaci and Vigo.
 - `dp-guillotine` is exact only for guillotine layouts. It gives a lower bound on the waste of other layouts only with a relaxation.
 - A solver for `cp-diffn` or `milp-relative` is a new dependency. The item k10 decides which solver to use.
@@ -783,6 +784,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **He 2015.** Kun He, Pengli Ji, Chumin Li. "Dynamic reduction heuristics for the rectangle packing area minimization problem". European Journal of Operational Research 241(3):674-685. <https://doi.org/10.1016/j.ejor.2014.09.042>
 - **Heer 2007.** Jeffrey Heer, George G. Robertson. "Animated transitions in statistical data graphics". IEEE TVCG 13(6):1240-1247. <https://doi.org/10.1109/TVCG.2007.70539>
 - **Herrmann 2025.** Julien Herrmann, Guillaume Pallez. "An In-depth Study of LLM Contributions to the Bin Packing Problem". ACM Transactions on Evolutionary Learning and Optimization, pages 3821574. <https://doi.org/10.1145/3821574> The preprint is arXiv 2510.27353.
+- **Herz 1972.** J. C. Herz. "Recursive computational procedure for two-dimensional stock cutting". IBM Journal of Research and Development 16(5):462-469. We took this entry from the bibliography of Iori 2021 on 2026-11-03.
 - **Hifi 2001.** Mhand Hifi. "Exact Algorithms for Large-Scale Unconstrained Two and Three Staged Cutting Problems". Computational Optimization and Applications 18(1):63-88. <https://doi.org/10.1023/A:1008743711658>
 - **Hifi 2009.** Mhand Hifi, Rym M'Hallah. "A Literature Review on Circle and Sphere Packing Problems: Models and Methodologies". Advances in Operations Research 2009:1-22. <https://doi.org/10.1155/2009/150624>
 - **Hill 2002.** Dwight Hill. "Method and system for high speed detailed placement of cells within an integrated circuit design". US patent 6,370,673 B1. <https://patents.google.com/patent/US6370673> The name "Tetris" for this method is unverified.
@@ -879,6 +881,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Romera-Paredes 2024.** Bernardino Romera-Paredes, Mohammadamin Barekatain, Alexander Novikov, Matej Balog, M. Pawan Kumar, Emilien Dupont, Francisco J. R. Ruiz, Jordan S. Ellenberg, Pengming Wang, Omar Fawzi, Pushmeet Kohli, Alhussein Fawzi. "Mathematical discoveries from program search with large language models". Nature 625(7995):468-475. <https://doi.org/10.1038/s41586-023-06924-6>
 - **Sato 2019.** André Kubagawa Sato, Thiago Castro Martins, Antonio Miguel Gomes, Marcos Sales Guerra Tsuzuki. "Raster penetration map applied to the irregular packing problem". European Journal of Operational Research 279(2):657-671. <https://doi.org/10.1016/j.ejor.2019.06.008>
 - **Scheibel 2018.** Willy Scheibel, Christopher Weyand, Jürgen Döllner. "EvoCells: a treemap layout algorithm for evolving tree data". IVAPP 2018, pages 273-280. <https://doi.org/10.5220/0006617102730280>
+- **Scheithauer 1997.** G. Scheithauer. "Equivalence and dominance for problems of optimal packing of rectangles". Ricerca Operativa 83:3-34. We took this entry from the bibliography of Iori 2021 on 2026-11-03.
 - **Schiermeyer 1994.** Ingo Schiermeyer. "Reverse-Fit: a 2-optimal algorithm for packing rectangles". ESA 1994, LNCS 855, pages 290-299. <https://doi.org/10.1007/BFb0049416>
 - **Shneiderman 1992.** Ben Shneiderman. "Tree visualization with tree-maps: 2-d space-filling approach". ACM Transactions on Graphics 11(1):92-99. <https://doi.org/10.1145/102377.115768>
 - **Shneiderman 2001.** Ben Shneiderman, Martin Wattenberg. "Ordered treemap layouts". IEEE InfoVis 2001. <https://doi.org/10.1109/INFVIS.2001.963283>

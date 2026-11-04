@@ -1494,6 +1494,43 @@ The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/4
 - The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
 - `merge` gives no gain at the median.
 
+## The exact strip
+
+The function `exactStrip` gives the least height of a small strip (roadmap item k10). The bench uses this height as a baseline, so each heuristic has a gap to the optimum, not only to the other heuristics. The function is not a strategy. `pack()`, `packWith()` and the registry do not know it, and no default uses it.
+
+The problem is strip packing with a fixed width and the least height, the problem of Martello, Monaci and Vigo 2003. The function accepts whole sizes, and an item with `turnable` can turn by 90 degrees. `exactStripRefusal` gives the reason for each input that it refuses: a shape, an inset, an obstacle, a gap, a margin, a lock, more than `EXACT_STRIP_MAX_ITEMS` items or a side above `EXACT_STRIP_MAX_SIDE`.
+
+### The search
+
+1. The range of the height starts at the k51 bound with no tolerance. It ends at the height of a first layout.
+2. Each pass looks for a layout of a height up to a target in the range. The first target is the bound itself, because an input with no free space ends there. The next targets halve the range.
+3. A node puts one item on a corner of the staircase of the placed items. This is the staircase placement of Scheithauer 1997. The doc comment of `exactStrip` has the proof that the corners are enough.
+4. Four tests cut a branch: the lowest top of each item that is left, `mmvBound` above the last step, and the free rows and columns with the rasters of Herz 1972.
+5. Equal items are one kind, so they make no extra branches. A state that failed at a target also fails at each lower target, so a memo keeps it.
+
+### What a result claims
+
+| `status` | `proof` | The claim |
+|---|---|---|
+| `optimal` | `bound` | The height meets the k51 bound. |
+| `optimal` | `exhausted` | The search looked at each lower height and found no layout. |
+| `limit` | `null` | The node limit stopped the search. The optimum is in the range from `lowerBound` to `height`. This is not a claim of an optimum. |
+
+The search has a node limit and no clock, so the same input and limit give the same bytes and the same `nodes` on each machine. The default limit is `EXACT_STRIP_NODE_LIMIT`. The memo and the raster cache have caps. A full cache makes the search slower, and the result stays exact.
+
+### The limit of the size
+
+The size limit comes from counts of nodes, because a count of nodes does not change with the load of a computer. A test with 1,000,000 nodes used 9 made-up families and 4 seeds of each family:
+
+| Items | Proved inputs | Inputs that the limit stopped |
+|---|---|---|
+| 8 | 36 of 36, each in 232,268 nodes or fewer | none |
+| 10 | 28 of 36 | 4 inputs of the Beasley family with the side 250, 3 of the Martello and Vigo class X, and 1 of the Berkey and Wang class III |
+
+Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. At 12 items, the limit stopped 8 of 18 inputs in a test with 2 seeds of each family. `EXACT_STRIP_MAX_ITEMS` is 16 only to keep the arrays small, and it is not a promise of a proof. The workflow `Exact` measures this with the default limit: see "The gap to a proved optimum" in `docs/BENCH.md`.
+
+The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
+
 ## The decisions
 
 The layout-stack session, `highways` and `packing` settled these questions on 2026-10-27. The placement and the routing read each of them in the same way.

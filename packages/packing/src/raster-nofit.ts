@@ -34,7 +34,7 @@ export interface RasterCover {
 export const RASTER_NOFIT_STAGE = "raster-nofit";
 
 /** The largest count of grid cells that `packRasterNofit` accepts: columns times the rows that a pack can use. */
-export const RASTER_NOFIT_MAX_CELLS = 2 ** 24;
+export const RASTER_NOFIT_MAX_CELLS: number = 2 ** 24;
 
 /** The default count of the decoded orders. */
 const DEFAULT_TRIALS = 64;
