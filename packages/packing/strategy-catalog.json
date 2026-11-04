@@ -1,7 +1,7 @@
 {
   "schema": "strategy-catalog/1",
   "engine": "packing",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "strategies": [
     {
       "key": "anneal",
