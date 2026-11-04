@@ -36,4 +36,4 @@ Write all prose of this repository in the style of ASD-STE100 Simplified Technic
 
 ## The roadmap
 
-- `docs/ROADMAP.md` is the roadmap. The tracker folder is `~/git/fleet/artifacts/packing-roadmap/`. Change both together.
+- `docs/ROADMAP.md` is the roadmap. Change it with the work that it tells about.

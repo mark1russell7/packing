@@ -4,6 +4,8 @@
 
 import {
   ASPECT_FIT_FACTORS,
+  BEST_FIT_SIDES,
+  BOTTOM_LEFT_RULES,
   GUILLOTINE_CHOICES,
   GUILLOTINE_SPLITS,
   MAXRECTS_RULES,
@@ -22,6 +24,7 @@ import {
   type GeneticStrategyOptions,
   type GuillotineStrategyOptions,
   type LayoutStrategyOptions,
+  type BestFitStrategyOptions,
   type MaxRectsStrategyOptions,
   type OverlapMinStrategyOptions,
   type RelaxStrategyOptions,
@@ -74,6 +77,8 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   shelf: { stage: "placement" },
   maxrects: { stage: "placement" },
   guillotine: { stage: "placement" },
+  "bottom-left": { stage: "placement" },
+  "best-fit": { stage: "placement" },
   push: { stage: "local-search" },
   "aspect-fit": {
     stage: "size-search",
@@ -262,6 +267,7 @@ export function cellHtml(text: string, catalogUrl: string): string {
 /** The union of the options of each strategy of the registry */
 type AnyOptions = LayoutStrategyOptions &
   MaxRectsStrategyOptions &
+  BestFitStrategyOptions &
   PushStrategyOptions &
   PortfolioStrategyOptions &
   AspectFitStrategyOptions &
@@ -311,10 +317,12 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   iterations: { type: "number", note: "The count of the restarts, restart 0 included. Restart 0 is the member in its own order." },
   perturb: { type: oneOf(RESTART_PERTURBS), note: "The change of the order of each run after run 0." },
   strength: { type: "number", note: "The share of the positions that move, from 0 to 1." },
+  pull: { type: "number", note: "The share of the move of each box to the balance point of its links, from 0 to 1. The default is 0." },
   rounds: { type: "number", note: "The most rounds of the overlap removal of PRISM in `force`." },
   limitTime: { type: "boolean", note: "The value `true` sets the time limit `budgetMs`." },
   turn: { type: "boolean", note: "The value `true` lets `bbox` turn each turnable item to the lower box." },
   wasteMap: { type: "boolean", note: "The value `true` keeps the free areas below the skyline, and each box tries them first." },
+  side: { type: oneOf(BEST_FIT_SIDES), note: "The side of a gap for a box of `best-fit`: the left edge, the taller neighbor or the shorter neighbor." },
   choice: { type: oneOf(GUILLOTINE_CHOICES), note: "The rule of `guillotine` to choose a free rectangle: the best or the worst fit by area, short side or long side." },
   split: { type: oneOf(GUILLOTINE_SPLITS), note: "The rule of `guillotine` to cut the rest of a free rectangle: by the leftover axis, the axis or the area." },
   merge: { type: "boolean", note: "The value `true` joins two free rectangles of `guillotine` with a common full edge after each box." },
@@ -333,6 +341,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
 export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<string, OptionInfo>>>> = {
   skyline: { rule: { type: oneOf(SKYLINE_RULES), note: "The rule to choose a place on the skyline: bottom-left or minimum waste." } },
+  "bottom-left": { rule: { type: oneOf(BOTTOM_LEFT_RULES), note: "The rule to slide a box: down and left until it stops, or left only until it can move down." } },
   "circle-quasi-physical": { iterations: { type: "number", note: "The count of the moves after the first layout, from 0 to 65536." } },
   "ruin-recreate": {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout and each recreate. The default is `maxrects-bl`." },
@@ -359,6 +368,7 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
   relax: {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
     strength: { type: "number", note: "The share of the move to the even spread, from 0 to 1. With 0, the output is the member output." },
+    pull: { type: "number", note: "The share of the move of each box to the balance point of its links, from 0 to 1. The default is 0." },
   },
   force: {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
@@ -381,7 +391,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   anneal: ["member", "budgetWork"] satisfies (keyof AnnealStrategyOptions)[],
   genetic: ["member", "budgetWork"] satisfies (keyof GeneticStrategyOptions)[],
   tabu: ["member", "budgetWork"] satisfies (keyof TabuStrategyOptions)[],
-  relax: ["member"] satisfies (keyof RelaxStrategyOptions)[],
+  relax: ["member", "pull"] satisfies (keyof RelaxStrategyOptions)[],
   force: ["member"] satisfies (keyof ForceStrategyOptions)[],
 };
 

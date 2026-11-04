@@ -1,4 +1,4 @@
-// The separation of boxes on one axis by the satisfy step of VPSC (Dwyer 2006). The strategies `relax` (k124)
+// The separation of boxes on one axis by the satisfy step of VPSC (Dwyer 2006). The strategies `relax` (k124, k137)
 // and `force` (k125) use it. The code came from `src/relax.ts` with no change of the output.
 
 import { EPS, marginOf, turnItem, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
@@ -91,6 +91,8 @@ export class Boxes {
   readonly n: number;
   readonly placements: Placement[] = [];
   readonly offsets: [number[], number[]] = [[], []];
+  /** The index of the box of each placed item, moving or locked, by item id. An obstacle has no entry. */
+  readonly index: Map<string, number> = new Map();
 
   constructor(input: PackInput, base: PackOutput) {
     const bounds = containerBounds(input);
@@ -102,6 +104,7 @@ export class Boxes {
     const items = new Map(input.items.map((i) => [i.id, i]));
     const rects: { x: number; y: number; w: number; h: number }[] = [];
     const fixedRects: typeof rects = [];
+    const fixedIds: string[] = [];
     const isFixed = (item: Item): boolean => item.locked === true && item.x !== undefined && item.y !== undefined;
     const box = (item: Item, x: number, y: number): { x: number; y: number; w: number; h: number; dx: number; dy: number } => {
       const m = marginOf(item);
@@ -110,11 +113,16 @@ export class Boxes {
       const dy = m.top + pad;
       return { x: x - dx - this.origin[0], y: y - dy - this.origin[1], w: item.w + m.left + m.right + 2 * pad, h: item.h + m.top + m.bottom + 2 * pad, dx, dy };
     };
-    for (const item of input.items) if (isFixed(item)) fixedRects.push(box(item, item.x!, item.y!));
+    for (const item of input.items) {
+      if (!isFixed(item)) continue;
+      fixedRects.push(box(item, item.x!, item.y!));
+      fixedIds.push(item.id);
+    }
     for (const p of base.placements) {
       const given = items.get(p.id);
       if (given === undefined || isFixed(given)) continue;
       const b = box(p.turn === 90 ? turnItem(given) : given, p.x, p.y);
+      this.index.set(p.id, rects.length);
       rects.push(b);
       this.placements.push(p);
       this.offsets[0].push(b.dx);
@@ -125,9 +133,18 @@ export class Boxes {
       fixedRects.push({ x: r.x - half - this.origin[0], y: r.y - half - this.origin[1], w: r.w + 2 * half, h: r.h + 2 * half });
     }
     this.n = rects.length;
+    fixedIds.forEach((id, k) => this.index.set(id, this.n + k));
     const all = [...rects, ...fixedRects];
     this.pos = [Float64Array.from(all, (r) => r.x), Float64Array.from(all, (r) => r.y)];
     this.size = [Float64Array.from(all, (r) => r.w), Float64Array.from(all, (r) => r.h)];
+  }
+
+  /** This function gives each free side of the frame the size of an output of the same input. Thus a move inside the frame does not change the output size. */
+  closeFreeSides(input: PackInput, base: PackOutput): void {
+    const inset = input.container.inset ?? 0;
+    const half = (input.gap ?? 0) / 2;
+    if (!Number.isFinite(this.span[0])) this.span[0] = base.size.w - 2 * inset + 2 * half;
+    if (!Number.isFinite(this.span[1])) this.span[1] = base.size.h - 2 * inset + 2 * half;
   }
 
   /** This function gives the overlap of two boxes on one axis. A touch gives 0 or less. */

@@ -123,7 +123,7 @@ describe("supportsCell and UnsupportedCell", () => {
 
 describe("the registry and the context", () => {
   it("has each strategy once, and refuses an unknown id", () => {
-    expect(strategies.map((s) => s.id)).toEqual(["rows", "skyline", "shelf", "push", "maxrects", "guillotine"]);
+    expect(strategies.map((s) => s.id)).toEqual(["rows", "skyline", "shelf", "push", "maxrects", "guillotine", "bottom-left", "best-fit"]);
     expect(() => strategy("nothing")).toThrow(RangeError);
   });
 

@@ -289,6 +289,33 @@ const leaf = selectLeaf(selectFeatures(input)); // { leaf, pick }
 - The output gets the trace stage `select` (`SELECT_STAGE`) as its last stage. Its measures are `move.select`, `select.member`, `select.pick.<id>`, `select.leaf` and the 4 feature values.
 - The measure `move.select` is 1 when the pick is not member 0. A flag feature is 1 for `true`, and `select.spread` has 3 decimals.
 
+#### The refit on two measures
+
+The refit of roadmap item k70 tests each leaf of `SELECT_TABLE` on joint records. The table does not change, and leaf 6 keeps `maxrects-bl`.
+
+- The records are the run `40743187036` of `layout-contract` on `joint-v2`, with the 303 inputs of the corpus. The floor comes from all pairs of each input, at the cap 1.25.
+- Each leaf groups the inputs by `selectLeaf`. The 2 pairs are `rows+portfolio` and `maxrects-bl+portfolio`.
+- The first measure is the floor score: `joint.fill` when the pair reaches the floor of the input, else 0. The second measure is `pack.fill`.
+- A leaf changes its pick only after 3 results. On the seeds 1 and 2, `verdict()` gives `better` for the floor score, with the level 0.05. On the held-out seed 3, the mean change is above 0. On the seeds 1 and 2, `pack.fill` is not `worse`.
+
+| Leaf | Inputs (stress) | Pick | Floor score, pick and other | Only the pick, only the other | Floor verdict for the other | p | Fill verdict for the other | Held-out change |
+|---:|---:|---|---|---|---|---:|---|---:|
+| 0 | 21 (3) | `rows` | 0.587, 0.559 | 1, 2 | no verdict | 0.50 | no verdict | -0.186 |
+| 1 | 39 (9) | `maxrects-bl` | 0.360, 0.352 | 1, 1 | no verdict | 0.89 | no verdict | -0.035 |
+| 2 | 9 (3) | `rows` | 0, 0 | 0, 0 | no verdict | 1.00 | no verdict | 0 |
+| 3 | 6 (0) | `maxrects-bl` | 0.297, 0 | 3, 0 | no verdict | 0.50 | no verdict | -0.304 |
+| 4 | 138 (36) | `rows` | 0.163, 0.134 | 7, 0 | worse | 0.04 | no verdict | -0.015 |
+| 5 | 48 (15) | `rows` | 0.236, 0.278 | 1, 3 | no verdict | 0.26 | better | 0.041 |
+| 6 | 42 (15) | `maxrects-bl` | 0.069, 0.119 | 1, 4 | no verdict | 0.25 | worse | 0.011 |
+
+- The column "Only the pick, only the other" counts the inputs where 1 pair reaches the floor and the other pair misses it, on all seeds.
+- Leaf 6 has a higher floor score with `rows`, but the verdict does not support it, and `pack.fill` falls from 0.667 to 0.557.
+- The 4 inputs of leaf 6 where only `rows` reaches the floor are all stress inputs. Without the stress inputs, leaf 6 has 1 input against 0.
+- Leaf 5 is the nearest change: the fill is better and the held-out change is above 0, but 48 inputs do not support the floor score. A change needs a corpus with more inputs in this leaf.
+- The family of the verdict is the cell `sizes`. The families `containerShape` and `count`, and the run without the stress inputs, also give no change of a pick.
+- The records come from `packing` 0.2.16. A change of the table needs a new joint run, but this refit changes nothing.
+- The analysis uses the private package `joint` of `layout-contract`, so it is not a command of this repository.
+
 ### The random restarts
 
 Roadmap item k78 adds the composite strategy `restarts` (catalog row `search-random-restart`, Yang 2013). It packs with one member in some random orders and keeps the best output. It is opt-in. No default uses it.
@@ -402,6 +429,60 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - In `packSpace`, the option `combine.bbox` supports each shape kind. Its members have `view: "bounds"`, so `checkConfig` checks them with the kind `rect`.
 - Thus `spaceSize` with a shape kind counts the `bbox` configs: 5940 meta configs with 3 levels, and 1780 with 1 level.
 - With `polygon` or `free` it counts 0 base configs. With `circle` it counts the base configs of `hole-degree` (roadmap item k90) and `circle-quasi-physical` (roadmap item k94).
+
+### A raster no-fit
+
+Roadmap item k92 adds the function `packRasterNofit` (idea S3 of the survey, catalog row `nest-raster-brkga`). It packs free forms on a grid of cells. This first slice is a standalone function. It is opt-in, and it is not in `packSpace`, `ENTRIES` or a default.
+
+```ts
+const output = packRasterNofit(input, { cell: 0.5, trials: 1024, seed: 7 });
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `cell` | a quarter of the shortest box side, at most 1024 cells across the width | The side of a cell. `rasterCell` snaps it down to 20 significant bits, so each grid line is an exact double. |
+| `trials` | `64` | The count of decoded orders. It is the only limit of the search: the function reads no clock. |
+| `seed` | `0` | The seed of the moves. The same input and seed give the same bytes. |
+
+- `rasterCover` gives the cells of a shape, as spans for each row. Each item also keeps its holes free, so a small item can nest in a hole.
+- The function places each item in an order at its first free place: the lowest row, then the lowest column.
+- The search starts from 4 orders: by area, by height, by width and in input order. Then it swaps or moves items in the best order.
+- The best order has the fewest overflow items, then the shortest length, then the smallest sum of the bottoms.
+- An item with `turnable: true` can take a turn of 90 degrees. It takes the orientation with the lower bottom.
+- The trace measures are `pack.overflow`, `raster.cell`, `raster.trials` and `raster.coverShare`. No measure holds a time.
+
+The rounding rule keeps each answer conservative. A placement that is valid on the grid is valid on the real shape.
+
+- An axis edge fills a cell only when it is strictly inside the open cell, by an exact compare of doubles. Thus an edge on a grid line fills no extra cell.
+- A sloped edge or a curve fills each cell that it enters, after the cell grows by a pad of `2**-20` cells.
+- A cell with no border in it takes the state of its center, by `regionHitsRect` of the contract.
+- The test `src/raster-nofit.test.ts` proves the claim on made-up shapes. It splits them into convex parts, and it compares the placed parts in exact `BigInt` arithmetic.
+- That test does not use the exact predicates of their home, because `@mark1russell7/predicates` is not on npm.
+- The walls use the real extent of the shape and an exact sum. Thus a partial cell of a shape can pass the wall of a rectangle container.
+- A container with a shape keeps only the cells that are fully in it.
+
+The cell side is the main cost of this method. A larger cell gives a faster pack and a lower density.
+
+- Each sloped edge wastes up to one cell of width along its length. An edge on a grid line wastes nothing. A shape on a grid has no cost.
+- The shape of the cost is `raster.coverShare`: the area of the shape over the area of its cells. The bench below measures the density that this cost removes.
+- A shape whose box does not start on a grid line can lose up to one cell at a wall.
+- A sloped edge through a grid corner fills an extra cell, because of the pad.
+- A locked item off the grid is a float sum, so each of its edges fills the cells near it by the pad.
+
+The function refuses these inputs with a `RangeError`:
+
+- A container with a `fixed` value other than `size` or `width`.
+- A container with a shape other than `rect` and no fixed height, or with an `inset`.
+- A `gap`, a list `pairGaps`, and a margin on an item.
+- A bad `trials` value, and a grid with more than `RASTER_NOFIT_MAX_CELLS` cells.
+
+The bench `bench/raster-nofit.ts` compares the density with published values. `docs/BENCH.md` tells how to read it.
+
+- The published values are from Table 2 of Gardeyn, Vanden Berghe and Wauters (2025, arXiv 2509.13329, CC BY 4.0). The density is `100 * area / (width * length)`.
+- Only `shapes0` has the same turns as this function: none. It is the one comparison of the same problem.
+- Each other instance has fewer turns here, so the row has the label `fewer`. A layout of the row is valid in the original. The row is not a fair comparison.
+- The table has the values of ROMA (Sato 2019), so this repository copies them from the table. It did not read the paper.
+- Mundim 2017 and Sato 2019 have no free full text. Thus this repository makes no claim of parity with them, and it has no value from them.
 
 ### Circles by the maximum hole degree
 
@@ -651,6 +732,24 @@ The counts of `packSpace`:
 - `ENTRIES` of the benchmark: 30 before, 32 after. `composites`: 5 before, 6 after. The meta options of `spaceCounts`: 6 before, 7 after.
 - The test of `rect-scattered` in `src/corpus.test.ts` counts only the single strategies. Its count stays 6.
 
+### The order `graph-bfs` in `packSpace`
+
+- The stage `order` has the option `graph-bfs` since layout-stack item L34. It is the last option, so a config of an old option keeps its `configId`.
+- `configOfStrategy` gives a point for `rows`, `skyline`, `shelf`, `maxrects` and `guillotine` with this order. The placement `push` does not read `input.links`, so a constraint refuses it.
+- `packConfig` gives the output of `packWith`. Without links, the order is `area-desc`.
+- A meta strategy with such a member starts at the graph order. `memberOrder` reads `input.links`, and `ruin-recreate` moves the links to its new item list.
+- After L34 the base configs were 3564 and 1068, and 3561 and 1067 for `rect`. The table gives the meta counts. The rule `wire` of k136 raises these counts.
+
+| `spaceSize` | Before L34 | Since L34 |
+|---|---:|---:|
+| `meta`, 3 levels | 277869295533810375192 | 688291902860755874904 |
+| `meta`, 1 level | 100061834238419076 | 248007594904236900 |
+| `meta` for `rect`, 3 levels | 276469311858023490660 | 685398465078246361680 |
+| `meta` for `rect`, 1 level | 99500446769432000 | 246846729112282916 |
+| `meta` for `circle` or `polygon`, 3 levels and 1 level | 5940 and 1780 | 7122 and 2134 |
+
+- The draws of the sampler changed, because the counts changed. A sample of a seed before L34 and after L34 has other configs.
+
 ### The overlap minimization
 
 Roadmap item k80 adds the composite strategy `overlap-min` (catalog row `nest-gls-overlap`, idea R6 of the survey). It is opt-in. No default uses it.
@@ -814,6 +913,72 @@ The counts of `packSpace`:
 | 1 level, `shapes: ["rect"]` | 66333631179363530 | 66333631179364420 |
 
 The bench (prediction `packing-k124-relax`): rows, maxrects-bl and skyline-bl-waste, each alone and in `relax`, on `pack-screen-v1`. The measures are the balance measures, fill, the order inversions, the time and the hard breaks.
+
+### The link pull
+
+Roadmap item k137 adds the option `pull` to `relax`. After a pack, the pull moves the boxes along their free space toward the boxes that they link to. It is opt-in. The default is 0, and no default uses it.
+
+```ts
+const output = packWith("relax", input, { member: "rows", strength: 0, pull: 1 });
+```
+
+The steps of one round:
+
+1. **The block step.** Each linked box gets a target toward its balance point: the weighted mean of the centers of its links. The satisfy step of VPSC moves the boxes on each axis, so a box can push a row of boxes. A block step that does not make the wire length shorter goes back.
+2. **The slide step.** Each linked box in turn moves on each axis along its free interval. A move goes ahead only when it makes the wires of the box shorter.
+
+The rounds stop when the wire length stops falling, and at most 16 rounds occur.
+
+The rules:
+
+- The wire length is the sum over the links of the weight times the Manhattan distance between the centers.
+- With no links, the output is the member output. A link of an item to itself, a link to an item with no box and a link with no positive weight have no effect.
+- The pull reads no seed. Obstacles and locked boxes stay fixed.
+- The pull keeps the output size of the member, also on a free side. So the height does not grow.
+- The pull reads the same containers as `relax`: `fixed`, `freeHeight` and `freeWidth`. It does not read `freeAspect` or `freeArea`.
+- The guard of `relax` also examines the pull.
+- Above `RELAX_PULL_MAX_BOXES` (1000) boxes, the pull does not start. The slide step is O(n^2) in one round.
+- The trace stage `relax` also has `relax.pull.rounds`, `relax.pull.before` and `relax.pull.after`.
+
+The counts of `packSpace`:
+
+- A new param of `relax` changes the id of each `relax` config. So `combine` gets a new option `relax-pull` with 1 member, `RECT_ONLY` and the param `pull`. It is `relax` with the strength 0.
+- The named configs are `relax-pull-rows` and `relax-pull-maxrects-bl`.
+- `configOfStrategy` gives a point only for the strength 0 or the pull 0.
+- With 3 levels, each base config gives 3 new meta configs. With 1 level, it gives 1.
+
+| `spaceSize` | Before k137 | Since k137 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 839122620777889294392 | 839122620777889305516 |
+| 1 level | 277205931006817716 | 277205931006818808 |
+| 3 levels, `shapes: ["rect"]` | 835731956558436797040 | 835731956558436808155 |
+| 1 level, `shapes: ["rect"]` | 275936906614690676 | 275936906614691767 |
+
+The trial chose the structure of a round on the seeds 1 to 20: 40 items, `freeHeight`, the order `graph-bfs`, and a seeded tree of links. Each value is the sum of the pull over the sum of the same pack without it. The block share is the share of the pull in the block step. The slide step alone gave a longer wire in each row, so a round has both steps. The share 1 gave the shortest wire on `rows` and needs no second constant.
+
+| Member | Sizes | Slide only: wire, height | Share 0.25: wire, height | Share 0.5: wire, height | Share 1: wire, height |
+|---|---|---|---|---|---|
+| `rows` | `uniform` | 0.933, 0.965 | 0.919, 0.930 | 0.910, 0.915 | 0.888, 0.946 |
+| `rows` | `heavyTail` | 0.912, 0.991 | 0.879, 0.979 | 0.878, 0.981 | 0.877, 0.989 |
+| `rows` | `bimodal` | 0.930, 0.983 | 0.910, 0.960 | 0.898, 0.956 | 0.881, 0.978 |
+| `maxrects` `bl` | `uniform` | 0.984, 0.997 | 0.977, 0.997 | 0.979, 0.997 | 0.979, 0.997 |
+| `maxrects` `bl` | `heavyTail` | 0.971, 1.000 | 0.958, 1.000 | 0.959, 1.000 | 0.961, 1.000 |
+| `maxrects` `bl` | `bimodal` | 0.978, 1.000 | 0.973, 1.000 | 0.974, 1.000 | 0.975, 1.000 |
+
+Each variant won on 20 of 20 seeds in each row, with 0 hard breaks. The gain is small, because a packed layout has little free space. On `maxrects` `bl`, the share 1 is not the best share, but the differences are at most 0.003.
+
+The held-out measure uses the seeds 101 to 120, with the same inputs, block share 1 and each frame. Each cell gives the wire length, the height and the fill as a share of the same pack. The pull won on 240 of 240 inputs, with 0 hard breaks.
+
+| Member | Sizes | `freeHeight`: wire, height, fill | `fixed`: wire, height, fill |
+|---|---|---|---|
+| `rows` | `uniform` | 0.919, 0.971, 1.021 | 0.916, 0.984, 1.004 |
+| `rows` | `heavyTail` | 0.880, 0.990, 1.011 | 0.883, 1.001, 0.993 |
+| `rows` | `bimodal` | 0.907, 0.985, 1.008 | 0.899, 1.001, 0.988 |
+| `maxrects` `bl` | `uniform` | 0.973, 1.000, 0.998 | 0.973, 1.003, 0.995 |
+| `maxrects` `bl` | `heavyTail` | 0.953, 1.000, 0.998 | 0.965, 1.006, 0.993 |
+| `maxrects` `bl` | `bimodal` | 0.978, 0.998, 1.001 | 0.974, 1.002, 0.997 |
+
+A free height does not grow in these rows at 3 decimals. In a fixed frame, the height grows by at most 0.6 percent, and the fill falls by at most 1.2 percent. The rule `wire` of k136 gives a larger gain. Its wire shares are 0.49 to 0.64, and its height shares are 1.01 to 1.06. The pull keeps the pack, and the rule changes it.
 
 ### The force packer
 
@@ -1058,6 +1223,7 @@ The counts of `packSpace`:
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90, then "circle-quasi-physical"
 const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
+const allStrategies: readonly StrategyListing[]; // each strategy of the three lists, with its kind, family, supports and deterministic flag: since k140
 function strategy(id: string): Strategy;
 function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
 ```
@@ -1065,6 +1231,8 @@ function packWith(id: string, input: PackInput, options?: unknown, seed?: number
 The benchmark starts each strategy of the registry on each input of the corpus. A new strategy goes in the registry, so it gets the same benchmark as the others. No result is removed.
 
 A composite strategy packs an input with other strategies. It is not in `strategies`, but `strategy(id)` and `packWith` find it.
+
+A consumer that needs each strategy reads `allStrategies`, not one of the three lists. Each listing has a `kind`: `single`, `shape` or `composite`. A test loads each source module and fails on a strategy that the list does not have.
 
 ## The adapters of 0.1
 
@@ -1214,10 +1382,27 @@ The option `rule` chooses the free rectangle. The default is `bssf`. A lower sco
 | `baf` | The leftover area, then the smaller leftover side | `move.baf` | `maxrects-baf` |
 | `bl` | The bottom edge of the box, then its left edge | `move.split` | `maxrects-bl` |
 | `cp` | The most contact length with the frame, the boxes and the obstacles | `move.cp` | `maxrects-cp` |
+| `wire` | The smallest wire length to the placed linked boxes, then the bottom edge of the box | `move.wire` | `maxrects-wire` |
 
 The moves:
 
 - The rule `bl` gives the base place. The move of each other rule counts a box when the rule chooses a place that is not the place of `bl`.
+- The rule `wire` reads the option `links` of `pack`. The wire length is the sum over the placed linked boxes of the link weight times the Manhattan distance between the centers.
+- For a box with a placed link, the rule `wire` tries the 4 corners of each free rectangle. Each other rule tries only the top-left corner.
+- A box with no placed link follows `bl`. Thus an input without links has the layout of `bl`.
+- With a free height, each unit of height under the lowest box costs `WIRE_DEPTH` (8) for each unit of link weight.
+- The rule `wire` gives 6 values of the param `rule`, not 5. The counts of `spaceSize` are then 3708 and 1092 base configs, and 3705 and 1091 for `rect`. The meta counts with 3 levels and 1 level are 839122620777889294392 and 277205931006817716, and 7410 and 2182 for `circle` or `polygon`. The configs of the 5 old rules keep their ids.
+
+The trial of `WIRE_DEPTH` used the seeds 1 to 20, 40 items, a tree of links and the order `graph-bfs`. Each cell gives the wire length and the height of `wire` as a share of `bl`:
+
+| `WIRE_DEPTH` | `uniform` | `heavyTail` | `bimodal` |
+|---:|---:|---:|---:|
+| 0 | 0.424, 1.661 | 0.553, 1.154 | 0.468, 1.699 |
+| 2 | 0.452, 1.456 | 0.550, 1.036 | 0.457, 1.355 |
+| 4 | 0.474, 1.258 | 0.583, 1.013 | 0.468, 1.151 |
+| 8 | 0.562, 1.056 | 0.621, 1.028 | 0.511, 1.054 |
+
+The test `maxrects-wire.test.ts` uses the seeds 101 to 120, because the trial chose the value on the seeds 1 to 20.
 - Thus the move of a rule counts only the choices of that rule. The other steps are the same for each rule, so they do not count.
 - The rule `bl` has no base. Its move `move.split` counts a box that cuts 2 free rectangles or more. This cut is the step that `rows`, `skyline` and `shelf` do not have.
 - The trace of `maxrects` has `move.split` for each rule. The trace of a rule other than `bl` also has the move of the rule.
@@ -1362,6 +1547,153 @@ The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/4
 - The 3000 records have 0 hard breaks, and each one is deterministic.
 - The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
 - `merge` gives no gain at the median.
+
+## The slide and best-fit families
+
+Roadmap item k25 adds the strategies `bottom-left` and `best-fit`. They ship off: they are not in `pack`, in a default or in `SELECT_TABLE`.
+
+| Method | Source | The choice | Package |
+|---|---|---|---|
+| Bottom-left slide | Baker 1980 | Each box slides from the top right: down until it stops, then left until it stops, again and again. | `bottom-left`, rule `baker` |
+| Improved bottom-left | Liu 1999 | Each box moves left only until it can move down. | `bottom-left`, rule `liu-teng` |
+| Bottom-left, fast form | Chazelle 1983 | The lowest, then leftmost place, holes included, with lists of the holes. | the output of `maxrects-bl` |
+| Bottom-left fill | Hopper 2001 | The lowest, then leftmost place, holes included. | the output of `maxrects-bl` |
+| Best fit | Burke 2004 | The lowest gap chooses its box, and not the box its gap. | `best-fit`, side `left`, `tall` or `short` |
+
+- A slide does not jump, so a closed hole stays empty. `maxrects-bl` fills that hole.
+- The lowest and leftmost place is a corner of a maximal free rectangle. Thus `maxrects` with the rule `bl` gives the rule of Chazelle 1983 and Hopper 2001. A brute-force test shows it on seeded inputs.
+- `bottom-left` costs `O(n L)`, with `L` the legs of all slides. The worst case is `O(n^3)`, and a test on a stair of pegs shows growth over `O(n^2)`.
+- `best-fit` costs `O(n^2)`: at most `2n + 1` rounds, and each round examines at most `2n + 1` segments and boxes. A test pins the count.
+- `bottom-left` accepts fixed obstacles and locked items. `best-fit` does not, and it does not accept a rank. Each strategy throws `UnsupportedCell` for such an input.
+- Neither strategy turns a box. `best-fit` has no tower step. The corpora have no turnable items.
+
+`packSpace` gets 2 placement options. The space version stays 1, because each old named config keeps its `configId`.
+
+| `spaceSize` | Before k25 | Since k25 |
+|---|---:|---:|
+| `base`, 3 levels and 1 level | 3708 and 1092 | 3798 and 1122 |
+| `base` for `rect`, 3 levels and 1 level | 3705 and 1091 | 3795 and 1121 |
+| `meta`, 3 levels | 839122620777889305516 | 946077247154414479086 |
+| `meta`, 1 level | 277205931006818808 | 317504231368154898 |
+
+- `ENTRIES` of the benchmark: 45 before, 50 after. The strata of `strataOf`: 26 before, 28 after.
+- The uniform draws of the sampler change, because the space has more configs.
+
+## The exact strip
+
+The function `exactStrip` gives the least height of a small strip (roadmap item k10). The bench uses this height as a baseline, so each heuristic has a gap to the optimum, not only to the other heuristics. The function is not a strategy. `pack()`, `packWith()` and the registry do not know it, and no default uses it.
+
+The problem is strip packing with a fixed width and the least height, the problem of Martello, Monaci and Vigo 2003. The function accepts whole sizes, and an item with `turnable` can turn by 90 degrees. `exactStripRefusal` gives the reason for each input that it refuses: a shape, an inset, an obstacle, a gap, a margin, a lock, more than `EXACT_STRIP_MAX_ITEMS` items or a side above `EXACT_STRIP_MAX_SIDE`.
+
+### The search
+
+1. The range of the height starts at the k51 bound with no tolerance. It ends at the height of a first layout.
+2. Each pass looks for a layout of a height up to a target in the range. The first target is the bound itself, because an input with no free space ends there. The next targets halve the range.
+3. A node puts one item on a corner of the staircase of the placed items. This is the staircase placement of Scheithauer 1997. The doc comment of `exactStrip` has the proof that the corners are enough.
+4. Four tests cut a branch: the lowest top of each item that is left, `mmvBound` above the last step, and the free rows and columns with the rasters of Herz 1972.
+5. Equal items are one kind, so they make no extra branches. A state that failed at a target also fails at each lower target, so a memo keeps it.
+
+### What a result claims
+
+| `status` | `proof` | The claim |
+|---|---|---|
+| `optimal` | `bound` | The height meets the k51 bound. |
+| `optimal` | `exhausted` | The search looked at each lower height and found no layout. |
+| `limit` | `null` | The node limit stopped the search. The optimum is in the range from `lowerBound` to `height`. This is not a claim of an optimum. |
+
+The search has a node limit and no clock, so the same input and limit give the same bytes and the same `nodes` on each machine. The default limit is `EXACT_STRIP_NODE_LIMIT`. The memo and the raster cache have caps. A full cache makes the search slower, and the result stays exact.
+
+### The limit of the size
+
+The size limit comes from counts of nodes, because a count of nodes does not change with the load of a computer. A test with 1,000,000 nodes used 9 made-up families and 4 seeds of each family:
+
+| Items | Proved inputs | Inputs that the limit stopped |
+|---|---|---|
+| 8 | 36 of 36, each in 232,268 nodes or fewer | none |
+| 10 | 28 of 36 | 4 inputs of the Beasley family with the side 250, 3 of the Martello and Vigo class X, and 1 of the Berkey and Wang class III |
+
+Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. At 12 items, the limit stopped 8 of 18 inputs in a test with 2 seeds of each family. `EXACT_STRIP_MAX_ITEMS` is 16 only to keep the arrays small, and it is not a promise of a proof. The workflow `Exact` measures this with the default limit: see "The gap to a proved optimum" in `docs/BENCH.md`.
+
+The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
+
+## Side anchors
+
+`packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
+
+On a free height, the place of a bottom anchor needs the final height, and the final height needs the place of the anchor. Thus the function searches on the free length:
+
+- Each try locks each anchored item at the place that the size gives, then packs the other items at a fixed size.
+- A try is good when each item has a place and the 4 hard rules have no break.
+- The search grows the length to the first good try, then halves the range. It keeps the shortest good try.
+
+A pack is not monotone in the length. Thus the result is a good layout, not a proved least length.
+
+`checkSideAnchors` is the rule `anchor-kept`. It reads the final size of the output, so a larger layout has the same rule. The rule is not in `PACK_HARD_RULES`, and the anchor is not a field of an item. Both belong to `@mark1russell7/layout-contract`, so a later slice moves them there.
+
+The function has no use in a default. It refuses a shaped container, a container with no fixed side, and an anchor on a locked item, a shaped item or an item with a margin.
+
+Two anchors can have one place at each length. Then no length is good, and the result has `good: false`. Two anchors on one side can also force a tall layout. The input sets that height, not the search.
+## Groups as near rectangles
+
+`packNearRects` is the first slice of roadmap item `k97` (idea S8 of the survey). Yang 2023 learns groups of pieces that are almost rectangles. This slice has no model. A greedy search on a raster joins the groups.
+
+- Each shape gets its cover on one grid, with the rule of `rasterCover`. A turnable item chooses one turn before the joins.
+- Each round finds, for each pair of groups, the offset with disjoint covers and the smallest box. A pair joins if it saves box cells.
+- The largest saving joins first, and a group joins once in a round. The default is 2 rounds, so a group has at most 4 shapes.
+- The member of `bbox` packs one box for each group: `maxrects` with the rule `bl`.
+
+The box of a group is the true extent of its shapes, not its cells. Thus the grid costs nothing for a shape that joins no group, and an input with no join gives the layout of `bbox`. A test pins this.
+
+The cost of a round is about `n ** 2` pair searches. Two groups with the same cells get one search. Thus an input with many equal shapes is fast.
+
+The function has no use in a default. It refuses a locked item, a margin, a gap, an inset and a container shape with a `RangeError`.
+## Masonry and columns
+
+A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. `pack()`, `packSpace`, the registry and the defaults do not know them.
+
+| Function | Catalog row | Rule | The tallest column | Reading order |
+|---|---|---|---|---|
+| `masonryShortest` | `masonry-shortest` | Each box, in the input order, goes to the shortest column. | At most `2 - 1/c` of the optimum (Graham 1966) | Keeps the order from the top |
+| `masonryLpt` | `masonry-lpt` | The boxes go by height, decreasing, to the shortest column. | At most `4/3 - 1/(3c)` of the optimum (Graham 1969) | Loses the input order |
+| `columnsLinearPartition` | `columns-linear-partition` | Cuts of the input order make the columns. | The least of all cuts (Skiena 2008) | Keeps the order in each column |
+
+Each function takes a `PackInput` and `{ columns, columnWidth? }`, and gives a `PackOutput`.
+
+- The default column width is the widest box with its margins. A wider box is a `RangeError`.
+- The container must have `fixed: "none"`, because the columns set the size. An obstacle, a locked item and `pairGaps` are a `RangeError`.
+- The input order is the `rank` of an item and then its position in the list. A box does not turn.
+- The heights of a column add the top margin, the bottom margin and the gap of each box.
+- Many cuts can have the same tallest column. `columnsLinearPartition` takes the cut with the least sum of squared heights, so a column does not stay empty next to a tall card.
+- `masonryShortest` uses a scan, not a heap, so its cost is `O(n c)`. The heap of the catalog needs a dependency, and a wall has few columns.
+
+Two functions measure a layout:
+
+- `columnBalance` gives the height of each column and `balance`, the catalog measure `pack.columnBalance`: the tallest height minus the shortest height, divided by the tallest height. It reads a column at the left edge of a box, so give it the options of the layout.
+- `columnReading` compares the input order with the visual order, which sorts by the top and then by the left. It gives the inversions of Kendall, the footrule of Spearman, each as a share of its largest value, and the largest move of one box.
+
+The function `measure` has a family `pack.balance.*` of other values, so a value with the name `pack.columnBalance` needs a decision. Thus `balance` is not in `measure` yet.
+
+These values are for the inputs of the last test of `src/masonry.test.ts`: 200 made-up inputs of 60 boxes in 4 columns, with whole heights from 1 to 100.
+
+| Function | Mean `footruleShare` | Mean `inversionShare` | Mean `balance` | Mean `pack.order.inversions` |
+|---|---|---|---|---|
+| `masonryShortest` | 0 | 0 | 0.070 | 0.046 |
+| `masonryLpt` | 0.668 | 0.498 | 0.004 | 0.498 |
+| `columnsLinearPartition` | 0.576 | 0.375 | 0.066 | 0.328 |
+
+A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
+## The binary search on the height
+
+The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
+
+- The range goes from the area bound to the height of the best of 3 first layouts.
+- Each step takes the middle of the range as a limit. A seeded swap search looks for an order that places each item under the limit.
+- A skyline decoder gives the layout of an order. Each box goes to the lowest place, against the left or the right end of a skyline piece.
+- A layout lowers the top of the range. A failed search raises the bottom of the range, and this gives no proof.
+
+The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
+
+This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
 
 ## The decisions
 
