@@ -1,8 +1,13 @@
 # Changelog
 
-## 0.5.1
+## 0.6.0
 
-This release raises the PATCH version. Before 1.0.0, a feature raises PATCH, and this release has no breaking change. The API report of 0.5.0 and of this version shows 0 removed names and 50 added names. Three declarations grow: `MAXRECTS_RULES`, `MaxRectsOptions` and `RelaxStrategyOptions`.
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
+
+- `MAXRECTS_RULES` gains `wire`, so the type `MaxRectsRule` gains a value. A consumer with an exhaustive `Record<MaxRectsRule, T>` gets a type error.
+- `packSpace` has more options, so a pinned value of `spaceSize` changes.
+
+The API report of 0.5.0 and of this version shows 0 removed names and 50 added names. `MaxRectsOptions` and `RelaxStrategyOptions` each gain one optional field.
 
 ### Added
 
