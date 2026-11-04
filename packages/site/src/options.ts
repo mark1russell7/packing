@@ -1,7 +1,7 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
+import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, SKYLINE_RULES, SORT_ORDERS, strategies, strategy, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
 /** This constant lists each strategy of the registry: the single strategies, the strategies of one shape kind, then the composite strategies. */
@@ -25,11 +25,13 @@ export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
   ruin: RUIN_KINDS,
   choice: GUILLOTINE_CHOICES,
   split: GUILLOTINE_SPLITS,
+  side: BEST_FIT_SIDES,
 };
 
 /** The known values of an option of one strategy, when they are not the values of `KNOWN_SETS`, by strategy id. */
 export const STRATEGY_SETS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
   skyline: { rule: SKYLINE_RULES },
+  "bottom-left": { rule: BOTTOM_LEFT_RULES },
 };
 
 /** The limits of each option with a number value, by the name of the option. */

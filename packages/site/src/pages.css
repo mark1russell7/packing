@@ -1384,3 +1384,61 @@
   fill: var(--ink);
   font-size: 9px;
 }
+
+/* The corpus coverage of k50: a triangle of the pairs of dimensions */
+.cover-grid {
+  display: grid;
+  grid-template-columns: minmax(104px, 1fr) repeat(9, minmax(22px, 44px));
+  gap: 2px;
+  align-items: center;
+  max-width: 640px;
+  margin: 8px 0 12px;
+}
+
+.cover-grid-head {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.cover-grid-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+}
+
+.cover-grid-name small {
+  color: var(--muted);
+}
+
+.cover-grid-cell {
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) var(--fill), var(--surface));
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.cover-grid-cell[aria-pressed="true"] {
+  outline: 2px solid var(--sel);
+  outline-offset: 1px;
+}
+
+.ctable caption {
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding-bottom: 4px;
+}
+
+.ctable .cempty {
+  color: var(--muted);
+  background: var(--well);
+}

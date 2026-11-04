@@ -1494,6 +1494,37 @@ The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/4
 - The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
 - `merge` gives no gain at the median.
 
+## The slide and best-fit families
+
+Roadmap item k25 adds the strategies `bottom-left` and `best-fit`. They ship off: they are not in `pack`, in a default or in `SELECT_TABLE`.
+
+| Method | Source | The choice | Package |
+|---|---|---|---|
+| Bottom-left slide | Baker 1980 | Each box slides from the top right: down until it stops, then left until it stops, again and again. | `bottom-left`, rule `baker` |
+| Improved bottom-left | Liu 1999 | Each box moves left only until it can move down. | `bottom-left`, rule `liu-teng` |
+| Bottom-left, fast form | Chazelle 1983 | The lowest, then leftmost place, holes included, with lists of the holes. | the output of `maxrects-bl` |
+| Bottom-left fill | Hopper 2001 | The lowest, then leftmost place, holes included. | the output of `maxrects-bl` |
+| Best fit | Burke 2004 | The lowest gap chooses its box, and not the box its gap. | `best-fit`, side `left`, `tall` or `short` |
+
+- A slide does not jump, so a closed hole stays empty. `maxrects-bl` fills that hole.
+- The lowest and leftmost place is a corner of a maximal free rectangle. Thus `maxrects` with the rule `bl` gives the rule of Chazelle 1983 and Hopper 2001. A brute-force test shows it on seeded inputs.
+- `bottom-left` costs `O(n L)`, with `L` the legs of all slides. The worst case is `O(n^3)`, and a test on a stair of pegs shows growth over `O(n^2)`.
+- `best-fit` costs `O(n^2)`: at most `2n + 1` rounds, and each round examines at most `2n + 1` segments and boxes. A test pins the count.
+- `bottom-left` accepts fixed obstacles and locked items. `best-fit` does not, and it does not accept a rank. Each strategy throws `UnsupportedCell` for such an input.
+- Neither strategy turns a box. `best-fit` has no tower step. The corpora have no turnable items.
+
+`packSpace` gets 2 placement options. The space version stays 1, because each old named config keeps its `configId`.
+
+| `spaceSize` | Before k25 | Since k25 |
+|---|---:|---:|
+| `base`, 3 levels and 1 level | 3708 and 1092 | 3798 and 1122 |
+| `base` for `rect`, 3 levels and 1 level | 3705 and 1091 | 3795 and 1121 |
+| `meta`, 3 levels | 839122620777889305516 | 946077247154414479086 |
+| `meta`, 1 level | 277205931006818808 | 317504231368154898 |
+
+- `ENTRIES` of the benchmark: 45 before, 50 after. The strata of `strataOf`: 26 before, 28 after.
+- The uniform draws of the sampler change, because the space has more configs.
+
 ## The exact strip
 
 The function `exactStrip` gives the least height of a small strip (roadmap item k10). The bench uses this height as a baseline, so each heuristic has a gap to the optimum, not only to the other heuristics. The function is not a strategy. `pack()`, `packWith()` and the registry do not know it, and no default uses it.
@@ -1548,6 +1579,67 @@ A pack is not monotone in the length. Thus the result is a good layout, not a pr
 The function has no use in a default. It refuses a shaped container, a container with no fixed side, and an anchor on a locked item, a shaped item or an item with a margin.
 
 Two anchors can have one place at each length. Then no length is good, and the result has `good: false`. Two anchors on one side can also force a tall layout. The input sets that height, not the search.
+## Groups as near rectangles
+
+`packNearRects` is the first slice of roadmap item `k97` (idea S8 of the survey). Yang 2023 learns groups of pieces that are almost rectangles. This slice has no model. A greedy search on a raster joins the groups.
+
+- Each shape gets its cover on one grid, with the rule of `rasterCover`. A turnable item chooses one turn before the joins.
+- Each round finds, for each pair of groups, the offset with disjoint covers and the smallest box. A pair joins if it saves box cells.
+- The largest saving joins first, and a group joins once in a round. The default is 2 rounds, so a group has at most 4 shapes.
+- The member of `bbox` packs one box for each group: `maxrects` with the rule `bl`.
+
+The box of a group is the true extent of its shapes, not its cells. Thus the grid costs nothing for a shape that joins no group, and an input with no join gives the layout of `bbox`. A test pins this.
+
+The cost of a round is about `n ** 2` pair searches. Two groups with the same cells get one search. Thus an input with many equal shapes is fast.
+
+The function has no use in a default. It refuses a locked item, a margin, a gap, an inset and a container shape with a `RangeError`.
+## Masonry and columns
+
+A card wall has columns of one width, and each box goes to one column (roadmap item k28). The functions of `src/masonry.ts` are standalone. `pack()`, `packSpace`, the registry and the defaults do not know them.
+
+| Function | Catalog row | Rule | The tallest column | Reading order |
+|---|---|---|---|---|
+| `masonryShortest` | `masonry-shortest` | Each box, in the input order, goes to the shortest column. | At most `2 - 1/c` of the optimum (Graham 1966) | Keeps the order from the top |
+| `masonryLpt` | `masonry-lpt` | The boxes go by height, decreasing, to the shortest column. | At most `4/3 - 1/(3c)` of the optimum (Graham 1969) | Loses the input order |
+| `columnsLinearPartition` | `columns-linear-partition` | Cuts of the input order make the columns. | The least of all cuts (Skiena 2008) | Keeps the order in each column |
+
+Each function takes a `PackInput` and `{ columns, columnWidth? }`, and gives a `PackOutput`.
+
+- The default column width is the widest box with its margins. A wider box is a `RangeError`.
+- The container must have `fixed: "none"`, because the columns set the size. An obstacle, a locked item and `pairGaps` are a `RangeError`.
+- The input order is the `rank` of an item and then its position in the list. A box does not turn.
+- The heights of a column add the top margin, the bottom margin and the gap of each box.
+- Many cuts can have the same tallest column. `columnsLinearPartition` takes the cut with the least sum of squared heights, so a column does not stay empty next to a tall card.
+- `masonryShortest` uses a scan, not a heap, so its cost is `O(n c)`. The heap of the catalog needs a dependency, and a wall has few columns.
+
+Two functions measure a layout:
+
+- `columnBalance` gives the height of each column and `balance`, the catalog measure `pack.columnBalance`: the tallest height minus the shortest height, divided by the tallest height. It reads a column at the left edge of a box, so give it the options of the layout.
+- `columnReading` compares the input order with the visual order, which sorts by the top and then by the left. It gives the inversions of Kendall, the footrule of Spearman, each as a share of its largest value, and the largest move of one box.
+
+The function `measure` has a family `pack.balance.*` of other values, so a value with the name `pack.columnBalance` needs a decision. Thus `balance` is not in `measure` yet.
+
+These values are for the inputs of the last test of `src/masonry.test.ts`: 200 made-up inputs of 60 boxes in 4 columns, with whole heights from 1 to 100.
+
+| Function | Mean `footruleShare` | Mean `inversionShare` | Mean `balance` | Mean `pack.order.inversions` |
+|---|---|---|---|---|
+| `masonryShortest` | 0 | 0 | 0.070 | 0.046 |
+| `masonryLpt` | 0.668 | 0.498 | 0.004 | 0.498 |
+| `columnsLinearPartition` | 0.576 | 0.375 | 0.066 | 0.328 |
+
+A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
+## The binary search on the height
+
+The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
+
+- The range goes from the area bound to the height of the best of 3 first layouts.
+- Each step takes the middle of the range as a limit. A seeded swap search looks for an order that places each item under the limit.
+- A skyline decoder gives the layout of an order. Each box goes to the lowest place, against the left or the right end of a skyline piece.
+- A layout lowers the top of the range. A failed search raises the bottom of the range, and this gives no proof.
+
+The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
+
+This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
 
 ## The decisions
 

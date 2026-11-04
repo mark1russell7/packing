@@ -164,7 +164,10 @@ describe("the benchmark runner", () => {
     // The force packer of k125 packs only a rectangle container with at most one free side
     const force = FORCE_ENTRIES.map((e) => e.id);
     for (const id of force) expect(skips.filter((r) => r.strategy === id).map((r) => r.skipped).filter((s) => !/^unsupported (containerSize: (freeAspect|freeArea)|containerShape: [a-z]+)$/.test(s)), id).toEqual([]);
-    expect(skips.filter((r) => r.strategy !== "push" && !strips.includes(r.strategy) && !relax.includes(r.strategy) && !force.includes(r.strategy))).toEqual([]);
+    // The strategies of k25 pack only a rectangle container, and best-fit packs no obstacle
+    const k25 = ENTRIES.filter((e) => e.strategy === "bottom-left" || e.strategy === "best-fit").map((e) => e.id);
+    for (const id of k25) expect(skips.filter((r) => r.strategy === id).map((r) => r.skipped).filter((s) => !/^unsupported (containerShape|obstacleMove): [a-z]+$/.test(s)), id).toEqual([]);
+    expect(skips.filter((r) => r.strategy !== "push" && !strips.includes(r.strategy) && !relax.includes(r.strategy) && !force.includes(r.strategy) && !k25.includes(r.strategy))).toEqual([]);
   });
 
   it("gives each variant of the shelf family its options in each record, over the defaults of shelf", () => {

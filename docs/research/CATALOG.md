@@ -192,14 +192,14 @@ These methods put each box in a corner of the boxes before it. Bottom-left moves
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n^2)` | `3·OPT` with the decreasing width order (Baker 1980) | planned | k25 |
-| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | — | planned | k25 |
-| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | — | planned | k25 |
-| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | — | planned | k25 |
-| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n^2)` | — | planned | k25 |
-| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | planned | k25 |
-| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | planned | k25 |
-| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | planned | k25 |
+| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n L)`, `L` the legs of all slides, worst `O(n^3)` | `3·OPT` with the decreasing width order (Baker 1980) | implemented: `bottom-left` with the rule `baker` | k25 |
+| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | — | implemented: same output as `maxrects` with the rule `bl` | k25 |
+| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | — | implemented: same output as `maxrects` with the rule `bl` | k25 |
+| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | — | not built: see the notes | k25 |
+| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n L)`, `L` the legs of all slides, worst `O(n^3)` | — | implemented: `bottom-left` with the rule `liu-teng` | k25 |
+| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | implemented: `best-fit`, without the turn and the tower step | k25 |
+| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | not built: the output of `best-fit`, only faster | k25 |
+| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | not built: no source | k25 |
 | `touching-perimeter` | Touching Perimeter (TP) | Put each box in the corner place where the part of its edge that touches walls and boxes is the largest. | Lodi 1999 | density | `O(n^3)` | — | planned | k25 |
 | `corner-degree` | Corner-occupying action with a degree | Put each box only in a corner of two edges. Choose the corner with the highest degree, a measure of how close the box is to the other boxes. | Wu 2002 | density | `O(n^4)` | — | planned | k25 |
 | `caving-degree` | Caving degree | Do `corner-degree` with the caving degree: the box that fits closest into a corner wins. | Huang 2007 | density | `O(n^4)` | — | planned | k25 |
@@ -214,6 +214,13 @@ These methods put each box in a corner of the boxes before it. Bottom-left moves
 Notes:
 
 - `bl-baker` with a decreasing width order uses at most three times the best height. Baker 1980 proves this bound.
+- Roadmap item k25 builds `bl-baker` and `bl-liu-teng` as the strategy `bottom-left`, and `best-fit-bkw` as the strategy `best-fit`. They ship off.
+- A slide does not jump, so a closed hole stays empty. That is the difference between `bl-baker` and the rule of `blf-hopper`.
+- The cost of `bl-baker` and `bl-liu-teng` is the cost of this code, with a linear scan of the walls for each leg. A test of `src/bottom-left.test.ts` shows growth over `O(n^2)` on a stair of pegs.
+- `bl-chazelle` and `blf-hopper` give the rule "lowest, then leftmost, holes included". The lowest and leftmost place is a corner of a maximal free rectangle, so `maxrects` with the rule `bl` gives the same places. A brute-force test of `src/bottom-left.test.ts` shows it on seeded inputs.
+- Thus `bl-chazelle` differs from `blf-hopper` only in its data structure. The package has no strategy for each, and it does not claim the `O(n^2)` of `bl-chazelle`.
+- Aşık 2009 tells `bl-jakobs` as a slide that repeats until the box stops, and that is `bl-baker`. We did not find the one-pass rule of this table in a source, so the package has no strategy for it.
+- `best-fit` puts the widest box that fits. The default order `height-desc` breaks a tie by height. It does not turn a box, and it has no tower step. The corpora have no turnable items.
 - The gap rules (`best-fit-bkw`, `lowest-gap-fill`) do not use a fixed order of the boxes. Thus they make many inversions of the rank.
 
 ## Searches over orders and encodings
@@ -409,10 +416,10 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1969 | order, speed | `O(n log c)` for `c` columns | `(2 - 1/c)·OPT` for the highest column (Graham 1969, unverified) | planned | k28 |
-| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | planned | k28 |
+| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1966 | order, speed | `O(n log c)` for `c` columns, with a heap | `(2 - 1/c)·OPT` for the highest column (Graham 1966) | implemented: `masonryShortest`, in `O(n c)` with a scan | k28 |
+| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | implemented: `masonryLpt`, in `O(n log n + n c)` | k28 |
 | `masonry-differencing` | Balanced columns by differencing | Balance the column heights with the differencing method of Karmarkar and Karp. | Karmarkar 1982 (the report number is unverified) | density | `O(n log n)` | — | planned | k28 |
-| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
+| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | implemented: `columnsLinearPartition`. Equal cuts go to the least sum of squares. | k28 |
 | `columns-css-balance` | CSS multi-column balance | Fill the columns in order and balance their heights, as `column-fill: balance` does. | W3C multi-column | order | `O(n log n)` | — | planned | k28 |
 | `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | planned | k28 |
 | `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | planned | k28 |
@@ -426,7 +433,8 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 Notes:
 
 - A box of this project does not scale. Thus `justified-*` gives the row breaks, and the boxes keep their size. Then the result has raggedness, and `pack.raggedness` measures it.
-- `masonry-shortest` is the list scheduling of Graham 1969 on parallel machines. `masonry-lpt` uses at most `4/3` of the best height of the highest column.
+- `masonry-shortest` is the list scheduling of Graham 1966 on parallel machines. `masonry-lpt` uses at most `4/3` of the best height of the highest column.
+- `columnReading` gives 0 for `masonry-shortest` with equal top margins, because the top of the shortest column does not go down. `pack.order.inversions` puts overlapped boxes on one line, so it gives a higher value for the same layout.
 
 ## Order and stability
 
@@ -675,7 +683,7 @@ The literature uses these measures, but `docs/FORMAT.md` does not have them. Eac
 | `pack.stability.baseline` | 0 to 1 | lower | The movement minus the smallest movement that the change of the input needs. | Vernier 2020 |
 | `pack.stability.orthogonalOrder` | 0 to 1 | lower | The part of the pairs where "left of" or "above" changed. | Misue 1995 |
 | `pack.neighbors` | 0 to 1 | higher | The part of the near neighbors of each box in the input that stay near neighbors. | Duarte 2014 |
-| `pack.balance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. | Graham 1969 |
+| `pack.columnBalance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. The function `columnBalance` gives it. | Graham 1969 |
 | `pack.trapped` | 0 to 1 | lower | The part of the empty area that no box of the input can use: holes smaller than the smallest box. | Jylänki 2010 |
 | `pack.displacement` | units | lower | The mean movement of a box from a start layout, for overlap removal. | Gansner 2010 |
 
@@ -752,6 +760,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Dayama 2020.** Niraj Dayama, Kashyap Todi, Taru Saarelainen, Antti Oulasvirta. "GRIDS: interactive layout design with integer programming". CHI 2020. <https://doi.org/10.1145/3313831.3376553>
 - **de Berg 2011.** Mark de Berg, Bettina Speckmann, Vincent van der Weele. "Treemaps with bounded aspect ratio". ISAAC 2011, LNCS. <https://doi.org/10.1007/978-3-642-25591-5_28> A journal version of 2014 is unverified.
 - **Delorme 2017.** Maxence Delorme, Manuel Iori, Silvano Martello. "Logic based Benders' decomposition for orthogonal stock cutting problems". Computers and Operations Research 78:290-298. <https://doi.org/10.1016/j.cor.2016.09.009>
+- **Diaconis 1977.** Persi Diaconis, R. L. Graham. "Spearman's footrule as a measure of disarray". Journal of the Royal Statistical Society, Series B 39(2):262-268. The DOI is unverified.
 - **Duarte 2014.** Felipe S. L. G. Duarte, Fabio Sikansi, Francisco M. Fatore, Samuel G. Fadel, Fernando V. Paulovich. "Nmap: a novel neighborhood preservation space-filling algorithm". IEEE TVCG 20(12):2063-2071. <https://doi.org/10.1109/TVCG.2014.2346276>
 - **Dwyer 2006.** Tim Dwyer, Kim Marriott, Peter J. Stuckey. "Fast node overlap removal". "Graph Drawing" 2005, LNCS 3843, pages 153-164. <https://doi.org/10.1007/11618058_15>
 - **Eades 1991.** Peter Eades, Wei Lai, Kazuo Misue, Kozo Sugiyama. "Preserving the mental map of a diagram". Compugraphics 1991, pages 24-33. The record is unverified: <https://www.bibsonomy.org/bibtex/5b39c1a8aa05b91465ad0ba256d6579f>
@@ -774,6 +783,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Gilmore 1965.** P. C. Gilmore, R. E. Gomory. "Multistage cutting stock problems of two and more dimensions". Operations Research 13(1):94-120. <https://doi.org/10.1287/opre.13.1.94>
 - **Goehlsdorf 2007.** Dennis Goehlsdorf, Michael Kaufmann, Martin Siebenhaller. "Placing connected components of disconnected graphs". APVIS 2007, pages 101-108. <https://dblp.org/rec/conf/apvis/GoehlsdorfKS07.html>
 - **Gomes 2006.** A. Miguel Gomes, José F. Oliveira. "Solving Irregular Strip Packing problems by hybridising simulated annealing and linear programming". European Journal of Operational Research 171(3):811-829. <https://doi.org/10.1016/j.ejor.2004.09.008>
+- **Graham 1966.** R. L. Graham. "Bounds for certain multiprocessing anomalies". Bell System Technical Journal 45(9):1563-1581. <https://archive.org/details/bstj45-9-1563>
 - **Graham 1969.** R. L. Graham. "Bounds on multiprocessing timing anomalies". SIAM Journal on Applied Mathematics 17(2):416-429. <https://doi.org/10.1137/0117039>
 - **Grosso 2010.** A. Grosso, A. R. M. J. U. Jamali, M. Locatelli, F. Schoen. "Solving the problem of packing equal and unequal circles in a circular container". Journal of Global Optimization 47(1):63-81. <https://doi.org/10.1007/s10898-009-9458-3> Crossref gives the year 2009 of the online version.
 - **Guo 1999.** Pei-Ning Guo, Chung-Kuan Cheng, Takeshi Yoshimura. "An O-tree representation of non-slicing floorplan and its applications". DAC 1999, pages 268-273. <https://doi.org/10.1145/309847.309928>
