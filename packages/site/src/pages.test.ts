@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { parseResponseRecord } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
 import { navLinks } from "./chrome.ts";
+import { explorerFacts } from "./explorer-model.ts";
 import { byDate, COVERAGE_LABELS, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
@@ -41,7 +43,7 @@ import {
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
 /** These files have their own schema and parser, and a test of their package compares them with their script. */
-const OWN_SCHEMA = ["corpus-cover.json"];
+const OWN_SCHEMA = ["corpus-cover.json", "response-coverage.json"];
 const KINDS: Record<string, Snapshot["kind"]> = {
   "coverage.json": "coverage",
   "gaps-pack-known-v1.json": "gaps",
@@ -55,6 +57,29 @@ const KINDS: Record<string, Snapshot["kind"]> = {
   "strategies-pack-select-v2.json": "strategies",
 };
 
+describe("the record of the response explorer", () => {
+  const parsed = parseResponseRecord(JSON.parse(read("response-coverage.json")));
+
+  it("parses, with each measured point and the error of each fold", () => {
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const facts = explorerFacts(parsed.record);
+    expect(facts).toMatchObject({ points: 6000, strategies: 30, specs: 100, folds: 5, run: "40805165103" });
+    expect(facts.fits.map((f) => f.id)).toEqual(["pack.fill", "pack.gap", "pack.overflow.excessArea", "ms"]);
+    expect(parsed.record.folds.every((f) => Object.keys(f.errors).length === 4)).toBe(true);
+  });
+
+  it("has a smaller held-out error than the mean for each measure", () => {
+    if (!parsed.ok) throw new Error("The record has faults.");
+    for (const fit of explorerFacts(parsed.record).fits) expect(fit.mae).toBeLessThan(fit.baselineMae);
+  });
+
+  it("leaves out the stored predictions, so the page stays small", () => {
+    if (!parsed.ok) throw new Error("The record has faults.");
+    expect(parsed.record.folds.some((f) => f.predictions !== undefined)).toBe(false);
+  });
+});
+
 describe("navLinks", () => {
   it("links each page from the base, and marks the current page", () => {
     const links = navLinks("/packing/", "results");
@@ -63,6 +88,7 @@ describe("navLinks", () => {
       ["Compare", "/packing/compare/"],
       ["Strategies", "/packing/strategies/"],
       ["Results", "/packing/results/"],
+      ["Explorer", "/packing/explorer/"],
       ["What's new", "/packing/whats-new/"],
       ["Status", "/packing/status/"],
       ["Releases", "/packing/releases/"],
