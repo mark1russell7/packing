@@ -210,7 +210,7 @@ describe("relax: the pull on linked inputs", () => {
   /** This function gives 20 linked inputs of one size family. The trial of `docs/PACKER.md` used the seeds 1 to 20, so this test does not. */
   const inputs = (sizes: Sizes): PackInput[] => Array.from({ length: 20 }, (_, i) => linked(i + 101, sizes));
 
-  // The limits are under the measured values of `docs/PACKER.md`. Each row has the member, the size family and the largest wire share.
+  // Each limit is above the largest share of the seeds 101 to 120 in `docs/PACKER.md`: 0.919 for `rows` and 0.978 for `maxrects` `bl`. Each row has the member, the size family and the largest wire share.
   const rows: readonly (readonly [string, Record<string, unknown>, Sizes, number])[] = [
     ["rows", {}, "uniform", 0.95],
     ["rows", {}, "heavyTail", 0.95],
