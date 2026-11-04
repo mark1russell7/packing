@@ -137,6 +137,20 @@ describe("the modes of a sample", () => {
     }
   });
 
+  it("gives one count for x and -x", () => {
+    const r = mulberry32(22);
+    for (let t = 0; t < 200; t++) {
+      const sizes = 2 + Math.floor(r() * 23);
+      const weights = Array.from({ length: sizes }, () => r() ** 2);
+      const total = weights.reduce((sum, weight) => sum + weight, 0);
+      const discrete = Array.from({ length: 500 }, () => {
+        let left = r() * total;
+        return weights.findIndex((weight) => (left -= weight) <= 0);
+      });
+      expect(modeCount(discrete.map((x) => -x))).toBe(modeCount(discrete));
+    }
+  });
+
   it("keeps one mode for the log areas of whole-number sides", () => {
     const r = mulberry32(20);
     for (let i = 0; i < 100; i++) {

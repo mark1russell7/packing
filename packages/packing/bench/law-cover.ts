@@ -59,7 +59,7 @@ const GRID = 96;
 const SAME_VALUE = 1e-9;
 const FEW_VALUES = GRID / 4;
 const MIN_REPEATS = 4;
-const MIN_BELL_VALUES = 5;
+const MIN_BELL_VALUES = 4;
 const FLAT_RATIO = 3;
 const SHAPE_RATIO = 1.75;
 const RARE_VALUE = 0.01;
@@ -71,6 +71,13 @@ const CLUSTER_GAP = 0.03;
 const CLUSTER_WIDTH = 0.08;
 const MAX_RATIOS = 8;
 const MAX_TYPES = 16;
+
+/** One hump of a series: its highest point, the sum of its points and the count of its points. */
+interface Hump {
+  readonly top: number;
+  readonly mass: number;
+  readonly points: number;
+}
 
 const at = (values: readonly number[], q: number): number => quantile(values, q);
 const spread = (values: readonly number[]): number => at(values, 0.95) - at(values, 0.05);
@@ -119,40 +126,56 @@ function flatCounts(counts: readonly number[]): boolean {
   const order = [...counts].sort((a, b) => a - b);
   const third = Math.ceil(order.length / 3);
   if (mean(order.slice(-third)) >= FLAT_RATIO * mean(order.slice(0, third))) return false;
-  const parts = [counts.slice(0, third), counts.slice(third, -third), counts.slice(-third)].map((part) => mean(part));
+  const parts = [counts.slice(0, third), counts.slice(third, -third), counts.slice(-third)].filter((part) => part.length > 0).map((part) => mean(part));
   return Math.max(...parts) < SHAPE_RATIO * Math.min(...parts);
 }
 
-/** This function tells that a count stands over a lower count by more than the noise of a sample. */
-const standsOver = (upper: number, lower: number): boolean => (upper - lower) / Math.sqrt(upper + lower) >= COUNT_Z;
-
-/** This function splits the counts at each valley that is deeper than the noise of a sample. */
-function humpsOf(counts: readonly number[]): { count: number; values: number }[] {
-  const humps: { count: number; values: number }[] = [];
-  const sum = (from: number, to: number): number => counts.slice(from, to).reduce((total, c) => total + c, 0);
-  let start = 0;
-  let top = counts[0]!;
-  let low = top;
-  let lowAt = 0;
-  counts.forEach((count, i) => {
-    if (count < low) {
-      low = count;
-      lowAt = i;
-    }
-    if (standsOver(top, low) && standsOver(count, low)) {
-      humps.push({ count: sum(start, lowAt), values: lowAt - start });
-      start = lowAt;
-      top = count;
-      low = count;
-      lowAt = i;
-    } else if (count > top) {
-      top = count;
-      low = count;
-      lowAt = i;
-    }
-  });
-  humps.push({ count: sum(start, counts.length), values: counts.length - start });
+/**
+ * This function gives the humps of a series. It first gives each rise and fall one hump. Then it joins the two neighbours
+ * with the closest valley, and again, until each valley has a closeness under the limit. The result has no direction,
+ * because the order of the joins comes from the depth of the valleys and not from their position.
+ */
+function humpsOf(series: ArrayLike<number>, closeness: (lower: number, valley: number) => number, limit: number): Hump[] {
+  const humps: Hump[] = [];
+  const valleys: number[] = [];
+  let index = 0;
+  while (index < series.length) {
+    let top = index;
+    while (top + 1 < series.length && series[top + 1]! >= series[top]!) top++;
+    let end = top;
+    while (end + 1 < series.length && series[end + 1]! < series[end]!) end++;
+    let mass = 0;
+    for (let i = index; i <= end; i++) mass += series[i]!;
+    humps.push({ top: series[top]!, mass, points: end + 1 - index });
+    if (end + 1 < series.length) valleys.push(series[end]!);
+    index = end + 1;
+  }
+  while (valleys.length > 0) {
+    const scores = valleys.map((valley, i) => closeness(Math.min(humps[i]!.top, humps[i + 1]!.top), valley));
+    const closest = scores.indexOf(Math.max(...scores));
+    if (scores[closest]! < limit) break;
+    const [left, right] = [humps[closest]!, humps[closest + 1]!];
+    humps.splice(closest, 2, { top: Math.max(left.top, right.top), mass: left.mass + right.mass, points: left.points + right.points });
+    valleys.splice(closest, 1);
+  }
   return humps;
+}
+
+/** This function gives the closeness of a count to a valley: the negative of its height over the noise of a sample. */
+const countCloseness = (lower: number, valley: number): number => -(lower - valley) / Math.sqrt(lower + valley);
+
+/**
+ * This function gives the distances of the values from one end of the sample, in order. It takes the end that gives the
+ * smaller list, so `x` and `-x` give one list and one count.
+ */
+function fromOneEnd(values: readonly number[]): number[] {
+  const order = [...values].sort((a, b) => a - b);
+  const low = order[0]!;
+  const high = order[order.length - 1]!;
+  const rising = order.map((x) => x - low);
+  const falling = order.map((x) => high - x).reverse();
+  const first = rising.findIndex((x, i) => x !== falling[i]);
+  return first >= 0 && falling[first]! < rising[first]! ? falling : rising;
 }
 
 /**
@@ -166,9 +189,9 @@ function fewValueModes(allCounts: readonly number[], total: number): number {
   const overLimit = (masses: readonly number[], limit: number): number => masses.filter((part) => part >= limit).length;
   if (counts.length < MIN_BELL_VALUES) return overLimit(each, Math.min(MIN_MODE_SHARE, Math.max(...each) / 2));
   if (flatCounts(counts)) return overLimit(each, Math.min(MIN_MODE_SHARE, at(each, 0.5) / FLAT_RATIO));
-  const humps = humpsOf(counts);
-  const narrow = humps.filter((hump) => hump.values < MIN_HUMP_VALUES).length;
-  const masses = 2 * narrow > humps.length ? each : humps.map((hump) => hump.count / total);
+  const humps = humpsOf(counts, countCloseness, -COUNT_Z);
+  const narrow = humps.filter((hump) => hump.points < MIN_HUMP_VALUES).length;
+  const masses = 2 * narrow > humps.length ? each : humps.map((hump) => hump.mass / total);
   return overLimit(masses, Math.min(MIN_MODE_SHARE, Math.max(...masses) / 2));
 }
 
@@ -180,15 +203,16 @@ function fewValueModes(allCounts: readonly number[], total: number): number {
  * 24 evenly spaced clusters. A copy of this count is in rigor-statistics, and this one goes with the release of that package.
  */
 export function modeCount(values: readonly number[]): number {
-  const low = at(values, 0);
-  const high = at(values, 1);
+  const distances = fromOneEnd(values);
+  const low = 0;
+  const high = distances[distances.length - 1]!;
   if (high === low) return 1;
-  const counts = valueCounts(values, low, high);
+  const counts = valueCounts(distances, low, high);
   if (counts.length <= FEW_VALUES && values.length >= MIN_REPEATS * counts.length) return fewValueModes(counts, values.length);
-  const h = kernelWidth(values, low, high);
+  const h = kernelWidth(distances, low, high);
   const step = (high - low + 6 * h) / (GRID - 1);
   const density = new Float64Array(GRID);
-  for (const x of values) {
+  for (const x of distances) {
     const first = Math.max(0, Math.floor((x - 3 * h - (low - 3 * h)) / step));
     const last = Math.min(GRID - 1, Math.ceil((x + 3 * h - (low - 3 * h)) / step));
     for (let i = first; i <= last; i++) {
@@ -197,33 +221,9 @@ export function modeCount(values: readonly number[]): number {
     }
   }
   const total = density.reduce((sum, d) => sum + d, 0);
-  const peaks: { index: number; height: number; start: number; end: number }[] = [];
-  let index = 0;
-  while (index < GRID) {
-    let top = index;
-    while (top + 1 < GRID && density[top + 1]! >= density[top]!) top++;
-    let end = top;
-    while (end + 1 < GRID && density[end + 1]! < density[end]!) end++;
-    peaks.push({ index: top, height: density[top]!, start: index, end });
-    index = end + 1;
-  }
-  const kept = [peaks[0]!];
-  for (const peak of peaks.slice(1)) {
-    const last = kept[kept.length - 1]!;
-    let valley = Infinity;
-    for (let i = last.index; i <= peak.index; i++) valley = Math.min(valley, density[i]!);
-    if (valley < 0.5 * Math.min(last.height, peak.height)) kept.push(peak);
-    else if (peak.height > last.height) kept[kept.length - 1] = { ...peak, start: last.start };
-    else last.end = peak.end;
-  }
-  const mass = (peak: { start: number; end: number }): number => {
-    let sum = 0;
-    for (let i = peak.start; i <= peak.end; i++) sum += density[i]!;
-    return sum / total;
-  };
-  const masses = kept.map(mass);
+  const masses = humpsOf(density, (lower, valley) => valley / lower, 0.5).map((hump) => hump.mass / total);
   const limit = Math.min(MIN_MODE_SHARE, Math.max(...masses) / 2);
-  return masses.filter((share) => share >= limit).length;
+  return masses.filter((part) => part >= limit).length;
 }
 
 /**
