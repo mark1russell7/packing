@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 469 names
+## . (build/index.d.ts): 488 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -56,11 +56,14 @@ type BurkeKendallWhitwellParams: build/index.d.ts#BurkeKendallWhitwellParams
 type BurkeKendallWhitwellProblem: build/index.d.ts#BurkeKendallWhitwellProblem
 CHANGE_WALK_KINDS: build/index.d.ts#CHANGE_WALK_KINDS
 CHANGE_WALK_STEPS: build/index.d.ts#CHANGE_WALK_STEPS
+CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ChangeWalkKind: build/index.d.ts#ChangeWalkKind
 type ChangeWalkParams: build/index.d.ts#ChangeWalkParams
+type CircleQuasiPhysicalOptions: build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
 type ClassContainer: build/index.d.ts#ClassContainer
 type ColumnBalance: build/index.d.ts#ColumnBalance
 type ColumnReading: build/index.d.ts#ColumnReading
@@ -80,6 +83,7 @@ type Dimension: build/strategy.d.ts#Dimension
 type DimensionValue: build/strategy.d.ts#DimensionValue
 type Direction: @mark1russell7/layout-contract#Direction (external)
 EPS: @mark1russell7/layout-contract#EPS (external)
+EXACT_STRATEGY_NODE_LIMIT: build/index.d.ts#EXACT_STRATEGY_NODE_LIMIT
 EXACT_STRIP_MAX_ITEMS: build/index.d.ts#EXACT_STRIP_MAX_ITEMS
 EXACT_STRIP_MAX_SIDE: build/index.d.ts#EXACT_STRIP_MAX_SIDE
 EXACT_STRIP_NODE_LIMIT: build/index.d.ts#EXACT_STRIP_NODE_LIMIT
@@ -133,6 +137,7 @@ type LayoutEdge: @mark1russell7/layout-contract#LayoutEdge (external)
 type LayoutInput: @mark1russell7/layout-contract#LayoutInput (external)
 type LayoutMeasures: build/index.d.ts#LayoutMeasures
 type LayoutStrategyOptions: build/layout-strategy.d.ts#LayoutStrategyOptions
+type LegalizeOptions: build/index.d.ts#LegalizeOptions
 type LockWall: build/index.d.ts#LockWall
 MARTELLO_VIGO_BIN: build/index.d.ts#MARTELLO_VIGO_BIN
 MARTELLO_VIGO_TYPES: build/index.d.ts#MARTELLO_VIGO_TYPES
@@ -143,7 +148,9 @@ type Margin: @mark1russell7/layout-contract#Margin (external)
 type MartelloVigoClass: build/index.d.ts#MartelloVigoClass
 type MartelloVigoParams: build/index.d.ts#MartelloVigoParams
 type MasonryLayout: build/index.d.ts#MasonryLayout
+type MasonryMethod: build/index.d.ts#MasonryMethod
 type MasonryOptions: build/index.d.ts#MasonryOptions
+type MasonryStrategyOptions: build/index.d.ts#MasonryStrategyOptions
 type MaxRectsOptions: build/layout-strategy.d.ts#MaxRectsOptions
 type MaxRectsRule: build/layout-strategy.d.ts#MaxRectsRule
 type MaxRectsScore: build/layout-strategy.d.ts#MaxRectsScore
@@ -226,6 +233,7 @@ SHELF_FITS: build/layout-strategy.d.ts#SHELF_FITS
 SKYLINE_RULES: build/layout-strategy.d.ts#SKYLINE_RULES
 SORT_ORDERS: build/order.d.ts#SORT_ORDERS
 SPREAD_THRESHOLDS: build/index.d.ts#SPREAD_THRESHOLDS
+STANDALONE_MAX_ITEMS: build/index.d.ts#STANDALONE_MAX_ITEMS
 type SelectFeatures: build/index.d.ts#SelectFeatures
 type SelectFlagFeature: build/index.d.ts#SelectFlagFeature
 type SelectLevel: @mark1russell7/layout-contract#SelectLevel (external)
@@ -238,6 +246,7 @@ type Side: @mark1russell7/layout-contract#Side (external)
 type SideAnchor: build/index.d.ts#SideAnchor
 type SideAnchorOptions: build/index.d.ts#SideAnchorOptions
 type SideAnchorResult: build/index.d.ts#SideAnchorResult
+type SideAnchorStrategyOptions: build/index.d.ts#SideAnchorStrategyOptions
 type Sides: @mark1russell7/layout-contract#Sides (external)
 type SizeDistribution: build/index.d.ts#SizeDistribution
 type SizeSearch: build/strategy.d.ts#SizeSearch
@@ -267,7 +276,9 @@ type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
 type TreemapCell: build/index.d.ts#TreemapCell
 type TreemapFrame: build/index.d.ts#TreemapFrame
 type TreemapLayout: build/index.d.ts#TreemapLayout
+type TreemapMethod: build/index.d.ts#TreemapMethod
 type TreemapNode: build/index.d.ts#TreemapNode
+type TreemapStrategyOptions: build/index.d.ts#TreemapStrategyOptions
 type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/strategy.d.ts#UnsupportedCell
@@ -322,6 +333,8 @@ checkInput: @mark1russell7/layout-contract#checkInput (external)
 checkSelectTable: build/index.d.ts#checkSelectTable
 checkSideAnchors: build/index.d.ts#checkSideAnchors
 circleOverlaps: build/hole-degree.d.ts#circleOverlaps
+circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
+circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 classGenerators: build/index.d.ts#classGenerators
 columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
@@ -366,9 +379,12 @@ hopperTurtonOf: build/index.d.ts#hopperTurtonOf
 isAnchor: build/index.d.ts#isAnchor
 isDeterministic: build/index.d.ts#isDeterministic
 isGraphOrder: build/order.d.ts#isGraphOrder
+keepOrthogonal: build/index.d.ts#keepOrthogonal
+keepPrefix: build/index.d.ts#keepPrefix
 ladder: build/index.d.ts#ladder
 ladderFamily: build/index.d.ts#ladderFamily
 ladderRung: build/index.d.ts#ladderRung
+legalizeRows: build/index.d.ts#legalizeRows
 logSweep: build/index.d.ts#logSweep
 lowestWindow: build/layout-strategy.d.ts#lowestWindow
 marginOf: build/strategy.d.ts#marginOf
@@ -413,6 +429,7 @@ perfectCut: build/index.d.ts#perfectCut
 perfectCutFamily: build/index.d.ts#perfectCutFamily
 perfectCutOf: build/index.d.ts#perfectCutOf
 pinUnchanged: build/index.d.ts#pinUnchanged
+placeRow: build/index.d.ts#placeRow
 portPoint: @mark1russell7/layout-contract#portPoint (external)
 portfolioCell: build/index.d.ts#portfolioCell
 portfolioDefaultMembers: build/index.d.ts#portfolioDefaultMembers
@@ -441,6 +458,7 @@ selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
 shapeStrategies: build/index.d.ts#shapeStrategies
 shelf: build/shelf-strategy.d.ts#shelf
+sideAnchorsStrategy: build/index.d.ts#sideAnchorsStrategy
 skyline: build/skyline-strategy.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
@@ -449,6 +467,7 @@ sleatorStrip: build/index.d.ts#sleatorStrip
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
+standaloneStrategies: build/index.d.ts#standaloneStrategies
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 stripGenerators: build/index.d.ts#stripGenerators
@@ -475,6 +494,19 @@ windowOrder: build/order.d.ts#windowOrder
 wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
+
+## ./circle-quasi-physical (build/entry/circle-quasi-physical.d.ts): 10 names
+
+CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+type CircleQuasiPhysicalOptions: build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
+type PackContext: build/strategy.d.ts#PackContext
+type PackInput: @mark1russell7/layout-contract#PackInput (external)
+type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
+type Strategy: build/strategy.d.ts#Strategy
+circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
+circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
+createContext: build/strategy.d.ts#createContext
 
 ## ./default (build/entry/default.d.ts): 7 names
 
@@ -590,6 +622,23 @@ packSkyline: build/layout-strategy.d.ts#packSkyline
 skyline: build/skyline-strategy.d.ts#skyline
 
 ## Declarations
+
+### build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
+declare const CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS = 65536;
+
+### build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
+declare const CIRCLE_QUASI_PHYSICAL_STAGE = "circle-quasi-physical";
+
+### build/circle-quasi-physical.d.ts#CircleQuasiPhysicalOptions
+interface CircleQuasiPhysicalOptions {
+  iterations: number;
+}
+
+### build/circle-quasi-physical.d.ts#circleQuasiPhysical
+declare const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions>;
+
+### build/circle-quasi-physical.d.ts#circlesOutside
+declare function circlesOutside(input: PackInput, output: Pick<PackOutput, "placements" | "size">, tolerance?: number): number;
 
 ### build/default.d.ts#DEFAULT_STRATEGY
 declare const DEFAULT_STRATEGY = "select";
@@ -958,6 +1007,9 @@ interface CutPiece {
   h: number;
 }
 
+### build/index.d.ts#EXACT_STRATEGY_NODE_LIMIT
+export declare const EXACT_STRATEGY_NODE_LIMIT = 1e5;
+
 ### build/index.d.ts#EXACT_STRIP_MAX_ITEMS
 export declare const EXACT_STRIP_MAX_ITEMS = 16;
 
@@ -1157,6 +1209,11 @@ interface LayoutMeasures {
   "pack.balance.sideRange": number;
 }
 
+### build/index.d.ts#LegalizeOptions
+interface LegalizeOptions {
+  readonly placeRow?: boolean;
+}
+
 ### build/index.d.ts#LockWall
 type LockWall = "top" | "right" | "left" | "bottom";
 
@@ -1185,10 +1242,18 @@ type MartelloVigoParams = {
 ### build/index.d.ts#MasonryLayout
 type MasonryLayout = (input: PackInput, options: MasonryOptions) => PackOutput;
 
+### build/index.d.ts#MasonryMethod
+type MasonryMethod = "shortest" | "lpt" | "linear-partition";
+
 ### build/index.d.ts#MasonryOptions
 interface MasonryOptions {
   readonly columns: number;
   readonly columnWidth?: number;
+}
+
+### build/index.d.ts#MasonryStrategyOptions
+interface MasonryStrategyOptions extends MasonryOptions {
+  readonly method: MasonryMethod;
 }
 
 ### build/index.d.ts#MeasureFamily
@@ -1502,6 +1567,9 @@ export declare const SPREAD_THRESHOLDS: Readonly<{
   uniform: number;
 }>;
 
+### build/index.d.ts#STANDALONE_MAX_ITEMS
+export declare const STANDALONE_MAX_ITEMS = 256;
+
 ### build/index.d.ts#SelectFeatures
 interface SelectFeatures {
   count: number;
@@ -1558,6 +1626,12 @@ interface SideAnchorResult {
   readonly output: PackOutput;
   readonly packs: number;
   readonly good: boolean;
+}
+
+### build/index.d.ts#SideAnchorStrategyOptions
+interface SideAnchorStrategyOptions extends Omit<SideAnchorOptions, "seed"> {
+  readonly anchors?: readonly SideAnchor[];
+  readonly first?: Omit<SideAnchor, "id">;
 }
 
 ### build/index.d.ts#SizeDistribution
@@ -1644,6 +1718,9 @@ interface TreemapFrame {
 ### build/index.d.ts#TreemapLayout
 type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
 
+### build/index.d.ts#TreemapMethod
+type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split";
+
 ### build/index.d.ts#TreemapNode
 type TreemapNode = {
   readonly id: string;
@@ -1654,6 +1731,11 @@ type TreemapNode = {
   readonly children: readonly TreemapNode[];
   readonly weight?: undefined;
 };
+
+### build/index.d.ts#TreemapStrategyOptions
+interface TreemapStrategyOptions {
+  readonly method: TreemapMethod;
+}
 
 ### build/index.d.ts#TreemapStripOptions
 interface TreemapStripOptions {
@@ -1933,6 +2015,12 @@ export declare function isAnchor(input: PackInput, id: string): boolean;
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
 
+### build/index.d.ts#keepOrthogonal
+export declare function keepOrthogonal(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
+
+### build/index.d.ts#keepPrefix
+export declare function keepPrefix(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
+
 ### build/index.d.ts#ladder
 export declare const ladder: CorpusGenerator<LadderParams>;
 
@@ -1945,6 +2033,9 @@ export declare function ladderRung(p: Pick<LadderParams, "axis" | "rung" | "coun
   min: number;
   max: number;
 };
+
+### build/index.d.ts#legalizeRows
+export declare function legalizeRows(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput, options?: LegalizeOptions): PackOutput;
 
 ### build/index.d.ts#logSweep
 export declare const logSweep: SizeSearch;
@@ -2054,6 +2145,9 @@ export declare function perfectCutOf(seed: number, params?: Partial<PerfectCutPa
 ### build/index.d.ts#pinUnchanged
 export declare function pinUnchanged(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
 
+### build/index.d.ts#placeRow
+export declare function placeRow(targets: readonly number[], widths: readonly number[], limit: number): number[];
+
 ### build/index.d.ts#portfolioCell
 export declare function portfolioCell(input: PackInput): PortfolioCell;
 
@@ -2130,6 +2224,9 @@ export declare const selectStrategy: Strategy<SelectStrategyOptions>;
 ### build/index.d.ts#shapeStrategies
 export declare const shapeStrategies: readonly Strategy[];
 
+### build/index.d.ts#sideAnchorsStrategy
+export declare const sideAnchorsStrategy: Strategy<SideAnchorStrategyOptions>;
+
 ### build/index.d.ts#skylineGap
 export declare const skylineGap: CorpusGenerator<SkylineGapParams>;
 
@@ -2150,6 +2247,9 @@ export declare function spreadOf(input: PackInput): number;
 
 ### build/index.d.ts#stabilityUnitOf
 export declare function stabilityUnitOf(input: PackInput, output: PackOutput): number;
+
+### build/index.d.ts#standaloneStrategies
+export declare const standaloneStrategies: readonly Strategy[];
 
 ### build/index.d.ts#strategies
 export declare const strategies: readonly Strategy[];

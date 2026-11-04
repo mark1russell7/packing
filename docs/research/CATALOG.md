@@ -444,7 +444,7 @@ These methods keep the reading order of the input, or keep the layout when the i
 |---|---|---|---|---|---|---|---|---|
 | `order-shelf-input` | Shelf in the input order | `shelf-nf` around locked boxes. | this repository | order | `O(n)` | — | implemented: `packShelf` with `sortOrder: "input"` | k29 |
 | `order-ordered-treemaps` | Ordered treemaps | `treemap-pivot-*`, `treemap-strip`, `treemap-split`, `treemap-spiral` and the curves keep the order. | Shneiderman 2001, Bederson 2002 | order | refer to [Treemaps](#treemaps) | — | planned | k29 |
-| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n log n)` | — | planned | k29 |
+| `order-orthogonal` | Keep the orthogonal order | Move the boxes, but keep each pair "left of" or "above" as it was. | Misue 1995, Hayashi 1998 | stability | `O(n^2)` here | — | implemented: `keepOrthogonal` | k29 |
 | `order-mental-map` | Keep the mental map | Keep the orthogonal order, the near neighbors and the topology of a layout when it changes. | Misue 1995, Eades 1991 | stability | depends on the method | — | planned | k29 |
 | `stable-pin-unchanged` | Pin the boxes that do not change | Lock each box that did not change. Pack only the new or changed boxes around them. | this repository | stability | one pack | — | implemented: `pinUnchanged` | k29 |
 | `stable-local-moves` | Local moves | `treemap-local-moves` for packers: search the moves of a layout for the best mix of a measure and the movement. | Sondag 2018 | stability | moves x measure | — | planned | k29 |
@@ -471,7 +471,7 @@ An online packer puts each box when it comes, and does not move it later. An inc
 | `incremental-push` | Push cascade | Put a box where the user drops it. Push each box that it overlaps away on the axis of the smaller overlap, and push on in turn. | this repository | stability | `O(n^2)` | — | implemented: `pushCascade` | k30 |
 | `incremental-vertical-compact` | Vertical compaction | After a move, move each box up as far as it goes, in order from the top. | react-grid-layout, software | stability, density | `O(n^2)` | — | implemented: `compactUp` | k30 |
 | `incremental-float` | Float grid | Do `incremental-push`, but do not compact. A box stays where the user puts it. | gridstack.js, software | stability | `O(n^2)` | — | planned | k30 |
-| `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | — | planned | k30 |
+| `incremental-suffix` | Pack the suffix again | Keep each box before the first change in the order. Pack only the boxes from the change to the end. | this repository | stability, order | one pack of the suffix | — | implemented: `keepPrefix` | k30 |
 | `incremental-git` | Greedy insertion | `treemap-git` for packers: keep a layout tree, take the removed boxes out, and put each new box next to the worst box. | Vernier 2018 | stability | `O(n F)` | — | planned | k30 |
 
 Notes:
@@ -598,10 +598,10 @@ These methods pack circles of equal or of different radii into a circle, a squar
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `circle-quasi-human` | Quasi-human strategies | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | Huang 1999 | density | steps x `O(n^2)` | — | planned | new item |
-| `circle-quasi-physical` | Quasi-physical energy | Treat each overlap as an elastic energy. Lower the energy with gradient steps, and jump out of each local minimum with a quasi-human move. | Wang 2002, Huang 2011b | density | steps x `O(n^2)` | — | planned | new item |
+| `circle-quasi-human` | Quasi-human strategies | When the search stops in a local minimum, take the circle with the most overlap and put it in a new place. | Huang 1999 | density | steps x `O(n^2)` | — | implemented | k94 |
+| `circle-quasi-physical` | Quasi-physical energy | Treat each overlap as an elastic energy. Lower the energy with gradient steps, and jump out of each local minimum with a quasi-human move. | Wang 2002, Huang 2011b | density | steps x `O(n^2)` | — | implemented | k94 |
 | `circle-hole-degree` | Maximum hole degree | Put each circle in the corner place, where it touches two placed items, with the largest hole degree. Look one step ahead. The strategy `hole-degree` does it without the look-ahead. | Huang 2005, Huang 2006, Kubach 2009 | density, speed | `O(n^3)` to `O(n^4)` | — | implemented | k90 |
-| `circle-mbh` | Monotonic basin hopping | Change the layout at random, then do a local nonlinear solve. Keep the result only when it is better. | Addis 2008a, Addis 2008b | density | steps x local solve | — | planned | new item |
+| `circle-mbh` | Monotonic basin hopping | Change the layout at random, then do a local nonlinear solve. Keep the result only when it is better. | Addis 2008a, Addis 2008b | density | steps x local solve | — | implemented | k94 |
 | `circle-pbh` | Population basin hopping | Keep a population of `circle-mbh` runs, with a measure of how different two layouts are. | Grosso 2010 | density | population x steps x local solve | — | planned | new item |
 | `circle-fss` | Formulation space search | Change between the Cartesian form and the polar form of the same nonlinear program, to leave a local optimum of one form. | López 2011, López 2013 | density | steps x local solve | — | planned | new item |
 | `circle-its-strip` | Iterated tabu search for circles in a strip | Solve the strip as a series of fixed lengths. Solve each length with a tabu search, perturbations and a rule of acceptance. | Fu 2013 | density | lengths x steps | — | planned | new item |

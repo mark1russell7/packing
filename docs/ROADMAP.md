@@ -88,7 +88,7 @@ Status: done, done, waiting, next, done.
 | k79 | Goal-driven ruin and recreate (idea R5 of the survey) | strategies | done | k6, k7 |
 | k80 | Overlap minimization for rectangles (idea R6 of the survey) | strategies | done | k6, k7 |
 | k81 | Binary search on the height (idea R10 of the survey) | strategies | later | k6, k7 |
-| k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
+| k82 | Legalization for stability (idea R11 of the survey) | strategies | active | k12 |
 | k83 | Genetic programming of the score (idea R12 of the survey) | strategies | later | k6, k7 |
 | k84 | Priority code that a language model evolves (idea R13 of the survey) | strategies | later | k6, k7 |
 | k85 | Beam search (idea R14 of the survey) | strategies | active | k6, k7 |
@@ -147,6 +147,9 @@ Status: done, done, waiting, next, done.
 | k138 | The fallback of `force` and `relax` to their member is a typed field of the output. A host can then tell its user which strategy gave the layout. Today the fallback is only the trace measures `force.fallback` and `relax.fallback`. | core | later | |
 | k139 | `overflow` tells why each item has no place: too large for the container, or no free place. `pack()` with only `fixedWidth` also tells of a rectangle wider than that width. Today a too-large item is in `overflow`, with no reason. | core | later | |
 | k140 | One list of every strategy: `allStrategies` gives the kind and the supports of each strategy, so a consumer cannot miss a list of the registry | core | done | |
+| k141 | Each standalone layout function is a strategy: `sleator`, `beam`, `exact-strip`, `binary-height`, `near-rects`, `raster-nofit`, `masonry`, `treemap` and `side-anchors` are in `allStrategies`, the bench and the sites. A test fails on a new layout function that is not on the list | core | active | |
+| k142 | Points in `packSpace` for the standalone strategies of k141, and their chips in the demo of the site. This changes the pinned counts of the space | core | later | |
+| k143 | An export of the measured points of the coverage run, with the error of each fold, in `response-records/1` of `@mark1russell7/rigor-statistics`, for the response explorer. The tree stays in this package. It starts after 0.7.0, when that format is on npm | measure | later | k50 |
 
 ## The queue
 

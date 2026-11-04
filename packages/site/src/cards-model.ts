@@ -106,6 +106,32 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   },
   bbox: { stage: "placement" },
   "hole-degree": { stage: "placement" },
+  "circle-quasi-physical": { stage: "placement" },
+  sleator: {
+    stage: "placement",
+    rule: "Stack the boxes wider than half the strip. Above them, put levels of the other boxes, tallest first, on the half with the lower top.",
+    cost: "`O(n log n)`",
+  },
+  beam: {
+    stage: "placement",
+    rule: "Keep the `width` best partial layouts. Give each state one more box in its lowest valley, and rank the children by a greedy completion.",
+    cost: "at most `n` levels of `width` states, each with `width` greedy completions",
+  },
+  "exact-strip": {
+    stage: "size-search",
+    rule: "Search the corners of the staircase of the placed boxes, up to a node limit. An ended search proves the least height.",
+    cost: "at most 100,000 nodes of the search",
+  },
+  "binary-height": { stage: "size-search" },
+  "near-rects": { stage: "placement" },
+  "raster-nofit": { stage: "placement" },
+  masonry: { stage: "placement" },
+  treemap: { stage: "placement" },
+  "side-anchors": {
+    stage: "combine",
+    rule: "Put each anchored box at its side. The member packs the other boxes around them.",
+    cost: "one pack of the member, and a sort of the anchors",
+  },
   "ruin-recreate": { stage: "local-search" },
   "overlap-min": { stage: "local-search" },
   relax: { stage: "local-search" },
@@ -341,6 +367,7 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
 export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<string, OptionInfo>>>> = {
   skyline: { rule: { type: oneOf(SKYLINE_RULES), note: "The rule to choose a place on the skyline: bottom-left or minimum waste." } },
   "bottom-left": { rule: { type: oneOf(BOTTOM_LEFT_RULES), note: "The rule to slide a box: down and left until it stops, or left only until it can move down." } },
+  "circle-quasi-physical": { iterations: { type: "number", note: "The count of the moves after the first layout, from 0 to 65536." } },
   "ruin-recreate": {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout and each recreate. The default is `maxrects-bl`." },
     iterations: { type: "number", note: "The count of the ruins. Each ruin removes some boxes, and the member packs them again." },

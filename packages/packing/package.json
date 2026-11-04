@@ -29,6 +29,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./circle-quasi-physical": "./src/entry/circle-quasi-physical.ts",
     "./default": "./src/entry/default.ts",
     "./guillotine": "./src/entry/guillotine.ts",
     "./hole-degree": "./src/entry/hole-degree.ts",
@@ -56,6 +57,10 @@
       ".": {
         "types": "./build/index.d.ts",
         "default": "./build/index.js"
+      },
+      "./circle-quasi-physical": {
+        "types": "./build/entry/circle-quasi-physical.d.ts",
+        "default": "./build/entry/circle-quasi-physical.js"
       },
       "./default": {
         "types": "./build/entry/default.d.ts",

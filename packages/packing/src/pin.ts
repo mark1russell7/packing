@@ -13,7 +13,7 @@ export interface PinnedInput {
 }
 
 /** A rectangle that a pinned box does not overlap. */
-interface Blocked {
+export interface Blocked {
   readonly x: number;
   readonly y: number;
   readonly w: number;
@@ -21,7 +21,7 @@ interface Blocked {
 }
 
 /** This function gives the rectangles of the obstacles and of the locked items of an input. */
-function blockedOf(input: PackInput): readonly Blocked[] {
+export function blockedOf(input: PackInput): readonly Blocked[] {
   const blocked: Blocked[] = (input.obstacles ?? []).map((o) => boundsOf(o.region));
   for (const item of input.items) {
     if (item.locked === true && item.x !== undefined && item.y !== undefined) blocked.push({ x: item.x, y: item.y, w: item.w, h: item.h });
@@ -37,8 +37,26 @@ function insideOf(input: PackInput, item: Item, place: Placement): boolean {
 }
 
 /** This function tells if a box at a place overlaps one of the blocked rectangles. */
-function overlapsAny(blocked: readonly Blocked[], item: Item, place: Placement): boolean {
+export function overlapsAny(blocked: readonly Blocked[], item: Item, place: Placement): boolean {
   return blocked.some((b) => place.x < b.x + b.w && b.x < place.x + item.w && place.y < b.y + b.h && b.y < place.y + item.h);
+}
+
+/**
+ * This function gives a test for a pin. The test gives the old place of an item that can stay there, or `undefined` for
+ * a box that stays free.
+ */
+function stayingPlace(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): (item: Item) => Placement | undefined {
+  const before = new Map(baseInput.items.map((item) => [item.id, item] as const));
+  const places = new Map<string, Placement>();
+  for (const p of baseOutput.placements) if (!places.has(p.id)) places.set(p.id, p);
+  const blocked = blockedOf(changeInput);
+  return (item) => {
+    const old = before.get(item.id);
+    const place = places.get(item.id);
+    if (item.parent !== undefined || old === undefined || place === undefined) return undefined;
+    if (old.w !== item.w || old.h !== item.h || (place.turn ?? 0) !== 0) return undefined;
+    return !insideOf(changeInput, item, place) || overlapsAny(blocked, item, place) ? undefined : place;
+  };
 }
 
 /**
@@ -54,19 +72,38 @@ function overlapsAny(blocked: readonly Blocked[], item: Item, place: Placement):
  * The hole of a removed box stays free for the strategy. The strategy decides if it fills that hole.
  */
 export function pinUnchanged(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput {
-  const before = new Map(baseInput.items.map((item) => [item.id, item] as const));
-  const places = new Map<string, Placement>();
-  for (const p of baseOutput.placements) if (!places.has(p.id)) places.set(p.id, p);
-  const blocked = blockedOf(changeInput);
+  const placeOf = stayingPlace(baseInput, baseOutput, changeInput);
   const pinned: string[] = [];
   const items = changeInput.items.map((item): Item => {
-    const old = before.get(item.id);
-    const place = places.get(item.id);
-    if (item.locked === true || item.parent !== undefined || old === undefined || place === undefined) return item;
-    if (old.w !== item.w || old.h !== item.h || (place.turn ?? 0) !== 0) return item;
-    if (!insideOf(changeInput, item, place) || overlapsAny(blocked, item, place)) return item;
+    const place = item.locked === true ? undefined : placeOf(item);
+    if (place === undefined) return item;
     pinned.push(item.id);
     return { ...item, x: place.x, y: place.y, locked: true };
   });
+  return { input: { ...changeInput, items }, pinned };
+}
+
+/**
+ * This function gives a copy of a changed input with each box before the first change locked at its place in the base
+ * output. A strategy then packs the suffix, from the first change to the end (roadmap item k30).
+ *
+ * - The first change is the first index where the two inputs have different ids, or where `pinUnchanged` leaves the box free.
+ * - Thus no box before that index moves, and each box after it is free, also an unchanged box.
+ * - A locked item before that index does not change.
+ *
+ * This function is the baseline of `pack.stability.moved` for a change in an ordered list.
+ */
+export function keepPrefix(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput {
+  const placeOf = stayingPlace(baseInput, baseOutput, changeInput);
+  const pinned: string[] = [];
+  const items = changeInput.items.slice();
+  for (const [at, item] of changeInput.items.entries()) {
+    if (baseInput.items[at]?.id !== item.id) break;
+    if (item.locked === true) continue;
+    const place = placeOf(item);
+    if (place === undefined) break;
+    pinned.push(item.id);
+    items[at] = { ...item, x: place.x, y: place.y, locked: true };
+  }
   return { input: { ...changeInput, items }, pinned };
 }

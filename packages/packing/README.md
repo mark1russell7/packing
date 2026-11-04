@@ -209,7 +209,7 @@ const input: PackInput = { container: { w: 300, fixed: "width" }, items: [{ id: 
 const output = maxrects.pack(input, { ...maxrects.defaults, rule: "bl" }, createContext(0));
 ```
 
-- The subpaths are `rows`, `skyline`, `shelf`, `push`, `maxrects`, `guillotine` and `hole-degree`.
+- The subpaths are `rows`, `skyline`, `shelf`, `push`, `maxrects`, `guillotine`, `hole-degree` and `circle-quasi-physical`.
 - Each subpath exports the strategy, its options type, its packer function, `Rect` and `createContext`.
 - The subpath `default` exports `packDefault` and `DEFAULT_STRATEGY`. It gets only `select`, `rows` and `maxrects`.
 - The root import has the same names as before. Its npm build keeps all strategies in one bundle.
