@@ -2,7 +2,7 @@
 // A new strategy, entry or option that a page does not offer fails this test.
 
 import { readFileSync } from "node:fs";
-import { composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
+import { allStrategies, composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, strategies, strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, STANDALONE_IDS } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
 import { optionsOf } from "./cards-model.ts";
@@ -29,6 +29,14 @@ describe("the compare page", () => {
     expect(config).toContain(`compare: page("./compare/index.html")`);
     expect(navLinks("/", "compare").find((l) => l.current)?.href).toBe("/compare/");
     expect(readFileSync(new URL("../compare/index.html", import.meta.url), "utf8")).toContain("/src/compare.ts");
+  });
+});
+
+describe("the text of the home page", () => {
+  it("states no count of strategies that differs from the package", () => {
+    const pages = ["../index.html", "../content/about.md"].map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
+    const counts = pages.flatMap((text) => [...text.matchAll(/(\d+) strategies/g)].map((m) => Number(m[1])));
+    for (const count of counts) expect(count).toBe(allStrategies.length);
   });
 });
 
