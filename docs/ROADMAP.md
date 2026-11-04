@@ -11,7 +11,7 @@ Status: done, done, waiting, next, done.
 | k2 | `render-pack` re-exports `@mark1russell7/packing` | move | done | k1 |
 | k3 | The downstream app moves its imports to the new name | move | done | k1 |
 | k4 | `npm deprecate` of `render-pack` | move | done | k2, k3 |
-| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways` | audit | next | |
+| k5 | Check the grid helpers of `splay`, the grid strategy of `ireko` and the guillotine cut of `highways`: none calls this library, see [`NEIGHBOURS.md`](research/NEIGHBOURS.md) | audit | done | |
 | k6 | The catalog: each published packing method and each new idea, with a source and a status | theory | done |  |
 | k7 | One Packer interface for every strategy | core | done | k0, k18, k35 |
 | k8 | An algebra of measures | theory | done | k6, k7 |
