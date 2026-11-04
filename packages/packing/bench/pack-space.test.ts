@@ -8,6 +8,9 @@ import { result, SPACE_INPUTS, type PackResult } from "./space-inputs.ts";
 
 const named = packSpace.named!;
 
+/** This function gives the count of the inputs of SPACE_INPUTS with a good output for a strategy. The strategy best-fit does not accept obstacles, so only 1 input is good. */
+const floorOf = (id: string): number => (id === "overlap-min" ? 2 : id === "best-fit" ? 1 : 3);
+
 // The configs of overlap-min (k80) make 8192 moves on each strip. This test gives them 256 moves on both sides, so it stays fast.
 const FAST_MOVES = 256;
 
@@ -38,7 +41,8 @@ function compare(name: string, reference: (i: number) => PackResult): number {
 
 describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
-    expect(ENTRIES).toHaveLength(45);
+    // Roadmap item k25 adds 5 entries. Before k25 the count was 45.
+    expect(ENTRIES).toHaveLength(50);
     // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
     // The named config `pack` of k135 is the choice of `pack` without a strategy. It is not an entry and not an id of the registry.
     // The named config `maxrects-wire` of k136 is the rule wire of `maxrects`. It is not an entry, because the screen has no links.
@@ -55,7 +59,7 @@ describe("packSpace and the entries of the benchmark", () => {
   it.each(ENTRIES.map((e) => [e.id, e] as const))("gives the output of the run of the entry %s", (id, e) => {
     // The runner gives the options of an entry over the defaults of its strategy
     const given = Object.keys(e.options).length === 0 ? undefined : { ...(strategy(e.strategy).defaults as object), ...e.options };
-    expect(compare(id, (i) => result(() => packWith(e.strategy, SPACE_INPUTS[i]!, fastOptions(e.strategy, given), i))), id).toBeGreaterThanOrEqual(e.strategy === "overlap-min" ? 2 : 3);
+    expect(compare(id, (i) => result(() => packWith(e.strategy, SPACE_INPUTS[i]!, fastOptions(e.strategy, given), i))), id).toBeGreaterThanOrEqual(floorOf(e.strategy));
   });
 
   it("gives with the named config pack the output of select with the table PACK_DEFAULT_TABLE (k135)", () => {
@@ -73,7 +77,7 @@ describe("packSpace and the entries of the benchmark", () => {
   it.each([...strategies, ...composites].map((s) => s.id))("gives the output of packWith for the id %s of the registry", (id) => {
     // The strategy aspect-fit needs an inner strategy. Its named config wraps maxrects.
     const options = id === "aspect-fit" ? { strategy: "maxrects" } : undefined;
-    expect(compare(id, (i) => result(() => packWith(id, SPACE_INPUTS[i]!, fastOptions(id, options), i))), id).toBeGreaterThanOrEqual(id === "overlap-min" ? 2 : 3);
+    expect(compare(id, (i) => result(() => packWith(id, SPACE_INPUTS[i]!, fastOptions(id, options), i))), id).toBeGreaterThanOrEqual(floorOf(id));
   });
 
   it("refuses aspect-fit with no inner strategy", () => {

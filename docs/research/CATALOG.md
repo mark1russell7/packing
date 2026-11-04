@@ -192,14 +192,14 @@ These methods put each box in a corner of the boxes before it. Bottom-left moves
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n^2)` | `3·OPT` with the decreasing width order (Baker 1980) | planned | k25 |
-| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | — | planned | k25 |
-| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | — | planned | k25 |
-| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | — | planned | k25 |
-| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n^2)` | — | planned | k25 |
-| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | planned | k25 |
-| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | planned | k25 |
-| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | planned | k25 |
+| `bl-baker` | Bottom-Left (BL) | Start each box at the top right. Move it down as far as it goes, then left as far as it goes. Do it again until it stops. Sort by width, decreasing. | Baker 1980 | density | `O(n L)`, `L` the legs of all slides, worst `O(n^3)` | `3·OPT` with the decreasing width order (Baker 1980) | implemented: `bottom-left` with the rule `baker` | k25 |
+| `bl-chazelle` | Bottom-left, fast form | Put each box in the lowest and then leftmost place where it fits, with a list of the free places. | Chazelle 1983 | density | `O(n^2)` | — | implemented: same output as `maxrects` with the rule `bl` | k25 |
+| `blf-hopper` | Bottom-Left Fill (BLF) | Put each box in the lowest, then leftmost place where it fits, holes included. | Hopper 2001 | density | `O(n^3)` | — | implemented: same output as `maxrects` with the rule `bl` | k25 |
+| `bl-jakobs` | Bottom-left of Jakobs | Start each box at the top right. Move it down to the lowest place, then left to the leftmost place. Do not move it again. | Jakobs 1996 | speed | `O(n^2)` | — | not built: see the notes | k25 |
+| `bl-liu-teng` | Improved bottom-left | Move each box down as far as it goes. Move it left only when it cannot move down. | Liu 1999 | density | `O(n L)`, `L` the legs of all slides, worst `O(n^3)` | — | implemented: `bottom-left` with the rule `liu-teng` | k25 |
+| `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | implemented: `best-fit`, without the turn and the tower step | k25 |
+| `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | not built: the output of `best-fit`, only faster | k25 |
+| `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | not built: no source | k25 |
 | `touching-perimeter` | Touching Perimeter (TP) | Put each box in the corner place where the part of its edge that touches walls and boxes is the largest. | Lodi 1999 | density | `O(n^3)` | — | planned | k25 |
 | `corner-degree` | Corner-occupying action with a degree | Put each box only in a corner of two edges. Choose the corner with the highest degree, a measure of how close the box is to the other boxes. | Wu 2002 | density | `O(n^4)` | — | planned | k25 |
 | `caving-degree` | Caving degree | Do `corner-degree` with the caving degree: the box that fits closest into a corner wins. | Huang 2007 | density | `O(n^4)` | — | planned | k25 |
@@ -214,6 +214,13 @@ These methods put each box in a corner of the boxes before it. Bottom-left moves
 Notes:
 
 - `bl-baker` with a decreasing width order uses at most three times the best height. Baker 1980 proves this bound.
+- Roadmap item k25 builds `bl-baker` and `bl-liu-teng` as the strategy `bottom-left`, and `best-fit-bkw` as the strategy `best-fit`. They ship off.
+- A slide does not jump, so a closed hole stays empty. That is the difference between `bl-baker` and the rule of `blf-hopper`.
+- The cost of `bl-baker` and `bl-liu-teng` is the cost of this code, with a linear scan of the walls for each leg. A test of `src/bottom-left.test.ts` shows growth over `O(n^2)` on a stair of pegs.
+- `bl-chazelle` and `blf-hopper` give the rule "lowest, then leftmost, holes included". The lowest and leftmost place is a corner of a maximal free rectangle, so `maxrects` with the rule `bl` gives the same places. A brute-force test of `src/bottom-left.test.ts` shows it on seeded inputs.
+- Thus `bl-chazelle` differs from `blf-hopper` only in its data structure. The package has no strategy for each, and it does not claim the `O(n^2)` of `bl-chazelle`.
+- Aşık 2009 tells `bl-jakobs` as a slide that repeats until the box stops, and that is `bl-baker`. We did not find the one-pass rule of this table in a source, so the package has no strategy for it.
+- `best-fit` puts the widest box that fits. The default order `height-desc` breaks a tie by height. It does not turn a box, and it has no tower step. The corpora have no turnable items.
 - The gap rules (`best-fit-bkw`, `lowest-gap-fill`) do not use a fixed order of the boxes. Thus they make many inversions of the rank.
 
 ## Searches over orders and encodings
@@ -370,12 +377,12 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | — | planned | k27 |
-| `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | — | planned | k27 |
-| `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips. | Bederson 2002 | order, aspect | `O(n^2)` | — | planned | k27 |
+| `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | — | implemented | k27 |
+| `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | — | implemented | k27 |
+| `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips, with the mean aspect of the strip in place of the worst aspect. | Bederson 2002 | order, aspect | `O(n sqrt n)` on average, `O(n^2)` at most | — | implemented | k27 |
 | `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | — | planned | k27 |
 | `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | — | planned | k27 |
-| `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | implemented | k27 |
 | `treemap-split` | Split | Split the ordered list into two parts of near equal weight. Cut the rectangle along its longer side. Recurse. | Engdahl 2005 (unverified) | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | — | planned | k27 |
 | `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
@@ -400,6 +407,8 @@ Notes:
 - Shneiderman 2001 measures the stability as the mean change of distance of the corners of the cells. Bederson 2002 adds a measure of how easy the order is to read. Tu 2007 adds a measure of continuity.
 - Vernier 2020 compares many time-dependent treemaps on the same data. It measures the change with corner travel and relative position change, and it removes the change that the data needs. These measures go into [Measures to add](#measures-to-add).
 - The cells of the Voronoi and bounded-aspect treemaps are polygons. A box in such a cell needs the largest rectangle in the polygon.
+- `treemapSliceDice`, `treemapSquarified`, `treemapStrip` and `treemapPivotSplit` are standalone functions. They are not strategies of the registry. `treemapPack` is the comparison with a packer of the section [The measures and the families](#the-measures-and-the-families).
+- Tables I to III of Bederson 2002 measure the three pivots of this section. The package has the pivot by split size. The comparison with those tables is in [`docs/BENCH.md`](../BENCH.md#treemaps-against-the-literature).
 
 ## Masonry, columns and justified rows
 

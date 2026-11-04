@@ -54,6 +54,11 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 | `skyline-mw-waste` | `skyline` | `rule: "mw"`, `wasteMap: true` | `skyline` |
 | `guillotine-baf-sas` | `guillotine` | `choice: "baf"`, `split: "sas"` | none |
 | `guillotine-bssf-sas-merge` | `guillotine` | `choice: "bssf"`, `split: "sas"`, `merge: true` | none |
+| `bottom-left` | the same | the defaults | none |
+| `bottom-left-liu-teng` | `bottom-left` | `rule: "liu-teng"` | `bottom-left` |
+| `best-fit` | the same | the defaults | none |
+| `best-fit-tall` | `best-fit` | `side: "tall"` | `best-fit` |
+| `best-fit-short` | `best-fit` | `side: "short"` | `best-fit` |
 | `portfolio-k2` | `portfolio` | `k: 2` | `maxrects-bl` |
 | `portfolio-k3` | `portfolio` | `k: 3` | `maxrects-bl` |
 | `aspect-fit-maxrects-bl` | `aspect-fit` | `strategy: "maxrects"`, `options: { rule: "bl" }` | `maxrects-bl` |
@@ -84,6 +89,7 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 5 entries of roadmap item k24 are the MaxRects family, one for each `rule`. `docs/PACKER.md` tells the rules.
 - The 3 entries of roadmap item k22 are the skyline family: the rule `mw` and the waste map. `docs/PACKER.md` ("The skyline family") tells them.
 - The 2 entries of roadmap item k23 are the guillotine family. `docs/PACKER.md` ("The guillotine family") tells the rules. No corpus has turnable items, thus no entry turns.
+- The 5 entries of roadmap item k25 are the slide and the best-fit families. `docs/research/CATALOG.md` tells the sources. These strategies do not turn an item.
 - The strategy `guillotine` has no entry of its own, because its defaults are the entry `guillotine-baf-sas`. The two entries have no base.
 - The strategy `maxrects` has no entry of its own, because its defaults are the entry `maxrects-bssf`.
 - The base of a rule is `maxrects-bl`, because the move of each other rule is a place that `bl` does not choose.
@@ -1105,6 +1111,99 @@ The workflow `claims-time.yml` measures the speed claims of k124 (`relax`), k125
 - The ratio of a claim is the median over the inputs of the time of the arm over the time of its member. The value of a claim is the median of the 5 jobs.
 - A job counts only when its A/A band p10 to p90 contains 1.
 
+## The scaling of each strategy
+
+The scaling report (`packages/packing/bench/scaling.ts`, roadmap item k13) fits the growth of the time with the box count. It reads the records of a finished CI run. It has no timing loop, so it is safe on a local computer.
+
+```sh
+node bench/scaling.ts --records <records.jsonl> --run <id> --out <dir>
+node bench/scaling.ts --paired <paired-time.json> --run <id> --out <dir>
+```
+
+The first form reads the artifact `bench-pack-worst-v1` of `bench.yml`. The second form reads a report of `paired-time.yml` in mode `fresh`, and also fits the memory. The script writes `scaling.json` and `scaling.md`.
+
+### The inputs and the fit
+
+The inputs are the rungs of `ladder.count` in `pack-worst-v1`. Only the count moves there: 10 to 2560 boxes in 9 rungs, with 5 seeds on each rung. Other corpora move other axes at the same time.
+
+- The strip has the width 1024, and the sides go from 64 to 256. Thus each result is about this strip. It is not a bound for other containers.
+- The exponent is the least-squares slope of log time on log n, from `leastSquares` of `rigor-statistics`.
+- The interval is a 95 % bootstrap of whole rungs (`bootstrapClusters`). The rows of one rung share a place in the process, so a bootstrap of single rows is too narrow.
+- A growth is a name from `1`, `log n`, `n`, `n log n`, `n^1.5`, `n^2`, `n^2 log n` and `n^3`. The exponent of a growth is its own slope over the same counts. Thus a narrow range cannot separate two growths. On the ladder, `n log n` has the exponent 1.22.
+
+### Read a result
+
+| Reading | Meaning |
+|---|---|
+| one growth | The interval holds only this growth. |
+| `cannot tell` | The interval holds two or more growths. The data do not separate them. |
+| `between the growths` | The interval holds no growth of the list. It is not a claim. |
+| `curved` | The slope changes over the range, and the names come from the upper half of the rungs. |
+| `too few rungs` | The fit has fewer than 5 rungs, so it gives no exponent. |
+
+A fit is `curved` when two conditions are true. The interval of the coefficient of the square of log n does not hold 0. The two halves also differ by more than 0.25, because a smaller difference changes no growth. A curve that goes up gives a local growth, and the true growth at larger n is that growth or more.
+
+The interval is a little narrow. On 300 made-up sets at each of 4 noise levels, it holds the true exponent in 91 % to 93 % of the sets. A power law gets the reading `curved` in at most 1 % of the sets.
+
+### The first result
+
+The records of run 40789873220 (`bench-pack-worst-v1`, commit `dce931a`, EPYC 7763) give this table. The times are in milliseconds.
+
+| Entry | Exponent | 95 % interval | Lower half | Upper half | Time at 2560 | Reading |
+|---|---|---|---|---|---|---|
+| `aspect-fit-maxrects-bl` | 0.66 | 0.07 to 1.23 | -0.28 | 1.25 to 1.84 | 48.23 | curved, upper half: `n^1.5` |
+| `aspect-fit-maxrects-bssf` | 0.75 | 0.22 to 1.51 | -0.27 | 1.34 to 1.83 | 29.99 | curved, upper half: `n^1.5` |
+| `aspect-fit-portfolio-k2` | 0.99 | 0.41 to 1.53 | -0.01 | 1.71 to 2.15 | 719.52 | curved, upper half: `n^2` |
+| `bbox-maxrects-bl` | 0.91 | 0.82 to 0.99 | 0.91 | 0.84 to 1.08 | 2.65 | between the growths |
+| `bbox-skyline` | 0.90 | 0.80 to 0.98 | 0.85 | 0.81 to 0.96 | 21.49 | between the growths |
+| `maxrects-baf` | 0.98 | 0.93 to 1.07 | 0.89 | 0.77 to 1.07 | 2.99 | `n` |
+| `maxrects-bl` | 0.92 | 0.80 to 1.01 | 1.15 | 0.33 to 1.01 | 2.56 | `n` |
+| `maxrects-blsf` | 1.06 | 1.00 to 1.13 | 0.97 | 1.01 to 1.12 | 4.55 | between the growths |
+| `maxrects-bssf` | 1.01 | 0.94 to 1.09 | 0.85 | 0.98 to 1.22 | 3.23 | `n` |
+| `maxrects-cp` | 1.84 | 1.72 to 1.98 | 1.68 | 1.95 to 2.12 | 439.27 | curved, upper half: `n^2` |
+| `portfolio-area-rows-bl` | 1.41 | 1.22 to 1.60 | 1.13 | 1.50 to 1.89 | 126.50 | curved, upper half: `n^1.5` |
+| `portfolio-k2` | 1.42 | 1.11 to 1.72 | 0.89 | 1.78 to 2.16 | 658.67 | curved, upper half: `n^2` |
+| `portfolio-k3` | 1.36 | 1.04 to 1.67 | 0.87 | 1.55 to 2.16 | 666.32 | curved, upper half: `n^2`, `n^2 log n` |
+| `restarts-maxrects-bl-k16` | 1.38 | 1.20 to 1.55 | 1.11 | 1.47 to 1.83 | 1324.39 | curved, upper half: `n^1.5` |
+| `restarts-maxrects-bl-shuffle-k16` | 1.38 | 1.18 to 1.57 | 1.07 | 1.52 to 1.82 | 1276.55 | curved, upper half: between the growths |
+| `restarts-rows-k16` | 1.38 | 1.19 to 1.58 | 1.05 | 1.54 to 1.84 | 1102.94 | curved, upper half: between the growths |
+| `rows` | 0.94 | 0.75 to 1.13 | 0.56 | 1.05 to 1.52 | 4.17 | curved, upper half: `n log n`, `n^1.5` |
+| `select-rows-bl` | 1.07 | 0.84 to 1.29 | 0.72 | 1.18 to 1.56 | 4.12 | curved, upper half: `n^1.5` |
+| `shelf` | 0.94 | 0.80 to 1.07 | 0.73 | 1.02 to 1.25 | 1.06 | curved, upper half: `n log n` |
+| `shelf-best` | 1.77 | 1.59 to 1.93 | 1.50 | 1.87 to 2.07 | 158.16 | curved, upper half: `n^2` |
+| `shelf-first` | 1.68 | 1.46 to 1.92 | 1.28 | 1.88 to 1.98 | 86.61 | curved, upper half: between the growths |
+| `shelf-first-input` | 1.62 | 1.40 to 1.85 | 1.25 | 1.77 to 1.94 | 44.90 | curved, upper half: between the growths |
+| `shelf-next` | 0.98 | 0.92 to 1.10 | 0.91 | 0.63 to 1.34 | 1.43 | `n` |
+| `skyline` | 0.83 | 0.74 to 0.94 | 0.69 | 0.78 to 1.07 | 12.25 | between the growths |
+| `skyline-bl-waste` | 0.96 | 0.87 to 1.00 | 1.06 | 0.81 to 1.08 | 49.32 | between the growths |
+| `skyline-mw` | 0.99 | 0.91 to 1.04 | 1.05 | 0.93 to 1.14 | 54.55 | `n` |
+| `skyline-mw-waste` | 0.96 | 0.87 to 1.00 | 1.02 | 0.99 to 1.06 | 28.44 | between the growths |
+
+Read the table with these limits:
+
+- The run has 1 timed pass, in order, so it has no check of the noise of a rung. A later dispatch with 5 repeats replaces this table.
+- The run is older than the current code. It has 27 entries, and `push` is skipped. It has none of the later entries.
+- Each entry has its own job, so compare the exponents and not the times (k127). Each of the 243 cells of an entry and a rung has 5 rows. The records have 0 overflow and 0 hard breaks.
+- The exponent of the top 5 rungs differs from the exponent of all rungs by more than 0.3 for 9 of the 27 entries. The cost of the order in the process is thus not small on some entries. `aspect-fit-maxrects-bl` takes 0.92 ms on rung 0 and 0.39 ms on rung 3. A paired run of mode `fresh` measures this cost.
+
+The main results:
+
+- The entries `maxrects-bl`, `maxrects-baf`, `maxrects-bssf`, `maxrects-blsf`, `skyline-mw` and `shelf-next` have an exponent near 1 on this strip.
+- A likely cause for `maxrects` is the fixed width, which keeps the list of free rectangles short. This is not measured yet.
+- `maxrects-cp`, `shelf-best`, `shelf-first` and `shelf-first-input` have an upper half near 2.
+- The wrappers cost much more than their members at large n. `restarts-maxrects-bl-k16` takes 1324 ms at n = 2560, and 16 times its member is 41 ms. The cause of this gap is not measured yet.
+- `rows` has the upper half 1.05 to 1.52, so the data do not separate `n log n` from `n^1.5`.
+
+### The memory
+
+The records of `bench.yml` have no memory field. A report of mode `fresh` has `peakRss`, the highest memory peak of a child.
+
+- A peak holds the memory of Node.js. In run 41716853739 (`pack-select-v2`, arm `rows`), the median peak is 110.4 MB at n = 10 and 118.5 MB at n = 1000.
+- Thus the fit takes the excess over the median peak of the smallest rung. A rung stays only when its median excess is above the spread of the smallest rung.
+- No paired run has the ladder yet, so this document has no memory table. Give `paired-time.yml` the inputs `corpus=pack-worst-v1` and `only=ladder.count.` to make one.
+
+A peak of a process is a coarse measure of a small heap. A better measure is the heap of one pass in each record. That needs a change to `bench/run.ts`, which is the next part of k13.
+
 ## The gap to a proved optimum
 
 The workflow `Exact` (`.github/workflows/exact.yml`) compares each named entry with the proved optimum of `exactStrip` (roadmap item k10, `docs/PACKER.md`, "The exact strip"). It uses small made-up strips from 9 families. The script is `packages/packing/bench/exact.ts`, and it is not a command of `bench/main.ts`.
@@ -1204,6 +1303,16 @@ A `run.json` from before k59 has no screen guards. Sections 6 to 9 then show one
 The guard measures are the measures with a floor in `MEASURE_SPECS`: `pack.aspectError`, `pack.order.inversions`, `pack.overflow` and the 3 stability measures. Lower is better for each guard. The floor is 0.
 
 The column `ms sum` is the sum of the medians. The time of a job is longer, because each pair also has the runs for determinism and the warm-up runs.
+
+## Treemaps against the literature
+
+The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts` with the three log-normal tables of Bederson 2002. The workflow `treemap-literature.yml` starts it. Only `workflow_dispatch` starts this workflow, because the output is a report and not a gate.
+
+- The data is made up, in the form of section 2.3.2 of the paper. It has a log-normal start and a log-normal walk, in a square of side 100.
+- The measures are those of section 2.3.1: the unweighted mean aspect, the mean distance of `(x, y, w, h)` and the readability.
+- The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
+- The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
+- Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
 
 ## The snapshots of the site
 
@@ -1398,13 +1507,13 @@ Why the clock limits are outside the coverage:
 - A clock limit stops a search after a time. The output then depends on the speed and on the load of the computer.
 - Thus a result with a clock limit measures the computer, not the algorithm. No model of the config and the input can predict it.
 - The default sample draws from `clockFree` of `packSpace`: the param `limitTime` is always `false`.
-- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 25 strata stay the same.
+- The stratified, uniform, option and active draws thus give 0 pairs with a clock limit. The 27 strata stay the same.
 - `packSpace` keeps the clock limits. The option `--timing` of `sample-space.ts` draws them only on request.
 
 The option `--timing`:
 
 - `off` (the default) draws no clock limits.
-- `stratum` adds the timing stratum `clock:1` after the 25 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
+- `stratum` adds the timing stratum `clock:1` after the 27 strata. It draws the configs of `portfolio`, `cell-portfolio` and `restarts` with `limitTime` `true`.
 - `stratum` goes only with `--draw stratified`. The coverage does not read the pairs of `clock:1`, and `sampled.clockPairs` counts them.
 - `mixed` draws from the whole space, as before k121. Pair `i` of a sample with `mixed` is pair `i` of the samples of k112 to k118.
 
@@ -1424,13 +1533,13 @@ The test `bench/shuffle.test.ts` packs each bench entry and 24 sampled configs o
 A uniform draw gives almost only portfolios with 5 members. Thus its share tells little about the other families (k115).
 A stratum is a strategy family with one size. `strataOf` and `stratumOf` of `bench/sample-space.ts` make the strata from the config.
 
-- A base config has the family of its option of the stage `placement`, and the size 1. The 7 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push` and `hole-degree`.
+- A base config has the family of its option of the stage `placement`, and the size 1. The 9 base families are `rows`, `skyline`, `shelf`, `maxrects`, `guillotine`, `push`, `bottom-left`, `best-fit` and `hole-degree`.
 - A meta option of the stage `combine` is its own family. Its size is its count of members.
 - `portfolio` has 2 to 5 members. Each count is one stratum, from `portfolio:2` to `portfolio:5`.
 - `cell-portfolio` has a pool. Each value of its param `k` is one stratum: `cell-portfolio:cell`, `cell-portfolio:2` and `cell-portfolio:3`.
 - `select` has 2 members. `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` have 1 member.
 - Each one is one stratum. The family of their member does not count.
-- Thus `packSpace` has 25 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
+- Thus `packSpace` has 27 strata. The id of a stratum is `<family>:<size>`, for example `portfolio:3`.
 - A new option of `placement` or `combine` gives new strata.
 
 ```sh
@@ -1660,7 +1769,9 @@ The nightly control (k120, `coverage-nightly.yml`):
 - A person can also start the workflow, with other inputs.
 - It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
 - Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.
-- The 12 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
+- The 40 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
+- The first timeout was 12 minutes. In run [41735018676](https://github.com/mark1russell7/packing/actions/runs/41735018676), it stopped 4 of the 5 control arms, at 382, 219, 195 and 196 of 400 pairs. Only 1 of 5 cells stayed, so the run has no verdict.
+- The new timeout comes from that run. The slowest arm gives 12 x 400 / 195 = 24.6 minutes, and the arm that finished took approximately 10 minutes. The limit is 24.6 + 14.6 = 39.2, so 40. This is an estimate from arms that the timeout stopped, because the run has no finished slow arm. A later run replaces it.
 - `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
 - The jobs `sample` pack the held-out sample of 400 pairs in 4 shards, with no time limit. The job `held-out` joins them.
@@ -1798,3 +1909,14 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The table "The active rounds" shows, for each round, the share of the new pairs and the share of the sample after the round. The first row is the grid only.
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
+
+## The binary search on the height
+
+The workflow `Binary height` (`.github/workflows/binary-height.yml`, roadmap item k81) has the input families of the exact bench. It has no gate.
+
+- At 6, 8 and 10 items, it counts the cases where `packBinaryHeight` meets a height that `exactStrip` proves. A case at the node limit does not count.
+- At 20, 50 and 100 items, it gives each height as a ratio to the area bound, for each family and over all families.
+- Each line has the wins and the losses of the search against that method, with a two-sided sign test.
+- The line `first-layout` shows the height before the search.
+
+The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-height`.

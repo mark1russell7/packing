@@ -1494,6 +1494,37 @@ The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/4
 - The guillotine entries are level with maxrects. `maxrects-bl` keeps the smallest gap.
 - `merge` gives no gain at the median.
 
+## The slide and best-fit families
+
+Roadmap item k25 adds the strategies `bottom-left` and `best-fit`. They ship off: they are not in `pack`, in a default or in `SELECT_TABLE`.
+
+| Method | Source | The choice | Package |
+|---|---|---|---|
+| Bottom-left slide | Baker 1980 | Each box slides from the top right: down until it stops, then left until it stops, again and again. | `bottom-left`, rule `baker` |
+| Improved bottom-left | Liu 1999 | Each box moves left only until it can move down. | `bottom-left`, rule `liu-teng` |
+| Bottom-left, fast form | Chazelle 1983 | The lowest, then leftmost place, holes included, with lists of the holes. | the output of `maxrects-bl` |
+| Bottom-left fill | Hopper 2001 | The lowest, then leftmost place, holes included. | the output of `maxrects-bl` |
+| Best fit | Burke 2004 | The lowest gap chooses its box, and not the box its gap. | `best-fit`, side `left`, `tall` or `short` |
+
+- A slide does not jump, so a closed hole stays empty. `maxrects-bl` fills that hole.
+- The lowest and leftmost place is a corner of a maximal free rectangle. Thus `maxrects` with the rule `bl` gives the rule of Chazelle 1983 and Hopper 2001. A brute-force test shows it on seeded inputs.
+- `bottom-left` costs `O(n L)`, with `L` the legs of all slides. The worst case is `O(n^3)`, and a test on a stair of pegs shows growth over `O(n^2)`.
+- `best-fit` costs `O(n^2)`: at most `2n + 1` rounds, and each round examines at most `2n + 1` segments and boxes. A test pins the count.
+- `bottom-left` accepts fixed obstacles and locked items. `best-fit` does not, and it does not accept a rank. Each strategy throws `UnsupportedCell` for such an input.
+- Neither strategy turns a box. `best-fit` has no tower step. The corpora have no turnable items.
+
+`packSpace` gets 2 placement options. The space version stays 1, because each old named config keeps its `configId`.
+
+| `spaceSize` | Before k25 | Since k25 |
+|---|---:|---:|
+| `base`, 3 levels and 1 level | 3708 and 1092 | 3798 and 1122 |
+| `base` for `rect`, 3 levels and 1 level | 3705 and 1091 | 3795 and 1121 |
+| `meta`, 3 levels | 839122620777889305516 | 946077247154414479086 |
+| `meta`, 1 level | 277205931006818808 | 317504231368154898 |
+
+- `ENTRIES` of the benchmark: 45 before, 50 after. The strata of `strataOf`: 26 before, 28 after.
+- The uniform draws of the sampler change, because the space has more configs.
+
 ## The exact strip
 
 The function `exactStrip` gives the least height of a small strip (roadmap item k10). The bench uses this height as a baseline, so each heuristic has a gap to the optimum, not only to the other heuristics. The function is not a strategy. `pack()`, `packWith()` and the registry do not know it, and no default uses it.
@@ -1566,6 +1597,18 @@ These values are for the inputs of the last test of `src/masonry.test.ts`: 200 m
 | `columnsLinearPartition` | 0.576 | 0.375 | 0.066 | 0.328 |
 
 A random order has the footrule share `2/3`, so `masonryLpt` reads as a random order on this family. `masonryShortest` gives 0 when the top margins are equal, because the top of the shortest column does not go down. The tops thus follow the input order. The other reading of a wall, down each column, is the order that `columnsLinearPartition` keeps.
+## The binary search on the height
+
+The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip. It follows the idea of Zhang 2013: a binary search on the height, with a local search at each height. It is not a strategy, and no default uses it.
+
+- The range goes from the area bound to the height of the best of 3 first layouts.
+- Each step takes the middle of the range as a limit. A seeded swap search looks for an order that places each item under the limit.
+- A skyline decoder gives the layout of an order. Each box goes to the lowest place, against the left or the right end of a skyline piece.
+- A layout lowers the top of the range. A failed search raises the bottom of the range, and this gives no proof.
+
+The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
+
+This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
 
 ## The decisions
 
