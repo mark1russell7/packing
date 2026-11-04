@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.8.0
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
+
+- `packSpace` has points for the standalone strategies, so pinned values of `spaceSize` change. With 3 levels, `base` goes from 3801 to 3830. With 1 level, `base` goes from 1123 to 1138. The `meta` counts also grow.
+- A `select` strategy with a member that does not support the input cell now gives the input to the next member that supports it. Before this release, that member threw its error.
+
+The API report of 0.7.0 and of this version shows 0 removed names, 2 added names in the root and 2 new subpaths. The `bench-smoke` records of 0.7.0 and of this version have equal outputs.
+
+### Added
+
+- The subpath `./strategy-catalog` with `strategyCatalog` and `STRATEGY_CATALOG_ENGINE`, and the file `./strategy-catalog.json`. They declare each strategy and each option in the format of `@mark1russell7/layout-contract` (roadmap item k144).
+- `MASONRY_METHOD_IDS` and `TREEMAP_METHOD_IDS`, the method ids of the two standalone strategies (roadmap item k142).
+- The points of the standalone strategies in `packSpace` (roadmap item k142).
+
+### Changed
+
+- The breadth-first order of the hubs comes from `@mark1russell7/collections`, a new dependency.
+- The dependency `@mark1russell7/layout-contract` is now `^0.3.10`, and `@mark1russell7/rigor-statistics` is now `^0.1.9`.
+
+### Fixed
+
+- The strategies of `select` give an unsupported cell to the next member (roadmap item k142).
+
 ## 0.7.0
 
 This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
