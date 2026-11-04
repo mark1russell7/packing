@@ -19,6 +19,7 @@ import {
   type PackInput,
   type PackOutput,
   type SelectNode,
+  UnsupportedCell,
 } from "./index.ts";
 
 // The strategy select of k66, part 2. Made-up inputs only: each test pins one leaf of SELECT_TABLE.
@@ -45,6 +46,23 @@ const stageOf = (out: PackOutput) => out.trace?.find((s) => s.id === SELECT_STAG
 
 /** This function gives the placements of an output, which do not depend on the clock. */
 const placed = (out: PackOutput) => ({ placements: out.placements, overflow: out.overflow, size: out.size });
+
+describe("a member that does not take the cell", () => {
+  /** Three items that can turn, in a free height. The table gives this input to `rows`, and `rows` does not turn an item. */
+  const turning: PackInput = { container: { fixed: "width", w: 200 }, items: input(3, "uniform", FREE).items.map((item) => ({ ...item, turnable: true })) };
+
+  it("gives its place to the next member, so the supports of select stay true", () => {
+    expect(selectLeaf(selectFeatures(turning), SELECT_TABLE).pick).toBe(0);
+    expect(strategy("select").supports.rotation).toContain("quarter");
+    const out = packWith("select", turning);
+    expect(stageOf(out)?.measures).toMatchObject({ "move.select": 1, "select.member": 1, "select.pick.maxrects-bl": 1 });
+    expect(placed(out)).toEqual(placed(packWith("maxrects", turning, { rule: "bl" })));
+  });
+
+  it("throws the error of the member of the leaf when no member takes the cell", () => {
+    expect(() => packWith("select", turning, { members: ["rows", "rows"] })).toThrow(UnsupportedCell);
+  });
+});
 
 describe("selectFeatures", () => {
   it("gives the count, the container flags and the spread of spreadOf", () => {

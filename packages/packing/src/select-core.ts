@@ -8,7 +8,7 @@ import { round3 } from "./round.ts";
 import { rows } from "./rows-strategy.ts";
 import { checkSelectTable, selectLeaf, SELECT_TABLE, type SelectFeatures, type SelectNode } from "./select-table.ts";
 import { spreadOf } from "./spread.ts";
-import { createContext, type PackContext, type Strategy, type Supports } from "./strategy.ts";
+import { cellOf, createContext, supportsCell, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 
 /** The default members of `select`: `rows`, then `maxrects` with the rule `bl` */
 export const SELECT_MEMBERS: readonly PortfolioEntry[] = Object.freeze([
@@ -54,6 +54,15 @@ function unionSupports(): Supports {
  * packs with its defaults, the options of the member over them, and a new context with the seed.
  */
 export function createSelect(lookup: StrategyLookup): Strategy<SelectStrategyOptions> {
+  /** This function gives the index of the first member from the pick that takes the input. With no such member, it gives the pick, and that member throws its error. */
+  const memberFor = (members: readonly PortfolioEntry[], pick: number, input: PackInput): number => {
+    const cell = cellOf(input);
+    for (let step = 0; step < members.length; step++) {
+      const at = (pick + step) % members.length;
+      if (supportsCell(lookup(members[at]!.strategy).supports, cell)) return at;
+    }
+    return pick;
+  };
   return {
     id: "select",
     family: "select",
@@ -67,7 +76,8 @@ export function createSelect(lookup: StrategyLookup): Strategy<SelectStrategyOpt
       for (const m of members) lookup(m.strategy);
       if (options.table !== undefined || options.members !== undefined) checkSelectTable(table, members.length);
       const features = selectFeatures(input);
-      const { leaf, pick } = selectLeaf(features, table);
+      const { leaf, pick: leafPick } = selectLeaf(features, table);
+      const pick = memberFor(members, leafPick, input);
       const member = members[pick]!;
       const inner = lookup(member.strategy);
       const merged: unknown = { ...(inner.defaults as object), ...(member.options as object | undefined) };

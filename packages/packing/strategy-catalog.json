@@ -1,0 +1,2474 @@
+{
+  "schema": "strategy-catalog/1",
+  "engine": "packing",
+  "version": "0.7.0",
+  "strategies": [
+    {
+      "key": "anneal",
+      "id": "anneal",
+      "family": "order-search",
+      "kind": "composite",
+      "describe": "This strategy searches the orders of the items with simulated annealing.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline",
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "iterations": {
+          "type": "integer",
+          "describe": "The count of the steps of the search.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "default": 64
+        },
+        "budgetWork": {
+          "type": "integer",
+          "describe": "The limit of the work, in work units of packWork. A cut by this limit is the same on each computer.",
+          "min": 4000,
+          "max": 256000,
+          "scale": "log",
+          "marks": [
+            4000,
+            16000,
+            64000,
+            256000
+          ],
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a limit, each step starts."
+          }
+        },
+        "temperature": {
+          "type": "number",
+          "describe": "The start temperature, as a share in the units of the key levels.",
+          "min": 0.0001,
+          "max": 1,
+          "scale": "log",
+          "default": 0.01
+        },
+        "cooling": {
+          "type": "number",
+          "describe": "The temperature of the last step as a share of the start temperature.",
+          "min": 0.0001,
+          "max": 1,
+          "scale": "log",
+          "default": 0.01
+        }
+      }
+    },
+    {
+      "key": "aspect-fit",
+      "id": "aspect-fit",
+      "family": "aspect-fit",
+      "kind": "composite",
+      "describe": "This strategy searches the size that gives the inner strategy the target aspect.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline",
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "strategy": {
+          "type": "strategy",
+          "describe": "The inner strategy.",
+          "kinds": [
+            "single"
+          ],
+          "optionsKey": "options",
+          "optIn": false,
+          "noDefault": {
+            "reason": "required",
+            "describe": "The strategy refuses a call without this option."
+          }
+        },
+        "options": {
+          "type": "object",
+          "describe": "The options of the inner strategy.",
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without options, the inner strategy uses its defaults."
+          }
+        },
+        "targetAspect": {
+          "type": "number",
+          "describe": "The width over the height that the layout aims at.",
+          "min": 0.25,
+          "max": 4,
+          "scale": "log",
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a target, the strategy uses the aspect of the container, else 1."
+          }
+        }
+      }
+    },
+    {
+      "key": "bbox",
+      "id": "bbox",
+      "family": "bbox",
+      "kind": "composite",
+      "describe": "This strategy packs with the member, and it turns the items to make the box of each one smaller.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect",
+          "polygon",
+          "circle",
+          "free",
+          "mixed"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline",
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "turn": {
+          "type": "boolean",
+          "describe": "This option lets the strategy turn each turnable item that is not locked. Without it, the member decides the turns.",
+          "default": false
+        }
+      }
+    },
+    {
+      "key": "beam",
+      "id": "beam",
+      "family": "beam",
+      "kind": "single",
+      "describe": "This strategy packs a strip with a beam search over the next item.",
+      "supports": {
+        "containerSize": [
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "width": {
+          "type": "integer",
+          "describe": "The count of the states that each level keeps, and the count of the children of a state.",
+          "min": 1,
+          "max": 64,
+          "scale": "log",
+          "default": 16
+        }
+      }
+    },
+    {
+      "key": "best-fit",
+      "id": "best-fit",
+      "family": "best-fit",
+      "kind": "single",
+      "describe": "This strategy gives the lowest gap the item that fits it best.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items before the packing.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "default": "height-desc"
+        },
+        "samples": {
+          "type": "integer",
+          "describe": "The number of widths that the first pass of the size search tries.",
+          "min": 12,
+          "max": 192,
+          "scale": "log",
+          "default": 48
+        },
+        "side": {
+          "type": "enum",
+          "describe": "The side of a gap for a box.",
+          "values": [
+            "left",
+            "tall",
+            "short"
+          ],
+          "default": "left"
+        }
+      }
+    },
+    {
+      "key": "binary-height",
+      "id": "binary-height",
+      "family": "binary-height",
+      "kind": "single",
+      "describe": "This strategy does a binary search of the height with a seeded search of orders.",
+      "supports": {
+        "containerSize": [
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {
+        "items": {
+          "max": 256,
+          "describe": "The strategy refuses an input with more items, because its search time grows fast."
+        }
+      },
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "trials": {
+          "type": "integer",
+          "describe": "The count of the decoded orders at one height.",
+          "min": 1,
+          "max": 1024,
+          "scale": "log",
+          "default": 32
+        },
+        "seed": {
+          "type": "integer",
+          "describe": "The seed of the random stream.",
+          "min": 0,
+          "max": 4294967295,
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a seed, the strategy uses the seed of the call."
+          }
+        },
+        "precision": {
+          "type": "number",
+          "describe": "The search stops when the range of the height is at most this value.",
+          "min": 0.01,
+          "max": 8,
+          "scale": "log",
+          "default": 0.5
+        }
+      }
+    },
+    {
+      "key": "bottom-left",
+      "id": "bottom-left",
+      "family": "bottom-left",
+      "kind": "single",
+      "describe": "This strategy slides each item down and left until it stops.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items before the packing.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "default": "width-desc"
+        },
+        "samples": {
+          "type": "integer",
+          "describe": "The number of widths that the first pass of the size search tries.",
+          "min": 12,
+          "max": 192,
+          "scale": "log",
+          "default": 48
+        },
+        "rule": {
+          "type": "enum",
+          "describe": "The rule to slide a box.",
+          "values": [
+            "baker",
+            "liu-teng"
+          ],
+          "default": "baker"
+        }
+      }
+    },
+    {
+      "key": "circle-quasi-physical",
+      "id": "circle-quasi-physical",
+      "family": "circles",
+      "kind": "shape",
+      "describe": "This strategy packs circles with a local search that lets them push each other.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "circle"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "circle"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "iterations": {
+          "type": "integer",
+          "describe": "The count of the moves after the first layout. The value 0 keeps the first local minimum.",
+          "min": 0,
+          "max": 1024,
+          "default": 256
+        }
+      }
+    },
+    {
+      "key": "exact-strip",
+      "id": "exact-strip",
+      "family": "exact",
+      "kind": "single",
+      "describe": "This strategy searches a small strip until it proves the smallest height.",
+      "supports": {
+        "containerSize": [
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {
+        "items": {
+          "max": 16,
+          "describe": "The strategy refuses an input with more items."
+        },
+        "side": {
+          "max": 4096,
+          "describe": "The strategy refuses an item with a longer side."
+        }
+      },
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "nodeLimit": {
+          "type": "integer",
+          "describe": "The largest count of search nodes, over all heights.",
+          "min": 1000,
+          "max": 100000,
+          "scale": "log",
+          "marks": [
+            1000,
+            10000,
+            100000
+          ],
+          "default": 100000
+        }
+      }
+    },
+    {
+      "key": "force",
+      "id": "force",
+      "family": "force",
+      "kind": "composite",
+      "describe": "This strategy moves the boxes of the member layout with forces, then it removes the overlaps.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "iterations": {
+          "type": "integer",
+          "describe": "The count of the force steps. With 0, the output is the member output.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "default": 60
+        },
+        "rounds": {
+          "type": "integer",
+          "describe": "The most rounds of the overlap removal.",
+          "min": 0,
+          "max": 32,
+          "default": 10
+        }
+      }
+    },
+    {
+      "key": "genetic",
+      "id": "genetic",
+      "family": "order-search",
+      "kind": "composite",
+      "describe": "This strategy searches the orders of the items with a genetic algorithm.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline",
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "iterations": {
+          "type": "integer",
+          "describe": "The count of the steps of the search.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "default": 64
+        },
+        "budgetWork": {
+          "type": "integer",
+          "describe": "The limit of the work, in work units of packWork. A cut by this limit is the same on each computer.",
+          "min": 4000,
+          "max": 256000,
+          "scale": "log",
+          "marks": [
+            4000,
+            16000,
+            64000,
+            256000
+          ],
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a limit, each step starts."
+          }
+        },
+        "population": {
+          "type": "integer",
+          "describe": "The count of the orders in one generation.",
+          "min": 2,
+          "max": 64,
+          "scale": "log",
+          "default": 8
+        },
+        "mutation": {
+          "type": "number",
+          "describe": "The chance that a child gets one random change.",
+          "min": 0,
+          "max": 1,
+          "default": 0.5
+        }
+      }
+    },
+    {
+      "key": "guillotine",
+      "id": "guillotine",
+      "family": "guillotine",
+      "kind": "single",
+      "describe": "This strategy cuts the free area with straight cuts, one for each item.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items before the packing.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "default": "height-desc"
+        },
+        "samples": {
+          "type": "integer",
+          "describe": "The number of widths that the first pass of the size search tries.",
+          "min": 12,
+          "max": 192,
+          "scale": "log",
+          "default": 48
+        },
+        "choice": {
+          "type": "enum",
+          "describe": "The rule to choose a free rectangle.",
+          "values": [
+            "baf",
+            "bssf",
+            "blsf",
+            "waf",
+            "wssf",
+            "wlsf"
+          ],
+          "default": "baf"
+        },
+        "split": {
+          "type": "enum",
+          "describe": "The rule to split a free rectangle.",
+          "values": [
+            "sas",
+            "las",
+            "sa",
+            "la",
+            "minas",
+            "maxas"
+          ],
+          "default": "sas"
+        },
+        "rotate": {
+          "type": "boolean",
+          "describe": "This option lets each turnable item that is not locked turn by 90 degrees.",
+          "default": false
+        },
+        "merge": {
+          "type": "boolean",
+          "describe": "This option joins two free rectangles with a common full edge after each item.",
+          "default": false
+        }
+      }
+    },
+    {
+      "key": "hole-degree",
+      "id": "hole-degree",
+      "family": "circles",
+      "kind": "shape",
+      "describe": "This strategy packs circles, each one at the corner place that touches the most neighbors.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "circle"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "steps": {
+          "type": "integer",
+          "describe": "The count of the halving steps of the height search. The value 0 keeps the open strip.",
+          "min": 0,
+          "max": 32,
+          "default": 8
+        }
+      }
+    },
+    {
+      "key": "masonry",
+      "id": "masonry",
+      "family": "masonry",
+      "kind": "single",
+      "describe": "This strategy puts each box in a column, for a layout of equal columns.",
+      "supports": {
+        "containerSize": [
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "method": {
+          "type": "enum",
+          "describe": "The rule that gives each box its column.",
+          "values": [
+            "shortest",
+            "lpt",
+            "linear-partition"
+          ],
+          "default": "shortest"
+        },
+        "columns": {
+          "type": "integer",
+          "describe": "The count of the columns.",
+          "min": 1,
+          "max": 16,
+          "default": 4
+        },
+        "columnWidth": {
+          "type": "number",
+          "describe": "The width of each column.",
+          "min": 1,
+          "max": 4096,
+          "scale": "log",
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a width, the strategy uses the widest box with its margins."
+          }
+        }
+      }
+    },
+    {
+      "key": "maxrects",
+      "id": "maxrects",
+      "family": "maxrects",
+      "kind": "single",
+      "describe": "This strategy keeps each maximal free rectangle, and it puts each item in the best one.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items before the packing.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "default": "height-desc"
+        },
+        "samples": {
+          "type": "integer",
+          "describe": "The number of widths that the first pass of the size search tries.",
+          "min": 12,
+          "max": 192,
+          "scale": "log",
+          "default": 48
+        },
+        "rule": {
+          "type": "enum",
+          "describe": "The rule to choose a free rectangle.",
+          "values": [
+            "bssf",
+            "blsf",
+            "baf",
+            "bl",
+            "cp",
+            "wire"
+          ],
+          "default": "bssf"
+        },
+        "rotate": {
+          "type": "boolean",
+          "describe": "This option lets each turnable item that is not locked turn by 90 degrees.",
+          "default": false
+        },
+        "bandHeight": {
+          "type": "number",
+          "describe": "The largest height of a band of a container that is not a plain rectangle.",
+          "min": 1,
+          "max": 64,
+          "scale": "log",
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a height, the strategy calculates it from the container."
+          }
+        }
+      }
+    },
+    {
+      "key": "near-rects",
+      "id": "near-rects",
+      "family": "near-rects",
+      "kind": "single",
+      "describe": "This strategy joins shapes into near rectangles, then it packs the groups.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect",
+          "polygon",
+          "circle",
+          "mixed"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {
+        "items": {
+          "max": 256,
+          "describe": "The strategy refuses an input with more items, because its search time grows fast."
+        }
+      },
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "cell": {
+          "type": "number",
+          "describe": "The side of a grid cell. The function rounds it down.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a side, the strategy calculates it from the boxes."
+          }
+        },
+        "rounds": {
+          "type": "integer",
+          "describe": "The count of the join rounds. A group has at most 2 to the power of this count shapes.",
+          "min": 0,
+          "max": 4,
+          "default": 2
+        },
+        "seed": {
+          "type": "integer",
+          "describe": "The seed of the random stream.",
+          "min": 0,
+          "max": 4294967295,
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a seed, the strategy uses the seed of the call."
+          }
+        }
+      }
+    },
+    {
+      "key": "overlap-min",
+      "id": "overlap-min",
+      "family": "overlap-min",
+      "kind": "composite",
+      "describe": "This strategy shortens the strip, and it moves the items until no two overlap.",
+      "supports": {
+        "containerSize": [
+          "freeHeight",
+          "freeWidth"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "iterations": {
+          "type": "integer",
+          "describe": "The largest count of the item moves.",
+          "min": 64,
+          "max": 65536,
+          "scale": "log",
+          "default": 8192
+        },
+        "step": {
+          "type": "number",
+          "describe": "The share by which one cut makes the strip shorter.",
+          "min": 0.001,
+          "max": 0.5,
+          "scale": "log",
+          "default": 0.01
+        }
+      }
+    },
+    {
+      "key": "portfolio",
+      "id": "portfolio",
+      "family": "portfolio",
+      "kind": "composite",
+      "describe": "This strategy packs with each member, and it keeps the best layout.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "determinismNote": "The option budgetMs makes the result depend on the clock.",
+      "optIn": false,
+      "options": {
+        "k": {
+          "type": "integer",
+          "describe": "The size of the set of the cell. The strategy refuses this option with the option members.",
+          "min": 2,
+          "max": 3,
+          "values": [
+            2,
+            3
+          ],
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a size, the strategy uses the set of 3."
+          }
+        },
+        "maxMembers": {
+          "type": "integer",
+          "describe": "The largest count of the members that run.",
+          "min": 1,
+          "max": 5,
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a count, the cell gives the count."
+          }
+        },
+        "budgetMs": {
+          "type": "number",
+          "describe": "The time limit in milliseconds. A cut by this limit makes the result depend on the clock.",
+          "min": 1,
+          "max": 2000,
+          "scale": "log",
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a limit, the clock has no effect."
+          }
+        },
+        "budgetWork": {
+          "type": "integer",
+          "describe": "The limit of the work, in work units of packWork. A cut by this limit is the same on each computer.",
+          "min": 4000,
+          "max": 256000,
+          "scale": "log",
+          "marks": [
+            4000,
+            16000,
+            64000,
+            256000
+          ],
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a limit, each step starts."
+          }
+        },
+        "members": {
+          "type": "list",
+          "describe": "The members for each input, in place of the set of the cell.",
+          "min": 1,
+          "of": {
+            "type": "strategy",
+            "kinds": [
+              "single"
+            ],
+            "inlineOptions": true,
+            "optIn": false
+          },
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without members, the table of the sets gives the members of the cell of the input."
+          }
+        },
+        "key": {
+          "type": "list",
+          "describe": "The measure ids of the key after the hard breaks.",
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a key, the strategy uses the levels of PORTFOLIO_LEVELS."
+          }
+        }
+      }
+    },
+    {
+      "key": "push",
+      "id": "push",
+      "family": "incremental",
+      "kind": "single",
+      "describe": "This strategy puts each item at its own place, and it shoves the items that overlap.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items that the cascade does not place.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input"
+          ],
+          "default": "height-desc"
+        },
+        "maxShovesPerItem": {
+          "type": "integer",
+          "describe": "The most shoves for each item. The cascade stops at this limit.",
+          "min": 1,
+          "max": 64,
+          "scale": "log",
+          "default": 8
+        }
+      }
+    },
+    {
+      "key": "raster-nofit",
+      "id": "raster-nofit",
+      "family": "raster-nofit",
+      "kind": "single",
+      "describe": "This strategy puts shapes on a grid, and it searches the orders of the items.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect",
+          "polygon",
+          "circle",
+          "mixed"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {
+        "items": {
+          "max": 256,
+          "describe": "The strategy refuses an input with more items, because its search time grows fast."
+        }
+      },
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "cell": {
+          "type": "number",
+          "describe": "The side of a grid cell. The function rounds it down.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a side, the strategy calculates it from the boxes."
+          }
+        },
+        "trials": {
+          "type": "integer",
+          "describe": "The count of the orders that the search decodes.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "default": 64
+        },
+        "seed": {
+          "type": "integer",
+          "describe": "The seed of the random stream.",
+          "min": 0,
+          "max": 4294967295,
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a seed, the strategy uses the seed of the call."
+          }
+        }
+      }
+    },
+    {
+      "key": "relax",
+      "id": "relax",
+      "family": "relax",
+      "kind": "composite",
+      "describe": "This strategy moves the boxes of the member layout to equal gaps and to their linked boxes.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "strength": {
+          "type": "number",
+          "describe": "The share of the move from the member layout to the target. With 0, the output is the member output.",
+          "min": 0,
+          "max": 1,
+          "default": 1
+        },
+        "pull": {
+          "type": "number",
+          "describe": "The share of the move of a box to the balance point of its links.",
+          "min": 0,
+          "max": 1,
+          "default": 0
+        }
+      }
+    },
+    {
+      "key": "restarts",
+      "id": "restarts",
+      "family": "restarts",
+      "kind": "composite",
+      "describe": "This strategy packs with changed orders of the items, and it keeps the best layout.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline",
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "determinismNote": "The option budgetMs makes the result depend on the clock.",
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "iterations": {
+          "type": "integer",
+          "describe": "The count of the restarts, restart 0 included.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "default": 16
+        },
+        "perturb": {
+          "type": "enum",
+          "describe": "The change of the order of each restart after restart 0.",
+          "values": [
+            "swap",
+            "shuffle-blocks",
+            "shuffle"
+          ],
+          "default": "swap"
+        },
+        "strength": {
+          "type": "number",
+          "describe": "The share of the positions that move.",
+          "min": 0,
+          "max": 1,
+          "default": 0.1
+        },
+        "key": {
+          "type": "list",
+          "describe": "The measure ids of the key after the hard breaks.",
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without a key, the strategy uses the levels of PORTFOLIO_LEVELS."
+          }
+        },
+        "limitTime": {
+          "type": "boolean",
+          "describe": "This option sets the time limit budgetMs.",
+          "default": false
+        },
+        "budgetMs": {
+          "type": "number",
+          "describe": "The time limit in milliseconds. A cut by this limit makes the result depend on the clock.",
+          "min": 1,
+          "max": 2000,
+          "scale": "log",
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a limit, the clock has no effect."
+          },
+          "when": {
+            "param": "limitTime",
+            "in": [
+              true
+            ]
+          }
+        },
+        "budgetWork": {
+          "type": "integer",
+          "describe": "The limit of the work, in work units of packWork. A cut by this limit is the same on each computer.",
+          "min": 4000,
+          "max": 256000,
+          "scale": "log",
+          "marks": [
+            4000,
+            16000,
+            64000,
+            256000
+          ],
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a limit, each step starts."
+          }
+        }
+      }
+    },
+    {
+      "key": "rows",
+      "id": "rows",
+      "family": "shelf",
+      "kind": "single",
+      "describe": "This strategy packs the items in rows, and it searches the width of the rows.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items before the packing.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "default": "height-desc"
+        },
+        "samples": {
+          "type": "integer",
+          "describe": "The number of widths that the first pass of the size search tries.",
+          "min": 12,
+          "max": 192,
+          "scale": "log",
+          "default": 48
+        }
+      }
+    },
+    {
+      "key": "ruin-recreate",
+      "id": "ruin-recreate",
+      "family": "ruin-recreate",
+      "kind": "composite",
+      "describe": "This strategy removes some items and packs them again, step by step.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "iterations": {
+          "type": "integer",
+          "describe": "The count of the ruin and recreate steps after the member layout.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "default": 64
+        },
+        "ruin": {
+          "type": "enum",
+          "describe": "The rule that chooses the items to remove.",
+          "values": [
+            "mixed",
+            "region",
+            "random",
+            "adjacent"
+          ],
+          "default": "mixed"
+        },
+        "strength": {
+          "type": "number",
+          "describe": "The largest share of the placed items that one ruin removes.",
+          "min": 0,
+          "max": 1,
+          "default": 0.3
+        },
+        "shrink": {
+          "type": "number",
+          "describe": "The share by which a met goal shrinks the free side of the goal box.",
+          "min": 0.001,
+          "max": 0.5,
+          "scale": "log",
+          "default": 0.005
+        }
+      }
+    },
+    {
+      "key": "select",
+      "id": "select",
+      "family": "select",
+      "kind": "composite",
+      "describe": "This strategy reads the input, and a decision table picks one member.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "members": {
+          "type": "list",
+          "describe": "The members. A pick of the table is an index of this list.",
+          "min": 1,
+          "of": {
+            "type": "strategy",
+            "kinds": [
+              "single"
+            ],
+            "inlineOptions": true,
+            "optIn": false
+          },
+          "default": [
+            {
+              "id": "rows",
+              "strategy": "rows"
+            },
+            {
+              "id": "maxrects-bl",
+              "strategy": "maxrects",
+              "options": {
+                "rule": "bl"
+              }
+            }
+          ]
+        },
+        "table": {
+          "type": "object",
+          "describe": "The decision table.",
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a table, the strategy uses SELECT_TABLE."
+          }
+        }
+      }
+    },
+    {
+      "key": "shelf",
+      "id": "shelf",
+      "family": "shelf",
+      "kind": "single",
+      "describe": "This strategy packs the items on shelves of the height of their tallest item.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items before the packing.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "default": "height-desc"
+        },
+        "samples": {
+          "type": "integer",
+          "describe": "The number of widths that the first pass of the size search tries.",
+          "min": 12,
+          "max": 192,
+          "scale": "log",
+          "default": 48
+        },
+        "fit": {
+          "type": "enum",
+          "describe": "The rule to choose a shelf.",
+          "values": [
+            "next",
+            "first",
+            "best"
+          ],
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a rule, each item goes on the last shelf or on a new shelf."
+          }
+        }
+      }
+    },
+    {
+      "key": "side-anchors",
+      "id": "side-anchors",
+      "family": "side-anchors",
+      "kind": "composite",
+      "describe": "This strategy keeps the anchored items at their sides, and a member packs the other items.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "first": {
+          "type": "object",
+          "describe": "One anchor for the first item of the input.",
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without it, only the option anchors holds anchors."
+          }
+        },
+        "strategy": {
+          "type": "strategy",
+          "describe": "The member that packs the other items.",
+          "kinds": [
+            "single"
+          ],
+          "optionsKey": "strategyOptions",
+          "optIn": false,
+          "default": "maxrects"
+        },
+        "strategyOptions": {
+          "type": "object",
+          "describe": "The options of the member.",
+          "default": {
+            "rule": "bl"
+          }
+        },
+        "anchors": {
+          "type": "list",
+          "describe": "The anchors of named items.",
+          "of": {
+            "type": "object"
+          },
+          "default": []
+        },
+        "precision": {
+          "type": "number",
+          "describe": "The search stops when the range is at most this share of its top.",
+          "min": 0.0001,
+          "max": 0.1,
+          "scale": "log",
+          "default": 0.005
+        }
+      }
+    },
+    {
+      "key": "skyline",
+      "id": "skyline",
+      "family": "skyline",
+      "kind": "single",
+      "describe": "This strategy keeps the top line of the packed items, and it puts each item on that line.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the items before the packing.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "default": "height-desc"
+        },
+        "samples": {
+          "type": "integer",
+          "describe": "The number of widths that the first pass of the size search tries.",
+          "min": 12,
+          "max": 192,
+          "scale": "log",
+          "default": 48
+        },
+        "rule": {
+          "type": "enum",
+          "describe": "The rule to choose a place on the skyline.",
+          "values": [
+            "bl",
+            "mw"
+          ],
+          "default": "bl"
+        },
+        "wasteMap": {
+          "type": "boolean",
+          "describe": "This option keeps the free areas below the skyline, and each item tries them first.",
+          "default": false
+        },
+        "rotate": {
+          "type": "boolean",
+          "describe": "This option lets each turnable item that is not locked turn by 90 degrees.",
+          "default": false
+        }
+      }
+    },
+    {
+      "key": "sleator",
+      "id": "sleator",
+      "family": "sleator",
+      "kind": "single",
+      "describe": "This strategy packs a strip with the algorithm of Sleator, with a proved bound of 2.5 times the optimum.",
+      "supports": {
+        "containerSize": [
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "options": {}
+    },
+    {
+      "key": "tabu",
+      "id": "tabu",
+      "family": "order-search",
+      "kind": "composite",
+      "describe": "This strategy searches the orders of the items with a tabu list.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect",
+          "convex",
+          "polygon",
+          "circle",
+          "ellipse",
+          "holes"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline",
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "options": {
+        "member": {
+          "type": "strategy",
+          "describe": "The strategy that the composite packs with.",
+          "kinds": [
+            "single"
+          ],
+          "inlineOptions": true,
+          "optIn": false,
+          "default": {
+            "id": "maxrects-bl",
+            "strategy": "maxrects",
+            "options": {
+              "rule": "bl"
+            }
+          }
+        },
+        "iterations": {
+          "type": "integer",
+          "describe": "The count of the steps of the search.",
+          "min": 1,
+          "max": 256,
+          "scale": "log",
+          "default": 64
+        },
+        "budgetWork": {
+          "type": "integer",
+          "describe": "The limit of the work, in work units of packWork. A cut by this limit is the same on each computer.",
+          "min": 4000,
+          "max": 256000,
+          "scale": "log",
+          "marks": [
+            4000,
+            16000,
+            64000,
+            256000
+          ],
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without a limit, each step starts."
+          }
+        },
+        "tenure": {
+          "type": "integer",
+          "describe": "The count of the steps in which a swapped pair of items stays tabu.",
+          "min": 0,
+          "max": 64,
+          "default": 7
+        },
+        "neighbors": {
+          "type": "integer",
+          "describe": "The count of the random moves that one step tries.",
+          "min": 1,
+          "max": 64,
+          "scale": "log",
+          "default": 8
+        }
+      }
+    },
+    {
+      "key": "treemap",
+      "id": "treemap",
+      "family": "treemap",
+      "kind": "single",
+      "describe": "This strategy gives each box a cell with an area in proportion to its own area.",
+      "supports": {
+        "containerSize": [
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "options": {
+        "method": {
+          "type": "enum",
+          "describe": "The layout of the cells.",
+          "values": [
+            "squarified",
+            "slice-dice",
+            "strip",
+            "pivot-split"
+          ],
+          "default": "squarified"
+        }
+      }
+    }
+  ]
+}
