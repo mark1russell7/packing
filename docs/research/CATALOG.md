@@ -407,10 +407,10 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1969 | order, speed | `O(n log c)` for `c` columns | `(2 - 1/c)·OPT` for the highest column (Graham 1969, unverified) | planned | k28 |
-| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | planned | k28 |
+| `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1966 | order, speed | `O(n log c)` for `c` columns, with a heap | `(2 - 1/c)·OPT` for the highest column (Graham 1966) | implemented: `masonryShortest`, in `O(n c)` with a scan | k28 |
+| `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | implemented: `masonryLpt`, in `O(n log n + n c)` | k28 |
 | `masonry-differencing` | Balanced columns by differencing | Balance the column heights with the differencing method of Karmarkar and Karp. | Karmarkar 1982 (the report number is unverified) | density | `O(n log n)` | — | planned | k28 |
-| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
+| `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | implemented: `columnsLinearPartition`. Equal cuts go to the least sum of squares. | k28 |
 | `columns-css-balance` | CSS multi-column balance | Fill the columns in order and balance their heights, as `column-fill: balance` does. | W3C multi-column | order | `O(n log n)` | — | planned | k28 |
 | `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | planned | k28 |
 | `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | planned | k28 |
@@ -424,7 +424,8 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 Notes:
 
 - A box of this project does not scale. Thus `justified-*` gives the row breaks, and the boxes keep their size. Then the result has raggedness, and `pack.raggedness` measures it.
-- `masonry-shortest` is the list scheduling of Graham 1969 on parallel machines. `masonry-lpt` uses at most `4/3` of the best height of the highest column.
+- `masonry-shortest` is the list scheduling of Graham 1966 on parallel machines. `masonry-lpt` uses at most `4/3` of the best height of the highest column.
+- `columnReading` gives 0 for `masonry-shortest` with equal top margins, because the top of the shortest column does not go down. `pack.order.inversions` puts overlapped boxes on one line, so it gives a higher value for the same layout.
 
 ## Order and stability
 
@@ -673,7 +674,7 @@ The literature uses these measures, but `docs/FORMAT.md` does not have them. Eac
 | `pack.stability.baseline` | 0 to 1 | lower | The movement minus the smallest movement that the change of the input needs. | Vernier 2020 |
 | `pack.stability.orthogonalOrder` | 0 to 1 | lower | The part of the pairs where "left of" or "above" changed. | Misue 1995 |
 | `pack.neighbors` | 0 to 1 | higher | The part of the near neighbors of each box in the input that stay near neighbors. | Duarte 2014 |
-| `pack.balance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. | Graham 1969 |
+| `pack.balance` | 0 to 1 | lower | The spread of the bottom ends of the columns, divided by the height. The column form of `pack.raggedness`. The function `columnBalance` gives it. | Graham 1969 |
 | `pack.trapped` | 0 to 1 | lower | The part of the empty area that no box of the input can use: holes smaller than the smallest box. | Jylänki 2010 |
 | `pack.displacement` | units | lower | The mean movement of a box from a start layout, for overlap removal. | Gansner 2010 |
 
@@ -750,6 +751,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Dayama 2020.** Niraj Dayama, Kashyap Todi, Taru Saarelainen, Antti Oulasvirta. "GRIDS: interactive layout design with integer programming". CHI 2020. <https://doi.org/10.1145/3313831.3376553>
 - **de Berg 2011.** Mark de Berg, Bettina Speckmann, Vincent van der Weele. "Treemaps with bounded aspect ratio". ISAAC 2011, LNCS. <https://doi.org/10.1007/978-3-642-25591-5_28> A journal version of 2014 is unverified.
 - **Delorme 2017.** Maxence Delorme, Manuel Iori, Silvano Martello. "Logic based Benders' decomposition for orthogonal stock cutting problems". Computers and Operations Research 78:290-298. <https://doi.org/10.1016/j.cor.2016.09.009>
+- **Diaconis 1977.** Persi Diaconis, R. L. Graham. "Spearman's footrule as a measure of disarray". Journal of the Royal Statistical Society, Series B 39(2):262-268. The DOI is unverified.
 - **Duarte 2014.** Felipe S. L. G. Duarte, Fabio Sikansi, Francisco M. Fatore, Samuel G. Fadel, Fernando V. Paulovich. "Nmap: a novel neighborhood preservation space-filling algorithm". IEEE TVCG 20(12):2063-2071. <https://doi.org/10.1109/TVCG.2014.2346276>
 - **Dwyer 2006.** Tim Dwyer, Kim Marriott, Peter J. Stuckey. "Fast node overlap removal". "Graph Drawing" 2005, LNCS 3843, pages 153-164. <https://doi.org/10.1007/11618058_15>
 - **Eades 1991.** Peter Eades, Wei Lai, Kazuo Misue, Kozo Sugiyama. "Preserving the mental map of a diagram". Compugraphics 1991, pages 24-33. The record is unverified: <https://www.bibsonomy.org/bibtex/5b39c1a8aa05b91465ad0ba256d6579f>
@@ -772,6 +774,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Gilmore 1965.** P. C. Gilmore, R. E. Gomory. "Multistage cutting stock problems of two and more dimensions". Operations Research 13(1):94-120. <https://doi.org/10.1287/opre.13.1.94>
 - **Goehlsdorf 2007.** Dennis Goehlsdorf, Michael Kaufmann, Martin Siebenhaller. "Placing connected components of disconnected graphs". APVIS 2007, pages 101-108. <https://dblp.org/rec/conf/apvis/GoehlsdorfKS07.html>
 - **Gomes 2006.** A. Miguel Gomes, José F. Oliveira. "Solving Irregular Strip Packing problems by hybridising simulated annealing and linear programming". European Journal of Operational Research 171(3):811-829. <https://doi.org/10.1016/j.ejor.2004.09.008>
+- **Graham 1966.** R. L. Graham. "Bounds for certain multiprocessing anomalies". Bell System Technical Journal 45(9):1563-1581. <https://archive.org/details/bstj45-9-1563>
 - **Graham 1969.** R. L. Graham. "Bounds on multiprocessing timing anomalies". SIAM Journal on Applied Mathematics 17(2):416-429. <https://doi.org/10.1137/0117039>
 - **Grosso 2010.** A. Grosso, A. R. M. J. U. Jamali, M. Locatelli, F. Schoen. "Solving the problem of packing equal and unequal circles in a circular container". Journal of Global Optimization 47(1):63-81. <https://doi.org/10.1007/s10898-009-9458-3> Crossref gives the year 2009 of the online version.
 - **Guo 1999.** Pei-Ning Guo, Chung-Kuan Cheng, Takeshi Yoshimura. "An O-tree representation of non-slicing floorplan and its applications". DAC 1999, pages 268-273. <https://doi.org/10.1145/309847.309928>
