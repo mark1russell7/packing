@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>packing: response explorer</title>
+    <meta name="description" content="Each measured point of the coverage run of packing, with a fitted surface and the held-out error of each measure." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23202a44'/%3E%3Crect x='5' y='5' width='13' height='9' rx='1' fill='%235b8def'/%3E%3Crect x='20' y='5' width='7' height='14' rx='1' fill='%23e9a23b'/%3E%3Crect x='5' y='16' width='13' height='11' rx='1' fill='%23a77fe0'/%3E%3Crect x='20' y='21' width='7' height='6' rx='1' fill='%2348b59a'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip" href="#chart">Skip to the explorer</a>
+    <header class="top">
+      <div class="brand">
+        <h1 class="wordmark"><span class="mark" aria-hidden="true"></span>packing</h1>
+        <div class="lead"><p>Each measured point of a coverage run. Choose a measure, then vary one or two dimensions.</p></div>
+      </div>
+      <nav class="links" id="links" aria-label="Links"></nav>
+    </header>
+
+    <main class="page">
+      <section class="panel" id="chart">
+        <div class="tiles" id="explorer-tiles"></div>
+        <div id="explorer"></div>
+      </section>
+      <section class="panel">
+        <div class="prose">
+          <h2>How good is the fit?</h2>
+          <p>The line or surface is a ridge fit to the points. Each fold holds out whole specs. The error of the fit is the mean absolute error on those specs. The error of the mean is the same error for a fit with no inputs. Time uses a log scale.</p>
+        </div>
+        <div id="explorer-fits"></div>
+        <div id="explorer-origin"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>Made-up data only. MIT license. <a href="https://github.com/mark1russell7/packing">github.com/mark1russell7/packing</a> · <a href="https://mark1russell7.github.io/layout-contract/">Joint bench with highways</a></p>
+    </footer>
+
+    <script type="module" src="/src/explorer.ts"></script>
+  </body>
+</html>
