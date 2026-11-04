@@ -1682,9 +1682,26 @@ The field `prior` gives each generator family a weight. `bench/prior.ts` compute
 The effective count `nEff` tells the precision of the share. A share with the prior and `nEff` 30 is approximately as precise as a uniform share of 30 pairs.
 The sampler draws each family with the same chance. A family with a large weight and few pairs thus makes `nEff` small.
 
+##### The kinds of the prior (k122)
+
+The prior is a parameter. The option `--prior` gives the kind, and `--prior-power` gives the power of `tempered`.
+
+| Kind | The weight of a family |
+|---|---|
+| `family-flat` | The same weight for each sampler family, also a family with no inputs in the corpora. This is the default. |
+| `union` | Its share of the distinct inputs of all the committed corpora. |
+| `tempered` | Its count of `union` to a power from 0 to 1, then scaled. The default power is 0.5. The power 1 gives `union`. |
+| `corpus` | Its share of the inputs of the grid manifest only. |
+
+- The headline is `family-flat`. A realistic input means the families, not the count of the grids in the corpora.
+- With another headline than `union`, each measure of `sampled` also has `priorBeside`: the share with `union` and its effective count.
+- The field `strata` of the basis gives the `adversary` family apart. It has no weight, and the sampler does not draw it, so it has no share.
+- `bench/paired-arms.ts` does not read the prior. Thus the fold verdict of the nightly control does not change.
+- The headline changes the published prior share of the coverage. The uniform share and the grid numbers do not change.
+
 ##### The union of the corpora (k119)
 
-The default prior `union` uses all the committed corpora of `bench/corpora`. The option `--prior corpus` gives the k116 prior of the grid manifest only.
+The prior `union` uses all the committed corpora of `bench/corpora`.
 
 1. Each corpus gives its inputs: each spec with each seed, or each input with its generator.
 2. The union keeps each distinct input one time. Two inputs are the same when their family, params and seed are the same.
@@ -1953,6 +1970,29 @@ The section `#coverage` of the results page reads `packages/site/data/coverage.j
 - The command `snapshot.ts coverage` reads the folder `active` of the run, or `--active <dir>`. Without it, the table shows a note.
 - The error bars show the mean error and the median error of the model against the baseline.
 
+## The Sleator strip
+
+`bench/sleator.ts` measures `sleatorStrip` of roadmap item k52. A height is not a time, so any computer can start it. The prediction is `packing-k52-sleator`.
+
+```bash
+node bench/sleator.ts --out <file.json> [--seeds 30] [--counts 20,100,500]
+```
+
+The strip has a width of 200. Each family has made-up items with a height from 1 to 100. The widths of `narrow` go from 1 to 50, of `mixed` from 1 to 200, and of `wide` from 67 to 200.
+
+| Family | Items | Mean height over the larger of area / width and the tallest item | Mean height over `maxrects-bl` | Share where `maxrects-bl` is lower or equal |
+| --- | --- | --- | --- | --- |
+| narrow | 20 | 1.301 | 1.097 | 93.3 % |
+| narrow | 100 | 1.200 | 1.123 | 100 % |
+| narrow | 500 | 1.192 | 1.162 | 100 % |
+| mixed | 20 | 1.353 | 1.112 | 96.7 % |
+| mixed | 100 | 1.349 | 1.190 | 100 % |
+| mixed | 500 | 1.329 | 1.231 | 100 % |
+| wide | 20 | 1.350 | 1.064 | 100 % |
+| wide | 100 | 1.322 | 1.088 | 100 % |
+| wide | 500 | 1.312 | 1.116 | 100 % |
+
+Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
@@ -2052,6 +2092,33 @@ The values of the tables on 2026-11-03, for the default cases, are:
 - The front chain of Wang 2006 (roadmap item k93) is not built. Thus the comparison has no row for it.
 - The constants of the moves came from short local packs of the same two families, seeds 1 to 3. Thus a gap of these families is not a held-out measure.
 - The time of a move is a CI measure. A local time is not a record.
+## The rank window
+
+`bench/window.ts` measures the curve of the idea `new-rank-window` of roadmap item k31. A height and an order are not a time, so any computer can start it. The prediction is `packing-k31-rank-window`.
+
+```bash
+node bench/window.ts --out <file.json> [--seeds 30] [--count 100] [--windows 1,2,3,4,6,8,12,16,32,100]
+```
+
+The inputs are made-up strips of width 200 with 100 items and 30 seeds. The rank of an item is its input place. The pack is `maxrects` with the rule `bl` and the option `sortOrder: "input"`. The gain is the share of the height gain from window 1 to window 100.
+
+| Window | Mean height | Gain | `pack.order.inversions` |
+| --- | --- | --- | --- |
+| 1 | 888.9 | 0.00 | 0.177 |
+| 2 | 887.1 | 0.02 | 0.177 |
+| 3 | 885.7 | 0.04 | 0.181 |
+| 4 | 884.5 | 0.06 | 0.183 |
+| 6 | 881.9 | 0.09 | 0.192 |
+| 8 | 877.3 | 0.15 | 0.197 |
+| 12 | 874.3 | 0.19 | 0.230 |
+| 16 | 860.3 | 0.38 | 0.251 |
+| 32 | 831.1 | 0.76 | 0.360 |
+| 100 | 813.3 | 1.00 | 0.503 |
+
+- The curve has no knee at a small window. Half of the gain comes only between window 16 and window 32.
+- The mean height falls at each listed window. The hard rules have 0 breaks.
+- Window 1 has inversions of 0.177, because `maxrects` can put a box above an earlier box.
+- The count of 100 items sets the scale of the windows. This run does not measure a window as a share of the count.
 ## The pin of unchanged boxes
 
 `bench/pin.ts` measures `pinUnchanged` of roadmap item k29. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k29-pin-unchanged`.
@@ -2070,3 +2137,41 @@ The inputs are made-up strips of width 200 with 100 items. Each seed is a chain 
 - The moved column is the mean `pack.stability.moved`. A resized box stays in that measure, and it moves. That is the 0.010 of the pinned arm.
 - The hard rules have 0 breaks, and each item has a place.
 - These are the first values of `pack.stability.*`. They come from this script, not from a corpus.
+
+## The beam search
+
+`bench/beam.ts` measures `beamStrip` of roadmap item k85. A height is not a time, so any computer can start it. The prediction is `packing-k85-beam`.
+
+```bash
+node bench/beam.ts --out <file.json> [--seeds 10] [--count 100] [--widths 1,4,16]
+```
+
+The family is the 10 classes of `berkeyWang` and `martelloVigo`, with 100 items and 10 seeds. The gap is `(height / (area / width) - 1) * 100`, the form of Wen 2025. Lower is better.
+
+| Class | `maxrects-bl` | Width 1 | Width 4 | Width 16 |
+| --- | --- | --- | --- | --- |
+| Berkey and Wang I | 7.19 | 6.97 | 4.21 | 3.79 |
+| Berkey and Wang II | 2.37 | 3.80 | 1.19 | 0.88 |
+| Berkey and Wang III | 13.92 | 15.53 | 9.52 | 8.82 |
+| Berkey and Wang IV | 7.09 | 7.65 | 3.61 | 2.81 |
+| Berkey and Wang V | 13.20 | 15.54 | 10.02 | 9.91 |
+| Berkey and Wang VI | 8.12 | 8.83 | 4.76 | 4.00 |
+| Martello and Vigo VII | 19.71 | 18.85 | 16.06 | 15.70 |
+| Martello and Vigo VIII | 11.63 | 10.92 | 6.56 | 5.36 |
+| Martello and Vigo IX | 25.42 | 24.56 | 24.12 | 23.89 |
+| Martello and Vigo X | 9.63 | 11.84 | 6.73 | 6.16 |
+| Mean | 11.83 | 12.45 | 8.68 | 8.13 |
+
+- Width 16 is lower than or equal to `maxrects-bl` on 100 of 100 inputs.
+- The hard rules have 0 breaks. The three widths together have a mean of 18084 greedy completions for one input.
+- Wen 2025 gives a gap of 7.56 for the set BWMV with no turns at 60 seconds. Those instances are not these inputs, and that method has blocks. The value is only a scale, and this table makes no parity claim.
+- The gap uses a lower bound, not the optimum. In class IX, large items make that bound weak.
+The third arm pins, packs and then applies `compactUp` (roadmap item k30). The prediction is `packing-k30-compact-up`.
+
+| Entry | Moved | Distance, fresh | Distance, compacted | Cost, step 1 | Cost, step 10 | Worst cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| `maxrects-bl` | 0.146 | 0.355 | 0.028 | 1.071 | 1.192 | 1.290 |
+| `skyline` | 0.221 | 0.333 | 0.052 | 1.080 | 1.229 | 1.383 |
+
+- The distance is the mean `pack.stability.mean`. Its unit is the width of the strip.
+- The compaction takes back only a small part of the height cost: 1.215 goes to 1.192 for `maxrects-bl`. It moves few boxes, and each move is short.

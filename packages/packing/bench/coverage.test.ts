@@ -510,13 +510,18 @@ describe("the input features and the active rounds of k116", () => {
     });
   });
 
-  it("weights the sampled pairs with the union prior by default, and with the grid manifest for the prior corpus", () => {
+  it("weights the sampled pairs with the union prior, with family-flat by default, and with the grid manifest for the prior corpus", () => {
     const { manifest, records } = real();
     const sampled = pairs(false);
-    const union = sampledCoverage(records, manifest, sampled, { measures: [fill] });
+    const union = sampledCoverage(records, manifest, sampled, { measures: [fill], prior: "union" });
+    expect(union.measures[0]!.priorBeside).toBeUndefined();
     expect(union.measures[0]!.prior).toMatchObject({ kind: "union", weighted: sampled.length, zero: 0 });
     expect(union.measures[0]!.prior!.families!.length).toBe(unionPrior().families.length);
     // The grid manifest has only rect-grid@1, so the prior corpus gives it the weight 1.
+    const flat = sampledCoverage(records, manifest, sampled, { measures: [fill] });
+    expect(flat.measures[0]!.prior!.kind).toBe("family-flat");
+    expect(flat.measures[0]!.priorBeside!.kind).toBe("union");
+    expect(flat.measures[0]!.priorBeside!.share).toBe(union.measures[0]!.prior!.share);
     const own = sampledCoverage(records, manifest, sampled, { measures: [fill], prior: "corpus" });
     expect(own.measures[0]!.prior!.families).toEqual([expect.objectContaining({ family: "rect-grid@1", weight: 1 })]);
   });
@@ -558,7 +563,8 @@ describe("the command line", () => {
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   it("reads the options and refuses a bad value", () => {
-    expect(coverageOptions(["--run", "12", "--date", "2026-10-28", "--by", "spec"])).toEqual({ folds: 5, seed: 1, by: "spec", features: "family", prior: "union", run: 12, date: "2026-10-28" });
+    expect(coverageOptions(["--run", "12", "--date", "2026-10-28", "--by", "spec"])).toEqual({ folds: 5, seed: 1, by: "spec", features: "family", prior: "family-flat", run: 12, date: "2026-10-28" });
+    expect(coverageOptions(["--prior", "tempered", "--prior-power", "0.25"])).toMatchObject({ prior: "tempered", priorPower: 0.25 });
     expect(coverageOptions(["--prior", "corpus"]).prior).toBe("corpus");
     expect(() => coverageOptions(["--prior", "flat"])).toThrow(/union or corpus/);
     expect(() => coverageOptions(["--by", "seed"])).toThrow(/input or spec/);

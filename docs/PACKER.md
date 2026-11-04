@@ -1616,6 +1616,21 @@ Thus `exactStrip` is a baseline for 8 items, and for 10 items in most families. 
 
 The function is the branch and bound half of k10. The constraint solver half is planned. Bins with a fixed container have no exact search yet.
 
+## The Sleator strip
+
+The function `sleatorStrip` packs a strip with the algorithm of Sleator 1980 (roadmap item k52). It is a baseline with a proved bound, not a strategy. No default uses it, and the space of the bench does not change.
+
+1. The items wider than half the strip go in one stack at the left side.
+2. The other items take the order of height, tallest first.
+3. One level above the stack takes items until the next item does not fit the width.
+4. A line at half the width divides the strip above that level.
+5. The half with the lower top takes the next level, until the next item does not fit that half.
+
+The proved bound is `2 * optimum + tallest / 2`, so at most `2.5` times the optimum. The bound names the optimum, not the area. One item of width 1 and height 100 on a strip of 200 has a height of 100, and twice the area over the width is only 1.
+
+The tests compare the bound with a known optimum: 1000 perfect cuts and 100 strips of 6 items, which `exactStrip` proves. The function does not turn an item, so each item keeps its sizes. A level ends at the first item that does not fit, and a later smaller item does not fill the gap.
+
+The source of these steps is the statement in the strip packing article of Wikipedia and the catalog row. The paper is behind a paywall, so this repository has no reading of the proof itself.
 ## Side anchors
 
 `packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
@@ -1694,7 +1709,29 @@ The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip
 The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
+## The beam search
 
+The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). It is not a strategy. No default uses it, and the space of the bench does not change.
+
+1. A state is a partial layout with a skyline. Each level adds one item to each state.
+2. The valley of the skyline closest to the origin takes the next item. A valley that no item fits rises to its lower neighbor.
+3. A state has `width` children: the largest items that fit the valley.
+4. A greedy completion gives the height of each child. The level keeps the `width` lowest children.
+5. The result is the lowest completion of the search.
+
+The expansion and the ranking come from Wen 2025, with three changes:
+
+- The state is a skyline, not a list of overlapping free spaces, because a strip has a free height. The rule closest to the origin applies only to the valleys of the skyline. On each other segment, a lift of the skyline can move it down, and items then overlap.
+- The order of the children is the area of the item. This is the first term of the score of the paper.
+- The paper does not give its greedy completion, so this one is my choice: the largest item that fits each valley.
+
+This slice has no blocks of paired boxes, no turns and no time limit. Thus this function is not a copy of the method of the paper.
+
+## The window order
+
+The function `windowOrder` is the first slice of roadmap item k31, the idea `new-rank-window`. Each step takes the tallest of the next `window` items. A `window` of 1 keeps the input order, and a `window` of the item count gives the sort `height-desc`.
+
+No item comes more than `window - 1` places before its input place. Give the result to a strategy with the option `sortOrder: "input"`. It is a function, so the space of the bench does not change.
 ## The pin of unchanged boxes
 
 The function `pinUnchanged` is the first slice of roadmap item k29. It changes an input and does not pack. A strategy packs the result and goes around the locked boxes. No default uses it, and the space of the bench does not change.
@@ -1705,6 +1742,16 @@ The function `pinUnchanged` is the first slice of roadmap item k29. It changes a
 - A strip with a fixed size can overflow, because the new boxes get only the free space. The function does not release a pin.
 
 The hole of a removed box stays, so a chain of changes adds height. `docs/BENCH.md`, "The pin of unchanged boxes", gives that cost.
+
+## The vertical compaction
+
+The function `compactUp` is the first slice of roadmap item k30. It takes a layout and moves each free box up until the box touches a box, a wall or the top of the container. No default uses it.
+
+- The order is the top of each box, then its left edge, then the order of the input. The steps come from the classic compactor of react-grid-layout.
+- A locked item and an obstacle stay at their places. A box keeps its `x`, and it does not jump past another box.
+- The function refuses a container with a shape, pair gaps and an item with a parent.
+
+After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
 
 ## The decisions
 

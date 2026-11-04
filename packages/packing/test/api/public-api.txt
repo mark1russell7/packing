@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 458 names
+## . (build/index.d.ts): 467 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -23,6 +23,7 @@ type AnnealStrategyOptions: build/index.d.ts#AnnealStrategyOptions
 type AspectFitOptions: build/index.d.ts#AspectFitOptions
 type AspectFitStrategyOptions: build/index.d.ts#AspectFitStrategyOptions
 BBOX_SHAPES: build/index.d.ts#BBOX_SHAPES
+BEAM_WIDTH: build/index.d.ts#BEAM_WIDTH
 BEASLEY_GCUT_COUNTS: build/index.d.ts#BEASLEY_GCUT_COUNTS
 BEASLEY_GCUT_SIDES: build/index.d.ts#BEASLEY_GCUT_SIDES
 BERKEY_WANG_RULES: build/index.d.ts#BERKEY_WANG_RULES
@@ -34,6 +35,8 @@ BOTTOM_LEFT_RULES: build/index.d.ts#BOTTOM_LEFT_RULES
 BOUND_KINDS: build/index.d.ts#BOUND_KINDS
 BURKE_KENDALL_WHITWELL_RULES: build/index.d.ts#BURKE_KENDALL_WHITWELL_RULES
 type BboxStrategyOptions: build/index.d.ts#BboxStrategyOptions
+type BeamOptions: build/index.d.ts#BeamOptions
+type BeamResult: build/index.d.ts#BeamResult
 type BeasleyGcutParams: build/index.d.ts#BeasleyGcutParams
 type BerkeyWangClass: build/index.d.ts#BerkeyWangClass
 type BerkeyWangParams: build/index.d.ts#BerkeyWangParams
@@ -241,6 +244,7 @@ type SkylineGapParams: build/index.d.ts#SkylineGapParams
 type SkylineOptions: build/layout-strategy.d.ts#SkylineOptions
 type SkylineRule: build/layout-strategy.d.ts#SkylineRule
 type SkylineStrategyOptions: build/layout-strategy.d.ts#SkylineStrategyOptions
+type SleatorResult: build/index.d.ts#SleatorResult
 type SortOrder: build/order.d.ts#SortOrder
 type SpaceRect: build/layout-strategy.d.ts#SpaceRect
 type SpreadBand: build/index.d.ts#SpreadBand
@@ -288,6 +292,7 @@ aspectFitStrategy: build/index.d.ts#aspectFitStrategy
 assertSupported: build/strategy.d.ts#assertSupported
 balanceContainerOf: build/index.d.ts#balanceContainerOf
 bboxStrategy: build/index.d.ts#bboxStrategy
+beamStrip: build/index.d.ts#beamStrip
 beasleyGcut: build/index.d.ts#beasleyGcut
 beasleyGcutFamily: build/index.d.ts#beasleyGcutFamily
 beasleyGcutRange: build/index.d.ts#beasleyGcutRange
@@ -320,6 +325,7 @@ classGenerators: build/index.d.ts#classGenerators
 columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
 columnsLinearPartition: build/index.d.ts#columnsLinearPartition
+compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
 configOfStrategy: build/index.d.ts#configOfStrategy
@@ -436,6 +442,8 @@ shelf: build/shelf-strategy.d.ts#shelf
 skyline: build/skyline-strategy.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
+sleatorRefusal: build/index.d.ts#sleatorRefusal
+sleatorStrip: build/index.d.ts#sleatorStrip
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
@@ -461,6 +469,7 @@ turnRegion: @mark1russell7/layout-contract#turnRegion (external)
 unsupportedOf: build/strategy.d.ts#unsupportedOf
 wallLocks: build/index.d.ts#wallLocks
 wallLocksFamily: build/index.d.ts#wallLocksFamily
+windowOrder: build/order.d.ts#windowOrder
 wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
@@ -718,6 +727,9 @@ interface AspectFitStrategyOptions {
 ### build/index.d.ts#BBOX_SHAPES
 export declare const BBOX_SHAPES: readonly ShapeKind[];
 
+### build/index.d.ts#BEAM_WIDTH
+export declare const BEAM_WIDTH = 16;
+
 ### build/index.d.ts#BEASLEY_GCUT_COUNTS
 export declare const BEASLEY_GCUT_COUNTS: readonly number[];
 
@@ -752,6 +764,18 @@ export declare const BURKE_KENDALL_WHITWELL_RULES: Readonly<Record<BurkeKendallW
 interface BboxStrategyOptions {
   member?: string | PortfolioEntry;
   turn?: boolean;
+}
+
+### build/index.d.ts#BeamOptions
+interface BeamOptions {
+  readonly width?: number;
+}
+
+### build/index.d.ts#BeamResult
+interface BeamResult {
+  readonly output: PackOutput;
+  readonly height: number;
+  readonly completions: number;
 }
 
 ### build/index.d.ts#BeasleyGcutParams
@@ -1558,6 +1582,12 @@ type SkylineGapParams = {
   count: number;
 };
 
+### build/index.d.ts#SleatorResult
+interface SleatorResult {
+  readonly output: PackOutput;
+  readonly height: number;
+}
+
 ### build/index.d.ts#SpreadBand
 type SpreadBand = "identical" | "uniform" | "heavyTail";
 
@@ -1714,6 +1744,9 @@ export declare function balanceContainerOf(input: PackInput, output: PackOutput)
 ### build/index.d.ts#bboxStrategy
 export declare const bboxStrategy: Strategy<BboxStrategyOptions>;
 
+### build/index.d.ts#beamStrip
+export declare function beamStrip(input: PackInput, options?: BeamOptions): BeamResult;
+
 ### build/index.d.ts#beasleyGcut
 export declare const beasleyGcut: CorpusGenerator<BeasleyGcutParams>;
 
@@ -1802,6 +1835,9 @@ export declare function columnReading(input: PackInput, output: PackOutput): Col
 
 ### build/index.d.ts#columnsLinearPartition
 export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#compactUp
+export declare function compactUp(input: PackInput, output: PackOutput): PackOutput;
 
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];
@@ -2102,6 +2138,12 @@ export declare const skylineGap: CorpusGenerator<SkylineGapParams>;
 
 ### build/index.d.ts#skylineGapFamily
 export declare const skylineGapFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#sleatorRefusal
+export declare function sleatorRefusal(input: PackInput): string | null;
+
+### build/index.d.ts#sleatorStrip
+export declare function sleatorStrip(input: PackInput): SleatorResult;
 
 ### build/index.d.ts#spreadBand
 export declare function spreadBand(spread: number): SpreadBand;
@@ -2421,6 +2463,11 @@ declare function isGraphOrder(order: ItemOrder): order is GraphOrder;
 
 ### build/order.d.ts#orderRects
 declare function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[];
+
+### build/order.d.ts#windowOrder
+declare function windowOrder<T extends {
+  readonly h: number;
+}>(items: readonly T[], window: number): T[];
 
 ### build/push-strategy.d.ts#PushOptions
 interface PushOptions {
