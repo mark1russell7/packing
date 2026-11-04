@@ -37,7 +37,7 @@ Status: done, done, waiting, next, done.
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
 | k29 | Methods that keep the reading order or the layout under change | strategies | active | k6, k7 |
 | k30 | Online and incremental packing | strategies | active | k6, k7 |
-| k31 | New ideas of our own | strategies | later | k6, k7 |
+| k31 | New ideas of our own | strategies | active | k6, k7 |
 | k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. Part 1 (#92): the pages `results/` and `whats-new/`, from the snapshots in `packages/site/data/`. | site | active | k11, k14 |
 | k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
 | k34 | The site: a fixed or free width, a target aspect and the chart of the search | site | done | k33 |
@@ -91,7 +91,7 @@ Status: done, done, waiting, next, done.
 | k82 | Legalization for stability (idea R11 of the survey) | strategies | later | k12 |
 | k83 | Genetic programming of the score (idea R12 of the survey) | strategies | later | k6, k7 |
 | k84 | Priority code that a language model evolves (idea R13 of the survey) | strategies | later | k6, k7 |
-| k85 | Beam search (idea R14 of the survey) | strategies | later | k6, k7 |
+| k85 | Beam search (idea R14 of the survey) | strategies | active | k6, k7 |
 | k86 | Global placement for large inputs (idea R16 of the survey) | strategies | later | k6, k7 |
 | k87 | Dynamic reduction of the width (idea R17 of the survey) | strategies | later | k33 |
 | k88 | Identical boxes in five blocks (idea R19 of the survey) | strategies | later | k6, k7 |

@@ -26,6 +26,7 @@ async function exportedIds(): Promise<Map<string, string>> {
 
 /** Each exported function that a strategy of the registry wraps, with the id of that strategy. */
 const WRAPPED: Readonly<Record<string, string>> = {
+  beamStrip: "beam",
   columnsLinearPartition: "masonry",
   exactStrip: "exact-strip",
   masonryLpt: "masonry",

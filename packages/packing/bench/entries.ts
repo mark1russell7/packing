@@ -205,6 +205,7 @@ export function isComposite(id: string): boolean {
  */
 export const STANDALONE_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "sleator", strategy: "sleator", options: {} },
+  { id: "beam", strategy: "beam", options: {} },
   { id: "exact-strip", strategy: "exact-strip", options: {} },
   { id: "binary-height", strategy: "binary-height", options: {} },
   { id: "near-rects", strategy: "near-rects", options: {} },

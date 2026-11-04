@@ -237,7 +237,7 @@ A search changes the input of a fast packer, the "decoder", and keeps the best r
 | `search-naive-evolution` | Naive evolution | Change the order at random and keep the better order. | Hopper 2001 | density | steps x decoder | — | planned | k26 |
 | `search-grasp` | Reactive GRASP | Build an order with a random greedy rule. Improve it with a local search. Learn the best amount of randomness from the results. | Alvarez-Valdes 2008 | density | starts x decoder | — | planned | k26 |
 | `search-ils` | Local search in three stages | Build an order with a greedy rule. Improve it with a local search that has no randomness. Then do a local search with random changes. | Wei 2016 | density | steps x decoder | — | planned | k26 |
-| `search-beam` | Filtered beam search | Keep the best `k` partial layouts. Grow each with each box left, remove the weak children with a fast filter, and keep the best `k` again. | Chen 2025 | density | `O(n^2 k)` x decoder | — | planned | k26 |
+| `search-beam` | Filtered beam search | Keep the best `k` partial layouts. Grow each with each box left, remove the weak children with a fast filter, and keep the best `k` again. | Chen 2025 | density | `O(n^2 k)` x decoder | — | first slice | k26 |
 | `search-random-restart` | Randomized search | Do a greedy packer with random changes of the order, many times. Keep the best result. | Yang 2013 | density | restarts x decoder | — | implemented | k78 |
 | `search-two-stage` | Two-stage intelligent search | Do a greedy search with a fit score. Then improve the order with annealing. | Leung 2011 | density | steps x decoder | — | planned | k26 |
 | `enc-sequence-pair` | Sequence pair | Encode the layout as two orders of the boxes. The two orders give each pair "left of" or "below". A longest path gives the places. | Murata 1996 | density | `O(n^2)` for each decode | — | planned | k26 |
@@ -664,6 +664,10 @@ These ideas are new for this project. Some of them join two published methods. E
 | `new-kp-rows-fill` | Line breaking and gap fill | Do `line-break-knuth-plass` for the row breaks. Then fill the space under the lower boxes of each row with the next boxes of the same row only. | The gap fill of `packRows` takes boxes from later rows and breaks the order. This fill stays in the row. | Less `pack.raggedness` than `rows-gap-fill` and no more `pack.order.breaks` than `rows-input`. | k31 |
 | `new-group-recursive` | Pack the groups recursively | Pack the children of each parent first. Then pack each parent as one box. Choose the strategy of each level by its count. | Component packing does one level. This idea uses the nesting of `layout-input/1`. | Less `pack.area` than a flat pack on the inputs with groups, because the groups stay together. | k31 |
 | `new-port-aware` | Pack for short edges | Add to the score of each place the length of the edges from the box to the boxes that are already placed. | The joint stage packs and then routes. This idea lets the packer see the edges. | Less `joint` edge length than `maxrects-bl`, at a small cost of `pack.whitespace`. | k31 |
+
+Results:
+
+- `new-rank-window` (k31): the prediction of its row failed. On made-up strips of 100 items, window 6 gives 9 % of the height gain, and half of the gain needs window 32. `docs/BENCH.md`, "The rank window", has the curve.
 
 ## Measures to add
 

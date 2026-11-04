@@ -111,6 +111,11 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     rule: "Stack the boxes wider than half the strip. Above them, put levels of the other boxes, tallest first, on the half with the lower top.",
     cost: "`O(n log n)`",
   },
+  beam: {
+    stage: "placement",
+    rule: "Keep the `width` best partial layouts. Give each state one more box in its lowest valley, and rank the children by a greedy completion.",
+    cost: "at most `n` levels of `width` states, each with `width` greedy completions",
+  },
   "exact-strip": {
     stage: "size-search",
     rule: "Search the corners of the staircase of the placed boxes, up to a node limit. An ended search proves the least height.",

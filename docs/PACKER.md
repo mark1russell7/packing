@@ -1660,7 +1660,29 @@ The function `packBinaryHeight` (roadmap item k81) gives a low layout of a strip
 The options are `trials` for each height, `seed` and `precision`. The same input and options give the same bytes. The function reads no shape, obstacle, gap, margin or locked item. The result carries no proof: `exactStrip` gives proved heights for small inputs.
 
 This function does not copy the method of Zhang 2013 step by step, and this repository has no comparison with its published values.
+## The beam search
 
+The function `beamStrip` packs a strip with a beam search (roadmap item k85, first slice). The strategy `beam` wraps it. No default uses it, and the space of the bench does not change.
+
+1. A state is a partial layout with a skyline. Each level adds one item to each state.
+2. The valley of the skyline closest to the origin takes the next item. A valley that no item fits rises to its lower neighbor.
+3. A state has `width` children: the largest items that fit the valley.
+4. A greedy completion gives the height of each child. The level keeps the `width` lowest children.
+5. The result is the lowest completion of the search.
+
+The expansion and the ranking come from Wen 2025, with three changes:
+
+- The state is a skyline, not a list of overlapping free spaces, because a strip has a free height. The rule closest to the origin applies only to the valleys of the skyline. On each other segment, a lift of the skyline can move it down, and items then overlap.
+- The order of the children is the area of the item. This is the first term of the score of the paper.
+- The paper does not give its greedy completion, so this one is my choice: the largest item that fits each valley.
+
+This slice has no blocks of paired boxes, no turns and no time limit. Thus this function is not a copy of the method of the paper.
+
+## The window order
+
+The function `windowOrder` is the first slice of roadmap item k31, the idea `new-rank-window`. Each step takes the tallest of the next `window` items. A `window` of 1 keeps the input order, and a `window` of the item count gives the sort `height-desc`.
+
+No item comes more than `window - 1` places before its input place. Give the result to a strategy with the option `sortOrder: "input"`. It is a function, so the space of the bench does not change.
 ## The pin of unchanged boxes
 
 The function `pinUnchanged` is the first slice of roadmap item k29. It changes an input and does not pack. A strategy packs the result and goes around the locked boxes. No default uses it, and the space of the bench does not change.
@@ -1693,6 +1715,7 @@ The registry does not hold these strategies. `strategy`, `packWith` and `allStra
 | `sleator` | `sleatorStrip` | `sleator` | `single` | `freeHeight` | `rect` |
 | `exact-strip` | `exactStrip` | `exact` | `single` | `freeHeight` | `rect` |
 | `binary-height` | `packBinaryHeight` | `binary-height` | `single` | `freeHeight` | `rect` |
+| `beam` | `beamStrip` | `beam` | `single` | `freeHeight` | `rect` |
 | `near-rects` | `packNearRects` | `near-rects` | `single` | `fixed`, `freeHeight` | `rect`, `polygon`, `circle`, `mixed` |
 | `raster-nofit` | `packRasterNofit` | `raster-nofit` | `single` | `fixed`, `freeHeight` | `rect`, `polygon`, `circle`, `mixed` |
 | `masonry` | `masonryShortest`, `masonryLpt`, `columnsLinearPartition` | `masonry` | `single` | `freeAspect`, `freeArea` | `rect` |
@@ -1700,6 +1723,7 @@ The registry does not hold these strategies. `strategy`, `packWith` and `allStra
 | `side-anchors` | `packSideAnchors` | `side-anchors` | `composite` | `fixed`, `freeHeight`, `freeWidth` | `rect` |
 
 - The option `method` of `masonry` picks one of its three functions. The option `method` of `treemap` picks one of its four layouts.
+- `beam` has no catalog row. The first slice is neither the filtered search of Chen 2025 nor the parallel search of Wen 2025.
 - `exact-strip` has a limit of 100,000 nodes, and `binary-height` has 32 trials. The functions have higher defaults. These strategies take less time in a bench or on a page.
 - `binary-height`, `near-rects` and `raster-nofit` refuse more than 256 items, because the time of their search grows fast with the count.
 - A refusal of a function becomes an `UnsupportedCell` with the dimension `containerSize` and the value `refused`. The taxonomy has no dimension for the reason. The message tells it.

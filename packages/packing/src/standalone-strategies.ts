@@ -1,6 +1,7 @@
 // The strategies of roadmap item k141. Each strategy here wraps one standalone function, so `packWith`, the bench and the sites reach it.
 // The functions keep their own API. These strategies are not in the registry, `pack`, `SELECT_TABLE` or `packSpace`. `strategy-list.ts` lists them.
 
+import { beamStrip, type BeamOptions } from "./beam.ts";
 import { packBinaryHeight, type BinaryHeightOptions } from "./binary-height.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { exactStrip, exactStripRefusal, type ExactStripOptions } from "./exact-strip.ts";
@@ -79,6 +80,22 @@ export const sleatorStrategy: Strategy<Record<string, never>> = {
     const reason = sleatorRefusal(input);
     if (reason !== null) throw refusal(reason);
     return sleatorStrip(input).output;
+  },
+};
+
+/** The strategy `beam`: `beamStrip` of roadmap item k85. It has no catalog row, because this first slice is not the method of either beam row. */
+export const beamStrategy: Strategy<BeamOptions> = {
+  id: "beam",
+  family: "beam",
+  catalog: [],
+  supports: STRIP_SUPPORTS,
+  defaults: {},
+  deterministic: true,
+  pack(input: PackInput, options: BeamOptions): PackOutput {
+    assertSupported(beamStrategy.supports, input);
+    const reason = sleatorRefusal(input);
+    if (reason !== null) throw refusal(reason);
+    return refusing(() => beamStrip(input, options).output);
   },
 };
 
@@ -230,4 +247,4 @@ export const sideAnchorsStrategy: Strategy<SideAnchorStrategyOptions> = {
 /**
  * The single strategies that a bench entry reaches by id. Each corpus run skips the cells that a strategy does not support.
  */
-export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);
+export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, beamStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);
