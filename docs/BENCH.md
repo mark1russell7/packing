@@ -193,6 +193,20 @@ The budgets are a committed record. Thus the size goes only down by default:
 
 - The module `bench/size-gate.ts` has no packing logic, so it can move to the planned home of gates (rigor-gates).
 
+## The flip tests
+
+A gate that has not gone red on a known fault is not known to work. `packages/packing/bench/gate-flip.ts` starts the real command of a gate in a child process. A clean copy of its input must pass, and each copy with an injected fault must fail. The job of the gate fails when a case gives another code.
+
+| Gate | The faults |
+|---|---|
+| Size gate | Each file of `build/` grows above the largest budget, and each bundle must read `above`. One export loses its entry. |
+| Time gate | The arm is 3 times slower. A noisy A/A arm gives the code 3 on a first run, and the code 1 on a retry. The test reads a copy of a run with a pass. |
+| Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
+| Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
+| `Promotion OK` | Two fixed pairs on fixed records give their stated verdicts, by `--expect`: `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. |
+
+The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
+
 ## The runner
 
 The runner is `packages/packing/bench/main.ts`. Node.js starts it with no build step. The script `bench` of the package starts it:

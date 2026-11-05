@@ -1062,7 +1062,7 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
   const out = optionOf(argv, "--out");
   if (folder === undefined || candidate === undefined || current === undefined || out === undefined) {
     throw new Error(
-      "Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--win <measure>[,<measure>]] [--time-floor-ms <n>] [--times <folder>] [--guards v1|v2] [--compare-guards]",
+      "Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--expect pass|fail] [--win <measure>[,<measure>]] [--time-floor-ms <n>] [--times <folder>] [--guards v1|v2] [--compare-guards]",
     );
   }
   const guards = optionOf(argv, "--guards") ?? GUARD_SET;
@@ -1095,4 +1095,20 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
   return verdict;
 }
 
-if (process.argv[1]?.endsWith("promote.ts") === true) promoteMain(process.argv.slice(2));
+/**
+ * This function gives the exit code of the win test. With no stated verdict, the code is 0: a verdict of a real candidate reports and does not fail.
+ * With a stated verdict of a fixed pair, a different verdict gives the code 1. The stated value is `pass` or `fail`.
+ */
+export function verdictCode(verdict: Pick<PromotionVerdict, "pass">, stated: string | undefined): number {
+  if (stated === undefined) return 0;
+  if (stated !== "pass" && stated !== "fail") throw new Error(`The option --expect needs pass or fail, not ${stated}.`);
+  const given = verdict.pass ? "pass" : "fail";
+  if (given === stated) return 0;
+  console.error(`The win test gives ${given}, and the stated verdict of this pair is ${stated}.`);
+  return 1;
+}
+
+if (process.argv[1]?.endsWith("promote.ts") === true) {
+  const argv = process.argv.slice(2);
+  process.exitCode = verdictCode(promoteMain(argv), optionOf(argv, "--expect"));
+}
