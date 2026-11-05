@@ -62,6 +62,8 @@ export interface CoverageRecord {
   readonly measures?: Readonly<Record<string, unknown>>;
   readonly ms?: number;
   readonly skipped?: string;
+  /** The lower bound on the time of a pair over its budget. A censored record has it. */
+  readonly msAtLeast?: number;
 }
 
 /** The parts of the manifest `corpus.json` of a run that the coverage reads. */

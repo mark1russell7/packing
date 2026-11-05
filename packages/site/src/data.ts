@@ -364,6 +364,11 @@ export interface CoverageStrata {
 }
 
 /** One point of the trend of the coverage */
+/** The read of a step between two points of one line. A step with `noRead` has no figure. */
+export type CoverageStep =
+  | { from: number; common: number; of: number; earlier: Record<string, number>; later: Record<string, number> }
+  | { from: number; noRead: string };
+
 export interface CoveragePoint {
   date: string;
   run: number | null;
@@ -371,6 +376,18 @@ export interface CoveragePoint {
   commit: string;
   /** The strategies of the point, sorted. A point of a run before this field has no list. */
   strategies?: string[];
+  /** The method of the run. A point of a run before this field has no method. */
+  method?: string;
+  /** The shares of this point over each earlier list that it contains, with one method. */
+  over?: { strategies: string[]; shares: Record<string, number>; records?: number }[];
+  /** The measured records of the point. */
+  records?: number;
+  /** The read of the step from the earlier point of the line, over the pairs measured in both. */
+  step?: CoverageStep;
+  /** The entries of the earlier point of the corpus with no measured record here, each with its reason. */
+  lost?: { entry: string; reasons: { because: string; records: number; msAtLeast?: number }[] }[];
+  /** The count of strategies of the point, when this copy of it continues the line of an earlier list. */
+  commonOf?: number;
   shares: Record<string, number>;
   sharesByInput?: Record<string, number>;
 }
@@ -378,7 +395,7 @@ export interface CoveragePoint {
 /** One entry of the bench with no measured record in a run, with each reason and its count of records */
 export interface CoverageOtherEntry {
   entry: string;
-  reasons: { because: string; records: number }[];
+  reasons: { because: string; records: number; msAtLeast?: number }[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run */
