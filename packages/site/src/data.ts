@@ -170,6 +170,8 @@ export interface GapStats {
 export interface GapCell extends GapStats {
   cell: string;
   missing: number;
+  /** The count of the values at or under the highest value at the margin. An older file does not have this field. */
+  atMargin?: { limit: number; n: number };
   /** The count of the records of each kind of bound. Only `pack.gap` has kinds. */
   kinds?: Record<string, number>;
 }
@@ -194,6 +196,8 @@ export interface GapSnapshot {
   strategies: GapStrategy[];
   /** The count of the inputs that left the table, because a wall budget ended a pair on them. */
   stopped?: number;
+  /** The rules of the wall budget of the run. A run without a budget does not have this field. */
+  budget?: SnapshotBudget;
 }
 
 /** One measure of the coverage snapshot: the held-out error of the model, the share of the cells and the top indices */
