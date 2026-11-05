@@ -237,6 +237,7 @@ describe("the calculations of the pages", () => {
     expect(reasonMeaning("not run: over budget at this size")).toContain("2 pairs");
     expect(reasonMeaning("not run: job budget")).toContain("time limit");
     expect(reasonMeaning("unsupported containerSize: refused")).toContain("256 items");
+    expect(reasonMeaning("refused: the input has more than 16 items")).toContain("Refused: the input has more than 16 items.");
     expect(reasonMeaning("unsupported mode: offline")).toBeUndefined();
     const reasons = [{ reason: "over budget", count: 2 }, { reason: "unsupported mode: offline", count: 1 }];
     const section = { strategies: [{ ...snap.strategies[0]!, reasons }, { ...snap.strategies[0]!, reasons }] };

@@ -909,11 +909,11 @@ export const consecutiveSquares: CorpusGenerator<ConsecutiveSquaresParams> = def
 // classes VII to X, as Lodi, Martello and Vigo 2002 give them. The generators use the rules of the classes, not a
 // published file. Each size is a whole number.
 
-/** The container sizes of a class: one bin of `W` by `H`, or a strip of the width `W` with a free height. */
-export type ClassContainer = "fixed" | "freeHeight";
+/** The container sizes of a class: one bin, a strip of the width of the bin, or a free size with or with no aspect. */
+export type ClassContainer = "fixed" | "freeHeight" | "freeAspect" | "freeArea";
 
 /** The values of `containerSize` of the class generators. */
-const CLASS_SIZES: readonly ClassContainer[] = ["fixed", "freeHeight"];
+const CLASS_SIZES: readonly ClassContainer[] = ["fixed", "freeHeight", "freeAspect", "freeArea"];
 
 /** The counts of the items of the classes in the literature: 20, 40, 60, 80 and 100. */
 export const CLASS_COUNTS: readonly number[] = Object.freeze([20, 40, 60, 80, 100]);
@@ -976,12 +976,12 @@ const BW_CLASSES: readonly BerkeyWangClass[] = ["I", "II", "III", "IV", "V", "VI
 /** The values of `class` of `martello-vigo`. */
 const MV_CLASSES: readonly MartelloVigoClass[] = ["VII", "VIII", "IX", "X"];
 
-/** This function gives the container of a class: the bin, or a strip of the width of the bin. */
+/** This function gives the container of a class: the bin, a strip of the width of the bin, or a free size. */
 const classContainer = (size: ClassContainer, bin: number): LayoutContainer => containerOf(size, bin, bin);
 
 /**
  * The generator `berkey-wang`, version 1: the classes `I` to `VI` of Berkey and Wang 1987. Each width and each height is
- * uniform in the range of the class. The container is one square bin of the class, or a strip of its width.
+ * uniform in the range of the class. The container is one square bin of the class, a strip of its width, or a free size.
  */
 export const berkeyWang: CorpusGenerator<BerkeyWangParams> = defineGenerator<BerkeyWangParams>({
   name: "berkey-wang",
@@ -1872,7 +1872,7 @@ const classDimensions = (classes: readonly string[], value: string, meaning: str
   ownerDimension("class", { kind: "enum", values: Object.freeze([...classes]), default: value, meaning, engines: ["packing"] }),
   {
     ...enumDimension("containerSize", CLASS_SIZES, "freeHeight"),
-    meaning: "The container: one bin of the class (fixed), or a strip of the width of the bin with a free height (freeHeight).",
+    meaning: "The container: one bin of the class (fixed), a strip of the width of the bin (freeHeight), a free size with the aspect of the bin (freeAspect), or a free size with no aspect (freeArea).",
   },
   countDimension(100, { min: 1, levels: Object.freeze([...CLASS_COUNTS]) }),
 ];

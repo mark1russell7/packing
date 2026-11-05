@@ -274,6 +274,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-select-v2` | 2025 | The second test corpus of the feature select: the specs of `pack-select-v1` with the fresh seeds 31 to 35. Write its prediction first. |
 | `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
+| `pack-classes-free-v1` | 600 | The same classes with free sizes of roadmap item k158, and small strips of k160. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
 | `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
@@ -317,6 +318,14 @@ The corpus `pack-classes-v1` has 100 specs, each with the seeds 1 to 5. It has n
 - Each class has the containers `fixed` (one bin of the class) and `freeHeight` (a strip of the width of the bin), and the counts 20, 40, 60, 80 and 100.
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 250 and `shaped` 0.
 - The builder `bench/classes.ts` writes the file. `node bench/classes.ts --check` and a test compare the file with the builder.
+
+The corpus `pack-classes-free-v1` has 120 specs of the same classes, each with the seeds 1 to 5. It holds the 8 entries that refuse each input of `pack-classes-v1`.
+
+- 500 inputs have `freeAspect` or `freeArea` at the counts 20, 40, 60, 80 and 100. The 7 entries of masonry, treemap and columns accept only these forms.
+- 100 inputs have `freeHeight` at the counts 8 and 16. The entry `exact-strip` takes at most 16 items.
+- The container takes no random numbers, so each form of a class, a count and a seed has the same items. A test pins the bytes of each input of `pack-classes-v1`.
+
+A record of a refusal tells the reason in its field `skipped`, for example `refused: the input has more than 16 items`. Records before k160 have only `unsupported containerSize: refused`.
 
 The rules of the classes. Each side is a whole number, uniform in its range, with both ends included.
 

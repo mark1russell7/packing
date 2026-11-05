@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.1
+
+The class generators make 2 more container forms. Old params give the same bytes.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The generators `berkeyWang` and `martelloVigo` accept the values `freeAspect` and `freeArea` of `containerSize`. The type `ClassContainer` has these values.
+
+### Not changed
+
+- Each input of the values `fixed` and `freeHeight` has the same bytes. A test pins them.
+
 ## 0.8.0
 
 A catalog file lists each strategy, `packSpace` has points for the standalone strategies, and `select` gives an unsupported cell to its next member.
