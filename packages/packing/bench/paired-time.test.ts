@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aaId, armOrder, childResult, eventProbe, measureIsolated, pairedMarkdown, quantileOf, timeChild, warmRule, type PairedEnv } from "./paired-time.ts";
+import { aaId, assertPairedOrder, childResult, eventProbe, measureIsolated, pairedMarkdown, quantileOf, timeChild, warmRule, type PairedEnv } from "./paired-time.ts";
 
 const ENV: PairedEnv = { cpu: "Test CPU 9000", cores: 4, os: "test", arch: "x64", node: "v0.0.0" };
 
@@ -9,23 +9,12 @@ function fakeClock() {
   return { clock: () => now, spend: (ms: number) => (now += ms) };
 }
 
-describe("armOrder", () => {
-  it("reverses the order in odd rounds of mode process", () => {
-    expect([0, 1, 2, 3].map((round) => armOrder(3, round, "process"))).toEqual([
-      [0, 1, 2],
-      [2, 1, 0],
-      [0, 1, 2],
-      [2, 1, 0],
-    ]);
-  });
-
-  it("rotates the order each round of mode fresh", () => {
-    expect([0, 1, 2, 3].map((round) => armOrder(3, round, "fresh"))).toEqual([
-      [0, 1, 2],
-      [1, 2, 0],
-      [2, 0, 1],
-      [0, 1, 2],
-    ]);
+describe("assertPairedOrder", () => {
+  it("accepts the report of the home order, and refuses each older schema with its name", () => {
+    expect(() => assertPairedOrder({ schema: "paired-time/3" })).not.toThrow();
+    for (const schema of ["paired-time/1", "paired-time/2"]) {
+      expect(() => assertPairedOrder({ schema } as unknown as { schema: "paired-time/3" })).toThrow(new RegExp(`the schema ${schema}`));
+    }
   });
 });
 
@@ -62,7 +51,7 @@ describe("measureIsolated in mode process", () => {
   });
 
   it("adds the A/A arm, and gives the arms in turn with the warm-up runs not timed", () => {
-    expect(report.schema).toBe("paired-time/2");
+    expect(report.schema).toBe("paired-time/3");
     expect(report.arms).toEqual(["base", "b", aaId("base")]);
     // Round 0 on i1: each arm warms up once and then packs once
     expect(calls.slice(0, 6)).toEqual(["base", "base", "b", "b", "base", "base"]);
@@ -103,7 +92,7 @@ describe("measureIsolated in mode process", () => {
 });
 
 describe("measureIsolated in mode fresh", () => {
-  it("starts a child for each arm, input and round, in the rotated order, and keeps the highest peak", async () => {
+  it("starts a child for each arm, input and round, in the order of the home, and keeps the highest peak", async () => {
     const started: string[] = [];
     const report = await measureIsolated({
       mode: "fresh",
@@ -123,10 +112,10 @@ describe("measureIsolated in mode fresh", () => {
         return { ms: arm === "b" ? 4 : 2, peakRss: 1000 * round };
       },
     });
-    // Round 0: x takes base, b and base (the A/A arm) in turn, then y. Round 1 starts with b
+    // Round 0: x takes base, b and base (the A/A arm) in turn, then y. Round 1 is the reverse: the A/A arm, b and base.
     expect(started.slice(0, 3)).toEqual(["child --arm base --input x --warmup 3", "child --arm b --input x --warmup 3", "child --arm base --input x --warmup 3"]);
     expect(started[3]).toBe("child --arm base --input y --warmup 3");
-    expect(started[6]).toBe("child --arm b --input x --warmup 3");
+    expect(started.slice(6, 9)).toEqual(["child --arm base --input x --warmup 3", "child --arm b --input x --warmup 3", "child --arm base --input x --warmup 3"]);
     expect(started).toHaveLength(12);
     const x = report.inputs.find((i) => i.id === "x")!;
     expect(x.ratio).toEqual({ b: 2, "base~aa": 1 });
@@ -135,7 +124,7 @@ describe("measureIsolated in mode fresh", () => {
     expect(report.mode).toBe("fresh");
     expect(report.ratios["b"]!.groups).toEqual({ all: 2 });
     expect(report.context).toBe("ci --flag");
-    expect(report.schema).toBe("paired-time/2");
+    expect(report.schema).toBe("paired-time/3");
     expect([report.passes, report.warm, x.warm]).toEqual([1, undefined, undefined]);
     expect(() => warmRule(report)).toThrow("needs a report of mode fresh");
     expect(report.wallMs).toBeGreaterThanOrEqual(0);

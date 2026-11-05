@@ -219,8 +219,8 @@ importers:
         specifier: ^1.0.2
         version: 1.1.0
       '@mark1russell7/rigor-bench':
-        specifier: ^0.2.14
-        version: 0.2.14
+        specifier: ^0.2.18
+        version: 0.2.18
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.11
         version: 0.1.11
@@ -504,8 +504,8 @@ packages:
     resolution: {integrity: sha512-bQa9FsW628WY0BJN0qxaFpb8lI2WR36REqkox8Fg7AkDNoOGGCYOd89fPXZpvXxglIbyw6G03YlM1RQn8UdYRA==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/rigor-bench@0.2.14':
-    resolution: {integrity: sha512-ITF8MY2SVe6eL0pDiGf/tyP8NQo2plkxQsxC2PP+bVosy1itbWYuLpix+YV/WnK95mRT0iT1veT76t4U5nRHpQ==}
+  '@mark1russell7/rigor-bench@0.2.18':
+    resolution: {integrity: sha512-ZAHF3iw17OpUDzcoOG5TY5CjVBoc3lHlf+GhR7RBXXzaKy5AQq1tCki4W9rJ/pB3Vh1/3kxZI8RgoM9BIAY7gg==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-generators@0.1.1':
@@ -518,6 +518,10 @@ packages:
 
   '@mark1russell7/rigor-statistics@0.1.11':
     resolution: {integrity: sha512-5tD7QqLE7Y6wWsoImXuszH3JA5VHwGDHjVzobn/JGtYgo24AFTzXlngEPxfW9A5kHD9GFXgWbkgUCNa0RlLToA==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.13':
+    resolution: {integrity: sha512-3QBuJnQ+GyYW+SboDNPeSCZW793Jh+46/u/NXV+7345nzCvW28uDG7iiAUwTSksXdqsGkXcfxTo5JMG7Wzekdg==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-statistics@0.1.9':
@@ -1712,16 +1716,20 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.1
       '@mark1russell7/typeset': 0.1.0
 
-  '@mark1russell7/rigor-bench@0.2.14':
+  '@mark1russell7/rigor-bench@0.2.18':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.5
-      '@mark1russell7/rigor-statistics': 0.1.11
+      '@mark1russell7/rigor-statistics': 0.1.13
 
   '@mark1russell7/rigor-generators@0.1.1': {}
 
   '@mark1russell7/rigor-generators@0.1.5': {}
 
   '@mark1russell7/rigor-statistics@0.1.11':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.5
+
+  '@mark1russell7/rigor-statistics@0.1.13':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.5
 

@@ -40,7 +40,7 @@ const GATE: TimeGate = {
 const QUIET = [1.02, 0.98, 1, 1.01, 0.99];
 const rounds = (r: number): number[] => [10 * r, 10 * r, 10 * r];
 const REPORT = {
-  schema: "paired-time/1",
+  schema: "paired-time/3",
   mode: "process",
   env: { cpu: "Test CPU", cores: 1, os: "test", arch: "x64", node: "v0" },
   base: "a",

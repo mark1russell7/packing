@@ -1,13 +1,15 @@
-// The paired time test of two or more arms, to the shared interface paired-time/2 (k127, k130, `docs/BENCH.md`, "A paired time test of strategies").
+// The paired time test of two or more arms, to the shared interface paired-time/3 (k127, k130, `docs/BENCH.md`, "A paired time test of strategies").
 //
 // This file imports no type of the packer. highways keeps a copy to the same interface, and the two copies go into the
 // gates package of rigor as one file. The rule is STRATEGY.md 49537337 and 211125cd of the fleet: a comparison runs its
 // arms in one job, interleaved per input, and an A/A arm (the base against itself) gives the noise floor.
 //
-// - Mode `process`: one process. In each round, the arms run in turn on each input. Odd rounds reverse the order (ABBA).
-// - Mode `fresh`: a fresh process for each arm, each input and each round. Each input takes the arms in turn. The order rotates each round.
+// - Mode `process`: one process. In each round, the arms run in turn on each input.
+// - Mode `fresh`: a fresh process for each arm, each input and each round. Each input takes the arms in turn.
+// - In both modes, the order of the arms in a round comes from `armOrder` of `@mark1russell7/rigor-bench`: each pair has each order about equally often.
 //
-// Schema `paired-time/2` is `paired-time/1` with the fields `passes`, `warm` and `wallMs`. A reader of version 2 reads version 1.
+// Schema `paired-time/2` is `paired-time/1` with the fields `passes`, `warm` and `wallMs`. Schema `paired-time/3` is schema 2 in the new order.
+// A pair reader refuses a report of an older schema, because the first arm of a pair in that report is not the first arm of the new order.
 // A run with the event count (`eventProbe`) adds the field `events` to each input.
 
 import { spawn } from "node:child_process";
@@ -16,6 +18,7 @@ import { arch, cpus, platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { PerformanceObserver } from "node:perf_hooks";
 import { setFlagsFromString } from "node:v8";
+import { armOrder } from "@mark1russell7/rigor-bench";
 
 /** The mode of a paired time run. */
 export type Mode = "process" | "fresh";
@@ -132,9 +135,21 @@ export interface PairedWarm {
   outside: number | null;
 }
 
-/** The report of a paired time run: schema `paired-time/2`. A file of version 1 has no `passes`, `warm` and `wallMs`. */
+/** The schema of a paired time report. Schema 3 has the order of `armOrder` of `@mark1russell7/rigor-bench`, in both modes. */
+export const PAIRED_SCHEMA = "paired-time/3" as const;
+
+/**
+ * This function refuses a report of an older schema with a `RangeError`.
+ *
+ * An older report has another order of the arms, so this code cannot read which arm of a pair started first.
+ */
+export function assertPairedOrder(report: Pick<PairedReport, "schema">): void {
+  if (report.schema !== PAIRED_SCHEMA) throw new RangeError(`The report has the schema ${String(report.schema)}, and the order of its arms is not the order of ${PAIRED_SCHEMA}. Run it again.`);
+}
+
+/** The report of a paired time run: schema `paired-time/3`. A file of version 1 has no `passes`, `warm` and `wallMs`. */
 export interface PairedReport {
-  schema: "paired-time/1" | "paired-time/2";
+  schema: typeof PAIRED_SCHEMA;
   mode: Mode;
   /** The context of the run: `ci` or `local` (or `BENCH_MODE`), with the Node.js flags */
   context?: string;
@@ -173,19 +188,6 @@ export function pairedEnv(): PairedEnv {
 export function pairedContext(): string {
   const where = process.env["BENCH_MODE"] || (process.env["CI"] ? "ci" : "local");
   return [where, ...process.execArgv].join(" ");
-}
-
-/**
- * This function gives the order of the arms in one round.
- *
- * - Mode `process`: the order of the arms, reversed in each odd round.
- * - Mode `fresh`: the order of the arms, rotated by the index of the round.
- */
-export function armOrder(arms: number, round: number, mode: Mode): number[] {
-  const at = Array.from({ length: arms }, (_, i) => i);
-  if (mode === "process") return round % 2 === 1 ? at.toReversed() : at;
-  const shift = arms === 0 ? 0 : round % arms;
-  return [...at.slice(shift), ...at.slice(0, shift)];
 }
 
 /** This function gives the quantile `q` of a list, with a linear interpolation between the two nearest values. An empty list gives NaN. */
@@ -316,7 +318,7 @@ export function pairedReport<I>(
   const band = floor === undefined ? undefined : { p10: floor.p10, p90: floor.p90 };
   const ratios: Record<string, PairedRatio> = {};
   for (const a of arms.slice(1)) ratios[a.id] = ratioOf(rowsOf(a.id), band);
-  const report: PairedReport = { schema: "paired-time/2", mode, ...(context === undefined ? {} : { context }), env, base, arms: arms.map((a) => a.id), inputs: rows, ratios, noiseFloor: floor === undefined ? null : { median: floor.median, p10: floor.p10, p90: floor.p90 } };
+  const report: PairedReport = { schema: PAIRED_SCHEMA, mode, ...(context === undefined ? {} : { context }), env, base, arms: arms.map((a) => a.id), inputs: rows, ratios, noiseFloor: floor === undefined ? null : { median: floor.median, p10: floor.p10, p90: floor.p90 } };
   if (mode === "fresh" && run.passes !== undefined) report.passes = run.passes;
   if (rows.some((r) => r.warm !== undefined)) report.warm = Object.fromEntries(arms.map((a) => [a.id, warmOf(rows.flatMap((r) => (r.warm?.[a.id] === undefined ? [] : [r.warm[a.id]!])), band)]));
   if (run.wallMs !== undefined) report.wallMs = run.wallMs;
@@ -451,8 +453,7 @@ function measureProcess<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Paired
   const began = performance.now();
   for (let round = 0; round < o.repeats; round++) {
     for (const input of o.inputs) {
-      for (const at of armOrder(arms.length, round, "process")) {
-        const arm = arms[at]!;
+      for (const arm of armOrder(arms, round)) {
         const run = arm.run!;
         for (let w = 0; w < warmup; w++) run(input.value as I);
         const start = clock();
@@ -466,7 +467,7 @@ function measureProcess<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Paired
   return pairedReport("process", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw, { wallMs: performance.now() - began });
 }
 
-/** This function times the arms with a fresh process for each arm, each input and each round. Each input takes the arms in turn, in an order that rotates each round. */
+/** This function times the arms with a fresh process for each arm, each input and each round. Each input takes the arms in turn, in the order of `armOrder`. */
 async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Promise<PairedReport> {
   const start = o.startChild ?? startProcess;
   const warmup = o.warmup ?? 1;
@@ -475,8 +476,7 @@ async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Pr
   const began = performance.now();
   for (let round = 0; round < o.repeats; round++) {
     for (const input of o.inputs) {
-      for (const at of armOrder(arms.length, round, "fresh")) {
-        const arm = arms[at]!;
+      for (const arm of armOrder(arms, round)) {
         const result = await start(arm.command!, input.id, warmup, passes);
         raw.ms.get(input.id)!.get(arm.id)!.push(result.ms);
         if (result.warm !== undefined) raw.warm.get(input.id)!.get(arm.id)!.push(result.warm);
@@ -497,7 +497,7 @@ async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Pr
 }
 
 /**
- * This function times the arms of a comparison, and gives the report of schema `paired-time/2`.
+ * This function times the arms of a comparison, and gives the report of schema `paired-time/3`.
  *
  * - Mode `process` gives the report. Mode `fresh` gives a promise of the report.
  * - With `aa` (the default), the report has an A/A arm and the noise floor.

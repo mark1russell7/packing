@@ -51,6 +51,7 @@ import {
 } from "./coverage.ts";
 import { skipRead, type SkipRead } from "./skip-words.ts";
 import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
+import { NOT_RUN_BASE } from "./run.ts";
 import { ENTRIES } from "./entries.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 import type { PriorKind } from "./prior.ts";
@@ -238,7 +239,7 @@ const breaksOf = (r: SnapshotRecord): number => Object.values(r.hard ?? {}).redu
 const inputKeyOf = (r: SnapshotRecord): string => `${r.input}#${r.seed}`;
 
 /** The reasons of a pair that a wall budget ended. The input of such a pair leaves a comparison of all strategies. */
-const BUDGET_REASONS: ReadonlySet<string> = new Set([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB]);
+const BUDGET_REASONS: ReadonlySet<string> = new Set([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB, NOT_RUN_BASE]);
 
 /** This function gives the inputs that the measured records of a strategy finished. */
 function finishedOf(live: readonly SnapshotRecord[]): StrategyFinished {

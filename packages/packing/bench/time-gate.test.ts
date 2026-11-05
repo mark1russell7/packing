@@ -33,7 +33,7 @@ const rounds = (r: number): number[] => [10 * r, 10 * r, 10 * r];
 function report(ratios: number[], over: Partial<PairedReport> = {}, aa: number[] = QUIET): PairedReport {
   const inputs = ratios.map((r, i) => ({ id: `i${i}`, group: "all", ms: { a: rounds(1), b: rounds(r), "a~aa": rounds(aa[i % aa.length]!) }, median: {}, ratio: { b: r, "a~aa": 1 } }));
   return {
-    schema: "paired-time/1",
+    schema: "paired-time/3",
     mode: "process",
     env: { cpu: "Test CPU", cores: 1, os: "test", arch: "x64", node: "v0" },
     base: "a",
@@ -48,16 +48,23 @@ function report(ratios: number[], over: Partial<PairedReport> = {}, aa: number[]
 describe("pairRecords", () => {
   it("gives one record of rigor-bench for each input and round, with the arm that ran first", () => {
     const records = pairRecords(report([2]), report([2]).inputs, "b");
-    // Mode process: the order a, b, a~aa, reversed in the odd rounds
+    // The order of the home: [a, b, a~aa], its reverse, then [b, a~aa, a]
     expect(records).toEqual([
       { case: "i0", round: 0, first: "a", a: 10, b: 20 },
       { case: "i0", round: 1, first: "b", a: 10, b: 20 },
-      { case: "i0", round: 2, first: "a", a: 10, b: 20 },
+      { case: "i0", round: 2, first: "b", a: 10, b: 20 },
     ]);
   });
 });
 
 describe("checkTimeGate", () => {
+  it("refuses a report of an older schema, and names the schema", () => {
+    const old = report([1.95, 2, 2, 2.1, 1.9], { schema: "paired-time/2" } as unknown as Partial<PairedReport>);
+    const result = checkTimeGate(GATE, old, "set-v1");
+    expect(result.verdict).toBe("fail");
+    expect(result.refused.join(" ")).toContain("the schema paired-time/2");
+  });
+
   it("passes a report with the median at most the limit, and reports the q95 and the time verdict", () => {
     const result = checkTimeGate(GATE, report([1.95, 2, 2, 2.1, 1.9]), "set-v1");
     expect([result.pass, result.verdict, result.time]).toEqual([true, "pass", "slower"]);
