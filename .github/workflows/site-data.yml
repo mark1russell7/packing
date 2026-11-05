@@ -131,8 +131,16 @@ jobs:
                     echo "::warning::The records of the run $earlier_run are gone, so the step of $corpus has no figure."
                   fi
                 fi
+                # A Bench run keeps its sample in the folder sample of its records. A coverage run keeps it in the artifact
+                # nightly-held-out (k188). Without that sample, the point has no read of the whole space by the prior.
+                sample_args=()
+                artifacts="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$run/artifacts" -q '.artifacts[].name')"
+                if grep -qxF nightly-held-out <<<"$artifacts"; then
+                  gh run download "$run" -R "$GITHUB_REPOSITORY" -n nightly-held-out -D "$RUNNER_TEMP/held-out/$corpus"
+                  sample_args=(--sample "$RUNNER_TEMP/held-out/$corpus")
+                fi
                 # The point records how its run started, so the trend shows a point of a dispatch as one.
-                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --event "$event" --no-row "$NO_ROW" "${earlier_args[@]}"
+                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --event "$event" --no-row "$NO_ROW" "${earlier_args[@]}" "${sample_args[@]}"
                 ;;
               *)
                 echo "The corpus $corpus has no file of the site."
