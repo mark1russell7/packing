@@ -1,0 +1,3603 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "strategies",
+ "corpus": "pack-select-v2",
+ "origin": [
+  {
+   "release": "0.2.15",
+   "commit": "54a9e83",
+   "date": "2026-10-28",
+   "run": 40708970161,
+   "source": "bench.yml, the artifact bench-pack-select-v2"
+  }
+ ],
+ "baseline": "rows",
+ "level": 0.05,
+ "inputs": 2025,
+ "families": 405,
+ "measures": [
+  {
+   "id": "pack.fill",
+   "direction": "higher",
+   "tie": 0.005
+  },
+  {
+   "id": "pack.order.inversions",
+   "direction": "lower",
+   "tie": 0
+  },
+  {
+   "id": "pack.aspectError",
+   "direction": "lower",
+   "tie": 0.01
+  },
+  {
+   "id": "pack.overflow.excessArea",
+   "direction": "lower",
+   "tie": 0.005
+  }
+ ],
+ "strategies": [
+  {
+   "strategy": "aspect-fit-maxrects-bl",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 1.279,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 113 of 405 (44 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07227,
+      "lo": 0.06891,
+      "hi": 0.07568
+     },
+     "pooled": {
+      "mean": 0.07227,
+      "lo": 0.06596,
+      "hi": 0.07884
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 248,
+      "losses": 113,
+      "ties": 44
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7768
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 139 of 405 (101 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.0005012,
+      "lo": -0.004026,
+      "hi": 0.005047
+     },
+     "pooled": {
+      "mean": 0.0005012,
+      "lo": -0.004634,
+      "hi": 0.005495
+     },
+     "p": 0.8513,
+     "signs": {
+      "wins": 165,
+      "losses": 139,
+      "ties": 101
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4291
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 187 of 405 (53 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.1997,
+      "lo": 0.1865,
+      "hi": 0.2126
+     },
+     "pooled": {
+      "mean": 0.1997,
+      "lo": 0.1649,
+      "hi": 0.236
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 165,
+      "losses": 187,
+      "ties": 53
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.5804
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (256 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07067,
+      "lo": 0.06727,
+      "hi": 0.07401
+     },
+     "pooled": {
+      "mean": 0.07067,
+      "lo": 0.06469,
+      "hi": 0.07692
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 149,
+      "losses": 0,
+      "ties": 256
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04268
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 200,
+     "losses": 36,
+     "ties": 16
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 18,
+     "losses": 52,
+     "ties": 2
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 28,
+     "losses": 24,
+     "ties": 20
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "aspect-fit-maxrects-bssf",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.796,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "worse",
+     "summary": "worse on these families, better on 125 of 405 (33 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.04572,
+      "lo": -0.04977,
+      "hi": -0.04179
+     },
+     "pooled": {
+      "mean": -0.04572,
+      "lo": -0.05473,
+      "hi": -0.03672
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 125,
+      "losses": 247,
+      "ties": 33
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.6588
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 154 of 405 (76 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.001999,
+      "lo": -0.006741,
+      "hi": 0.002661
+     },
+     "pooled": {
+      "mean": -0.001999,
+      "lo": -0.007322,
+      "hi": 0.003308
+     },
+     "p": 0.4575,
+     "signs": {
+      "wins": 154,
+      "losses": 175,
+      "ties": 76
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4316
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 50 of 405 (44 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.5281,
+      "lo": 0.5136,
+      "hi": 0.5422
+     },
+     "pooled": {
+      "mean": 0.5281,
+      "lo": 0.4933,
+      "hi": 0.5637
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 311,
+      "losses": 50,
+      "ties": 44
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.252
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (256 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07151,
+      "lo": 0.06812,
+      "hi": 0.07487
+     },
+     "pooled": {
+      "mean": 0.07151,
+      "lo": 0.06542,
+      "hi": 0.07776
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 149,
+      "losses": 0,
+      "ties": 256
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04185
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 98,
+     "losses": 142,
+     "ties": 12
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 6,
+     "losses": 60,
+     "ties": 6
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 18,
+     "losses": 44,
+     "ties": 10
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "aspect-fit-portfolio-k2",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 2.662,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 78 of 405 (57 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.08211,
+      "lo": 0.07858,
+      "hi": 0.08566
+     },
+     "pooled": {
+      "mean": 0.08211,
+      "lo": 0.07577,
+      "hi": 0.08872
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 270,
+      "losses": 78,
+      "ties": 57
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7866
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 134 of 405 (117 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.0009333,
+      "lo": -0.003529,
+      "hi": 0.005256
+     },
+     "pooled": {
+      "mean": 0.0009333,
+      "lo": -0.004045,
+      "hi": 0.005823
+     },
+     "p": 0.7107,
+     "signs": {
+      "wins": 154,
+      "losses": 134,
+      "ties": 117
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4287
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 172 of 405 (76 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.2239,
+      "lo": 0.2105,
+      "hi": 0.2369
+     },
+     "pooled": {
+      "mean": 0.2239,
+      "lo": 0.1892,
+      "hi": 0.2603
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 157,
+      "losses": 172,
+      "ties": 76
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.5562
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (255 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07172,
+      "lo": 0.06831,
+      "hi": 0.07512
+     },
+     "pooled": {
+      "mean": 0.07172,
+      "lo": 0.06563,
+      "hi": 0.07807
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 150,
+      "losses": 0,
+      "ties": 255
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04164
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 218,
+     "losses": 6,
+     "ties": 28
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 18,
+     "losses": 52,
+     "ties": 2
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 31,
+     "losses": 20,
+     "ties": 21
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "maxrects-baf",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 1.131,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "worse",
+     "summary": "worse on these families, better on 180 of 405 (58 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.01582,
+      "lo": -0.01975,
+      "hi": -0.01193
+     },
+     "pooled": {
+      "mean": -0.01582,
+      "lo": -0.02469,
+      "hi": -0.006799
+     },
+     "p": 0.00055,
+     "signs": {
+      "wins": 180,
+      "losses": 167,
+      "ties": 58
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.6887
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 157 of 405 (79 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.001409,
+      "lo": -0.006245,
+      "hi": 0.003321
+     },
+     "pooled": {
+      "mean": -0.001409,
+      "lo": -0.006776,
+      "hi": 0.003908
+     },
+     "p": 0.6091,
+     "signs": {
+      "wins": 157,
+      "losses": 169,
+      "ties": 79
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.431
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 99 of 405 (63 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.2196,
+      "lo": 0.2055,
+      "hi": 0.2336
+     },
+     "pooled": {
+      "mean": 0.2196,
+      "lo": 0.196,
+      "hi": 0.2446
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 243,
+      "losses": 99,
+      "ties": 63
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.5605
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (256 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07016,
+      "lo": 0.06678,
+      "hi": 0.07356
+     },
+     "pooled": {
+      "mean": 0.07016,
+      "lo": 0.06419,
+      "hi": 0.07635
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 149,
+      "losses": 0,
+      "ties": 256
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.0432
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 111,
+     "losses": 130,
+     "ties": 11
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 34,
+     "losses": 18,
+     "ties": 20
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 32,
+     "losses": 18,
+     "ties": 22
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "maxrects-bl",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.901,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 43 of 405 (84 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.08796,
+      "lo": 0.0847,
+      "hi": 0.09127
+     },
+     "pooled": {
+      "mean": 0.08796,
+      "lo": 0.08224,
+      "hi": 0.09411
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 278,
+      "losses": 43,
+      "ties": 84
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7925
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 140 of 405 (102 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.0007027,
+      "lo": -0.003754,
+      "hi": 0.005139
+     },
+     "pooled": {
+      "mean": 0.0007027,
+      "lo": -0.004369,
+      "hi": 0.005673
+     },
+     "p": 0.7804,
+     "signs": {
+      "wins": 163,
+      "losses": 140,
+      "ties": 102
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4289
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 116 of 405 (73 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.05705,
+      "lo": -0.06844,
+      "hi": -0.04557
+     },
+     "pooled": {
+      "mean": -0.05705,
+      "lo": -0.07153,
+      "hi": -0.04239
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 116,
+      "losses": 216,
+      "ties": 73
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8371
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (256 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07067,
+      "lo": 0.06727,
+      "hi": 0.07401
+     },
+     "pooled": {
+      "mean": 0.07067,
+      "lo": 0.06469,
+      "hi": 0.07692
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 149,
+      "losses": 0,
+      "ties": 256
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04268
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 200,
+     "losses": 36,
+     "ties": 16
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 38,
+     "losses": 2,
+     "ties": 32
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 38,
+     "losses": 4,
+     "ties": 30
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "maxrects-blsf",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 1.142,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "worse",
+     "summary": "worse on these families, better on 156 of 405 (35 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.03328,
+      "lo": -0.03743,
+      "hi": -0.02906
+     },
+     "pooled": {
+      "mean": -0.03328,
+      "lo": -0.04226,
+      "hi": -0.02442
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 156,
+      "losses": 214,
+      "ties": 35
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.6713
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 141 of 405 (85 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.004533,
+      "lo": -0.009305,
+      "hi": 0.0001447
+     },
+     "pooled": {
+      "mean": -0.004533,
+      "lo": -0.009953,
+      "hi": 0.0007892
+     },
+     "p": 0.09925,
+     "signs": {
+      "wins": 141,
+      "losses": 179,
+      "ties": 85
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4341
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 217 of 405 (14 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.1072,
+      "lo": -0.1264,
+      "hi": -0.08887
+     },
+     "pooled": {
+      "mean": -0.1072,
+      "lo": -0.1545,
+      "hi": -0.05869
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 217,
+      "losses": 174,
+      "ties": 14
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8873
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (258 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07017,
+      "lo": 0.06685,
+      "hi": 0.07349
+     },
+     "pooled": {
+      "mean": 0.07017,
+      "lo": 0.06424,
+      "hi": 0.07632
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 147,
+      "losses": 0,
+      "ties": 258
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04318
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 115,
+     "losses": 127,
+     "ties": 10
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 8,
+     "losses": 44,
+     "ties": 20
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 30,
+     "losses": 40,
+     "ties": 2
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "maxrects-bssf",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 1.176,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "worse",
+     "summary": "worse on these families, better on 157 of 405 (65 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.02431,
+      "lo": -0.02809,
+      "hi": -0.02051
+     },
+     "pooled": {
+      "mean": -0.02431,
+      "lo": -0.03341,
+      "hi": -0.01524
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 157,
+      "losses": 183,
+      "ties": 65
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.6802
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 150 of 405 (84 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.001741,
+      "lo": -0.006324,
+      "hi": 0.002868
+     },
+     "pooled": {
+      "mean": -0.001741,
+      "lo": -0.006993,
+      "hi": 0.003466
+     },
+     "p": 0.5098,
+     "signs": {
+      "wins": 150,
+      "losses": 171,
+      "ties": 84
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4314
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 86 of 405 (63 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.2461,
+      "lo": 0.233,
+      "hi": 0.2595
+     },
+     "pooled": {
+      "mean": 0.2461,
+      "lo": 0.2231,
+      "hi": 0.2701
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 256,
+      "losses": 86,
+      "ties": 63
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.5339
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (256 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07151,
+      "lo": 0.06812,
+      "hi": 0.07487
+     },
+     "pooled": {
+      "mean": 0.07151,
+      "lo": 0.06542,
+      "hi": 0.07776
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 149,
+      "losses": 0,
+      "ties": 256
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04185
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 98,
+     "losses": 142,
+     "ties": 12
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 32,
+     "losses": 16,
+     "ties": 24
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 24,
+     "losses": 24,
+     "ties": 24
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "maxrects-cp",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 1.708,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "worse",
+     "summary": "worse on these families, better on 128 of 405 (38 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.1087,
+      "lo": -0.1133,
+      "hi": -0.1042
+     },
+     "pooled": {
+      "mean": -0.1087,
+      "lo": -0.1207,
+      "hi": -0.09671
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 128,
+      "losses": 239,
+      "ties": 38
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.5958
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 140 of 405 (91 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.004228,
+      "lo": -0.008406,
+      "hi": -0.00007546
+     },
+     "pooled": {
+      "mean": -0.004228,
+      "lo": -0.008965,
+      "hi": 0.0004336
+     },
+     "p": 0.07995,
+     "signs": {
+      "wins": 140,
+      "losses": 174,
+      "ties": 91
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4338
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 207 of 405 (26 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.2425,
+      "lo": -0.2631,
+      "hi": -0.2216
+     },
+     "pooled": {
+      "mean": -0.2425,
+      "lo": -0.2999,
+      "hi": -0.1853
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 207,
+      "losses": 172,
+      "ties": 26
+     },
+     "means": {
+      "a": 0.78,
+      "b": 1.023
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (255 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07102,
+      "lo": 0.06759,
+      "hi": 0.07438
+     },
+     "pooled": {
+      "mean": 0.07102,
+      "lo": 0.065,
+      "hi": 0.07736
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 150,
+      "losses": 0,
+      "ties": 255
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04234
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 116,
+     "losses": 128,
+     "ties": 8
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 0,
+     "losses": 48,
+     "ties": 24
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 12,
+     "losses": 60,
+     "ties": 0
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "portfolio-area-rows-bl",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 2.662,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (132 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.06072,
+      "lo": 0.058,
+      "hi": 0.0636
+     },
+     "pooled": {
+      "mean": 0.06072,
+      "lo": 0.05668,
+      "hi": 0.0649
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 273,
+      "losses": 0,
+      "ties": 132
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7653
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 119 of 405 (160 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.001315,
+      "lo": -0.001036,
+      "hi": 0.003695
+     },
+     "pooled": {
+      "mean": 0.001315,
+      "lo": -0.001404,
+      "hi": 0.003954
+     },
+     "p": 0.3326,
+     "signs": {
+      "wins": 126,
+      "losses": 119,
+      "ties": 160
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4283
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 50 of 405 (161 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.05878,
+      "lo": -0.06733,
+      "hi": -0.05049
+     },
+     "pooled": {
+      "mean": -0.05878,
+      "lo": -0.06968,
+      "hi": -0.04785
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 50,
+      "losses": 194,
+      "ties": 161
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8388
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (314 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.01207,
+      "lo": 0.01035,
+      "hi": 0.01384
+     },
+     "pooled": {
+      "mean": 0.01207,
+      "lo": 0.009956,
+      "hi": 0.01436
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 91,
+      "losses": 0,
+      "ties": 314
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.1013
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 187,
+     "losses": 0,
+     "ties": 65
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 36,
+     "losses": 0,
+     "ties": 36
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 48,
+     "losses": 0,
+     "ties": 24
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "portfolio-k2",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 4.387,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 6 of 405 (97 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.09739,
+      "lo": 0.09395,
+      "hi": 0.1009
+     },
+     "pooled": {
+      "mean": 0.09739,
+      "lo": 0.09157,
+      "hi": 0.1035
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 302,
+      "losses": 6,
+      "ties": 97
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.8019
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 136 of 405 (113 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.001603,
+      "lo": -0.002726,
+      "hi": 0.005813
+     },
+     "pooled": {
+      "mean": 0.001603,
+      "lo": -0.003331,
+      "hi": 0.006399
+     },
+     "p": 0.5194,
+     "signs": {
+      "wins": 156,
+      "losses": 136,
+      "ties": 113
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.428
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 100 of 405 (91 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.05231,
+      "lo": -0.06692,
+      "hi": -0.03779
+     },
+     "pooled": {
+      "mean": -0.05231,
+      "lo": -0.07236,
+      "hi": -0.03343
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 100,
+      "losses": 214,
+      "ties": 91
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8324
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (255 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07172,
+      "lo": 0.06831,
+      "hi": 0.07512
+     },
+     "pooled": {
+      "mean": 0.07172,
+      "lo": 0.06563,
+      "hi": 0.07807
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 150,
+      "losses": 0,
+      "ties": 255
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04164
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 218,
+     "losses": 6,
+     "ties": 28
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 38,
+     "losses": 0,
+     "ties": 34
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 43,
+     "losses": 0,
+     "ties": 29
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "portfolio-k3",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 6.155,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 5 of 405 (75 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.1025,
+      "lo": 0.09903,
+      "hi": 0.106
+     },
+     "pooled": {
+      "mean": 0.1025,
+      "lo": 0.09672,
+      "hi": 0.1086
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 325,
+      "losses": 5,
+      "ties": 75
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.807
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 133 of 405 (118 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.00138,
+      "lo": -0.002913,
+      "hi": 0.005627
+     },
+     "pooled": {
+      "mean": 0.00138,
+      "lo": -0.003486,
+      "hi": 0.006096
+     },
+     "p": 0.5787,
+     "signs": {
+      "wins": 154,
+      "losses": 133,
+      "ties": 118
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4282
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 103 of 405 (74 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.1149,
+      "lo": -0.1361,
+      "hi": -0.09399
+     },
+     "pooled": {
+      "mean": -0.1149,
+      "lo": -0.1441,
+      "hi": -0.08645
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 103,
+      "losses": 228,
+      "ties": 74
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.895
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (255 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07191,
+      "lo": 0.0685,
+      "hi": 0.07534
+     },
+     "pooled": {
+      "mean": 0.07191,
+      "lo": 0.06583,
+      "hi": 0.07831
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 150,
+      "losses": 0,
+      "ties": 255
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04145
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 219,
+     "losses": 5,
+     "ties": 28
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 42,
+     "losses": 0,
+     "ties": 30
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 60,
+     "losses": 0,
+     "ties": 12
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "push",
+   "records": 2025,
+   "skipped": 2025,
+   "msMedian": null,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "not measured",
+     "summary": "not measured: no input has records of both sides",
+     "n": 0,
+     "families": 0
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "not measured",
+     "summary": "not measured: no input has records of both sides",
+     "n": 0,
+     "families": 0
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "not measured",
+     "summary": "not measured: no input has records of both sides",
+     "n": 0,
+     "families": 0
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "not measured",
+     "summary": "not measured: no input has records of both sides",
+     "n": 0,
+     "families": 0
+    }
+   ],
+   "groups": []
+  },
+  {
+   "strategy": "rows",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.292,
+   "hardBreaks": 0,
+   "verdicts": [],
+   "groups": []
+  },
+  {
+   "strategy": "select-rows-bl",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.775,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 13 of 405 (163 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.08675,
+      "lo": 0.08354,
+      "hi": 0.09001
+     },
+     "pooled": {
+      "mean": 0.08675,
+      "lo": 0.08104,
+      "hi": 0.09288
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 229,
+      "losses": 13,
+      "ties": 163
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7913
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 110 of 405 (167 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.00003111,
+      "lo": -0.004327,
+      "hi": 0.00437
+     },
+     "pooled": {
+      "mean": 0.00003111,
+      "lo": -0.00506,
+      "hi": 0.004856
+     },
+     "p": 0.9892,
+     "signs": {
+      "wins": 128,
+      "losses": 110,
+      "ties": 167
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4296
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 60 of 405 (176 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.05401,
+      "lo": -0.06254,
+      "hi": -0.04556
+     },
+     "pooled": {
+      "mean": -0.05401,
+      "lo": -0.0654,
+      "hi": -0.04267
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 60,
+      "losses": 169,
+      "ties": 176
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8341
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (256 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.07063,
+      "lo": 0.06722,
+      "hi": 0.07397
+     },
+     "pooled": {
+      "mean": 0.07063,
+      "lo": 0.06464,
+      "hi": 0.07687
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 149,
+      "losses": 0,
+      "ties": 256
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.04273
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 189,
+     "losses": 12,
+     "ties": 51
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 20,
+     "losses": 0,
+     "ties": 52
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 20,
+     "losses": 0,
+     "ties": 52
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    }
+   ]
+  },
+  {
+   "strategy": "shelf",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.215,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 22 of 405 (369 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.001228,
+      "lo": -0.0002564,
+      "hi": 0.002616
+     },
+     "pooled": {
+      "mean": 0.001228,
+      "lo": -0.001354,
+      "hi": 0.003832
+     },
+     "p": 0.3656,
+     "signs": {
+      "wins": 14,
+      "losses": 22,
+      "ties": 369
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7058
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: better on the family mean, worse on 12 of 405 (371 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.001067,
+      "lo": 0.00003749,
+      "hi": 0.002172
+     },
+     "pooled": {
+      "mean": 0.001067,
+      "lo": -0.0000736,
+      "hi": 0.002359
+     },
+     "p": 0.09315,
+     "signs": {
+      "wins": 22,
+      "losses": 12,
+      "ties": 371
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4285
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 11 of 405 (370 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.01507,
+      "lo": -0.01956,
+      "hi": -0.01046
+     },
+     "pooled": {
+      "mean": -0.01507,
+      "lo": -0.02333,
+      "hi": -0.007081
+     },
+     "p": 0.00015,
+     "signs": {
+      "wins": 11,
+      "losses": 24,
+      "ties": 370
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.7951
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on none of 405 (387 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.002586,
+      "lo": -0.003203,
+      "hi": -0.001979
+     },
+     "pooled": {
+      "mean": -0.002586,
+      "lo": -0.003556,
+      "hi": -0.001707
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 0,
+      "losses": 18,
+      "ties": 387
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.1159
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 14,
+     "losses": 5,
+     "ties": 233
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 0,
+     "losses": 8,
+     "ties": 64
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 0,
+     "losses": 6,
+     "ties": 66
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "shelf-best",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 1.05,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 46 of 405 (159 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.02133,
+      "lo": 0.0192,
+      "hi": 0.02352
+     },
+     "pooled": {
+      "mean": 0.02133,
+      "lo": 0.01844,
+      "hi": 0.02423
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 200,
+      "losses": 46,
+      "ties": 159
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7259
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 136 of 405 (160 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.001038,
+      "lo": -0.004496,
+      "hi": 0.00249
+     },
+     "pooled": {
+      "mean": -0.001038,
+      "lo": -0.005015,
+      "hi": 0.002883
+     },
+     "p": 0.6121,
+     "signs": {
+      "wins": 136,
+      "losses": 109,
+      "ties": 160
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4307
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 64 of 405 (195 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.04132,
+      "lo": -0.04992,
+      "hi": -0.03264
+     },
+     "pooled": {
+      "mean": -0.04132,
+      "lo": -0.0518,
+      "hi": -0.03097
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 64,
+      "losses": 146,
+      "ties": 195
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8214
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 3 of 405 (282 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.01878,
+      "lo": 0.01756,
+      "hi": 0.01998
+     },
+     "pooled": {
+      "mean": 0.01878,
+      "lo": 0.01693,
+      "hi": 0.02069
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 120,
+      "losses": 3,
+      "ties": 282
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.09458
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 127,
+     "losses": 23,
+     "ties": 102
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 40,
+     "losses": 6,
+     "ties": 26
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 32,
+     "losses": 16,
+     "ties": 24
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    }
+   ]
+  },
+  {
+   "strategy": "shelf-first",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.677,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 54 of 405 (153 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.02102,
+      "lo": 0.01885,
+      "hi": 0.02327
+     },
+     "pooled": {
+      "mean": 0.02102,
+      "lo": 0.01804,
+      "hi": 0.024
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 198,
+      "losses": 54,
+      "ties": 153
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7256
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 117 of 405 (181 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.001254,
+      "lo": -0.004809,
+      "hi": 0.002284
+     },
+     "pooled": {
+      "mean": -0.001254,
+      "lo": -0.005283,
+      "hi": 0.002701
+     },
+     "p": 0.5444,
+     "signs": {
+      "wins": 117,
+      "losses": 107,
+      "ties": 181
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4309
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 61 of 405 (161 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.04267,
+      "lo": -0.0514,
+      "hi": -0.03415
+     },
+     "pooled": {
+      "mean": -0.04267,
+      "lo": -0.05308,
+      "hi": -0.03224
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 61,
+      "losses": 183,
+      "ties": 161
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8227
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 3 of 405 (282 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.01875,
+      "lo": 0.01754,
+      "hi": 0.01995
+     },
+     "pooled": {
+      "mean": 0.01875,
+      "lo": 0.01689,
+      "hi": 0.02067
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 120,
+      "losses": 3,
+      "ties": 282
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.0946
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 125,
+     "losses": 47,
+     "ties": 80
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 40,
+     "losses": 4,
+     "ties": 28
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 32,
+     "losses": 2,
+     "ties": 38
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    }
+   ]
+  },
+  {
+   "strategy": "shelf-first-input",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.651,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "worse",
+     "summary": "worse on these families, better on 78 of 405 (76 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.04328,
+      "lo": -0.04638,
+      "hi": -0.04006
+     },
+     "pooled": {
+      "mean": -0.04328,
+      "lo": -0.04785,
+      "hi": -0.03856
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 78,
+      "losses": 251,
+      "ties": 76
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.6613
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on none of 405 (56 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.3523,
+      "lo": 0.3469,
+      "hi": 0.3577
+     },
+     "pooled": {
+      "mean": 0.3523,
+      "lo": 0.3436,
+      "hi": 0.361
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 349,
+      "losses": 0,
+      "ties": 56
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.07733
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 179 of 405 (70 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.05669,
+      "lo": -0.06872,
+      "hi": -0.04453
+     },
+     "pooled": {
+      "mean": -0.05669,
+      "lo": -0.07788,
+      "hi": -0.03595
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 179,
+      "losses": 156,
+      "ties": 70
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8367
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 33 of 405 (268 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.01582,
+      "lo": 0.01278,
+      "hi": 0.01885
+     },
+     "pooled": {
+      "mean": 0.01582,
+      "lo": 0.0118,
+      "hi": 0.01978
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 104,
+      "losses": 33,
+      "ties": 268
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.09754
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 54,
+     "losses": 187,
+     "ties": 11
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 10,
+     "losses": 30,
+     "ties": 32
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 13,
+     "losses": 30,
+     "ties": 29
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "shelf-next",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 0.254,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 53 of 405 (227 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.004738,
+      "lo": 0.002889,
+      "hi": 0.006576
+     },
+     "pooled": {
+      "mean": 0.004738,
+      "lo": 0.002325,
+      "hi": 0.007186
+     },
+     "p": 0.0003,
+     "signs": {
+      "wins": 125,
+      "losses": 53,
+      "ties": 227
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7093
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 71 of 405 (249 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.002444,
+      "lo": -0.006006,
+      "hi": 0.001109
+     },
+     "pooled": {
+      "mean": -0.002444,
+      "lo": -0.006463,
+      "hi": 0.00143
+     },
+     "p": 0.2292,
+     "signs": {
+      "wins": 71,
+      "losses": 85,
+      "ties": 249
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4321
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 57 of 405 (227 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.004131,
+      "lo": -0.01043,
+      "hi": 0.002254
+     },
+     "pooled": {
+      "mean": -0.004131,
+      "lo": -0.01141,
+      "hi": 0.003125
+     },
+     "p": 0.2777,
+     "signs": {
+      "wins": 57,
+      "losses": 121,
+      "ties": 227
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.7842
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 3 of 405 (286 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.0106,
+      "lo": 0.009671,
+      "hi": 0.01155
+     },
+     "pooled": {
+      "mean": 0.0106,
+      "lo": 0.009306,
+      "hi": 0.01195
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 116,
+      "losses": 3,
+      "ties": 286
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.1028
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 88,
+     "losses": 36,
+     "ties": 128
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 16,
+     "losses": 8,
+     "ties": 48
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 20,
+     "losses": 6,
+     "ties": 46
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    }
+   ]
+  },
+  {
+   "strategy": "skyline",
+   "records": 2025,
+   "skipped": 0,
+   "msMedian": 9.738,
+   "hardBreaks": 0,
+   "verdicts": [
+    {
+     "measure": "pack.fill",
+     "direction": "higher",
+     "label": "better",
+     "summary": "better on these families, worse on 122 of 405 (60 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.04153,
+      "lo": 0.03795,
+      "hi": 0.04513
+     },
+     "pooled": {
+      "mean": 0.04153,
+      "lo": 0.03616,
+      "hi": 0.04717
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 223,
+      "losses": 122,
+      "ties": 60
+     },
+     "means": {
+      "a": 0.7045,
+      "b": 0.7461
+     }
+    },
+    {
+     "measure": "pack.order.inversions",
+     "direction": "lower",
+     "label": "no verdict",
+     "summary": "no verdict: worse on the family mean, better on 149 of 405 (109 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.001513,
+      "lo": -0.005835,
+      "hi": 0.002896
+     },
+     "pooled": {
+      "mean": -0.001513,
+      "lo": -0.006621,
+      "hi": 0.003377
+     },
+     "p": 0.5573,
+     "signs": {
+      "wins": 149,
+      "losses": 147,
+      "ties": 109
+     },
+     "means": {
+      "a": 0.4296,
+      "b": 0.4311
+     }
+    },
+    {
+     "measure": "pack.aspectError",
+     "direction": "lower",
+     "label": "worse",
+     "summary": "worse on these families, better on 110 of 405 (79 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": -0.09635,
+      "lo": -0.1117,
+      "hi": -0.08117
+     },
+     "pooled": {
+      "mean": -0.09635,
+      "lo": -0.1163,
+      "hi": -0.07731
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 110,
+      "losses": 216,
+      "ties": 79
+     },
+     "means": {
+      "a": 0.78,
+      "b": 0.8764
+     }
+    },
+    {
+     "measure": "pack.overflow.excessArea",
+     "direction": "lower",
+     "label": "better",
+     "summary": "better on these families, worse on 14 of 405 (249 ties)",
+     "n": 2025,
+     "families": 405,
+     "stratified": {
+      "mean": 0.05146,
+      "lo": 0.04797,
+      "hi": 0.0549
+     },
+     "pooled": {
+      "mean": 0.05146,
+      "lo": 0.04606,
+      "hi": 0.05704
+     },
+     "p": 0.00005,
+     "signs": {
+      "wins": 142,
+      "losses": 14,
+      "ties": 249
+     },
+     "means": {
+      "a": 0.1134,
+      "b": 0.06189
+     }
+    }
+   ],
+   "groups": [
+    {
+     "group": "cards.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    },
+    {
+     "group": "dashboard.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.empty",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.exactTiling",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.one",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "edge-cases.oversize",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "edge-cases.touchObstacles",
+     "wins": 0,
+     "losses": 1,
+     "ties": 0
+    },
+    {
+     "group": "gallery.freeHeight",
+     "wins": 0,
+     "losses": 0,
+     "ties": 1
+    },
+    {
+     "group": "rect-grid.fixed",
+     "wins": 163,
+     "losses": 80,
+     "ties": 9
+    },
+    {
+     "group": "rect-grid.freeArea",
+     "wins": 34,
+     "losses": 14,
+     "ties": 24
+    },
+    {
+     "group": "rect-grid.freeAspect",
+     "wins": 24,
+     "losses": 26,
+     "ties": 22
+    },
+    {
+     "group": "word-cloud.freeHeight",
+     "wins": 1,
+     "losses": 0,
+     "ties": 0
+    }
+   ]
+  }
+ ]
+}

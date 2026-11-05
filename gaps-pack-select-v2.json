@@ -1,0 +1,1004 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "gaps",
+ "corpus": "pack-select-v2",
+ "origin": [
+  {
+   "release": "0.2.17",
+   "commit": "f72db33",
+   "date": "2026-10-28",
+   "run": 40766464710,
+   "source": "bench.yml, the artifact bench-pack-select-v2"
+  }
+ ],
+ "measure": "pack.gap",
+ "inputs": 2025,
+ "cells": [
+  {
+   "cell": "rect-grid.fixed",
+   "inputs": 1260
+  },
+  {
+   "cell": "gallery.freeHeight",
+   "inputs": 5
+  },
+  {
+   "cell": "dashboard.freeHeight",
+   "inputs": 5
+  },
+  {
+   "cell": "cards.freeHeight",
+   "inputs": 5
+  },
+  {
+   "cell": "word-cloud.freeHeight",
+   "inputs": 5
+  },
+  {
+   "cell": "edge-cases.empty",
+   "inputs": 5
+  },
+  {
+   "cell": "edge-cases.one",
+   "inputs": 5
+  },
+  {
+   "cell": "edge-cases.oversize",
+   "inputs": 5
+  },
+  {
+   "cell": "edge-cases.exactTiling",
+   "inputs": 5
+  },
+  {
+   "cell": "edge-cases.touchObstacles",
+   "inputs": 5
+  },
+  {
+   "cell": "rect-grid.freeAspect",
+   "inputs": 360
+  },
+  {
+   "cell": "rect-grid.freeArea",
+   "inputs": 360
+  }
+ ],
+ "strategies": [
+  {
+   "strategy": "maxrects-bl",
+   "records": 2025,
+   "all": {
+    "n": 2006,
+    "q1": 0,
+    "median": 0.012,
+    "q3": 0.098,
+    "below0": 0,
+    "missing": 19
+   },
+   "cells": [
+    {
+     "cell": "rect-grid.fixed",
+     "n": 1246,
+     "q1": 0,
+     "median": 0,
+     "q3": 0.03075,
+     "below0": 0,
+     "missing": 14,
+     "kinds": {
+      "placed.free": 1246
+     }
+    },
+    {
+     "cell": "gallery.freeHeight",
+     "n": 5,
+     "q1": 0.039,
+     "median": 0.143,
+     "q3": 0.151,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "dashboard.freeHeight",
+     "n": 5,
+     "q1": 0.034,
+     "median": 0.042,
+     "q3": 0.066,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "cards.freeHeight",
+     "n": 5,
+     "q1": 0.086,
+     "median": 0.093,
+     "q3": 0.101,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "word-cloud.freeHeight",
+     "n": 5,
+     "q1": 0.067,
+     "median": 0.085,
+     "q3": 0.09,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "edge-cases.empty",
+     "n": 0,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 5,
+     "kinds": {}
+    },
+    {
+     "cell": "edge-cases.one",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.oversize",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.exactTiling",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.touchObstacles",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "rect-grid.freeAspect",
+     "n": 360,
+     "q1": 0.08,
+     "median": 0.135,
+     "q3": 0.2,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    },
+    {
+     "cell": "rect-grid.freeArea",
+     "n": 360,
+     "q1": 0,
+     "median": 0.06,
+     "q3": 0.096,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    }
+   ]
+  },
+  {
+   "strategy": "portfolio-k2",
+   "records": 2025,
+   "all": {
+    "n": 2006,
+    "q1": 0,
+    "median": 0.011,
+    "q3": 0.096,
+    "below0": 0,
+    "missing": 19
+   },
+   "cells": [
+    {
+     "cell": "rect-grid.fixed",
+     "n": 1246,
+     "q1": 0,
+     "median": 0,
+     "q3": 0.02975,
+     "below0": 0,
+     "missing": 14,
+     "kinds": {
+      "placed.free": 1246
+     }
+    },
+    {
+     "cell": "gallery.freeHeight",
+     "n": 5,
+     "q1": 0.039,
+     "median": 0.143,
+     "q3": 0.151,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "dashboard.freeHeight",
+     "n": 5,
+     "q1": 0.034,
+     "median": 0.042,
+     "q3": 0.066,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "cards.freeHeight",
+     "n": 5,
+     "q1": 0.086,
+     "median": 0.093,
+     "q3": 0.101,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "word-cloud.freeHeight",
+     "n": 5,
+     "q1": 0.067,
+     "median": 0.085,
+     "q3": 0.09,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "edge-cases.empty",
+     "n": 0,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 5,
+     "kinds": {}
+    },
+    {
+     "cell": "edge-cases.one",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.oversize",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.exactTiling",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.touchObstacles",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "rect-grid.freeAspect",
+     "n": 360,
+     "q1": 0.07275,
+     "median": 0.127,
+     "q3": 0.2,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    },
+    {
+     "cell": "rect-grid.freeArea",
+     "n": 360,
+     "q1": 0,
+     "median": 0.056,
+     "q3": 0.096,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    }
+   ]
+  },
+  {
+   "strategy": "rows",
+   "records": 2025,
+   "all": {
+    "n": 2006,
+    "q1": 0,
+    "median": 0.1105,
+    "q3": 0.4855,
+    "below0": 0,
+    "missing": 19
+   },
+   "cells": [
+    {
+     "cell": "rect-grid.fixed",
+     "n": 1246,
+     "q1": 0,
+     "median": 0.022,
+     "q3": 0.9637,
+     "below0": 0,
+     "missing": 14,
+     "kinds": {
+      "placed.free": 1246
+     }
+    },
+    {
+     "cell": "gallery.freeHeight",
+     "n": 5,
+     "q1": 0.039,
+     "median": 0.143,
+     "q3": 0.151,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "dashboard.freeHeight",
+     "n": 5,
+     "q1": 0.034,
+     "median": 0.042,
+     "q3": 0.066,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "cards.freeHeight",
+     "n": 5,
+     "q1": 0.1,
+     "median": 0.112,
+     "q3": 0.126,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "word-cloud.freeHeight",
+     "n": 5,
+     "q1": 0.125,
+     "median": 0.138,
+     "q3": 0.159,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "edge-cases.empty",
+     "n": 0,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 5,
+     "kinds": {}
+    },
+    {
+     "cell": "edge-cases.one",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.oversize",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.exactTiling",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.touchObstacles",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "rect-grid.freeAspect",
+     "n": 360,
+     "q1": 0.118,
+     "median": 0.2,
+     "q3": 0.297,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    },
+    {
+     "cell": "rect-grid.freeArea",
+     "n": 360,
+     "q1": 0,
+     "median": 0.094,
+     "q3": 0.183,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    }
+   ]
+  },
+  {
+   "strategy": "select-rows-bl",
+   "records": 2025,
+   "all": {
+    "n": 2006,
+    "q1": 0,
+    "median": 0.012,
+    "q3": 0.103,
+    "below0": 0,
+    "missing": 19
+   },
+   "cells": [
+    {
+     "cell": "rect-grid.fixed",
+     "n": 1246,
+     "q1": 0,
+     "median": 0,
+     "q3": 0.03075,
+     "below0": 0,
+     "missing": 14,
+     "kinds": {
+      "placed.free": 1246
+     }
+    },
+    {
+     "cell": "gallery.freeHeight",
+     "n": 5,
+     "q1": 0.039,
+     "median": 0.143,
+     "q3": 0.151,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "dashboard.freeHeight",
+     "n": 5,
+     "q1": 0.034,
+     "median": 0.042,
+     "q3": 0.066,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "cards.freeHeight",
+     "n": 5,
+     "q1": 0.1,
+     "median": 0.112,
+     "q3": 0.126,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "word-cloud.freeHeight",
+     "n": 5,
+     "q1": 0.125,
+     "median": 0.138,
+     "q3": 0.159,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "edge-cases.empty",
+     "n": 0,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 5,
+     "kinds": {}
+    },
+    {
+     "cell": "edge-cases.one",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.oversize",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.exactTiling",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.touchObstacles",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "rect-grid.freeAspect",
+     "n": 360,
+     "q1": 0.08,
+     "median": 0.1435,
+     "q3": 0.2,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    },
+    {
+     "cell": "rect-grid.freeArea",
+     "n": 360,
+     "q1": 0,
+     "median": 0.056,
+     "q3": 0.096,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    }
+   ]
+  },
+  {
+   "strategy": "shelf-best",
+   "records": 2025,
+   "all": {
+    "n": 2006,
+    "q1": 0,
+    "median": 0.086,
+    "q3": 0.301,
+    "below0": 0,
+    "missing": 19
+   },
+   "cells": [
+    {
+     "cell": "rect-grid.fixed",
+     "n": 1246,
+     "q1": 0,
+     "median": 0.004,
+     "q3": 0.646,
+     "below0": 0,
+     "missing": 14,
+     "kinds": {
+      "placed.free": 1246
+     }
+    },
+    {
+     "cell": "gallery.freeHeight",
+     "n": 5,
+     "q1": 0.039,
+     "median": 0.143,
+     "q3": 0.151,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "dashboard.freeHeight",
+     "n": 5,
+     "q1": 0.034,
+     "median": 0.042,
+     "q3": 0.066,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "cards.freeHeight",
+     "n": 5,
+     "q1": 0.1,
+     "median": 0.112,
+     "q3": 0.126,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "word-cloud.freeHeight",
+     "n": 5,
+     "q1": 0.125,
+     "median": 0.138,
+     "q3": 0.159,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "edge-cases.empty",
+     "n": 0,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 5,
+     "kinds": {}
+    },
+    {
+     "cell": "edge-cases.one",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.oversize",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.exactTiling",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.touchObstacles",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "rect-grid.freeAspect",
+     "n": 360,
+     "q1": 0.108,
+     "median": 0.185,
+     "q3": 0.248,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    },
+    {
+     "cell": "rect-grid.freeArea",
+     "n": 360,
+     "q1": 0,
+     "median": 0.0695,
+     "q3": 0.1092,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "hull.area": 360
+     }
+    }
+   ]
+  },
+  {
+   "strategy": "skyline",
+   "records": 2025,
+   "all": {
+    "n": 2000,
+    "q1": 0,
+    "median": 0.0595,
+    "q3": 0.2,
+    "below0": 0,
+    "missing": 25
+   },
+   "cells": [
+    {
+     "cell": "rect-grid.fixed",
+     "n": 1246,
+     "q1": 0,
+     "median": 0,
+     "q3": 0.2457,
+     "below0": 0,
+     "missing": 14,
+     "kinds": {
+      "placed.free": 1246
+     }
+    },
+    {
+     "cell": "gallery.freeHeight",
+     "n": 5,
+     "q1": 0.039,
+     "median": 0.143,
+     "q3": 0.151,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "dashboard.freeHeight",
+     "n": 5,
+     "q1": 0.034,
+     "median": 0.042,
+     "q3": 0.066,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "cards.freeHeight",
+     "n": 5,
+     "q1": 0.086,
+     "median": 0.093,
+     "q3": 0.101,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "word-cloud.freeHeight",
+     "n": 5,
+     "q1": 0.085,
+     "median": 0.101,
+     "q3": 0.103,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "strip.area": 5
+     }
+    },
+    {
+     "cell": "edge-cases.empty",
+     "n": 0,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 5,
+     "kinds": {}
+    },
+    {
+     "cell": "edge-cases.one",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.oversize",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.exactTiling",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "edge-cases.touchObstacles",
+     "n": 5,
+     "q1": 0,
+     "median": 0,
+     "q3": 0,
+     "below0": 0,
+     "missing": 0,
+     "kinds": {
+      "placed.free": 5
+     }
+    },
+    {
+     "cell": "rect-grid.freeAspect",
+     "n": 358,
+     "q1": 0.09825,
+     "median": 0.177,
+     "q3": 0.205,
+     "below0": 0,
+     "missing": 2,
+     "kinds": {
+      "hull.area": 358
+     }
+    },
+    {
+     "cell": "rect-grid.freeArea",
+     "n": 356,
+     "q1": 0,
+     "median": 0.0755,
+     "q3": 0.1173,
+     "below0": 0,
+     "missing": 4,
+     "kinds": {
+      "hull.area": 356
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,3017 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "coverage",
+ "origin": [
+  {
+   "release": "0.8.0",
+   "commit": "69312c8",
+   "date": "2026-11-05",
+   "run": 41949891960,
+   "source": "bench.yml, the artifact bench-pack-classes-v1, and bench/coverage.ts"
+  }
+ ],
+ "latest": {
+  "date": "2026-11-05",
+  "run": 41949891960,
+  "corpus": "pack-classes-v1",
+  "records": 25750,
+  "inputs": 500,
+  "strategies": [
+   "anneal-maxrects-bl-k16",
+   "anneal-skyline-k16",
+   "aspect-fit-maxrects-bl",
+   "aspect-fit-maxrects-bssf",
+   "aspect-fit-portfolio-k2",
+   "bbox-maxrects-bl",
+   "bbox-skyline",
+   "beam",
+   "best-fit",
+   "best-fit-short",
+   "best-fit-tall",
+   "binary-height",
+   "bottom-left",
+   "bottom-left-liu-teng",
+   "force-maxrects-bl",
+   "force-rows",
+   "force-skyline-bl-waste",
+   "genetic-maxrects-bl-k16",
+   "guillotine-baf-sas",
+   "guillotine-bssf-sas-merge",
+   "maxrects-baf",
+   "maxrects-bl",
+   "maxrects-blsf",
+   "maxrects-bssf",
+   "maxrects-cp",
+   "near-rects",
+   "overlap-min-maxrects-bl-k8192",
+   "overlap-min-skyline-k8192",
+   "portfolio-area-rows-bl",
+   "portfolio-fill-rows-bl",
+   "portfolio-k2",
+   "portfolio-k3",
+   "relax-maxrects-bl",
+   "relax-rows",
+   "relax-skyline-bl-waste",
+   "restarts-maxrects-bl-k16",
+   "restarts-maxrects-bl-shuffle-k16",
+   "restarts-rows-k16",
+   "rows",
+   "ruin-recreate-maxrects-bl-k64",
+   "ruin-recreate-skyline-k64",
+   "select-rows-bl",
+   "shelf",
+   "shelf-best",
+   "shelf-first",
+   "shelf-first-input",
+   "shelf-next",
+   "side-anchors-first-left",
+   "skyline",
+   "skyline-bl-waste",
+   "skyline-mw",
+   "skyline-mw-waste",
+   "sleator",
+   "tabu-maxrects-bl-k16"
+  ],
+  "entries": {
+   "planned": 64,
+   "measured": 54,
+   "others": [
+    {
+     "entry": "columns-linear-partition",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: freeHeight",
+       "records": 250
+      }
+     ]
+    },
+    {
+     "entry": "exact-strip",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: refused",
+       "records": 250
+      }
+     ]
+    },
+    {
+     "entry": "masonry-lpt",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: freeHeight",
+       "records": 250
+      }
+     ]
+    },
+    {
+     "entry": "masonry-shortest",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: freeHeight",
+       "records": 250
+      }
+     ]
+    },
+    {
+     "entry": "push",
+     "reasons": [
+      {
+       "because": "unsupported mode: offline",
+       "records": 500
+      }
+     ]
+    },
+    {
+     "entry": "raster-nofit",
+     "reasons": [
+      {
+       "because": "no row: job limit of 120 minutes",
+       "records": 0
+      }
+     ]
+    },
+    {
+     "entry": "treemap-pivot-split",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: freeHeight",
+       "records": 250
+      }
+     ]
+    },
+    {
+     "entry": "treemap-slice-dice",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: freeHeight",
+       "records": 250
+      }
+     ]
+    },
+    {
+     "entry": "treemap-squarified",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: freeHeight",
+       "records": 250
+      }
+     ]
+    },
+    {
+     "entry": "treemap-strip",
+     "reasons": [
+      {
+       "because": "unsupported containerSize: fixed",
+       "records": 250
+      },
+      {
+       "because": "unsupported containerSize: freeHeight",
+       "records": 250
+      }
+     ]
+    }
+   ]
+  },
+  "model": {
+   "kind": "regression-tree",
+   "maxDepth": 12,
+   "minLeaf": 3,
+   "folds": 5,
+   "seed": 1,
+   "by": "spec",
+   "features": "family"
+  },
+  "measures": [
+   {
+    "id": "pack.gapToBound",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 25750,
+    "mae": 0.0349,
+    "baselineMae": 0.0697,
+    "medianAe": 0.0235,
+    "baselineMedianAe": 0.059,
+    "skill": 0.4993,
+    "share": 0.3244,
+    "shareOfMeasured": 0.3402,
+    "cells": {
+     "space": 5400,
+     "withRecords": 5150,
+     "covered": 1752
+    },
+    "explained": {
+     "strategy": 0.1541,
+     "input": 0.5049,
+     "joint": 0.9043
+    },
+    "noise": 0.0957,
+    "indices": [
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.2857
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0832
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.0672
+     },
+     {
+      "feature": "class",
+      "group": "input",
+      "index": 0.0473
+     },
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.0427
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.04
+     }
+    ],
+    "byInput": {
+     "mae": 0.0278,
+     "medianAe": 0.02,
+     "share": 0.4043
+    },
+    "sampled": {
+     "n": 384,
+     "hits": 33,
+     "share": 0.0859,
+     "low": 0.0618,
+     "high": 0.1182,
+     "mae": 0.1899,
+     "medianAe": 0.1315,
+     "baselineMae": 0.1884,
+     "baselineMedianAe": 0.1105,
+     "forced": {
+      "heavy": {
+       "n": 46,
+       "hits": 9,
+       "share": 0.1957
+      },
+      "rest": {
+       "n": 338,
+       "hits": 24,
+       "share": 0.071
+      }
+     },
+     "prior": {
+      "share": 0.0819,
+      "low": 0.0578,
+      "high": 0.1149,
+      "nEff": 359.8,
+      "weighted": 384,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0323,
+      "nEff": 47.1
+     }
+    },
+    "strata": {
+     "share": 0.0859,
+     "low": 0.0575,
+     "high": 0.1144,
+     "strata": 1,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "push:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bottom-left:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "best-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "circle-quasi-physical:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "sleator:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "beam:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "exact-strip:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "binary-height:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "near-rects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "raster-nofit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "masonry:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "treemap:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 384,
+       "hits": 33,
+       "share": 0.0859,
+       "low": 0.0618,
+       "high": 0.1182
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "select:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "ruin-recreate:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "overlap-min:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "anneal:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "genetic:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "tabu:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax-pull:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "force:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "side-anchors:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      }
+     ]
+    }
+   },
+   {
+    "id": "pack.fill",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 25750,
+    "mae": 0.0372,
+    "baselineMae": 0.0696,
+    "medianAe": 0.024,
+    "baselineMedianAe": 0.058,
+    "skill": 0.4655,
+    "share": 0.3294,
+    "shareOfMeasured": 0.3454,
+    "cells": {
+     "space": 5400,
+     "withRecords": 5150,
+     "covered": 1779
+    },
+    "explained": {
+     "strategy": 0.1571,
+     "input": 0.4838,
+     "joint": 0.8865
+    },
+    "noise": 0.1135,
+    "indices": [
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.267
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0845
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.0691
+     },
+     {
+      "feature": "class",
+      "group": "input",
+      "index": 0.0504
+     },
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.0417
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.0415
+     }
+    ],
+    "byInput": {
+     "mae": 0.0289,
+     "medianAe": 0.02,
+     "share": 0.387
+    },
+    "sampled": {
+     "n": 400,
+     "hits": 21,
+     "share": 0.0525,
+     "low": 0.0346,
+     "high": 0.0789,
+     "mae": 0.3115,
+     "medianAe": 0.2585,
+     "baselineMae": 0.3027,
+     "baselineMedianAe": 0.2335,
+     "forced": {
+      "heavy": {
+       "n": 54,
+       "hits": 7,
+       "share": 0.1296
+      },
+      "rest": {
+       "n": 346,
+       "hits": 14,
+       "share": 0.0405
+      }
+     },
+     "prior": {
+      "share": 0.0506,
+      "low": 0.0326,
+      "high": 0.0776,
+      "nEff": 376,
+      "weighted": 400,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0242,
+      "nEff": 52.7
+     }
+    },
+    "strata": {
+     "share": 0.0525,
+     "low": 0.0299,
+     "high": 0.0751,
+     "strata": 1,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "push:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bottom-left:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "best-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "circle-quasi-physical:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "sleator:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "beam:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "exact-strip:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "binary-height:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "near-rects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "raster-nofit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "masonry:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "treemap:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 400,
+       "hits": 21,
+       "share": 0.0525,
+       "low": 0.0346,
+       "high": 0.0789
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "select:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "ruin-recreate:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "overlap-min:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "anneal:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "genetic:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "tabu:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax-pull:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "force:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "side-anchors:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      }
+     ]
+    }
+   },
+   {
+    "id": "pack.gap",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 25750,
+    "mae": 0.0362,
+    "baselineMae": 0.058,
+    "medianAe": 0.023,
+    "baselineMedianAe": 0.042,
+    "skill": 0.3759,
+    "share": 0.3357,
+    "shareOfMeasured": 0.352,
+    "cells": {
+     "space": 5400,
+     "withRecords": 5150,
+     "covered": 1813
+    },
+    "explained": {
+     "strategy": 0.2087,
+     "input": 0.351,
+     "joint": 0.8486
+    },
+    "noise": 0.1514,
+    "indices": [
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.1089
+     },
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.0884
+     },
+     {
+      "feature": "class",
+      "group": "input",
+      "index": 0.0644
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.0509
+     },
+     {
+      "feature": "placement.skyline.rule",
+      "group": "strategy",
+      "index": 0.0502
+     },
+     {
+      "feature": "placement.shelf.fit",
+      "group": "strategy",
+      "index": 0.0458
+     }
+    ],
+    "byInput": {
+     "mae": 0.0313,
+     "medianAe": 0.021,
+     "share": 0.3774
+    },
+    "sampled": {
+     "n": 391,
+     "hits": 47,
+     "share": 0.1202,
+     "low": 0.0916,
+     "high": 0.1562,
+     "mae": 0.2269,
+     "medianAe": 0.139,
+     "baselineMae": 0.2284,
+     "baselineMedianAe": 0.134,
+     "forced": {
+      "heavy": {
+       "n": 53,
+       "hits": 6,
+       "share": 0.1132
+      },
+      "rest": {
+       "n": 338,
+       "hits": 41,
+       "share": 0.1213
+      }
+     },
+     "prior": {
+      "share": 0.1267,
+      "low": 0.0965,
+      "high": 0.1647,
+      "nEff": 366.7,
+      "weighted": 391,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0393,
+      "nEff": 47.1
+     }
+    },
+    "strata": {
+     "share": 0.1202,
+     "low": 0.0877,
+     "high": 0.1527,
+     "strata": 1,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "push:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bottom-left:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "best-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "circle-quasi-physical:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "sleator:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "beam:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "exact-strip:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "binary-height:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "near-rects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "raster-nofit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "masonry:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "treemap:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 391,
+       "hits": 47,
+       "share": 0.1202,
+       "low": 0.0916,
+       "high": 0.1562
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "select:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "ruin-recreate:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "overlap-min:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "anneal:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "genetic:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "tabu:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax-pull:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "force:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "side-anchors:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      }
+     ]
+    }
+   },
+   {
+    "id": "pack.overflow.excessArea",
+    "scale": "linear",
+    "tolerance": 0.02,
+    "n": 25750,
+    "mae": 0.0068,
+    "baselineMae": 0.0072,
+    "medianAe": 0,
+    "baselineMedianAe": 0,
+    "skill": 0.0556,
+    "share": 0.835,
+    "shareOfMeasured": 0.8755,
+    "cells": {
+     "space": 5400,
+     "withRecords": 5150,
+     "covered": 4509
+    },
+    "explained": {
+     "strategy": 0.032,
+     "input": 0.7302,
+     "joint": 0.8905
+    },
+    "noise": 0.1095,
+    "indices": [
+     {
+      "feature": "containerSize",
+      "group": "input",
+      "index": 0.1537
+     },
+     {
+      "feature": "class",
+      "group": "input",
+      "index": 0.0761
+     },
+     {
+      "feature": "count",
+      "group": "input",
+      "index": 0.0487
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.0203
+     },
+     {
+      "feature": "placement.shelf.fit",
+      "group": "strategy",
+      "index": 0.0143
+     },
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.0071
+     }
+    ],
+    "byInput": {
+     "mae": 0.0027,
+     "medianAe": 0,
+     "share": 0.9228
+    },
+    "sampled": {
+     "n": 400,
+     "hits": 285,
+     "share": 0.7125,
+     "low": 0.6663,
+     "high": 0.7547,
+     "mae": 0.0459,
+     "medianAe": 0,
+     "baselineMae": 0.0452,
+     "baselineMedianAe": 0,
+     "forced": {
+      "heavy": {
+       "n": 54,
+       "hits": 23,
+       "share": 0.4259
+      },
+      "rest": {
+       "n": 346,
+       "hits": 262,
+       "share": 0.7572
+      }
+     },
+     "prior": {
+      "share": 0.7161,
+      "low": 0.6685,
+      "high": 0.7593,
+      "nEff": 376,
+      "weighted": 400,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.8269,
+      "nEff": 52.7
+     }
+    },
+    "strata": {
+     "share": 0.7125,
+     "low": 0.6683,
+     "high": 0.7567,
+     "strata": 1,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "push:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bottom-left:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "best-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "circle-quasi-physical:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "sleator:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "beam:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "exact-strip:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "binary-height:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "near-rects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "raster-nofit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "masonry:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "treemap:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 400,
+       "hits": 285,
+       "share": 0.7125,
+       "low": 0.6663,
+       "high": 0.7547
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "select:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "ruin-recreate:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "overlap-min:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "anneal:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "genetic:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "tabu:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax-pull:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "force:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "side-anchors:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      }
+     ]
+    }
+   },
+   {
+    "id": "ms",
+    "scale": "log",
+    "tolerance": 0.15,
+    "n": 25750,
+    "mae": 0.1601,
+    "baselineMae": 0.7953,
+    "medianAe": 0.1072,
+    "baselineMedianAe": 0.583,
+    "skill": 0.7987,
+    "share": 0.5756,
+    "shareOfMeasured": 0.6035,
+    "cells": {
+     "space": 5400,
+     "withRecords": 5150,
+     "covered": 3108
+    },
+    "explained": {
+     "strategy": 0.8297,
+     "input": 0.1373,
+     "joint": 0.9919
+    },
+    "noise": 0.0081,
+    "indices": [
+     {
+      "feature": "stage.combine",
+      "group": "strategy",
+      "index": 0.4993
+     },
+     {
+      "feature": "stage.placement",
+      "group": "strategy",
+      "index": 0.3716
+     },
+     {
+      "feature": "combine.overlap-min.iterations",
+      "group": "strategy",
+      "index": 0.1398
+     },
+     {
+      "feature": "combine.overlap-min.step",
+      "group": "strategy",
+      "index": 0.1398
+     },
+     {
+      "feature": "placement.near-rects.rounds",
+      "group": "strategy",
+      "index": 0.1194
+     },
+     {
+      "feature": "stage.size-search",
+      "group": "strategy",
+      "index": 0.1144
+     }
+    ],
+    "byInput": {
+     "mae": 0.1288,
+     "medianAe": 0.0775,
+     "share": 0.6587
+    },
+    "sampled": {
+     "n": 400,
+     "hits": 8,
+     "share": 0.02,
+     "low": 0.0102,
+     "high": 0.039,
+     "mae": 1.0928,
+     "medianAe": 0.8762,
+     "baselineMae": 1.2595,
+     "baselineMedianAe": 0.9492,
+     "forced": {
+      "heavy": {
+       "n": 54,
+       "hits": 0,
+       "share": 0
+      },
+      "rest": {
+       "n": 346,
+       "hits": 8,
+       "share": 0.0231
+      }
+     },
+     "prior": {
+      "share": 0.019,
+      "low": 0.0093,
+      "high": 0.0385,
+      "nEff": 376,
+      "weighted": 400,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0041,
+      "nEff": 52.7
+     }
+    },
+    "strata": {
+     "share": 0.02,
+     "low": 0.0049,
+     "high": 0.0351,
+     "strata": 1,
+     "rows": [
+      {
+       "stratum": "rows:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "skyline:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "shelf:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "maxrects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "guillotine:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "push:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bottom-left:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "best-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "hole-degree:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "circle-quasi-physical:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "sleator:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "beam:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "exact-strip:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "binary-height:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "near-rects:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "raster-nofit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "masonry:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "treemap:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:4",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "portfolio:5",
+       "n": 400,
+       "hits": 8,
+       "share": 0.02,
+       "low": 0.0102,
+       "high": 0.039
+      },
+      {
+       "stratum": "cell-portfolio:cell",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "cell-portfolio:3",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "select:2",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "aspect-fit:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "restarts:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "bbox:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "ruin-recreate:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "overlap-min:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "anneal:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "genetic:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "tabu:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "relax-pull:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "force:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      },
+      {
+       "stratum": "side-anchors:1",
+       "n": 0,
+       "hits": 0,
+       "share": null,
+       "low": null,
+       "high": null
+      }
+     ]
+    }
+   }
+  ],
+  "sampled": {
+   "pairs": 400,
+   "seed": 1,
+   "draw": "uniform",
+   "configRejectionRate": 0.0676,
+   "hardPairs": 0,
+   "nondeterministic": 0,
+   "nondeterministicClock": 0
+  },
+  "strata": {
+   "pairs": 400,
+   "draw": "uniform",
+   "strata": [
+    {
+     "id": "rows:1",
+     "pairs": 0
+    },
+    {
+     "id": "skyline:1",
+     "pairs": 0
+    },
+    {
+     "id": "shelf:1",
+     "pairs": 0
+    },
+    {
+     "id": "maxrects:1",
+     "pairs": 0
+    },
+    {
+     "id": "guillotine:1",
+     "pairs": 0
+    },
+    {
+     "id": "push:1",
+     "pairs": 0
+    },
+    {
+     "id": "bottom-left:1",
+     "pairs": 0
+    },
+    {
+     "id": "best-fit:1",
+     "pairs": 0
+    },
+    {
+     "id": "hole-degree:1",
+     "pairs": 0
+    },
+    {
+     "id": "circle-quasi-physical:1",
+     "pairs": 0
+    },
+    {
+     "id": "sleator:1",
+     "pairs": 0
+    },
+    {
+     "id": "beam:1",
+     "pairs": 0
+    },
+    {
+     "id": "exact-strip:1",
+     "pairs": 0
+    },
+    {
+     "id": "binary-height:1",
+     "pairs": 0
+    },
+    {
+     "id": "near-rects:1",
+     "pairs": 0
+    },
+    {
+     "id": "raster-nofit:1",
+     "pairs": 0
+    },
+    {
+     "id": "masonry:1",
+     "pairs": 0
+    },
+    {
+     "id": "treemap:1",
+     "pairs": 0
+    },
+    {
+     "id": "portfolio:2",
+     "pairs": 0
+    },
+    {
+     "id": "portfolio:3",
+     "pairs": 0
+    },
+    {
+     "id": "portfolio:4",
+     "pairs": 0
+    },
+    {
+     "id": "portfolio:5",
+     "pairs": 400
+    },
+    {
+     "id": "cell-portfolio:cell",
+     "pairs": 0
+    },
+    {
+     "id": "cell-portfolio:2",
+     "pairs": 0
+    },
+    {
+     "id": "cell-portfolio:3",
+     "pairs": 0
+    },
+    {
+     "id": "select:2",
+     "pairs": 0
+    },
+    {
+     "id": "aspect-fit:1",
+     "pairs": 0
+    },
+    {
+     "id": "restarts:1",
+     "pairs": 0
+    },
+    {
+     "id": "bbox:1",
+     "pairs": 0
+    },
+    {
+     "id": "ruin-recreate:1",
+     "pairs": 0
+    },
+    {
+     "id": "overlap-min:1",
+     "pairs": 0
+    },
+    {
+     "id": "anneal:1",
+     "pairs": 0
+    },
+    {
+     "id": "genetic:1",
+     "pairs": 0
+    },
+    {
+     "id": "tabu:1",
+     "pairs": 0
+    },
+    {
+     "id": "relax:1",
+     "pairs": 0
+    },
+    {
+     "id": "relax-pull:1",
+     "pairs": 0
+    },
+    {
+     "id": "force:1",
+     "pairs": 0
+    },
+    {
+     "id": "side-anchors:1",
+     "pairs": 0
+    }
+   ]
+  },
+  "uniform": {
+   "date": "2026-11-05",
+   "run": 41949891960,
+   "commit": "69312c8",
+   "pairs": 400,
+   "seed": 1,
+   "configRejectionRate": 0.0676,
+   "hardPairs": 0,
+   "measures": {
+    "pack.gapToBound": {
+     "n": 384,
+     "hits": 33,
+     "share": 0.0859,
+     "low": 0.0618,
+     "high": 0.1182,
+     "mae": 0.1899,
+     "medianAe": 0.1315,
+     "baselineMae": 0.1884,
+     "baselineMedianAe": 0.1105,
+     "forced": {
+      "heavy": {
+       "n": 46,
+       "hits": 9,
+       "share": 0.1957
+      },
+      "rest": {
+       "n": 338,
+       "hits": 24,
+       "share": 0.071
+      }
+     },
+     "prior": {
+      "share": 0.0819,
+      "low": 0.0578,
+      "high": 0.1149,
+      "nEff": 359.8,
+      "weighted": 384,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0323,
+      "nEff": 47.1
+     }
+    },
+    "pack.fill": {
+     "n": 400,
+     "hits": 21,
+     "share": 0.0525,
+     "low": 0.0346,
+     "high": 0.0789,
+     "mae": 0.3115,
+     "medianAe": 0.2585,
+     "baselineMae": 0.3027,
+     "baselineMedianAe": 0.2335,
+     "forced": {
+      "heavy": {
+       "n": 54,
+       "hits": 7,
+       "share": 0.1296
+      },
+      "rest": {
+       "n": 346,
+       "hits": 14,
+       "share": 0.0405
+      }
+     },
+     "prior": {
+      "share": 0.0506,
+      "low": 0.0326,
+      "high": 0.0776,
+      "nEff": 376,
+      "weighted": 400,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0242,
+      "nEff": 52.7
+     }
+    },
+    "pack.gap": {
+     "n": 391,
+     "hits": 47,
+     "share": 0.1202,
+     "low": 0.0916,
+     "high": 0.1562,
+     "mae": 0.2269,
+     "medianAe": 0.139,
+     "baselineMae": 0.2284,
+     "baselineMedianAe": 0.134,
+     "forced": {
+      "heavy": {
+       "n": 53,
+       "hits": 6,
+       "share": 0.1132
+      },
+      "rest": {
+       "n": 338,
+       "hits": 41,
+       "share": 0.1213
+      }
+     },
+     "prior": {
+      "share": 0.1267,
+      "low": 0.0965,
+      "high": 0.1647,
+      "nEff": 366.7,
+      "weighted": 391,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0393,
+      "nEff": 47.1
+     }
+    },
+    "pack.overflow.excessArea": {
+     "n": 400,
+     "hits": 285,
+     "share": 0.7125,
+     "low": 0.6663,
+     "high": 0.7547,
+     "mae": 0.0459,
+     "medianAe": 0,
+     "baselineMae": 0.0452,
+     "baselineMedianAe": 0,
+     "forced": {
+      "heavy": {
+       "n": 54,
+       "hits": 23,
+       "share": 0.4259
+      },
+      "rest": {
+       "n": 346,
+       "hits": 262,
+       "share": 0.7572
+      }
+     },
+     "prior": {
+      "share": 0.7161,
+      "low": 0.6685,
+      "high": 0.7593,
+      "nEff": 376,
+      "weighted": 400,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.8269,
+      "nEff": 52.7
+     }
+    },
+    "ms": {
+     "n": 400,
+     "hits": 8,
+     "share": 0.02,
+     "low": 0.0102,
+     "high": 0.039,
+     "mae": 1.0928,
+     "medianAe": 0.8762,
+     "baselineMae": 1.2595,
+     "baselineMedianAe": 0.9492,
+     "forced": {
+      "heavy": {
+       "n": 54,
+       "hits": 0,
+       "share": 0
+      },
+      "rest": {
+       "n": 346,
+       "hits": 8,
+       "share": 0.0231
+      }
+     },
+     "prior": {
+      "share": 0.019,
+      "low": 0.0093,
+      "high": 0.0385,
+      "nEff": 376,
+      "weighted": 400,
+      "zero": 0,
+      "covered": 1,
+      "kind": "family-flat"
+     },
+     "priorBeside": {
+      "kind": "union",
+      "share": 0.0041,
+      "nEff": 52.7
+     }
+    }
+   }
+  },
+  "prior": {
+   "kind": "family-flat",
+   "corpora": [
+    "pack-adversary-v1",
+    "pack-anchor-v1",
+    "pack-change-v1",
+    "pack-classes-v1",
+    "pack-free-v1",
+    "pack-holdout-v1",
+    "pack-known-v1",
+    "pack-screen-v1",
+    "pack-select-v1",
+    "pack-select-v2",
+    "pack-strip-v1",
+    "pack-worst-v1",
+    "smoke-v1"
+   ],
+   "inputs": 8316,
+   "families": [
+    {
+     "family": "rect-grid@1",
+     "inputs": 4290,
+     "weight": 0.05
+    },
+    {
+     "family": "rect-grid@2",
+     "inputs": 2160,
+     "weight": 0.05
+    },
+    {
+     "family": "gallery@1",
+     "inputs": 18,
+     "weight": 0.05
+    },
+    {
+     "family": "dashboard@1",
+     "inputs": 17,
+     "weight": 0.05
+    },
+    {
+     "family": "cards@1",
+     "inputs": 17,
+     "weight": 0.05
+    },
+    {
+     "family": "word-cloud@1",
+     "inputs": 17,
+     "weight": 0.05
+    },
+    {
+     "family": "edge-cases@1",
+     "inputs": 91,
+     "weight": 0.05
+    },
+    {
+     "family": "perfect-cut@1",
+     "inputs": 216,
+     "weight": 0.05
+    },
+    {
+     "family": "consecutive-squares@1",
+     "inputs": 72,
+     "weight": 0.05
+    },
+    {
+     "family": "berkey-wang@1",
+     "inputs": 300,
+     "weight": 0.05
+    },
+    {
+     "family": "martello-vigo@1",
+     "inputs": 200,
+     "weight": 0.05
+    },
+    {
+     "family": "tall-row@1",
+     "inputs": 72,
+     "weight": 0.05
+    },
+    {
+     "family": "skyline-gap@1",
+     "inputs": 72,
+     "weight": 0.05
+    },
+    {
+     "family": "bl-trap@1",
+     "inputs": 36,
+     "weight": 0.05
+    },
+    {
+     "family": "half-wide@1",
+     "inputs": 72,
+     "weight": 0.05
+    },
+    {
+     "family": "ladder@1",
+     "inputs": 90,
+     "weight": 0.05
+    },
+    {
+     "family": "hopper-turton@1",
+     "inputs": 252,
+     "weight": 0.05
+    },
+    {
+     "family": "burke-kendall-whitwell@1",
+     "inputs": 156,
+     "weight": 0.05
+    },
+    {
+     "family": "beasley-gcut@1",
+     "inputs": 120,
+     "weight": 0.05
+    },
+    {
+     "family": "wall-locks@1",
+     "inputs": 48,
+     "weight": 0.05
+    }
+   ],
+   "absent": [],
+   "unmapped": [
+    {
+     "family": "adversary@1",
+     "inputs": 6
+    },
+    {
+     "family": "change-walk@1",
+     "inputs": 480
+    }
+   ],
+   "strata": [
+    {
+     "family": "adversary@1",
+     "inputs": 6
+    }
+   ]
+  }
+ },
+ "trend": [
+  {
+   "date": "2026-10-28",
+   "run": 40789799391,
+   "corpus": "pack-classes-v1",
+   "commit": "a73bdd2",
+   "strategies": [
+    "aspect-fit-maxrects-bl",
+    "aspect-fit-maxrects-bssf",
+    "aspect-fit-portfolio-k2",
+    "bbox-maxrects-bl",
+    "bbox-skyline",
+    "maxrects-baf",
+    "maxrects-bl",
+    "maxrects-blsf",
+    "maxrects-bssf",
+    "maxrects-cp",
+    "portfolio-area-rows-bl",
+    "portfolio-k2",
+    "portfolio-k3",
+    "restarts-maxrects-bl-k16",
+    "restarts-maxrects-bl-shuffle-k16",
+    "restarts-rows-k16",
+    "rows",
+    "select-rows-bl",
+    "shelf",
+    "shelf-best",
+    "shelf-first",
+    "shelf-first-input",
+    "shelf-next",
+    "skyline",
+    "skyline-bl-waste",
+    "skyline-mw",
+    "skyline-mw-waste"
+   ],
+   "shares": {
+    "pack.fill": 0.3626,
+    "pack.gap": 0.29,
+    "pack.overflow.excessArea": 0.8689,
+    "ms": 0.5552
+   },
+   "sharesByInput": {
+    "pack.fill": 0.44,
+    "pack.gap": 0.3415,
+    "pack.overflow.excessArea": 0.9637,
+    "ms": 0.6493
+   }
+  },
+  {
+   "date": "2026-10-28",
+   "run": 40783923164,
+   "corpus": "pack-select-v2",
+   "commit": "443bbca",
+   "shares": {
+    "pack.fill": 0.2894,
+    "pack.gap": 0.5101,
+    "pack.overflow.excessArea": 0.7343,
+    "ms": 0.798
+   },
+   "sharesByInput": {
+    "pack.fill": 0.2864,
+    "pack.gap": 0.5151,
+    "pack.overflow.excessArea": 0.7615,
+    "ms": 0.8849
+   }
+  },
+  {
+   "date": "2026-10-29",
+   "run": 40795429100,
+   "corpus": "pack-classes-v1",
+   "commit": "18a4576",
+   "strategies": [
+    "aspect-fit-maxrects-bl",
+    "aspect-fit-maxrects-bssf",
+    "aspect-fit-portfolio-k2",
+    "bbox-maxrects-bl",
+    "bbox-skyline",
+    "maxrects-baf",
+    "maxrects-bl",
+    "maxrects-blsf",
+    "maxrects-bssf",
+    "maxrects-cp",
+    "portfolio-area-rows-bl",
+    "portfolio-k2",
+    "portfolio-k3",
+    "restarts-maxrects-bl-k16",
+    "restarts-maxrects-bl-shuffle-k16",
+    "restarts-rows-k16",
+    "rows",
+    "select-rows-bl",
+    "shelf",
+    "shelf-best",
+    "shelf-first",
+    "shelf-first-input",
+    "shelf-next",
+    "skyline",
+    "skyline-bl-waste",
+    "skyline-mw",
+    "skyline-mw-waste"
+   ],
+   "shares": {
+    "pack.fill": 0.3626,
+    "pack.gap": 0.29,
+    "pack.overflow.excessArea": 0.8689,
+    "ms": 0.5822
+   },
+   "sharesByInput": {
+    "pack.fill": 0.44,
+    "pack.gap": 0.3415,
+    "pack.overflow.excessArea": 0.9637,
+    "ms": 0.7033
+   }
+  },
+  {
+   "date": "2026-10-29",
+   "run": 40805165103,
+   "corpus": "pack-classes-v1",
+   "commit": "e939842",
+   "strategies": [
+    "aspect-fit-maxrects-bl",
+    "aspect-fit-maxrects-bssf",
+    "aspect-fit-portfolio-k2",
+    "bbox-maxrects-bl",
+    "bbox-skyline",
+    "guillotine-baf-sas",
+    "guillotine-bssf-sas-merge",
+    "maxrects-baf",
+    "maxrects-bl",
+    "maxrects-blsf",
+    "maxrects-bssf",
+    "maxrects-cp",
+    "portfolio-area-rows-bl",
+    "portfolio-k2",
+    "portfolio-k3",
+    "restarts-maxrects-bl-k16",
+    "restarts-maxrects-bl-shuffle-k16",
+    "restarts-rows-k16",
+    "rows",
+    "select-rows-bl",
+    "shelf",
+    "shelf-best",
+    "shelf-first",
+    "shelf-first-input",
+    "shelf-next",
+    "skyline",
+    "skyline-bl-waste",
+    "skyline-mw",
+    "skyline-mw-waste"
+   ],
+   "shares": {
+    "pack.fill": 0.3617,
+    "pack.gap": 0.2952,
+    "pack.overflow.excessArea": 0.8693,
+    "ms": 0.5459
+   },
+   "sharesByInput": {
+    "pack.fill": 0.4528,
+    "pack.gap": 0.3234,
+    "pack.overflow.excessArea": 0.9641,
+    "ms": 0.6238
+   }
+  },
+  {
+   "date": "2026-11-05",
+   "run": 41949891960,
+   "corpus": "pack-classes-v1",
+   "commit": "69312c8",
+   "strategies": [
+    "anneal-maxrects-bl-k16",
+    "anneal-skyline-k16",
+    "aspect-fit-maxrects-bl",
+    "aspect-fit-maxrects-bssf",
+    "aspect-fit-portfolio-k2",
+    "bbox-maxrects-bl",
+    "bbox-skyline",
+    "beam",
+    "best-fit",
+    "best-fit-short",
+    "best-fit-tall",
+    "binary-height",
+    "bottom-left",
+    "bottom-left-liu-teng",
+    "force-maxrects-bl",
+    "force-rows",
+    "force-skyline-bl-waste",
+    "genetic-maxrects-bl-k16",
+    "guillotine-baf-sas",
+    "guillotine-bssf-sas-merge",
+    "maxrects-baf",
+    "maxrects-bl",
+    "maxrects-blsf",
+    "maxrects-bssf",
+    "maxrects-cp",
+    "near-rects",
+    "overlap-min-maxrects-bl-k8192",
+    "overlap-min-skyline-k8192",
+    "portfolio-area-rows-bl",
+    "portfolio-fill-rows-bl",
+    "portfolio-k2",
+    "portfolio-k3",
+    "relax-maxrects-bl",
+    "relax-rows",
+    "relax-skyline-bl-waste",
+    "restarts-maxrects-bl-k16",
+    "restarts-maxrects-bl-shuffle-k16",
+    "restarts-rows-k16",
+    "rows",
+    "ruin-recreate-maxrects-bl-k64",
+    "ruin-recreate-skyline-k64",
+    "select-rows-bl",
+    "shelf",
+    "shelf-best",
+    "shelf-first",
+    "shelf-first-input",
+    "shelf-next",
+    "side-anchors-first-left",
+    "skyline",
+    "skyline-bl-waste",
+    "skyline-mw",
+    "skyline-mw-waste",
+    "sleator",
+    "tabu-maxrects-bl-k16"
+   ],
+   "method": "repeats 5, warmup 2",
+   "records": 25750,
+   "shares": {
+    "pack.gapToBound": 0.3244,
+    "pack.fill": 0.3294,
+    "pack.gap": 0.3357,
+    "pack.overflow.excessArea": 0.835,
+    "ms": 0.5756
+   },
+   "sharesByInput": {
+    "pack.gapToBound": 0.4043,
+    "pack.fill": 0.387,
+    "pack.gap": 0.3774,
+    "pack.overflow.excessArea": 0.9228,
+    "ms": 0.6587
+   }
+  }
+ ]
+}

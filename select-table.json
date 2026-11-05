@@ -1,0 +1,309 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "select",
+ "origin": [
+  {
+   "release": "0.2.17",
+   "commit": "3a73155",
+   "date": "2026-10-28",
+   "run": null,
+   "source": "packages/packing/src/select.ts, SELECT_TABLE"
+  },
+  {
+   "release": "0.2.10",
+   "commit": "89d2810",
+   "date": "2026-10-28",
+   "run": 40675490363,
+   "source": "bench.yml, the artifact bench-pack-screen-v1 (training)"
+  },
+  {
+   "release": "0.2.12",
+   "commit": "060fa87",
+   "date": "2026-10-28",
+   "run": 40685309195,
+   "source": "bench.yml, the artifact bench-pack-free-v1 (training)"
+  },
+  {
+   "release": "0.2.14",
+   "commit": "6c74e25",
+   "date": "2026-10-28",
+   "run": 40699801165,
+   "source": "bench.yml, the artifact bench-pack-select-v1 (test)"
+  },
+  {
+   "release": "0.2.15",
+   "commit": "54a9e83",
+   "date": "2026-10-28",
+   "run": 40708970161,
+   "source": "bench.yml, the artifact bench-pack-select-v2 (test)"
+  }
+ ],
+ "members": [
+  "rows",
+  "maxrects-bl"
+ ],
+ "winRatio": 1.05,
+ "leaves": [
+  {
+   "leaf": 0,
+   "pick": 0,
+   "path": [
+    {
+     "feature": "fixed",
+     "test": "fixed",
+     "yes": true
+    },
+    {
+     "feature": "count",
+     "test": "count below 317",
+     "yes": true
+    },
+    {
+     "feature": "spread",
+     "test": "spread below 0.02",
+     "yes": true
+    }
+   ],
+   "member": "rows",
+   "train": {
+    "wins": 0,
+    "of": 15
+   },
+   "test": [
+    {
+     "corpus": "pack-select-v1",
+     "wins": 0,
+     "of": 15
+    },
+    {
+     "corpus": "pack-select-v2",
+     "wins": 0,
+     "of": 15
+    }
+   ]
+  },
+  {
+   "leaf": 1,
+   "pick": 1,
+   "path": [
+    {
+     "feature": "fixed",
+     "test": "fixed",
+     "yes": true
+    },
+    {
+     "feature": "count",
+     "test": "count below 317",
+     "yes": true
+    },
+    {
+     "feature": "spread",
+     "test": "spread below 0.02",
+     "yes": false
+    }
+   ],
+   "member": "maxrects-bl",
+   "train": {
+    "wins": 635,
+    "of": 850
+   },
+   "test": [
+    {
+     "corpus": "pack-select-v1",
+     "wins": 638,
+     "of": 850
+    },
+    {
+     "corpus": "pack-select-v2",
+     "wins": 646,
+     "of": 850
+    }
+   ]
+  },
+  {
+   "leaf": 2,
+   "pick": 0,
+   "path": [
+    {
+     "feature": "fixed",
+     "test": "fixed",
+     "yes": true
+    },
+    {
+     "feature": "count",
+     "test": "count below 317",
+     "yes": false
+    },
+    {
+     "feature": "spread",
+     "test": "spread below 0.27",
+     "yes": true
+    }
+   ],
+   "member": "rows",
+   "train": {
+    "wins": 10,
+    "of": 210
+   },
+   "test": [
+    {
+     "corpus": "pack-select-v1",
+     "wins": 11,
+     "of": 210
+    },
+    {
+     "corpus": "pack-select-v2",
+     "wins": 13,
+     "of": 210
+    }
+   ]
+  },
+  {
+   "leaf": 3,
+   "pick": 1,
+   "path": [
+    {
+     "feature": "fixed",
+     "test": "fixed",
+     "yes": true
+    },
+    {
+     "feature": "count",
+     "test": "count below 317",
+     "yes": false
+    },
+    {
+     "feature": "spread",
+     "test": "spread below 0.27",
+     "yes": false
+    }
+   ],
+   "member": "maxrects-bl",
+   "train": {
+    "wins": 184,
+    "of": 210
+   },
+   "test": [
+    {
+     "corpus": "pack-select-v1",
+     "wins": 177,
+     "of": 210
+    },
+    {
+     "corpus": "pack-select-v2",
+     "wins": 184,
+     "of": 210
+    }
+   ]
+  },
+  {
+   "leaf": 4,
+   "pick": 0,
+   "path": [
+    {
+     "feature": "fixed",
+     "test": "fixed",
+     "yes": false
+    },
+    {
+     "feature": "spread",
+     "test": "spread below 0.27",
+     "yes": true
+    }
+   ],
+   "member": "rows",
+   "train": {
+    "wins": 49,
+    "of": 490
+   },
+   "test": [
+    {
+     "corpus": "pack-select-v1",
+     "wins": 48,
+     "of": 466
+    },
+    {
+     "corpus": "pack-select-v2",
+     "wins": 64,
+     "of": 490
+    }
+   ]
+  },
+  {
+   "leaf": 5,
+   "pick": 0,
+   "path": [
+    {
+     "feature": "fixed",
+     "test": "fixed",
+     "yes": false
+    },
+    {
+     "feature": "spread",
+     "test": "spread below 0.27",
+     "yes": false
+    },
+    {
+     "feature": "rect",
+     "test": "rect",
+     "yes": true
+    }
+   ],
+   "member": "rows",
+   "train": {
+    "wins": 7,
+    "of": 50
+   },
+   "test": [
+    {
+     "corpus": "pack-select-v1",
+     "wins": 14,
+     "of": 54
+    },
+    {
+     "corpus": "pack-select-v2",
+     "wins": 10,
+     "of": 50
+    }
+   ]
+  },
+  {
+   "leaf": 6,
+   "pick": 1,
+   "path": [
+    {
+     "feature": "fixed",
+     "test": "fixed",
+     "yes": false
+    },
+    {
+     "feature": "spread",
+     "test": "spread below 0.27",
+     "yes": false
+    },
+    {
+     "feature": "rect",
+     "test": "rect",
+     "yes": false
+    }
+   ],
+   "member": "maxrects-bl",
+   "train": {
+    "wins": 172,
+    "of": 200
+   },
+   "test": [
+    {
+     "corpus": "pack-select-v1",
+     "wins": 200,
+     "of": 220
+    },
+    {
+     "corpus": "pack-select-v2",
+     "wins": 190,
+     "of": 200
+    }
+   ]
+  }
+ ]
+}
