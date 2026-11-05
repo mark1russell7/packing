@@ -557,18 +557,22 @@ describe("the guard sets on a fixture", () => {
     v1: { pass: boolean; tests: unknown; shapes: unknown };
   }
   const fixture = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "promote-guards-v1.json"), "utf8")) as GuardFixture;
+  // The stored records have no CPU model. These tests read the guards, so each record gets the same model.
+  const modelled: PromotionRecord[] = fixture.records.map((r) => ({ ...r, env: { ...r.env, cpu: "one model" } }));
   const options = { candidate: fixture.candidate, current: fixture.current, win: fixture.win, cells: new Map(Object.entries(fixture.cells)), parameters: fixture.parameters };
+  /** This function removes the fields that the stored verdict does not have, so the stored verdict stays as it was. */
+  const asStored = (json: string): GuardFixture["v1"] => JSON.parse(json, (key: string, value: unknown) => (key === "models" || key === "status" ? undefined : value)) as GuardFixture["v1"];
 
   it("gives the old verdict with the guard set v1", () => {
-    const v = winTest(fixture.records, { ...options, guards: "v1" });
+    const v = winTest(modelled, { ...options, guards: "v1" });
     expect(v.guardSet).toBe("v1");
-    const json = JSON.parse(promotionJson(v)) as GuardFixture["v1"];
+    const json = asStored(promotionJson(v));
     expect({ pass: json.pass, tests: json.tests, shapes: json.shapes }).toEqual(fixture.v1);
     expect(v.pass).toBe(false);
   });
 
   it("applies the guards of v2 only to the declaring inputs, and counts the coverage", () => {
-    const v = winTest(fixture.records, options);
+    const v = winTest(modelled, options);
     expect(v.guardSet).toBe("v2");
     expect(v.pass).toBe(true);
     const covered = Object.fromEntries(v.coverage.map((c) => [c.measure, [c.covered, c.leftOut]]));
@@ -584,7 +588,7 @@ describe("the guard sets on a fixture", () => {
   });
 
   it("gives the verdicts of v1 and v2 side by side with compareGuards", () => {
-    const v = winTest(fixture.records, { ...options, compareGuards: true });
+    const v = winTest(modelled, { ...options, compareGuards: true });
     expect(v.compare!.v1.pass).toBe(false);
     expect(v.compare!.v2.pass).toBe(true);
     expect(v.compare!.v2.tests).toBe(v.tests);
@@ -594,15 +598,15 @@ describe("the guard sets on a fixture", () => {
     expect(md).toContain("| **verdict** | 30 | - | - | **fail** | 30 | - | - | **pass** |");
     expect(md).toContain("The coverage of the guard set `v1`:");
     expect(md).toContain("| `pack.aspectError` | `cell.containerSize = freeAspect` | 6 | 24 | 24: the container declares no aspect |");
-    expect(promotionMarkdown(winTest(fixture.records, options))).not.toContain("## The guard sets v1 and v2");
+    expect(promotionMarkdown(winTest(modelled, options))).not.toContain("## The guard sets v1 and v2");
   });
 
   it("gives the view orderNotRequired with compareGuards: v2 without pack.order.inversions, labeled as a view that decides nothing", () => {
     expect(ORDER_FREE_GUARDS.map((g) => g.measure)).toEqual(GUARD_DECLARATIONS.map((g) => g.measure).filter((m) => m !== "pack.order.inversions"));
-    expect(winTest(fixture.records, options).views).toBeUndefined();
+    expect(winTest(modelled, options).views).toBeUndefined();
     // The candidate puts 100 more pairs out of order on each input that declares an order
     const ordered = new Set(Object.entries(fixture.cells).flatMap(([id, c]) => (c.order === "soft" || c.order === "hard" ? [id] : [])));
-    const records = fixture.records.map((r) => (r.strategy === fixture.candidate && ordered.has(r.input) ? { ...r, measures: { ...r.measures, "pack.order.inversions": 100 + (r.measures["pack.order.inversions"] ?? 0) } } : r));
+    const records = modelled.map((r) => (r.strategy === fixture.candidate && ordered.has(r.input) ? { ...r, measures: { ...r.measures, "pack.order.inversions": 100 + (r.measures["pack.order.inversions"] ?? 0) } } : r));
     const v = winTest(records, { ...options, compareGuards: true });
     const view = v.views![ORDER_FREE_VIEW];
     expect([v.pass, v.compare!.v2.pass, view.pass]).toEqual([false, false, true]);
