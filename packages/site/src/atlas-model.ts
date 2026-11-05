@@ -159,7 +159,7 @@ export function atlasTiles(regions: readonly Region[], rule: SolvedRule): string
     ${tile("holds", "passes the test, the search has not run", counts.holds === 0 ? "unmeasured" : "mixed")}
     ${tile("open", "under the floor, or a search hit", counts.open === 0 ? "unmeasured" : "worse")}
     ${tile("too-few", "too few to pass the test", "unmeasured")}
-    ${tile("not-read", "from a run before the change of pack.gap", "unmeasured")}
+    ${tile("not-read", "an old run of pack.gap, or no read at the margin", "unmeasured")}
     <div class="tile unmeasured"><span>Weeks led</span><b>${rule.weekly.weeksLed} of ${rule.weekly.need}</b><small>${esc(rule.weekly.corpus)}, first possible ${esc(rule.weekly.firstPossible)}</small></div>`;
 }
 
