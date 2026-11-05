@@ -4,6 +4,7 @@
 
 import { createContext, marginOf, packWith, strategy, turnItem, type Dimension, type DimensionValue, type PackContext, type PackInput, type PackOutput, type Strategy, type Supports } from "../src/index.ts";
 import { containerBounds, extentOf } from "../src/frame.ts";
+import { supportsOf } from "../src/layout-strategy.ts";
 import { fillOf } from "../src/measures.ts";
 import { hardBreaks } from "../src/select-key.ts";
 import { entry, type BenchEntry } from "./entries.ts";
@@ -107,11 +108,88 @@ export const fillTrick: Strategy<Record<string, never>> = {
   },
 };
 
+/** The id of the control of `pack.stability.moved`. */
+export const KEEP_SHELF = "keep-shelf";
+
+/** This function tells if two boxes overlap. Boxes that only touch do not overlap. */
+const clash = (a: Placed, b: Placed): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** A box of `keep-shelf`, with its place and its sides. */
+interface Placed {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+/**
+ * The control `keep-shelf` buys stability: it moves a box only when the box cannot stay.
+ *
+ * - Each box with a place in `previous` stays there when it fits in the width and overlaps no box that stayed.
+ * - Each other box goes on rows below all the boxes. So the holes of removed boxes stay empty, and `pack.fill` is the measure that this control loses.
+ * - The control reads no gap, no margin and no obstacle, because the chains have none. It supports only a free height.
+ */
+export const keepShelf: Strategy<Record<string, never>> = {
+  id: KEEP_SHELF,
+  family: "control",
+  catalog: [],
+  supports: supportsOf({
+    containerSize: ["freeHeight"],
+    containerShape: ["rect"],
+    obstacleMove: ["fixed", "free"],
+    itemShape: ["rect"],
+    rotation: ["none"],
+    order: ["free", "soft"],
+    groups: ["none"],
+    mode: ["incremental"],
+  }),
+  defaults: {},
+  deterministic: true,
+  pack(input: PackInput, _options: Record<string, never>, context: PackContext): PackOutput {
+    const width = input.container.w!;
+    const before = new Map((context.previous?.placements ?? []).map((p) => [p.id, p]));
+    const placed: Placed[] = [];
+    const rest: PackInput["items"][number][] = [];
+    for (const item of input.items) {
+      const old = before.get(item.id);
+      const spot = old === undefined ? undefined : { id: item.id, x: old.x, y: old.y, w: item.w, h: item.h };
+      if (spot !== undefined && spot.x + spot.w <= width && !placed.some((other) => clash(spot, other))) placed.push(spot);
+      else rest.push(item);
+    }
+    let y = placed.reduce((bottom, p) => Math.max(bottom, p.y + p.h), 0);
+    let x = 0;
+    let row = 0;
+    for (const item of rest) {
+      if (x > 0 && x + item.w > width) {
+        y += row;
+        x = 0;
+        row = 0;
+      }
+      placed.push({ id: item.id, x, y, w: item.w, h: item.h });
+      x += item.w;
+      row = Math.max(row, item.h);
+    }
+    return {
+      placements: placed.map(({ id, x: px, y: py }) => ({ id, x: px, y: py })),
+      overflow: [],
+      size: { w: width, h: y + row },
+      moved: [],
+    };
+  },
+};
+
 /** The controls of the bench, by id. */
-const CONTROLS: ReadonlyMap<string, Strategy> = new Map<string, Strategy>([[FILL_TRICK, fillTrick as Strategy]]);
+const CONTROLS: ReadonlyMap<string, Strategy> = new Map<string, Strategy>([
+  [FILL_TRICK, fillTrick as Strategy],
+  [KEEP_SHELF, keepShelf as Strategy],
+]);
 
 /** The entries of the controls. They are not in `ENTRIES`. */
-export const CONTROL_ENTRIES: readonly BenchEntry[] = Object.freeze([{ id: FILL_TRICK, strategy: FILL_TRICK, options: {} }]);
+export const CONTROL_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: FILL_TRICK, strategy: FILL_TRICK, options: {} },
+  { id: KEEP_SHELF, strategy: KEEP_SHELF, options: {} },
+]);
 
 /** This function tells if an id is the id of a control. */
 export function isControl(id: string): boolean {
@@ -128,9 +206,10 @@ export function benchStrategy(id: string): Strategy {
   return CONTROLS.get(id) ?? strategy(id);
 }
 
-/** This function packs as `packWith` does, and it also packs a control. */
-export function benchPack(id: string, input: PackInput, options?: unknown, seed = 0): PackOutput {
+/** This function packs as `packWith` does, and it also packs a control. The output `previous` goes to the context of the strategy. */
+export function benchPack(id: string, input: PackInput, options?: unknown, seed = 0, previous?: PackOutput): PackOutput {
   const control = CONTROLS.get(id);
-  if (control === undefined) return packWith(id, input, options, seed);
-  return control.pack(input, { ...(control.defaults as object), ...(options as object | undefined) }, createContext(seed));
+  if (control === undefined && previous === undefined) return packWith(id, input, options, seed);
+  const s = control ?? strategy(id);
+  return s.pack(input, { ...(s.defaults as object), ...(options as object | undefined) }, createContext(seed, previous === undefined ? {} : { previous }));
 }

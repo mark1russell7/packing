@@ -3,7 +3,8 @@
  *
  * A pair runs in a child process, because a hard stop must work on code that does not return. A pair over its budget gets a record with
  * a lower limit on its time. After 2 such pairs of an entry at one size, the other pairs of the entry at that size and above do not start.
- * The pairs of an entry run in rising order of their size, so the stop comes early. `docs/BENCH.md` ("The budget of a pair") tells the rules.
+ * The pairs of an entry run in rising order of their size, so the stop comes early. The steps of a chain stay together, so one child packs a step after its base.
+ * `docs/BENCH.md` ("The budget of a pair") tells the rules.
  */
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -42,17 +43,32 @@ export const pairBudgetMs = (items: number): number => (items <= SMALL_ITEMS ? S
 export interface SizedInput {
   id: string;
   nodes: number;
+  /** The input whose output a step of a chain reads. */
+  base?: string;
 }
 
 const caseId = (strategyId: string, input: string): string => `${strategyId}|${input}`;
 
+/** This function gives the inputs in rising order of their size. A chain stays whole at the place of its first input, with each base before its steps. */
+function risingChains(inputs: readonly SizedInput[]): SizedInput[] {
+  const byId = new Map(inputs.map((input, index) => [input.id, { input, index }]));
+  const chainOf = (input: SizedInput, depth = 0): { root: { input: SizedInput; index: number }; depth: number } => {
+    const base = input.base === undefined ? undefined : byId.get(input.base);
+    return base === undefined ? { root: byId.get(input.id)!, depth } : chainOf(base.input, depth + 1);
+  };
+  return inputs
+    .map((input, index) => ({ input, index, ...chainOf(input) }))
+    .sort((a, b) => a.root.input.nodes - b.root.input.nodes || a.root.index - b.root.index || a.depth - b.depth || a.index - b.index)
+    .map((row) => row.input);
+}
+
 /**
- * This function gives the cases of a run: for each entry, its inputs in rising order of their size.
+ * This function gives the cases of a run: for each entry, its inputs in rising order of their size, with each chain whole.
  *
  * The group of a case is its entry and its rank is its count of items. So 2 overruns at one size stop the entry at that size and above.
  */
 export function budgetCases(strategies: readonly string[], inputs: readonly SizedInput[]): SupervisedCase[] {
-  const rising = [...inputs].sort((a, b) => a.nodes - b.nodes);
+  const rising = risingChains(inputs);
   return strategies.flatMap((id) => rising.map((input) => ({ id: caseId(id, input.id), budgetMs: pairBudgetMs(input.nodes), groups: { "": id }, rank: input.nodes })));
 }
 
@@ -185,7 +201,8 @@ function startChild(jobFile: string, pairsFile: string): SupervisedChild {
  * - After 2 overruns of an entry at one size, its other pairs at that size and above get `NOT_RUN_SIZE`.
  * - At the time limit, the supervisor stops the child, and the pairs that did not finish get `NOT_RUN_JOB`.
  * - A child that ends early gives an error for its pair, and a new child goes on with the next pair. A child with no pair throws an `Error`.
- * - A corpus with `base` inputs throws a `RangeError`, because the order of the inputs and a child each lose the base.
+ * - A child keeps the outputs of a corpus with `base` inputs. A new child has no output of the steps before it.
+ *   So a strategy that reads `previous` gets `NOT_RUN_BASE` at the later steps of that chain.
  */
 export async function runBudgeted(o: BudgetedOptions): Promise<BenchResult> {
   const shared = {
@@ -201,11 +218,10 @@ export async function runBudgeted(o: BudgetedOptions): Promise<BenchResult> {
   };
   const options = benchOptions(shared, o.strategies);
   const { inputs } = corpus(options.corpus.corpus, options.corpus.specs);
-  if (inputs.some((file) => file.base !== undefined)) throw new RangeError(`The corpus ${o.corpusName} has inputs with a base, and a run with a budget does not support them.`);
   // A false claim stops the run before the first packing
   checkDeclared(options.corpus, inputs.map(toPackInput));
 
-  const sized = inputs.map((file) => ({ id: file.id, nodes: file.boxes.length + (file.obstacles?.length ?? 0) }));
+  const sized = inputs.map((file) => ({ id: file.id, nodes: file.boxes.length + (file.obstacles?.length ?? 0), ...(file.base === undefined ? {} : { base: file.base }) }));
   const cases = budgetCases(o.strategies, sized);
   const pairOf = new Map(o.strategies.flatMap((strategyId) => inputs.map((file) => [caseId(strategyId, file.id), { strategy: strategyId, input: file.id }] as const)));
   const control = controlTimes(options);

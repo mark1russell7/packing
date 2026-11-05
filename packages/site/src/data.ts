@@ -50,8 +50,8 @@ export interface StrategySummary {
   groups: { group: string; wins: number; losses: number; ties: number }[];
   /** The inputs that the strategy finished. A snapshot from before the wall budget does not have this field. */
   finished?: StrategyFinished;
-  /** The reason of each skipped record, with its count. */
-  reasons?: { reason: string; count: number }[];
+  /** The reason of each skipped record, with its count. A reason that is no wall budget has its word, from the snapshots after the table of words. */
+  reasons?: { reason: string; count: number; word?: SkipWord; why?: string }[];
   /** The count of the records with 1 timed run. */
   oneRun?: number;
 }
@@ -396,10 +396,13 @@ export interface CoveragePoint {
   sharesByInput?: Record<string, number>;
 }
 
+/** The word of a skip. The word `not read` tells that nobody has read the pair of entry and reason. */
+export type SkipWord = "not done" | "other algorithm" | "no meaning" | "not read";
+
 /** One entry of the bench with no measured record in a run, with each reason and its count of records */
 export interface CoverageOtherEntry {
   entry: string;
-  reasons: { because: string; records: number; msAtLeast?: number }[];
+  reasons: { because: string; records: number; msAtLeast?: number; word?: SkipWord; why?: string }[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run */

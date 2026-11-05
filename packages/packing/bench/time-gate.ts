@@ -7,8 +7,8 @@
 // The noise cap: a run with an A/A noise above 3 times the quiet noise of the derivation runs cannot decide.
 // The A/A noise grows with the spread and with a shift of the A/A ratios, so the cap also replaces the rule of schema 2 that the A/A band contains 1.
 
-import { aaBand, caseRatios, timeVerdict, type Band, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
-import { aaId, armOrder, quantileOf, warmInputs, type PairedInput, type PairedReport } from "./paired-time.ts";
+import { aaBand, armOrder, caseRatios, timeVerdict, type Band, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
+import { aaId, assertPairedOrder, quantileOf, warmInputs, type PairedInput, type PairedReport } from "./paired-time.ts";
 
 /**
  * A measure of a paired time test over the inputs. The ratio of an input is the `caseRatios` ratio of its rounds.
@@ -125,7 +125,8 @@ export function gateInputs(report: PairedReport, gate: Pick<TimeGate, "steady">)
  * With `members`, the time `a` of a round is the sum of the times of the members. The arm that started first comes from `armOrder`.
  */
 export function pairRecords(report: PairedReport, inputs: readonly PairedInput[], arm: string, members: readonly string[] = [report.base]): PairedTime[] {
-  const at = (id: string, round: number): number => armOrder(report.arms.length, round, report.mode).indexOf(report.arms.indexOf(id));
+  assertPairedOrder(report);
+  const at = (id: string, round: number): number => armOrder(report.arms, round).indexOf(id);
   const records: PairedTime[] = [];
   for (const input of inputs) {
     const rounds = input.ms[arm]?.length ?? 0;
