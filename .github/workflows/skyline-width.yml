@@ -1,0 +1,47 @@
+# The read of roadmap item k167: the time of skyline against the width of the input in units, on one job.
+# A push to its branch starts it, so the read does not wait for a merge. It is one job, and it gives no gate.
+name: Skyline width
+
+on:
+  push:
+    branches: [feat/skyline-width]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# The shell bash has pipefail, so a failure before a tee fails the step.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Read the time against the width
+        run: node --no-warnings packages/packing/bench/skyline-width.ts --out "$RUNNER_TEMP/width/skyline-width.json" --summary "$GITHUB_STEP_SUMMARY"
+      - name: Test the read
+        if: always()
+        working-directory: packages/packing
+        run: pnpm -s exec vitest run bench/skyline-width.test.ts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: skyline-width
+          path: ${{ runner.temp }}/width
+          if-no-files-found: error
