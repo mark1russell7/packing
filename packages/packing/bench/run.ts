@@ -16,11 +16,9 @@ import {
   measure,
   measureChange,
   measureSeed,
-  packWith,
   quantile,
   round3,
   roundMeasures,
-  strategy,
   toPackInput,
   UnsupportedCell,
   unsupportedOf,
@@ -35,7 +33,8 @@ import {
 import { declaredClaimOf, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
 import { portfolioWith } from "../src/portfolio.ts";
 import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
-import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
+import { benchEntry, benchPack, benchStrategy } from "./controls.ts";
+import { COMPOSITE_IDS, ENTRIES, type BenchEntry } from "./entries.ts";
 import { gapToBound, GAP_TO_BOUND } from "./gap-to-bound.ts";
 import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
@@ -335,7 +334,7 @@ export function strategyIds(list: string | undefined): string[] {
     .map((s) => s.trim())
     .filter((s) => s !== "");
   if (ids.length === 0 || (ids.length === 1 && ids[0] === "all")) return ENTRIES.map((e) => e.id);
-  for (const id of ids) entry(id);
+  for (const id of ids) benchEntry(id);
   return [...new Set(ids)];
 }
 
@@ -368,7 +367,7 @@ type EntryOptions = BenchOptions["entryOptions"];
 
 /** This function gives the entry of an id, with the options of `entryOptions` over its own options. */
 function entryWith(id: string, over: EntryOptions): BenchEntry {
-  const e = entry(id);
+  const e = benchEntry(id);
   const more = over?.[id];
   return more === undefined ? e : { ...e, options: { ...e.options, ...more } };
 }
@@ -416,11 +415,11 @@ const EMPTY_KEY: PortfolioKey<PackInput, PackOutput> = { hard: () => 0, levels: 
 export function pairedPack(id: string, at: PairedCorpusInput, over?: EntryOptions): (() => PackOutput) | undefined {
   const wrapped = id.startsWith(WRAP_PREFIX) ? id.slice(WRAP_PREFIX.length) : undefined;
   const e = entryWith(wrapped ?? id, over);
-  const s = strategy(e.strategy);
+  const s = benchStrategy(e.strategy);
   if (unsupportedOf(s.supports, at.cell) !== undefined) return undefined;
   const given = givenOf(e, s.defaults);
   if (wrapped !== undefined) return () => portfolioWith([{ id: e.id, strategy: e.strategy, options: given }], EMPTY_KEY, { seed: at.seed }).run(at.input);
-  return () => packWith(e.strategy, at.input, given, at.seed);
+  return () => benchPack(e.strategy, at.input, given, at.seed);
 }
 
 /** This function times `repeats` passes of one pair, one after the other. The sampler of the whole space (k112) uses it. */
@@ -449,10 +448,10 @@ function interleavedTimes(ids: readonly string[], inputs: ReturnType<typeof corp
     const ready: { id: string; pack: () => PackOutput; times: PairTimes }[] = [];
     for (const id of ids) {
       const e = entryWith(id, over);
-      const s = strategy(e.strategy);
+      const s = benchStrategy(e.strategy);
       if (unsupportedOf(s.supports, manifest.inputs[index]!.cell) !== undefined) continue;
       const given = givenOf(e, s.defaults);
-      const pack = (): PackOutput => packWith(e.strategy, input, given, file.seed);
+      const pack = (): PackOutput => benchPack(e.strategy, input, given, file.seed);
       try {
         for (let w = 0; w < warmup; w++) pack();
       } catch {
@@ -647,7 +646,7 @@ export function runBench(options: BenchOptions): BenchResult {
 
   for (const id of ids) {
     const e = entryWith(id, options.entryOptions);
-    const s = strategy(e.strategy);
+    const s = benchStrategy(e.strategy);
     // An entry of the registry gives no options to packWith, as the runner before k21 did
     const given = givenOf(e, s.defaults);
     const done = new Map<string, { input: PackInput; output: PackOutput }>();
@@ -692,12 +691,12 @@ export function runBench(options: BenchOptions): BenchResult {
       }
       const input = toPackInput(file);
       try {
-        const first = packWith(e.strategy, input, given, file.seed);
-        const second = packWith(e.strategy, input, given, file.seed);
+        const first = benchPack(e.strategy, input, given, file.seed);
+        const second = benchPack(e.strategy, input, given, file.seed);
         // k121: each later pass counts for `deterministic` too, so a run with 10 repeats compares 11 outputs with the first
         const later: PackOutput[] = [second];
         const pack = (): PackOutput => {
-          const output = packWith(e.strategy, input, given, file.seed);
+          const output = benchPack(e.strategy, input, given, file.seed);
           later.push(output);
           return output;
         };
@@ -711,7 +710,7 @@ export function runBench(options: BenchOptions): BenchResult {
 
         const values = pairValues(input, first, searchMs, file.known);
         // k123: the move between the outputs of two seeds, after the best alignment. A strategy that does not read the seed gives 0.
-        Object.assign(values, measureSeed(input, first, packWith(e.strategy, input, given, file.seed + 1)));
+        Object.assign(values, measureSeed(input, first, benchPack(e.strategy, input, given, file.seed + 1)));
         const base = file.base === undefined ? undefined : done.get(file.base);
         if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
         // Only a run that asks for it gets the stability when an anchor moves (roadmap item k111)
