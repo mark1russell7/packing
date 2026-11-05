@@ -1160,10 +1160,12 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `budget` | empty | The id of a candidate arm for the time budget of a promotion (k128). It needs `runs` 5 and mode `fresh`. |
 | `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
-The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/2`. The two modes are:
+The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/3`. The two modes are:
 
-- Mode `fresh` starts a child `paired-child` for each arm, each input and each round. The order of the arms rotates each round. The child does the warm-up runs, times `passes` runs, and writes their median time and its memory peak.
-- Mode `process` packs each input with the arms in turn in one process. Odd rounds reverse the order (ABBA).
+- Mode `fresh` starts a child `paired-child` for each arm, each input and each round. The child does the warm-up runs, times `passes` runs, and writes their median time and its memory peak.
+- Mode `process` packs each input with the arms in turn in one process.
+
+In both modes, the order of the arms in a round comes from `armOrder` of `@mark1russell7/rigor-bench`. Each odd round is the reverse of the round before it, and each even round turns the arms by one more place. After any count of rounds, the two orders of a pair differ by 1 or less.
 
 The test uses only the inputs that each arm supports. The ratio of an input is the median time of the arm over the median time of the base. A group is a seed of the corpus.
 
@@ -1171,7 +1173,7 @@ The artifact `paired-time-<corpus>-<mode>-run<n>` of each run has `run.json`, `p
 
 A claim gives the median, p10, p90 and `moved` of each arm, and the noise floor. A difference inside the noise floor is not a result.
 
-Schema `paired-time/2` is `paired-time/1` with three more fields (k130). A reader of version 2 reads a file of version 1.
+Schema `paired-time/3` is `paired-time/2` in this order (k165). A pair reader refuses a report of an older schema, because it cannot read which arm of a pair started first. Schema `paired-time/2` is `paired-time/1` with three more fields (k130).
 
 - `wallMs` is the time of all the rounds of the job.
 - `passes` is the count of timed passes of each child of mode `fresh`.
