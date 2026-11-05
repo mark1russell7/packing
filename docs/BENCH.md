@@ -193,6 +193,25 @@ The budgets are a committed record. Thus the size goes only down by default:
 
 - The module `bench/size-gate.ts` has no packing logic, so it can move to the planned home of gates (rigor-gates).
 
+## The output rows
+
+The catalog states if the positions and the sizes of each strategy are whole numbers. The file `src/strategy-output.ts` holds these rows. The script `bench/whole-positions.ts` writes it. Do not edit it.
+
+- The family `whole-positions/1` has 240 rect inputs: 5 container modes, 3 item counts, 2 gaps, 2 margins, 2 insets and 2 seeds. Each number of an input is a whole number.
+- An option set is the defaults of a strategy, or the options of one entry of the bench. A row states only its own option set.
+- The contract gives the class. One fractional input gives `fractional` at any count. With no fraction, fewer than 30 packed inputs give `untested`, and the row keeps the count.
+- The read has no clock, so one commit gives one result. The check compares the counts, and a changed count fails also when the class stays the same.
+
+The job `rows` of `output-rows.yml` starts on each pull request and each push to `main`. `CI OK` needs it. No path list can miss a file, because the job does not read the changed files.
+
+```sh
+node --no-warnings bench/write-catalog.ts                 # After a change to the rows or the version
+node --no-warnings bench/whole-positions.ts --write       # After a strategy changes its output on purpose
+node --no-warnings bench/whole-positions.ts --check       # The check of the job
+```
+
+The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
 ## The runner
 
 The runner is `packages/packing/bench/main.ts`. Node.js starts it with no build step. The script `bench` of the package starts it:

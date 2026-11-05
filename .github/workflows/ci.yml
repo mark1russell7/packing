@@ -37,6 +37,12 @@ jobs:
     permissions:
       contents: read
 
+  # The output rows of the catalog (k150): a read of each option set, against src/strategy-output.ts.
+  output-rows:
+    uses: ./.github/workflows/output-rows.yml
+    permissions:
+      contents: read
+
   # The time gates of bench/gates (k130). A pull request runs them only when a file of the gates changed.
   time-gate:
     uses: ./.github/workflows/time-gate.yml
@@ -81,7 +87,7 @@ jobs:
   ci-ok:
     name: CI OK
     if: always()
-    needs: [ci, bench-smoke, site-check, size-gate, time-gate, presets]
+    needs: [ci, bench-smoke, site-check, size-gate, output-rows, time-gate, presets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
