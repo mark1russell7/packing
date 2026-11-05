@@ -193,17 +193,18 @@ jobs:
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate "$CANDIDATE" --default "$CURRENT" --win "$WIN" \
             --times "$RUNNER_TEMP/time" --guards "$GUARDS" --compare-guards --out "$RUNNER_TEMP/promotion"
       # The verdicts are functions of the fixed records of the default run. The pair maxrects-bl and rows has 2 CPU models, so its time ratio is not a speed.
-      # A high floor takes the time test out of the win and the loss. The third read keeps the usual floor on that pair: it reads the time test across 2 models.
-      - name: Read the fixed pairs, one known win, one known loss and one known time failure
+      # The win reads no-read: each other test passes, and the time test gives no pass and no fail. The loss stands at fail on its gain.
+      # The third read keeps the usual floor on that pair: its time tail is over the limit, and the read stays no-read.
+      - name: Read the fixed pairs, one win with no time read, one known loss and one over the time limit with no time read
         if: ${{ github.event_name != 'workflow_dispatch' }}
         working-directory: packages/packing
         run: |
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate maxrects-bl --default rows --win pack.fill \
-            --guards v2 --time-floor-ms 1000000000 --expect pass --out "$RUNNER_TEMP/fixed/win"
+            --guards v2 --time-floor-ms 1000000000 --expect no-read --out "$RUNNER_TEMP/fixed/win"
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate rows --default maxrects-bl --win pack.fill \
             --guards v2 --time-floor-ms 1000000000 --expect fail --out "$RUNNER_TEMP/fixed/loss"
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate maxrects-bl --default rows --win pack.fill \
-            --guards v2 --expect fail --out "$RUNNER_TEMP/fixed/time"
+            --guards v2 --expect no-read --out "$RUNNER_TEMP/fixed/time"
       # The flip of the time test: one CPU model, the usual floor. A clean pair passes, and a copy with a slow candidate fails on the time test alone.
       - name: Flip test of the time test on one CPU model
         if: ${{ github.event_name != 'workflow_dispatch' }}

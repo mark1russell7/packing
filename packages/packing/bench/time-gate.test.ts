@@ -57,6 +57,38 @@ describe("pairRecords", () => {
   });
 });
 
+describe("the order of the arms in a time gate", () => {
+  const inRounds = (b: number[]): PairedReport => {
+    const base = report([1, 1, 1, 1, 1]);
+    return { ...base, inputs: base.inputs.map((input) => ({ ...input, ms: { ...input.ms, b } })) };
+  };
+
+  it("prints the counts per order and size 0 when the order does not move the ratio", () => {
+    const result = checkTimeGate(GATE, report([2, 2, 2, 2, 2]), "set-v1");
+    expect(result.order).toMatchObject({ aFirst: 5, bFirst: 10, cases: 5, effect: 0, size: 0 });
+    expect(gateMarkdown(result)).toContain("The order of the arms: 5 records with the base first, 10 with the arm first.");
+    expect(gateMarkdown(result)).toContain("The order size is 0.0000");
+  });
+
+  it("reads v/6 at the counts 1:2 of three rounds, in the line of the gate", () => {
+    // The base runs first in round 0, and the arm runs first in rounds 1 and 2.
+    const result = checkTimeGate(GATE, inRounds([10, 20, 20]), "set-v1");
+    expect(result.order!.effect).toBeCloseTo(Math.LN2, 12);
+    expect(result.order!.split).toBeCloseTo(1 / 3, 12);
+    expect(result.order!.size).toBeCloseTo(Math.LN2 / 6, 12);
+    expect(gateMarkdown(result)).toContain(`The order size is ${(Math.LN2 / 6).toFixed(4)}`);
+  });
+
+  it("has no order line on a refused report, and the verdict does not read it", () => {
+    const refused = checkTimeGate(GATE, report([1, 1, 1, 1, 1]), "set-v2");
+    expect(refused.order).toBeNull();
+    expect(gateMarkdown(refused)).not.toContain("The order of the arms");
+    const moved = checkTimeGate(GATE, inRounds([10, 20, 20]), "set-v1");
+    const even = checkTimeGate(GATE, inRounds([20, 20, 20]), "set-v1");
+    expect(moved.verdict).toBe(even.verdict);
+  });
+});
+
 describe("checkTimeGate", () => {
   it("refuses a report of an older schema, and names the schema", () => {
     const old = report([1.95, 2, 2, 2.1, 1.9], { schema: "paired-time/2" } as unknown as Partial<PairedReport>);

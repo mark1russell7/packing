@@ -4,10 +4,14 @@
 # the committed file, byte for byte. A failure blocks the merge, because version 1 of the search is frozen.
 # A change of a strategy runs --report: it names the moved rows and exits with the code 0, because a better strategy is
 # not a fault of the corpus. A push or a release does not repeat the job: the pull request of the change ran it.
+# A report that exits with the code 0 is read by nobody, so the schedule runs --check on main each week. A red run asks
+# for a dated answer: a new version of the rows, or a stated reason (docs/BENCH.md).
 # A test of the package reads the two lists of this file (bench/adversary.test.ts). The job needs no timing.
 name: Adversary corpus
 
 on:
+  schedule:
+    - cron: "50 3 * * 2"
   workflow_call:
   workflow_dispatch:
 
@@ -42,6 +46,10 @@ jobs:
           SEARCH='packages/packing/bench/adversary\.ts|packages/packing/bench/corpora/pack-adversary-v1\.json|packages/packing/src/(generators|layout-input|strategy|bounds|measures|check)\.ts|\.github/workflows/adversary\.yml'
           # The files of the strategies and the dependencies. They can move a row with no fault of the corpus.
           REPORT='packages/packing/src/.*|packages/packing/bench/entries\.ts|pnpm-lock\.yaml'
+          if [ "$EVENT" = schedule ]; then
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$EVENT" = workflow_dispatch ] && [ "$WORKFLOW" = "Adversary corpus" ]; then
             echo "mode=check" >> "$GITHUB_OUTPUT"
             exit 0
