@@ -31,8 +31,9 @@ jobs:
         with:
           paths: |
             packages/packing/bench/adversary.ts
+            packages/packing/bench/entries.ts
             packages/packing/bench/corpora/pack-adversary-v1.json
-            packages/packing/src/generators.ts
+            packages/packing/src/**
             .github/workflows/adversary.yml
 
   check:

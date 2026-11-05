@@ -1,4 +1,7 @@
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { checkHard, checkInput, DEFAULT_TOLERANCE, generator, hashInput, measure, mulberry32, packWith, strategy, toPackInput, type GeneratedInput } from "@mark1russell7/packing";
 import {
@@ -183,6 +186,22 @@ describe("the corpus pack-adversary-v1", () => {
       expect(found["loss"]).toBeGreaterThan(0);
     }
   });
+
+  it("gives exit 0 for the stored row, and a failure when one value of that row changes", () => {
+    const hash = file.found[2]!["hash"] as string;
+    const folder = mkdtempSync(join(tmpdir(), "adversary-check-"));
+    try {
+      const changed = join(folder, "changed.json");
+      const other = text.replace(`"hash": "${hash}"`, `"hash": "${"0".repeat(hash.length)}"`);
+      expect(other).not.toBe(text);
+      writeFileSync(changed, other);
+      const check = (path: string): number | null => spawnSync(process.execPath, ["--no-warnings", "bench/adversary.ts", "--check", "--pair", "2", "--file", path], { encoding: "utf8" }).status;
+      expect(check(ADVERSARY_FILE)).toBe(0);
+      expect(check(changed)).toBe(1);
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  }, 60_000);
 
   it("matches a rerun of the search of one pair, byte for byte", () => {
     const result = searchAdversary(pairOptions(ADVERSARY_PAIRS[2]!));

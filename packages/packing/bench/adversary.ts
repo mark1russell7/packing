@@ -5,6 +5,7 @@
 //   node bench/adversary.ts                 writes the file
 //   node bench/adversary.ts --check         exits with the code 1 when the file is not the output of the builder
 //   node bench/adversary.ts --check --pair 2  examines only the pair with the index 2
+//   node bench/adversary.ts --check --file <file>  examines that file in place of the corpus
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -33,7 +34,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { ENTRIES, entry, isComposite, STANDALONE_IDS } from "./entries.ts";
+import { entry } from "./entries.ts";
 
 /** The name of the corpus. */
 export const ADVERSARY_CORPUS = "pack-adversary-v1";
@@ -216,8 +217,28 @@ function valueOf(id: string, input: PackInput, cell: CorpusCell, seed: number, k
   }
 }
 
-/** The single entries of the benchmark: the pool of `best`. */
-export const SINGLE_ENTRIES: readonly string[] = Object.freeze(ENTRIES.filter((e) => !isComposite(e.id) && !STANDALONE_IDS.has(e.id)).map((e) => e.id));
+/**
+ * This constant gives the pool of `best` for version 1 of the search: the single entries of the benchmark on 2026-10-28.
+ * A new entry can change the winner of a stored row, so a new entry does not join this list. A new version of the search reads the new entries.
+ */
+export const SINGLE_ENTRIES: readonly string[] = Object.freeze([
+  "rows",
+  "skyline",
+  "shelf",
+  "push",
+  "shelf-next",
+  "shelf-first",
+  "shelf-best",
+  "shelf-first-input",
+  "maxrects-bssf",
+  "maxrects-blsf",
+  "maxrects-baf",
+  "maxrects-bl",
+  "maxrects-cp",
+  "skyline-mw",
+  "skyline-bl-waste",
+  "skyline-mw-waste",
+]);
 
 /** This function gives the measure of the loss on a container: `fill` for a fixed size, else `gap`. */
 export const lossMeasureOf = (container: LayoutContainer): LossMeasure => (container.fixed === "size" ? "fill" : "gap");
@@ -565,10 +586,12 @@ if (process.argv[1]?.endsWith("adversary.ts") === true) {
     return res;
   });
   if (process.argv.includes("--check")) {
-    const text = readFileSync(ADVERSARY_FILE, "utf8");
+    const fileAt = process.argv.indexOf("--file");
+    const checked = fileAt === -1 ? ADVERSARY_FILE : process.argv[fileAt + 1]!;
+    const text = readFileSync(checked, "utf8");
     const same = only === undefined ? text === adversaryCorpusText(results) : results.every((res) => text.includes(foundLine(res)) && (inputLine(res) === undefined || text.includes(inputLine(res)!)));
     if (!same) {
-      console.error(`${ADVERSARY_FILE} is not the output of the builder. Start node bench/adversary.ts.`);
+      console.error(`${checked} is not the output of the builder. Start node bench/adversary.ts.`);
       process.exitCode = 1;
     }
   } else if (only === undefined) {
