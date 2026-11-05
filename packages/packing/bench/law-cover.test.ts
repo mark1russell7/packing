@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { mulberry32 } from "@mark1russell7/rigor-generators";
-import { AREA_LAWS, areaLaw, ASPECT_LAWS, aspectLaw, assortmentOf, corpusPools, LAW_COVER_FILE, LAW_PAIRS, lawCover, lawJson, lawOf, MIN_POOLED_ITEMS, modeCount, type LawInput } from "./law-cover.ts";
+import { modeCount } from "@mark1russell7/rigor-statistics";
+import { AREA_LAWS, areaLaw, ASPECT_LAWS, aspectLaw, assortmentOf, corpusPools, LAW_COVER_FILE, LAW_PAIRS, lawCover, lawJson, lawOf, MIN_POOLED_ITEMS, type LawInput } from "./law-cover.ts";
 
 // Roadmap item k146: the read gives each law back from made-up samples, at the floor of items.
 
