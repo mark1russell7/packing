@@ -41,6 +41,10 @@ export interface KpiFacts {
   readonly pages: readonly string[];
   /** The version of the package at the build. */
   readonly release: string;
+  /** The versions that have a tag. */
+  readonly tags: readonly string[];
+  /** The time of the commit that set the version of the package, in UTC. */
+  readonly versionAt: string;
   /** The versions that the page of the news shows, from `data/releases.json`. */
   readonly shownReleases: readonly string[];
   /** The versions of `CHANGELOG.md`. */
@@ -67,10 +71,23 @@ export function changelogVersions(changelog: string): string[] {
   return [...changelog.matchAll(/^## (\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\s*$/gm)].map((m) => m[1]!);
 }
 
-/** This function counts the versions of the changelog and the package that the page of the news does not show. An old list and a list with a missing release both count. */
-export function staleReleases(shown: readonly string[], changelog: readonly string[], release: string): number {
-  const listed = new Set(shown);
-  return [...new Set([release, ...changelog])].filter((version) => !listed.has(version)).length;
+/** The reading of the releases on the page of the news. */
+export interface ReleaseReading {
+  /** The count of the versions of the changelog and the package that the page does not show, less a version in flight. */
+  readonly stale: number;
+  /** The version of the package when it has no tag and its version commit is under 1 day old. */
+  readonly inFlight?: string;
+}
+
+/**
+ * This function reads the versions that the page of the news does not show. An old list and a list with a missing release both count.
+ * A tag comes after its version commit, so a version in flight does not count. Over 1 day it counts, so a failed release shows.
+ */
+export function releaseReading(facts: Pick<KpiFacts, "release" | "tags" | "versionAt" | "shownReleases" | "changelogReleases">, now: number): ReleaseReading {
+  const inFlight = !facts.tags.includes(facts.release) && now - Date.parse(facts.versionAt) < DAY_MS ? facts.release : undefined;
+  const listed = new Set(facts.shownReleases);
+  const stale = [...new Set([facts.release, ...facts.changelogReleases])].filter((version) => !listed.has(version) && version !== inFlight).length;
+  return inFlight === undefined ? { stale } : { stale, inFlight };
 }
 
 /** This function gives the number of the calendar week of a day, with the week from Monday to Sunday. */
@@ -85,13 +102,15 @@ export function weeklyTrend(dates: readonly string[], now: number): boolean {
 
 /**
  * This function gives the data of the file from the facts. Each time is the time of the data of its measure, and not the time of the
- * build. The measures of the registry and the pages have the time of the commit. Only the test of a weekly trend reads the time `now`.
+ * build. The measures of the registry and the pages have the time of the commit. Only the test of a weekly trend and the age of a version in flight read the time `now`.
  */
 export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
   const coverageAt = facts.trend.length === 0 ? facts.coverageAt : `${[...facts.trend].sort().at(-1)!}T00:00:00Z`;
+  const releases = releaseReading(facts, now);
   const measures: SiteMeasure[] = [
     { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
-    { id: "stale-text", value: staleText(facts.pages, facts.strategies) + staleReleases(facts.shownReleases, facts.changelogReleases, facts.release), unit: "places", at: facts.commitAt },
+    { id: "stale-text", value: staleText(facts.pages, facts.strategies) + releases.stale, unit: "places", at: facts.commitAt },
+    { id: "release-in-flight", value: releases.inFlight === undefined ? 0 : 1, unit: releases.inFlight === undefined ? "versions" : `version ${releases.inFlight}`, at: facts.commitAt },
     { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
     { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
     { id: "coverage-shown", value: weeklyTrend(facts.trend, now) ? 1 : 0, at: coverageAt },

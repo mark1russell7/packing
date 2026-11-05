@@ -1408,8 +1408,10 @@ The workflow `site-data.yml` starts these commands in CI from finished runs on `
 - A gap snapshot gives the count, the quartiles and the values below 0 of the measure. It gives them for all inputs and for each cell.
 - The cell of a gap snapshot is the family up to its container size, for example `perfect-cut.guillotine.fixed`. A record without a finite value counts as missing.
 - The commits of the two gap runs come after the tag `v0.2.17`. Thus `--release 0.2.17` gives the release of their packers.
-- The Pages build starts the command `releases`. That build starts when the workflow Release ends, because a tag made with the Actions token starts no workflow. So the news shows a new release after one build. The daily build is the backstop.
+- The Pages build starts the command `releases`. A build starts at each push to main, and again when the workflow Release ends. A tag made with the Actions token starts no workflow. So the news shows a new release after one build. The daily build is the backstop.
+- The news and the footer show the last release that has a tag. A version with no tag is not shown as a release.
 - The measure `stale-text` adds each version of `CHANGELOG.md`, and the version of the package, that the news does not show. So an old list and a list with a missing release both count.
+- A package version with no tag and a version commit under 1 day old is in flight, and it does not count. The measure `release-in-flight` reads 1 and names the version in its unit. Over 1 day, the version counts in `stale-text`, so a failed Release shows.
 - After a new bench run, start the command of its corpus again.
 - The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
 - The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.

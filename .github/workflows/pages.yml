@@ -4,20 +4,22 @@
 name: Pages
 
 on:
-  # A build starts when the workflow Release of a push to main ends. The tag of a new version comes at the end of that workflow,
-  # and a tag made with the Actions token starts no workflow. So a build has the tag of its commit, and each merge has one build.
+  push:
+    branches: [main]
+  # A merge that changes a version starts the workflow Release. The tag comes at the end of that workflow, and a tag made with
+  # the Actions token starts no workflow. So a second build starts when Release ends, and the news shows the new release.
   workflow_run:
     workflows: [Release]
     types: [completed]
     branches: [main]
-  # One build each day is the backstop if a Release fails, and the Status page shows the open pull requests and the data date of the day
+  # One build each day, so the Status page shows the open pull requests and the data date of the day
   schedule:
     - cron: "23 6 * * *"
   workflow_dispatch:
 
 permissions: {}
 
-# One deployment at a time. A newer build waits until the deployment in progress finishes.
+# One deployment at a time. A newer push waits until the deployment in progress finishes.
 concurrency:
   group: pages
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
