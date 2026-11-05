@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { corpus, measureChange, roundMeasures, toPackInput, type PackOutput } from "@mark1russell7/packing";
 import { CHANGE_CORPUS, changeCorpusText, changeSpecs, stepMarkdown, stepRows } from "./change.ts";
-import { benchEntry, benchPack, KEEP_SHELF } from "./controls.ts";
+import { benchEntry, benchPack, CONTROL_ENTRIES, KEEP_SHELF } from "./controls.ts";
 import { ENTRIES } from "./entries.ts";
 import { isMeasured, NOT_RUN_BASE, outputHash, parseCorpus, runBench, type BenchEnv, type BenchRecord, type MeasuredRecord, type SkippedRecord } from "./run.ts";
 
@@ -150,7 +150,18 @@ describe("the read by step", () => {
     expect(stepMarkdown([push!, rows!])).toContain("| `push` | previous |");
   }, 60_000);
 
-  it("reads a bench entry with an id that is not the id of a strategy", () => {
+  it("reads each entry and each control, with an id that is not always the id of a strategy", () => {
+    const ids = [...ENTRIES, ...CONTROL_ENTRIES].map((e) => e.id);
+    expect(ids).toContain("maxrects-bl");
+    const rows = stepRows([], ids, new Set());
+    expect(rows.map((r) => r.strategy)).toEqual(ids);
+    const previous = rows.filter((r) => r.comparison === "previous").map((r) => r.strategy);
+    expect(previous).toEqual(expect.arrayContaining(["keep-shelf", "push"]));
+    expect(previous).not.toContain("rows");
+    expect(previous).not.toContain("maxrects-bl");
+  });
+
+  it("gives the row of an entry from the records of a real run", () => {
     const [row] = stepRows(run("maxrects-bl").records, ["maxrects-bl"], new Set(roots.map((f) => f.id)));
     expect(row).toMatchObject({ strategy: "maxrects-bl", comparison: "no previous", stepZero: roots.length, steps: inputs.length - roots.length });
   }, 60_000);
