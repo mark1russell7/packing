@@ -1,5 +1,5 @@
 /**
- * The budget of a run: each pair of a strategy and an input has a wall budget, so that a run of all the entries finishes.
+ * The budget of a run: each pair of a strategy and an input has a wall budget. A run of all the entries then finishes.
  *
  * A pair runs in a child process, because a hard stop must work on code that does not return. A pair over its budget gets a record with
  * a lower limit on its time. After 2 such pairs of an entry at one size, the other pairs of the entry at that size and above do not start.
@@ -49,7 +49,7 @@ const caseId = (strategyId: string, input: string): string => `${strategyId}|${i
 /**
  * This function gives the cases of a run: for each entry, its inputs in rising order of their size.
  *
- * The group of a case is its entry and its rank is its count of items, so 2 overruns at one size stop the entry at that size and above.
+ * The group of a case is its entry and its rank is its count of items. So 2 overruns at one size stop the entry at that size and above.
  */
 export function budgetCases(strategies: readonly string[], inputs: readonly SizedInput[]): SupervisedCase[] {
   const rising = [...inputs].sort((a, b) => a.nodes - b.nodes);

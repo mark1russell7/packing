@@ -117,6 +117,12 @@ export interface MeasuredRecord extends BenchRecordHead {
    * The time of the record is thus one time, and the time gate does not read it.
    */
   oneRun?: true;
+  /** A measured record has no budget of a stopped pair. Only a skipped record has it. */
+  budgetMs?: never;
+  /** A measured record has no lower bound of a stopped pair. Only a skipped record has it. */
+  msAtLeast?: never;
+  /** A measured record has no case that stopped it. Only a skipped record has it. */
+  because?: never;
   /** The first 16 hex characters of the SHA-256 of the canonical placements, sorted by id. */
   outputHash: string;
   /** The value is `true` when two runs with the same seed give the same output. */
@@ -125,7 +131,7 @@ export interface MeasuredRecord extends BenchRecordHead {
 }
 
 /**
- * The record of a pair that the runner did not pack, because the strategy does not support the cell of the input, or because of a budget.
+ * The record of a pair that the runner did not pack. The strategy does not support the cell of the input, or a budget stopped the pair.
  * It has no measures and no hard counts, and its `ms` is 0.
  */
 export interface SkippedRecord extends BenchRecordHead {
@@ -297,7 +303,7 @@ export interface BenchOptions {
    */
   entryOptions?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   /**
-   * The time of the first pack of a pair, in milliseconds, over which the pair gets 1 timed run and no warm-up, and its record gets `oneRun`.
+   * The time of the first pack of a pair, in milliseconds, over which the pair gets 1 timed run and no warm-up. Its record gets `oneRun`.
    * The default is no limit, so the records do not change.
    */
   slowPackMs?: number;

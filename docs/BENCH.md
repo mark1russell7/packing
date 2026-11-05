@@ -198,7 +198,7 @@ A strategy of the mode `incremental` gets only skipped records on an offline cor
 
 ## The budget of a pair
 
-The flag `--budget` holds each pair of an entry and an input to a wall budget, so that a run of `all` can finish on the corpora with 1000 items. The input `budget` of the workflow sets the flag. Each pair runs in a child process of `superviseCases` from `@mark1russell7/rigor-bench/supervise`, so a stop works on code that does not return. Only an overrun costs a new child, so the times of the other pairs do not change.
+The flag `--budget` holds each pair of an entry and an input to a wall budget. A run of `all` can then finish on the corpora with 1000 items. The input `budget` of the workflow sets the flag. Each pair runs in a child process of `superviseCases` from `@mark1russell7/rigor-bench/supervise`, so a stop works on code that does not return. Only an overrun costs a new child, so the times of the other pairs do not change.
 
 | Rule | Value | Where |
 |---|---|---|
@@ -221,13 +221,13 @@ A record with `oneRun: true` has one time and no warm-up, because a measure of t
 
 The field `budget` of `run.json` states these rules, and has the control of each job. The section `Budget` of the summary shows, for each entry, the largest input that finished in its budget. Compare two entries only on the inputs that each one finished.
 
-A wall budget is not one limit across computers, because the runners differ by load. So each job first packs the same inputs with the entry `skyline`: 20 packs of each of the 7 largest inputs. The field `budget.jobs` keeps these times. The merge gives them to `controlFactor` of `rigor-bench`, with one group for each job and one key for each input, and writes the load factor of each job in `budget.factors`. Read a censored result near a budget with the factor of its job.
+A wall budget is not one limit across computers, because the runners differ by load. So each job first packs the same inputs with the entry `skyline`: 20 packs of each of the 7 largest inputs. The field `budget.jobs` keeps these times. The merge gives them to `controlFactor` of `rigor-bench`, with one group for each job and one key for each input. It writes the load factor of each job in `budget.factors`. Read a censored result near a budget with the factor of its job.
 
 The strategies `binary-height`, `near-rects` and `raster-nofit` refuse an input with over 256 items, so those pairs have the reason `unsupported containerSize: refused` at no cost. This limit is a real limit of the strategies, and it is not part of the budget.
 
-A corpus with `base` inputs does not go with `--budget`, because an input of such a corpus needs the output of its base in the same process. `--interleave` and `--anchor` do not go with it either.
+A corpus with `base` inputs does not go with `--budget`. An input of such a corpus needs the output of its base in the same process. `--interleave` and `--anchor` do not go with it either.
 
-The estimate of the first run comes from a power law over the times of workflows `41897623562` and `41942254149`, with at most 100 items in each, so it is not a measurement:
+The estimate of the first run comes from a power law over the times of workflows `41897623562` and `41942254149`. Each has at most 100 items, so the estimate is not a measurement:
 
 | Corpus | Estimate of the job minutes |
 |---|---:|
