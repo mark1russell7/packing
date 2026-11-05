@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { changelogVersions, kpiInput, trendLines, type SegmentedPoint } from "./src/kpi.ts";
+import { changelogVersions, kpiInput, skipCounts, trendLines, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
@@ -52,6 +52,8 @@ const versionTime = (): string => {
 const kpiData = () => {
   const text = (name: string): string => readFileSync(page(name), "utf8");
   const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly SegmentedPoint[]; latest: { entries?: { measured: number; planned: number } } };
+  const snapshots = readdirSync(page("./data")).filter((name) => /^strategies-.*\.json$/.test(name));
+  const summaries = snapshots.flatMap((name) => (JSON.parse(text(`./data/${name}`)) as { strategies: readonly SkipSummary[] }).strategies);
   const facts = {
     picker: DEMO_IDS.length,
     strategies: allStrategies.length,
@@ -65,6 +67,8 @@ const kpiData = () => {
     changelogReleases: changelogVersions(text("../packing/CHANGELOG.md")),
     trend: trendLines(coverage.trend),
     ...(coverage.latest.entries === undefined ? {} : { entries: { measured: coverage.latest.entries.measured, planned: coverage.latest.entries.planned } }),
+    skips: skipCounts(summaries),
+    skipsAt: commitTime(...snapshots.map((name) => page(`./data/${name}`))),
     explorer: existsSync(page("./explorer/index.html")),
     commitAt: commitTime(),
     lawPairsAt: commitTime(page("./data/law-cover.json")),
