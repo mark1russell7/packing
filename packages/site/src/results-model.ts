@@ -67,7 +67,7 @@ export const SKIP_WORD_TEXT: Readonly<Record<SkipWord, string>> = {
   "not read": "nobody has read this reason",
 };
 
-/** This function gives the word of a skip reason, or `undefined` for a wall budget. A reason with no word reads `not read`, and never a default word. */
+/** This function gives the word of a skip reason, or `undefined` for a wall budget. A reason with no word reads `not read`, so it gets no default word. */
 export const skipWordOf = (reason: string, word: SkipWord | undefined): SkipWord | undefined => (isBudgetReason(reason) ? undefined : (word ?? "not read"));
 
 /** This function gives the line of one skip reason of a strategy: the reason, its word and the reason of the word. */
