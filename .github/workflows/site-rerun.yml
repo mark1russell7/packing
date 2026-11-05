@@ -1,0 +1,79 @@
+# The weekly rerun of the corpora of the site (k148, docs/BENCH.md "The snapshots of the site").
+# Each job packs one corpus with bench.yml. The next job waits, so at most 3 runners work at one time.
+# Each pair has a wall budget, so a slow entry keeps the rows that it finished.
+# A corpus that failed does not stop the next one, and its files stay at their earlier run.
+# A scheduled run also starts site-data.yml, which writes the files of each corpus that finished.
+# A manual run writes no file. It reads the cost of a change.
+#
+# The corpus pack-classes-v1 has its own weekly run, in coverage-nightly.yml.
+# bench/site-rerun.test.ts holds the list of the corpora here and in site-data.yml.
+name: Site rerun
+
+on:
+  schedule:
+    - cron: "4 3 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A weekly run and a manual run have different groups, so one does not hold the other. No run cancels another.
+  group: site-rerun-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  free:
+    uses: ./.github/workflows/bench.yml
+    with:
+      corpus: pack-free-v1
+      prediction: p-2026-11-05-k148-weekly-free
+      sample: "0"
+      job-minutes: "340"
+      budget: true
+
+  screen:
+    needs: free
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/bench.yml
+    with:
+      corpus: pack-screen-v1
+      prediction: p-2026-11-05-k148-weekly-screen
+      sample: "0"
+      job-minutes: "340"
+      budget: true
+
+  select-v1:
+    needs: screen
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/bench.yml
+    with:
+      corpus: pack-select-v1
+      prediction: p-2026-11-05-k148-weekly-select-v1
+      sample: "0"
+      job-minutes: "340"
+      budget: true
+
+  select-v2:
+    needs: select-v1
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/bench.yml
+    with:
+      corpus: pack-select-v2
+      prediction: p-2026-11-05-k148-weekly-select-v2
+      sample: "0"
+      job-minutes: "340"
+      budget: true
+
+  known:
+    needs: select-v2
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/bench.yml
+    with:
+      corpus: pack-known-v1
+      # The six strategies of the table of the gaps. The table has one column for each strategy.
+      strategies: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
+      prediction: p-2026-11-05-k148-weekly-known
+      sample: "0"
+      job-minutes: "340"
+      budget: true

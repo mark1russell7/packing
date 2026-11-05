@@ -1,0 +1,28 @@
+{
+  "schema": "packing-solved-rule/1",
+  "floor": 0.9,
+  "margins": {
+    "pack.gapToOpt": {
+      "limit": 1e-9,
+      "because": "It compares with a known best value, so its margin stays 0 plus a numeric tolerance.",
+      "cells": {}
+    },
+    "pack.gap": {
+      "limit": 1e-9,
+      "because": "Its margin is 0 until k10 measures the slack of the bound. After that, a cell takes a high quantile of the slack, with its run.",
+      "cells": {}
+    }
+  },
+  "words": {
+    "exact": "optimal on {n} inputs",
+    "slack": "within the bound's slack on {n} inputs"
+  },
+  "selector": "select-rows-bl",
+  "searches": [],
+  "weekly": {
+    "corpus": "pack-classes-v1",
+    "weeksLed": 0,
+    "need": 4,
+    "firstPossible": "2026-11-30"
+  }
+}

@@ -1,11 +1,16 @@
 // The adversarial search of roadmap item k47. For an ordered pair of entries (A, B), it searches for the inputs where A
 // loses most to B. `docs/BENCH.md` ("The adversarial search") tells the search, and `docs/MEASURES.md` ("The loss") tells
-// the measure. The file `bench/corpora/pack-adversary-v1.json` is the output of the builder. A test compares a part of it.
+// the measure. The file `bench/corpora/pack-adversary-v1.json` is the output of the builder. A test holds its bytes.
 //
 //   node bench/adversary.ts                 writes the file
+//   node bench/adversary.ts --rows          exits with the code 1 when the stored rows changed. It starts no search.
 //   node bench/adversary.ts --check         exits with the code 1 when the file is not the output of the builder
+//   node bench/adversary.ts --report        tells the rows that a new search does not find, and exits with the code 0
 //   node bench/adversary.ts --check --pair 2  examines only the pair with the index 2
+//   node bench/adversary.ts --check --file <file>  examines that file in place of the corpus
+//   node bench/adversary.ts --report --fault  searches with a changed strategy, for the flip test
 
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -33,7 +38,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { ENTRIES, entry, isComposite, STANDALONE_IDS } from "./entries.ts";
+import { entry } from "./entries.ts";
 
 /** The name of the corpus. */
 export const ADVERSARY_CORPUS = "pack-adversary-v1";
@@ -216,8 +221,40 @@ function valueOf(id: string, input: PackInput, cell: CorpusCell, seed: number, k
   }
 }
 
-/** The single entries of the benchmark: the pool of `best`. */
-export const SINGLE_ENTRIES: readonly string[] = Object.freeze(ENTRIES.filter((e) => !isComposite(e.id) && !STANDALONE_IDS.has(e.id)).map((e) => e.id));
+/** This type is the function that gives the value of one entry on one input. */
+type ValueRead = typeof valueOf;
+
+/**
+ * This function gives the value of an entry with a changed strategy, for the flip test.
+ * The entry `maxrects-bl` becomes worse by 0.1. No source file changes, so this is a change of a strategy only.
+ */
+export const faultyValueOf: ValueRead = (id, input, cell, seed, kind) => {
+  const read = valueOf(id, input, cell, seed, kind);
+  return read === undefined || id !== "maxrects-bl" ? read : { ...read, value: kind === "fill" ? read.value - 0.1 : read.value + 0.1 };
+};
+
+/**
+ * This constant gives the pool of `best` for version 1 of the search: the single entries of the benchmark on 2026-10-28.
+ * A new entry can change the winner of a stored row, so a new entry does not join this list. A new version of the search reads the new entries.
+ */
+export const SINGLE_ENTRIES: readonly string[] = Object.freeze([
+  "rows",
+  "skyline",
+  "shelf",
+  "push",
+  "shelf-next",
+  "shelf-first",
+  "shelf-best",
+  "shelf-first-input",
+  "maxrects-bssf",
+  "maxrects-blsf",
+  "maxrects-baf",
+  "maxrects-bl",
+  "maxrects-cp",
+  "skyline-mw",
+  "skyline-bl-waste",
+  "skyline-mw-waste",
+]);
 
 /** This function gives the measure of the loss on a container: `fill` for a fixed size, else `gap`. */
 export const lossMeasureOf = (container: LayoutContainer): LossMeasure => (container.fixed === "size" ? "fill" : "gap");
@@ -227,15 +264,15 @@ export const lossMeasureOf = (container: LayoutContainer): LossMeasure => (conta
  * not support the cell, or when a measure has no value. With `best`, B is the single entry with the best value and no
  * break. The first entry of `SINGLE_ENTRIES` wins a tie.
  */
-export function lossOf(a: string, b: string, file: GeneratedInput, cell: CorpusCell): Loss | undefined {
+export function lossOf(a: string, b: string, file: GeneratedInput, cell: CorpusCell, read: ValueRead = valueOf): Loss | undefined {
   const input = toPackInput(file);
   const kind = lossMeasureOf(file.container);
-  const valueA = valueOf(a, input, cell, file.seed, kind);
+  const valueA = read(a, input, cell, file.seed, kind);
   if (valueA === undefined) return undefined;
   let winner: string | undefined;
   let valueB: number | undefined;
   for (const id of b === BEST ? SINGLE_ENTRIES.filter((x) => x !== a) : [b]) {
-    const v = valueOf(id, input, cell, file.seed, kind);
+    const v = read(id, input, cell, file.seed, kind);
     if (v === undefined || v.hard > 0) continue;
     if (valueB === undefined || (kind === "fill" ? v.value > valueB : v.value < valueB)) {
       winner = id;
@@ -327,6 +364,12 @@ export function mutateSizes(
   throw new RangeError(`No move applies to the ${n} items.`);
 }
 
+/**
+ * This constant gives the container forms of a class generator that version 1 of the search reads.
+ * A new value changes each later draw, and the corpus `pack-adversary-v1` holds the result of those draws. The free forms wait for a new version of the search.
+ */
+const SEARCH_CLASS_FORMS: readonly string[] = Object.freeze(["fixed", "freeHeight"]);
+
 /** The parameters of an origin that the search changes, with their values or their range. The knobs are not in the list. */
 interface ParamSpace {
   name: string;
@@ -344,7 +387,7 @@ function paramSpace(name: string, maxCount: number): ParamSpace[] {
     .filter((d) => keys.includes(d.name))
     .map((d): ParamSpace => {
       const values = Array.isArray(d.supported) ? (d.supported as readonly (string | number)[]) : d.values;
-      if (values !== undefined) return { name: d.name, values };
+      if (values !== undefined) return { name: d.name, values: d.name === "containerSize" ? values.filter((value) => SEARCH_CLASS_FORMS.includes(String(value))) : values };
       if (d.name === "count") return { name: d.name, min: Math.max(1, d.min ?? 1), max: Math.min(maxCount, d.max ?? maxCount) };
       return { name: d.name, min: d.min ?? 0, max: d.max ?? 0 };
     });
@@ -403,7 +446,7 @@ const startMove = (o: Origin): string => `start ${o.generator} ${Object.entries(
  * - The search compares a loss of `fill` and a loss of `gap` as numbers. A move of `containerSize` changes the measure.
  * - The function `observe` gets each candidate and its loss, in the order of the evaluations.
  */
-export function searchAdversary(options: AdversaryOptions, observe?: (file: GeneratedInput, score: Loss | undefined) => void): AdversaryResult {
+export function searchAdversary(options: AdversaryOptions, observe?: (file: GeneratedInput, score: Loss | undefined) => void, read: ValueRead = valueOf): AdversaryResult {
   const { a, b, seed, budget, maxCount } = options;
   if (!Number.isInteger(budget) || budget < 1) throw new RangeError("The budget is a whole number of 1 or more.");
   if (!Number.isInteger(maxCount) || maxCount < 1) throw new RangeError("The largest count is a whole number of 1 or more.");
@@ -417,7 +460,7 @@ export function searchAdversary(options: AdversaryOptions, observe?: (file: Gene
   let stale = 0;
   const evaluate = (state: State): { file: GeneratedInput; score: Loss | undefined } => {
     const file = candidateFile(options, state);
-    const score = lossOf(a, b, file, cellOf(state));
+    const score = lossOf(a, b, file, cellOf(state), read);
     result.evaluations++;
     if (score !== undefined) result.valid++;
     observe?.(file, score);
@@ -547,22 +590,60 @@ export interface AdversaryCorpusFile {
 /** This function reads the corpus file. */
 export const readAdversaryCorpus = (text: string = readFileSync(ADVERSARY_FILE, "utf8")): AdversaryCorpusFile => JSON.parse(text) as AdversaryCorpusFile;
 
-if (process.argv[1]?.endsWith("adversary.ts") === true) {
+/** This constant gives the SHA-256 hash of the file of the corpus. A change of the rows needs a new version of the corpus. */
+export const ADVERSARY_SHA256 = "acb522808d8eb259e44f06b6ac3a5503d13622233afd0c9f785d5d8e1146167c";
+
+/** This function tells what is wrong when the text is not the stored corpus. It starts no search, so a change of a strategy cannot fail it. */
+export function storedRowsFault(text: string): string | undefined {
+  const hash = createHash("sha256").update(text).digest("hex");
+  return hash === ADVERSARY_SHA256 ? undefined : `The stored rows of ${ADVERSARY_CORPUS} changed: the hash is ${hash}, not ${ADVERSARY_SHA256}.`;
+}
+
+/** This function gives a line for each result that the text does not hold. The line tells the stored loss and the loss of the search. */
+export function movedRows(text: string, results: readonly AdversaryResult[]): string[] {
+  const found = readAdversaryCorpus(text).found;
+  return results
+    .filter((res) => !text.includes(foundLine(res)) || (inputLine(res) !== undefined && !text.includes(inputLine(res)!)))
+    .map((res) => {
+      const { a, b } = res.options;
+      const stored = found.find((row) => row["a"] === a && row["b"] === b)?.["loss"];
+      return `${a} to ${b}: the search does not find the stored row. Stored loss ${String(stored)}, loss of the search ${res.worst === null ? "none" : round6(res.worst.score.loss)}.`;
+    });
+}
+
+function main(): void {
+  const fileAt = process.argv.indexOf("--file");
+  const checked = fileAt === -1 ? ADVERSARY_FILE : process.argv[fileAt + 1]!;
+  if (process.argv.includes("--rows")) {
+    const fault = storedRowsFault(readFileSync(checked, "utf8"));
+    console.log(fault ?? `${checked}: the stored rows did not change.`);
+    if (fault !== undefined) process.exitCode = 1;
+    return;
+  }
+  const reads = process.argv.includes("--check") || process.argv.includes("--report");
+  const faulty = process.argv.includes("--fault");
+  if (faulty && !reads) throw new RangeError("--fault needs --check or --report, because it does not write the file.");
   const at = process.argv.indexOf("--pair");
   const only = at === -1 ? undefined : Number(process.argv[at + 1]);
   if (only !== undefined && !(Number.isInteger(only) && only >= 0 && only < ADVERSARY_PAIRS.length)) throw new RangeError(`--pair is a whole number from 0 to ${ADVERSARY_PAIRS.length - 1}.`);
   const pairs = only === undefined ? ADVERSARY_PAIRS : [ADVERSARY_PAIRS[only]!];
   const results = pairs.map((pair) => {
-    const res = searchAdversary(pairOptions(pair));
+    const res = searchAdversary(pairOptions(pair), undefined, faulty ? faultyValueOf : valueOf);
     const w = res.worst;
     console.log(`${pair[0]} to ${pair[1]}: ${w === null ? "no input" : `loss ${round6(w.score.loss)} (${w.score.measure}), ${w.input.boxes.length} items, from ${w.origin.generator}, winner ${w.score.winner}`}`);
     return res;
   });
-  if (process.argv.includes("--check")) {
-    const text = readFileSync(ADVERSARY_FILE, "utf8");
-    const same = only === undefined ? text === adversaryCorpusText(results) : results.every((res) => text.includes(foundLine(res)) && (inputLine(res) === undefined || text.includes(inputLine(res)!)));
+  if (process.argv.includes("--report")) {
+    const moved = movedRows(readFileSync(checked, "utf8"), results);
+    for (const line of moved) console.log(line);
+    console.log(`${moved.length} of ${results.length} rows moved. A moved row is not a fault of the corpus, because the stored inputs stay valid.`);
+  } else if (process.argv.includes("--check")) {
+    const text = readFileSync(checked, "utf8");
+    const moved = movedRows(text, results);
+    const same = moved.length === 0 && (only !== undefined || text === adversaryCorpusText(results));
     if (!same) {
-      console.error(`${ADVERSARY_FILE} is not the output of the builder. Start node bench/adversary.ts.`);
+      for (const line of moved) console.error(line);
+      console.error(`${checked} is not the output of the builder. Start node bench/adversary.ts.`);
       process.exitCode = 1;
     }
   } else if (only === undefined) {
@@ -570,3 +651,5 @@ if (process.argv[1]?.endsWith("adversary.ts") === true) {
     console.log(`${ADVERSARY_FILE}: ${results.length} pairs`);
   }
 }
+
+if (process.argv[1]?.endsWith("adversary.ts") === true) main();

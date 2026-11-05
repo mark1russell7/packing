@@ -5,7 +5,7 @@
 //   node bench/snapshot.ts paired <run folder> --run <id> --commit <sha> --release <version> --arm-a <ref> --arm-b <ref> [--out <file>]
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
-//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>]
+//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>] (the margins of data/solved-rule.json decide the count at the margin)
 //   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>] [--active <dir>] [--features family|input]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
@@ -659,6 +659,8 @@ export interface GapCell extends GapStats {
   cell: string;
   /** The count of the records of the cell without a value of the measure */
   missing: number;
+  /** The margin of the cell and the count of the values at or under it. */
+  atMargin?: { limit: number; n: number };
   /** The count of the records of each kind of bound of `BOUND_KINDS`. Only `pack.gap` has kinds. */
   kinds?: Record<string, number>;
 }
@@ -681,6 +683,8 @@ export interface GapSnapshot {
   measure: GapMeasure;
   /** The count of the inputs that left the table, because a wall budget ended a pair on them. Each strategy then has the same inputs. */
   stopped?: number;
+  /** The rules of the wall budget of the run. A run without a budget does not have this field. */
+  budget?: SnapshotBudget;
   inputs: number;
   /** The cells of the corpus, in the order of the manifest, with the count of their inputs */
   cells: { cell: string; inputs: number }[];
@@ -694,6 +698,19 @@ export interface GapSnapshotOptions {
   measure: GapMeasure;
   /** The cell of each input id. The default is `gapCellOf` of the family, without a container size. */
   cellOf?: (input: string) => string;
+  /** The highest value at the margin in each cell. The default is `GAP_TOLERANCE`, a margin of 0. */
+  limitOf?: (cell: string) => number;
+  /** The rules of the wall budget of the run. */
+  budget?: SnapshotBudget;
+}
+
+/** The numeric tolerance of a margin of 0. A gap of the corpus `pack-known-v1` is 0 or at least 0.03, so this value decides no record there. */
+export const GAP_TOLERANCE = 1e-9;
+
+/** The margin of one measure in `data/solved-rule.json`. */
+interface RuleMargin {
+  limit: number;
+  cells: Record<string, { limit: number }>;
 }
 
 /**
@@ -753,7 +770,8 @@ export function gapSnapshot(allRecords: readonly SnapshotRecord[], options: GapS
       const rs = own.filter((r) => cellOf(r.input) === cell);
       if (rs.length === 0) return [];
       const vs = rs.map(valueOf).filter((v): v is number => v !== undefined);
-      const out: GapCell = { cell, ...gapStats(vs), missing: rs.length - vs.length };
+      const limit = options.limitOf?.(cell) ?? GAP_TOLERANCE;
+      const out: GapCell = { cell, ...gapStats(vs), missing: rs.length - vs.length, atMargin: { limit, n: vs.filter((v) => v <= limit).length } };
       if (options.measure === "pack.gap") {
         const kinds: Record<string, number> = {};
         for (const r of rs) {
@@ -779,6 +797,7 @@ export function gapSnapshot(allRecords: readonly SnapshotRecord[], options: GapS
     cells: cellOrder.map((cell) => ({ cell, inputs: cellInputs.get(cell)!.size })),
     strategies,
     ...(stopped.size === 0 ? {} : { stopped: stopped.size }),
+    ...(options.budget === undefined ? {} : { budget: options.budget }),
   };
 }
 
@@ -1511,11 +1530,14 @@ export function snapshotMain(argv: readonly string[]): void {
     const data = readRun(folder);
     const sizes = new Map(data.inputs.map((i) => [i.id, i.cell?.containerSize]));
     const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"), optionOf(argv, "--date"));
+    const rule = (JSON.parse(readFileSync(new URL("solved-rule.json", SNAPSHOT_DIR), "utf8")) as { margins: Record<string, RuleMargin> }).margins[measure as GapMeasure]!;
     const snap = gapSnapshot(recordsOfStrategies(data.records, optionOf(argv, "--strategies")?.split(",")), {
       corpus: data.run.corpus,
       origin: [origin],
       measure: measure as GapMeasure,
       cellOf: (input) => gapCellOf(familyOfInput(input), sizes.get(input)),
+      limitOf: (cell) => rule.cells[`${data.run.corpus}/${cell}`]?.limit ?? rule.limit,
+      ...(data.run.budget === undefined ? {} : { budget: snapshotBudget(data.run.budget) }),
     });
     writeSnapshot(out ?? new URL(`gaps-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
     return;
