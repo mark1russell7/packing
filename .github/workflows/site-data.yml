@@ -3,7 +3,8 @@
 # Only the job publish writes. It pushes the files to the branch site-data, never to main, and it starts the Pages build.
 # A run writes only the files that it changes. So a file of another corpus stays as its own run wrote it.
 # The Pages build puts the files of the branch over the files of main.
-# A scheduled run of coverage-nightly.yml or site-rerun.yml starts this workflow too. Each corpus with records in that run is a run of this one.
+# A completed run on main of coverage-nightly.yml or site-rerun.yml starts this workflow too, from the schedule or from a dispatch.
+# Each corpus with records in that run is a run of this one.
 name: Site data
 
 on:
@@ -35,10 +36,12 @@ defaults:
 
 jobs:
   snapshot:
-    # Only a manual start or a scheduled weekly run gives data. A weekly run that failed after a grid still has the records of that grid.
+    # A manual start gives data. A run of the weekly workflows on main gives data too, from the schedule or from a dispatch (k185).
+    # A run that failed after a grid still has the records of that grid. A cancelled run gives no data.
+    # bench/site-data-trigger.test.ts holds this condition: a filter on the event lost the point of a dispatch.
     if: >-
       github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion != 'cancelled'))
+      (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion != 'cancelled'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -92,7 +95,7 @@ jobs:
             [[ "$pair" =~ ^[a-z0-9][a-z0-9.-]*=[0-9]+$ ]] || { echo "each run must be <corpus>=<run id>, not '$pair'"; exit 1; }
             corpus="${pair%%=*}"
             run="${pair##*=}"
-            read -r status branch created < <(gh run view "$run" -R "$GITHUB_REPOSITORY" --json status,headBranch,createdAt -q '"\(.status) \(.headBranch) \(.createdAt)"')
+            read -r status branch created event < <(gh run view "$run" -R "$GITHUB_REPOSITORY" --json status,headBranch,createdAt,event -q '"\(.status) \(.headBranch) \(.createdAt) \(.event)"')
             [ "$status" = completed ] && [ "$branch" = main ] || { echo "the run $run must be completed and on main, not '$status' on '$branch'"; exit 1; }
             folder="$RUNNER_TEMP/runs/$corpus"
             gh run download "$run" -R "$GITHUB_REPOSITORY" -n "bench-$corpus" -D "$folder"
@@ -128,7 +131,8 @@ jobs:
                     echo "::warning::The records of the run $earlier_run are gone, so the step of $corpus has no figure."
                   fi
                 fi
-                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --no-row "$NO_ROW" "${earlier_args[@]}"
+                # The point records how its run started, so the trend shows a point of a dispatch as one.
+                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --event "$event" --no-row "$NO_ROW" "${earlier_args[@]}"
                 ;;
               *)
                 echo "The corpus $corpus has no file of the site."

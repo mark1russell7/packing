@@ -33,6 +33,7 @@ import {
   snapshotBudget,
   strategySnapshot,
   tableLeaves,
+  triggerOf,
   type LeafWins,
   type SnapshotRecord,
 } from "./snapshot.ts";
@@ -340,6 +341,20 @@ describe("the coverage snapshot (k105)", () => {
     const snap = coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { method: "repeats 5, warmup 2", over });
     expect(snap.trend[0]).toMatchObject({ method: "repeats 5, warmup 2", over });
     expect(coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { over: [] }).trend[0]).not.toHaveProperty("over");
+  });
+
+  it("records the start of the run of the point, and a point with no start has no field", () => {
+    const snap = coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { method: "repeats 5, warmup 2", trigger: "dispatch" });
+    expect(snap.trend[0]).toMatchObject({ run: 7, method: "repeats 5, warmup 2", trigger: "dispatch" });
+    expect(coverageSnapshot(summary("2026-10-28", 0.6), origin).trend[0]).not.toHaveProperty("trigger");
+  });
+
+  it("gives the start of a run from its event, and refuses an unknown event", () => {
+    expect(triggerOf("schedule")).toBe("schedule");
+    expect(triggerOf("workflow_dispatch")).toBe("dispatch");
+    expect(triggerOf("push")).toBe("push");
+    expect(() => triggerOf("workflow_run")).toThrow(/workflow_run/);
+    expect(() => triggerOf("")).toThrow(/schedule, workflow_dispatch or push/);
   });
 
   it("names the method of a run, and a budget changes it", () => {

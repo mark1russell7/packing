@@ -129,6 +129,13 @@ describe("the segments of the trend", () => {
     expect(measure([point("2026-11-09", 2, ["a"])], "2026-11-10")).not.toHaveProperty("unit");
   });
 
+  it("keeps a point of a dispatch and a point of the schedule in one line (k185)", () => {
+    const m = "repeats 5, warmup 2, budget";
+    const trend = [{ ...point("2026-11-05", 1, ["a"]), method: m, trigger: "dispatch" }, { ...point("2026-11-09", 2, ["a"]), method: m, trigger: "schedule" }];
+    expect(segmentOf(trend[0]!)).toBe(segmentOf(trend[1]!));
+    expect(measure(trend, "2026-11-10")).toMatchObject({ value: 1, unit: "2 points on the same 1" });
+  });
+
   it("keeps one corpus with one list in one segment, in any order of the list", () => {
     expect(segmentOf(point("2026-10-29", 1, ["a", "b"]))).toBe(segmentOf(point("2026-11-05", 2, ["b", "a"])));
     expect(segmentOf(point("2026-10-29", 1, ["a"]))).not.toBe(segmentOf(point("2026-11-05", 2, ["a", "b"])));
