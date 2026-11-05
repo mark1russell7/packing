@@ -107,7 +107,7 @@ describe("the benchmark runner", () => {
   it("gives a skipped record with the reason, no measures, no hard counts and no times", () => {
     expect(skips.length).toBeGreaterThan(0);
     for (const r of skips) {
-      expect(r.skipped).toMatch(/^unsupported \S+: \S+$/);
+      expect(r.skipped).toMatch(/^(unsupported \S+: \S+|refused: .+)$/);
       expect(r.measures).toEqual({});
       expect(r.hard).toEqual({});
       expect(r.ms).toBe(0);
@@ -117,7 +117,7 @@ describe("the benchmark runner", () => {
       expect(first.outputs.get(r.strategy)?.has(r.input)).toBe(false);
     }
     expect(skips.map((r) => ({ strategy: r.strategy, input: r.input }))).toEqual(first.run.skipped.map((k) => ({ strategy: k.strategy, input: k.input })));
-    expect(skips.map((r) => r.skipped)).toEqual(first.run.skipped.map((k) => skipReason(k.dimension, k.value)));
+    expect(skips.map((r) => r.skipped)).toEqual(first.run.skipped.map((k) => (k.value === "refused" ? expect.stringMatching(/^refused: .+/) : skipReason(k.dimension, k.value))));
   });
 
   it("gives records that fit the record of the contract", () => {

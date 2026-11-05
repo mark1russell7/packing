@@ -174,8 +174,8 @@ The package exports each generator below, with `generators`, `generator(name)` a
 | `edge-cases` | `case` `oversize`, `count` 12 | The cases `empty`, `one`, `oversize`, `exactTiling` and `touchObstacles` |
 | `perfect-cut` | `cut` `guillotine`, `containerSize` `fixed`, `count` 30 | `fixed`, `freeHeight` and `freeArea`: pieces of a cut with a known optimum |
 | `consecutive-squares` | `containerSize` `freeHeight`, `count` 30 | `freeHeight` and `freeArea`: the squares 1 to `count` with a known lower bound |
-| `berkey-wang` | `class` `I`, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: the classes `I` to `VI` of Berkey 1987 (k106, `docs/BENCH.md`) |
-| `martello-vigo` | `class` `VII`, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: the classes `VII` to `X` of Martello 1998 (k106, `docs/BENCH.md`) |
+| `berkey-wang` | `class` `I`, `containerSize` `freeHeight`, `count` 100 | `fixed`, `freeHeight`, `freeAspect` and `freeArea`: the classes `I` to `VI` of Berkey 1987 (k106, k158, `docs/BENCH.md`) |
+| `martello-vigo` | `class` `VII`, `containerSize` `freeHeight`, `count` 100 | `fixed`, `freeHeight`, `freeAspect` and `freeArea`: the classes `VII` to `X` of Martello 1998 (k106, k158, `docs/BENCH.md`) |
 | `tall-row` | `ratio` 8, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: one tall item in each band of short items (k107, `docs/BENCH.md`) |
 | `skyline-gap` | `ratio` 8, `containerSize` `freeHeight`, `count` 100 | `fixed` and `freeHeight`: pairs of a narrow pillar and a wide plate (k107, `docs/BENCH.md`) |
 | `bl-trap` | `stages` 3, `containerSize` `freeHeight`, `count` 120 | `fixed` and `freeHeight`: items of one height, the narrow items first (k107, `docs/BENCH.md`) |

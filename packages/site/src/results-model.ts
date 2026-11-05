@@ -56,6 +56,7 @@ export function reasonMeaning(reason: string): string | undefined {
   if (reason === "not run: job budget") return "Not started: the job reached its time limit.";
   if (reason === "not run: base has no output") return "Not started: this step reads the output of its base, and the base has no output.";
   if (reason === "unsupported containerSize: refused") return `Refused: the strategy takes at most ${REFUSE_ITEMS} items. This is a real limit of the strategy and not a budget.`;
+  if (reason.startsWith("refused: ")) return `Refused: ${reason.slice("refused: ".length)}. This is a real limit of the strategy and not a budget.`;
   return undefined;
 }
 

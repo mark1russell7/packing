@@ -33,6 +33,7 @@ import {
 import { declaredClaimOf, HARD_RULE_VERSION, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
 import { controlFactor, type GroupFactor } from "@mark1russell7/rigor-bench";
 import { portfolioWith } from "../src/portfolio.ts";
+import { refusalRecord } from "../src/standalone-strategies.ts";
 import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
 import { benchEntry, benchPack, benchStrategy } from "./controls.ts";
 import { COMPOSITE_IDS, ENTRIES, type BenchEntry } from "./entries.ts";
@@ -853,7 +854,7 @@ function pairPacker(options: BenchOptions, ids: readonly string[], manifest: Cor
       if (options.commit !== undefined) record.commit = options.commit;
       into.records.push(record);
     } catch (error) {
-      if (error instanceof UnsupportedCell) skip(error.dimension, error.value);
+      if (error instanceof UnsupportedCell) skip(error.dimension, error.value, refusalRecord(error));
       else into.errors.push({ strategy: id, input: file.id, message: error instanceof Error ? error.message : String(error) });
     }
   };

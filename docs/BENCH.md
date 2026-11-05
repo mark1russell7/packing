@@ -297,8 +297,9 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-select-v2` | 2025 | The second test corpus of the feature select: the specs of `pack-select-v1` with the fresh seeds 31 to 35. Write its prediction first. |
 | `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
+| `pack-classes-free-v1` | 600 | The same classes with free sizes of roadmap item k158, and small strips of k160. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
-| `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. |
+| `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. Free forms not searched by version 1. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 | `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
@@ -340,6 +341,14 @@ The corpus `pack-classes-v1` has 100 specs, each with the seeds 1 to 5. It has n
 - Each class has the containers `fixed` (one bin of the class) and `freeHeight` (a strip of the width of the bin), and the counts 20, 40, 60, 80 and 100.
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 250 and `shaped` 0.
 - The builder `bench/classes.ts` writes the file. `node bench/classes.ts --check` and a test compare the file with the builder.
+
+The corpus `pack-classes-free-v1` has 120 specs of the same classes, each with the seeds 1 to 5. It holds the 8 entries that refuse each input of `pack-classes-v1`.
+
+- 500 inputs have `freeAspect` or `freeArea` at the counts 20, 40, 60, 80 and 100. The 7 entries of masonry, treemap and columns accept only these forms.
+- 100 inputs have `freeHeight` at the counts 8 and 16. The entry `exact-strip` takes at most 16 items.
+- The container takes no random numbers, so each form of a class, a count and a seed has the same items. A test pins the bytes of each input of `pack-classes-v1`.
+
+A record of a refusal tells the reason in its field `skipped`, for example `refused: the input has more than 16 items`. Records before k160 have only `unsupported containerSize: refused`.
 
 The rules of the classes. Each side is a whole number, uniform in its range, with both ends included.
 
@@ -422,13 +431,26 @@ Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`.
 
 The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
 
-The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items.
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them. Roadmap item k164 is the next version. The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. From PR #360, the weekly held-out sample of `drawInput` moves, because a new form of a class generator changes its draws.
 
 - The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
 - The field `inputs` has the input files, in the order of `found`.
 - The file has no specs, so the runner does not read it. A test reads its inputs.
 - `node bench/adversary.ts` writes the file. `node bench/adversary.ts --check` compares the file with a new search of each pair.
-- `node bench/adversary.ts --check --pair 2` examines the pair with the index 2 only. A test examines that pair and the hash of each input.
+- `node bench/adversary.ts --check --pair 2` examines the pair with the index 2 only. A test examines the hash of each input.
+
+Two checks hold the corpus:
+
+| Check | Command | Starts on | A failure means |
+|---|---|---|---|
+| The stored rows are the same | `--rows`, in a test of `CI OK` | each change | The file changed. A change of the rows needs a new version of the corpus. |
+| The search gives the stored rows | `--check`, in `adversary.yml`, a job of `CI OK` | a change of the search, of a file that it reads for draws, hashes or values, of `rigor-generators`, of the corpus or of the workflow | The search changed its draws. The merge is blocked, because version 1 is frozen. |
+
+A change of the other package source, the entries or the lock file starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
+
+The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
+
+One test of `CI OK` still reads a strategy on a stored input: the winner of each row must not break a hard rule. Its failure text names the row and the rule, and says that the strategy is at fault, not the corpus.
 
 The losses of the corpus:
 
@@ -1502,6 +1524,8 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
 A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
+
+The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A scheduled run also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
 
 - A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
 - A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
