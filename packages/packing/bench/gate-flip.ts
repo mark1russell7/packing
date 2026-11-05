@@ -128,7 +128,7 @@ export function slowArm(report: PairedReport, arm: string, factor: number): Pair
   return { ...report, inputs: report.inputs.map((i) => ({ ...i, ms: { ...i.ms, [arm]: (i.ms[arm] ?? []).map((t) => t * factor) } })) };
 }
 
-/** This function gives a report with an A/A arm far from its base: each second input is `factor` times slower, and the others `factor` times faster. */
+/** This function gives a report with an A/A arm far from its base. Each second input is `factor` times slower, and the others are `factor` times faster. */
 export function noisyAa(report: PairedReport, factor: number): PairedReport {
   const aa = aaId(report.base);
   return {
@@ -175,7 +175,7 @@ function flipTime(argv: readonly string[]): FlipRow[] {
   ];
 }
 
-/** This function gives the one member of the first set of one member in a generated table: a strategy that the table chose from the records. */
+/** This function gives the member of the first set of one member in a generated table. The table chose that strategy from the records. */
 export function chosenStrategy(table: string): string {
   const found = /"1": \[\s*"([^"]+)"/.exec(table);
   if (found === null) throw new Error("The table has no set of one member.");
