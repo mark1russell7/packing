@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changelogVersions, kpiInput, releaseReading, staleText, weeklyTrend, type KpiFacts } from "./kpi.ts";
+import { changelogVersions, kpiInput, releaseReading, segmentOf, staleText, trendSegments, weeklyTrend, type KpiFacts } from "./kpi.ts";
 
 const at = (date: string): number => Date.parse(`${date}T12:00:00Z`);
 
@@ -78,6 +78,43 @@ describe("the weekly trend", () => {
   });
 });
 
+describe("the segments of the trend", () => {
+  const point = (date: string, run: number, strategies?: string[], corpus = "c") => ({ date, run, corpus, ...(strategies === undefined ? {} : { strategies }) });
+  const shown = (trend: readonly ReturnType<typeof point>[], now: string): number | undefined =>
+    kpiInput({ ...FACTS, trend: trendSegments(trend).map((s) => s.map((p) => p.date)) }, at(now)).measures.find((m) => m.id === "coverage-shown")?.value;
+
+  it("keeps one corpus with one list in one segment, in any order of the list", () => {
+    expect(segmentOf(point("2026-10-29", 1, ["a", "b"]))).toBe(segmentOf(point("2026-11-05", 2, ["b", "a"])));
+    expect(segmentOf(point("2026-10-29", 1, ["a"]))).not.toBe(segmentOf(point("2026-11-05", 2, ["a", "b"])));
+    expect(segmentOf(point("2026-10-29", 1, ["a"]))).not.toBe(segmentOf(point("2026-11-05", 2, ["a"], "other")));
+  });
+
+  it("keeps a point with no list alone, because its list is not known", () => {
+    expect(trendSegments([point("2026-10-28", 1), point("2026-10-29", 2)])).toHaveLength(2);
+  });
+
+  it("does not count a trend over a change of the strategies", () => {
+    // One new point in a later week, on a new list: this is the case that the old test of the dates read as 1.
+    expect(shown([point("2026-10-29", 1, ["a"]), point("2026-11-05", 2, ["a", "b"])], "2026-11-06")).toBe(0);
+    expect(shown([point("2026-10-29", 1, ["a"], "x"), point("2026-11-05", 2, ["a"], "y")], "2026-11-06")).toBe(0);
+    expect(shown([point("2026-10-29", 1), point("2026-11-05", 2)], "2026-11-06")).toBe(0);
+  });
+
+  it("counts a trend with one list in two calendar weeks, beside a new list", () => {
+    expect(shown([point("2026-10-29", 1, ["a"]), point("2026-11-05", 2, ["a"]), point("2026-11-05", 2, ["a", "b"])], "2026-11-06")).toBe(1);
+  });
+
+  it("reads 0 when no list has a point in the last 7 days and in a second week", () => {
+    expect(shown([point("2026-10-29", 1, ["a"]), point("2026-11-05", 2, ["a"]), point("2026-11-05", 2, ["a", "b"])], "2026-11-13")).toBe(0);
+  });
+
+  it("gives the count of the entries with a measured record, with the date of the coverage", () => {
+    const file = kpiInput({ ...FACTS, trend: [["2026-11-05"]], entries: { measured: 54, planned: 64 } }, at("2026-11-06"));
+    expect(file.measures.find((m) => m.id === "measured-entries")).toEqual({ id: "measured-entries", value: 54, unit: "of 64 entries", at: "2026-11-05T00:00:00Z" });
+    expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "measured-entries")).toBe(false);
+  });
+});
+
 describe("the file", () => {
   it("has the project and the seven measures", () => {
     const file = kpiInput(FACTS, Date.parse("2026-11-04T17:00:00.500Z"));
@@ -86,7 +123,7 @@ describe("the file", () => {
   });
 
   it("gives each measure the time of its data and not the time of the build", () => {
-    const file = kpiInput({ ...FACTS, trend: ["2026-10-28", "2026-10-21"] }, Date.parse("2026-11-04T17:00:00Z"));
+    const file = kpiInput({ ...FACTS, trend: [["2026-10-28", "2026-10-21"]] }, Date.parse("2026-11-04T17:00:00Z"));
     const times = Object.fromEntries(file.measures.map((m) => [m.id, m.at]));
     expect(times["picker-strategies"]).toBe(FACTS.commitAt);
     expect(times["stale-text"]).toBe(FACTS.commitAt);
@@ -102,7 +139,7 @@ describe("the file", () => {
   });
 
   it("gives the same file at another build time", () => {
-    const facts = { ...FACTS, trend: ["2026-11-02", "2026-10-28"] };
+    const facts = { ...FACTS, trend: [["2026-11-02", "2026-10-28"]] };
     expect(kpiInput(facts, at("2026-11-04"))).toEqual(kpiInput(facts, at("2026-11-05")));
   });
 

@@ -6,6 +6,7 @@ import "@mark1russell7/site-pages/explorer.css";
 import recordUrl from "../data/response-coverage.json?url";
 import { mountChrome } from "./chrome.ts";
 import { coverageLine, explorerFacts, RECORD_ORIGIN, type ExplorerFacts } from "./explorer-model.ts";
+import { oldGapNote } from "./gap-definition.ts";
 import { esc, originHtml } from "./format.ts";
 import "./style.css";
 import "./pages.css";
@@ -52,7 +53,7 @@ async function main(): Promise<void> {
     const facts = explorerFacts(parsed.record);
     $("explorer-tiles").innerHTML = tilesHtml(facts);
     $("explorer-fits").innerHTML = fitsHtml(facts);
-    $("explorer-origin").innerHTML = originHtml([RECORD_ORIGIN]);
+    $("explorer-origin").innerHTML = `${originHtml([RECORD_ORIGIN])}<p class="hint">${oldGapNote([RECORD_ORIGIN.run])}</p>`;
   }
   mountExplorer($("explorer"), text, { initial: { x: "count" } });
 }

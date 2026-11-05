@@ -1,7 +1,9 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { SnapshotBudget, StrategyFinished, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
+import { oldGapNote } from "./gap-definition.ts";
+import { segmentOf, trendSegments } from "./kpi.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
 export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict | undefined => s.verdicts.find((v) => v.measure === measure);
@@ -486,9 +488,9 @@ export interface TrendPoint {
   share: number;
 }
 
-/** The geometry of the trend chart: a series for each measure and the ticks of the dates */
+/** The geometry of the trend chart: a series for each measure and the ticks of the dates. A line joins only the points of one segment. */
 export interface TrendChart {
-  series: { id: string; points: TrendPoint[] }[];
+  series: { id: string; points: (TrendPoint & { current: boolean })[]; lines: { points: TrendPoint[]; current: boolean }[] }[];
   ticks: { x: number; date: string }[];
 }
 
@@ -505,10 +507,39 @@ export function trendChart(trend: readonly CoveragePoint[], measures: readonly s
   const hi = Math.max(...days);
   const x = (date: string): number => (hi === lo ? width / 2 : pad + ((dayOf(date) - lo) / (hi - lo)) * (width - 2 * pad));
   const y = (share: number): number => height - pad - Math.max(0, Math.min(1, share)) * (height - 2 * pad);
+  const last = trend.at(-1);
+  const current = (p: CoveragePoint): boolean => last !== undefined && segmentOf(p) === segmentOf(last);
+  const at = (p: CoveragePoint, id: string): TrendPoint[] => (p.shares[id] === undefined ? [] : [{ x: x(p.date), y: y(p.shares[id]), date: p.date, share: p.shares[id] }]);
   const series = measures.map((id) => ({
     id,
-    points: trend.flatMap((p) => (p.shares[id] === undefined ? [] : [{ x: x(p.date), y: y(p.shares[id]), date: p.date, share: p.shares[id] }])),
+    points: trend.flatMap((p) => at(p, id).map((point) => ({ ...point, current: current(p) }))),
+    lines: trendSegments(trend).map((segment) => ({ points: segment.flatMap((p) => at(p, id)), current: current(segment[0]!) })),
   }));
   const dates = [...new Set(trend.map((p) => p.date))];
   return { series, ticks: dates.map((date) => ({ x: x(date), date })) };
+}
+
+/** This function gives the words of a segment of the trend: its corpus, its count of strategies and its dates. */
+const segmentText = (segment: readonly CoveragePoint[]): string => {
+  const first = segment[0]!;
+  const count = first.strategies === undefined ? "a list that the point does not record" : `${first.strategies.length} strategies`;
+  return `<li><code>${esc(first.corpus)}</code> on ${count}: ${segment.map((p) => esc(p.date)).join(", ")}</li>`;
+};
+
+/** This function gives the HTML of the note of the trend. The note tells why the lines are separate, and if a point has an older `pack.gap`. */
+export function trendNote(trend: readonly CoveragePoint[]): string {
+  const older = oldGapNote(trend.map((p) => p.run));
+  return `<p class="hint">A line joins only points with one corpus and one list of strategies, because a change of either changes the share. The trend has these lines:</p><ul class="hint">${trendSegments(trend).map(segmentText).join("")}</ul>${older === "" ? "" : `<p class="hint">${older}</p>`}`;
+}
+
+/** This function gives the HTML of the count of the entries with a measured record, with the reason of each other entry. */
+export function entriesNote(entries: CoverageEntries | undefined): string {
+  if (entries === undefined) return "";
+  const groups = new Map<string, string[]>();
+  for (const other of entries.others) {
+    const text = other.reasons.map((r) => (r.records === 0 ? r.because : `${r.because} (${r.records} records)`)).join(", ");
+    groups.set(text, [...(groups.get(text) ?? []), other.entry]);
+  }
+  const rows = [...groups].map(([text, ids]) => `<li>${ids.map((id) => `<code>${esc(id)}</code>`).join(", ")}: ${esc(text)}</li>`).join("");
+  return `<p class="hint"><b>${entries.measured} of ${entries.planned} entries</b> of the bench have measured records in this run. The shares read only these entries.</p>${rows === "" ? "" : `<ul class="hint">${rows}</ul>`}`;
 }

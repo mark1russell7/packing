@@ -1319,6 +1319,10 @@
   stroke-width: 2;
 }
 
+.trend .past {
+  opacity: 0.45;
+}
+
 .trend .line.s1 { stroke: var(--series-1); }
 .trend .line.s2 { stroke: var(--series-2); }
 .trend .line.s3 { stroke: var(--series-3); }

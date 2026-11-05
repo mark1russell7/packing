@@ -369,8 +369,23 @@ export interface CoveragePoint {
   run: number | null;
   corpus: string;
   commit: string;
+  /** The strategies of the point, sorted. A point of a run before this field has no list. */
+  strategies?: string[];
   shares: Record<string, number>;
   sharesByInput?: Record<string, number>;
+}
+
+/** One entry of the bench with no measured record in a run, with each reason and its count of records */
+export interface CoverageOtherEntry {
+  entry: string;
+  reasons: { because: string; records: number }[];
+}
+
+/** The entries of the bench against the entries with a measured record in the run */
+export interface CoverageEntries {
+  planned: number;
+  measured: number;
+  others: CoverageOtherEntry[];
 }
 
 /** The snapshot of the space coverage of k105: the last summary and the trend of the shares, oldest first */
@@ -385,6 +400,8 @@ export interface CoverageSnapshot {
     records: number;
     inputs: number;
     strategies: string[];
+    /** The entries of the bench with and without a measured record, when the snapshot has them */
+    entries?: CoverageEntries;
     /** The model. `features` (k116) is the feature set of the inputs. An older snapshot has no `features`, which is `family`. */
     model: { kind: string; maxDepth: number; minLeaf: number; folds: number; seed: number; by: "input" | "spec"; features?: "family" | "input" };
     measures: CoverageMeasure[];
