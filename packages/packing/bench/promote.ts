@@ -903,7 +903,7 @@ const passText = (pass: boolean): string => (pass ? "pass" : "fail");
 const checkRow = (test: string, measure: string, c: Check, result: string = passText(c.pass)): string => `| ${test} | ${measure} | ${numText(c.value)} | ${numText(c.limit)} | ${result} |`;
 
 /** This function writes the result of the time test. Without one known CPU model, it gives no pass and no fail. */
-const timeText = (t: Pick<WinTests, "time" | "models">, c: Check = t.time): string => (t.models.one ? passText(c.pass) : "no read");
+const timeText = (t: Pick<WinTests, "time" | "models">, c: { pass: boolean } = t.time): string => (t.models.one ? passText(c.pass) : "no read");
 
 /** This function writes the rows of the tests of the win test. */
 function testRows(t: WinTests, tailWorse: number): string[] {

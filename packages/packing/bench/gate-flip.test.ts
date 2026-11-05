@@ -174,8 +174,8 @@ describe("the failed parts of a win test", () => {
   it("does not name the time test without one known CPU model, and names the other parts", () => {
     const failed = { pass: false };
     const models = { a: ["A"], b: ["B"], one: false };
-    expect(failedTests({ ...tests, time: failed, models } as typeof tests)).toEqual([]);
-    expect(failedTests({ ...tests, time: failed, gain: failed, models } as typeof tests)).toEqual(["gain"]);
+    expect(failedTests({ ...tests, time: failed, models } as unknown as typeof tests)).toEqual([]);
+    expect(failedTests({ ...tests, time: failed, gain: failed, models } as unknown as typeof tests)).toEqual(["gain"]);
   });
 });
 

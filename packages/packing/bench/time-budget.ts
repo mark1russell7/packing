@@ -145,14 +145,14 @@ export interface BudgetModels {
 
 /**
  * This function gives the CPU models of the jobs, and the reason that a time budget does not test them.
- * The floor depends only on the counts, so each read has the value 0. A job gives one read: its rounds share one computer, and they are not independent reads of a model.
+ * The floor depends only on the counts when each read has its own value, because a tie raises it. A job gives one read: its rounds share one computer, and they are not independent reads of a model.
  */
 export function budgetModels(cpus: readonly string[]): BudgetModels {
   const counts = new Map<string, number>();
   for (const cpu of cpus) counts.set(cpu, (counts.get(cpu) ?? 0) + 1);
   const models = [...counts].map(([model, jobs]) => ({ model, jobs })).toSorted((x, y) => (x.model < y.model ? -1 : 1));
   if (models.length < 2) return { models, line: null, floor: null, level: null };
-  const rows = modelTest(cpus.map((model) => ({ case: "jobs", model, value: 0 })), { minReads: 2, searchVisible: false }).rows.filter((r) => r.floor !== undefined);
+  const rows = modelTest(cpus.map((model, at) => ({ case: "jobs", model, value: at })), { minReads: 2, searchVisible: false }).rows.filter((r) => r.floor !== undefined);
   const head = `models not tested at ${cpus.length} jobs`;
   if (rows.length === 0) return { models, line: `${head}: no model has 2 jobs and other jobs to compare`, floor: null, level: null };
   const floor = Math.min(...rows.map((r) => r.floor ?? 1));

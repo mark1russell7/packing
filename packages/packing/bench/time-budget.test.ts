@@ -105,8 +105,8 @@ describe("the CPU models of a time budget", () => {
   it("keeps the verdict: 2 models change no verdict, and the record states them", () => {
     const one = [0, 1, 2, 3, 4].map((j) => job(`run${j}`, { ratio: () => 1, sigma: 0 }));
     const two = one.map((input, j) => ({ ...input, report: { ...input.report, env: { ...input.report.env, cpu: j < 3 ? "A" : "B" } } }));
-    const plain = timeBudget(one, "a");
-    const mixed = timeBudget(two, "a");
+    const plain = timeBudget(one, "b");
+    const mixed = timeBudget(two, "b");
     expect(mixed.verdict).toBe(plain.verdict);
     expect(mixed.models.models).toEqual([{ model: "A", jobs: 3 }, { model: "B", jobs: 2 }]);
     expect(budgetMarkdown(mixed)).toContain("models not tested at 5 jobs");
