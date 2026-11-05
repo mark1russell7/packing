@@ -138,6 +138,11 @@ describe("the read by step", () => {
     expect(stepMarkdown([push!, rows!])).toContain("| `push` | previous |");
   }, 60_000);
 
+  it("reads a bench entry with an id that is not the id of a strategy", () => {
+    const [row] = stepRows(run("maxrects-bl").records, ["maxrects-bl"], new Set(roots.map((f) => f.id)));
+    expect(row).toMatchObject({ strategy: "maxrects-bl", comparison: "no previous", stepZero: roots.length, steps: inputs.length - roots.length });
+  }, 60_000);
+
   it("counts a step that a lost base stopped as censored", () => {
     fault.input = JSON.stringify(toPackInput(chainOf(roots[0]!)[3]!));
     const [push] = stepRows(run("push").records, ["push"], new Set(roots.map((f) => f.id)));
