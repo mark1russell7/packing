@@ -40,6 +40,7 @@ import {
   readSample,
   type ActiveCoverage,
   type CoverageManifest,
+  type CoverageRecord,
   type CoverageSummary,
   type EvalMeasure,
   type PriorCount,
