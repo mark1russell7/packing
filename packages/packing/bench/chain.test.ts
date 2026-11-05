@@ -1,6 +1,6 @@
 // Roadmap item k159: `push` on the chains of `pack-change-v1`, and the control of its stability. The data is made up.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { corpus, toPackInput, type PackOutput } from "@mark1russell7/packing";
+import { corpus, measureChange, roundMeasures, toPackInput, type PackOutput } from "@mark1russell7/packing";
 import { CHANGE_CORPUS, changeCorpusText, changeSpecs, stepMarkdown, stepRows } from "./change.ts";
 import { benchEntry, benchPack, KEEP_SHELF } from "./controls.ts";
 import { ENTRIES } from "./entries.ts";
@@ -78,6 +78,18 @@ describe("another strategy on a chain", () => {
     const { records } = run("rows");
     const options = benchEntry("rows").options;
     for (const file of inputs) expect(measuredOf(records, file.id).outputHash).toBe(outputHash(benchPack("rows", toPackInput(file), options, file.seed)));
+  });
+
+  it("keeps the stability values of packs with no previous", () => {
+    const { records } = run("rows");
+    const options = benchEntry("rows").options;
+    const pack = (file: (typeof inputs)[number]): PackOutput => benchPack("rows", toPackInput(file), options, file.seed);
+    for (const file of inputs) {
+      const base = inputs.find((f) => f.id === file.base);
+      if (base === undefined) continue;
+      const change = roundMeasures(measureChange(toPackInput(base), pack(base), toPackInput(file), pack(file)));
+      expect(movedOf(measuredOf(records, file.id))).toBe(change["pack.stability.moved"]);
+    }
   });
 });
 
