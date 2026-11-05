@@ -1,57 +1,74 @@
-# The check of the corpus pack-adversary-v1 (docs/BENCH.md, "The adversarial search"). It repeats the search of all 6
-# pairs. On a change of the search or the corpus, it compares the result with the committed file, byte for byte. On a
-# change of a strategy, it only reports the moved rows, because a better strategy is not a fault of the corpus.
-# A test of the package holds the bytes of the stored rows on each change. The job needs no timing.
+# The hold of the corpus pack-adversary-v1 (docs/BENCH.md, "The adversarial search"). ci.yml uses this workflow, so the
+# check CI OK of the ruleset needs it. The job changes examines the changed files of a pull request.
+# A change of the search, of what the search reads, or of the corpus runs --check: a new search of all 6 pairs must give
+# the committed file, byte for byte. A failure blocks the merge, because version 1 of the search is frozen.
+# A change of a strategy runs --report: it names the moved rows and exits with the code 0, because a better strategy is
+# not a fault of the corpus. A push or a release does not repeat the job: the pull request of the change ran it.
+# A test of the package reads the two lists of this file (bench/adversary.test.ts). The job needs no timing.
 name: Adversary corpus
 
 on:
-  # Each pull request starts this workflow, so its summary check is always there. The job changes skips the
-  # work when the pull request changes no file of the gate (CI.md of the template, "A gate with paths").
-  pull_request:
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: adversary-corpus-${{ github.ref }}
+  # ci.yml calls this workflow on a push to main too, so only a pull request cancels a run in progress.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
     outputs:
-      match: ${{ steps.changes.outputs.match }}
-      search: ${{ steps.search.outputs.match }}
+      mode: ${{ steps.paths.outputs.mode }}
     steps:
-      - id: changes
-        uses: mark1russell7/template/.github/actions/changes@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          paths: |
-            packages/packing/bench/adversary.ts
-            packages/packing/bench/entries.ts
-            packages/packing/bench/corpora/pack-adversary-v1.json
-            packages/packing/src/**
-            .github/workflows/adversary.yml
-      - id: search
-        uses: mark1russell7/template/.github/actions/changes@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
-        with:
-          paths: |
-            packages/packing/bench/adversary.ts
-            packages/packing/bench/corpora/pack-adversary-v1.json
-            .github/workflows/adversary.yml
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Examine the changed files
+        id: paths
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          WORKFLOW: ${{ github.workflow }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # The files of the search: its code, its corpus, its draws, its hashes and the values of its loss.
+          SEARCH='packages/packing/bench/adversary\.ts|packages/packing/bench/corpora/pack-adversary-v1\.json|packages/packing/src/(generators|layout-input|strategy|bounds|measures|check)\.ts|\.github/workflows/adversary\.yml'
+          # The files of the strategies and the dependencies. They can move a row with no fault of the corpus.
+          REPORT='packages/packing/src/.*|packages/packing/bench/entries\.ts|pnpm-lock\.yaml'
+          if [ "$EVENT" = workflow_dispatch ] && [ "$WORKFLOW" = "Adversary corpus" ]; then
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$EVENT" != pull_request ]; then
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files="$(git diff --name-only "$BASE" "$GITHUB_SHA")"
+          # The search takes its random numbers and its hashes from this dependency, so a new version of it is a change of the search.
+          if grep -qxE "$SEARCH" <<<"$files" || git diff "$BASE" "$GITHUB_SHA" -- pnpm-lock.yaml | grep -q 'rigor-generators@'; then
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+          elif grep -qxE "$REPORT" <<<"$files"; then
+            echo "mode=report" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+          fi
 
-  check:
+  search:
     needs: changes
-    if: needs.changes.outputs.match == 'true'
+    if: ${{ needs.changes.outputs.mode == 'check' || needs.changes.outputs.mode == 'report' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -64,23 +81,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Compare a new search of each pair with the corpus, or report the moved rows
         working-directory: packages/packing
+        shell: bash
         env:
-          SEARCH: ${{ needs.changes.outputs.search }}
+          MODE: ${{ needs.changes.outputs.mode }}
         run: |
-          if [ "$SEARCH" = true ]; then
-            node --no-warnings bench/adversary.ts --check
+          if [ "$MODE" = check ]; then
+            node --no-warnings bench/adversary.ts --check | tee -a "$GITHUB_STEP_SUMMARY"
           else
             node --no-warnings bench/adversary.ts --report | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-
-  adversary-ok:
-    name: Adversary corpus OK
-    if: always()
-    needs: [changes, check]
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions: {}
-    steps:
-      - uses: mark1russell7/template/.github/actions/gate-summary@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
-        with:
-          needs: ${{ toJSON(needs) }}

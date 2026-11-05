@@ -43,6 +43,14 @@ function hardOf(id: string, file: GeneratedInput): number {
   return Object.values(checkHard(input, output, DEFAULT_TOLERANCE)).reduce((a, b) => a + b, 0);
 }
 
+/** This function gives the text of a hard-rule failure of a stored row, or `undefined` when the row breaks no rule. */
+function hardFault(a: unknown, b: unknown, winner: unknown, breaks: Readonly<Record<string, number>>): string | undefined {
+  const rules = Object.entries(breaks).filter(([, count]) => count > 0);
+  if (rules.length === 0) return undefined;
+  const named = rules.map(([rule, count]) => `${rule} (${count})`).join(", ");
+  return `Row ${String(a)} to ${String(b)}: the winner ${String(winner)} breaks ${named}. This is a strategy fault, not a corpus fault.`;
+}
+
 /** This function gives the value of the loss measure of an entry: the fill for a fixed size, else the gap. */
 function valueOf(id: string, file: GeneratedInput): number {
   const { input, output } = packEntry(id, file);
@@ -184,9 +192,76 @@ describe("the corpus pack-adversary-v1", () => {
       expect(input.hash).toBe(found["hash"]);
       expect(input.set).toBe(ADVERSARY_CORPUS);
       expect(input.generator!.params).toMatchObject({ a: found["a"], b: found["b"], seed: 1 });
-      expect(hardOf(found["winner"] as string, input)).toBe(0);
+      const { input: packed, output } = packEntry(found["winner"] as string, input);
+      expect(hardFault(found["a"], found["b"], found["winner"], { ...checkHard(packed, output, DEFAULT_TOLERANCE) })).toBeUndefined();
       expect(found["loss"]).toBeGreaterThan(0);
     }
+  });
+
+  it("names the row and the rule in a hard-rule failure, and says that the strategy is at fault", () => {
+    expect(hardFault("rows", "skyline", "skyline", { overlap: 0 })).toBeUndefined();
+    const text = hardFault("rows", "skyline", "skyline", { overlap: 2, inside: 0 })!;
+    expect(text).toContain("rows to skyline");
+    expect(text).toContain("overlap (2)");
+    expect(text).not.toContain("inside");
+    expect(text).toContain("a strategy fault, not a corpus fault");
+  });
+
+  describe("the required hold", () => {
+    const workflows = join(import.meta.dirname, "..", "..", "..", ".github", "workflows");
+    const held = readFileSync(join(workflows, "adversary.yml"), "utf8");
+    const ci = readFileSync(join(workflows, "ci.yml"), "utf8");
+    const list = (name: string) => new RegExp(`^(?:${/'(.*)'/.exec(held.split("\n").find((line) => line.trim().startsWith(`${name}=`))!)![1]!})$`);
+    const search = list("SEARCH");
+    const report = list("REPORT");
+
+    it("is a job of CI OK that cannot read as a skip", () => {
+      expect(ci).toContain("uses: ./.github/workflows/adversary.yml");
+      expect(ci).toMatch(/needs: \[[^\]]*\badversary\b[^\]]*\]/);
+      expect(ci).not.toMatch(/ALLOW_SKIP:.*adversary/);
+    });
+
+    it("runs --check on each file of the search", () => {
+      for (const path of [
+        "packages/packing/bench/adversary.ts",
+        "packages/packing/bench/corpora/pack-adversary-v1.json",
+        "packages/packing/src/generators.ts",
+        "packages/packing/src/layout-input.ts",
+        "packages/packing/src/strategy.ts",
+        "packages/packing/src/bounds.ts",
+        "packages/packing/src/measures.ts",
+        "packages/packing/src/check.ts",
+        ".github/workflows/adversary.yml",
+      ]) {
+        expect(search.test(path), path).toBe(true);
+      }
+    });
+
+    it("runs only --report on a file of a strategy, and nothing on the other files", () => {
+      for (const path of ["packages/packing/src/skyline.ts", "packages/packing/src/maxrects.ts", "packages/packing/bench/entries.ts", "pnpm-lock.yaml"]) {
+        expect(search.test(path), path).toBe(false);
+        expect(report.test(path), path).toBe(true);
+      }
+      for (const path of ["docs/BENCH.md", "packages/packing/bench/run.ts", "packages/site/src/results.ts"]) {
+        expect(search.test(path), path).toBe(false);
+        expect(report.test(path), path).toBe(false);
+      }
+    });
+
+    it("turns red on a change of the search alone", () => {
+      const source = readFileSync(join(import.meta.dirname, "adversary.ts"), "utf8");
+      expect(source).toContain("export const PARAM_SHARE = 0.2;");
+      const changed = join(import.meta.dirname, `flip-${process.pid}-adversary.ts`);
+      writeFileSync(changed, source.replace("export const PARAM_SHARE = 0.2;", "export const PARAM_SHARE = 0.25;"));
+      try {
+        const clean = spawnSync(process.execPath, ["--no-warnings", "bench/adversary.ts", "--check", "--pair", "2"], { encoding: "utf8" });
+        const flipped = spawnSync(process.execPath, ["--no-warnings", changed, "--check", "--pair", "2"], { encoding: "utf8" });
+        expect(clean.status).toBe(0);
+        expect(flipped.status).toBe(1);
+      } finally {
+        rmSync(changed, { force: true });
+      }
+    }, 60_000);
   });
 
   describe("the two checks", () => {

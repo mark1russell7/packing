@@ -436,13 +436,13 @@ Two checks hold the corpus:
 | Check | Command | Starts on | A failure means |
 |---|---|---|---|
 | The stored rows are the same | `--rows`, in a test of `CI OK` | each change | The file changed. A change of the rows needs a new version of the corpus. |
-| The search gives the stored rows | `--check`, in `adversary.yml` | a change of the search, the corpus or the workflow | The search changed its draws. |
+| The search gives the stored rows | `--check`, in `adversary.yml`, a job of `CI OK` | a change of the search, of a file that it reads for draws, hashes or values, of `rigor-generators`, of the corpus or of the workflow | The search changed its draws. The merge is blocked, because version 1 is frozen. |
 
-A change of the package source or the entries starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
+A change of the other package source, the entries or the lock file starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
 
 The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
 
-One test still reads a strategy on a stored input: the winner of each row must not break a hard rule. A failure there is a fault of the strategy.
+One test of `CI OK` still reads a strategy on a stored input: the winner of each row must not break a hard rule. Its failure text names the row and the rule, and says that the strategy is at fault, not the corpus.
 
 The losses of the corpus:
 
