@@ -50,8 +50,9 @@ import {
   pickHolds,
   budgetText,
   rankSections,
-  reasonMeaning,
   sectionReasons,
+  skipLine,
+  skipsHtml,
   sectionText,
   ratioAt,
   scaleOf,
@@ -119,7 +120,7 @@ function finishedHtml(s: StrategySummary, snap: StrategySnapshot): string {
   if (s.finished === undefined) return "";
   const size = s.finished.largest === null ? "No input finished." : `The largest input finished has ${s.finished.largest} items: ${s.finished.inputs} of ${snap.inputs} inputs.`;
   const one = (s.oneRun ?? 0) === 0 ? "" : ` ${s.oneRun} records have 1 timed run, so no time gate reads them.`;
-  const reasons = (s.reasons ?? []).map((r) => `<li><b>${r.count}</b> ${esc(reasonMeaning(r.reason) ?? r.reason)}</li>`).join("");
+  const reasons = (s.reasons ?? []).map((r) => `<li><b>${r.count}</b> ${skipLine(r)}</li>`).join("");
   return `<p class="hint">${esc(size + one)}</p>${reasons === "" ? "" : `<ul class="reasons">${reasons}</ul>`}`;
 }
 
@@ -197,6 +198,7 @@ function drawStrategies(): void {
       return heading + section.strategies.map(row).join("");
     })
     .join("");
+  $("strategy-skips").innerHTML = skipsHtml(snap.strategies);
   $("strategy-list").innerHTML = `<li class="shead" aria-hidden="true"><span class="sname">Strategy</span><span class="dhead">Fill against <code>${esc(snap.baseline)}</code>: ± ${diffText(max, true).replace(/^[+−]/, "")}</span><span class="cells">${head}</span></li>${list}`;
 }
 

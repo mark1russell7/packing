@@ -1,9 +1,9 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, SkipWord, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
 import { oldGapNote } from "./gap-definition.ts";
-import { segmentOf, trendSegments } from "./kpi.ts";
+import { isBudgetReason, segmentOf, skipCounts, trendSegments, type SkipSummary } from "./kpi.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
 export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict | undefined => s.verdicts.find((v) => v.measure === measure);
@@ -57,6 +57,55 @@ export function reasonMeaning(reason: string): string | undefined {
   if (reason === "unsupported containerSize: refused") return `Refused: the strategy takes at most ${REFUSE_ITEMS} items. This is a real limit of the strategy and not a budget.`;
   if (reason.startsWith("refused: ")) return `Refused: ${reason.slice("refused: ".length)}. This is a real limit of the strategy and not a budget.`;
   return undefined;
+}
+
+/** The meaning of each word of a skip on the page */
+export const SKIP_WORD_TEXT: Readonly<Record<SkipWord, string>> = {
+  "not done": "a limit of the code that small work lifts, so coverage is still owed",
+  "other algorithm": "this form needs another algorithm",
+  "no meaning": "this input has no meaning for the strategy",
+  "not read": "nobody has read this reason",
+};
+
+/** This function gives the word of a skip reason, or `undefined` for a wall budget. A reason with no word reads `not read`, so it gets no default word. */
+export const skipWordOf = (reason: string, word: SkipWord | undefined): SkipWord | undefined => (isBudgetReason(reason) ? undefined : (word ?? "not read"));
+
+/** This function gives the line of one skip reason of a strategy: the reason, its word and the reason of the word. */
+export function skipLine(r: { readonly reason: string; readonly word?: SkipWord; readonly why?: string }): string {
+  const word = skipWordOf(r.reason, r.word);
+  const text = reasonMeaning(r.reason) ?? r.reason;
+  return word === undefined ? esc(text) : `<code>${esc(word)}</code> ${esc(text)}${r.why === undefined ? "" : `: ${esc(r.why)}`}`;
+}
+
+/** The parts of a summary of a strategy that `skipsHtml` reads */
+interface SkipEntry extends SkipSummary {
+  readonly strategy: string;
+  readonly reasons?: readonly { readonly reason: string; readonly count: number; readonly word?: SkipWord; readonly why?: string }[];
+}
+
+/** This function gives the HTML of the skips of a corpus by word. It is empty for a corpus with no refusal. A record with no word counts as `not read`. */
+export function skipsHtml(strategies: readonly SkipEntry[]): string {
+  const c = skipCounts(strategies);
+  const total = c.owed + c.otherAlgorithm + c.noMeaning + c.notRead;
+  if (total === 0) return "";
+  const groups = new Map<string, { word: SkipWord; why: string; entries: Set<string>; records: number }>();
+  for (const s of strategies) {
+    for (const r of s.reasons ?? []) {
+      const word = skipWordOf(r.reason, r.word);
+      if (word === undefined) continue;
+      const why = r.why ?? r.reason;
+      const group = groups.get(`${word}|${why}`) ?? { word, why, entries: new Set<string>(), records: 0 };
+      group.entries.add(s.strategy);
+      group.records += r.count;
+      groups.set(`${word}|${why}`, group);
+    }
+  }
+  const rows = [...groups.values()]
+    .sort((a, b) => a.word.localeCompare(b.word) || b.records - a.records)
+    .map((g) => `<li><code>${esc(g.word)}</code> <b>${g.records}</b> records: ${esc(g.why)} ${[...g.entries].map((id) => `<code>${esc(id)}</code>`).join(", ")}</li>`)
+    .join("");
+  const line = `<p class="hint"><b>${total} skipped records</b> by word: ${c.owed} <code>not done</code> (${SKIP_WORD_TEXT["not done"]}), ${c.otherAlgorithm} <code>other algorithm</code>, ${c.noMeaning} <code>no meaning</code> and ${c.notRead} <code>not read</code>. A wall budget stays out of this count.</p>`;
+  return rows === "" ? line : `${line}<details><summary>Each skip, by word</summary><ul class="reasons">${rows}</ul></details>`;
 }
 
 /** This function gives the different meanings of the budget and refusal reasons of a section of the ranking. */
@@ -534,11 +583,12 @@ const segmentText = (segment: readonly CoveragePoint[]): string => {
 };
 
 /** This function gives the words of the reasons of an entry with no measured record. A censored reason gives its lower bound on the time. */
-const reasonsText = (reasons: readonly { because: string; records: number; msAtLeast?: number }[]): string =>
+const reasonsText = (reasons: readonly { because: string; records: number; msAtLeast?: number; word?: SkipWord }[]): string =>
   reasons
     .map((r) => {
-      if (r.records === 0) return r.because;
-      return r.msAtLeast === undefined ? `${r.because} (${r.records} records)` : `${r.because} (${r.records} records, each at least ${r.msAtLeast / 1000} s)`;
+      const word = r.word === undefined ? "" : `${r.word}: `;
+      if (r.records === 0) return word + r.because;
+      return r.msAtLeast === undefined ? `${word}${r.because} (${r.records} records)` : `${word}${r.because} (${r.records} records, each at least ${r.msAtLeast / 1000} s)`;
     })
     .join(", ");
 

@@ -233,6 +233,25 @@ The runner does not stop at an error of a strategy. It writes the error in `run.
 
 A strategy of the mode `incremental` gets only skipped records on an offline corpus. Each generator of the package makes offline inputs, so the runner skips `push` on each input.
 
+## The word of a skip
+
+A strategy that refuses a cell leaves a skip record. A reader of the results needs the reason of that refusal. A limit of the code is coverage still owed, and the other reasons are not. The table `SKIP_ROWS` of `bench/skip-words.ts` gives each pair of an entry and a skip reason one word.
+
+| Word | Meaning |
+|---|---|
+| `not done` | A limit of the code. A composition or small work lifts it, and the row names the item. |
+| `other algorithm` | This form needs another algorithm. A person reads each row before it gets this word. |
+| `no meaning` | The input has no meaning for the strategy, for example an offline input for `push`. |
+| `not read` | Nobody has read the pair. A pair outside the table reads this word, and no pair gets another word by default. |
+
+- A snapshot writes the word and its reason beside each skip reason, and the results page reads that field.
+- A wall budget has no word, because the strategy did not refuse the input. The section below tells about it.
+- A snapshot from before the table has no words, so the page reads each of its skips as `not read`.
+- The file `kpi.json` gives `skips-owed` and `skips-not-read`. A skip does not count as a measured entry.
+- A test fails on a row whose strategy takes the cell of the row. So a lift removes its row in the same change.
+
+The table holds each skip of `pack-free-v1` in run 41975155011: 95 pairs, with 68 `not done`, 25 `other algorithm` and 2 `no meaning`. The same refusal has the same word on another corpus. A new pair on another corpus reads `not read` until a person reads it.
+
 ## The budget of a pair
 
 The flag `--budget` holds each pair of an entry and an input to a wall budget. A run of `all` can then finish on the corpora with 1000 items. The input `budget` of the workflow sets the flag. Each pair runs in a child process of `superviseCases` from `@mark1russell7/rigor-bench/supervise`, so a stop works on code that does not return. Only an overrun costs a new child, so the times of the other pairs do not change.
@@ -1266,7 +1285,7 @@ The proposal 0.156 is the worst job plus the spread of the jobs (0.1379 + 0.0183
 
 - After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value plus the spread of 5 runs).
 
-The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. The record prints each CPU model with its job count. With 2 models, it states "models not tested at 5 jobs" and the floor of the model test as the reason: at a split of 3 and 2 jobs, the smallest p is 0.2. The verdict reads the ratios inside each job, and it does not say that the models agree. A page that quotes a budget result carries the same line. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
+The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. The record prints each CPU model with its job count. With 2 models, it states "models not tested at 5 jobs" and the floor of the model test as the reason. At a split of 3 and 2 jobs, the smallest p is 0.2. The verdict reads the ratios inside each job, and it does not say that the models agree. A page that quotes a budget result carries the same line. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 
 ### The speed claims
 
