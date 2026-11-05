@@ -1,8 +1,8 @@
 // Roadmap item k159: `push` on the chains of `pack-change-v1`, and the control of its stability. The data is made up.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { corpus, toPackInput, type PackOutput } from "@mark1russell7/packing";
+import { corpus, measureChange, roundMeasures, toPackInput, type PackOutput } from "@mark1russell7/packing";
 import { CHANGE_CORPUS, changeCorpusText, changeSpecs, stepMarkdown, stepRows } from "./change.ts";
-import { benchEntry, benchPack, KEEP_SHELF } from "./controls.ts";
+import { benchEntry, benchPack, CONTROL_ENTRIES, KEEP_SHELF } from "./controls.ts";
 import { ENTRIES } from "./entries.ts";
 import { isMeasured, NOT_RUN_BASE, outputHash, parseCorpus, runBench, type BenchEnv, type BenchRecord, type MeasuredRecord, type SkippedRecord } from "./run.ts";
 
@@ -79,6 +79,18 @@ describe("another strategy on a chain", () => {
     const options = benchEntry("rows").options;
     for (const file of inputs) expect(measuredOf(records, file.id).outputHash).toBe(outputHash(benchPack("rows", toPackInput(file), options, file.seed)));
   });
+
+  it("keeps the stability values of packs with no previous", () => {
+    const { records } = run("rows");
+    const options = benchEntry("rows").options;
+    const pack = (file: (typeof inputs)[number]): PackOutput => benchPack("rows", toPackInput(file), options, file.seed);
+    for (const file of inputs) {
+      const base = inputs.find((f) => f.id === file.base);
+      if (base === undefined) continue;
+      const change = roundMeasures(measureChange(toPackInput(base), pack(base), toPackInput(file), pack(file)));
+      expect(movedOf(measuredOf(records, file.id))).toBe(change["pack.stability.moved"]);
+    }
+  });
 });
 
 describe("a chain with a fault at a middle step", () => {
@@ -136,6 +148,22 @@ describe("the read by step", () => {
     const stepIds = inputs.filter((f) => f.base !== undefined).map((f) => f.id);
     expect(rows!.fill).toBeCloseTo(stepIds.reduce((sum, id) => sum + fillOf(id), 0) / stepIds.length, 10);
     expect(stepMarkdown([push!, rows!])).toContain("| `push` | previous |");
+  }, 60_000);
+
+  it("reads each entry and each control, with an id that is not always the id of a strategy", () => {
+    const ids = [...ENTRIES, ...CONTROL_ENTRIES].map((e) => e.id);
+    expect(ids).toContain("maxrects-bl");
+    const rows = stepRows([], ids, new Set());
+    expect(rows.map((r) => r.strategy)).toEqual(ids);
+    const previous = rows.filter((r) => r.comparison === "previous").map((r) => r.strategy);
+    expect(previous).toEqual(expect.arrayContaining(["keep-shelf", "push"]));
+    expect(previous).not.toContain("rows");
+    expect(previous).not.toContain("maxrects-bl");
+  });
+
+  it("gives the row of an entry from the records of a real run", () => {
+    const [row] = stepRows(run("maxrects-bl").records, ["maxrects-bl"], new Set(roots.map((f) => f.id)));
+    expect(row).toMatchObject({ strategy: "maxrects-bl", comparison: "no previous", stepZero: roots.length, steps: inputs.length - roots.length });
   }, 60_000);
 
   it("counts a step that a lost base stopped as censored", () => {

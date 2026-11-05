@@ -9,12 +9,14 @@ import {
   classify,
   CONFIRM_INPUTS,
   coverageOf,
+  failedTests,
   floorRatio,
   GUARD_DECLARATIONS,
   GUARD_SET_V1,
   GUARD_SETS,
   NO_VALUE,
   ORDER_FREE_GUARDS,
+  noReadText,
   ORDER_FREE_VIEW,
   PROMOTION_PARAMETERS,
   testsOf,
@@ -44,6 +46,7 @@ const record = (strategy: string, input: string, measures: Record<string, number
   ms,
   hard: { "no-overlap": 0, "in-container": 0 },
   deterministic: true,
+  env: { cpu: "A" },
   ...extra,
 });
 
@@ -61,6 +64,9 @@ function recordsOf(inputs: readonly string[], candidate: (i: number) => Record<s
 
 /** A candidate that is better on fill and area, and equal on the other guards */
 const GOOD = (): Record<string, number> => ({ "pack.fill": 0.8, "pack.area": 900 });
+
+/** A candidate that is equal to the default on each measure, so it has no gain */
+const NO_GAIN = (): Record<string, number> => ({});
 
 const FAST = { bootstrapRuns: 2000 };
 
@@ -264,10 +270,95 @@ describe("the time source", () => {
     const { inputs, cells } = corpusOf(20);
     const records = onCpu(recordsOf(inputs, GOOD), (r) => (r.strategy === "cand" ? "EPYC 9V45" : "EPYC 7763"));
     const v = winTest(records, { candidate: "cand", current: "rows", win: ["pack.fill"], cells, parameters: params });
-    expect(v.timeSource).toEqual({ kind: "records", corpora: ["c"], cpu: { candidate: ["EPYC 9V45"], current: ["EPYC 7763"] }, sameCpu: false });
+    expect(v.timeSource).toEqual({ kind: "records", corpora: ["c"], cpu: { candidate: ["EPYC 9V45"], current: ["EPYC 7763"] }, oneModel: false });
     const md = promotionMarkdown(v);
     expect(md).toContain("`EPYC 9V45` for the candidate, `EPYC 7763` for the default");
-    expect(md).toContain("**Warning:**");
+    expect(md).toContain("**No read:**");
+  });
+
+  it("reads no read when a measured record of the candidate has a null in deterministic", () => {
+    const { inputs, cells } = corpusOf(20);
+    const options = { candidate: "cand", current: "rows", win: ["pack.fill"] as const, cells, parameters: params };
+    const records = onCpu(recordsOf(inputs, GOOD), () => "EPYC 7763");
+    expect(winTest(records, options).status).toBe("pass");
+    records[2] = { ...records[2]!, deterministic: null };
+    const v = winTest(records, options);
+    expect(v.tests.hard).toMatchObject({ notDeterministic: 0, noDeterminismRead: 1, pass: true });
+    expect(v.status).toBe("no read");
+    expect(v.pass).toBe(false);
+    expect(v.reason).toBe("no read: 1 of 20 inputs have no read of determinism");
+    expect(promotionMarkdown(v)).toContain("| hard rules | the inputs with no read of determinism | 1 | 0 | no read |");
+  });
+
+  it("does not read a null on a skipped record, and a false stays a fail", () => {
+    const { inputs, cells } = corpusOf(20);
+    const options = { candidate: "cand", current: "rows", win: ["pack.fill"] as const, cells, parameters: params };
+    const records = onCpu(recordsOf(inputs, GOOD), () => "EPYC 7763");
+    records[2] = { ...records[2]!, skipped: "unsupported mode: offline", measures: {}, deterministic: null };
+    const skipped = winTest(records, options);
+    expect(skipped.tests.hard.noDeterminismRead).toBe(0);
+    expect(skipped.status).toBe("pass");
+    records[2] = { ...records[4]!, input: records[2]!.input, deterministic: false };
+    expect(winTest(records, options).status).toBe("fail");
+  });
+
+  it("reads no read with both names when each other test passes on 2 CPU models", () => {
+    const { inputs, cells } = corpusOf(20);
+    const records = onCpu(recordsOf(inputs, GOOD), (r) => (r.strategy === "cand" ? "EPYC 9V45" : "EPYC 7763"));
+    const v = winTest(records, { candidate: "cand", current: "rows", win: ["pack.fill"], cells, parameters: params });
+    expect(v.status).toBe("no read");
+    expect(v.pass).toBe(false);
+    expect(v.reason).toBe("no read: 2 CPU models (EPYC 7763, EPYC 9V45)");
+    expect(failedTests(v.tests)).toEqual([]);
+    const md = promotionMarkdown(v);
+    expect(md).toContain("The verdict is **no read: 2 CPU models (EPYC 7763, EPYC 9V45)**. The candidate cannot replace");
+    expect(md).toMatch(/\| time median \|[^\n]*\| no read \|/);
+    expect(JSON.parse(promotionJson(v))).toMatchObject({ pass: false, status: "no read", reason: v.reason });
+  });
+
+  it("reads no read for a slow candidate on 2 CPU models, and a fail for the same times on one", () => {
+    const { inputs, cells } = corpusOf(20);
+    const slow = recordsOf(inputs, GOOD, 10);
+    const options = { candidate: "cand", current: "rows", win: ["pack.fill" as const], cells, parameters: params };
+    const two = winTest(onCpu(slow, (r) => (r.strategy === "cand" ? "A" : "B")), options);
+    expect(two.tests.time.pass).toBe(false);
+    expect(two.status).toBe("no read");
+    expect(failedTests(two.tests)).toEqual([]);
+    const one = winTest(onCpu(slow, () => "A"), options);
+    expect(one.status).toBe("fail");
+    expect(one.reason).toBeUndefined();
+    expect(failedTests(one.tests)).toEqual(["time"]);
+  });
+
+  it("keeps a fail on another test across 2 CPU models, and does not name the time test", () => {
+    const { inputs, cells } = corpusOf(20);
+    const records = onCpu(recordsOf(inputs, NO_GAIN, 10), (r) => (r.strategy === "cand" ? "A" : "B"));
+    const v = winTest(records, { candidate: "cand", current: "rows", win: ["pack.fill"], cells, parameters: params });
+    expect(v.status).toBe("fail");
+    expect(v.pass).toBe(false);
+    expect(v.reason).toBeUndefined();
+    expect(failedTests(v.tests)).toEqual(["gain"]);
+  });
+
+  it("does not take records with no CPU model as one model", () => {
+    const { inputs, cells } = corpusOf(20);
+    const records = recordsOf(inputs, GOOD).map(({ env: _env, ...r }) => r);
+    const v = winTest(records, { candidate: "cand", current: "rows", win: ["pack.fill"], cells, parameters: params });
+    expect(v.timeSource.oneModel).toBe(false);
+    expect(v.status).toBe("no read");
+    expect(v.reason).toBe("no read: 1 unknown CPU model");
+  });
+
+  it("reads no read with no time pairs", () => {
+    expect(noReadText({ a: [], b: [], one: false })).toBe("no read: no time pairs");
+  });
+
+  it("reads each container shape on the models of its own time pairs", () => {
+    const { inputs, cells } = corpusOf(20);
+    const records = onCpu(recordsOf(inputs, GOOD), (r) => (r.strategy === "cand" ? "A" : "B"));
+    const v = winTest(records, { candidate: "cand", current: "rows", win: ["pack.fill"], cells, parameters: params });
+    for (const shape of Object.values(v.shapes)) expect(shape.models.one).toBe(false);
+    expect(promotionMarkdown(v)).not.toContain("**pass**");
   });
 
   it("reads the times only from the time records, by input id and strategy id", () => {
@@ -281,11 +372,11 @@ describe("the time source", () => {
     expect(v.tests.time).toMatchObject({ inputs: 20, missing: 0, pass: true });
     expect(v.tests.time.median.value).toBeCloseTo(1);
     expect(v.pass).toBe(true);
-    expect(v.timeSource).toEqual({ kind: "times", folder: "time", corpora: ["t"], cpu: { candidate: ["A"], current: ["A"] }, sameCpu: true });
+    expect(v.timeSource).toEqual({ kind: "times", folder: "time", corpora: ["t"], cpu: { candidate: ["A"], current: ["A"] }, oneModel: true });
     expect(v.shapes["rect"]!.time.inputs).toBe(10);
     const md = promotionMarkdown(v);
     expect(md).toContain("the time records of `--times` in `time`");
-    expect(md).not.toContain("**Warning:**");
+    expect(md).not.toContain("**No read:**");
   });
 
   it("uses the inputs of the time records when they are other inputs than those of the verdict", () => {
@@ -355,7 +446,7 @@ describe("the command line of the win test", () => {
 
   it("reads the times of --times", () => {
     const v = promoteMain(args("times", "--time-floor-ms", "0", "--times", time));
-    expect(v.timeSource).toMatchObject({ kind: "times", folder: time, cpu: { candidate: ["A"], current: ["A"] }, sameCpu: true });
+    expect(v.timeSource).toMatchObject({ kind: "times", folder: time, cpu: { candidate: ["A"], current: ["A"] }, oneModel: true });
     expect(v.tests.time.pass).toBe(true);
     expect(v.shapes["circle"]!.time.inputs).toBe(10);
     const md = readFileSync(join(root, "times", "promotion.md"), "utf8");
@@ -492,18 +583,22 @@ describe("the guard sets on a fixture", () => {
     v1: { pass: boolean; tests: unknown; shapes: unknown };
   }
   const fixture = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "promote-guards-v1.json"), "utf8")) as GuardFixture;
+  // The stored records have no CPU model. These tests read the guards, so each record gets the same model.
+  const modelled: PromotionRecord[] = fixture.records.map((r) => ({ ...r, env: { ...r.env, cpu: "one model" } }));
   const options = { candidate: fixture.candidate, current: fixture.current, win: fixture.win, cells: new Map(Object.entries(fixture.cells)), parameters: fixture.parameters };
+  /** This function removes the fields that the stored verdict does not have, so the stored verdict stays as it was. */
+  const asStored = (json: string): GuardFixture["v1"] => JSON.parse(json, (key: string, value: unknown) => (key === "models" || key === "status" || key === "noDeterminismRead" ? undefined : value)) as GuardFixture["v1"];
 
   it("gives the old verdict with the guard set v1", () => {
-    const v = winTest(fixture.records, { ...options, guards: "v1" });
+    const v = winTest(modelled, { ...options, guards: "v1" });
     expect(v.guardSet).toBe("v1");
-    const json = JSON.parse(promotionJson(v)) as GuardFixture["v1"];
+    const json = asStored(promotionJson(v));
     expect({ pass: json.pass, tests: json.tests, shapes: json.shapes }).toEqual(fixture.v1);
     expect(v.pass).toBe(false);
   });
 
   it("applies the guards of v2 only to the declaring inputs, and counts the coverage", () => {
-    const v = winTest(fixture.records, options);
+    const v = winTest(modelled, options);
     expect(v.guardSet).toBe("v2");
     expect(v.pass).toBe(true);
     const covered = Object.fromEntries(v.coverage.map((c) => [c.measure, [c.covered, c.leftOut]]));
@@ -519,7 +614,7 @@ describe("the guard sets on a fixture", () => {
   });
 
   it("gives the verdicts of v1 and v2 side by side with compareGuards", () => {
-    const v = winTest(fixture.records, { ...options, compareGuards: true });
+    const v = winTest(modelled, { ...options, compareGuards: true });
     expect(v.compare!.v1.pass).toBe(false);
     expect(v.compare!.v2.pass).toBe(true);
     expect(v.compare!.v2.tests).toBe(v.tests);
@@ -529,15 +624,15 @@ describe("the guard sets on a fixture", () => {
     expect(md).toContain("| **verdict** | 30 | - | - | **fail** | 30 | - | - | **pass** |");
     expect(md).toContain("The coverage of the guard set `v1`:");
     expect(md).toContain("| `pack.aspectError` | `cell.containerSize = freeAspect` | 6 | 24 | 24: the container declares no aspect |");
-    expect(promotionMarkdown(winTest(fixture.records, options))).not.toContain("## The guard sets v1 and v2");
+    expect(promotionMarkdown(winTest(modelled, options))).not.toContain("## The guard sets v1 and v2");
   });
 
   it("gives the view orderNotRequired with compareGuards: v2 without pack.order.inversions, labeled as a view that decides nothing", () => {
     expect(ORDER_FREE_GUARDS.map((g) => g.measure)).toEqual(GUARD_DECLARATIONS.map((g) => g.measure).filter((m) => m !== "pack.order.inversions"));
-    expect(winTest(fixture.records, options).views).toBeUndefined();
+    expect(winTest(modelled, options).views).toBeUndefined();
     // The candidate puts 100 more pairs out of order on each input that declares an order
     const ordered = new Set(Object.entries(fixture.cells).flatMap(([id, c]) => (c.order === "soft" || c.order === "hard" ? [id] : [])));
-    const records = fixture.records.map((r) => (r.strategy === fixture.candidate && ordered.has(r.input) ? { ...r, measures: { ...r.measures, "pack.order.inversions": 100 + (r.measures["pack.order.inversions"] ?? 0) } } : r));
+    const records = modelled.map((r) => (r.strategy === fixture.candidate && ordered.has(r.input) ? { ...r, measures: { ...r.measures, "pack.order.inversions": 100 + (r.measures["pack.order.inversions"] ?? 0) } } : r));
     const v = winTest(records, { ...options, compareGuards: true });
     const view = v.views![ORDER_FREE_VIEW];
     expect([v.pass, v.compare!.v2.pass, view.pass]).toEqual([false, false, true]);

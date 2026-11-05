@@ -67,6 +67,15 @@ describe("the weekly rerun of the corpora of the site", () => {
     expect(siteData).toContain("github.event.workflow_run.event == 'schedule'");
   });
 
+  it("lets a run write only its own files, and the branch keeps the others", () => {
+    const publish = siteData.slice(siteData.indexOf("\n  publish:\n"));
+    expect(siteData).toContain('node bench/snapshot.ts written "$RUNNER_TEMP/before" ../site/data "$RUNNER_TEMP/out"');
+    expect(publish).toContain("if: needs.snapshot.outputs.written == 'true'");
+    expect(publish).toContain('cp -R "$RUNNER_TEMP/out/." .');
+    expect(publish).not.toMatch(/git rm|rm -rf/);
+    expect(siteData).not.toMatch(/cp strategies-/);
+  });
+
   it("does not run on a push or a pull request, because the run takes about 15 hours", () => {
     const on = rerun.slice(rerun.indexOf("\non:\n"), rerun.indexOf("\npermissions:"));
     expect(on).toMatch(/schedule:/);
