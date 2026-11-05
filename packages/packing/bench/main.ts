@@ -9,6 +9,7 @@
 //   node bench/main.ts predicates --corpus <name> [--strategies a,b|all] [--out dir]
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
+//   node bench/main.ts control-read --as-of <YYYY-MM-DD> [--out file] <run dir>...
 //
 // The times of a run on a local computer do not count. Only the times of CI compare.
 
@@ -38,6 +39,7 @@ import {
   pairedPack,
 } from "./run.ts";
 import { runBudgeted, runCases } from "./budget.ts";
+import { controlRead, controlReadText } from "./control-read.ts";
 import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { dumpPredicates, NEAR, parseShard } from "./predicates.ts";
 import { deriveSizeGate, measureSizes, parseSizeGate, publishedExports, sizeCoverage, sizeMarkdown, sizeVerdict, type PublishedPackage, type SizeBundler } from "./size-gate.ts";
@@ -427,8 +429,22 @@ function main(): number | Promise<number> {
       process.stdout.write(smokeMarkdown(result));
       return result.failures.length > 0 ? 1 : 0;
     }
+    case "control-read": {
+      // The read of the controls: the pooled result and the result by stratum. It only reports, so its exit code does not read the result.
+      const asOf = opt("--as-of");
+      if (asOf === undefined) throw new Error("A control read needs --as-of <YYYY-MM-DD>.");
+      const out = opt("--out");
+      const dirs = rest.filter((arg, i) => !arg.startsWith("--") && rest[i - 1] !== "--out" && rest[i - 1] !== "--as-of");
+      if (dirs.length === 0) throw new Error("A control read needs one folder of a run or more.");
+      const records = dirs.flatMap((dir) => parseRecords(readFileSync(join(dir, "records.jsonl"), "utf8")));
+      const result = controlRead(records, asOf);
+      if (out !== undefined) writeFileSync(resolve(out), `${JSON.stringify(result, null, 1)}
+`);
+      process.stdout.write(controlReadText(result));
+      return 0;
+    }
     default:
-      process.stderr.write("Usage: node bench/main.ts run|list|merge|check|paired|predicates. docs/BENCH.md gives the options.\n");
+      process.stderr.write("Usage: node bench/main.ts run|list|merge|check|control-read|paired|predicates. docs/BENCH.md gives the options.\n");
       return 2;
   }
 }

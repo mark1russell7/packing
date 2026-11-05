@@ -127,6 +127,14 @@ A control is a packer made to win one measure with a trick. It tests that measur
 
 The trick obeys the hard rules, and it drops no more items than its best member. Thus only the soft measures can catch it.
 
+`main.ts control-read --as-of <date> [--out file] <run dir>...` reads the controls over the records of a run, with `checkMeasures` of `@mark1russell7/rigor-bench`. The folders hold the records of the real entries and of the controls of one corpus.
+
+- The output has the pooled read and the read by the family of each input. A gate reads the pooled result. A stratum counts only where its keys reach the keys that a test needs.
+- Each read shows the keys beside `needs`, and how many real entries the control beats.
+- A measure with no control has a reason and a date. That list is the work plan of the controls.
+- A pair that a budget stopped gives a censored row. A refused pair gives no row.
+- The read only reports. No gate reads its result at this time.
+
 ## The jobs
 
 1. The job `plan` examines the inputs and makes a list of the entries with `main.ts list`.
