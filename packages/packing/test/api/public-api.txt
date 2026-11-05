@@ -935,7 +935,7 @@ type ChangeWalkParams = {
 };
 
 ### build/index.d.ts#ClassContainer
-type ClassContainer = "fixed" | "freeHeight";
+type ClassContainer = "fixed" | "freeHeight" | "freeAspect" | "freeArea";
 
 ### build/index.d.ts#ColumnBalance
 interface ColumnBalance {

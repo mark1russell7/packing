@@ -1,5 +1,6 @@
 import { createFamilyRegistry, familyKind, levelsOf } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
+import type { ClassContainer } from "./generators.ts";
 import {
   BERKEY_WANG_RULES,
   berkeyWang,
@@ -106,21 +107,35 @@ describe("the class families", () => {
     for (const [f, classes] of [[berkeyWangFamily, BW], [martelloVigoFamily, MV]] as const) {
       const [cls, size, count] = f.dimensions;
       expect(cls!.values).toEqual(classes);
-      expect(size!.values).toEqual(["fixed", "freeHeight"]);
+      expect(size!.values).toEqual(["fixed", "freeHeight", "freeAspect", "freeArea"]);
       expect(levelsOf(count!)).toEqual([20, 40, 60, 80, 100]);
       expect([count!.min, count!.max]).toEqual([1, 10_000]);
       expect(f.crossEngine).toBe("exact");
       expect(f.owner).toBe("packing");
     }
-    expect(registry.cellCount("berkey-wang", { sweep: ["class", "containerSize", "count"] })).toBe(60);
-    expect(registry.cellCount("martello-vigo", { sweep: ["class", "containerSize", "count"] })).toBe(40);
+    expect(registry.cellCount("berkey-wang", { sweep: ["class", "containerSize", "count"] })).toBe(120);
+    expect(registry.cellCount("martello-vigo", { sweep: ["class", "containerSize", "count"] })).toBe(80);
+  });
+
+  // Roadmap item k158: the container takes no random numbers, so each form has the same items.
+  it("give the same items in each container form, and the free forms have no size", () => {
+    const makers = [
+      (containerSize: ClassContainer) => toPackInput(berkeyWang.generate(3, { class: "III", containerSize, count: 20 })),
+      (containerSize: ClassContainer) => toPackInput(martelloVigo.generate(3, { class: "IX", containerSize, count: 20 })),
+    ];
+    for (const make of makers) {
+      expect(make("freeAspect").items).toEqual(make("fixed").items);
+      expect(make("freeArea").items).toEqual(make("fixed").items);
+      expect(make("freeAspect").container).toEqual({ fixed: "none", aspect: 1 });
+      expect(make("freeArea").container).toEqual({ fixed: "none", aspectWeight: 0 });
+    }
   });
 
   it("give the bytes of the generator through the registry", () => {
     const dims = { class: "V", containerSize: "fixed", count: 60 } as const;
     expect(JSON.stringify(registry.generate("berkey-wang", 5, dims))).toBe(JSON.stringify(berkeyWang.generate(5, dims)));
     expect(() => registry.generate("berkey-wang", 5, { class: "VII" })).toThrow(RangeError);
-    expect(() => registry.generate("martello-vigo", 5, { containerSize: "freeArea" })).toThrow(RangeError);
+    expect(() => registry.generate("martello-vigo", 5, { containerSize: "freeWidth" })).toThrow(RangeError);
   });
 });
 
