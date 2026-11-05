@@ -41,8 +41,10 @@ export interface KpiFacts {
   readonly pages: readonly string[];
   /** The version of the package at the build. */
   readonly release: string;
-  /** The latest release that the page of the news shows, from `data/releases.json`. */
-  readonly shownRelease: string;
+  /** The versions that the page of the news shows, from `data/releases.json`. */
+  readonly shownReleases: readonly string[];
+  /** The versions of `CHANGELOG.md`. */
+  readonly changelogReleases: readonly string[];
   /** The date of each point of the coverage trend, as YYYY-MM-DD. */
   readonly trend: readonly string[];
   /** The value `true` when the site has the page of the response explorer. */
@@ -60,9 +62,15 @@ export function staleText(pages: readonly string[], strategies: number): number 
   return pages.flatMap((text) => [...text.matchAll(/(\d+) strategies/g)]).filter((m) => Number(m[1]) !== strategies).length;
 }
 
-/** This function gives 1 when the page of the news shows another latest release than the version of the package, else 0. */
-export function staleRelease(shown: string, release: string): number {
-  return shown === release ? 0 : 1;
+/** This function gives the versions of the headings of a changelog. A heading with another text, for example the name of an older package, is not a version. */
+export function changelogVersions(changelog: string): string[] {
+  return [...changelog.matchAll(/^## (\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\s*$/gm)].map((m) => m[1]!);
+}
+
+/** This function counts the versions of the changelog and the package that the page of the news does not show. An old list and a list with a missing release both count. */
+export function staleReleases(shown: readonly string[], changelog: readonly string[], release: string): number {
+  const listed = new Set(shown);
+  return [...new Set([release, ...changelog])].filter((version) => !listed.has(version)).length;
 }
 
 /** This function gives the number of the calendar week of a day, with the week from Monday to Sunday. */
@@ -83,7 +91,7 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
   const coverageAt = facts.trend.length === 0 ? facts.coverageAt : `${[...facts.trend].sort().at(-1)!}T00:00:00Z`;
   const measures: SiteMeasure[] = [
     { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
-    { id: "stale-text", value: staleText(facts.pages, facts.strategies) + staleRelease(facts.shownRelease, facts.release), unit: "places", at: facts.commitAt },
+    { id: "stale-text", value: staleText(facts.pages, facts.strategies) + staleReleases(facts.shownReleases, facts.changelogReleases, facts.release), unit: "places", at: facts.commitAt },
     { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
     { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
     { id: "coverage-shown", value: weeklyTrend(facts.trend, now) ? 1 : 0, at: coverageAt },

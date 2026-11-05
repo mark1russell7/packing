@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { kpiInput } from "./src/kpi.ts";
+import { changelogVersions, kpiInput } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
@@ -46,7 +46,8 @@ const kpiData = () => {
     lawPairs: (JSON.parse(text("./data/law-cover.json")) as { covered: number }).covered,
     pages: [text("./index.html"), text("./content/about.md")],
     release: build.release,
-    shownRelease: (JSON.parse(text("./data/releases.json")) as { releases: readonly { release: string }[] }).releases[0]!.release,
+    shownReleases: (JSON.parse(text("./data/releases.json")) as { releases: readonly { release: string }[] }).releases.map((row) => row.release),
+    changelogReleases: changelogVersions(text("../packing/CHANGELOG.md")),
     trend: coverage.trend.map((point) => point.date),
     explorer: existsSync(page("./explorer/index.html")),
     commitAt: commitTime(),
