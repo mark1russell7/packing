@@ -136,6 +136,14 @@ The tricks obey the hard rules, and `fill-trick` drops no more items than its be
 - A pair that a budget stopped gives a censored row. A refused pair gives no row.
 - The read only reports. No gate reads its result at this time.
 
+`main.ts fill-widths --out <file> [--runs <corpus>=<run id>,...] <run dir>...` replays the width that `fill-trick` chose on each input. A record does not hold this width.
+
+- The command packs the control again on each input of each run. It stops when `pack.area` or `outputHash` differs from the record.
+- `bench/fixtures/fill-trick-widths.json` holds the replay of the runs 42074008497 (`pack-free-v1`) and 42074060697 (`pack-classes-v1`), at commit `aed4626`. All 1220 inputs agree with their records.
+- On a fixed width, the output keeps the width of the container. Thus `pack.area` does not show the tried width, and only the file shows it.
+- The test of the file packs each input again in CI. A different member, width or output fails it, so each change of the control shows.
+- On `pack-free-v1`, the control kept a tried width on 56 of 720 inputs. On `pack-classes-v1`, it kept one on 155 of 500.
+
 ## The jobs
 
 1. The job `plan` examines the inputs and makes a list of the entries with `main.ts list`.
