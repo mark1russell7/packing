@@ -115,7 +115,7 @@ Status: done, done, waiting, next, done.
 | k106 | Input families from the literature: the 2D strip packing and bin packing benchmark sets, each with dimensions and ranges | corpus | done | k73 |
 | k107 | Input families for the worst case: adversarial inputs and scaling ladders | corpus | done | k73 |
 | k108 | The survey as data: every published method is a queue idea, with a new survey and hybrids when the queue holds less than a week of build slots | audit | done | k76 |
-| k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks | site | active | k51, k105 |
+| k109 | Solved regions: an atlas of the regions of the space where a strategy is within a measured bound of a lower bound, or leads for 4 weeks. The results page reads each region by the rule of `docs/BENCH.md`. | site | done | k51, k105 |
 | k110 | Side anchors: an item fixed to a side of the container at a fraction or an offset, kept when the free size grows, with the hard rule anchor-kept. The first slice is `packSideAnchors`. The field and the rule of the contract are open. | core | active | k6, k7 |
 | k111 | Stability when an anchor moves: how far the other items move when one anchor or locked item moves (split from k44) | measure | done | k6, k7 |
 | k112 | Whole-space coverage: configs drawn at random from `packSpace` and inputs from the ranges of the generators, a held-out share within tolerance with a Wilson interval, next to the bench grid | measure | done | k68, k105 |
