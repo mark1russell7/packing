@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { changelogVersions, kpiInput, trendSegments, type SegmentedPoint } from "./src/kpi.ts";
+import { changelogVersions, kpiInput, trendLines, type SegmentedPoint } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
@@ -63,7 +63,7 @@ const kpiData = () => {
     versionAt: versionTime(),
     shownReleases,
     changelogReleases: changelogVersions(text("../packing/CHANGELOG.md")),
-    trend: trendSegments(coverage.trend).map((segment) => segment.map((point) => point.date)),
+    trend: trendLines(coverage.trend),
     ...(coverage.latest.entries === undefined ? {} : { entries: { measured: coverage.latest.entries.measured, planned: coverage.latest.entries.planned } }),
     explorer: existsSync(page("./explorer/index.html")),
     commitAt: commitTime(),

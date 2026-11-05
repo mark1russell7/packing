@@ -3,7 +3,9 @@ import { SELECT_TABLE } from "@mark1russell7/packing";
 import {
   coverageEntries,
   COVERAGE_TOP,
+  coverageMethod,
   coverageSnapshot,
+  earlierLists,
   noRowOf,
   NO_ROW_UNSTATED,
   familyOfInput,
@@ -253,6 +255,50 @@ describe("the coverage snapshot (k105)", () => {
     expect(m).toMatchObject({ id: "pack.fill", mae: 0.01, baselineMae: 0.1, share: 0.6, cells: { space: 10, withRecords: 8, covered: 6 } });
     expect(m.indices).toHaveLength(COVERAGE_TOP);
     expect(snap.trend).toEqual([{ date: "2026-10-28", run: 7, corpus: "c", commit: "abc1234", strategies: ["a", "b"], shares: { "pack.fill": 0.6 } }]);
+  });
+
+  it("records the method of the point and its shares over an earlier list", () => {
+    const over = [{ strategies: ["a"], shares: { "pack.fill": 0.5 } }];
+    const snap = coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { method: "repeats 5, warmup 2", over });
+    expect(snap.trend[0]).toMatchObject({ method: "repeats 5, warmup 2", over });
+    expect(coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { over: [] }).trend[0]).not.toHaveProperty("over");
+  });
+
+  it("names the method of a run, and a budget changes it", () => {
+    expect(coverageMethod({ repeats: 5, warmup: 2 })).toBe("repeats 5, warmup 2");
+    expect(coverageMethod({ repeats: 5, warmup: 2, budget: {} })).toBe("repeats 5, warmup 2, budget");
+    expect(coverageMethod({})).toBeUndefined();
+  });
+
+  describe("the earlier lists that a point continues", () => {
+    const m = "repeats 5, warmup 2";
+    const p = (strategies: string[] | undefined, method: string | undefined = m, corpus = "c") => ({
+      date: "2026-10-28",
+      run: 1,
+      corpus,
+      commit: "a",
+      ...(strategies === undefined ? {} : { strategies }),
+      ...(method === undefined ? {} : { method }),
+      shares: {},
+    });
+
+    it("takes a list with one entry fewer, one time", () => {
+      expect(earlierLists([p(["a"]), p(["a"])], "c", m, ["a", "b"])).toEqual([["a"]]);
+    });
+
+    it("does not take another method, another corpus, or a point with no method", () => {
+      expect(earlierLists([p(["a"])], "c", `${m}, budget`, ["a", "b"])).toEqual([]);
+      expect(earlierLists([p(["a"], m, "other")], "c", m, ["a", "b"])).toEqual([]);
+      const old = { date: "2026-10-28", run: 1, corpus: "c", commit: "a", strategies: ["a"], shares: {} };
+      expect(earlierLists([old], "c", m, ["a", "b"])).toEqual([]);
+      expect(earlierLists([p(["a"])], "c", undefined, ["a", "b"])).toEqual([]);
+    });
+
+    it("does not take the same list, a list with an entry that the point lost, or a point with no list", () => {
+      expect(earlierLists([p(["a", "b"])], "c", m, ["a", "b"])).toEqual([]);
+      expect(earlierLists([p(["a", "c"])], "c", m, ["a", "b", "d"])).toEqual([]);
+      expect(earlierLists([p(undefined)], "c", m, ["a", "b"])).toEqual([]);
+    });
   });
 
   it("adds a point to the trend, and replaces the point of the same run", () => {

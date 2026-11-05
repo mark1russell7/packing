@@ -1463,6 +1463,9 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
 
+- A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
+- A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method, and that share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
+- An entry that loses its row breaks the line of a list that has it, because the earlier run has no share without that entry in the file.
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
 - The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.

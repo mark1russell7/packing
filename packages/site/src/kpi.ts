@@ -50,7 +50,7 @@ export interface KpiFacts {
   /** The versions of `CHANGELOG.md`. */
   readonly changelogReleases: readonly string[];
   /** The dates of each segment of the coverage trend, as YYYY-MM-DD. */
-  readonly trend: readonly (readonly string[])[];
+  readonly trend: readonly TrendLine[];
   /** The entries of the bench with a measured record in the last coverage run, and all the entries. An older coverage file does not give them. */
   readonly entries?: { readonly measured: number; readonly planned: number };
   /** The value `true` when the site has the page of the response explorer. */
@@ -101,17 +101,49 @@ export interface SegmentedPoint {
   readonly run: number | null;
   readonly corpus: string;
   readonly strategies?: readonly string[];
+  readonly method?: string;
+  /** The shares of this point over each earlier list that it contains, with one method. */
+  readonly over?: readonly { readonly strategies: readonly string[]; readonly shares: Readonly<Record<string, number>> }[];
 }
 
-/** This function gives the segment of a point: one corpus with one list of strategies. A point with no list is a segment alone, because its list is not known. */
-export const segmentOf = (p: SegmentedPoint): string => (p.strategies === undefined ? `${p.corpus}|${p.date}|${String(p.run)}` : `${p.corpus}|${[...p.strategies].sort().join(",")}`);
+/**
+ * This function gives the segment of a point: one corpus, one method and one list of strategies.
+ * A point with no list is a segment alone, because its list is not known.
+ */
+export const segmentOf = (p: SegmentedPoint): string =>
+  p.strategies === undefined ? `${p.corpus}|${p.date}|${String(p.run)}` : `${p.corpus}|${p.method ?? ""}|${[...p.strategies].sort().join(",")}`;
 
-/** This function gives the points of each segment of a trend, in the order of the trend. */
+/**
+ * This function gives the points of each segment of a trend, in the order of the trend.
+ * A newly measured entry does not restart a line. The later point has its shares over the earlier list, and a copy of the point with these shares
+ * continues the line of that list, with `commonOf` as the count of the strategies of the point. The new entry starts its own line.
+ * A change of the method breaks a line.
+ */
 export function trendSegments<P extends SegmentedPoint>(trend: readonly P[]): P[][] {
   const out = new Map<string, P[]>();
-  for (const p of trend) out.set(segmentOf(p), [...(out.get(segmentOf(p)) ?? []), p]);
+  for (const p of trend) {
+    out.set(segmentOf(p), [...(out.get(segmentOf(p)) ?? []), p]);
+    for (const o of p.over ?? []) {
+      const copy = { ...p, strategies: o.strategies, shares: o.shares, commonOf: p.strategies?.length } as P;
+      const points = out.get(segmentOf(copy));
+      if (points !== undefined) out.set(segmentOf(copy), [...points, copy]);
+    }
+  }
   return [...out.values()];
 }
+
+/** One line of the coverage trend for the measures: its dates and its count of strategies, when the points have a list. */
+export interface TrendLine {
+  readonly dates: readonly string[];
+  readonly strategies?: number;
+}
+
+/** This function gives the lines of a trend for the measures. */
+export const trendLines = (trend: readonly SegmentedPoint[]): TrendLine[] =>
+  trendSegments(trend).map((segment) => ({
+    dates: segment.map((p) => p.date),
+    ...(segment[0]!.strategies === undefined ? {} : { strategies: segment[0]!.strategies.length }),
+  }));
 
 /** This function tells if the trend is weekly. A weekly trend has points in two calendar weeks or more, and its last point is 7 days old or less. */
 export function weeklyTrend(dates: readonly string[], now: number): boolean {
@@ -125,7 +157,8 @@ export function weeklyTrend(dates: readonly string[], now: number): boolean {
  * build. The measures of the registry and the pages have the time of the commit. Only the test of a weekly trend and the age of a version in flight read the time `now`.
  */
 export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
-  const dates = facts.trend.flat();
+  const dates = facts.trend.flatMap((line) => line.dates);
+  const weekly = facts.trend.filter((line) => weeklyTrend(line.dates, now)).sort((a, b) => (b.strategies ?? 0) - (a.strategies ?? 0))[0];
   const coverageAt = dates.length === 0 ? facts.coverageAt : `${[...dates].sort().at(-1)!}T00:00:00Z`;
   const releases = releaseReading(facts, now);
   const measures: SiteMeasure[] = [
@@ -134,8 +167,13 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
     { id: "release-in-flight", value: releases.inFlight === undefined ? 0 : 1, unit: releases.inFlight === undefined ? "versions" : `version ${releases.inFlight}`, at: facts.commitAt },
     { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
     { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
-    // A trend counts only inside one segment: a change of the corpus or of the strategies starts a new line.
-    { id: "coverage-shown", value: facts.trend.some((segment) => weeklyTrend(segment, now)) ? 1 : 0, at: coverageAt },
+    // A trend counts only inside one line. The text tells which line gives the 1, because the count of points on one list is the claim.
+    {
+      id: "coverage-shown",
+      value: weekly === undefined ? 0 : 1,
+      ...(weekly?.strategies === undefined ? {} : { unit: `${weekly.dates.length} points on the same ${weekly.strategies}` }),
+      at: coverageAt,
+    },
     ...(facts.entries === undefined ? [] : [{ id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries`, at: coverageAt }]),
     { id: "explorer-live", value: facts.explorer ? 1 : 0, at: facts.commitAt },
   ];

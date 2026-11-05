@@ -622,6 +622,24 @@ describe("the space coverage of k105", () => {
       expect(series.points.map((p) => p.current)).toEqual([false, false, false, true]);
     });
 
+    it("continues a line over the common strategies, and states the count", () => {
+      const m = "repeats 5, warmup 2";
+      const first = { ...point("2026-11-02", later, ["a"], 0.5), method: m };
+      const second = { ...point("2026-11-09", later + 1, ["a", "b"], 0.3), method: m, over: [{ strategies: ["a"], shares: { f: 0.6 } }] };
+      const series = trendChart([first, second], ["f"], 100, 50, 10).series[0]!;
+      expect(series.lines.map((l) => [l.points.map((p) => p.share), l.current])).toEqual([
+        [[0.5, 0.6], false],
+        [[0.3], true],
+      ]);
+      expect(series.points.map((p) => [p.share, p.current])).toEqual([
+        [0.5, false],
+        [0.3, true],
+        [0.6, false],
+      ]);
+      expect(series.points[2]!.date).toBe("2026-11-09 (1 common of 2)");
+      expect(trendNote([first, second])).toContain(`<code>c</code> on 1 strategies (${m}): 2026-11-02, 2026-11-09 (1 common of 2)`);
+    });
+
     it("names each line", () => {
       const note = trendNote(trend);
       expect(note).toContain("<code>c</code> on a list that the point does not record: 2026-10-28");

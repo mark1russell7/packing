@@ -497,6 +497,9 @@ export interface TrendChart {
 /** The day count of a date `YYYY-MM-DD` since 1970-01-01 */
 const dayOf = (date: string): number => Date.parse(`${date}T00:00:00Z`) / 86_400_000;
 
+/** This function gives the count of a point that continues the line of an earlier list, for example ` (54 common of 55)`. */
+const commonText = (p: CoveragePoint): string => (p.commonOf === undefined ? "" : ` (${p.strategies?.length ?? 0} common of ${p.commonOf})`);
+
 /**
  * This function gives the geometry of the trend chart in a box of `width` by `height`, with a margin `pad` on each side.
  * The x axis is the date, and the y axis is the share from 0 at the bottom to 1 at the top. One date goes to the middle.
@@ -509,27 +512,28 @@ export function trendChart(trend: readonly CoveragePoint[], measures: readonly s
   const y = (share: number): number => height - pad - Math.max(0, Math.min(1, share)) * (height - 2 * pad);
   const last = trend.at(-1);
   const current = (p: CoveragePoint): boolean => last !== undefined && segmentOf(p) === segmentOf(last);
-  const at = (p: CoveragePoint, id: string): TrendPoint[] => (p.shares[id] === undefined ? [] : [{ x: x(p.date), y: y(p.shares[id]), date: p.date, share: p.shares[id] }]);
+  const at = (p: CoveragePoint, id: string): TrendPoint[] => (p.shares[id] === undefined ? [] : [{ x: x(p.date), y: y(p.shares[id]), date: p.date + commonText(p), share: p.shares[id] }]);
   const series = measures.map((id) => ({
     id,
-    points: trend.flatMap((p) => at(p, id).map((point) => ({ ...point, current: current(p) }))),
+    points: [...trend, ...trendSegments(trend).flat().filter((p) => p.commonOf !== undefined)].flatMap((p) => at(p, id).map((point) => ({ ...point, current: current(p) }))),
     lines: trendSegments(trend).map((segment) => ({ points: segment.flatMap((p) => at(p, id)), current: current(segment[0]!) })),
   }));
   const dates = [...new Set(trend.map((p) => p.date))];
   return { series, ticks: dates.map((date) => ({ x: x(date), date })) };
 }
 
-/** This function gives the words of a segment of the trend: its corpus, its count of strategies and its dates. */
+/** This function gives the words of a segment of the trend: its corpus, its count of strategies, its method and its dates. */
 const segmentText = (segment: readonly CoveragePoint[]): string => {
   const first = segment[0]!;
   const count = first.strategies === undefined ? "a list that the point does not record" : `${first.strategies.length} strategies`;
-  return `<li><code>${esc(first.corpus)}</code> on ${count}: ${segment.map((p) => esc(p.date)).join(", ")}</li>`;
+  const method = first.method === undefined ? "" : ` (${esc(first.method)})`;
+  return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p))).join(", ")}</li>`;
 };
 
 /** This function gives the HTML of the note of the trend. The note tells why the lines are separate, and if a point has an older `pack.gap`. */
 export function trendNote(trend: readonly CoveragePoint[]): string {
   const older = oldGapNote(trend.map((p) => p.run));
-  return `<p class="hint">A line joins only points with one corpus and one list of strategies, because a change of either changes the share. The trend has these lines:</p><ul class="hint">${trendSegments(trend).map(segmentText).join("")}</ul>${older === "" ? "" : `<p class="hint">${older}</p>`}`;
+  return `<p class="hint">A line joins only points with one corpus and one method. A later point with a new strategy continues the line over the strategies common to both points, and the new strategy starts its own line. The trend has these lines:</p><ul class="hint">${trendSegments(trend).map(segmentText).join("")}</ul>${older === "" ? "" : `<p class="hint">${older}</p>`}`;
 }
 
 /** This function gives the HTML of the count of the entries with a measured record, with the reason of each other entry. */

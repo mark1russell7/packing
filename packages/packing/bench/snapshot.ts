@@ -912,6 +912,12 @@ export interface CoverageSnapshotSampled {
   priorBeside?: { kind?: PriorKind; share: number | null; nEff: number };
 }
 
+/** The shares of the records of one run over an earlier list of strategies */
+export interface CoverageOver {
+  strategies: string[];
+  shares: Record<string, number>;
+}
+
 /** One point of the trend of the coverage: the share of each measure on one date */
 export interface CoveragePoint {
   date: string;
@@ -920,13 +926,39 @@ export interface CoveragePoint {
   commit: string;
   /**
    * The strategies of the point, sorted. A point of a run before this field has no list.
-   * The trend joins two points only with the same corpus and the same list.
+   * A point joins the line of its own list, with one corpus and one method.
    */
   strategies?: string[];
+  /** The method of the run, from `coverageMethod`. A point of a run before this field has no method, so it joins no other point. */
+  method?: string;
+  /** The shares of this point over each earlier list that it contains, with one method. Each one continues the line of that list. */
+  over?: CoverageOver[];
   /** The share of each measure, with the folds of the summary */
   shares: Record<string, number>;
   /** The share of each measure with the folds by input, when the snapshot has them */
   sharesByInput?: Record<string, number>;
+}
+
+/**
+ * This function gives the method of a run: its timed runs, its warm-up runs and its wall budget.
+ * A run with a budget has 1 timed run for a slow pair and no row for a pair over its budget, so it does not join a run without a budget.
+ */
+export const coverageMethod = (run: { readonly repeats?: number; readonly warmup?: number; readonly budget?: unknown }): string | undefined =>
+  run.repeats === undefined || run.warmup === undefined ? undefined : `repeats ${run.repeats}, warmup ${run.warmup}${run.budget === undefined ? "" : ", budget"}`;
+
+/**
+ * This function gives each earlier list of the trend that a new point continues: one corpus, one method, and each strategy of the list in the new list.
+ * A list with a strategy that the new point does not have gives nothing, because the earlier point has no share without that strategy.
+ */
+export function earlierLists(trend: readonly CoveragePoint[], corpus: string, method: string | undefined, strategies: readonly string[]): string[][] {
+  if (method === undefined) return [];
+  const current = new Set(strategies);
+  const lists = new Map<string, string[]>();
+  for (const p of trend) {
+    if (p.corpus !== corpus || p.method !== method || p.strategies === undefined) continue;
+    if (p.strategies.length < current.size && p.strategies.every((s) => current.has(s))) lists.set(p.strategies.join(","), p.strategies);
+  }
+  return [...lists.values()];
 }
 
 /** One entry of the bench with no measured record in a run, with each reason and its count of records. A reason with no row counts 0 records. */
@@ -1081,7 +1113,14 @@ const strataOf = (m: StrataMeasure): CoverageSnapshotStrata => ({
  *
  * A uniform sample of the summary gives `uniform`. Another summary keeps the `uniform` of the earlier snapshot.
  */
-export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary, entries?: CoverageEntries): CoverageSnapshot {
+export function coverageSnapshot(
+  summary: CoverageSummary,
+  origin: SnapshotOrigin,
+  earlier?: CoverageSnapshot,
+  byInput?: CoverageSummary,
+  entries?: CoverageEntries,
+  line?: { readonly method?: string; readonly over?: readonly CoverageOver[] },
+): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
   const strata = new Map((summary.strata?.measures ?? []).map((m) => [m.id, m]));
@@ -1091,6 +1130,8 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
     corpus: summary.corpus,
     commit: origin.commit,
     strategies: [...summary.strategies].sort(),
+    ...(line?.method === undefined ? {} : { method: line.method }),
+    ...(line?.over === undefined || line.over.length === 0 ? {} : { over: [...line.over] }),
     shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
     ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
   };
@@ -1362,7 +1403,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const options = coverageOptions(argv);
     if (options.run === undefined || options.date === undefined) throw new Error("The snapshot coverage needs --run <id> and --date YYYY-MM-DD.");
     const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
-    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string };
+    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string; repeats?: number; warmup?: number; budget?: unknown };
     const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as CoverageManifest;
     const origin = originOf(run.commit, options.run, `bench.yml, the artifact bench-${run.corpus}, and bench/coverage.ts`, optionOf(argv, "--release"), options.date);
     const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
@@ -1384,7 +1425,14 @@ export function snapshotMain(argv: readonly string[]): void {
       ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
     const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")));
-    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries));
+    // A new entry does not restart a line: the same fit over an earlier list gives the next point of that line.
+    const method = coverageMethod(run);
+    const over = earlierLists(earlier?.trend ?? [], run.corpus, method, grid.strategies).map((list) => {
+      const kept = new Set(list);
+      const fit = coverage(records.filter((r) => kept.has(r.strategy)), manifest, { ...options, by: "spec" });
+      return { strategies: list, shares: Object.fromEntries(fit.measures.map((m) => [m.id, m.share])) };
+    });
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over }));
     return;
   }
   if (kind === "paired" && folder !== undefined) {

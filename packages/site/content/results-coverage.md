@@ -9,7 +9,7 @@ How much of the space of strategies and inputs can we predict? A model learns ea
 - The mean error shows the outliers. The median error shows a usual record.
 - A cell is one strategy with one value of each dimension of a family. A cell is covered when its mean error is at the tolerance or below.
 - The share is the covered cells over all the cells of the space. A cell without records is not covered.
-- A new list of strategies changes the cells of the space. Thus a line of the trend joins only points with one corpus and one list.
+- A new list of strategies changes the cells of the space. Thus a line of the trend reads only the strategies of its own list, with one corpus and one method. A later point with a new strategy continues the line over the common strategies, and the page states that count.
 - The run 41949891960 and the run 40805165103 have the same output on each of the 14,500 pairs of the 29 earlier strategies. The later list has more strategies, and those 29 did not change.
 - The number "bench grid" is that share. The number "whole space (sampled)" is the share of random pairs of a config and an input that the model predicts within the tolerance.
 - Most random configs are portfolios with 5 members. Thus the pairs also go into strata: a strategy family with one count of members.

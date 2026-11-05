@@ -371,6 +371,12 @@ export interface CoveragePoint {
   commit: string;
   /** The strategies of the point, sorted. A point of a run before this field has no list. */
   strategies?: string[];
+  /** The method of the run. A point of a run before this field has no method. */
+  method?: string;
+  /** The shares of this point over each earlier list that it contains, with one method. */
+  over?: { strategies: string[]; shares: Record<string, number> }[];
+  /** The count of strategies of the point, when this copy of it continues the line of an earlier list. */
+  commonOf?: number;
   shares: Record<string, number>;
   sharesByInput?: Record<string, number>;
 }
