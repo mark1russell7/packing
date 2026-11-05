@@ -3,14 +3,86 @@
  "kind": "releases",
  "origin": [
   {
-   "release": "0.2.17",
-   "commit": "3a73155",
-   "date": "2026-10-28",
+   "release": "0.8.0",
+   "commit": "5f65f75",
+   "date": "2026-11-04",
    "run": null,
    "source": "packages/packing/CHANGELOG.md and the release tags"
   }
  ],
  "releases": [
+  {
+   "release": "0.8.0",
+   "date": "2026-11-04",
+   "title": "This release raises the MINOR version.",
+   "breaking": false,
+   "commit": "5f65f75",
+   "pr": 333,
+   "link": "https://github.com/mark1russell7/packing/pull/333"
+  },
+  {
+   "release": "0.7.0",
+   "date": "2026-11-04",
+   "title": "This release raises the MINOR version.",
+   "breaking": false,
+   "commit": "ae6c64a",
+   "pr": 321,
+   "link": "https://github.com/mark1russell7/packing/pull/321"
+  },
+  {
+   "release": "0.6.1",
+   "date": "2026-11-04",
+   "title": "This release raises the PATCH version: it adds exports and changes no default output.",
+   "breaking": false,
+   "commit": "cbaf62d",
+   "pr": 313,
+   "link": "https://github.com/mark1russell7/packing/pull/313"
+  },
+  {
+   "release": "0.6.0",
+   "date": "2026-11-04",
+   "title": "This release raises the MINOR version.",
+   "breaking": false,
+   "commit": "9ae5e62",
+   "pr": 305,
+   "link": "https://github.com/mark1russell7/packing/pull/305"
+  },
+  {
+   "release": "0.5.0",
+   "date": "2026-11-02",
+   "title": "This release raises the MINOR version.",
+   "breaking": true,
+   "commit": "a8dd473",
+   "pr": 253,
+   "link": "https://github.com/mark1russell7/packing/pull/253"
+  },
+  {
+   "release": "0.4.1",
+   "date": "2026-10-29",
+   "title": "The composite strategy `relax` (roadmap item k124, catalog row `overlap-vpsc`).",
+   "breaking": false,
+   "commit": "fcbc697",
+   "pr": 184,
+   "link": "https://github.com/mark1russell7/packing/pull/184"
+  },
+  {
+   "release": "0.4.0",
+   "date": "2026-10-29",
+   "title": "The balance and the stability by alignment, roadmap item k123.",
+   "breaking": true,
+   "commit": "0edbe6e",
+   "pr": 169,
+   "link": "https://github.com/mark1russell7/packing/pull/169"
+  },
+  {
+   "release": "0.3.0",
+   "date": "2026-10-29",
+   "title": "The default `pack()` reads the table of `select` for a fixed size (step A of roadmap item k58), with the strategies, measures and input families since 0.2.17.",
+   "breaking": true,
+   "commit": "fdea902",
+   "pr": 167,
+   "link": "https://github.com/mark1russell7/packing/pull/167"
+  },
   {
    "release": "0.2.17",
    "date": "2026-10-28",

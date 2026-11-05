@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { kpiInput } from "./src/kpi.ts";
+import { changelogVersions, kpiInput } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
@@ -21,9 +21,15 @@ const git = (...args: string[]): string => {
   }
 };
 
-// The release, the commit and the date of the build. The footer of each page shows them.
+/** The version of the package. It is a release only when it has a tag. */
+const packageVersion = (JSON.parse(readFileSync(page("../packing/package.json"), "utf8")) as { version: string }).version;
+
+/** The versions that the news shows, the newest first. Each one has a tag. */
+const shownReleases = (JSON.parse(readFileSync(page("./data/releases.json"), "utf8")) as { releases: readonly { release: string }[] }).releases.map((row) => row.release);
+
+// The last release with a tag, the commit and the date of the build. The footer of each page shows them.
 const build = {
-  release: (JSON.parse(readFileSync(page("../packing/package.json"), "utf8")) as { version: string }).version,
+  release: shownReleases[0]!,
   commit: git("rev-parse", "--short=7", "HEAD"),
   date: git("log", "-1", "--format=%cs"),
 };
@@ -32,6 +38,13 @@ const build = {
 const commitTime = (...path: string[]): string => {
   const time = Date.parse(git("log", "-1", "--format=%cI", "HEAD", "--", ...path));
   if (Number.isNaN(time)) throw new Error(`No commit time for ${path.join(" ") || "HEAD"}.`);
+  return new Date(time).toISOString().replace(/\.\d+Z$/, "Z");
+};
+
+/** This function gives the time of the commit that set the version of the package, in UTC. */
+const versionTime = (): string => {
+  const time = Date.parse(git("log", "-1", "--format=%cI", "-G^\\s*\"version\":", "HEAD", "--", page("../packing/package.json")));
+  if (Number.isNaN(time)) throw new Error("No commit sets the version of the package.");
   return new Date(time).toISOString().replace(/\.\d+Z$/, "Z");
 };
 
@@ -45,6 +58,11 @@ const kpiData = () => {
     families: corpusFamilies.length,
     lawPairs: (JSON.parse(text("./data/law-cover.json")) as { covered: number }).covered,
     pages: [text("./index.html"), text("./content/about.md")],
+    release: packageVersion,
+    tags: git("tag", "--list", "v*").split("\n").map((tag) => tag.slice(1)),
+    versionAt: versionTime(),
+    shownReleases,
+    changelogReleases: changelogVersions(text("../packing/CHANGELOG.md")),
     trend: coverage.trend.map((point) => point.date),
     explorer: existsSync(page("./explorer/index.html")),
     commitAt: commitTime(),

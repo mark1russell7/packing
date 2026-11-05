@@ -106,7 +106,6 @@ jobs:
               } | tee -a "$GITHUB_STEP_SUMMARY"
             fi
           fi
-          node bench/snapshot.ts releases
       # Only the check of the form and the size of each file: the other tests of the file pin the data of main.
       - name: Check the form and the size of the files
         run: pnpm --filter @packing/site exec vitest run src/pages.test.ts -t "is a small snapshot"
@@ -119,7 +118,7 @@ jobs:
           out="$RUNNER_TEMP/out"
           mkdir -p "$out"
           cd packages/site/data
-          cp strategies-*.json gaps-*.json coverage.json select-table.json releases.json "$out"
+          cp strategies-*.json gaps-*.json coverage.json select-table.json "$out"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-data
