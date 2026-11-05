@@ -49,8 +49,10 @@ export interface KpiFacts {
   readonly shownReleases: readonly string[];
   /** The versions of `CHANGELOG.md`. */
   readonly changelogReleases: readonly string[];
-  /** The date of each point of the coverage trend, as YYYY-MM-DD. */
-  readonly trend: readonly string[];
+  /** The dates of each segment of the coverage trend, as YYYY-MM-DD. */
+  readonly trend: readonly (readonly string[])[];
+  /** The entries of the bench with a measured record in the last coverage run, and all the entries. An older coverage file does not give them. */
+  readonly entries?: { readonly measured: number; readonly planned: number };
   /** The value `true` when the site has the page of the response explorer. */
   readonly explorer: boolean;
   /** The time of the commit of the build, in UTC. */
@@ -93,6 +95,24 @@ export function releaseReading(facts: Pick<KpiFacts, "release" | "tags" | "versi
 /** This function gives the number of the calendar week of a day, with the week from Monday to Sunday. */
 const weekOf = (day: number): number => Math.floor((day + 3 * DAY_MS) / (7 * DAY_MS));
 
+/** The parts of a point of the coverage trend that give its segment. */
+export interface SegmentedPoint {
+  readonly date: string;
+  readonly run: number | null;
+  readonly corpus: string;
+  readonly strategies?: readonly string[];
+}
+
+/** This function gives the segment of a point: one corpus with one list of strategies. A point with no list is a segment alone, because its list is not known. */
+export const segmentOf = (p: SegmentedPoint): string => (p.strategies === undefined ? `${p.corpus}|${p.date}|${String(p.run)}` : `${p.corpus}|${[...p.strategies].sort().join(",")}`);
+
+/** This function gives the points of each segment of a trend, in the order of the trend. */
+export function trendSegments<P extends SegmentedPoint>(trend: readonly P[]): P[][] {
+  const out = new Map<string, P[]>();
+  for (const p of trend) out.set(segmentOf(p), [...(out.get(segmentOf(p)) ?? []), p]);
+  return [...out.values()];
+}
+
 /** This function tells if the trend is weekly. A weekly trend has points in two calendar weeks or more, and its last point is 7 days old or less. */
 export function weeklyTrend(dates: readonly string[], now: number): boolean {
   const days = dates.map((date) => Date.parse(`${date}T00:00:00Z`));
@@ -105,7 +125,8 @@ export function weeklyTrend(dates: readonly string[], now: number): boolean {
  * build. The measures of the registry and the pages have the time of the commit. Only the test of a weekly trend and the age of a version in flight read the time `now`.
  */
 export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
-  const coverageAt = facts.trend.length === 0 ? facts.coverageAt : `${[...facts.trend].sort().at(-1)!}T00:00:00Z`;
+  const dates = facts.trend.flat();
+  const coverageAt = dates.length === 0 ? facts.coverageAt : `${[...dates].sort().at(-1)!}T00:00:00Z`;
   const releases = releaseReading(facts, now);
   const measures: SiteMeasure[] = [
     { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
@@ -113,7 +134,9 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
     { id: "release-in-flight", value: releases.inFlight === undefined ? 0 : 1, unit: releases.inFlight === undefined ? "versions" : `version ${releases.inFlight}`, at: facts.commitAt },
     { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
     { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
-    { id: "coverage-shown", value: weeklyTrend(facts.trend, now) ? 1 : 0, at: coverageAt },
+    // A trend counts only inside one segment: a change of the corpus or of the strategies starts a new line.
+    { id: "coverage-shown", value: facts.trend.some((segment) => weeklyTrend(segment, now)) ? 1 : 0, at: coverageAt },
+    ...(facts.entries === undefined ? [] : [{ id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries`, at: coverageAt }]),
     { id: "explorer-live", value: facts.explorer ? 1 : 0, at: facts.commitAt },
   ];
   return { project: KPI_PROJECT, at: measures.map((m) => m.at).sort()[0]!, measures };

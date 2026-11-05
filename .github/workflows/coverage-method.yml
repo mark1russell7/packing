@@ -1,0 +1,70 @@
+# Reads if bench/coverage.ts of this commit gives again each share of a published point of the coverage trend, from the records of its run.
+# It needs no slot and no machine of a person: one fit by spec on one artifact. It compares only the shares that the point has.
+name: Coverage method
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/coverage-method.yml"
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "The bench run of the point in packages/site/data/coverage.json."
+        type: string
+        default: "40805165103"
+
+permissions: {}
+
+concurrency:
+  group: coverage-method-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # gh run download reads the artifact of the run.
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Fit the records of the run, and compare the shares
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ inputs.run || '40805165103' }}
+          # The artifact of a coverage run has this name.
+          ARTIFACT: bench-pack-classes-v1
+        run: |
+          [[ "$RUN" =~ ^[0-9]+$ ]] || { echo "the run must be a number, not '$RUN'"; exit 1; }
+          folder="$RUNNER_TEMP/run"
+          gh run download "$RUN" -R "$GITHUB_REPOSITORY" -n "$ARTIFACT" -D "$folder"
+          cd packages/packing
+          node --no-warnings bench/coverage.ts --records "$folder/records.jsonl" --corpus "$folder/corpus.json" --out "$RUNNER_TEMP/summary.json" --run "$RUN" --date 2000-01-01 --by spec
+          node --no-warnings -e '
+            const { readFileSync } = require("node:fs");
+            const [summaryFile, trendFile, run] = process.argv.slice(1);
+            const summary = JSON.parse(readFileSync(summaryFile, "utf8"));
+            const point = JSON.parse(readFileSync(trendFile, "utf8")).trend.find((p) => p.run === Number(run));
+            if (point === undefined) throw new Error(`The trend has no point of the run ${run}.`);
+            const shares = new Map(summary.measures.map((m) => [m.id, m.share]));
+            let differs = 0;
+            for (const [id, published] of Object.entries(point.shares)) {
+              const computed = shares.get(id);
+              console.log(`${id}: published ${published}, computed ${computed}`);
+              if (computed !== published) differs += 1;
+            }
+            process.exit(differs === 0 ? 0 : 1);
+          ' "$RUNNER_TEMP/summary.json" "$GITHUB_WORKSPACE/packages/site/data/coverage.json" "$RUN"

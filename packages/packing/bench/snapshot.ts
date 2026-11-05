@@ -47,6 +47,7 @@ import {
   type StrataMeasure,
 } from "./coverage.ts";
 import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
+import { ENTRIES } from "./entries.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 import type { PriorKind } from "./prior.ts";
 
@@ -916,10 +917,28 @@ export interface CoveragePoint {
   run: number | null;
   corpus: string;
   commit: string;
+  /**
+   * The strategies of the point, sorted. A point of a run before this field has no list.
+   * The trend joins two points only with the same corpus and the same list.
+   */
+  strategies?: string[];
   /** The share of each measure, with the folds of the summary */
   shares: Record<string, number>;
   /** The share of each measure with the folds by input, when the snapshot has them */
   sharesByInput?: Record<string, number>;
+}
+
+/** One entry of the bench with no measured record in a run, with each reason and its count of records. A reason with no row counts 0 records. */
+export interface CoverageOtherEntry {
+  entry: string;
+  reasons: { because: string; records: number }[];
+}
+
+/** The entries of the bench against the entries with a measured record in the run. */
+export interface CoverageEntries {
+  planned: number;
+  measured: number;
+  others: CoverageOtherEntry[];
 }
 
 /** The snapshot of the space coverage: the last summary and the trend of the shares */
@@ -934,6 +953,8 @@ export interface CoverageSnapshot {
     records: number;
     inputs: number;
     strategies: string[];
+    /** The entries of the bench with and without a measured record, when the snapshot has them */
+    entries?: CoverageEntries;
     model: CoverageSummary["model"];
     measures: CoverageSnapshotMeasure[];
     /**
@@ -1059,7 +1080,7 @@ const strataOf = (m: StrataMeasure): CoverageSnapshotStrata => ({
  *
  * A uniform sample of the summary gives `uniform`. Another summary keeps the `uniform` of the earlier snapshot.
  */
-export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary): CoverageSnapshot {
+export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary, entries?: CoverageEntries): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
   const strata = new Map((summary.strata?.measures ?? []).map((m) => [m.id, m]));
@@ -1068,6 +1089,7 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
     run: summary.run,
     corpus: summary.corpus,
     commit: origin.commit,
+    strategies: [...summary.strategies].sort(),
     shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
     ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
   };
@@ -1100,6 +1122,7 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
       records: summary.records,
       inputs: summary.inputs,
       strategies: [...summary.strategies],
+      ...(entries === undefined ? {} : { entries }),
       model: summary.model,
       measures: summary.measures.map((m) => ({
         id: m.id,
@@ -1208,6 +1231,53 @@ function originOf(commit: string, run: number | null, source: string, release?: 
   return { release: found, commit: git("rev-parse", "--short=7", commit), date: date ?? git("show", "-s", "--format=%cs", commit), run, source };
 }
 
+/** This function reads the option `--no-row`: pairs of an entry and its reason, as `entry=reason`, with `;` between the pairs. */
+export function noRowOf(text: string | undefined): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const pair of (text ?? "").split(";").map((p) => p.trim()).filter((p) => p !== "")) {
+    const at = pair.indexOf("=");
+    if (at <= 0 || at === pair.length - 1) throw new Error(`Each part of --no-row must be entry=reason, not '${pair}'.`);
+    out.set(pair.slice(0, at), pair.slice(at + 1));
+  }
+  return out;
+}
+
+/** The reason of an entry with no row, when the command line does not state one */
+export const NO_ROW_UNSTATED = "the run has no record of this entry";
+
+/**
+ * This function counts the planned entries with a measured record, and gives the reasons of the other entries.
+ * It throws an `Error` when `noRow` names an entry with a record or an entry that is not planned. Thus a stale reason does not reach the page.
+ */
+export function coverageEntries(records: readonly CoverageRecord[], planned: readonly string[], noRow: ReadonlyMap<string, string> = new Map()): CoverageEntries {
+  const measured = new Set(records.filter((r) => r.skipped === undefined).map((r) => r.strategy));
+  const skipped = new Map<string, Map<string, number>>();
+  for (const r of records) {
+    if (r.skipped === undefined) continue;
+    const reasons = skipped.get(r.strategy) ?? new Map<string, number>();
+    reasons.set(r.skipped, (reasons.get(r.skipped) ?? 0) + 1);
+    skipped.set(r.strategy, reasons);
+  }
+  for (const entry of noRow.keys()) {
+    if (!planned.includes(entry)) throw new Error(`--no-row names ${entry}, which is not an entry of the bench.`);
+    if (measured.has(entry) || skipped.has(entry)) throw new Error(`--no-row names ${entry}, which has records in this run.`);
+  }
+  const others = [...planned]
+    .filter((entry) => !measured.has(entry))
+    .sort()
+    .map((entry): CoverageOtherEntry => {
+      const reasons = skipped.get(entry);
+      return {
+        entry,
+        reasons:
+          reasons === undefined
+            ? [{ because: `no row: ${noRow.get(entry) ?? NO_ROW_UNSTATED}`, records: 0 }]
+            : [...reasons].sort((a, b) => a[0].localeCompare(b[0])).map(([because, count]) => ({ because, records: count })),
+      };
+    });
+  return { planned: planned.length, measured: planned.length - others.length, others };
+}
+
 /** This function keeps the records of the named strategies. It throws for a name without a record, so a misspelled name does not empty a table. */
 export function recordsOfStrategies<R extends { strategy: string }>(records: readonly R[], names: readonly string[] | undefined): readonly R[] {
   if (names === undefined) return records;
@@ -1312,7 +1382,8 @@ export function snapshotMain(argv: readonly string[]): void {
       // k119, k122: the basis of the family prior, the same weight for each family by default
       ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
-    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput));
+    const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")));
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries));
     return;
   }
   if (kind === "paired" && folder !== undefined) {
