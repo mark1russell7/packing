@@ -18,6 +18,19 @@ This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and a
 ### Not changed
 
 - The outputs of each strategy do not change.
+## 0.9.1
+
+The class generators make 2 more container forms. Old params give the same bytes.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The generators `berkeyWang` and `martelloVigo` accept the values `freeAspect` and `freeArea` of `containerSize`. The type `ClassContainer` has these values.
+
+### Not changed
+
+- Each input of the values `fixed` and `freeHeight` has the same bytes. A test pins them.
 
 ## 0.9.0
 

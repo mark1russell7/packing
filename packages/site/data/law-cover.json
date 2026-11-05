@@ -2,8 +2,8 @@
   "schema": "packing-law-cover/1",
   "covered": 31,
   "pairs": 87,
-  "specs": 544,
-  "refused": 321,
+  "specs": 624,
+  "refused": 361,
   "floor": 200,
   "cells": [
     {
@@ -19,7 +19,7 @@
       "area": "bimodal",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 26,
+      "specs": 30,
       "generators": [
         "martello-vigo",
         "skyline-gap",
@@ -39,7 +39,7 @@
       "area": "exponential",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 84,
+      "specs": 156,
       "generators": [
         "berkey-wang",
         "ladder",
@@ -145,7 +145,7 @@
       "area": "uniform",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 14,
+      "specs": 18,
       "generators": [
         "cards",
         "martello-vigo",

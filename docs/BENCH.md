@@ -340,8 +340,9 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-select-v2` | 2025 | The second test corpus of the feature select: the specs of `pack-select-v1` with the fresh seeds 31 to 35. Write its prediction first. |
 | `pack-known-v1` | 288 | The inputs with a known best value of roadmap item k45. Each record has `pack.gapToOpt`. Write its prediction first. |
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
+| `pack-classes-free-v1` | 600 | The same classes with free sizes of roadmap item k158, and small strips of k160. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
-| `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. |
+| `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. Free forms not searched by version 1. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 | `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
@@ -383,6 +384,14 @@ The corpus `pack-classes-v1` has 100 specs, each with the seeds 1 to 5. It has n
 - Each class has the containers `fixed` (one bin of the class) and `freeHeight` (a strip of the width of the bin), and the counts 20, 40, 60, 80 and 100.
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 250 and `shaped` 0.
 - The builder `bench/classes.ts` writes the file. `node bench/classes.ts --check` and a test compare the file with the builder.
+
+The corpus `pack-classes-free-v1` has 120 specs of the same classes, each with the seeds 1 to 5. It holds the 8 entries that refuse each input of `pack-classes-v1`.
+
+- 500 inputs have `freeAspect` or `freeArea` at the counts 20, 40, 60, 80 and 100. The 7 entries of masonry, treemap and columns accept only these forms.
+- 100 inputs have `freeHeight` at the counts 8 and 16. The entry `exact-strip` takes at most 16 items.
+- The container takes no random numbers, so each form of a class, a count and a seed has the same items. A test pins the bytes of each input of `pack-classes-v1`.
+
+A record of a refusal tells the reason in its field `skipped`, for example `refused: the input has more than 16 items`. Records before k160 have only `unsupported containerSize: refused`.
 
 The rules of the classes. Each side is a whole number, uniform in its range, with both ends included.
 
@@ -465,13 +474,26 @@ Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`.
 
 The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
 
-The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items.
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them. Roadmap item k164 is the next version. The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. From PR #360, the weekly held-out sample of `drawInput` moves, because a new form of a class generator changes its draws.
 
 - The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
 - The field `inputs` has the input files, in the order of `found`.
 - The file has no specs, so the runner does not read it. A test reads its inputs.
 - `node bench/adversary.ts` writes the file. `node bench/adversary.ts --check` compares the file with a new search of each pair.
-- `node bench/adversary.ts --check --pair 2` examines the pair with the index 2 only. A test examines that pair and the hash of each input.
+- `node bench/adversary.ts --check --pair 2` examines the pair with the index 2 only. A test examines the hash of each input.
+
+Two checks hold the corpus:
+
+| Check | Command | Starts on | A failure means |
+|---|---|---|---|
+| The stored rows are the same | `--rows`, in a test of `CI OK` | each change | The file changed. A change of the rows needs a new version of the corpus. |
+| The search gives the stored rows | `--check`, in `adversary.yml`, a job of `CI OK` | a change of the search, of a file that it reads for draws, hashes or values, of `rigor-generators`, of the corpus or of the workflow | The search changed its draws. The merge is blocked, because version 1 is frozen. |
+
+A change of the other package source, the entries or the lock file starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
+
+The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
+
+One test of `CI OK` still reads a strategy on a stored input: the winner of each row must not break a hard rule. Its failure text names the row and the rule, and says that the strategy is at fault, not the corpus.
 
 The losses of the corpus:
 
@@ -1528,7 +1550,18 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
+A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
 
+The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A scheduled run also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
+
+- A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
+- A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
+- An entry that loses its row ends the line of each list that has it. Dropping a hard entry can raise a share, so it does not join. The point has `lost`: each entry with its reason, for example over budget, refused or an error. A censored reason keeps its lower bound on the time. The snapshot step gives a warning for each one.
+- A slow pair can lose its row while its entry keeps a row. That line continues, each point has its count of measured records, and the page states a change of that count.
+- A step between two points of one line reads the pairs measured in both points, by strategy and input. `site-data.yml` gets the records of the earlier run from its artifact, and both points get a new fit over these pairs. The page shows that figure beside the plain share, with the count, for example 90 common of 100 pairs.
+- A dropped hard pair can raise a plain share, but it cannot raise the figure over the common pairs. Thus the page calls a step a gain only when both figures gain.
+- The artifact of a run expires after 90 days. With no records of the earlier run, the step reads "no read" and has no figure. A change of the method and a lost entry end a line, so they have no step.
+- An entry that loses its row breaks the line of a list that has it. The earlier run has no share without that entry in the file.
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
 - The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.
@@ -1547,6 +1580,25 @@ The workflow `site-data.yml` starts these commands in CI from finished runs on `
 - After a new bench run, start the command of its corpus again.
 - The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
 - The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
+
+## The solved regions
+
+The results page reads each cell of a gap snapshot as a region (roadmap item k109). `packages/site/data/solved-rule.json` holds the floor, the margins, the words and the search reads as data. This file is a rule and not a result, so a person edits it and `bench/snapshot.ts` only reads it. The page and this section tell the rule in one wording, and a test compares them.
+
+- The test reads the share of inputs at or under the margin. The 95 % Wilson lower bound of this share must be 0.90 or more.
+- The bound of all inputs at the margin decides the smallest count. Thus 35 inputs can pass, and a cell with fewer inputs reads `too few inputs`, with the count.
+- A cell of 1,260 inputs needs 1,155 inputs at the margin, a share of 91.7 %.
+- A cell that passes reads `holds, no search read` until the search for hard inputs has read it. Then it reads `solved` if the search finds nothing past the margin.
+- A search hit makes the region `open` and shows the input. A cell under the bound also reads `open`, with its distance.
+- `pack.gapToOpt` compares with a known best value, so its margin stays 0 plus a numeric tolerance.
+- `pack.gap` has a margin of 0 until the exact runs measure the slack of the bound. Then a cell takes a high quantile of this slack, with its run.
+- A margin of 0 reads `optimal on N inputs`. A measured slack reads `within the bound's slack on N inputs`.
+- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. It shows no distance.
+- The best strategy of a row is a pick after the fact: the same inputs choose it and score it. The selector column shows the figure that a user gets.
+- The Wilson bound counts the inputs as independent. This page does not prove that they are independent.
+- A strategy can also lead a weekly corpus. The count of weeks led needs 4 weekly points.
+
+A snapshot writes `atMargin`, the count at the margin of the rule, in each cell. Regenerate the snapshot after a change of a margin: a file with another margin reads `not read on the current measure`.
 
 ## The corpus coverage
 
@@ -2028,10 +2080,9 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - Do not read this as a general gain of the active draw. The 4 other measures show no gain.
 - The Monday run repeats the test with the same seeds and new code.
 
-- The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
-- A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
-- Thus a change of `src` shows in the next Monday run, not at once.
-- A newer push cancels the run of an older push. A cancelled run writes no `cells.json`, so the records show only the runs that finished.
+- A push does not start the workflow. The grid takes approximately 3 hours, and a start from a merge does not pass the check of the free CI slots.
+- Thus a change of `src`, or of a file of the draw or the verdict, shows in the next Monday run, not at once. To read it earlier, start the workflow by hand.
+- A cancelled run writes no `cells.json`, so the records show only the runs that finished. A weekly run and a manual run have different groups, so one does not hold the other.
 - A person can also start the workflow, with other inputs.
 - It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
 - Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.
@@ -2040,11 +2091,12 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - The new timeout comes from that run. The slowest arm gives 12 x 400 / 195 = 24.6 minutes, and the arm that finished took approximately 10 minutes. The limit is 24.6 + 14.6 = 39.2, so 40. This is an estimate from arms that the timeout stopped, because the run has no finished slow arm. A later run replaces it.
 - `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
+- The grid has the wall budget of each pair and a job limit of 130 minutes, so the pairs stop at 120 minutes. A slow entry keeps the rows that it finished. In run [41949891960](https://github.com/mark1russell7/packing/actions/runs/41949891960), the limit of 120 minutes cut `raster-nofit` with no row, and `near-rects` took 42 minutes. Both are over the earlier limit of 30 minutes, and a cut job fails the grid, so the arms do not start.
 - The jobs `sample` pack the held-out sample of 400 pairs in 4 shards, with no time limit. The job `held-out` joins them.
 - The merge fails on a missing pair. Thus each arm is tested on all the pairs of the sample.
 - Each job `arm` draws one arm (active or control) with one fold seed (1 to 5) on the same grid and pool.
 - The job `verdict` gives the paired test of each cell that is not void, then the result over the fold seeds, in the artifact `nightly-verdict`.
-- The prediction `packing-k120-nightly` tells the expected outcomes. A change of the inputs needs a new prediction first.
+- The predictions `packing-k120-nightly` and `packing-k161-weekly-budget` tell the expected outcomes. A change of the inputs needs a new prediction first.
 
 `coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.
 

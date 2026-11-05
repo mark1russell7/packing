@@ -5,7 +5,7 @@
 //   node bench/snapshot.ts paired <run folder> --run <id> --commit <sha> --release <version> --arm-a <ref> --arm-b <ref> [--out <file>]
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
-//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>]
+//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>] (the margins of data/solved-rule.json decide the count at the margin)
 //   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>] [--active <dir>] [--features family|input]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
@@ -40,6 +40,7 @@ import {
   readSample,
   type ActiveCoverage,
   type CoverageManifest,
+  type CoverageOptions,
   type CoverageRecord,
   type CoverageSummary,
   type EvalMeasure,
@@ -658,6 +659,8 @@ export interface GapCell extends GapStats {
   cell: string;
   /** The count of the records of the cell without a value of the measure */
   missing: number;
+  /** The margin of the cell and the count of the values at or under it. */
+  atMargin?: { limit: number; n: number };
   /** The count of the records of each kind of bound of `BOUND_KINDS`. Only `pack.gap` has kinds. */
   kinds?: Record<string, number>;
 }
@@ -680,6 +683,8 @@ export interface GapSnapshot {
   measure: GapMeasure;
   /** The count of the inputs that left the table, because a wall budget ended a pair on them. Each strategy then has the same inputs. */
   stopped?: number;
+  /** The rules of the wall budget of the run. A run without a budget does not have this field. */
+  budget?: SnapshotBudget;
   inputs: number;
   /** The cells of the corpus, in the order of the manifest, with the count of their inputs */
   cells: { cell: string; inputs: number }[];
@@ -693,6 +698,19 @@ export interface GapSnapshotOptions {
   measure: GapMeasure;
   /** The cell of each input id. The default is `gapCellOf` of the family, without a container size. */
   cellOf?: (input: string) => string;
+  /** The highest value at the margin in each cell. The default is `GAP_TOLERANCE`, a margin of 0. */
+  limitOf?: (cell: string) => number;
+  /** The rules of the wall budget of the run. */
+  budget?: SnapshotBudget;
+}
+
+/** The numeric tolerance of a margin of 0. A gap of the corpus `pack-known-v1` is 0 or at least 0.03, so this value decides no record there. */
+export const GAP_TOLERANCE = 1e-9;
+
+/** The margin of one measure in `data/solved-rule.json`. */
+interface RuleMargin {
+  limit: number;
+  cells: Record<string, { limit: number }>;
 }
 
 /**
@@ -752,7 +770,8 @@ export function gapSnapshot(allRecords: readonly SnapshotRecord[], options: GapS
       const rs = own.filter((r) => cellOf(r.input) === cell);
       if (rs.length === 0) return [];
       const vs = rs.map(valueOf).filter((v): v is number => v !== undefined);
-      const out: GapCell = { cell, ...gapStats(vs), missing: rs.length - vs.length };
+      const limit = options.limitOf?.(cell) ?? GAP_TOLERANCE;
+      const out: GapCell = { cell, ...gapStats(vs), missing: rs.length - vs.length, atMargin: { limit, n: vs.filter((v) => v <= limit).length } };
       if (options.measure === "pack.gap") {
         const kinds: Record<string, number> = {};
         for (const r of rs) {
@@ -778,6 +797,7 @@ export function gapSnapshot(allRecords: readonly SnapshotRecord[], options: GapS
     cells: cellOrder.map((cell) => ({ cell, inputs: cellInputs.get(cell)!.size })),
     strategies,
     ...(stopped.size === 0 ? {} : { stopped: stopped.size }),
+    ...(options.budget === undefined ? {} : { budget: options.budget }),
   };
 }
 
@@ -912,6 +932,14 @@ export interface CoverageSnapshotSampled {
   priorBeside?: { kind?: PriorKind; share: number | null; nEff: number };
 }
 
+/** The shares of the records of one run over an earlier list of strategies */
+export interface CoverageOver {
+  strategies: string[];
+  shares: Record<string, number>;
+  /** The measured records over this list */
+  records?: number;
+}
+
 /** One point of the trend of the coverage: the share of each measure on one date */
 export interface CoveragePoint {
   date: string;
@@ -920,19 +948,109 @@ export interface CoveragePoint {
   commit: string;
   /**
    * The strategies of the point, sorted. A point of a run before this field has no list.
-   * The trend joins two points only with the same corpus and the same list.
+   * A point joins the line of its own list, with one corpus and one method.
    */
   strategies?: string[];
+  /** The method of the run, from `coverageMethod`. A point of a run before this field has no method, so it joins no other point. */
+  method?: string;
+  /** The shares of this point over each earlier list that it contains, with one method. Each one continues the line of that list. */
+  over?: CoverageOver[];
+  /** The measured records of the point. A slow pair that loses its row lowers this count, and the entry keeps its row. */
+  records?: number;
+  /** The read of the step from the earlier point of the line, over the pairs measured in both. */
+  step?: CoverageStep;
+  /** The entries of the earlier point of the corpus with no measured record here, each with its reason. Each one ends the line of a list that has it. */
+  lost?: CoverageOtherEntry[];
   /** The share of each measure, with the folds of the summary */
   shares: Record<string, number>;
   /** The share of each measure with the folds by input, when the snapshot has them */
   sharesByInput?: Record<string, number>;
 }
 
+/**
+ * This function gives the method of a run: its timed runs, its warm-up runs and its wall budget.
+ * A run with a budget has 1 timed run for a slow pair and a censored record for a pair over its budget. Thus it does not join a run without a budget.
+ */
+export const coverageMethod = (run: { readonly repeats?: number; readonly warmup?: number; readonly budget?: unknown }): string | undefined =>
+  run.repeats === undefined || run.warmup === undefined ? undefined : `repeats ${run.repeats}, warmup ${run.warmup}${run.budget === undefined ? "" : ", budget"}`;
+
+/**
+ * This function gives each earlier list of the trend that a new point continues. The list has one corpus, one method, and each strategy in the new list.
+ * A list with a strategy that the new point does not have gives nothing. Dropping a hard entry can raise a share, so a lost entry ends the line, and `lostEntries` names it.
+ */
+export function earlierLists(trend: readonly CoveragePoint[], corpus: string, method: string | undefined, strategies: readonly string[]): string[][] {
+  if (method === undefined) return [];
+  const current = new Set(strategies);
+  const lists = new Map<string, string[]>();
+  for (const p of trend) {
+    if (p.corpus !== corpus || p.method !== method || p.strategies === undefined) continue;
+    if (p.strategies.length < current.size && p.strategies.every((s) => current.has(s))) lists.set(p.strategies.join(","), p.strategies);
+  }
+  return [...lists.values()];
+}
+
+/** The reason of a step with no figure. */
+export const STEP_RECORDS_GONE = "the records of the earlier run are gone";
+
+/**
+ * The read of a step between two points of one line. `common` counts the pairs of a strategy and an input that are measured in both points.
+ * `of` counts the pairs measured in either point, over the strategies of the earlier point, so a new entry does not change it.
+ * `earlier` and `later` are the shares of each point over the common pairs. A step with `noRead` has no figure.
+ */
+export type CoverageStep =
+  | { readonly from: number; readonly common: number; readonly of: number; readonly earlier: Record<string, number>; readonly later: Record<string, number> }
+  | { readonly from: number; readonly noRead: string };
+
+/**
+ * This function gives the earlier point of a step. It is the last point of the corpus before the run `run`, when the new point continues its line.
+ * The point must have a run, the same method and a list that the new list contains. A change of the method and a lost entry end a line, so they give no step.
+ */
+export function stepFrom(
+  trend: readonly CoveragePoint[],
+  corpus: string,
+  method: string | undefined,
+  strategies: readonly string[],
+  run: number | undefined,
+): (CoveragePoint & { run: number }) | undefined {
+  const all = trend.filter((p) => p.corpus === corpus);
+  const at = all.findIndex((p) => p.run === run);
+  const last = (at === -1 ? all : all.slice(0, at)).at(-1);
+  if (last === undefined || last.run === null || method === undefined || last.method !== method || last.strategies === undefined) return undefined;
+  const current = new Set(strategies);
+  return last.strategies.every((s) => current.has(s)) ? (last as CoveragePoint & { run: number }) : undefined;
+}
+
+/** The key of a pair of a record. */
+const pairOf = (r: { readonly strategy: string; readonly input: string }): string => JSON.stringify([r.strategy, r.input]);
+
+/**
+ * This function gives the records of two points over the pairs measured in both, and the two counts of the step.
+ * A skipped record is not measured, so a dropped pair leaves both sides. A dropped hard pair can raise a plain share, but it cannot raise a share over these pairs.
+ */
+export function commonPairs<R extends { readonly strategy: string; readonly input: string; readonly skipped?: unknown }>(
+  earlier: readonly R[],
+  later: readonly R[],
+): { earlier: R[]; later: R[]; common: number; of: number } {
+  const measured = (records: readonly R[]): R[] => records.filter((r) => r.skipped === undefined);
+  const first = measured(earlier);
+  const listed = new Set(first.map((r) => r.strategy));
+  const second = measured(later).filter((r) => listed.has(r.strategy));
+  const inFirst = new Set(first.map(pairOf));
+  const inSecond = new Set(second.map(pairOf));
+  const common = new Set([...inFirst].filter((k) => inSecond.has(k)));
+  return {
+    earlier: first.filter((r) => common.has(pairOf(r))),
+    later: second.filter((r) => common.has(pairOf(r))),
+    common: common.size,
+    of: new Set([...inFirst, ...inSecond]).size,
+  };
+}
+
 /** One entry of the bench with no measured record in a run, with each reason and its count of records. A reason with no row counts 0 records. */
 export interface CoverageOtherEntry {
   entry: string;
-  reasons: { because: string; records: number }[];
+  /** The value `msAtLeast` is the smallest lower bound on the time of the censored records of a reason. */
+  reasons: { because: string; records: number; msAtLeast?: number }[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run. */
@@ -1081,7 +1199,14 @@ const strataOf = (m: StrataMeasure): CoverageSnapshotStrata => ({
  *
  * A uniform sample of the summary gives `uniform`. Another summary keeps the `uniform` of the earlier snapshot.
  */
-export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigin, earlier?: CoverageSnapshot, byInput?: CoverageSummary, entries?: CoverageEntries): CoverageSnapshot {
+export function coverageSnapshot(
+  summary: CoverageSummary,
+  origin: SnapshotOrigin,
+  earlier?: CoverageSnapshot,
+  byInput?: CoverageSummary,
+  entries?: CoverageEntries,
+  line?: { readonly method?: string; readonly over?: readonly CoverageOver[]; readonly lost?: readonly CoverageOtherEntry[]; readonly step?: CoverageStep },
+): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
   const strata = new Map((summary.strata?.measures ?? []).map((m) => [m.id, m]));
@@ -1091,6 +1216,11 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
     corpus: summary.corpus,
     commit: origin.commit,
     strategies: [...summary.strategies].sort(),
+    ...(line?.method === undefined ? {} : { method: line.method }),
+    ...(line?.over === undefined || line.over.length === 0 ? {} : { over: [...line.over] }),
+    records: summary.records,
+    ...(line?.step === undefined ? {} : { step: line.step }),
+    ...(line?.lost === undefined || line.lost.length === 0 ? {} : { lost: [...line.lost] }),
     shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
     ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
   };
@@ -1198,6 +1328,34 @@ export function coverageSnapshot(summary: CoverageSummary, origin: SnapshotOrigi
 // ---- The command line ----
 
 /** This function gives the value of an option of the command line, or `undefined`. */
+/**
+ * This function reads the step of a new point: the fit of each point over the common pairs, with one set of options.
+ * With no earlier point on the line, it gives nothing. With no records of the earlier run in `folder`, the step has no figure.
+ */
+function readStep(
+  trend: readonly CoveragePoint[],
+  now: {
+    readonly corpus: string;
+    readonly method: string | undefined;
+    readonly strategies: readonly string[];
+    readonly run: number | undefined;
+    readonly records: readonly CoverageRecord[];
+    readonly manifest: CoverageManifest;
+    readonly options: CoverageOptions;
+    readonly folder?: string;
+  },
+): CoverageStep | undefined {
+  const from = stepFrom(trend, now.corpus, now.method, now.strategies, now.run);
+  if (from === undefined) return undefined;
+  if (now.folder === undefined || !existsSync(join(now.folder, "records.jsonl"))) return { from: from.run, noRead: STEP_RECORDS_GONE };
+  const before = readRecords(readFileSync(join(now.folder, "records.jsonl"), "utf8"));
+  const beforeManifest = JSON.parse(readFileSync(join(now.folder, "corpus.json"), "utf8")) as CoverageManifest;
+  const pairs = commonPairs(before, now.records);
+  const shares = (records: readonly CoverageRecord[], manifest: CoverageManifest): Record<string, number> =>
+    Object.fromEntries(coverage(records, manifest, { ...now.options, by: "spec" }).measures.map((m) => [m.id, m.share]));
+  return { from: from.run, common: pairs.common, of: pairs.of, earlier: shares(pairs.earlier, beforeManifest), later: shares(pairs.later, now.manifest) };
+}
+
 const optionOf = (argv: readonly string[], name: string): string | undefined => {
   const at = argv.indexOf(name);
   return at >= 0 ? argv[at + 1] : undefined;
@@ -1246,37 +1404,60 @@ export function noRowOf(text: string | undefined): Map<string, string> {
 /** The reason of an entry with no row, when the command line does not state one */
 export const NO_ROW_UNSTATED = "the run has no record of this entry";
 
+/** The reason of a lost entry that is no longer a planned entry of the bench */
+export const NOT_AN_ENTRY = "no longer an entry of the bench";
+
+/** The longest text of an error in a reason */
+const ERROR_TEXT_MAX = 160;
+
 /**
  * This function counts the planned entries with a measured record, and gives the reasons of the other entries.
  * It throws an `Error` when `noRow` names an entry with a record or an entry that is not planned. Thus a stale reason does not reach the page.
  */
-export function coverageEntries(records: readonly CoverageRecord[], planned: readonly string[], noRow: ReadonlyMap<string, string> = new Map()): CoverageEntries {
+export function coverageEntries(
+  records: readonly CoverageRecord[],
+  planned: readonly string[],
+  noRow: ReadonlyMap<string, string> = new Map(),
+  errors: readonly { readonly strategy: string; readonly message: string }[] = [],
+): CoverageEntries {
   const measured = new Set(records.filter((r) => r.skipped === undefined).map((r) => r.strategy));
-  const skipped = new Map<string, Map<string, number>>();
+  const skipped = new Map<string, Map<string, { records: number; msAtLeast?: number }>>();
   for (const r of records) {
     if (r.skipped === undefined) continue;
-    const reasons = skipped.get(r.strategy) ?? new Map<string, number>();
-    reasons.set(r.skipped, (reasons.get(r.skipped) ?? 0) + 1);
+    const reasons = skipped.get(r.strategy) ?? new Map<string, { records: number; msAtLeast?: number }>();
+    const was = reasons.get(r.skipped);
+    const bounds = [was?.msAtLeast, r.msAtLeast].filter((b) => b !== undefined);
+    reasons.set(r.skipped, { records: (was?.records ?? 0) + 1, ...(bounds.length === 0 ? {} : { msAtLeast: Math.min(...bounds) }) });
     skipped.set(r.strategy, reasons);
   }
+  const failed = new Map<string, { first: string; records: number }>();
+  for (const e of errors) failed.set(e.strategy, { first: failed.get(e.strategy)?.first ?? e.message.slice(0, ERROR_TEXT_MAX), records: (failed.get(e.strategy)?.records ?? 0) + 1 });
   for (const entry of noRow.keys()) {
     if (!planned.includes(entry)) throw new Error(`--no-row names ${entry}, which is not an entry of the bench.`);
-    if (measured.has(entry) || skipped.has(entry)) throw new Error(`--no-row names ${entry}, which has records in this run.`);
+    if (measured.has(entry) || skipped.has(entry) || failed.has(entry)) throw new Error(`--no-row names ${entry}, which has records in this run.`);
   }
   const others = [...planned]
     .filter((entry) => !measured.has(entry))
     .sort()
     .map((entry): CoverageOtherEntry => {
-      const reasons = skipped.get(entry);
-      return {
-        entry,
-        reasons:
-          reasons === undefined
-            ? [{ because: `no row: ${noRow.get(entry) ?? NO_ROW_UNSTATED}`, records: 0 }]
-            : [...reasons].sort((a, b) => a[0].localeCompare(b[0])).map(([because, count]) => ({ because, records: count })),
-      };
+      const reasons = [...(skipped.get(entry) ?? [])].sort((a, b) => a[0].localeCompare(b[0])).map(([because, facts]) => ({ because, ...facts }));
+      const error = failed.get(entry);
+      const all = error === undefined ? reasons : [...reasons, { because: `error: ${error.first}`, records: error.records }];
+      return { entry, reasons: all.length > 0 ? all : [{ because: `no row: ${noRow.get(entry) ?? NO_ROW_UNSTATED}`, records: 0 }] };
     });
   return { planned: planned.length, measured: planned.length - others.length, others };
+}
+
+/**
+ * This function gives the entries of the earlier point of a corpus that have no measured record in this run, each with its reason.
+ * It reads the last earlier point with a list, with any method. A later point of the same run does not count as earlier.
+ */
+export function lostEntries(trend: readonly CoveragePoint[], corpus: string, run: number | null, strategies: readonly string[], others: readonly CoverageOtherEntry[]): CoverageOtherEntry[] {
+  const before = trend.filter((p) => p.corpus === corpus && p.run !== run && p.strategies !== undefined).at(-1);
+  const reasons = new Map(others.map((o) => [o.entry, o.reasons]));
+  return (before?.strategies ?? [])
+    .filter((s) => !strategies.includes(s))
+    .map((entry) => ({ entry, reasons: reasons.get(entry) ?? [{ because: NOT_AN_ENTRY, records: 0 }] }));
 }
 
 /** This function keeps the records of the named strategies. It throws for a name without a record, so a misspelled name does not empty a table. */
@@ -1349,20 +1530,42 @@ export function snapshotMain(argv: readonly string[]): void {
     const data = readRun(folder);
     const sizes = new Map(data.inputs.map((i) => [i.id, i.cell?.containerSize]));
     const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"), optionOf(argv, "--date"));
+    const rule = (JSON.parse(readFileSync(new URL("solved-rule.json", SNAPSHOT_DIR), "utf8")) as { margins: Record<string, RuleMargin> }).margins[measure as GapMeasure]!;
     const snap = gapSnapshot(recordsOfStrategies(data.records, optionOf(argv, "--strategies")?.split(",")), {
       corpus: data.run.corpus,
       origin: [origin],
       measure: measure as GapMeasure,
       cellOf: (input) => gapCellOf(familyOfInput(input), sizes.get(input)),
+      limitOf: (cell) => rule.cells[`${data.run.corpus}/${cell}`]?.limit ?? rule.limit,
+      ...(data.run.budget === undefined ? {} : { budget: snapshotBudget(data.run.budget) }),
     });
     writeSnapshot(out ?? new URL(`gaps-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
+    return;
+  }
+  // The run of the earlier point of a step, so that the workflow can get its records. With no step, the output is empty.
+  if (kind === "coverage-earlier" && folder !== undefined) {
+    const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
+    if (!existsSync(file)) return;
+    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; repeats?: number; warmup?: number; budget?: unknown };
+    const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
+    const strategies = [...new Set(records.filter((r) => r.skipped === undefined).map((r) => r.strategy))];
+    const trend = (JSON.parse(readFileSync(file, "utf8")) as CoverageSnapshot).trend;
+    const from = stepFrom(trend, run.corpus, coverageMethod(run), strategies, Number(optionOf(argv, "--run")));
+    if (from !== undefined) console.log(String(from.run));
     return;
   }
   if (kind === "coverage" && folder !== undefined) {
     const options = coverageOptions(argv);
     if (options.run === undefined || options.date === undefined) throw new Error("The snapshot coverage needs --run <id> and --date YYYY-MM-DD.");
     const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
-    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string };
+    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as {
+      corpus: string;
+      commit: string;
+      repeats?: number;
+      warmup?: number;
+      budget?: unknown;
+      errors?: readonly { strategy: string; message: string }[];
+    };
     const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as CoverageManifest;
     const origin = originOf(run.commit, options.run, `bench.yml, the artifact bench-${run.corpus}, and bench/coverage.ts`, optionOf(argv, "--release"), options.date);
     const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
@@ -1383,8 +1586,21 @@ export function snapshotMain(argv: readonly string[]): void {
       // k119, k122: the basis of the family prior, the same weight for each family by default
       ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
-    const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")));
-    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries));
+    const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []);
+    // A new entry does not restart a line: the same fit over an earlier list gives the next point of that line.
+    const method = coverageMethod(run);
+    const over = earlierLists(earlier?.trend ?? [], run.corpus, method, grid.strategies).map((list) => {
+      const kept = new Set(list);
+      const fit = coverage(records.filter((r) => kept.has(r.strategy)), manifest, { ...options, by: "spec" });
+      return { strategies: list, shares: Object.fromEntries(fit.measures.map((m) => [m.id, m.share])), records: fit.records };
+    });
+    // A lost entry ends a line. The annotation makes it a finding of the run, in addition to the note of the page.
+    const lost = lostEntries(earlier?.trend ?? [], run.corpus, options.run, grid.strategies, entries.others);
+    for (const l of lost) console.log(`::warning::${l.entry} lost its row on ${run.corpus}: ${l.reasons.map((r) => r.because).join(", ")}`);
+    const earlierFolder = optionOf(argv, "--earlier");
+    const step = readStep(earlier?.trend ?? [], { corpus: run.corpus, method, strategies: grid.strategies, run: options.run ?? undefined, records, manifest, options, ...(earlierFolder === undefined ? {} : { folder: earlierFolder }) });
+    if (step !== undefined) console.log(`The step from run ${step.from}: ${"noRead" in step ? `no read: ${step.noRead}` : `${step.common} common of ${step.of} pairs`}`);
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over, lost, ...(step === undefined ? {} : { step }) }));
     return;
   }
   if (kind === "paired" && folder !== undefined) {

@@ -45,6 +45,7 @@ import {
   spaceOf,
   entriesNote,
   trendChart,
+  stepReads,
   trendNote,
 } from "./results-model.ts";
 import { LAST_RUN_OLD_GAP, oldGapNote } from "./gap-definition.ts";
@@ -52,7 +53,7 @@ import { LAST_RUN_OLD_GAP, oldGapNote } from "./gap-definition.ts";
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
 /** These files have their own schema and parser, and a test of their package compares them with their script. */
-const OWN_SCHEMA = ["corpus-cover.json", "law-cover.json", "response-coverage.json"];
+const OWN_SCHEMA = ["corpus-cover.json", "law-cover.json", "response-coverage.json", "solved-rule.json"];
 const KINDS: Record<string, Snapshot["kind"]> = {
   "coverage.json": "coverage",
   "gaps-pack-known-v1.json": "gaps",
@@ -237,6 +238,7 @@ describe("the calculations of the pages", () => {
     expect(reasonMeaning("not run: over budget at this size")).toContain("2 pairs");
     expect(reasonMeaning("not run: job budget")).toContain("time limit");
     expect(reasonMeaning("unsupported containerSize: refused")).toContain("256 items");
+    expect(reasonMeaning("refused: the input has more than 16 items")).toContain("Refused: the input has more than 16 items.");
     expect(reasonMeaning("unsupported mode: offline")).toBeUndefined();
     const reasons = [{ reason: "over budget", count: 2 }, { reason: "unsupported mode: offline", count: 1 }];
     const section = { strategies: [{ ...snap.strategies[0]!, reasons }, { ...snap.strategies[0]!, reasons }] };
@@ -622,6 +624,80 @@ describe("the space coverage of k105", () => {
       expect(series.points.map((p) => p.current)).toEqual([false, false, false, true]);
     });
 
+    it("continues a line over the common strategies, and states the count", () => {
+      const m = "repeats 5, warmup 2";
+      const first = { ...point("2026-11-02", later, ["a"], 0.5), method: m };
+      const second = { ...point("2026-11-09", later + 1, ["a", "b"], 0.3), method: m, over: [{ strategies: ["a"], shares: { f: 0.6 } }] };
+      const series = trendChart([first, second], ["f"], 100, 50, 10).series[0]!;
+      expect(series.lines.map((l) => [l.points.map((p) => p.share), l.current])).toEqual([
+        [[0.5, 0.6], false],
+        [[0.3], true],
+      ]);
+      expect(series.points.map((p) => [p.share, p.current])).toEqual([
+        [0.5, false],
+        [0.3, true],
+        [0.6, false],
+      ]);
+      expect(series.points[2]!.date).toBe("2026-11-09 (1 common of 2)");
+      expect(trendNote([first, second])).toContain(`<code>c</code> on 1 strategies (${m}): 2026-11-02, 2026-11-09 (1 common of 2)`);
+    });
+
+    it("names a lost entry with its reason and its lower bound, and ends the line of its list", () => {
+      const M = "repeats 5, warmup 2";
+      const earlier = { ...point("2026-11-02", later, ["a", "b"], 0.3), method: M };
+      const lost = {
+        ...point("2026-11-09", later + 1, ["a"], 0.9),
+        method: M,
+        lost: [{ entry: "b<", reasons: [{ because: "over budget", records: 2, msAtLeast: 15000 }] }],
+      };
+      const note = trendNote([earlier, lost]);
+      expect(note).toContain("<li>2026-11-09, <code>c</code>: <code>b&lt;</code>: over budget (2 records, each at least 15 s)</li>");
+      expect(note).toContain(`<code>c</code> on 2 strategies (${M}): 2026-11-02.`);
+      expect(note).toContain(`<code>c</code> on 1 strategies (${M}): 2026-11-09.`);
+      expect(trendNote([earlier])).not.toContain("lost its row");
+    });
+
+    it("states a change of the count of measured records on one line", () => {
+      const M = "repeats 5, warmup 2";
+      const one = { ...point("2026-11-02", later, ["a"], 0.3), method: M, records: 100 };
+      const two = { ...point("2026-11-09", later + 1, ["a"], 0.4), method: M, records: 90 };
+      expect(trendNote([one, two])).toContain("The measured records differ: 100, 90.");
+      expect(trendNote([one, { ...two, records: 100 }])).not.toContain("The measured records differ");
+    });
+
+    it("does not call a step a gain when only the plain share gains", () => {
+      const M = "repeats 1, warmup 0, budget";
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M, shares: { "pack.fill": 0.3 } };
+      // A dropped hard pair raises the plain share, and the share over the common pairs stays
+      const dropped = { ...point("2026-11-16", later + 1, ["a"], 0.5), method: M, shares: { "pack.fill": 0.5 }, step: { from: later, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.3 } } };
+      expect(stepReads(earlier, dropped)).toEqual([{ measure: "pack.fill", plain: [0.3, 0.5], common: [0.3, 0.3], gain: false }]);
+      const note = trendNote([earlier, dropped]);
+      expect(note).toContain("90 common of 100 pairs. <code>pack.fill</code>: plain 0.300 to 0.500, common pairs 0.300 to 0.300.");
+      expect(note).not.toContain("a gain.");
+      const both = { ...dropped, step: { ...dropped.step, later: { "pack.fill": 0.4 } } };
+      expect(stepReads(earlier, both)[0]!.gain).toBe(true);
+      expect(trendNote([earlier, both])).toContain("common pairs 0.300 to 0.400: a gain.");
+      // The common figure gains and the plain share falls: no gain
+      expect(stepReads(earlier, { ...both, shares: { "pack.fill": 0.2 } })[0]!.gain).toBe(false);
+    });
+
+    it("reads the plain share of a step over the earlier list, so a new entry does not change it", () => {
+      const M = "repeats 1, warmup 0, budget";
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M, shares: { "pack.fill": 0.3 } };
+      const step = { from: later, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.4 } };
+      const grown = { ...point("2026-11-16", later + 1, ["a", "b"], 0.9), method: M, step, over: [{ strategies: ["a"], shares: { "pack.fill": 0.25 } }] };
+      expect(stepReads(earlier, grown)[0]).toMatchObject({ plain: [0.3, 0.25], gain: false });
+    });
+
+    it("states a step with no figure", () => {
+      const M = "repeats 1, warmup 0, budget";
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M };
+      const gone = { ...point("2026-11-16", later + 1, ["a"], 0.9), method: M, step: { from: later, noRead: "the records of the earlier run are gone" } };
+      expect(stepReads(earlier, gone)).toEqual([]);
+      expect(trendNote([earlier, gone])).toContain("<li>2026-11-16, <code>c</code>: no read: the records of the earlier run are gone</li>");
+      expect(trendNote([earlier])).not.toContain("Each step reads");
+    });
+
     it("names each line", () => {
       const note = trendNote(trend);
       expect(note).toContain("<code>c</code> on a list that the point does not record: 2026-10-28");
@@ -649,6 +725,9 @@ describe("the space coverage of k105", () => {
       expect(note).toContain("<b>1 of 4 entries</b>");
       expect(note).toContain("<li><code>x</code>, <code>y</code>: refused (2 records)</li>");
       expect(note).toContain("<li><code>z&lt;</code>: no row: job limit of 120 minutes</li>");
+      expect(entriesNote({ planned: 1, measured: 0, others: [{ entry: "s", reasons: [{ because: "over budget", records: 3, msAtLeast: 30000 }] }] })).toContain(
+        "<li><code>s</code>: over budget (3 records, each at least 30 s)</li>",
+      );
       expect(entriesNote(undefined)).toBe("");
       expect(entriesNote({ planned: 1, measured: 1, others: [] })).not.toContain("<ul");
     });

@@ -1,6 +1,7 @@
 // The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
 // The page reads only the snapshot files of `packages/site/data/`.
 
+import { atlasFilter, atlasTable, atlasTiles, regionsOf, ruleLine, type RegionState, type SolvedRule } from "./atlas-model.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { marked } from "marked";
 import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover, type LawCoverCount } from "./corpus-cover-model.ts";
@@ -16,6 +17,8 @@ import selectJson from "../data/select-table.json?raw";
 import gapsText from "../content/results-gaps.md?raw";
 import gapsKnownJson from "../data/gaps-pack-known-v1.json?raw";
 import gapsSelectJson from "../data/gaps-pack-select-v2.json?raw";
+import atlasText from "../content/results-atlas.md?raw";
+import solvedRuleJson from "../data/solved-rule.json?raw";
 import coverageText from "../content/results-coverage.md?raw";
 import corpusCoverText from "../content/results-corpus-cover.md?raw";
 import corpusCoverJson from "../data/corpus-cover.json?raw";
@@ -65,6 +68,7 @@ import {
   verdictHash,
   verdictOf,
 } from "./results-model.ts";
+import "@mark1russell7/site-pages/scroll-cue.css";
 import "./style.css";
 import "./pages.css";
 
@@ -139,7 +143,7 @@ function details(s: StrategySummary, snap: StrategySnapshot): string {
   return `
     <p class="hint">${s.records} records, ${s.skipped} skipped, ${s.hardBreaks} hard breaks, ${ms}.</p>
     ${finishedHtml(s, snap)}
-    <div class="scroll"><table class="vtable">
+    <div class="scroll scroll-cue" tabindex="0" aria-label="The measures of this strategy"><table class="vtable">
       <thead><tr><th scope="col">Measure</th><th scope="col">Verdict</th><th scope="col"><code>${esc(snap.baseline)}</code> → this</th><th scope="col">Interval</th><th scope="col">Families: better, worse, tie</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
@@ -363,6 +367,29 @@ function mountGaps(): void {
   drawGaps();
 }
 
+// ---- The solved regions of k109 ----
+
+function mountAtlas(): void {
+  const rule = JSON.parse(solvedRuleJson) as SolvedRule;
+  const regions = gapSnaps.flatMap((snap) => regionsOf(snap, rule));
+  let current: RegionState | "all" = "all";
+  const draw = (): void => {
+    $("atlas-filter").innerHTML = atlasFilter(regions, current);
+    $("atlas-table").innerHTML = atlasTable(regions, rule, current);
+  };
+  $("atlas-text").innerHTML = marked.parse(atlasText, { async: false });
+  $("atlas-rule").innerHTML = ruleLine(rule);
+  $("atlas-tiles").innerHTML = atlasTiles(regions, rule);
+  $("atlas-origin").innerHTML = originHtml(gapSnaps.flatMap((snap) => snap.origin));
+  $("atlas-filter").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-state]");
+    if (b === null) return;
+    current = b.dataset["state"] as RegionState | "all";
+    draw();
+  });
+  draw();
+}
+
 // ---- The space coverage of k105 ----
 
 let coverCurrent = 0;
@@ -549,6 +576,7 @@ function mountCoverage(): void {
 
 mountStrategies();
 mountGaps();
+mountAtlas();
 mountSpeed();
 mountSelect();
 mountCoverage();

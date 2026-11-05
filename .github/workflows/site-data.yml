@@ -2,6 +2,7 @@
 # The job snapshot reads the artifacts and checks the new files with the tests of the site. It has no write permission.
 # Only the job publish writes. It pushes the files to the branch site-data, never to main, and it starts the Pages build.
 # The Pages build puts the files of the branch over the files of main.
+# A scheduled run of coverage-nightly.yml or site-rerun.yml starts this workflow too. Each corpus with records in that run is a run of this one.
 name: Site data
 
 on:
@@ -15,6 +16,9 @@ on:
         description: "The reason of each entry with no row in the coverage run, as <entry>=<reason>, with semicolons between them."
         type: string
         default: ""
+  workflow_run:
+    workflows: ["Coverage nightly", "Site rerun"]
+    types: [completed]
 
 permissions: {}
 
@@ -30,13 +34,18 @@ defaults:
 
 jobs:
   snapshot:
-    if: github.ref == 'refs/heads/main'
+    # Only a manual start or a scheduled weekly run gives data. A weekly run that failed after a grid still has the records of that grid.
+    if: >-
+      github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion != 'cancelled'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
       # gh run view and gh run download read the runs and their artifacts.
       actions: read
+    outputs:
+      runs: ${{ steps.write.outputs.runs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -50,14 +59,27 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Write the files from the runs
+        id: write
         env:
           GH_TOKEN: ${{ github.token }}
           RUNS: ${{ inputs.runs }}
+          WEEKLY_RUN: ${{ github.event.workflow_run.id }}
+          # The corpora with a file of the site. bench/site-rerun.test.ts compares this list with the case below.
+          SITE_CORPORA: pack-free-v1 pack-screen-v1 pack-select-v1 pack-select-v2 pack-known-v1 pack-classes-v1
           NO_ROW: ${{ inputs.no-row }}
           # The six strategies of the table of the gaps. The table has one column for each strategy.
           GAP_STRATEGIES: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
         run: |
           data="$GITHUB_WORKSPACE/packages/site/data"
+          # A weekly run gives each corpus whose merged records it kept. A corpus that failed keeps its earlier file.
+          if [ -z "$RUNS" ]; then
+            names="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$WEEKLY_RUN/artifacts" -q '.artifacts[].name')"
+            for corpus in $SITE_CORPORA; do
+              if grep -qxF "bench-$corpus" <<<"$names"; then RUNS="$RUNS $corpus=$WEEKLY_RUN"; fi
+            done
+            RUNS="${RUNS# }"
+            [ -n "$RUNS" ] || { echo "The run $WEEKLY_RUN has no merged records of a corpus of the site."; exit 1; }
+          fi
           # The earlier points of the coverage trend are on the branch.
           if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C "$data"; fi
           cd packages/packing
@@ -91,7 +113,18 @@ jobs:
                 node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gapToOpt --strategies "$GAP_STRATEGIES"
                 ;;
               pack-classes-v1)
-                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --no-row "$NO_ROW"
+                # A step between two points reads the pairs measured in both, so it needs the records of the earlier point.
+                # With no records of that run, the step has no figure. Its artifact expires after 90 days.
+                earlier_args=()
+                earlier_run="$(node bench/snapshot.ts coverage-earlier "$folder" --run "$run")"
+                if [ -n "$earlier_run" ]; then
+                  if gh run download "$earlier_run" -R "$GITHUB_REPOSITORY" -n "bench-$corpus" -D "$RUNNER_TEMP/earlier/$corpus"; then
+                    earlier_args=(--earlier "$RUNNER_TEMP/earlier/$corpus")
+                  else
+                    echo "::warning::The records of the run $earlier_run are gone, so the step of $corpus has no figure."
+                  fi
+                fi
+                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --no-row "$NO_ROW" "${earlier_args[@]}"
                 ;;
               *)
                 echo "The corpus $corpus has no file of the site."
@@ -99,6 +132,7 @@ jobs:
                 ;;
             esac
           done
+          echo "runs=$RUNS" >> "$GITHUB_OUTPUT"
           # The table needs both training runs and both test runs. A change of the wins stops the command, and the file of the table stays.
           # The pinned wins then change in a pull request, so the job tells it and the other files still go out.
           if [ "${#select_args[@]}" -eq 8 ]; then
@@ -148,7 +182,7 @@ jobs:
       - name: Push the files to the branch site-data, and start the Pages build
         env:
           GH_TOKEN: ${{ github.token }}
-          RUNS: ${{ inputs.runs }}
+          RUNS: ${{ needs.snapshot.outputs.runs }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
