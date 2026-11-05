@@ -96,6 +96,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategies }}-${{ inputs.prediction }}-${{ inputs.sample }}
   cancel-in-progress: false
 
+# The shell bash has pipefail, so a failure before a tee fails the step.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   plan:
     runs-on: ubuntu-latest
