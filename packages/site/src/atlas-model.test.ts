@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { wilson } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
-import { atlasFilter, atlasTable, atlasTiles, canPass, limitOf, regionsOf, ruleLine, SOLVED_RULE_SCHEMA, stateCounts, STATE_WORDS, type SearchRead, type SolvedRule } from "./atlas-model.ts";
+import { atlasFilter, atlasTable, atlasTiles, BRANCH_RUNS, branchRunLines, canPass, limitOf, regionsOf, ruleLine, SOLVED_RULE_SCHEMA, stateCounts, STATE_WORDS, type SearchRead, type SolvedRule } from "./atlas-model.ts";
 import { parseSnapshot, type GapCell, type GapSnapshot } from "./data.ts";
 import { LAST_RUN_OLD_GAP } from "./gap-definition.ts";
 
@@ -32,6 +32,27 @@ const snap = (inputs: number, strategies: Record<string, GapCell[]>, over: Parti
 });
 
 const search = (strategy: string, found: SearchRead["found"] = []): SearchRead => ({ corpus: "c", cell: "one", strategy, run: 1, date: "2026-11-05", found });
+
+describe("the records from a run on a branch", () => {
+  const of = (run: number | null): GapSnapshot =>
+    snap(1, {}, { corpus: "pack-known-v1", origin: [{ release: "0.2.17", commit: "abc", date: "2026-10-28", run, source: "made up" }] });
+
+  it("states the date, the run and the branch of the record", () => {
+    const run = 40768140939;
+    expect(BRANCH_RUNS[run]).toBe("k45-known-best");
+    expect(branchRunLines([of(run)])).toEqual([
+      `The regions on <code>pack-known-v1</code> read the record of 2026-10-28. Its run ${run} started on the branch <code>k45-known-best</code>, not on <code>main</code>.`,
+    ]);
+  });
+
+  it("states nothing when a run on main replaces the record, or a record has no run", () => {
+    expect(branchRunLines([of(42000000000), of(null)])).toEqual([]);
+  });
+
+  it("gives one line for each record", () => {
+    expect(branchRunLines([of(40768140939), of(40766464710), of(1)])).toHaveLength(2);
+  });
+});
 
 describe("the rule of the solved regions", () => {
   it("reads the floor from the formula: 35 of 35 can pass, and 34 of 34 cannot", () => {
