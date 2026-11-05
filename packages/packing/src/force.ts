@@ -286,7 +286,7 @@ function hardSum(input: PackInput, output: PackOutput): number {
 /**
  * The composite strategy `force` of roadmap item k125. The member packs the input. Then the boxes push each other and
  * the walls, and the overlap removal of PRISM and the satisfy step of VPSC make the layout legal. The placed set and
- * the size do not change.
+ * the size do not change. The origin is not part of the contract: a lone box stops at half of the target gap from a wall.
  *
  * When the pass fails or gives more hard breaks than the member, the output is the output of the member. The trace
  * stage `force` has `move.force`, `force.gap`, `force.tries`, `force.overlaps`, `force.rounds`, `force.vpsc` and `force.fallback`.

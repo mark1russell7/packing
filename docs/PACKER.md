@@ -1000,6 +1000,8 @@ const output2 = packWith("force", input, { member: "rows", iterations: 100 });
 
 The container is a rectangle with at most one free side. A free side gets the size of the member output, so the output size does not change.
 
+The origin is not part of the contract of `force`. A lone box stops at `g / 2` from a wall, so it does not stay at the origin and it is not centered. With `iterations` 0, the output is the member layout.
+
 1. **The start.** The member packs the input. Its placed boxes and their places are the start. The unplaced items stay unplaced.
 2. **The target gap.** `g = max(0, sqrt(usable area / n) - sqrt(mean box area))`: the gap of a square grid of mean boxes that fills the frame. The usable area is the frame less the obstacles and the locked boxes. Each box has its margins, its pads and half the gap of the input.
 3. **The forces.** At each step, each pair of boxes with a clearance below `g` pushes apart along the line of their centers by half of `g` less the clearance. The clearance is the larger of the x gap and the y gap of the two boxes, and it is less than 0 for an overlap. An obstacle and a locked box push the same way and do not move, so the moving box gets the full push. A wall pushes a box with a clearance below `g / 2`. The step of a box is the sum of its pushes, at most `g` long, times a cooling factor `1 - k / iterations`. All boxes move at the same time. Then each box goes back into the frame.
