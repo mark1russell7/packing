@@ -14,6 +14,7 @@ import {
   NO_ROW_UNSTATED,
   familyOfInput,
   gapCellOf,
+  GAP_TOLERANCE,
   gapSnapshot,
   gapStats,
   groupOfFamily,
@@ -205,8 +206,8 @@ describe("the gap snapshot", () => {
     const rows = snap.strategies.find((s) => s.strategy === "rows")!;
     expect(rows.all).toEqual({ n: 3, q1: 0.15, median: 0.2, q3: 0.3, below0: 0, missing: 1 });
     expect(rows.cells).toEqual([
-      { cell: "g.fixed", n: 2, q1: 0.25, median: 0.3, q3: 0.35, below0: 0, missing: 0, kinds: { "placed.free": 2 } },
-      { cell: "g.freeArea", n: 1, q1: 0.1, median: 0.1, q3: 0.1, below0: 0, missing: 1, kinds: { "hull.area": 1 } },
+      { cell: "g.fixed", n: 2, q1: 0.25, median: 0.3, q3: 0.35, below0: 0, missing: 0, atMargin: { limit: GAP_TOLERANCE, n: 0 }, kinds: { "placed.free": 2 } },
+      { cell: "g.freeArea", n: 1, q1: 0.1, median: 0.1, q3: 0.1, below0: 0, missing: 1, atMargin: { limit: GAP_TOLERANCE, n: 0 }, kinds: { "hull.area": 1 } },
     ]);
     const sky = snap.strategies.find((s) => s.strategy === "skyline")!;
     expect(sky.cells.map((c) => [c.cell, c.n, c.missing])).toEqual([
@@ -218,7 +219,27 @@ describe("the gap snapshot", () => {
   it("summarizes pack.gapToOpt without kinds, and drops a value that is not finite", () => {
     const records = [gap("rows", "c/k.fixed.n10/s1", { "pack.gapToOpt": 0.1 }), gap("rows", "c/k.fixed.n10/s2", { "pack.gapToOpt": Infinity })];
     const snap = gapSnapshot(records, { corpus: "c", origin, measure: "pack.gapToOpt", cellOf: () => "one" });
-    expect(snap.strategies[0]!.cells).toEqual([{ cell: "one", n: 1, q1: 0.1, median: 0.1, q3: 0.1, below0: 0, missing: 1 }]);
+    expect(snap.strategies[0]!.cells).toEqual([{ cell: "one", n: 1, q1: 0.1, median: 0.1, q3: 0.1, below0: 0, missing: 1, atMargin: { limit: GAP_TOLERANCE, n: 0 } }]);
+  });
+
+  it("counts the values at the margin of each cell, and does not count a missing value", () => {
+    const records = [
+      gap("rows", "c/k.fixed.n10/s1", { "pack.gapToOpt": 0 }),
+      gap("rows", "c/k.fixed.n10/s2", { "pack.gapToOpt": 1e-12 }),
+      gap("rows", "c/k.fixed.n10/s3", { "pack.gapToOpt": 0.05 }),
+      gap("rows", "c/k.fixed.n10/s4", { "pack.gapToOpt": 0.2 }),
+      gap("rows", "c/k.fixed.n10/s5", {}),
+    ];
+    const count = (limitOf?: (cell: string) => number) => gapSnapshot(records, { corpus: "c", origin, measure: "pack.gapToOpt", cellOf: () => "one", ...(limitOf === undefined ? {} : { limitOf }) }).strategies[0]!.cells[0]!.atMargin;
+    expect(count()).toEqual({ limit: GAP_TOLERANCE, n: 2 });
+    expect(count(() => 0.05)).toEqual({ limit: 0.05, n: 3 });
+  });
+
+  it("keeps the budget of the run only when the run has one", () => {
+    const records = [gap("rows", "c/k.fixed.n10/s1", { "pack.gapToOpt": 0 })];
+    const budget = { smallPairMs: 15000, smallItems: 30, pairMs: 30000, slowPackMs: 1000, overruns: 2, control: { entry: "skyline", packs: 20, source: "pack" as const } };
+    expect(gapSnapshot(records, { corpus: "c", origin, measure: "pack.gapToOpt" })).not.toHaveProperty("budget");
+    expect(gapSnapshot(records, { corpus: "c", origin, measure: "pack.gapToOpt", budget }).budget).toEqual(budget);
   });
 });
 

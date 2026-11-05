@@ -53,7 +53,7 @@ import { LAST_RUN_OLD_GAP, oldGapNote } from "./gap-definition.ts";
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
 /** These files have their own schema and parser, and a test of their package compares them with their script. */
-const OWN_SCHEMA = ["corpus-cover.json", "law-cover.json", "response-coverage.json"];
+const OWN_SCHEMA = ["corpus-cover.json", "law-cover.json", "response-coverage.json", "solved-rule.json"];
 const KINDS: Record<string, Snapshot["kind"]> = {
   "coverage.json": "coverage",
   "gaps-pack-known-v1.json": "gaps",
