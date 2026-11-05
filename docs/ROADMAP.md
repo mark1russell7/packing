@@ -176,6 +176,7 @@ Status: done, done, waiting, next, done.
 | k168 | Each entry and cell with a skip gets one word: `not done` (a limit of the code, and small work lifts it), `other algorithm` (read one by one) or `no meaning`. A row that nobody has read says `not read`, and it does not default to `no meaning`. The page text reads this field. A skip that we can lift is coverage still owed, so the coverage measure counts it apart from a measured row. | site | active | k148 |
 | k169 | 7 entries refuse each container shape other than the rectangle, although `FreeSpace` knows each shape: `bottom-left`, `bottom-left-liu-teng`, `best-fit`, `best-fit-short`, `best-fit-tall`, `masonry-lpt` and `masonry-shortest`. The table of words marks them `not done`. Lift them through `FreeSpace`, and predict first which ones refuse. A measured bound of a masonry method does not hold in a shape, so the page states that. Due: 11-30 | strategies | later | k148, k168 |
 | k173 | The Pages build reads each data file through the reader of the page, after the branch `site-data` lands, and it stops with the file and the field. Each build prints the count of the fields with a value and the state `not read`. | site | active | k109 |
+| k174 | The job `publish` of `site-data.yml` writes the served branch from any ref. Read if a limit to `main` breaks a use, then add it with its flip. | site | later | k173 |
 
 ## The queue
 
