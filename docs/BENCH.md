@@ -5,7 +5,7 @@ This document tells how to start a benchmark of the packer, and how to read its 
 ## The rules
 
 1. Write the prediction before the run. A commit adds it to `packages/packing/bench/predictions.jsonl` first.
-2. Also write the prediction in the prediction log of the fleet.
+2. Also write the prediction in the prediction log.
 3. Start the run only after the commit of the prediction is on GitHub.
 4. Do not start a benchmark on a local computer. Only the times of CI count.
 
@@ -1249,7 +1249,7 @@ An absolute time of this repository is an in-order time, if no paired test is na
 
 A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
 
-- Schema 3 (strategist, 2026-11-03) takes its measures from `@mark1russell7/rigor-bench`. Each round of an input is one record of the pair (base, arm), with the arm that ran first.
+- Schema 3 (2026-11-03) takes its measures from `@mark1russell7/rigor-bench`. Each round of an input is one record of the pair (base, arm), with the arm that ran first.
 - The ratio of an input is the `caseRatios` ratio: the median of the log ratios of its rounds. Each round cancels the drift of the runner. Schema 2 divided the median times.
 - `sum-median` is the median over the inputs of the ratio of the arm to the sum of the times of the `members` in each round.
 - A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A facts of each job.
@@ -1263,7 +1263,7 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in 
 - The gate refuses a report of another corpus, mode or base, and a report without the A/A arm. It also refuses records that break a rule of rigor-bench.
 - The result has the time verdict of rigor-bench for the first check: `faster`, `slower`, `same` or `cannot decide`. It is a report.
 
-The noise cap (strategist, 2026-11-03) stops a pass on a noisy run.
+The noise cap (2026-11-03) stops a pass on a noisy run.
 
 - The A/A noise of a run is the half width on a log scale of its A/A band of kind `case` at the level 0.8. The level 0.8 holds 80 % of the A/A inputs, as the band p10 to p90 of schema 2.
 - The field `noise` of the gate has the median A/A noise of the derivation runs, the quiet noise. The cap is 3 times the quiet noise, rounded up.
