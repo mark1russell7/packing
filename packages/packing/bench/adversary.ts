@@ -59,7 +59,7 @@ export const BEST = "best";
 export const ORIGINS: readonly string[] = Object.freeze(["tall-row", "skyline-gap", "bl-trap", "half-wide", "ladder", "berkey-wang", "martello-vigo"]);
 
 /** The evaluations without a better input before the search starts again from a new origin. */
-export const PATIENCE = 120;
+export const PATIENCE = 121;
 
 /** The share of the moves that change the parameters or the seed of the origin. The other moves change one item. */
 export const PARAM_SHARE = 0.2;
