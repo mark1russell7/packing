@@ -545,6 +545,8 @@ export interface HardResult {
   breaks: number;
   /** The inputs where the record of the candidate is not deterministic */
   notDeterministic: number;
+  /** The inputs where the measured record of the candidate has the value `null` in `deterministic`: one run gives no read of determinism */
+  noDeterminismRead: number;
   /** The first inputs of `breaks` and `notDeterministic`, at most 10 */
   examples: string[];
   pass: boolean;
@@ -684,6 +686,7 @@ const notDeterministic = (r: PromotionRecord): boolean => r.deterministic === fa
 export function hardTest(pairs: readonly InputPair[]): HardResult {
   let breaks = 0;
   let unstable = 0;
+  let noDeterminismRead = 0;
   const examples: string[] = [];
   for (const p of pairs) {
     const a = hardCounts(p.candidate);
@@ -692,9 +695,10 @@ export function hardTest(pairs: readonly InputPair[]): HardResult {
     const changed = notDeterministic(p.candidate);
     if (broke) breaks += 1;
     if (changed) unstable += 1;
+    if (p.candidate.deterministic === null) noDeterminismRead += 1;
     if ((broke || changed) && examples.length < 10) examples.push(p.input);
   }
-  return { inputs: pairs.length, breaks, notDeterministic: unstable, examples, pass: breaks === 0 && unstable === 0 };
+  return { inputs: pairs.length, breaks, notDeterministic: unstable, noDeterminismRead, examples, pass: breaks === 0 && unstable === 0 };
 }
 
 /** This function gives the time of a record in milliseconds: the field `ms`, or the median of `msRuns`. A record with `oneRun` has no time for the gate. */
@@ -793,7 +797,7 @@ export function testsOf(
   const gain = { measures: gains, pass: gains.some((g) => g.pass) };
   const models = armModels(timeInputs.filter((t) => t.candidate !== undefined && t.current !== undefined).map((t) => t.models));
   const others = pairs.length > 0 && hard.pass && guards.every((g) => g.pass) && stability.every((g) => g.pass) && gain.pass;
-  const status: WinStatus = !others ? "fail" : !models.one ? "no read" : time.pass ? "pass" : "fail";
+  const status: WinStatus = !others ? "fail" : !models.one || hard.noDeterminismRead > 0 ? "no read" : time.pass ? "pass" : "fail";
   return { inputs: pairs.length, hard, guards, stability, gain, time, models, status, pass: status === "pass" };
 }
 
@@ -855,7 +859,7 @@ export function winTest(records: readonly PromotionRecord[], options: WinTestOpt
     tests,
     pass: tests.pass,
     status: tests.status,
-    ...(tests.status === "no read" ? { reason: noReadText(tests.models) } : {}),
+    ...(tests.status === "no read" ? { reason: noReadReason(tests) } : {}),
     shapes,
     ...(compare === undefined ? {} : { compare }),
     ...(views === undefined ? {} : { views }),
@@ -870,6 +874,13 @@ export function timeSourceOf(pairs: readonly InputPair[], kind: TimeSource["kind
   const models = armModels(pairs.map((p) => ({ a: p.candidate.env?.cpu, b: p.current.env?.cpu })));
   const corpora = distinct(pairs.flatMap((p) => [p.candidate.corpus, p.current.corpus]).filter((c): c is string => c !== undefined));
   return { kind, ...(folder === undefined ? {} : { folder }), corpora, cpu: { candidate: [...models.a], current: [...models.b] }, oneModel: models.one };
+}
+
+/** This function gives the reason of `no read` of a win test. It reads the CPU models and the inputs with no read of determinism. */
+function noReadReason(tests: Pick<WinTests, "inputs" | "hard" | "models">): string {
+  const noDeterminism = `${tests.hard.noDeterminismRead} of ${tests.inputs} inputs have no read of determinism`;
+  if (tests.models.one) return `no read: ${noDeterminism}`;
+  return tests.hard.noDeterminismRead > 0 ? `${noReadText(tests.models)}, ${noDeterminism}` : noReadText(tests.models);
 }
 
 /** This function gives the reason of `no read`, from the CPU models of the time pairs. */
@@ -910,6 +921,7 @@ function testRows(t: WinTests, tailWorse: number): string[] {
   const rows = [
     `| hard rules | the inputs with a new hard break | ${t.hard.breaks} | 0 | ${passText(t.hard.breaks === 0)} |`,
     `| hard rules | the inputs that are not deterministic | ${t.hard.notDeterministic} | 0 | ${passText(t.hard.notDeterministic === 0)} |`,
+    ...(t.hard.noDeterminismRead > 0 ? [`| hard rules | the inputs with no read of determinism | ${t.hard.noDeterminismRead} | 0 | no read |`] : []),
   ];
   for (const g of [...t.guards, ...t.stability]) {
     rows.push(checkRow("median", `\`${g.measure}\``, g.median), checkRow("tail share", `\`${g.measure}\` above ${numText(1 + tailWorse)}`, g.tail));

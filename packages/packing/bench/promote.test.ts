@@ -276,6 +276,32 @@ describe("the time source", () => {
     expect(md).toContain("**No read:**");
   });
 
+  it("reads no read when a measured record of the candidate has a null in deterministic", () => {
+    const { inputs, cells } = corpusOf(20);
+    const options = { candidate: "cand", current: "rows", win: ["pack.fill"] as const, cells, parameters: params };
+    const records = onCpu(recordsOf(inputs, GOOD), () => "EPYC 7763");
+    expect(winTest(records, options).status).toBe("pass");
+    records[2] = { ...records[2]!, deterministic: null };
+    const v = winTest(records, options);
+    expect(v.tests.hard).toMatchObject({ notDeterministic: 0, noDeterminismRead: 1, pass: true });
+    expect(v.status).toBe("no read");
+    expect(v.pass).toBe(false);
+    expect(v.reason).toBe("no read: 1 of 20 inputs have no read of determinism");
+    expect(promotionMarkdown(v)).toContain("| hard rules | the inputs with no read of determinism | 1 | 0 | no read |");
+  });
+
+  it("does not read a null on a skipped record, and a false stays a fail", () => {
+    const { inputs, cells } = corpusOf(20);
+    const options = { candidate: "cand", current: "rows", win: ["pack.fill"] as const, cells, parameters: params };
+    const records = onCpu(recordsOf(inputs, GOOD), () => "EPYC 7763");
+    records[2] = { ...records[2]!, skipped: "unsupported mode: offline", measures: {}, deterministic: null };
+    const skipped = winTest(records, options);
+    expect(skipped.tests.hard.noDeterminismRead).toBe(0);
+    expect(skipped.status).toBe("pass");
+    records[2] = { ...records[4]!, input: records[2]!.input, deterministic: false };
+    expect(winTest(records, options).status).toBe("fail");
+  });
+
   it("reads no read with both names when each other test passes on 2 CPU models", () => {
     const { inputs, cells } = corpusOf(20);
     const records = onCpu(recordsOf(inputs, GOOD), (r) => (r.strategy === "cand" ? "EPYC 9V45" : "EPYC 7763"));
@@ -561,7 +587,7 @@ describe("the guard sets on a fixture", () => {
   const modelled: PromotionRecord[] = fixture.records.map((r) => ({ ...r, env: { ...r.env, cpu: "one model" } }));
   const options = { candidate: fixture.candidate, current: fixture.current, win: fixture.win, cells: new Map(Object.entries(fixture.cells)), parameters: fixture.parameters };
   /** This function removes the fields that the stored verdict does not have, so the stored verdict stays as it was. */
-  const asStored = (json: string): GuardFixture["v1"] => JSON.parse(json, (key: string, value: unknown) => (key === "models" || key === "status" ? undefined : value)) as GuardFixture["v1"];
+  const asStored = (json: string): GuardFixture["v1"] => JSON.parse(json, (key: string, value: unknown) => (key === "models" || key === "status" || key === "noDeterminismRead" ? undefined : value)) as GuardFixture["v1"];
 
   it("gives the old verdict with the guard set v1", () => {
     const v = winTest(modelled, { ...options, guards: "v1" });
