@@ -17,25 +17,6 @@ export interface BenchEntry {
   base?: string;
 }
 
-/** The limits of a slow entry in a run of the benchmark. A slow entry has 1 timed run and no warm-up runs. */
-export interface SlowEntry {
-  /** The largest count of items and obstacles of an input. A larger input gets a skipped record. Without a value, this limit does not apply. */
-  readonly maxItems?: number;
-}
-
-/**
- * The slow entries of the benchmark. Without these limits, a job of one entry needs hours on the corpora with 1000 items.
- * `docs/BENCH.md` ("The slow entries") has the measured times and the identifiers of the workflows.
- */
-export const SLOW_ENTRIES: Readonly<Record<string, SlowEntry>> = Object.freeze({
-  "near-rects": {},
-  "raster-nofit": {},
-  beam: { maxItems: 100 },
-  "overlap-min-skyline-k8192": { maxItems: 100 },
-  "overlap-min-maxrects-bl-k8192": { maxItems: 100 },
-  "force-maxrects-bl": {},
-});
-
 /** The variants of the shelf family of roadmap item k21. Each variant has a `fit`, and its base is `shelf`. */
 export const SHELF_VARIANTS: readonly BenchEntry[] = Object.freeze([
   { id: "shelf-next", strategy: "shelf", options: { fit: "next", sortOrder: "height-desc" }, base: "shelf" },

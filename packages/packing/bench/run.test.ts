@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { strategies, strategy } from "@mark1russell7/packing";
-import { ASPECT_FIT_ENTRIES, ENTRIES, entry, SLOW_ENTRIES, STANDALONE_IDS, GUILLOTINE_VARIANTS, MAXRECTS_VARIANTS, BBOX_ENTRIES, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, FORCE_ENTRIES, RELAX_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
+import { ASPECT_FIT_ENTRIES, ENTRIES, entry, STANDALONE_IDS, GUILLOTINE_VARIANTS, MAXRECTS_VARIANTS, BBOX_ENTRIES, PORTFOLIO_ENTRIES, ORDER_SEARCH_ENTRIES, OVERLAP_MIN_ENTRIES, FORCE_ENTRIES, RELAX_ENTRIES, RESTARTS_ENTRIES, RUIN_RECREATE_ENTRIES, SELECT_ENTRIES, SHELF_VARIANTS, SKYLINE_VARIANTS } from "./entries.ts";
 import {
   boundsMarkdown,
   checkPrediction,
@@ -12,7 +12,6 @@ import {
   median,
   mergeRuns,
   outputHash,
-  overItemsReason,
   pairedInputs,
   pairedPack,
   parseCorpus,
@@ -36,48 +35,6 @@ const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test"
 const corpusFile = (name: string): string => readFileSync(join(import.meta.dirname, "corpora", `${name}.json`), "utf8");
 const smoke = parseCorpus(corpusFile("smoke-v1"), "smoke-v1");
 const run = () => runBench({ corpus: smoke, prediction: "p-test", repeats: 1, warmup: 0, env: ENV, commit: "abcdef0" });
-
-describe("the slow entries", () => {
-  const options = { corpus: smoke, prediction: "p-test", strategies: ["rows"], repeats: 3, warmup: 1, env: ENV };
-
-  it("names only entries of the benchmark", () => {
-    const ids = new Set(ENTRIES.map((e) => e.id));
-    expect(Object.keys(SLOW_ENTRIES).filter((id) => !ids.has(id))).toEqual([]);
-  });
-
-  it("gives a slow entry 1 timed run, the other entries keep their timed runs, and the outputs stay equal", () => {
-    const plain = runBench(options).records.filter(isMeasured);
-    const slow = runBench({ ...options, slowEntries: { rows: {} } }).records.filter(isMeasured);
-    expect(new Set(plain.map((r) => r.msRuns.length))).toEqual(new Set([3]));
-    expect(new Set(slow.map((r) => r.msRuns.length))).toEqual(new Set([1]));
-    expect(slow.map((r) => r.outputHash)).toEqual(plain.map((r) => r.outputHash));
-  });
-
-  it("gives a skipped record with its reason to an input with more items than the limit", () => {
-    const sizes = runBench(options).records.filter(isMeasured).map((r) => r.nodes);
-    const limit = Math.min(...sizes);
-    const over = sizes.filter((n) => n > limit).length;
-    expect(over).toBeGreaterThan(0);
-    const result = runBench({ ...options, slowEntries: { rows: { maxItems: limit } } });
-    expect(result.records.filter(isMeasured).length).toBe(sizes.length - over);
-    const skipped = result.records.filter((r): r is SkippedRecord => !isMeasured(r));
-    expect(skipped.map((r) => r.skipped)).toEqual(Array.from({ length: over }, () => overItemsReason(limit)));
-    expect(result.run.skipped.map((s) => s.dimension)).toEqual(Array.from({ length: over }, () => "items"));
-  });
-
-  it("has no limits in a run with interleave", () => {
-    const result = runBench({ ...options, interleave: true, slowEntries: { rows: { maxItems: 0 } } });
-    expect(new Set(result.records.filter(isMeasured).map((r) => r.msRuns.length))).toEqual(new Set([3]));
-  });
-
-  it("names the slow entries of the run in the summary", () => {
-    const slow = runBench({ ...options, strategies: ["force-maxrects-bl"], repeats: 1, warmup: 0 });
-    expect(summaryMarkdown(slow.run, slow.records)).toContain("- Slow entries, with 1 timed run and no warm-up: `force-maxrects-bl`.");
-    const plain = runBench({ ...options, repeats: 1, warmup: 0 });
-    expect(summaryMarkdown(plain.run, plain.records)).not.toContain("Slow entries");
-  });
-});
-
 const first = run();
 const second = run();
 const measured = first.records.filter(isMeasured);

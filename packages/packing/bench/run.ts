@@ -33,9 +33,10 @@ import {
   type PackOutput,
 } from "@mark1russell7/packing";
 import { declaredClaimOf, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
+import { controlFactor, type GroupFactor } from "@mark1russell7/rigor-bench";
 import { portfolioWith } from "../src/portfolio.ts";
 import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
-import { COMPOSITE_IDS, ENTRIES, entry, SLOW_ENTRIES, type BenchEntry, type SlowEntry } from "./entries.ts";
+import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
 import { gapToBound, GAP_TO_BOUND } from "./gap-to-bound.ts";
 import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
@@ -111,6 +112,11 @@ export interface MeasuredRecord extends BenchRecordHead {
   hard: { [K in keyof PackHard]: PackHard[K] };
   /** The time of each timed run, in milliseconds, in the order of the runs. The median of this list is `ms`. */
   msRuns: number[];
+  /**
+   * The value `true` when a measure of the pair chose 1 timed run and no warm-up: its first pack took more than `slowPackMs`.
+   * The time of the record is thus one time, and the time gate does not read it.
+   */
+  oneRun?: true;
   /** The first 16 hex characters of the SHA-256 of the canonical placements, sorted by id. */
   outputHash: string;
   /** The value is `true` when two runs with the same seed give the same output. */
@@ -119,7 +125,7 @@ export interface MeasuredRecord extends BenchRecordHead {
 }
 
 /**
- * The record of a pair that the runner did not pack, because the strategy does not support the cell of the input.
+ * The record of a pair that the runner did not pack, because the strategy does not support the cell of the input, or because of a budget.
  * It has no measures and no hard counts, and its `ms` is 0.
  */
 export interface SkippedRecord extends BenchRecordHead {
@@ -127,8 +133,14 @@ export interface SkippedRecord extends BenchRecordHead {
   hard: Record<string, never>;
   /** The runner did not pack the pair, so the record makes no claim about determinism. */
   deterministic: null;
-  /** The reason: the value of the cell that the strategy does not support. */
+  /** The reason: the value of the cell that the strategy does not support, or the reason of a budget of `budget.ts`. */
   skipped: string;
+  /** The wall budget of the pair, in milliseconds. Only a record of a budget has it. */
+  budgetMs?: number;
+  /** The lower limit of the time of the pair, in milliseconds. The time is censored: the supervisor stopped the pair at this time. */
+  msAtLeast?: number;
+  /** The pairs that passed the budget, so that this pair did not start. Only a record of a stop at one size has it. */
+  because?: string[];
 }
 
 /** One record of a run: a `layout-record/1` line of `docs/FORMAT.md`. A record with `skipped` has no measures. */
@@ -139,9 +151,6 @@ export const isMeasured = (r: BenchRecord): r is MeasuredRecord => r.skipped ===
 
 /** This function gives the reason of a skipped record from the dimension and the value that the strategy does not support. */
 export const skipReason = (dimension: string, value: string): string => `unsupported ${dimension}: ${value}`;
-
-/** This function gives the reason of a skipped record when the input has more items than the limit of a slow entry. */
-export const overItemsReason = (maxItems: number): string => `over the bench limit of ${maxItems} items`;
 
 /** A pair of a strategy and an input that the runner did not pack, because the strategy does not support the cell. */
 export interface BenchSkip {
@@ -156,6 +165,45 @@ export interface BenchError {
   strategy: string;
   input: string;
   message: string;
+}
+
+/** One time of the control of a job. */
+export interface BudgetControl {
+  /** The key of `controlFactor`: the control entry and the input. */
+  key: string;
+  /** The time of the packs of the key, in milliseconds. */
+  ms: number;
+}
+
+/** The facts of one job of a run with a budget. */
+export interface BudgetJob {
+  /** The name of the job: its strategies. */
+  job: string;
+  /** The time of the control before the first pair of the job. Each job does the same work, so the times tell the load of the computer. */
+  control: BudgetControl[];
+  /** The count of the child processes. */
+  children: number;
+}
+
+/** The rules and the facts of a run with a budget. `docs/BENCH.md` ("The budget of a pair") tells the rules. */
+export interface BenchBudget {
+  /** The wall budget of a pair, in milliseconds, up to and with `smallItems` items. */
+  smallPairMs: number;
+  /** The count of the items of the smaller budget. */
+  smallItems: number;
+  /** The wall budget of a pair with more items, in milliseconds. */
+  pairMs: number;
+  /** A first pack over this time gives the pair 1 timed run and no warm-up. */
+  slowPackMs: number;
+  /** The count of overruns of an entry at one size, after which its other pairs at that size and above do not start. */
+  overruns: number;
+  /** The time limit of the pairs of one job, in minutes. Without a limit, this field is not in the run. */
+  deadlineMinutes?: number;
+  /** The entry and the count of packs of each key of the control. */
+  control: { entry: string; packs: number; source: "pack" };
+  jobs: BudgetJob[];
+  /** The load factor of each job, from `controlFactor` with no base. The merge of 2 or more jobs writes it. */
+  factors?: GroupFactor[];
 }
 
 /** The count of the inputs that a strategy packed, of all the inputs. */
@@ -199,6 +247,8 @@ export interface BenchRun extends Partial<BenchScreen> {
   interleave?: true;
   /** The count of the inputs for each declared property of `DECLARED_IDS`. A `run.json` before roadmap item k62 does not have it. */
   declared?: Record<string, number>;
+  /** The rules and the facts of the budget. Only a run with a budget has it. */
+  budget?: BenchBudget;
 }
 
 /** A prediction of `bench/predictions.jsonl`. `docs/BENCH.md` gives the fields. */
@@ -246,8 +296,11 @@ export interface BenchOptions {
    * The records keep the id of the entry, so a run with this field is not a run of the benchmark.
    */
   entryOptions?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-  /** The limits of the slow entries, by the id of the entry. The default is `SLOW_ENTRIES`. A run with `interleave` has no limits. */
-  slowEntries?: Readonly<Record<string, SlowEntry>>;
+  /**
+   * The time of the first pack of a pair, in milliseconds, over which the pair gets 1 timed run and no warm-up, and its record gets `oneRun`.
+   * The default is no limit, so the records do not change.
+   */
+  slowPackMs?: number;
 }
 
 /** The result of `runBench`: the facts of the run, the records, the manifest of the corpus and the outputs. */
@@ -620,137 +673,170 @@ export function finite(values: Record<string, number>): Record<string, number> {
   return out;
 }
 
-/**
- * This function benchmarks a corpus. It packs each input with each strategy that supports the cell of the input.
- *
- * - A strategy that does not support the cell of the manifest gets a skipped record and a skip in the run.
- * - The records keep the order of the strategies, and then the order of the inputs.
- * - The runner packs each pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock.
- * - With `interleave`, the timed passes of each input alternate between the entries. The records and their order do not change.
- * - An input with a `base` in the corpus gets the stability measures of `measureChange` against the run on its base.
- * - With `anchor`, an input with a locked item gets the measures `pack.anchor.*` of `anchorMeasures`.
- * - An error other than `UnsupportedCell` goes into `errors`, and the runner goes on.
- */
-export function runBench(options: BenchOptions): BenchResult {
+/** The input files of a corpus, with their ids and their seeds. */
+type CorpusFile = ReturnType<typeof corpus>["inputs"][number];
+
+/** This function gives the fields of each record of a pair. */
+function headOf(id: string, defaults: Record<string, unknown>, corpusName: string, file: CorpusFile) {
+  return {
+    schema: "layout-record/1",
+    stage: "pack",
+    step: "pack",
+    strategy: id,
+    options: defaults,
+    corpus: corpusName,
+    input: file.id,
+    inputHash: file.hash,
+    set: file.set,
+    seed: file.seed,
+    nodes: file.boxes.length + (file.obstacles?.length ?? 0),
+    edges: file.edges.length,
+  } as const;
+}
+
+/** This function gives the record of a pair that the runner did not pack. */
+function skippedRecordOf(options: BenchOptions, head: ReturnType<typeof headOf>, reason: string, facts: Pick<SkippedRecord, "budgetMs" | "msAtLeast" | "because"> = {}): SkippedRecord {
+  const record: SkippedRecord = {
+    ...head,
+    measures: {},
+    hard: {},
+    tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
+    deterministic: null,
+    prediction: options.prediction,
+    ms: 0,
+    skipped: reason,
+    env: options.env,
+    ...facts,
+  };
+  if (options.commit !== undefined) record.commit = options.commit;
+  return record;
+}
+
+/** The results of some pairs: the records, the skips and the errors. */
+export interface PairResults {
+  records: BenchRecord[];
+  skipped: BenchSkip[];
+  errors: BenchError[];
+}
+
+/** The times of a run: the counts of the passes, the clock, and the times of an interleaved run. */
+interface PairTiming {
+  repeats: number;
+  warmup: number;
+  clock: () => number;
+  interleaved?: ReturnType<typeof interleavedTimes> | undefined;
+}
+
+/** This function reads the options of the passes of a run, and throws a `RangeError` on a wrong value. */
+function timingOf(options: BenchOptions): PairTiming {
   const repeats = options.repeats ?? DEFAULT_REPEATS;
   const warmup = options.warmup ?? DEFAULT_WARMUP;
   if (!Number.isInteger(repeats) || repeats < 1) throw new RangeError("The repeats are a whole number of 1 or more.");
   if (!Number.isInteger(warmup) || warmup < 0) throw new RangeError("The warm-up runs are a whole number of 0 or more.");
   if (options.prediction.trim() === "") throw new RangeError("Each run names its prediction.");
-  const clock = options.clock ?? (() => performance.now());
-  const ids = options.strategies === undefined ? ENTRIES.map((e) => e.id) : [...options.strategies];
-  const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
-  // A false claim stops the run before the first packing
-  const declared = checkDeclared(options.corpus, inputs.map(toPackInput));
-  const interleaved = options.interleave === true ? interleavedTimes(ids, inputs, manifest, repeats, warmup, clock, options.entryOptions) : undefined;
+  return { repeats, warmup, clock: options.clock ?? (() => performance.now()) };
+}
 
-  const records: BenchRecord[] = [];
-  const skipped: BenchSkip[] = [];
-  const errors: BenchError[] = [];
-  const outputs = new Map<string, Map<string, PackOutput>>();
-  const coverage: Record<string, BenchCoverage> = {};
-
-  for (const id of ids) {
-    const e = entryWith(id, options.entryOptions);
-    const s = strategy(e.strategy);
-    // An entry of the registry gives no options to packWith, as the runner before k21 did
-    const given = givenOf(e, s.defaults);
-    const done = new Map<string, { input: PackInput; output: PackOutput }>();
-    const kept = new Map<string, PackOutput>();
-    outputs.set(id, kept);
-    const defaults = { ...(s.defaults as Record<string, unknown>), ...e.options };
-    const slow = options.interleave === true ? undefined : (options.slowEntries ?? SLOW_ENTRIES)[id];
-    for (const [index, file] of inputs.entries()) {
-      const head = {
-        schema: "layout-record/1",
-        stage: "pack",
-        step: "pack",
-        strategy: id,
-        options: defaults,
-        corpus: manifest.corpus,
-        input: file.id,
-        inputHash: file.hash,
-        set: file.set,
-        seed: file.seed,
-        nodes: file.boxes.length + (file.obstacles?.length ?? 0),
-        edges: file.edges.length,
-      } as const;
-      const skip = (dimension: string, value: string, reason: string = skipReason(dimension, value)): void => {
-        skipped.push({ strategy: id, input: file.id, dimension, value });
-        const record: SkippedRecord = {
-          ...head,
-          measures: {},
-          hard: {},
-          tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
-          deterministic: null,
-          prediction: options.prediction,
-          ms: 0,
-          skipped: reason,
-          env: options.env,
-        };
-        if (options.commit !== undefined) record.commit = options.commit;
-        records.push(record);
+/**
+ * This function gives the function that packs one pair and adds its results to `into`.
+ * Without `outputs`, the function keeps no output, so a corpus with `base` inputs does not go with it.
+ */
+function pairPacker(options: BenchOptions, ids: readonly string[], manifest: CorpusManifest, inputs: readonly CorpusFile[], into: PairResults, timing: PairTiming, outputs?: Map<string, Map<string, PackOutput>>): (id: string, index: number) => void {
+  const entries = new Map(
+    ids.map((id) => {
+      const e = entryWith(id, options.entryOptions);
+      const s = strategy(e.strategy);
+      const kept = outputs === undefined ? undefined : new Map<string, PackOutput>();
+      if (kept !== undefined) outputs?.set(id, kept);
+      return [
+        id,
+        {
+          e,
+          s,
+          // An entry of the registry gives no options to packWith, as the runner before k21 did
+          given: givenOf(e, s.defaults),
+          done: new Map<string, { input: PackInput; output: PackOutput }>(),
+          kept,
+          defaults: { ...(s.defaults as Record<string, unknown>), ...e.options },
+        },
+      ] as const;
+    }),
+  );
+  return (id, index) => {
+    const { e, s, given, done, kept, defaults } = entries.get(id)!;
+    const file = inputs[index]!;
+    const head = headOf(id, defaults, manifest.corpus, file);
+    const skip = (dimension: string, value: string, reason: string = skipReason(dimension, value)): void => {
+      into.skipped.push({ strategy: id, input: file.id, dimension, value });
+      into.records.push(skippedRecordOf(options, head, reason));
+    };
+    const miss = unsupportedOf(s.supports, manifest.inputs[index]!.cell);
+    if (miss !== undefined) {
+      skip(miss.dimension, miss.value);
+      return;
+    }
+    const input = toPackInput(file);
+    try {
+      const firstStart = options.slowPackMs === undefined ? 0 : timing.clock();
+      const first = packWith(e.strategy, input, given, file.seed);
+      // Rule 5 of the budget: a measure of this pair chooses one timed run, and the record tells it
+      const oneRun = options.slowPackMs !== undefined && timing.clock() - firstStart > options.slowPackMs;
+      const second = packWith(e.strategy, input, given, file.seed);
+      // k121: each later pass counts for `deterministic` too, so a run with 10 repeats compares 11 outputs with the first
+      const later: PackOutput[] = [second];
+      const pack = (): PackOutput => {
+        const output = packWith(e.strategy, input, given, file.seed);
+        later.push(output);
+        return output;
       };
-      const miss = unsupportedOf(s.supports, manifest.inputs[index]!.cell);
-      if (miss !== undefined) {
-        skip(miss.dimension, miss.value);
-        continue;
+      // The interleaved mode did the warm-up passes and the timed passes before this loop
+      let times = timing.interleaved?.get(id)?.get(file.id);
+      if (times === undefined) {
+        for (let w = 0; w < (oneRun ? 0 : timing.warmup); w++) pack();
+        times = timeRuns(pack, oneRun ? 1 : timing.repeats, timing.clock);
       }
-      if (slow?.maxItems !== undefined && head.nodes > slow.maxItems) {
-        skip("items", String(head.nodes), overItemsReason(slow.maxItems));
-        continue;
-      }
-      const input = toPackInput(file);
-      try {
-        const first = packWith(e.strategy, input, given, file.seed);
-        const second = packWith(e.strategy, input, given, file.seed);
-        // k121: each later pass counts for `deterministic` too, so a run with 10 repeats compares 11 outputs with the first
-        const later: PackOutput[] = [second];
-        const pack = (): PackOutput => {
-          const output = packWith(e.strategy, input, given, file.seed);
-          later.push(output);
-          return output;
-        };
-        // The interleaved mode did the warm-up passes and the timed passes before this loop
-        let times = interleaved?.get(id)?.get(file.id);
-        if (times === undefined) {
-          for (let w = 0; w < (slow === undefined ? warmup : 0); w++) pack();
-          times = timeRuns(pack, slow === undefined ? repeats : 1, clock);
-        }
-        const { msRuns, searchMs } = times;
+      const { msRuns, searchMs } = times;
 
-        const values = pairValues(input, first, searchMs, file.known);
-        // k123: the move between the outputs of two seeds, after the best alignment. A strategy that does not read the seed gives 0.
-        Object.assign(values, measureSeed(input, first, packWith(e.strategy, input, given, file.seed + 1)));
-        const base = file.base === undefined ? undefined : done.get(file.base);
-        if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
-        // Only a run that asks for it gets the stability when an anchor moves (roadmap item k111)
-        if (options.anchor !== undefined && options.anchor !== false) {
-          Object.assign(values, anchorMeasures(input, first, e.strategy, given, file.seed, options.anchor === true ? {} : options.anchor));
-        }
+      const values = pairValues(input, first, searchMs, file.known);
+      // k123: the move between the outputs of two seeds, after the best alignment. A strategy that does not read the seed gives 0.
+      Object.assign(values, measureSeed(input, first, packWith(e.strategy, input, given, file.seed + 1)));
+      const base = file.base === undefined ? undefined : done.get(file.base);
+      if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
+      // Only a run that asks for it gets the stability when an anchor moves (roadmap item k111)
+      if (options.anchor !== undefined && options.anchor !== false) {
+        Object.assign(values, anchorMeasures(input, first, e.strategy, given, file.seed, options.anchor === true ? {} : options.anchor));
+      }
+      if (kept !== undefined) {
         done.set(file.id, { input, output: first });
         kept.set(file.id, first);
-
-        const record: MeasuredRecord = {
-          ...head,
-          measures: roundMeasures(finite(values)),
-          hard: checkHard(input, first, DEFAULT_TOLERANCE),
-          tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
-          deterministic: later.every((output) => isDeterministic(first, output)),
-          prediction: options.prediction,
-          ms: round3(median(msRuns)),
-          msRuns: msRuns.map(round3),
-          outputHash: outputHash(first),
-          env: options.env,
-        };
-        if (options.commit !== undefined) record.commit = options.commit;
-        records.push(record);
-      } catch (error) {
-        if (error instanceof UnsupportedCell) skip(error.dimension, error.value);
-        else errors.push({ strategy: id, input: file.id, message: error instanceof Error ? error.message : String(error) });
       }
+
+      const record: MeasuredRecord = {
+        ...head,
+        measures: roundMeasures(finite(values)),
+        hard: checkHard(input, first, DEFAULT_TOLERANCE),
+        tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
+        deterministic: later.every((output) => isDeterministic(first, output)),
+        prediction: options.prediction,
+        ms: round3(median(msRuns)),
+        msRuns: msRuns.map(round3),
+        ...(oneRun ? { oneRun } : {}),
+        outputHash: outputHash(first),
+        env: options.env,
+      };
+      if (options.commit !== undefined) record.commit = options.commit;
+      into.records.push(record);
+    } catch (error) {
+      if (error instanceof UnsupportedCell) skip(error.dimension, error.value);
+      else into.errors.push({ strategy: id, input: file.id, message: error instanceof Error ? error.message : String(error) });
     }
-    // The coverage: the measured records of this strategy, of all the inputs and of each container shape
+  };
+}
+
+/** This function gives the coverage of each strategy: the measured records of all the inputs and of each container shape. */
+function runCoverage(ids: readonly string[], manifest: CorpusManifest, inputs: readonly CorpusFile[], records: readonly BenchRecord[]): Record<string, BenchCoverage> {
+  const coverage: Record<string, BenchCoverage> = {};
+  for (const id of ids) {
     const packed = new Set(records.filter((r) => r.strategy === id && isMeasured(r)).map((r) => r.input));
     const shapes: Record<string, { measured: number; inputs: number }> = {};
     for (const [index, file] of inputs.entries()) {
@@ -761,18 +847,23 @@ export function runBench(options: BenchOptions): BenchResult {
     }
     coverage[id] = { ...countOf(packed.size, inputs.length), shapes: Object.fromEntries(Object.entries(shapes).map(([k, c]) => [k, countOf(c.measured, c.inputs)])) };
   }
+  return coverage;
+}
 
+/** This function makes the facts of a run from the results of its pairs. */
+function finishRun(options: BenchOptions, ids: readonly string[], manifest: CorpusManifest, inputs: readonly CorpusFile[], declared: Record<string, number>, results: PairResults, timing: PairTiming): BenchRun {
+  const { records, skipped, errors } = results;
   const run: BenchRun = {
     schema: "packing-bench-run/1",
     corpus: manifest.corpus,
     prediction: options.prediction,
-    repeats,
-    warmup,
-    strategies: ids,
+    repeats: timing.repeats,
+    warmup: timing.warmup,
+    strategies: [...ids],
     env: options.env,
     skipped,
     errors,
-    coverage,
+    coverage: runCoverage(ids, manifest, inputs, records),
     declared,
   };
   if (options.commit !== undefined) run.commit = options.commit;
@@ -785,7 +876,82 @@ export function runBench(options: BenchOptions): BenchResult {
       )
     : undefined;
   Object.assign(run, screenOf(ids, records, shapesOf(manifest), portfolioOptions(run.heldOut, members)));
-  return { run, records, manifest, outputs };
+  return run;
+}
+
+/**
+ * This function benchmarks a corpus. It packs each input with each strategy that supports the cell of the input.
+ *
+ * - A strategy that does not support the cell of the manifest gets a skipped record and a skip in the run.
+ * - The records keep the order of the strategies, and then the order of the inputs.
+ * - The runner packs each pair 2 times for `deterministic`, then `warmup` times, then `repeats` times with a clock.
+ * - With `interleave`, the timed passes of each input alternate between the entries. The records and their order do not change.
+ * - An input with a `base` in the corpus gets the stability measures of `measureChange` against the run on its base.
+ * - With `anchor`, an input with a locked item gets the measures `pack.anchor.*` of `anchorMeasures`.
+ * - An error other than `UnsupportedCell` goes into `errors`, and the runner goes on.
+ */
+export function runBench(options: BenchOptions): BenchResult {
+  const timing = timingOf(options);
+  const ids = options.strategies === undefined ? ENTRIES.map((e) => e.id) : [...options.strategies];
+  const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
+  // A false claim stops the run before the first packing
+  const declared = checkDeclared(options.corpus, inputs.map(toPackInput));
+  if (options.interleave === true) timing.interleaved = interleavedTimes(ids, inputs, manifest, timing.repeats, timing.warmup, timing.clock, options.entryOptions);
+
+  const results: PairResults = { records: [], skipped: [], errors: [] };
+  const outputs = new Map<string, Map<string, PackOutput>>();
+  const packPair = pairPacker(options, ids, manifest, inputs, results, timing, outputs);
+  for (const id of ids) {
+    for (const index of inputs.keys()) packPair(id, index);
+  }
+  return { run: finishRun(options, ids, manifest, inputs, declared, results, timing), records: results.records, manifest, outputs };
+}
+
+/** One pair of a run with a budget. */
+export interface BenchPair {
+  strategy: string;
+  input: string;
+}
+
+/**
+ * This function packs some pairs in the order of the list, as `runBench` packs them, and keeps no results and no outputs.
+ * `onStart` comes before each pair. `onEnd` gets the results of the pair. A corpus with `base` inputs does not go with this function.
+ */
+export function runPairs(options: BenchOptions, pairs: readonly BenchPair[], onStart: (pair: BenchPair) => void, onEnd: (pair: BenchPair, results: PairResults) => void): void {
+  const timing = timingOf(options);
+  const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
+  const indexes = new Map(inputs.map((file, index) => [file.id, index]));
+  const into: PairResults = { records: [], skipped: [], errors: [] };
+  const packPair = pairPacker(options, [...new Set(pairs.map((p) => p.strategy))], manifest, inputs, into, timing);
+  for (const pair of pairs) {
+    const index = indexes.get(pair.input);
+    if (index === undefined) throw new RangeError(`The corpus has no input "${pair.input}".`);
+    onStart(pair);
+    packPair(pair.strategy, index);
+    onEnd(pair, { records: into.records.splice(0), skipped: into.skipped.splice(0), errors: into.errors.splice(0) });
+  }
+}
+
+/** This function gives the function that makes the skip and the record of a pair that a budget stopped. */
+export function budgetSkips(options: BenchOptions): (pair: BenchPair, reason: string, facts: Pick<SkippedRecord, "budgetMs" | "msAtLeast" | "because">) => { skip: BenchSkip; record: SkippedRecord } {
+  const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
+  const files = new Map(inputs.map((file) => [file.id, file]));
+  return (pair, reason, facts) => {
+    const file = files.get(pair.input);
+    if (file === undefined) throw new RangeError(`The corpus has no input "${pair.input}".`);
+    const e = entryWith(pair.strategy, options.entryOptions);
+    const defaults = { ...(strategy(e.strategy).defaults as Record<string, unknown>), ...e.options };
+    return { skip: { strategy: pair.strategy, input: pair.input, dimension: "budget", value: reason }, record: skippedRecordOf(options, headOf(pair.strategy, defaults, manifest.corpus, file), reason, facts) };
+  };
+}
+
+/** This function makes the result of a run from the results of its pairs, and packs no pair. The result has no outputs. */
+export function runOfPairs(options: BenchOptions, results: PairResults): BenchResult {
+  const timing = timingOf(options);
+  const ids = options.strategies === undefined ? ENTRIES.map((e) => e.id) : [...options.strategies];
+  const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
+  const declared = checkDeclared(options.corpus, inputs.map(toPackInput));
+  return { run: finishRun(options, ids, manifest, inputs, declared, results, timing), records: results.records, manifest, outputs: new Map() };
 }
 
 /** This function writes records as JSON Lines: one line for each record, and a line end after each line. */
@@ -795,6 +961,24 @@ export function recordLines(records: readonly BenchRecord[]): string {
 
 /** The fields of `BenchScreen` in a run */
 const SCREEN_FIELDS = ["fill", "overflow", "outputGroups", "cellGroups", "activation", "ranking", "portfolio"] as const;
+
+/** The least count of keys in a load factor: the default of `controlFactor`. */
+const FACTOR_KEYS = 5;
+
+/** This function joins the budgets of the jobs: the rules are one, the jobs add up, and 2 or more jobs give the load factors. */
+function mergedBudget(runs: readonly BenchRun[]): BenchBudget {
+  const rulesOf = ({ jobs: _jobs, factors: _factors, ...rules }: BenchBudget): string => JSON.stringify(rules);
+  const budgets = runs.map((r) => r.budget);
+  const first = budgets[0];
+  if (first === undefined || budgets.some((b) => b === undefined || rulesOf(b) !== rulesOf(first))) throw new Error("The runs of a merge have one budget.");
+  const jobs = budgets.flatMap((b) => b?.jobs ?? []);
+  const merged: BenchBudget = { ...first, jobs };
+  delete merged.factors;
+  if (jobs.filter((j) => j.control.length >= FACTOR_KEYS).length >= 2) {
+    merged.factors = [...controlFactor(jobs.flatMap((j) => j.control.map((c) => ({ group: j.job, key: c.key, value: c.ms })))).factors];
+  }
+  return merged;
+}
 
 /**
  * This function joins the runs of the jobs of one corpus and one prediction into one run. It throws an `Error` for different runs.
@@ -833,6 +1017,7 @@ export function mergeRuns(runs: readonly BenchRun[], records?: readonly BenchRec
       Object.entries(sums).map(([id, sum]) => [id, { ...countOf(...sum.all), shapes: Object.fromEntries(Object.entries(sum.shapes).map(([k, n]) => [k, countOf(...n)])) }]),
     );
   } else delete merged.coverage;
+  if (runs.some((r) => r.budget !== undefined)) merged.budget = mergedBudget(runs);
   for (const field of SCREEN_FIELDS) delete merged[field];
   if (records !== undefined) {
     const portfolio = portfolioOptions(merged.heldOut, membersOfManifest(merged.strategies, manifest));
@@ -926,15 +1111,30 @@ export function boundsMarkdown(strategies: readonly string[], records: readonly 
   return ["| strategy | objective | records | gap median | gap q0.95 | winning bounds |", "|---|---|---:|---:|---:|---|", ...rows];
 }
 
-/** This function gives the line of the summary that names the slow entries of a run. A run without slow entries has no line. */
-function slowLines(run: BenchRun): string[] {
-  if (run.interleave === true) return [];
-  const slow = run.strategies.flatMap((id) => {
-    const limits = SLOW_ENTRIES[id];
-    if (limits === undefined) return [];
-    return [limits.maxItems === undefined ? `\`${id}\`` : `\`${id}\` (up to ${limits.maxItems} items)`];
-  });
-  return slow.length === 0 ? [] : [`- Slow entries, with 1 timed run and no warm-up: ${slow.join(", ")}.`];
+/** This function gives the section of the summary about the budget. A run without a budget has no section. */
+function budgetLines(run: BenchRun, records: readonly BenchRecord[]): string[] {
+  const b = run.budget;
+  if (b === undefined) return [];
+  const lines = [
+    "",
+    "## Budget",
+    "",
+    `- A pair has a wall budget of ${b.smallPairMs} ms up to ${b.smallItems} items, and ${b.pairMs} ms above. A first pack over ${b.slowPackMs} ms gives the pair 1 timed run and no warm-up.`,
+    `- After ${b.overruns} pairs over budget, the other pairs of the entry at that size and above do not start.`,
+    ...(b.deadlineMinutes === undefined ? [] : [`- The pairs of one job stop after ${b.deadlineMinutes} minutes.`]),
+    "",
+    "| strategy | largest input finished | over budget | not started | 1 timed run | load factor |",
+    "|---|---:|---:|---:|---:|---:|",
+  ];
+  for (const id of run.strategies) {
+    const own = records.filter((r) => r.strategy === id);
+    const finished = own.filter(isMeasured);
+    const over = own.filter((r) => !isMeasured(r) && r.msAtLeast !== undefined).length;
+    const notRun = own.filter((r) => !isMeasured(r) && r.budgetMs !== undefined && r.msAtLeast === undefined).length;
+    const factor = b.factors?.find((f) => f.group === id)?.factor;
+    lines.push(`| ${id} | ${finished.length === 0 ? "-" : Math.max(...finished.map((r) => r.nodes))} | ${over} | ${notRun} | ${finished.filter((r) => r.oneRun === true).length} | ${num(factor)} |`);
+  }
+  return lines;
 }
 
 /**
@@ -953,7 +1153,6 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
     `- Computer: ${run.env.runner}, ${run.env.os} ${run.env.arch}, ${run.env.cpus} x ${run.env.cpu}, Node.js ${run.env.node}`,
     `- Runs of each pair: 2 for determinism, ${run.warmup} warm-up, ${run.repeats} timed. \`ms\` is the median of the timed runs.`,
     ...(run.interleave === true ? ["- The timed passes of each input alternate between the strategies: for each repeat, one timed pass of each strategy."] : []),
-    ...slowLines(run),
     `- Records: ${records.length}. Measured records: ${measured.length}. Skipped records: ${skips.length}. Errors: ${run.errors.length}.`,
     "",
     "## Strategies",
@@ -1003,6 +1202,8 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
   }
 
   lines.push("", ...screenMarkdown(run, run.strategies));
+
+  lines.push(...budgetLines(run, records));
 
   lines.push("", "## Skipped cells", "");
   if (skips.length === 0) lines.push("No pair was skipped.");
