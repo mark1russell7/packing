@@ -48,6 +48,7 @@ import {
   type SampledMeasure,
   type StrataMeasure,
 } from "./coverage.ts";
+import { skipRead, type SkipRead } from "./skip-words.ts";
 import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
 import { ENTRIES } from "./entries.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
@@ -155,8 +156,8 @@ export interface StrategySummary {
   groups: { group: string; wins: number; losses: number; ties: number }[];
   /** The inputs that the strategy finished. */
   finished: StrategyFinished;
-  /** The reason of each skipped record, with its count, the largest count first. */
-  reasons: { reason: string; count: number }[];
+  /** The reason of each skipped record, with its count, the largest count first. A reason that is no wall budget has its word. */
+  reasons: ({ reason: string; count: number } & Partial<SkipRead>)[];
   /** The count of the records with 1 timed run. */
   oneRun: number;
 }
@@ -246,14 +247,16 @@ function finishedOf(live: readonly SnapshotRecord[]): StrategyFinished {
 }
 
 /** This function gives the reason of each skipped record with its count. A reason keeps at most 80 characters, so a snapshot stays small. */
-function reasonsOf(records: readonly SnapshotRecord[]): { reason: string; count: number }[] {
+function reasonsOf(entry: string, records: readonly SnapshotRecord[]): StrategySummary["reasons"] {
   const counts = new Map<string, number>();
   for (const r of records) {
     if (r.skipped === undefined) continue;
     const reason = r.skipped.slice(0, 80);
     counts.set(reason, (counts.get(reason) ?? 0) + 1);
   }
-  return [...counts].map(([reason, count]) => ({ reason, count })).sort((x, y) => y.count - x.count || x.reason.localeCompare(y.reason));
+  return [...counts]
+    .map(([reason, count]) => ({ reason, count, ...(BUDGET_REASONS.has(reason) ? {} : skipRead(entry, reason)) }))
+    .sort((x, y) => y.count - x.count || x.reason.localeCompare(y.reason));
 }
 
 /** This function gives the rules of a budget of `run.json` for the page, with the range of the load factors of its jobs. */
@@ -375,7 +378,7 @@ export function strategySnapshot(records: readonly SnapshotRecord[], options: St
       verdicts,
       groups,
       finished: finishedOf(live),
-      reasons: reasonsOf(own),
+      reasons: reasonsOf(id, own),
       oneRun: live.filter((r) => r.oneRun === true).length,
     };
   });
@@ -1049,8 +1052,8 @@ export function commonPairs<R extends { readonly strategy: string; readonly inpu
 /** One entry of the bench with no measured record in a run, with each reason and its count of records. A reason with no row counts 0 records. */
 export interface CoverageOtherEntry {
   entry: string;
-  /** The value `msAtLeast` is the smallest lower bound on the time of the censored records of a reason. */
-  reasons: { because: string; records: number; msAtLeast?: number }[];
+  /** The value `msAtLeast` is the smallest lower bound on the time of the censored records of a reason. A reason that is no wall budget has its word on the page. */
+  reasons: ({ because: string; records: number; msAtLeast?: number } & Partial<SkipRead>)[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run. */
@@ -1448,6 +1451,17 @@ export function coverageEntries(
   return { planned: planned.length, measured: planned.length - others.length, others };
 }
 
+/** This function gives each reason of the other entries its word. A wall budget has no word, because the strategy did not refuse the input. */
+export function othersWithWords(entries: CoverageEntries): CoverageEntries {
+  return {
+    ...entries,
+    others: entries.others.map((other) => ({
+      ...other,
+      reasons: other.reasons.map((r) => (BUDGET_REASONS.has(r.because) ? r : { ...r, ...skipRead(other.entry, r.because) })),
+    })),
+  };
+}
+
 /**
  * This function gives the entries of the earlier point of a corpus that have no measured record in this run, each with its reason.
  * It reads the last earlier point with a list, with any method. A later point of the same run does not count as earlier.
@@ -1586,7 +1600,7 @@ export function snapshotMain(argv: readonly string[]): void {
       // k119, k122: the basis of the family prior, the same weight for each family by default
       ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
-    const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []);
+    const entries = othersWithWords(coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []));
     // A new entry does not restart a line: the same fit over an earlier list gives the next point of that line.
     const method = coverageMethod(run);
     const over = earlierLists(earlier?.trend ?? [], run.corpus, method, grid.strategies).map((list) => {
