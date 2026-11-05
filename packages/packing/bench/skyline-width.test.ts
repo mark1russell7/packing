@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { packWith, type PackInput } from "../src/index.ts";
 import { fillOf } from "../src/measures.ts";
-import { baseLines, coarsePack, coarseUnit, logSlope, scaleInput, widthLines, widthShare, type WidthRow } from "./skyline-width.ts";
+import { baseLines, coarsePack, coarseUnit, entryArms, logSlope, scaleInput, widthLines, widthShare, type WidthRow } from "./skyline-width.ts";
 
 /** This function makes one row of an arm with a time that grows by a power of the scale. */
 function row(scale: number, seed: number, power: number): WidthRow {
@@ -61,6 +61,15 @@ describe("the read of the time against the width", () => {
     ]);
     expect(baseLines(rows, "new", "base")).toEqual([{ form: "freeArea", sizes: "uniform", count: 100, ratio: 1.2 }]);
     expect(baseLines(rows, "new", "absent")).toEqual([]);
+  });
+});
+
+describe("entryArms", () => {
+  it("gives an arm for each entry, with the pack of the runner", () => {
+    expect(entryArms(["anneal-skyline-k16", "bbox-skyline"])).toEqual([
+      { name: "anneal-skyline-k16", entry: "anneal-skyline-k16" },
+      { name: "bbox-skyline", entry: "bbox-skyline" },
+    ]);
   });
 });
 

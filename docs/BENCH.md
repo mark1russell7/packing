@@ -237,6 +237,20 @@ The rule `mw` compares the waste of 2 windows with a tolerance of `1e-9` of the 
 
 A space that is not plain also keeps its cells, because a curve can have a break at each cell.
 
+### The entries on the engine
+
+14 of the 64 entries reach this engine. Only the entries on the rule `bl` gain from the runs.
+
+| Rule on the engine | Entries | Count | Pages at this time |
+|---|---|---|---|
+| `bl`, plain | `skyline`, `bbox-skyline`, `ruin-recreate-skyline-k64`, `overlap-min-skyline-k8192`, `anneal-skyline-k16`, `push` | 6 | `skyline` has rows. `push` shows a skip. |
+| `bl`, with the waste map | `skyline-bl-waste`, `relax-skyline-bl-waste`, `force-skyline-bl-waste` | 3 | none |
+| `bl`, only in some cells | `portfolio-k2` (5 of 39 cells), `portfolio-k3` (6 of 39), `aspect-fit-portfolio-k2` (5 of 39) | 3 | all 3 have rows |
+| `mw` | `skyline-mw`, `skyline-mw-waste` | 2 | none |
+| `bl` and `mw` | | 0 | |
+
+The members of the portfolio sets hold only the plain `skyline`, so the rule of those cells is `bl`. A page line on the time of an entry stays until the slope read of that entry changes it. The input `entries` of `skyline-width.yml` adds an entry to the read. `push` has no row in that read, because it refuses an offline input.
+
 ### Inputs that are not whole numbers
 
 The cells stay whole. The code takes the floor of the width and the ceiling of each box width. The left edge of a locked box takes the floor, and its right edge takes the ceiling. So each run starts at a whole number, and one cell is one unit of the input. A width below 1 returns the container with no change, as before.

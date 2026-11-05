@@ -225,6 +225,14 @@ export function widthMarkdown(lines: readonly WidthLine[], scales: readonly numb
 }
 
 /** This function parses a list of whole numbers. */
+/**
+ * This function gives an arm for each named entry, so each entry on the engine can have its own slope read. An entry that refuses an
+ * input has no row on that input. So `push` has no row in this read, because it refuses an offline input.
+ */
+export function entryArms(ids: readonly string[]): WidthArm[] {
+  return ids.map((id) => ({ name: id, entry: id }));
+}
+
 function numbers(text: string): number[] {
   return text.split(",").map((part) => Number(part));
 }
@@ -242,6 +250,7 @@ async function main(): Promise<void> {
       "budget-ms": { type: "string", default: "20000" },
       "deadline-minutes": { type: "string", default: "30" },
       base: { type: "string" },
+      entries: { type: "string" },
     },
   });
   if (values.out === undefined) throw new RangeError("The option --out is necessary.");
@@ -252,7 +261,8 @@ async function main(): Promise<void> {
   const budgetMs = Number(values["budget-ms"]);
   const deadline = performance.now() + Number(values["deadline-minutes"]) * 60_000;
 
-  const arms = [...WIDTH_ARMS];
+  const named = values.entries === undefined || values.entries === "" ? [] : values.entries.split(",");
+  const arms = [...WIDTH_ARMS, ...entryArms(named.filter((id) => !WIDTH_ARMS.some((arm) => arm.name === id)))];
   if (values.base !== undefined) {
     const file = pathToFileURL(join(values.base, "packages", "packing", "src", "index.ts")).href;
     const base = (await import(file)) as { packWith: (id: string, input: PackInput, options: undefined, seed: number) => PackOutput };

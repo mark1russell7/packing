@@ -177,7 +177,7 @@ Status: done, done, waiting, next, done.
 | k169 | 7 entries refuse each container shape other than the rectangle, although `FreeSpace` knows each shape: `bottom-left`, `bottom-left-liu-teng`, `best-fit`, `best-fit-short`, `best-fit-tall`, `masonry-lpt` and `masonry-shortest`. The table of words marks them `not done`. Lift them through `FreeSpace`, and predict first which ones refuse. A measured bound of a masonry method does not hold in a shape, so the page states that. Due: 11-30 | strategies | later | k148, k168 |
 | k170 | The rule `bl` of `skyline` keeps runs of equal height, so its time does not grow with the width. Each output stays the same. `bench/skyline-equal.ts` reads the runs against the cell scan in `CI OK`, with a flip test. See "The width of `skyline`" in `docs/BENCH.md`. | packer | active | k167 |
 | k171 | A gate on the slope of `skyline` against the width. It reports until 5 CI runs of the read give a limit. A flip test restores the O(width) path, and the gate must go red. | packer | later | k170 |
-| k172 | The rule `mw` and a space that is not plain keep one cell for each unit of the width, so `packSkyline` has 2 paths. Read if `mw` can move to runs. A moved tie makes it a break, with the quality rows read again. | packer | later | k170 |
+| k172 | The rule `mw` and a space that is not plain keep one cell for each unit of the width, so `packSkyline` has 2 paths. Read if the moves at near ties change the quality of a pack, because that is the price of 1 path. A moved tie makes it a break, with the quality rows read again. | packer | later | k170 |
 
 ## The queue
 

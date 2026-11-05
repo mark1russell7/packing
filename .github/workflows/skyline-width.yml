@@ -10,6 +10,15 @@ on:
   # work when the pull request changes no file of the engine (CI.md of the template, "A gate with paths").
   pull_request:
   workflow_dispatch:
+    inputs:
+      entries:
+        description: "Entries to read as well, with commas, so that each entry has its own slope read"
+        required: false
+        default: ""
+      counts:
+        description: "Item counts, with commas"
+        required: false
+        default: "10,100,1000"
 
 permissions: {}
 
@@ -72,8 +81,10 @@ jobs:
       - name: Read the time against the width
         env:
           BASE_ARGS: ${{ github.event_name == 'pull_request' && format('--base {0}/.base', github.workspace) || '' }}
+          ENTRIES: ${{ inputs.entries }}
+          COUNTS: ${{ inputs.counts || '10,100,1000' }}
         # BASE_ARGS has no space in its folder on a runner, so the shell splits it into 2 words.
-        run: node --no-warnings packages/packing/bench/skyline-width.ts --out "$RUNNER_TEMP/width/skyline-width.json" --summary "$GITHUB_STEP_SUMMARY" --deadline-minutes 45 $BASE_ARGS
+        run: node --no-warnings packages/packing/bench/skyline-width.ts --out "$RUNNER_TEMP/width/skyline-width.json" --summary "$GITHUB_STEP_SUMMARY" --deadline-minutes 45 --entries "$ENTRIES" --counts "$COUNTS" $BASE_ARGS
       - name: Test the read
         if: always()
         working-directory: packages/packing
