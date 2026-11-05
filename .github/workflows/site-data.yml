@@ -86,10 +86,13 @@ jobs:
             RUNS="${RUNS# }"
             [ -n "$RUNS" ] || { echo "The run $WEEKLY_RUN has no merged records of a corpus of the site."; exit 1; }
           fi
-          # The earlier points of the coverage trend are on the branch.
+          # The earlier points of the coverage trend are on the branch. The branch has only files at its root.
+          # The job reads each file with git show and unpacks no archive. The downloaded runs stay data under RUNNER_TEMP.
           if git fetch -q origin site-data; then
             mkdir -p "$RUNNER_TEMP/branch"
-            git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/branch"
+            git ls-tree -z --name-only FETCH_HEAD | while IFS= read -r -d '' name; do
+              git show "FETCH_HEAD:$name" > "$RUNNER_TEMP/branch/$name"
+            done
             node --no-warnings packages/site/scripts/overlay.ts "$RUNNER_TEMP/branch" "$data"
           fi
           # The job compares the files with this copy, to find the files that this run writes.
