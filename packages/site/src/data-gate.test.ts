@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { regionsOf } from "./atlas-model.ts";
-import { DATA_READERS, gateLines, NEW_FIELD_ORDER, readDataFiles } from "./data-gate.ts";
+import { CORPORA_OF_FILE, DATA_READERS, gateLines, NEW_FIELD_ORDER, readDataFiles, replaceLine } from "./data-gate.ts";
 import { SNAPSHOT_SHAPES } from "./data-shapes.ts";
 import { parseLawCover, parseSnapshot, parseSolvedRule, type GapSnapshot, type StrategySnapshot } from "./data.ts";
 import { DataFileError, faultsOf, fields, either, list, nullable, num, oneOf, optional, recordOf, text, type Shape } from "./data-shape.ts";
@@ -113,6 +113,7 @@ describe("the order of a new field", () => {
     expect(readDataFiles(main()).faults).toEqual([]);
     const lines = gateLines(readDataFiles(new Map([...main(), [KNOWN, OLD_KNOWN]])));
     expect(lines).toContain(NEW_FIELD_ORDER);
+    expect(lines).toContain('REPLACE gaps-pack-known-v1.json: gh workflow run site-data.yml -R mark1russell7/packing --ref main -f runs="pack-known-v1=<id of a finished bench run on main>"');
     expect(NEW_FIELD_ORDER).toMatch(/accepts a missing field as `not read`\. Merge, start the workflow `Site data`, and then make the reader require the field/);
   });
 
@@ -271,5 +272,31 @@ describe("the shapes", () => {
   it("names a missing field", () => {
     const { a: _a, ...rest } = good;
     expect(faultsOf(shape, rest)).toEqual([{ field: "a", reason: "is missing" }]);
+  });
+});
+
+describe("the line that replaces a file with a fault", () => {
+  const workflow = readFileSync(new URL("../../../.github/workflows/site-data.yml", import.meta.url), "utf8");
+
+  it("names only corpora that the workflow reads, and only files with a reader", () => {
+    for (const [file, corpora] of Object.entries(CORPORA_OF_FILE)) {
+      expect(DATA_READERS[file]).toBeDefined();
+      for (const corpus of corpora) expect(workflow).toMatch(new RegExp(`(^|[\\s|])${corpus}( \\||\\))`, "m"));
+    }
+  });
+
+  it("gives each run of the table of the selector", () => {
+    expect(replaceLine("select-table.json")).toContain("pack-screen-v1=<id of a finished bench run on main> pack-free-v1=<id of a finished bench run on main> pack-select-v1=<id of a finished bench run on main> pack-select-v2=<id of a finished bench run on main>");
+  });
+
+  it("sends a file of main to a pull request, and gives no line for a file with no reader", () => {
+    expect(replaceLine("solved-rule.json")).toBe("REPLACE solved-rule.json: this file lands from main, so a pull request replaces it.");
+    expect(replaceLine("new.json")).toBeUndefined();
+  });
+
+  it("gives each file one line, also with many faults, and no line with no fault", () => {
+    const lines = gateLines(readDataFiles(new Map([...main(), [KNOWN, OLD_KNOWN]])));
+    expect(lines.filter((l) => l.startsWith(`REPLACE ${KNOWN}:`))).toHaveLength(1);
+    expect(gateLines(readDataFiles(main())).filter((l) => l.startsWith("REPLACE"))).toEqual([]);
   });
 });

@@ -110,6 +110,31 @@ function notReadOthers(file: string, snap: CoverageSnapshot): NotReadCount[] {
 export const NEW_FIELD_ORDER: string =
   "The reader of this commit does not accept these files. For a new field, the reader first accepts a missing field as `not read`. Merge, start the workflow `Site data`, and then make the reader require the field.";
 
+/** The corpora of each file that a run of `Site data` writes. The table of the selector needs four runs. */
+export const CORPORA_OF_FILE: Readonly<Record<string, readonly string[]>> = {
+  "coverage.json": ["pack-classes-v1"],
+  "gaps-pack-known-v1.json": ["pack-known-v1"],
+  "gaps-pack-select-v2.json": ["pack-select-v2"],
+  "select-table.json": ["pack-screen-v1", "pack-free-v1", "pack-select-v1", "pack-select-v2"],
+  "strategies-pack-free-v1.json": ["pack-free-v1"],
+  "strategies-pack-screen-v1.json": ["pack-screen-v1"],
+  "strategies-pack-select-v1.json": ["pack-select-v1"],
+  "strategies-pack-select-v2.json": ["pack-select-v2"],
+};
+
+/**
+ * This function gives the line that tells how to replace a file with a fault. A file that `Site data` writes gets the exact command.
+ * A file with no such run lands from `main`, so a pull request replaces it. A file with no reader gets no line.
+ */
+export function replaceLine(file: string): string | undefined {
+  const corpora = CORPORA_OF_FILE[file];
+  if (corpora !== undefined) {
+    const runs = corpora.map((corpus) => `${corpus}=<id of a finished bench run on main>`).join(" ");
+    return `REPLACE ${file}: gh workflow run site-data.yml -R mark1russell7/packing --ref main -f runs="${runs}"`;
+  }
+  return DATA_READERS[file] === undefined ? undefined : `REPLACE ${file}: this file lands from main, so a pull request replaces it.`;
+}
+
 /** This function reads a folder of data files: the text of each file by its name. */
 export function readDataFiles(files: ReadonlyMap<string, string>): DataRead {
   const faults: FileFault[] = [];
@@ -147,9 +172,11 @@ export function gateLines(read: DataRead): string[] {
   }
   const faults = [...forms.values()].map(({ first, count }) => `FAULT ${first.file}: ${first.field} ${first.reason}${count > 1 ? ` (${count} fields of this form)` : ""}`);
   const total = read.notRead.reduce((n, c) => n + c.fields, 0);
+  const replace = [...new Set(read.faults.map((f) => f.file))].flatMap((file) => replaceLine(file) ?? []);
   return [
     ...faults,
     `Data gate: ${read.files} files read, ${read.faults.length} faults.`,
+    ...replace,
     ...(read.faults.length > 0 ? [NEW_FIELD_ORDER] : []),
     `Fields with a value and the state not read: ${total}.`,
     ...read.notRead.map((c) => `  ${c.file}: ${c.fields} ${c.what}`),
