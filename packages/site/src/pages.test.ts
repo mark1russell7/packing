@@ -49,6 +49,7 @@ import {
   trendChart,
   stepReads,
   trendNote,
+  triggerText,
 } from "./results-model.ts";
 import { LAST_RUN_OLD_GAP, oldGapNote } from "./gap-definition.ts";
 
@@ -160,6 +161,15 @@ describe("navLinks", () => {
   it("adds the slash at the end of a base without one", () => {
     expect(navLinks("/x", "demo").find((l) => l.id === "results")!.href).toBe("/x/results/");
     expect(navLinks("/", "demo")[0]!.href).toBe("/");
+  });
+});
+
+describe("the line of the home page about the explorer", () => {
+  it("is in the served HTML with a link, so a read with no script finds it", () => {
+    const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    const line = /<p id="explorer-line">(.*?)<\/p>/.exec(html)?.[1];
+    expect(line).toContain('<a href="./explorer/">response explorer</a>');
+    expect(line).toContain("?");
   });
 });
 
@@ -762,5 +772,20 @@ describe("the space coverage of k105", () => {
       expect(entriesNote(undefined)).toBe("");
       expect(entriesNote({ planned: 1, measured: 1, others: [] })).not.toContain("<ul");
     });
+  });
+});
+
+describe("the start of the run of a coverage point (k185)", () => {
+  const p = { date: "2026-11-05", run: 41993720877, corpus: "pack-classes-v1", commit: "441bb21", shares: {} };
+
+  it("names a dispatch, a weekly run and a push, with the link of the run", () => {
+    expect(triggerText({ ...p, trigger: "dispatch" })).toBe(', <a href="https://github.com/mark1russell7/packing/actions/runs/41993720877">run started by hand</a>');
+    expect(triggerText({ ...p, trigger: "schedule" })).toContain(">weekly run</a>");
+    expect(triggerText({ ...p, trigger: "push" })).toContain(">run of a push</a>");
+  });
+
+  it("gives no words for a point with no start or no run", () => {
+    expect(triggerText(p)).toBe("");
+    expect(triggerText({ ...p, run: null, trigger: "dispatch" })).toBe("");
   });
 });

@@ -1,7 +1,7 @@
 // The calculations of the results page. They read only the snapshot files.
 
 import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, SkipWord, StrategySnapshot, StrategySummary } from "./data.ts";
-import { esc } from "./format.ts";
+import { esc, REPO } from "./format.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { isBudgetReason, segmentOf, skipCounts, trendSegments, type SkipSummary } from "./kpi.ts";
 
@@ -583,6 +583,13 @@ const dayOf = (date: string): number => Date.parse(`${date}T00:00:00Z`) / 86_400
 /** This function gives the count of a point that continues the line of an earlier list, for example ` (54 common of 55)`. */
 const commonText = (p: CoveragePoint): string => (p.commonOf === undefined ? "" : ` (${p.strategies?.length ?? 0} common of ${p.commonOf})`);
 
+/** The words of the start of the run of a point. */
+const TRIGGER_WORDS: Readonly<Record<NonNullable<CoveragePoint["trigger"]>, string>> = { schedule: "weekly run", dispatch: "run started by hand", push: "run of a push" };
+
+/** This function gives the words of the start of the run of a point, with the link of the run. A point with no start or no run gives no words. */
+export const triggerText = (p: CoveragePoint): string =>
+  p.trigger === undefined || p.run === null ? "" : `, <a href="${REPO}/actions/runs/${p.run}">${TRIGGER_WORDS[p.trigger]}</a>`;
+
 /**
  * This function gives the geometry of the trend chart in a box of `width` by `height`, with a margin `pad` on each side.
  * The x axis is the date, and the y axis is the share from 0 at the bottom to 1 at the top. One date goes to the middle.
@@ -612,7 +619,7 @@ const segmentText = (segment: readonly CoveragePoint[]): string => {
   const method = first.method === undefined ? "" : ` (${esc(first.method)})`;
   const counts = [...new Set(segment.flatMap((p) => (p.records === undefined ? [] : [p.records])))];
   const pairs = counts.length < 2 ? "" : ` The measured records differ: ${counts.join(", ")}. A slow pair that loses its row can move a share, so read the step with its common pairs.`;
-  return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p))).join(", ")}.${pairs}</li>`;
+  return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p)) + triggerText(p)).join(", ")}.${pairs}</li>`;
 };
 
 /** This function gives the words of the reasons of an entry with no measured record. A censored reason gives its lower bound on the time. */

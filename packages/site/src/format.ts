@@ -10,7 +10,7 @@ export const esc = (text: string): string =>
 export const inline = (text: string): string => esc(text).replace(/`([^`]+)`/g, "<code>$1</code>");
 
 /** The address of the source on GitHub */
-const REPO = "https://github.com/mark1russell7/packing";
+export const REPO = "https://github.com/mark1russell7/packing";
 
 /** This function gives the HTML of the origin of a snapshot: the release, the commit, the date and the CI run. */
 export function originHtml(origin: readonly Origin[]): string {
