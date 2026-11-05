@@ -103,6 +103,13 @@ function notReadOthers(file: string, snap: CoverageSnapshot): NotReadCount[] {
   return reasons.length === 0 ? [] : [{ file, what: `reasons of entries with no word, over ${reasons.reduce((n, r) => n + r.records, 0)} records`, fields: reasons.length }];
 }
 
+/**
+ * The text that a fault prints, because only a run of `Site data` writes the files of the branch. A pull request that makes
+ * a new field necessary can go green only after that run, and that run reads the code of `main`. So the field has an order.
+ */
+export const NEW_FIELD_ORDER: string =
+  "The reader of this commit does not accept these files. For a new field, the reader first accepts a missing field as `not read`. Merge, start the workflow `Site data`, and then make the reader require the field.";
+
 /** This function reads a folder of data files: the text of each file by its name. */
 export function readDataFiles(files: ReadonlyMap<string, string>): DataRead {
   const faults: FileFault[] = [];
@@ -143,6 +150,7 @@ export function gateLines(read: DataRead): string[] {
   return [
     ...faults,
     `Data gate: ${read.files} files read, ${read.faults.length} faults.`,
+    ...(read.faults.length > 0 ? [NEW_FIELD_ORDER] : []),
     `Fields with a value and the state not read: ${total}.`,
     ...read.notRead.map((c) => `  ${c.file}: ${c.fields} ${c.what}`),
   ];

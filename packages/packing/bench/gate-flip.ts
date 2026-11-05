@@ -413,6 +413,7 @@ function flipData(argv: readonly string[]): FlipRow[] {
   return [
     runCase("clean", 0, gate(clean), out, " 0 faults"),
     runCase("the old file of the data branch", 1, gate(old), out, "gaps-pack-known-v1.json: strategies[0].cells[0].atMargin is missing"),
+    runCase("the order of a new field", 1, gate(old), out, "start the workflow `Site data`"),
     runCase("a file with no reader", 1, gate(extra), out, "new.json: the file has no reader"),
   ];
 }

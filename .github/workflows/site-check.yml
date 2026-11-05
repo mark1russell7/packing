@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      # The action changes reads the files of a pull request.
+      pull-requests: read
     env:
       # The same base as the Pages build (pages.yml)
       SITE_BASE: /${{ github.event.repository.name }}
@@ -37,8 +39,29 @@ jobs:
           browsers: chromium
           command: pnpm --filter @packing/site exec playwright
       # The code of this commit reads the files of the data branch, as the Pages build does. So a change of a shape and an old
-      # file of the branch cannot pass together, and the check CI OK goes red before the merge.
+      # file of the branch cannot pass together, and the check CI OK goes red before the merge. A pull request does this read
+      # only if it changes the reader: other pull requests cannot change the result, and they do not wait for a queued run.
+      # The Pages build reads the branch each day and after each run of Site data, so a stale branch does not go unseen.
+      # src/data-gate.test.ts holds this list equal to the imports of the gate.
+      - id: reader
+        uses: mark1russell7/template/.github/actions/changes@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
+        with:
+          paths: |
+            packages/site/scripts/data-gate.ts
+            packages/site/src/atlas-model.ts
+            packages/site/src/corpus-cover-model.ts
+            packages/site/src/data-gate.ts
+            packages/site/src/data-shape.ts
+            packages/site/src/data-shapes.ts
+            packages/site/src/data.ts
+            packages/site/src/format.ts
+            packages/site/src/gap-definition.ts
+            packages/site/src/kpi.ts
+            packages/site/data/**
+            pnpm-lock.yaml
+            .github/workflows/site-check.yml
       - name: Read the data files over the data branch
+        if: steps.reader.outputs.match == 'true'
         run: |
           data="$RUNNER_TEMP/site-data"
           mkdir -p "$data"

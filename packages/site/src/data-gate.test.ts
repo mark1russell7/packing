@@ -2,7 +2,9 @@
 // and a removed or a changed field of each real file gives a fault with its path.
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { DATA_READERS, gateLines, readDataFiles } from "./data-gate.ts";
+import { regionsOf } from "./atlas-model.ts";
+import { DATA_READERS, gateLines, NEW_FIELD_ORDER, readDataFiles } from "./data-gate.ts";
+import { SNAPSHOT_SHAPES } from "./data-shapes.ts";
 import { parseLawCover, parseSnapshot, parseSolvedRule, type GapSnapshot, type StrategySnapshot } from "./data.ts";
 import { DataFileError, faultsOf, fields, either, list, nullable, num, oneOf, optional, recordOf, text, type Shape } from "./data-shape.ts";
 
@@ -94,6 +96,60 @@ describe("the data gate on a folder", () => {
       field: "margins.pack.gapToOpt",
       reason: `is missing, so ${KNOWN} does not read`,
     });
+  });
+});
+
+describe("the order of a new field", () => {
+  const old = JSON.parse(OLD_KNOWN) as GapSnapshot;
+
+  it("first accepts a missing field as not read, so a pull request can merge before the data branch has the field", () => {
+    expect(faultsOf(SNAPSHOT_SHAPES.gaps as Shape<unknown>, old)).toEqual([]);
+    const regions = regionsOf(old, parseSolvedRule(main().get("solved-rule.json")!));
+    expect(regions.length).toBeGreaterThan(0);
+    expect(regions.every((r) => r.state === "not-read")).toBe(true);
+  });
+
+  it("then requires the field: a file with the field passes, and a file with no field names the order", () => {
+    expect(readDataFiles(main()).faults).toEqual([]);
+    const lines = gateLines(readDataFiles(new Map([...main(), [KNOWN, OLD_KNOWN]])));
+    expect(lines).toContain(NEW_FIELD_ORDER);
+    expect(NEW_FIELD_ORDER).toMatch(/accepts a missing field as `not read`\. Merge, start the workflow `Site data`, and then make the reader require the field/);
+  });
+
+  it("does not print the order with no fault", () => {
+    expect(gateLines(readDataFiles(main()))).not.toContain(NEW_FIELD_ORDER);
+  });
+});
+
+describe("the files that start the read of the data branch on a pull request", () => {
+  const SITE = new URL("../", import.meta.url);
+  const workflow = readFileSync(new URL("../../../.github/workflows/site-check.yml", import.meta.url), "utf8");
+  const start = workflow.indexOf("id: reader");
+  const listed = workflow.slice(start, workflow.indexOf("- name:", start)).split("\n").map((line) => line.trim()).filter((line) => line.startsWith("packages/"));
+
+  /** This function gives each file of the site that the gate reads, from its local imports. */
+  function closure(from: string): Set<string> {
+    const seen = new Set<string>();
+    const walk = (file: string): void => {
+      if (seen.has(file)) return;
+      seen.add(file);
+      for (const [, path] of readFileSync(new URL(file, SITE), "utf8").matchAll(/from "(\.[^"]+\.ts)"/g)) {
+        walk(new URL(path!, new URL(file, "file:///")).pathname.slice(1));
+      }
+    };
+    walk(from);
+    return seen;
+  }
+
+  it("lists each file that the gate imports, so a change of the reader cannot skip the read", () => {
+    const files = [...closure("scripts/data-gate.ts")];
+    expect(files).toContain("src/data-shapes.ts");
+    expect(files.filter((file) => !listed.includes(`packages/site/${file}`))).toEqual([]);
+  });
+
+  it("lists no file outside the gate, so a change of a page does not wait for a queued run of the data", () => {
+    const files = closure("scripts/data-gate.ts");
+    expect(listed.filter((path) => path.startsWith("packages/site/src/") || path.startsWith("packages/site/scripts/")).filter((path) => !files.has(path.slice("packages/site/".length)))).toEqual([]);
   });
 });
 

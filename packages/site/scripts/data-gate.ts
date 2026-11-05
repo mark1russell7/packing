@@ -1,6 +1,7 @@
 // The gate of the data files of the site. The Pages build starts it after the data branch lands on `data/`.
 // Start it with `pnpm run check:data`, or give another folder: `node --no-warnings scripts/data-gate.ts <folder>`.
 // It exits with 1 on a fault, and it prints the count of the fields with a value and the state `not read`.
+// A fault also prints the order of a new field, `NEW_FIELD_ORDER`.
 import { appendFileSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
