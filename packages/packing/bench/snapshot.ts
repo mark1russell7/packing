@@ -8,12 +8,14 @@
 //   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>] (the margins of data/solved-rule.json decide the count at the margin)
 //   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>] [--active <dir>] [--features family|input]
 //
+//   node bench/snapshot.ts written <folder before> <folder after> <output folder>
+//
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -1519,10 +1521,35 @@ function leavesOfRun(name: string, specs: readonly CorpusSpec[], records: readon
   };
 }
 
+/** The form of the name of a measured file of the branch `site-data`. */
+const MEASURED_FILE = /^(?:strategies-.+|gaps-.+|coverage|select-table)\.json$/;
+
+/** This function gives the names of the measured files of `after` that are new or differ from `before`, in name order. */
+export function writtenFiles(before: string, after: string): string[] {
+  const differs = (name: string): boolean => {
+    const earlier = join(before, name);
+    return !existsSync(earlier) || !readFileSync(earlier).equals(readFileSync(join(after, name)));
+  };
+  return readdirSync(after)
+    .filter((name) => MEASURED_FILE.test(name) && differs(name))
+    .sort();
+}
+
 /** This function starts a snapshot from the arguments of the command line. */
 export function snapshotMain(argv: readonly string[]): void {
   const [kind, folder] = argv;
   const out = optionOf(argv, "--out");
+  // The files that a run of `site-data.yml` writes. A file of another corpus stays out, so the branch keeps it as its own run wrote it.
+  if (kind === "written") {
+    const [, before, after, target] = argv;
+    if (before === undefined || after === undefined || target === undefined) throw new Error("The command written needs <folder before> <folder after> <output folder>.");
+    mkdirSync(target, { recursive: true });
+    for (const name of writtenFiles(before, after)) {
+      copyFileSync(join(after, name), join(target, name));
+      console.log(name);
+    }
+    return;
+  }
   if (kind === "strategies" && folder !== undefined) {
     const run = Number(optionOf(argv, "--run"));
     if (!Number.isInteger(run)) throw new Error("The snapshot strategies needs --run <id>.");
