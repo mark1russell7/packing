@@ -5,9 +5,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import { corpus } from "@mark1russell7/packing";
 import { caseProgress, type SupervisedChild } from "@mark1russell7/rigor-bench/supervise";
 import { budgetCases, controlTimes, CONTROL_INPUTS, CONTROL_PACKS, endFacts, NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET, PAIR_MS, pairBudgetMs, runBudgeted, runCases, SMALL_PAIR_MS, type BudgetedOptions } from "./budget.ts";
+import { changeSpecs } from "./change.ts";
 import { timeOf } from "./promote.ts";
 import { FILL_TRICK } from "./controls.ts";
-import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv, type BenchPair, type BenchRecord, type BenchRun, type SkippedRecord } from "./run.ts";
+import { isMeasured, mergeRuns, NOT_RUN_BASE, parseCorpus, runBench, summaryMarkdown, type BenchEnv, type BenchPair, type BenchRecord, type BenchRun, type SkippedRecord } from "./run.ts";
 
 const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test", cpu: "test", cpus: 1 };
 const dir = mkdtempSync(join(tmpdir(), "packing-budget-test-"));
@@ -182,11 +183,6 @@ describe("a run with a budget", () => {
     await expect(runBudgeted({ ...base, start: () => ({ stop: () => undefined, exited: Promise.resolve(1) }) })).rejects.toThrow("before its first pair");
   });
 
-  it("refuses a corpus with a base", async () => {
-    const file = join(import.meta.dirname, "corpora", "pack-change-v1.json");
-    await expect(runBudgeted({ ...base, corpusFile: file, corpusName: "pack-change-v1", start: () => ({ stop: () => undefined, exited: Promise.resolve(0) }) })).rejects.toThrow("base");
-  });
-
   it("gives the records of a run with no budget with a real child, apart from the times", async () => {
     const result = await runBudgeted({ ...base, deadlineMinutes: 5 });
     const plain = runBench({ corpus: parsed(), prediction: "p-test", strategies: ["rows"], repeats: 1, warmup: 0, env: ENV, commit: "abcdef0" });
@@ -196,6 +192,74 @@ describe("a run with a budget", () => {
     expect(result.run.coverage).toEqual(plain.run.coverage);
     expect(result.run.declared).toEqual(plain.run.declared);
     expect(result.run.budget?.jobs[0]?.control.length).toBeGreaterThan(0);
+  }, 60_000);
+});
+
+describe("a chain corpus under a budget", () => {
+  // 4 kinds, 20 boxes and seed 1: 4 chains of 6 inputs, written with the small chains first
+  const chainFile = join(dir, "chain-v1.json");
+  const chainSpecs = changeSpecs()
+    .filter((s) => (s.params as { count: number }).count === 20)
+    .map((s) => ({ ...s, seeds: [1] }));
+  writeFileSync(chainFile, JSON.stringify({ schema: "layout-corpus/1", corpus: "chain-v1", heldOut: "all", specs: chainSpecs }));
+  const chainInputs = corpus("chain-v1", chainSpecs).inputs;
+  const chain: string[] = [chainInputs.find((f) => f.base === undefined)!.id];
+  for (let next = chainInputs.find((f) => f.base === chain[0]); next !== undefined; next = chainInputs.find((f) => f.base === next!.id)) chain.push(next.id);
+  const chainBase: BudgetedOptions = { ...base, corpusFile: chainFile, corpusName: "chain-v1", strategies: ["push", "rows"] };
+  const of = (records: readonly BenchRecord[], strategy: string, input: string): BenchRecord => records.find((r) => r.strategy === strategy && r.input === input)!;
+
+  it("keeps each chain whole, with its steps in order, and a corpus with no base keeps its order", () => {
+    const sized = [
+      { id: "b2", nodes: 5, base: "b1" },
+      { id: "a", nodes: 9 },
+      { id: "b1", nodes: 30, base: "b0" },
+      { id: "c", nodes: 40 },
+      { id: "b0", nodes: 20 },
+    ];
+    expect(budgetCases(["x"], sized).map((c) => c.id)).toEqual(["x|a", "x|b0", "x|b1", "x|b2", "x|c"]);
+    expect(budgetCases(["x"], sized).map((c) => c.rank)).toEqual([9, 20, 30, 5, 40]);
+  });
+
+  it("gives the records of a run with no budget with a real child", async () => {
+    const result = await runBudgeted({ ...chainBase, deadlineMinutes: 5 });
+    const plain = runBench({ corpus: parseCorpus(readFileSync(chainFile, "utf8"), "chain-v1"), prediction: "p-test", strategies: ["push", "rows"], repeats: 1, warmup: 0, env: ENV, commit: "abcdef0" });
+    const key = (r: BenchRecord): unknown => (isMeasured(r) ? [r.strategy, r.input, r.outputHash, r.hard, (r.measures as Record<string, number>)["pack.stability.moved"]] : [r.strategy, r.input, r.skipped]);
+    const sort = (rows: unknown[]): string[] => rows.map((row) => JSON.stringify(row)).sort();
+    expect(sort(result.records.map(key))).toEqual(sort(plain.records.map(key)));
+    expect(result.records.filter(isMeasured)).toHaveLength(48);
+  }, 120_000);
+
+  it("keeps the finished records at the deadline, and gives the reason of the job to the rest", async () => {
+    const stop = chain[2]!;
+    const result = await runBudgeted({ ...chainBase, strategies: ["push"], deadlineMinutes: 0.001, start: stallsAt((pair) => pair.input === stop) });
+    expect(isMeasured(of(result.records, "push", chain[0]!))).toBe(true);
+    expect(isMeasured(of(result.records, "push", chain[1]!))).toBe(true);
+    expect(of(result.records, "push", stop).skipped).toBe(NOT_RUN_JOB);
+    expect(of(result.records, "push", chain[5]!).skipped).toBe(NOT_RUN_JOB);
+    expect(result.records).toHaveLength(24);
+  }, 60_000);
+
+  it("gives an overrun at a middle step, then the reason of a lost base to the later steps of that chain", async () => {
+    const stop = chain[3]!;
+    let t = 0;
+    let first = true;
+    const now = (): number => (t += 20_000);
+    const result = await runBudgeted({
+      ...chainBase,
+      strategies: ["push"],
+      now,
+      start: stallsAt((pair) => {
+        const slow = first && pair.input === stop;
+        if (slow) first = false;
+        return slow;
+      }, now),
+    });
+    expect(of(result.records, "push", stop).skipped).toBe(OVER_BUDGET);
+    expect(of(result.records, "push", chain[4]!).skipped).toBe(NOT_RUN_BASE);
+    expect(of(result.records, "push", chain[5]!).skipped).toBe(NOT_RUN_BASE);
+    expect(isMeasured(of(result.records, "push", chain[2]!))).toBe(true);
+    const otherChains = chainInputs.filter((f) => !chain.includes(f.id));
+    expect(otherChains.filter((f) => f.base === undefined).every((f) => isMeasured(of(result.records, "push", f.id)))).toBe(true);
   }, 60_000);
 });
 
