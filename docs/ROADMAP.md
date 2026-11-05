@@ -168,6 +168,7 @@ Status: done, done, waiting, next, done.
 | k159 | `push` accepts only the mode `incremental`, so it refuses each offline input. `pack-change-v1` already has 480 incremental inputs. The budget refuses a corpus with a base, so this run has no budget, or the budget keeps the base. Run: 11-14 | measure | active | k122 |
 | k160 | `exact-strip` takes `freeHeight` only, up to 16 items, and `pack-classes-v1` starts at 20 items. `pack-classes-free-v1` adds `freeHeight` cells of 8 and 16 items, 100 inputs. The record of a refusal states the limit. It comes with k158. First run: 11-16 | measure | active | k158 |
 | k161 | `raster-nofit` has no row in run 41949891960, because its job reached the limit of 120 minutes. The weekly run of 11-09 has the budget, so it keeps each finished row and states the largest input in budget. Date: 11-09 | measure | active | k151 |
+| k164 | Version 2 of the adversarial search gives each cell (generator and container form) its own stream, with a seed from its name, and its own budget. A new cell then moves no stored row of another cell, and a test holds this. It searches the free forms and writes a corpus `pack-adversary-v2`. Version 1 does not search the free forms. The date is 2026-11-20 | bench | later | k158 |
 
 ## The queue
 

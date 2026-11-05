@@ -291,7 +291,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-classes-v1` | 500 | The classes `I` to `X` of the literature of roadmap item k106, by their rules. Write its prediction first. |
 | `pack-classes-free-v1` | 600 | The same classes with free sizes of roadmap item k158, and small strips of k160. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
-| `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. |
+| `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. Free forms not searched by version 1. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 | `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
@@ -423,7 +423,7 @@ Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`.
 
 The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
 
-The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws.
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them. Roadmap item k164 is the next version. The workflow `adversary.yml` repeats all 6 pairs when the search, the generators or the corpus changes.
 
 - The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
 - The field `inputs` has the input files, in the order of `found`.

@@ -1,0 +1,69 @@
+# The check of the corpus pack-adversary-v1 (docs/BENCH.md, "The adversarial search"). It repeats the search of all 6
+# pairs and compares the result with the committed file, byte for byte. A test of the package repeats only 1 pair.
+# The job needs no timing, because the search reads no clock.
+name: Adversary corpus
+
+on:
+  # Each pull request starts this workflow, so its summary check is always there. The job changes skips the
+  # work when the pull request changes no file of the gate (CI.md of the template, "A gate with paths").
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      match: ${{ steps.changes.outputs.match }}
+    steps:
+      - id: changes
+        uses: mark1russell7/template/.github/actions/changes@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
+        with:
+          paths: |
+            packages/packing/bench/adversary.ts
+            packages/packing/bench/corpora/pack-adversary-v1.json
+            packages/packing/src/generators.ts
+            .github/workflows/adversary.yml
+
+  check:
+    needs: changes
+    if: needs.changes.outputs.match == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compare a new search of each pair with the corpus
+        working-directory: packages/packing
+        run: node --no-warnings bench/adversary.ts --check
+
+  adversary-ok:
+    name: Adversary corpus OK
+    if: always()
+    needs: [changes, check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: mark1russell7/template/.github/actions/gate-summary@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
+        with:
+          needs: ${{ toJSON(needs) }}
