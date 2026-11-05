@@ -1462,7 +1462,7 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
-A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A run from a push or a manual run gives no point, and a cancelled run gives no point.
+A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
 
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
@@ -1963,10 +1963,9 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - Do not read this as a general gain of the active draw. The 4 other measures show no gain.
 - The Monday run repeats the test with the same seeds and new code.
 
-- The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
-- A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
-- Thus a change of `src` shows in the next Monday run, not at once.
-- A newer push cancels the run of an older push. A cancelled run writes no `cells.json`, so the records show only the runs that finished. A push does not cancel a weekly or a manual run, because each event has its own group.
+- A push does not start the workflow. The grid takes about 3 hours, and a start from a merge does not pass the check of the free CI slots.
+- Thus a change of `src`, or of a file of the draw or the verdict, shows in the next Monday run, not at once. To read it earlier, start the workflow by hand.
+- A cancelled run writes no `cells.json`, so the records show only the runs that finished. A weekly run and a manual run have different groups, so one does not hold the other.
 - A person can also start the workflow, with other inputs.
 - It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
 - Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.

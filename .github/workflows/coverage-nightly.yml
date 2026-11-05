@@ -11,22 +11,13 @@
 #
 # Each arm has a work budget: ROUNDS rounds of SAMPLE / ROUNDS pairs, the same for both arms. Thus a cell is the same on
 # each runner. MAX_MINUTES is only a timeout: an arm that it stops voids its cell (bench/nightly-plan.ts cells).
-# The same seeds and the same code give the same result. Thus the workflow starts on a change of the files of the draw
-# and the verdict, and each week as the control. A change of src changes only the records: the weekly run measures it.
-# On 2026-10-27 to 11-03, 119 commits changed src or bench, and 17 changed the files below. The record cells.json has the commit.
+# The same seeds and the same code give the same result. Thus the workflow starts each week as the control, and by a manual
+# start. A push does not start it: a grid of about 3 hours does not start from a merge, past the check of the free CI slots.
+# So a change of the files of the draw or the verdict shows in the next Monday run, or in a manual run that a person starts.
+# The record cells.json has the commit.
 name: Coverage nightly
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/coverage-nightly.yml"
-      - "packages/packing/bench/active.ts"
-      - "packages/packing/bench/coverage.ts"
-      - "packages/packing/bench/sample-space.ts"
-      - "packages/packing/bench/paired-arms.ts"
-      - "packages/packing/bench/nightly-plan.ts"
-      - "packages/packing/bench/corpora/pack-classes-v1.json"
   schedule:
     - cron: "52 2 * * 1"
   workflow_dispatch:
@@ -52,9 +43,9 @@ permissions:
   contents: read
 
 concurrency:
-  # A newer push replaces only a run of a push. A weekly or a manual run has its own group, so a push does not cancel it.
+  # A weekly run and a manual run have different groups, so one does not hold the other. No run cancels another.
   group: coverage-nightly-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  cancel-in-progress: false
 
 # The shell bash has pipefail, so a failure before a tee fails the step.
 defaults:
