@@ -1,6 +1,12 @@
 // The snapshot files of the site, in `packages/site/data/`. The script `packages/packing/bench/snapshot.ts` writes them
 // from the records of CI runs. The pages read only these files, at build time.
 
+import type { SolvedRule } from "./atlas-model.ts";
+import type { LawCoverCount } from "./corpus-cover-model.ts";
+import { DataFileError, faultsOf, readShape, type Shape } from "./data-shape.ts";
+import { LAW_COVER_SHAPE, SNAPSHOT_SHAPES, SOLVED_RULE_SHAPE } from "./data-shapes.ts";
+import { marginFaults } from "./gap-definition.ts";
+
 /** The schema of each snapshot file */
 export const SNAPSHOT_SCHEMA = "packing-site-snapshot/1";
 
@@ -478,7 +484,7 @@ function isOrigin(v: unknown): v is Origin {
 
 /**
  * This function parses the text of a snapshot file of one kind. It throws an `Error` for a text of another kind.
- * It also throws when an origin has no release, commit, date, run or source.
+ * It also throws when an origin has no release, commit, date, run or source, and a `DataFileError` for each other fault of a field.
  */
 export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K): Extract<Snapshot, { kind: K }> {
   const value: unknown = JSON.parse(text);
@@ -489,8 +495,17 @@ export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K)
   const lists: Record<Snapshot["kind"], unknown> = { strategies: value["strategies"], gaps: value["strategies"], paired: value["classes"], select: value["leaves"], releases: value["releases"], coverage: value["trend"] };
   const list = lists[kind];
   if (!Array.isArray(list) || list.length === 0) throw new Error(`The snapshot of the kind ${kind} has no entries.`);
+  const faults = faultsOf(SNAPSHOT_SHAPES[kind] as Shape<unknown>, value);
+  if (kind === "gaps" && faults.length === 0) faults.push(...marginFaults(value as unknown as GapSnapshot));
+  if (faults.length > 0) throw new DataFileError(faults);
   return value as unknown as Extract<Snapshot, { kind: K }>;
 }
+
+/** This function reads the text of `data/law-cover.json`. It throws a `DataFileError` for a file with a fault. */
+export const parseLawCover = (text: string): LawCoverCount => readShape(text, LAW_COVER_SHAPE);
+
+/** This function reads the text of `data/solved-rule.json`. It throws a `DataFileError` for a file with a fault. */
+export const parseSolvedRule = (text: string): SolvedRule => readShape(text, SOLVED_RULE_SHAPE);
 
 /** This function groups the releases by date, with the newest date first. The order in a date stays. */
 export function byDate(releases: readonly Release[]): [string, Release[]][] {

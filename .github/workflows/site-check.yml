@@ -36,6 +36,17 @@ jobs:
         with:
           browsers: chromium
           command: pnpm --filter @packing/site exec playwright
+      # The code of this commit reads the files of the data branch, as the Pages build does. So a change of a shape and an old
+      # file of the branch cannot pass together, and the check CI OK goes red before the merge.
+      - name: Read the data files over the data branch
+        run: |
+          data="$RUNNER_TEMP/site-data"
+          mkdir -p "$data"
+          cp packages/site/data/* "$data/"
+          if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C "$data"; fi
+          node --no-warnings packages/site/scripts/data-gate.ts "$data"
+      - name: The flip test of the data gate
+        run: node --no-warnings packages/packing/bench/gate-flip.ts data --site packages/site --out "$RUNNER_TEMP/data-flip"
       - name: Build the site
         run: pnpm --filter @packing/site run build
       - name: Check each page at the phone width and the desktop width, in light and in dark

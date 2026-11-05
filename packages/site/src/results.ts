@@ -1,10 +1,10 @@
 // The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
 // The page reads only the snapshot files of `packages/site/data/`.
 
-import { atlasFilter, atlasTable, atlasTiles, regionsOf, ruleLine, type RegionState, type SolvedRule } from "./atlas-model.ts";
+import { atlasFilter, atlasTable, atlasTiles, regionsOf, ruleLine, type RegionState } from "./atlas-model.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { marked } from "marked";
-import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover, type LawCoverCount } from "./corpus-cover-model.ts";
+import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover } from "./corpus-cover-model.ts";
 import strategiesText from "../content/results-strategies.md?raw";
 import speedText from "../content/results-speed.md?raw";
 import selectText from "../content/results-select.md?raw";
@@ -25,7 +25,7 @@ import corpusCoverJson from "../data/corpus-cover.json?raw";
 import lawCoverJson from "../data/law-cover.json?raw";
 import coverageJson from "../data/coverage.json?raw";
 import { mountChrome } from "./chrome.ts";
-import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
+import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseLawCover, parseSnapshot, parseSolvedRule, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -372,7 +372,7 @@ function mountGaps(): void {
 // ---- The solved regions of k109 ----
 
 function mountAtlas(): void {
-  const rule = JSON.parse(solvedRuleJson) as SolvedRule;
+  const rule = parseSolvedRule(solvedRuleJson);
   const regions = gapSnaps.flatMap((snap) => regionsOf(snap, rule));
   let current: RegionState | "all" = "all";
   const draw = (): void => {
@@ -487,7 +487,7 @@ function drawCorpusCover(): void {
   $("corpus-cover-grid").innerHTML = coverGrid(corpusCover, view, coverPair);
   $("corpus-cover-pair").innerHTML = coverPairTable(corpusCover, view, coverPair);
   $("corpus-cover-empty").innerHTML = coverEmptyLine(view);
-  $("law-cover-line").textContent = lawLine(JSON.parse(lawCoverJson) as LawCoverCount);
+  $("law-cover-line").textContent = lawLine(parseLawCover(lawCoverJson));
 }
 
 function mountCorpusCover(): void {
