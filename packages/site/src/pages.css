@@ -1442,8 +1442,3 @@
   color: var(--muted);
   background: var(--well);
 }
-
-/* The response explorer reads the name --sunken. This site calls that color --well. */
-#explorer {
-  --sunken: var(--well);
-}
