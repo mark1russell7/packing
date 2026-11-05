@@ -130,18 +130,22 @@ jobs:
           for dir in $(ls -d "$RUNNER_TEMP"/parts/*/ | sort); do cat "$dir/predicates.jsonl" >> "$out/predicates.jsonl"; done
           node -e '
             const fs = require("node:fs");
-            const [file, corpus] = process.argv.slice(1);
-            const sum = { cases: 0, totals: {}, near: {}, touch: {}, lines: 0 };
-            for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-              if (line === "") continue;
-              const x = JSON.parse(line);
-              if (x.fn !== undefined) continue;
-              sum.cases += 1;
-              sum.lines += x.lines;
-              for (const k of ["totals", "near", "touch"]) for (const [fn, n] of Object.entries(x[k])) sum[k][fn] = (sum[k][fn] ?? 0) + n;
-            }
-            fs.writeFileSync(file.replace(/predicates\.jsonl$/, "summary.json"), JSON.stringify({ corpus, ...sum }, null, 2) + "\n");
-            console.log(JSON.stringify({ corpus, ...sum }));
+            const readline = require("node:readline");
+            (async () => {
+              const [file, corpus] = process.argv.slice(1);
+              const sum = { cases: 0, totals: {}, near: {}, touch: {}, lines: 0 };
+              // A dump can be longer than the longest string of node (run 41547266012 had 1.28 GB), so this reads one line at a time.
+              for await (const line of readline.createInterface({ input: fs.createReadStream(file), crlfDelay: Infinity })) {
+                if (line === "") continue;
+                const x = JSON.parse(line);
+                if (x.fn !== undefined) continue;
+                sum.cases += 1;
+                sum.lines += x.lines;
+                for (const k of ["totals", "near", "touch"]) for (const [fn, n] of Object.entries(x[k])) sum[k][fn] = (sum[k][fn] ?? 0) + n;
+              }
+              fs.writeFileSync(file.replace(/predicates\.jsonl$/, "summary.json"), JSON.stringify({ corpus, ...sum }, null, 2) + "\n");
+              console.log(JSON.stringify({ corpus, ...sum }));
+            })();
           ' "$out/predicates.jsonl" "$CORPUS" | tee -a "$GITHUB_STEP_SUMMARY"
       # A join that failed keeps its file for a look. The step above already failed the job.
       - if: ${{ !cancelled() }}
