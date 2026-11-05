@@ -1532,6 +1532,25 @@ The workflow `site-rerun.yml` reruns the other five corpora of the site each Wed
 - The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
 - The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
 
+## The solved regions
+
+The results page reads each cell of a gap snapshot as a region (roadmap item k109). `packages/site/data/solved-rule.json` holds the floor, the margins, the words and the search reads as data. This file is a rule and not a result, so a person edits it and `bench/snapshot.ts` only reads it. The page and this section tell the rule in one wording, and a test compares them.
+
+- The test reads the share of inputs at or under the margin. The 95 % Wilson lower bound of this share must be 0.90 or more.
+- The bound of all inputs at the margin decides the smallest count. Thus 35 inputs can pass, and a cell with fewer inputs reads `too few inputs`, with the count.
+- A cell of 1,260 inputs needs 1,155 inputs at the margin, a share of 91.7 %.
+- A cell that passes reads `holds, no search read` until the search for hard inputs has read it. Then it reads `solved` if the search finds nothing past the margin.
+- A search hit makes the region `open` and shows the input. A cell under the bound also reads `open`, with its distance.
+- `pack.gapToOpt` compares with a known best value, so its margin stays 0 plus a numeric tolerance.
+- `pack.gap` has a margin of 0 until the exact runs measure the slack of the bound. Then a cell takes a high quantile of this slack, with its run.
+- A margin of 0 reads `optimal on N inputs`. A measured slack reads `within the bound's slack on N inputs`.
+- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. It shows no distance.
+- The best strategy of a row is a pick after the fact: the same inputs choose it and score it. The selector column shows the figure that a user gets.
+- The Wilson bound counts the inputs as independent. This page does not prove that they are independent.
+- A strategy can also lead a weekly corpus. The count of weeks led needs 4 weekly points.
+
+A snapshot writes `atMargin`, the count at the margin of the rule, in each cell. Regenerate the snapshot after a change of a margin: a file with another margin reads `not read on the current measure`.
+
 ## The corpus coverage
 
 The script `bench/corpus-cover.ts` gives the coverage of the taxonomy as numbers (k50). It reads the manifests in `bench/corpora/`, and it generates no input. The cell of a spec comes from `cell` of its generator.
