@@ -1414,6 +1414,14 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `gaps-pack-known-v1.json` | `node bench/snapshot.ts gaps <folder of 40768140939> --run 40768140939 --measure pack.gapToOpt --release 0.2.17` | `pack.gapToOpt` of 6 strategies on `pack-known-v1`, by cell (k45). |
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
 
+The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
+
+- The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
+- The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
+- The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.
+- The table of the gaps has one column for each strategy, so the job keeps 6 strategies with `--strategies`.
+- `--date` gives the start date of the run. The age of the data counts from that date, and not from the date of the commit.
+
 - A strategy snapshot gives the result of `verdict()` of `@mark1russell7/layout-contract` for each measure, by family, at the level 0.05. The tie of each measure is its `minEffect`.
 - The command `select` stops with an error when the training wins differ from `SELECT_LEAF_WINS`. Thus a change of the table also changes the pinned counts and their test.
 - A gap snapshot gives the count, the quartiles and the values below 0 of the measure. It gives them for all inputs and for each cell.

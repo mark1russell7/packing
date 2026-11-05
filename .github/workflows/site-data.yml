@@ -1,0 +1,159 @@
+# Writes the measured files of the site from the records of finished bench runs (docs/BENCH.md "The snapshots of the site").
+# The job snapshot reads the artifacts and checks the new files with the tests of the site. It has no write permission.
+# Only the job publish writes. It pushes the files to the branch site-data, never to main, and it starts the Pages build.
+# The Pages build puts the files of the branch over the files of main.
+name: Site data
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "The finished bench runs on main, as <corpus>=<run id>, with spaces between them."
+        type: string
+        required: true
+
+permissions: {}
+
+# One writer of the branch at a time. A run that waits is not cancelled, because its records differ.
+concurrency:
+  group: site-data
+  cancel-in-progress: false
+
+# The shell bash has pipefail, so a failure before a tee fails the step.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  snapshot:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # gh run view and gh run download read the runs and their artifacts.
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The snapshots read the tags and the dates of the commits.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Write the files from the runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNS: ${{ inputs.runs }}
+          # The six strategies of the table of the gaps. The table has one column for each strategy.
+          GAP_STRATEGIES: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
+        run: |
+          data="$GITHUB_WORKSPACE/packages/site/data"
+          # The earlier points of the coverage trend are on the branch.
+          if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C "$data"; fi
+          cd packages/packing
+          select_args=()
+          for pair in $RUNS; do
+            [[ "$pair" =~ ^[a-z0-9][a-z0-9.-]*=[0-9]+$ ]] || { echo "each run must be <corpus>=<run id>, not '$pair'"; exit 1; }
+            corpus="${pair%%=*}"
+            run="${pair##*=}"
+            read -r status branch created < <(gh run view "$run" -R "$GITHUB_REPOSITORY" --json status,headBranch,createdAt -q '"\(.status) \(.headBranch) \(.createdAt)"')
+            [ "$status" = completed ] && [ "$branch" = main ] || { echo "the run $run must be completed and on main, not '$status' on '$branch'"; exit 1; }
+            folder="$RUNNER_TEMP/runs/$corpus"
+            gh run download "$run" -R "$GITHUB_REPOSITORY" -n "bench-$corpus" -D "$folder"
+            commit="$(node -p "JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8')).commit" "$folder/run.json")"
+            release="$(git show "$commit:packages/packing/package.json" | node -p "JSON.parse(require('node:fs').readFileSync(0, 'utf8')).version")"
+            origin=(--run "$run" --release "$release" --date "${created%%T*}")
+            case "$corpus" in
+              pack-screen-v1 | pack-free-v1)
+                node bench/snapshot.ts strategies "$folder" "${origin[@]}"
+                select_args+=(--train "$folder=$run")
+                ;;
+              pack-select-v1)
+                node bench/snapshot.ts strategies "$folder" "${origin[@]}"
+                select_args+=(--test "$folder=$run")
+                ;;
+              pack-select-v2)
+                node bench/snapshot.ts strategies "$folder" "${origin[@]}"
+                node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gap --strategies "$GAP_STRATEGIES"
+                select_args+=(--test "$folder=$run")
+                ;;
+              pack-known-v1)
+                node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gapToOpt --strategies "$GAP_STRATEGIES"
+                ;;
+              pack-classes-v1)
+                node bench/snapshot.ts coverage "$folder" "${origin[@]}"
+                ;;
+              *)
+                echo "The corpus $corpus has no file of the site."
+                exit 1
+                ;;
+            esac
+          done
+          # The table needs both training runs and both test runs. A change of the wins stops the command, and the file of the table stays.
+          # The pinned wins then change in a pull request, so the job tells it and the other files still go out.
+          if [ "${#select_args[@]}" -eq 8 ]; then
+            if ! node bench/snapshot.ts select "${select_args[@]}" 2> "$RUNNER_TEMP/select.txt"; then
+              {
+                echo "### The file select-table.json did not change"
+                echo '```'
+                cat "$RUNNER_TEMP/select.txt"
+                echo '```'
+              } | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          node bench/snapshot.ts releases
+      # Only the check of the form and the size of each file: the other tests of the file pin the data of main.
+      - name: Check the form and the size of the files
+        run: pnpm --filter @packing/site exec vitest run src/pages.test.ts -t "is a small snapshot"
+      - name: Build the site with the files
+        env:
+          SITE_BASE: /${{ github.event.repository.name }}
+        run: pnpm --filter @packing/site run build
+      - name: Keep the measured files
+        run: |
+          out="$RUNNER_TEMP/out"
+          mkdir -p "$out"
+          cd packages/site/data
+          cp strategies-*.json gaps-*.json coverage.json select-table.json releases.json "$out"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-data
+          path: ${{ runner.temp }}/out
+          if-no-files-found: error
+
+  publish:
+    needs: snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only this job writes, and it starts no code of the repository.
+    permissions:
+      contents: write
+      # gh workflow run starts the Pages build, because a push with this token starts no workflow.
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-data
+          path: ${{ runner.temp }}/out
+      - name: Push the files to the branch site-data, and start the Pages build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNS: ${{ inputs.runs }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth 1 origin site-data; then git switch -C site-data FETCH_HEAD; else git switch --orphan site-data; fi
+          git rm -r -q --cached --ignore-unmatch .
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R "$RUNNER_TEMP/out/." .
+          git add -A
+          if git diff --cached --quiet; then echo "The runs give no change."; exit 0; fi
+          git commit -q -m "site data: $RUNS (run $GITHUB_RUN_ID)"
+          git push origin HEAD:refs/heads/site-data
+          gh workflow run pages.yml -R "$GITHUB_REPOSITORY" --ref main
