@@ -168,6 +168,8 @@ Status: done, done, waiting, next, done.
 | k159 | `push` accepts only the mode `incremental`, so it refuses each offline input. `pack-change-v1` already has 480 incremental inputs. The budget refuses a corpus with a base, so this run has no budget, or the budget keeps the base. Run: 11-14 | measure | active | k122 |
 | k160 | `exact-strip` takes `freeHeight` only, up to 16 items, and `pack-classes-v1` starts at 20 items. `pack-classes-free-v1` adds `freeHeight` cells of 8 and 16 items, 100 inputs. The record of a refusal states the limit. It comes with k158. First run: 11-16 | measure | active | k158 |
 | k161 | `raster-nofit` has no row in run 41949891960, because its job reached the limit of 120 minutes. The weekly run of 11-09 has the budget, so it keeps each finished row and states the largest input in budget. Date: 11-09 | measure | active | k151 |
+| k162 | A time compare across 2 CPU models reads "no read" with both model names, in the win test and in `bench/time-budget.ts`. `pass` stays false on no read, and a status field carries the difference. The model test comes from the bench home. Date: 11-12 | bench | active | k157 |
+| k163 | `force`, `relax`, `overlap-min`, `side-anchors` and the locked items of the generators read `checkHard` with the bounding test, so their outputs did not change in 0.9.0. Read `pack.outsideExact` of these strategies on the shaped cells of the next rerun. Each one that leaves the true outline reads the true outline, with a version and a stated output change. Date: 11-23 | measure | later | k148 |
 
 ## The queue
 

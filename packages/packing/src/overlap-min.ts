@@ -406,7 +406,7 @@ class Strip {
 
   /** This function tells if an output has no break of the 4 hard rules. */
   private sound(output: PackOutput): boolean {
-    return Object.values(checkHard(this.input, output)).every((v) => v === 0);
+    return Object.values(checkHard(this.input, output, undefined, { exactContainer: false })).every((v) => v === 0);
   }
 
   /**

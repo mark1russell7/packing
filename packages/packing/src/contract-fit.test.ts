@@ -396,16 +396,68 @@ describe("the hard rules of packing and of the contract", () => {
     };
     const out = output([{ id: "corner", x: 1, y: 1 }, { id: "center", x: 45, y: 45 }]);
     for (const input of [circle, holes]) {
-      expect(P.checkHard(input, out)["in-container"]).toBe(input === holes ? 1 : 0);
-      expect(contractHard(input, out)).toEqual(P.checkHard(input, out));
-      const hard = P.checkHard(input, out, undefined, { exactContainer: true });
-      expect(contractHard(input, out, undefined, { exactContainer: true })).toEqual(hard);
+      const bounding = { exactContainer: false } as const;
+      expect(P.checkHard(input, out, undefined, bounding)["in-container"]).toBe(input === holes ? 1 : 0);
+      expect(contractHard(input, out, undefined, bounding)).toEqual(P.checkHard(input, out, undefined, bounding));
+      const hard = P.checkHard(input, out);
+      expect(P.checkHard(input, out, undefined, { exactContainer: true })).toEqual(hard);
+      expect(contractHard(input, out)).toEqual(hard);
       // The circle: the corner box is out of the circle. The holes: the inset puts the corner out, and the center box is on the hole.
       expect(hard["in-container"]).toBe(input === holes ? 2 : 1);
     }
     // A free side keeps the test of the bounding box
     const free: P.PackInput = { ...circle, container: { ...circle.container, fixed: "width" } };
     expect(P.checkHard(free, out, undefined, { exactContainer: true })["in-container"]).toBe(0);
+  });
+
+  describe("on circle items, by the rules of version 2", () => {
+    const disc = (id: string, r: number, margin?: number): P.Item => ({ id, w: 2 * r, h: 2 * r, shape: { kind: "circle", cx: r, cy: r, r }, ...(margin === undefined ? {} : { margin }) });
+    const near = 10 / Math.SQRT2;
+    const open = (items: readonly P.Item[]): P.PackInput => ({ container: { fixed: "none" }, items: [...items] });
+    const ring = (fixed: "size" | "none", items: readonly P.Item[]): P.PackInput => ({ container: { fixed, shape: { kind: "circle", cx: 50, cy: 50, r: 50 } }, items: [...items] });
+
+    it("count two circles by distance: the boxes overlap on a diagonal, and the circles do not", () => {
+      const input = open([disc("a", 5), disc("b", 5)]);
+      const out = output([{ id: "a", x: 0, y: 0 }, { id: "b", x: near + 1e-6, y: near + 1e-6 }]);
+      expect(P.checkHard(input, out)["no-overlap"]).toBe(0);
+      expect(contractHard(input, out)).toEqual(P.checkHard(input, out));
+    });
+
+    it("count two near circles, and read their margins and a pair gap", () => {
+      const out = output([{ id: "a", x: 0, y: 0 }, { id: "b", x: near + 1e-6, y: near + 1e-6 }]);
+      const margins = open([disc("a", 5, 1), disc("b", 5)]);
+      const gaps = { ...open([disc("a", 5, 1), disc("b", 5)]), pairGaps: [{ a: "a", b: "b", gap: 0 }] };
+      expect(P.checkHard(margins, out)["no-overlap"]).toBe(1);
+      expect(contractHard(margins, out)).toEqual(P.checkHard(margins, out));
+      expect(P.checkHard(gaps, out)["no-overlap"]).toBe(0);
+      expect(contractHard(gaps, out)).toEqual(P.checkHard(gaps, out));
+    });
+
+    it("count a circle beside a rectangle by the bounding boxes", () => {
+      const input = open([disc("a", 5), { id: "b", w: 10, h: 10 }]);
+      const out = output([{ id: "a", x: 0, y: 0 }, { id: "b", x: 9, y: 9 }]);
+      expect(P.checkHard(input, out)["no-overlap"]).toBe(1);
+      expect(contractHard(input, out)).toEqual(P.checkHard(input, out));
+    });
+
+    it("count a circle in a circle container by distance, also with a free size", () => {
+      for (const fixed of ["size", "none"] as const) {
+        const input = ring(fixed, [disc("a", 10), disc("b", 10)]);
+        const out = output([{ id: "a", x: 40, y: 40 }, { id: "b", x: 1, y: 1 }]);
+        expect(P.checkHard(input, out)["in-container"], fixed).toBe(1);
+        expect(contractHard(input, out), fixed).toEqual(P.checkHard(input, out));
+        expect(P.checkHard(input, out, undefined, { exactContainer: false })["in-container"], fixed).toBe(0);
+      }
+    });
+
+    it("keep each count of the local functions equal to the contract", () => {
+      const input = { ...ring("size", [disc("a", 10), disc("b", 10)]), gap: 2 };
+      const out = output([{ id: "a", x: 40, y: 40 }, { id: "b", x: 1, y: 1 }, { id: "unknown", x: 0, y: 0 }]);
+      const boxes = [{ ...disc("a", 10), x: 40, y: 40 }, { ...disc("b", 10), x: 1, y: 1 }];
+      expect(P.circleOverlaps(input, out)).toBe(C.circleOverlaps(boxes, undefined, undefined, 2));
+      expect(P.circlesOutside(input, out)).toBe(C.circlesOutside({ ...fileOf(input), boxes }));
+      expect(P.circlesOutside(input, out)).toBe(1);
+    });
   });
 
   const input: P.PackInput = {

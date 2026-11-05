@@ -1,4 +1,4 @@
-import { boundsOf, rectInRegion, regionHitsRect, translate, type ContainerTest, type PackHard, type Rect, type Region } from "@mark1russell7/layout-contract";
+import { boundsOf, circlesOutside as ringOutside, rectInRegion, regionHitsRect, shapesOverlap, translate, type ContainerTest, type LayoutBox, type LayoutContainer, type PackHard, type Rect, type Region } from "@mark1russell7/layout-contract";
 import { DEFAULT_TOLERANCE, marginOf, RECORD_EPS, turnItem, type Item, type PackInput, type PackOutput, type Placement, type Tolerance } from "./contract.ts";
 import { predicates } from "./probe.ts";
 
@@ -39,11 +39,32 @@ function pairGapsOf(input: PackInput): Map<string, number> | undefined {
   return out;
 }
 
+/** This function gives the placed box of a circle item for the rules of the contract, or `undefined` for each other item. */
+function discOf(item: Item, at: Pick<Placement, "x" | "y">): LayoutBox | undefined {
+  return item.shape?.kind === "circle" ? { ...item, x: at.x, y: at.y } : undefined;
+}
+
+/**
+ * This function gives the placed boxes of the circle items of an output, for the circle rules of the contract.
+ * An item without a circle shape and a placement of an unknown id give no box.
+ */
+export function circleBoxes(input: PackInput, placements: readonly Placement[]): LayoutBox[] {
+  const items = new Map(input.items.map((i) => [i.id, i]));
+  const out: LayoutBox[] = [];
+  for (const p of placements) {
+    const item = items.get(p.id);
+    const box = item === undefined ? undefined : discOf(p.turn === 90 ? turnItem(item) : item, p);
+    if (box !== undefined) out.push(box);
+  }
+  return out;
+}
+
 /**
  * This function counts the breaks of the 4 hard rules of the packer for an output.
  *
  * - `no-overlap`: each pair of items with their margins, and each pair of an item and an obstacle, that overlap by more than `tolerance.overlap`.
  *   A pair of `pairGaps` uses its gap in place of the two margins, as in `packHard`: one item grows by the gap.
+ *   Two circle items count by the distance of their centers, by `shapesOverlap` of the contract.
  * - `in-container`: each item with its margin that goes out of a fixed side by more than `tolerance.overlap`. The inset of
  *   the container makes each fixed side smaller (decision 3 of `docs/PACKER.md`).
  * - `locked-kept`: each locked item that moved by more than `RECORD_EPS`, or that has no placement.
@@ -53,12 +74,16 @@ function pairGapsOf(input: PackInput): Map<string, number> | undefined {
  * `x` or no `y` in the input is a bad input. The rules skip it, as `packHard` of the contract does. `checkInput` finds it.
  *
  * The test of an obstacle is exact: a circle, an ellipse and a polygon with holes count only their insides, as in `packHard`.
- * The rules read a shape of the container or of an item as its bounding box (decision 5). The bounding box of an item
+ * Each other pair reads a shape of an item as its bounding box (decision 5). The bounding box of an item
  * shape is relative to the position of the item. The result has no tolerance in it.
  *
- * With `options.exactContainer`, a shaped container with the size `fixed` also uses its true outline for `in-container`.
+ * A shaped container with the size `fixed` also uses its true outline for `in-container`.
  * A box then counts when `rectInRegion` of the contract tells that it is not in the shape, as in `packHard`.
- * For that test, the box grows by the inset and becomes smaller by `tolerance.overlap` on each side. The default is `false`.
+ * For that test, the box grows by the inset and becomes smaller by `tolerance.overlap` on each side.
+ * A circle item in a circle container counts by distance, also with a free size, by `circlesOutside` of the contract.
+ * With `options.exactContainer` set to `false`, only the bounding box of the container counts.
+ *
+ * These counts are the rules of `HARD_RULE_VERSION` 2 of the contract.
  */
 export function checkHard(
   input: PackInput,
@@ -76,6 +101,7 @@ export function checkHard(
   const boxes: Box[] = [];
   const ids: string[] = [];
   const raws: Box[] = [];
+  const discs: (LayoutBox | undefined)[] = [];
   for (const item of input.items) {
     if (item.locked === true && (item.x === undefined || item.y === undefined)) continue;
     const lockedAt = item.locked === true ? { x: item.x!, y: item.y! } : undefined;
@@ -99,6 +125,7 @@ export function checkHard(
     boxes.push({ l: l - m.left, t: t - m.top, r: l + area.w + m.right, b: t + area.h + m.bottom });
     ids.push(item.id);
     raws.push({ l, t, r: l + area.w, b: t + area.h });
+    discs.push(discOf(placed, p));
   }
   const pairs = pairGapsOf(input);
 
@@ -114,10 +141,17 @@ export function checkHard(
   const probe = predicates.probe;
   let overlaps = 0;
   for (const [i, a] of boxes.entries()) {
+    const disc = discs[i];
     for (let j = i + 1; j < boxes.length; j++) {
       const g = pairs?.get(pairKey(ids[i]!, ids[j]!));
       const p = g === undefined ? a : grown(raws[i]!, g);
       const q = g === undefined ? boxes[j]! : raws[j]!;
+      const other = disc === undefined ? undefined : discs[j];
+      if (disc !== undefined && other !== undefined) {
+        // The probe reads the test of two boxes. Two circles use a test of distance, so the probe does not see them
+        if (shapesOverlap(disc, other, tol, g)) overlaps += 1;
+        continue;
+      }
       const hit = overlap(p, q, tol);
       if (probe !== undefined) probe("overlap", g === undefined ? { a: p, b: q, tolerance: tol } : { a: p, b: q, tolerance: tol, gap: g }, hit);
       if (hit) overlaps += 1;
@@ -136,13 +170,17 @@ export function checkHard(
   const inset = container.inset ?? 0;
   const fixedW = container.fixed === "size" || container.fixed === "width";
   const fixedH = container.fixed === "size" || container.fixed === "height";
-  const exact = options.exactContainer === true && container.fixed === "size" ? container.shape : undefined;
+  const trueOutline = options.exactContainer !== false;
+  const exact = trueOutline && container.fixed === "size" ? container.shape : undefined;
+  const ring: LayoutContainer | undefined = trueOutline && container.shape?.kind === "circle" ? { ...container, w: output.size.w, h: output.size.h } : undefined;
   let outside = 0;
-  for (const box of boxes) {
+  for (const [i, box] of boxes.entries()) {
     const outX = fixedW && (box.l < x + inset - tol || box.r > x + w - inset + tol);
     const outY = fixedH && (box.t < y + inset - tol || box.b > y + h - inset + tol);
     if (probe !== undefined) probe("container", { box, x, y, w, h, inset, tolerance: tol, fixedW, fixedH }, outX || outY);
+    const disc = ring === undefined ? undefined : discs[i];
     if (outX || outY) outside += 1;
+    else if (ring !== undefined && disc !== undefined) outside += ringOutside({ schema: "layout-input/1", id: "check", container: ring, boxes: [disc] }, tol);
     else if (exact !== undefined && !rectInRegion(exact, inner({ l: box.l - inset, t: box.t - inset, r: box.r + inset, b: box.b + inset }, tol))) outside += 1;
   }
   return { "no-overlap": overlaps, "in-container": outside, "locked-kept": lockedKept, complete };

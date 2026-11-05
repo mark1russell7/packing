@@ -157,7 +157,7 @@ export function packSideAnchors(input: PackInput, anchors: readonly SideAnchor[]
     };
     packs += 1;
     const output = packWith(strategy, fixed, memberOptions, seed);
-    const hard = checkHard(fixed, output);
+    const hard = checkHard(fixed, output, undefined, { exactContainer: false });
     const breaks = Object.values(hard).reduce((sum, value) => sum + value, 0);
     return { output, length, problems: output.overflow.length + breaks };
   };
