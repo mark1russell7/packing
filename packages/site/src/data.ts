@@ -48,6 +48,33 @@ export interface StrategySummary {
   hardBreaks: number;
   verdicts: MeasureVerdict[];
   groups: { group: string; wins: number; losses: number; ties: number }[];
+  /** The inputs that the strategy finished. A snapshot from before the wall budget does not have this field. */
+  finished?: StrategyFinished;
+  /** The reason of each skipped record, with its count. */
+  reasons?: { reason: string; count: number }[];
+  /** The count of the records with 1 timed run. */
+  oneRun?: number;
+}
+
+/** The inputs that a strategy finished. Two strategies with the same `set` have the same inputs, so a page can compare them. */
+export interface StrategyFinished {
+  inputs: number;
+  largest: number | null;
+  set: string;
+}
+
+/** The rules of the wall budget of a run. */
+export interface SnapshotBudget {
+  smallPairMs: number;
+  smallItems: number;
+  pairMs: number;
+  slowPackMs: number;
+  overruns: number;
+  deadlineMinutes?: number;
+  control: { entry: string; packs: number; source: "pack" };
+  /** The lowest and the highest factor of the jobs, and the largest quotient of the quartiles of one job. */
+  factor?: { lo: number; hi: number; widest: number };
+  noFactor?: number;
 }
 
 /** The strategy snapshot of one corpus */
@@ -62,6 +89,7 @@ export interface StrategySnapshot {
   families: number;
   measures: { id: string; direction: "higher" | "lower"; tie: number | { rel: number } }[];
   strategies: StrategySummary[];
+  budget?: SnapshotBudget;
 }
 
 /** A group of a paired time test */
@@ -164,6 +192,8 @@ export interface GapSnapshot {
   inputs: number;
   cells: { cell: string; inputs: number }[];
   strategies: GapStrategy[];
+  /** The count of the inputs that left the table, because a wall budget ended a pair on them. */
+  stopped?: number;
 }
 
 /** One measure of the coverage snapshot: the held-out error of the model, the share of the cells and the top indices */

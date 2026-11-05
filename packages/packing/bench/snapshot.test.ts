@@ -15,6 +15,7 @@ import {
   SELECT_LEAF_WINS,
   selectSnapshot,
   sig,
+  snapshotBudget,
   strategySnapshot,
   tableLeaves,
   type LeafWins,
@@ -445,5 +446,74 @@ describe("the coverage snapshot (k105)", () => {
     const a = snap.latest.measures[0]!.active!;
     expect(a.start).toEqual({ share: 0.05, mae: 0.2, equal: 0.05, prior: 0.04, priorCount });
     expect(a.rounds[0]).toMatchObject({ prior: 0.3, priorCount, after: { prior: 0.04, priorCount } });
+  });
+});
+
+describe("the finished inputs of a snapshot (k153)", () => {
+  const a = "s/a/s1";
+  const b = "s/b/s1";
+  const records = [
+    rec("rows", a, 1, 0.5, { nodes: 10 }),
+    rec("rows", b, 1, 0.5, { nodes: 100 }),
+    rec("x", a, 1, 0.6, { nodes: 10, oneRun: true }),
+    rec("x", b, 1, 0, { nodes: 100, measures: {}, skipped: "over budget" }),
+    rec("y", a, 1, 0.7, { nodes: 10 }),
+    rec("y", b, 1, 0, { nodes: 100, measures: {}, skipped: "not run: job budget" }),
+    rec("z", a, 1, 0.8, { nodes: 10 }),
+    rec("z", b, 1, 0.8, { nodes: 100 }),
+    rec("none", a, 1, 0, { nodes: 10, measures: {}, skipped: "unsupported mode: offline" }),
+    rec("none", b, 1, 0, { nodes: 100, measures: {}, skipped: "unsupported mode: offline" }),
+  ];
+  const snap = strategySnapshot(records, { corpus: "c", origin, measures: ["pack.fill"], runs: 200, draws: 200 });
+  const of = (id: string) => snap.strategies.find((s) => s.strategy === id)!;
+
+  it("states the inputs and the largest input that each strategy finished", () => {
+    expect(of("rows").finished).toMatchObject({ inputs: 2, largest: 100 });
+    expect(of("x").finished).toMatchObject({ inputs: 1, largest: 10 });
+    expect(of("none").finished).toMatchObject({ inputs: 0, largest: null });
+  });
+
+  it("gives the same set only to strategies with the same finished inputs", () => {
+    expect(of("x").finished.set).toBe(of("y").finished.set);
+    expect(of("x").finished.set).not.toBe(of("z").finished.set);
+    expect(of("z").finished.set).toBe(of("rows").finished.set);
+  });
+
+  it("counts the reasons and the records with 1 timed run", () => {
+    expect(of("x").reasons).toEqual([{ reason: "over budget", count: 1 }]);
+    expect(of("none").reasons).toEqual([{ reason: "unsupported mode: offline", count: 2 }]);
+    expect(of("z").reasons).toEqual([]);
+    expect(of("x").oneRun).toBe(1);
+    expect(of("y").oneRun).toBe(0);
+  });
+
+  it("keeps a censored time out of the mean of a verdict", () => {
+    const fill = of("x").verdicts.find((v) => v.measure === "pack.fill")!;
+    expect(fill.means).toEqual({ a: 0.5, b: 0.6 });
+    expect(fill.n).toBe(1);
+  });
+
+  it("carries the budget only for a run with a budget", () => {
+    expect("budget" in snap).toBe(false);
+    const budget = { smallPairMs: 15000, smallItems: 30, pairMs: 30000, slowPackMs: 1000, overruns: 2, control: { entry: "skyline", packs: 20, source: "pack" as const } };
+    expect(strategySnapshot(records, { corpus: "c", origin, measures: ["pack.fill"], runs: 200, draws: 200, budget }).budget).toEqual(budget);
+  });
+
+  it("reads the rules of a budget of a run, with the range of its load factors", () => {
+    const rules = { smallPairMs: 15000, smallItems: 30, pairMs: 30000, slowPackMs: 1000, overruns: 2, deadlineMinutes: 330, control: { entry: "skyline", packs: 20, source: "pack" as const } };
+    const run = { ...rules, jobs: [], factors: [{ factor: 1.2, low: 1, high: 1.5 }, { factor: undefined }, { factor: 1.7, low: 1.6, high: 1.8 }] };
+    expect(snapshotBudget(run)).toEqual({ ...rules, factor: { lo: 1.2, hi: 1.7, widest: 1.5 }, noFactor: 1 });
+    expect(snapshotBudget(rules)).toEqual(rules);
+  });
+
+  it("removes an input with a stopped pair from each strategy of a gap table", () => {
+    const gap = (strategy: string, input: string, extra: Partial<SnapshotRecord> = {}) => rec(strategy, input, 1, 0.5, { measures: { "pack.gap": 0.1 }, ...extra });
+    const stopped = gapSnapshot([gap("p", a), gap("p", b), gap("q", a), gap("q", b, { measures: {}, skipped: "over budget" })], { corpus: "c", origin, measure: "pack.gap" });
+    expect(stopped.stopped).toBe(1);
+    expect(stopped.inputs).toBe(1);
+    expect(stopped.strategies.map((s) => s.records)).toEqual([1, 1]);
+    const refused = gapSnapshot([gap("p", a), gap("q", a, { measures: {}, skipped: "unsupported containerSize: refused" })], { corpus: "c", origin, measure: "pack.gap" });
+    expect("stopped" in refused).toBe(false);
+    expect(refused.strategies.find((s) => s.strategy === "q")!.all.missing).toBe(1);
   });
 });

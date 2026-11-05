@@ -4,7 +4,7 @@ import { parseResponseRecord } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
 import { buildLine, navLinks } from "./chrome.ts";
 import { coverageLine, explorerFacts, NO_COVERAGE_LINE, RECORD_ORIGIN } from "./explorer-model.ts";
-import { byDate, COVERAGE_LABELS, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySnapshot } from "./data.ts";
+import { byDate, COVERAGE_LABELS, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -21,7 +21,12 @@ import {
   niceCeil,
   percentText,
   pickHolds,
+  budgetText,
+  rankSections,
   rankStrategies,
+  reasonMeaning,
+  sectionReasons,
+  sectionText,
   ratioAt,
   sampledText,
   stepText,
@@ -197,6 +202,55 @@ describe("the calculations of the pages", () => {
     expect(ranked.at(-1)!.strategy).toBe("push");
     const means = ranked.flatMap((s) => s.verdicts.filter((v) => v.measure === "pack.fill" && v.stratified !== undefined).map((v) => v.stratified!.mean));
     expect([...means].sort((a, b) => b - a)).toEqual(means);
+  });
+
+  it("gives one section without a heading fact for a snapshot from before the budget", () => {
+    const sections = rankSections(snap, "pack.fill");
+    expect(sections).toHaveLength(1);
+    expect(sections[0]!.finished).toBeUndefined();
+    expect(sections[0]!.strategies).toEqual(rankStrategies(snap, "pack.fill"));
+  });
+
+  it("compares strategies only inside one set of finished inputs", () => {
+    const summary = (strategy: string, mean: number, set: string, inputs: number, largest: number | null): StrategySummary => ({
+      ...snap.strategies[0]!,
+      strategy,
+      verdicts: [{ ...snap.strategies[0]!.verdicts[0]!, measure: "pack.fill", stratified: { mean, lo: mean, hi: mean } }],
+      finished: { set, inputs, largest },
+    });
+    const made = {
+      ...snap,
+      baseline: "base",
+      strategies: [summary("base", 0, "all", 10, 1000), summary("big-low", 0.1, "all", 10, 1000), summary("small-high", 0.9, "part", 6, 100), summary("big-high", 0.2, "all", 10, 1000)],
+    } as StrategySnapshot;
+    const sections = rankSections(made, "pack.fill");
+    expect(sections.map((x) => x.strategies.map((s) => s.strategy))).toEqual([["big-high", "big-low"], ["small-high"]]);
+    expect(sectionText(sections[1]!.finished!, 10)).toBe("Compared on the same 6 of 10 inputs, up to 100 items. Do not compare these strategies with another group.");
+    expect(sectionText({ set: "none", inputs: 0, largest: null }, 10)).toBe("No input finished, so these strategies have no comparison.");
+  });
+
+  it("gives the meaning of the budget reasons and of a refusal, and no meaning for another reason", () => {
+    expect(reasonMeaning("over budget")).toContain("lower limit");
+    expect(reasonMeaning("not run: over budget at this size")).toContain("2 pairs");
+    expect(reasonMeaning("not run: job budget")).toContain("time limit");
+    expect(reasonMeaning("unsupported containerSize: refused")).toContain("256 items");
+    expect(reasonMeaning("unsupported mode: offline")).toBeUndefined();
+    const reasons = [{ reason: "over budget", count: 2 }, { reason: "unsupported mode: offline", count: 1 }];
+    const section = { strategies: [{ ...snap.strategies[0]!, reasons }, { ...snap.strategies[0]!, reasons }] };
+    expect(sectionReasons(section)).toEqual([reasonMeaning("over budget")]);
+  });
+
+  it("states the rules of a budget, and the load factors when the run has them", () => {
+    const rules = { smallPairMs: 15000, smallItems: 30, pairMs: 30000, slowPackMs: 1000, overruns: 2, control: { entry: "skyline", packs: 20, source: "pack" as const } };
+    expect(budgetText(rules)).toBe(
+      "Each pair of a strategy and an input has a budget of 15 s up to 30 items, and 30 s above. After 2 pairs over budget at one size, the strategy does not start at that size or above. A first pack over 1 s gives the pair 1 timed run. Each CI job also packs a control, the strategy skyline, 20 times on each of its largest inputs.",
+    );
+    const held = budgetText({ ...rules, factor: { lo: 1.1, hi: 1.7, widest: 1.2 } });
+    expect(held).toContain("1.1 to 1.7");
+    expect(held).not.toContain("does not correct");
+    const wide = budgetText({ ...rules, factor: { lo: 1.1, hi: 1.2, widest: 1.9 } });
+    expect(wide).toContain("spread by 1.90 times, over the 1.09 times between jobs");
+    expect(budgetText({ ...rules, noFactor: 3 })).toContain("3 jobs have too few control times");
   });
 
   it("ranks a made-up snapshot", () => {

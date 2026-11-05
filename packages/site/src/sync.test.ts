@@ -2,7 +2,7 @@
 // A new strategy, entry or option that a page does not offer fails this test.
 
 import { readFileSync } from "node:fs";
-import { allStrategies, composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, sideAnchorsStrategy, standaloneStrategies, strategies, strategy } from "@mark1russell7/packing";
+import { allStrategies, composites, corpusFamilies, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, shapeStrategies, sideAnchorsStrategy, STANDALONE_MAX_ITEMS, standaloneStrategies, strategies, strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, STANDALONE_IDS } from "@mark1russell7/packing/bench/entries";
 import { describe, expect, it } from "vitest";
 import { optionsOf } from "./cards-model.ts";
@@ -12,6 +12,7 @@ import { dimensionControls, familyKey } from "./corpus-input.ts";
 import { staleText } from "./kpi.ts";
 import { STRATEGIES } from "./model.ts";
 import { DEMO_IDS, MEMBER_ENTRIES, optionControls, packOptions, startValues } from "./options.ts";
+import { REFUSE_ITEMS } from "./results-model.ts";
 
 describe("the compare page", () => {
   it("offers each entry of ENTRIES, in its order, from the import", () => {
@@ -115,5 +116,11 @@ describe("the demo", () => {
       expect(card, id).toMatchObject({ type: "number", value: null });
       expect(card!.note, id).toContain("same on each computer");
     }
+  });
+});
+
+describe("the results page", () => {
+  it("states the limit of the standalone strategies", () => {
+    expect(REFUSE_ITEMS).toBe(STANDALONE_MAX_ITEMS);
   });
 });
