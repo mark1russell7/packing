@@ -1,7 +1,7 @@
 {
   "schema": "strategy-catalog/2",
   "engine": "packing",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "strategies": [
     {
       "key": "anneal",
@@ -3768,6 +3768,69 @@
           }
         }
       }
+    },
+    {
+      "key": "shelf-breaks",
+      "id": "shelf-breaks",
+      "family": "shelf",
+      "kind": "single",
+      "describe": "This strategy packs a strip into rows in the reading order, with the breaks of the least height.",
+      "supports": {
+        "containerSize": [
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "output": [
+        {
+          "property": "position-grid",
+          "class": "untested",
+          "evidence": {
+            "inputs": 6,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "default",
+            "catalogVersion": "0.10.0"
+          }
+        },
+        {
+          "property": "size-grid",
+          "class": "untested",
+          "evidence": {
+            "inputs": 6,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "default",
+            "catalogVersion": "0.10.0"
+          }
+        }
+      ],
+      "options": {}
     },
     {
       "key": "side-anchors",

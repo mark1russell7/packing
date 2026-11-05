@@ -9,6 +9,7 @@ import { columnsLinearPartition, masonryLpt, masonryShortest, type MasonryOption
 import { packNearRects, type NearRectsOptions } from "./near-rects.ts";
 import { packRasterNofit, type RasterNofitOptions } from "./raster-nofit.ts";
 import { packSideAnchors, type SideAnchor, type SideAnchorOptions } from "./side-anchors.ts";
+import { shelfBreaks, shelfBreaksRefusal } from "./shelf-breaks.ts";
 import { sleatorRefusal, sleatorStrip } from "./sleator.ts";
 import { assertSupported, UnsupportedCell, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSquarified, treemapStrip, type TreemapLayout } from "./treemap.ts";
@@ -88,6 +89,25 @@ export const sleatorStrategy: Strategy<Record<string, never>> = {
     const reason = sleatorRefusal(input);
     if (reason !== null) throw refusal(reason);
     return sleatorStrip(input).output;
+  },
+};
+
+/** The cells of `shelf-breaks`: a strip, with each order. The rows keep the reading order, so the cell `hard` holds. */
+const BREAKS_SUPPORTS: Supports = /* @__PURE__ */ cells({ rotation: ["none"], order: ["free", "soft", "hard"] });
+
+/** The strategy `shelf-breaks`: `shelfBreaks` of roadmap item k29. Its height is the least of all rows in the reading order. */
+export const shelfBreaksStrategy: Strategy<Record<string, never>> = {
+  id: "shelf-breaks",
+  family: "shelf",
+  catalog: [],
+  supports: BREAKS_SUPPORTS,
+  defaults: {},
+  deterministic: true,
+  pack(input: PackInput): PackOutput {
+    assertSupported(shelfBreaksStrategy.supports, input);
+    const reason = shelfBreaksRefusal(input);
+    if (reason !== null) throw refusal(reason);
+    return shelfBreaks(input).output;
   },
 };
 
@@ -261,4 +281,4 @@ export const sideAnchorsStrategy: Strategy<SideAnchorStrategyOptions> = {
 /**
  * The single strategies that a bench entry reaches by id. Each corpus run skips the cells that a strategy does not support.
  */
-export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, beamStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);
+export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, shelfBreaksStrategy, beamStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);

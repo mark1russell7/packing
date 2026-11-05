@@ -2339,6 +2339,23 @@ The strip has a width of 200. Each family has made-up items with a height from 1
 
 Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
 
+## The shelf with the best breaks
+
+`bench/breaks.ts` compares `shelfBreaks` of roadmap item k29 with the strategy `shelf` and the option `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k29-optimal-breaks`.
+
+```bash
+node --no-warnings bench/breaks.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-screen-v1` as the default. It packs each input that `shelfBreaksRefusal` accepts with the two strategies. It writes one JSON line. The line has the counts of refusals, of higher heights and of lower heights. It also has the mean and the least ratio of the two heights.
+
+| Corpus | Inputs | Accepted | Higher | Lower | Mean ratio | Least ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-screen-v1` | 1305 | 20 | 0 | 10 | 0.979 | 0.891 |
+| `pack-strip-v1` | 528 | 264 | 0 | 216 | 0.955 | 0.763 |
+
+The script refuses each input with no fixed width. Thus `pack-screen-v1` gives only 20 inputs. No height is higher than the greedy height, and the proof in `docs/PACKER.md` gives the same result. The mean ratio of `pack-screen-v1` is above 0.97, so the prediction of a mean ratio of at most 0.97 is false. The row of `pack-strip-v1` is a second read, not the measure of the prediction.
+
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
