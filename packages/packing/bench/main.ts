@@ -32,10 +32,12 @@ import {
   type BenchEnv,
   type BenchPrediction,
   type BenchRecord,
+  type BenchResult,
   type BenchRun,
   pairedInputs,
   pairedPack,
 } from "./run.ts";
+import { runBudgeted, runCases } from "./budget.ts";
 import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { dumpPredicates, NEAR, parseShard } from "./predicates.ts";
 import { deriveSizeGate, measureSizes, parseSizeGate, publishedExports, sizeCoverage, sizeMarkdown, sizeVerdict, type PublishedPackage, type SizeBundler } from "./size-gate.ts";
@@ -349,7 +351,32 @@ function main(): number | Promise<number> {
       if (prediction === undefined || prediction.trim() === "") throw new Error("Each run names its prediction: --prediction <id>.");
       const file = join(here, "corpora", `${name}.json`);
       const sha = commit();
-      const result = runBench({
+      const report = (result: BenchResult): number => {
+        // A gate fails closed: a run with no records is a failure, not a pass
+        if (result.records.length === 0) return empty(`the run of the corpus ${name}`);
+        const out = resolve(opt("--out") ?? join("bench-out", name));
+        write(out, result.run, result.records, result.manifest);
+        const skips = result.records.filter((r) => !isMeasured(r)).length;
+        process.stdout.write(`${result.records.length} records, ${skips} of them skipped, and ${result.run.errors.length} errors in ${out}\n`);
+        const passed = gate(result.records);
+        return result.run.errors.length > 0 || !passed ? 1 : 0;
+      };
+      if (rest.includes("--budget")) {
+        if (rest.includes("--interleave") || rest.includes("--anchor")) throw new Error("A run with --budget has no --interleave and no --anchor.");
+        const deadline = opt("--deadline-minutes");
+        return runBudgeted({
+          corpusFile: file,
+          corpusName: name,
+          prediction,
+          strategies: strategyIds(opt("--strategies")),
+          repeats: count("--repeats", DEFAULT_REPEATS),
+          warmup: count("--warmup", DEFAULT_WARMUP),
+          env: env(),
+          ...(sha !== undefined ? { commit: sha } : {}),
+          ...(deadline !== undefined ? { deadlineMinutes: count("--deadline-minutes", 0) } : {}),
+        }).then(report);
+      }
+      return report(runBench({
         corpus: parseCorpus(readFileSync(file, "utf8"), name),
         prediction,
         strategies: strategyIds(opt("--strategies")),
@@ -361,15 +388,14 @@ function main(): number | Promise<number> {
         ...(rest.includes("--anchor") ? { anchor: true } : {}),
         env: env(),
         ...(sha !== undefined ? { commit: sha } : {}),
-      });
-      // A gate fails closed: a run with no records is a failure, not a pass
-      if (result.records.length === 0) return empty(`the run of the corpus ${name}`);
-      const out = resolve(opt("--out") ?? join("bench-out", name));
-      write(out, result.run, result.records, result.manifest);
-      const skips = result.records.filter((r) => !isMeasured(r)).length;
-      process.stdout.write(`${result.records.length} records, ${skips} of them skipped, and ${result.run.errors.length} errors in ${out}\n`);
-      const passed = gate(result.records);
-      return result.run.errors.length > 0 || !passed ? 1 : 0;
+      }));
+    }
+    case "run-cases": {
+      // The child of a run with --budget: the supervisor gives the file of the job and the file of the pairs
+      const [jobFile, pairsFile] = rest.filter((arg) => !arg.startsWith("--"));
+      if (jobFile === undefined || pairsFile === undefined) throw new Error("A child of a run needs the file of the job and the file of the pairs.");
+      runCases(jobFile, pairsFile);
+      return 0;
     }
     case "merge": {
       const out = opt("--out");

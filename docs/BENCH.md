@@ -28,6 +28,8 @@ The inputs of the workflow:
 | `prediction` | (none) | The id of the prediction. Each record writes it in `prediction`. The input is necessary. |
 | `repeats` | `5` | The timed passes of each pair of a strategy and an input. The record keeps the median in `ms`. |
 | `warmup` | `2` | The passes before the timed passes of each pair. They have no time. |
+| `job-minutes` | `30` | The time limit of each job of the matrix, 1 to 350. A job that this limit stops uploads no records. |
+| `budget` | `false` | The value `true` gives each pair a wall budget. The section "The budget of a pair" tells the rules. |
 
 To start the workflow on a branch, add `--ref <branch>`. GitHub starts a workflow by hand only when the default branch has the file of the workflow.
 
@@ -207,6 +209,48 @@ The flag `--interleave` changes only the order of the timed passes. For each inp
 The runner does not stop at an error of a strategy. It writes the error in `run.json` and in the summary, and it exits with the code 1.
 
 A strategy of the mode `incremental` gets only skipped records on an offline corpus. Each generator of the package makes offline inputs, so the runner skips `push` on each input.
+
+## The budget of a pair
+
+The flag `--budget` holds each pair of an entry and an input to a wall budget. A run of `all` can then finish on the corpora with 1000 items. The input `budget` of the workflow sets the flag. Each pair runs in a child process of `superviseCases` from `@mark1russell7/rigor-bench/supervise`, so a stop works on code that does not return. Only an overrun costs a new child, so the times of the other pairs do not change.
+
+| Rule | Value | Where |
+|---|---|---|
+| The wall budget of a pair, with its 2 packs for determinism, its warm-up, its timed runs and its pack with the next seed | 15 s up to 30 items, 30 s above | `SMALL_PAIR_MS`, `PAIR_MS` |
+| A first pack over this time gives the pair 1 timed run and no warm-up | 1 s | `SLOW_PACK_MS` |
+| The overruns of an entry at one size, after which its other pairs at that size and above do not start | 2 | `DEFAULT_OVERRUNS` of `rigor-bench` |
+| The time limit of the pairs of a job | 10 minutes less than `job-minutes` | the workflow |
+
+The pairs of an entry run in rising order of their size, so the stop comes early. The cost of a stop is thus at most 2 budgets for each size.
+
+A pair that did not finish keeps a record, and the reason is in the field `skipped`:
+
+| Reason | Meaning | Other fields |
+|---|---|---|
+| `over budget` | The supervisor stopped the pair at its budget. | `budgetMs`, and `msAtLeast`, the lower limit of the time. The time is censored, so no mean reads it. |
+| `not run: over budget at this size` | 2 pairs of the entry passed the budget at this size or below. | `budgetMs`, and `because`, the 2 pairs. |
+| `not run: job budget` | The job reached its time limit before this pair ended. | `budgetMs` |
+
+A record with `oneRun: true` has one time and no warm-up, because a measure of that pair chose it. The time test of the win test reads no time of such a record. It reads the mark of the record and not a list of entries.
+
+The field `budget` of `run.json` states these rules, and has the control of each job. The section `Budget` of the summary shows, for each entry, the largest input that finished in its budget. Compare two entries only on the inputs that each one finished.
+
+A wall budget is not one limit across computers, because the runners differ by load. So each job first packs the same inputs with the entry `skyline`: 20 packs of each of the 7 largest inputs. The field `budget.jobs` keeps these times. The merge gives them to `controlFactor` of `rigor-bench`, with one group for each job and one key for each input. It writes the load factor of each job in `budget.factors`. Read a censored result near a budget with the factor of its job.
+
+The strategies `binary-height`, `near-rects` and `raster-nofit` refuse an input with over 256 items, so those pairs have the reason `unsupported containerSize: refused` at no cost. This limit is a real limit of the strategies, and it is not part of the budget.
+
+A corpus with `base` inputs does not go with `--budget`. An input of such a corpus needs the output of its base in the same process. `--interleave` and `--anchor` do not go with it either.
+
+The estimate of the first run comes from a power law over the times of workflows `41897623562` and `41942254149`. Each has at most 100 items, so the estimate is not a measurement:
+
+| Corpus | Estimate of the job minutes |
+|---|---:|
+| `pack-classes-v1` | 125 |
+| `pack-free-v1` | 160 |
+| `pack-screen-v1` | 672 |
+| `pack-select-v1` | 832 |
+| `pack-select-v2` | 832 |
+| `pack-known-v1` | 56 |
 
 ## The corpora
 
