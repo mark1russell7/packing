@@ -1462,6 +1462,7 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
+A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
 
 - A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
 - A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
@@ -1970,10 +1971,9 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - Do not read this as a general gain of the active draw. The 4 other measures show no gain.
 - The Monday run repeats the test with the same seeds and new code.
 
-- The workflow starts on a push to `main` that changes a file of the draw or the verdict. The workflow file has the list of these files.
-- A change of `src` changes only the records, and the weekly run measures it. From 2026-10-27 to 11-03, 119 commits changed `src` or `bench`, but only 17 changed those files.
-- Thus a change of `src` shows in the next Monday run, not at once.
-- A newer push cancels the run of an older push. A cancelled run writes no `cells.json`, so the records show only the runs that finished.
+- A push does not start the workflow. The grid takes approximately 3 hours, and a start from a merge does not pass the check of the free CI slots.
+- Thus a change of `src`, or of a file of the draw or the verdict, shows in the next Monday run, not at once. To read it earlier, start the workflow by hand.
+- A cancelled run writes no `cells.json`, so the records show only the runs that finished. A weekly run and a manual run have different groups, so one does not hold the other.
 - A person can also start the workflow, with other inputs.
 - It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
 - Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.
@@ -1982,11 +1982,12 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - The new timeout comes from that run. The slowest arm gives 12 x 400 / 195 = 24.6 minutes, and the arm that finished took approximately 10 minutes. The limit is 24.6 + 14.6 = 39.2, so 40. This is an estimate from arms that the timeout stopped, because the run has no finished slow arm. A later run replaces it.
 - `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
+- The grid has the wall budget of each pair and a job limit of 130 minutes, so the pairs stop at 120 minutes. A slow entry keeps the rows that it finished. In run [41949891960](https://github.com/mark1russell7/packing/actions/runs/41949891960), the limit of 120 minutes cut `raster-nofit` with no row, and `near-rects` took 42 minutes. Both are over the earlier limit of 30 minutes, and a cut job fails the grid, so the arms do not start.
 - The jobs `sample` pack the held-out sample of 400 pairs in 4 shards, with no time limit. The job `held-out` joins them.
 - The merge fails on a missing pair. Thus each arm is tested on all the pairs of the sample.
 - Each job `arm` draws one arm (active or control) with one fold seed (1 to 5) on the same grid and pool.
 - The job `verdict` gives the paired test of each cell that is not void, then the result over the fold seeds, in the artifact `nightly-verdict`.
-- The prediction `packing-k120-nightly` tells the expected outcomes. A change of the inputs needs a new prediction first.
+- The predictions `packing-k120-nightly` and `packing-k161-weekly-budget` tell the expected outcomes. A change of the inputs needs a new prediction first.
 
 `coverage.ts --active <dir>` adds the section `active`. It has the features, the score, the pool and one entry for each round.
 

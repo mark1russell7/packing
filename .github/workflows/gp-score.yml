@@ -26,6 +26,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.population }}-${{ inputs.generations }}-${{ inputs.runs }}
   cancel-in-progress: false
 
+# The shell bash has pipefail, so a failure before a tee fails the step.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   bench:
     runs-on: ubuntu-latest
