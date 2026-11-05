@@ -941,6 +941,16 @@ export interface CoverageOver {
   records?: number;
 }
 
+/** The start of the run of a coverage point: the weekly schedule, a dispatch by hand, or a push. */
+export type CoverageTrigger = "schedule" | "dispatch" | "push";
+
+/** This function gives the start of a run from the event of the run in GitHub Actions. An unknown event is an error. */
+export function triggerOf(event: string): CoverageTrigger {
+  if (event === "schedule" || event === "push") return event;
+  if (event === "workflow_dispatch") return "dispatch";
+  throw new Error(`The event of a coverage run must be schedule, workflow_dispatch or push, not '${event}'.`);
+}
+
 /** One point of the trend of the coverage: the share of each measure on one date */
 export interface CoveragePoint {
   date: string;
@@ -954,6 +964,8 @@ export interface CoveragePoint {
   strategies?: string[];
   /** The method of the run, from `coverageMethod`. A point of a run before this field has no method, so it joins no other point. */
   method?: string;
+  /** The start of the run. A point of a run before this field has no start. The start does not change the line of a point. */
+  trigger?: CoverageTrigger;
   /** The shares of this point over each earlier list that it contains, with one method. Each one continues the line of that list. */
   over?: CoverageOver[];
   /** The measured records of the point. A slow pair that loses its row lowers this count, and the entry keeps its row. */
@@ -1206,7 +1218,13 @@ export function coverageSnapshot(
   earlier?: CoverageSnapshot,
   byInput?: CoverageSummary,
   entries?: CoverageEntries,
-  line?: { readonly method?: string; readonly over?: readonly CoverageOver[]; readonly lost?: readonly CoverageOtherEntry[]; readonly step?: CoverageStep },
+  line?: {
+    readonly method?: string;
+    readonly trigger?: CoverageTrigger;
+    readonly over?: readonly CoverageOver[];
+    readonly lost?: readonly CoverageOtherEntry[];
+    readonly step?: CoverageStep;
+  },
 ): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
@@ -1218,6 +1236,7 @@ export function coverageSnapshot(
     commit: origin.commit,
     strategies: [...summary.strategies].sort(),
     ...(line?.method === undefined ? {} : { method: line.method }),
+    ...(line?.trigger === undefined ? {} : { trigger: line.trigger }),
     ...(line?.over === undefined || line.over.length === 0 ? {} : { over: [...line.over] }),
     records: summary.records,
     ...(line?.step === undefined ? {} : { step: line.step }),
@@ -1629,6 +1648,8 @@ export function snapshotMain(argv: readonly string[]): void {
     const entries = othersWithWords(coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []));
     // A new entry does not restart a line: the same fit over an earlier list gives the next point of that line.
     const method = coverageMethod(run);
+    const event = optionOf(argv, "--event");
+    const trigger = event === undefined ? undefined : triggerOf(event);
     const over = earlierLists(earlier?.trend ?? [], run.corpus, method, grid.strategies).map((list) => {
       const kept = new Set(list);
       const fit = coverage(records.filter((r) => kept.has(r.strategy)), manifest, { ...options, by: "spec" });
@@ -1640,7 +1661,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const earlierFolder = optionOf(argv, "--earlier");
     const step = readStep(earlier?.trend ?? [], { corpus: run.corpus, method, strategies: grid.strategies, run: options.run ?? undefined, records, manifest, options, ...(earlierFolder === undefined ? {} : { folder: earlierFolder }) });
     if (step !== undefined) console.log(`The step from run ${step.from}: ${"noRead" in step ? `no read: ${step.noRead}` : `${step.common} common of ${step.of} pairs`}`);
-    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over, lost, ...(step === undefined ? {} : { step }) }));
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), ...(trigger === undefined ? {} : { trigger }), over, lost, ...(step === undefined ? {} : { step }) }));
     return;
   }
   if (kind === "paired" && folder !== undefined) {
