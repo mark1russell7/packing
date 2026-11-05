@@ -4,7 +4,7 @@
 // the pooled verdict, the balance of the orders and the tail verdict come from `@mark1russell7/rigor-bench`.
 // This file only turns the `paired-time/3` reports into the records of rigor-bench, and writes the record.
 
-import { armOrder, balanceOrders, limitVerdict, pooledVerdict, type Arm, type JobRecords, type LimitOutcome, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
+import { armOrder, modelTest, balanceOrders, limitVerdict, pooledVerdict, type Arm, type JobRecords, type LimitOutcome, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
 import { aaId, assertPairedOrder, quantileOf, type PairedReport } from "./paired-time.ts";
 
 /**
@@ -131,9 +131,38 @@ export interface BudgetTail {
 /** The verdict of the time test. */
 export type BudgetVerdict = "promoted" | "not promoted" | "cannot decide";
 
-/** The record of the time test (schema `packing-time-budget/3`). */
+/** The CPU models of the jobs. A time budget does not test them: its verdict reads the ratios inside each job. */
+export interface BudgetModels {
+  /** Each model with its count of jobs, sorted by model */
+  models: { model: string; jobs: number }[];
+  /** The words "models not tested at N jobs" with the floor as the reason. With 1 model or none, it is `null`. */
+  line: string | null;
+  /** The smallest p that the model test can give at this split, from `modelTest`. With no row to read, it is `null`. */
+  floor: number | null;
+  /** The first level of Holm at this split, from `modelTest`. With no row to read, it is `null`. */
+  level: number | null;
+}
+
+/**
+ * This function gives the CPU models of the jobs, and the reason that a time budget does not test them.
+ * The floor depends only on the counts when each read has its own value, because a tie raises it. A job gives one read: its rounds share one computer, and they are not independent reads of a model.
+ */
+export function budgetModels(cpus: readonly string[]): BudgetModels {
+  const counts = new Map<string, number>();
+  for (const cpu of cpus) counts.set(cpu, (counts.get(cpu) ?? 0) + 1);
+  const models = [...counts].map(([model, jobs]) => ({ model, jobs })).toSorted((x, y) => (x.model < y.model ? -1 : 1));
+  if (models.length < 2) return { models, line: null, floor: null, level: null };
+  const rows = modelTest(cpus.map((model, at) => ({ case: "jobs", model, value: at })), { minReads: 2, searchVisible: false }).rows.filter((r) => r.floor !== undefined);
+  const head = `models not tested at ${cpus.length} jobs`;
+  if (rows.length === 0) return { models, line: `${head}: no model has 2 jobs and other jobs to compare`, floor: null, level: null };
+  const floor = Math.min(...rows.map((r) => r.floor ?? 1));
+  const level = rows[0]?.level ?? 0;
+  return { models, line: `${head}: the smallest p of this split is ${floor.toFixed(4)}, and the first level of Holm is ${level.toFixed(4)}`, floor, level };
+}
+
+/** The record of the time test (schema `packing-time-budget/4`). */
 export interface BudgetResult {
-  schema: "packing-time-budget/3";
+  schema: "packing-time-budget/4";
   corpus: string;
   mode: string;
   base: string;
@@ -147,6 +176,8 @@ export interface BudgetResult {
   tail: BudgetTail | null;
   verdict: BudgetVerdict;
   reasons: string[];
+  /** The CPU models of the jobs. The verdict does not say that the models agree. */
+  models: BudgetModels;
 }
 
 const r4 = (x: number): number => Math.round(x * 1e4) / 1e4;
@@ -258,7 +289,8 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
     if (!i.report.arms.includes(arm)) reasons.push(`the job ${i.run} has no arm ${arm}`);
     if (!i.report.arms.includes(aaId(i.report.base))) reasons.push(`the job ${i.run} has no A/A arm`);
   }
-  const head = { schema: "packing-time-budget/3" as const, corpus, mode, base, arm, ...(only !== undefined ? { only } : {}), ...(ci !== undefined ? { ci } : {}), policy };
+  const models = budgetModels(inputs.map((i) => i.report.env.cpu));
+  const head = { schema: "packing-time-budget/4" as const, corpus, mode, base, arm, ...(only !== undefined ? { only } : {}), ...(ci !== undefined ? { ci } : {}), policy, models };
   if (reasons.length > 0) return { ...head, jobs: [], pooled: null, tail: null, verdict: "cannot decide", reasons };
 
   const span = Math.max(...inputs.map((i) => Math.max(0, ...i.report.inputs.flatMap((x) => Object.values(x.ms).map((m) => m.length)))));
@@ -325,6 +357,13 @@ export function timeBudget(inputs: readonly BudgetInput[], arm: string, policy: 
 /** The most tail cases in the Markdown of the record. The JSON record keeps each case. */
 const TAIL_ROWS = 50;
 
+/** This function writes each model with its count of jobs. With 2 or more models, it also states that the verdict does not say that the models agree. */
+export function budgetModelLines(m: BudgetModels): string[] {
+  if (m.models.length === 0) return [];
+  const names = m.models.map((x) => `${x.model} (${x.jobs} ${x.jobs === 1 ? "job" : "jobs"})`).join(", ");
+  return [m.line === null ? `CPU model: ${names}.` : `CPU models: ${names}. ${m.line}. The verdict reads the ratios inside each job, and it does not say that the models agree.`];
+}
+
 /** This function writes the record of the time test as Markdown. */
 export function budgetMarkdown(b: BudgetResult): string {
   const p = b.policy;
@@ -339,6 +378,7 @@ export function budgetMarkdown(b: BudgetResult): string {
     "",
     `Settings: timeMargin ${p.timeMargin}, noiseCap ${p.noiseCap}, jobs ${p.jobs}, cases ${p.cases}, rounds ${p.rounds}, timeFloorMs ${p.timeFloorMs}, timeTail ${p.timeTail}, timeTailQ ${p.timeTailQ}, timeTailLevel ${p.timeTailLevel}.`,
     ...(b.ci !== undefined ? [`CI run: ${b.ci}`] : []),
+    ...budgetModelLines(b.models),
     ...(pooled === null
       ? []
       : [
