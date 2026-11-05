@@ -44,7 +44,11 @@ import {
   parseVerdictHash,
   percentText,
   pickHolds,
-  rankStrategies,
+  budgetText,
+  rankSections,
+  reasonMeaning,
+  sectionReasons,
+  sectionText,
   ratioAt,
   scaleOf,
   stepText,
@@ -103,6 +107,15 @@ function bar(v: MeasureVerdict | undefined, max: number): string {
   return `<div class="dbar" aria-hidden="true"><span class="zero"></span><span class="fillbar ${cls}" style="left:${left}%;width:${width}%"></span><span class="whisker" style="left:${lo}%;width:${Math.max(0.5, hi - lo)}%"></span></div>`;
 }
 
+/** This function gives the largest input that a strategy finished, and the reason of each input that it did not finish. */
+function finishedHtml(s: StrategySummary, snap: StrategySnapshot): string {
+  if (s.finished === undefined) return "";
+  const size = s.finished.largest === null ? "No input finished." : `The largest input finished has ${s.finished.largest} items: ${s.finished.inputs} of ${snap.inputs} inputs.`;
+  const one = (s.oneRun ?? 0) === 0 ? "" : ` ${s.oneRun} records have 1 timed run, so no time gate reads them.`;
+  const reasons = (s.reasons ?? []).map((r) => `<li><b>${r.count}</b> ${esc(reasonMeaning(r.reason) ?? r.reason)}</li>`).join("");
+  return `<p class="hint">${esc(size + one)}</p>${reasons === "" ? "" : `<ul class="reasons">${reasons}</ul>`}`;
+}
+
 /** This function gives the details of one strategy: each measure, the family signs and the groups of the win measure. */
 function details(s: StrategySummary, snap: StrategySnapshot): string {
   const rows = snap.measures
@@ -122,6 +135,7 @@ function details(s: StrategySummary, snap: StrategySnapshot): string {
   const ms = s.msMedian === null ? "no time" : `in-order median ${msText(s.msMedian)} for each pack, in its own CI job`;
   return `
     <p class="hint">${s.records} records, ${s.skipped} skipped, ${s.hardBreaks} hard breaks, ${ms}.</p>
+    ${finishedHtml(s, snap)}
     <div class="scroll"><table class="vtable">
       <thead><tr><th scope="col">Measure</th><th scope="col">Verdict</th><th scope="col"><code>${esc(snap.baseline)}</code> → this</th><th scope="col">Interval</th><th scope="col">Families: better, worse, tie</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -143,6 +157,9 @@ function drawStrategies(): void {
   for (const b of $("corpora").querySelectorAll<HTMLButtonElement>("button")) b.setAttribute("aria-checked", String(Number(b.dataset["i"]) === current));
   $("corpus-note").innerHTML = `${inline(meta?.note ?? snap.corpus)} <code>${esc(snap.corpus)}</code>: ${snap.inputs} inputs in ${snap.families} families.`;
   $("strategies-origin").innerHTML = originHtml(snap.origin);
+  const budget = $("corpus-budget");
+  budget.hidden = snap.budget === undefined;
+  budget.textContent = snap.budget === undefined ? "" : budgetText(snap.budget);
   const counts = labelCounts(snap, WIN);
   $("headline").innerHTML = `
     <div class="tile better"><b>${counts.better}</b><span>fill better than <code>${esc(snap.baseline)}</code></span></div>
@@ -151,20 +168,26 @@ function drawStrategies(): void {
     <div class="tile unmeasured"><b>${counts["not measured"]}</b><span>not measured</span></div>`;
   const max = scaleOf(snap, WIN);
   const head = snap.measures.map((m) => `<span class="mhead" title="${esc(MEASURE_LABELS[m.id]?.note ?? m.id)}">${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}</span>`).join("");
-  const list = rankStrategies(snap, WIN)
-    .map((s) => {
-      const fill = verdictOf(s, WIN);
-      const chips = snap.measures.map((m) => `<span class="cell" data-m="${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}">${chip(verdictOf(s, m.id))}</span>`).join("");
-      return `<li class="srow" id="${esc(verdictHash(snap.corpus, s.strategy).slice(1))}" data-strategy="${esc(s.strategy)}">
-        <details>
-          <summary>
-            <span class="sname"><code>${esc(s.strategy)}</code>${s.msMedian === null ? "" : `<small>${msText(s.msMedian)}</small>`}</span>
-            ${bar(fill, max)}
-            <span class="cells">${chips}</span>
-          </summary>
-          <div class="sdetails">${details(s, snap)}</div>
-        </details>
-      </li>`;
+  const sections = rankSections(snap, WIN);
+  const row = (s: StrategySummary): string => {
+    const fill = verdictOf(s, WIN);
+    const chips = snap.measures.map((m) => `<span class="cell" data-m="${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}">${chip(verdictOf(s, m.id))}</span>`).join("");
+    return `<li class="srow" id="${esc(verdictHash(snap.corpus, s.strategy).slice(1))}" data-strategy="${esc(s.strategy)}">
+      <details>
+        <summary>
+          <span class="sname"><code>${esc(s.strategy)}</code>${s.msMedian === null ? "" : `<small>${msText(s.msMedian)}</small>`}</span>
+          ${bar(fill, max)}
+          <span class="cells">${chips}</span>
+        </summary>
+        <div class="sdetails">${details(s, snap)}</div>
+      </details>
+    </li>`;
+  };
+  const list = sections
+    .map((section) => {
+      const reasons = sectionReasons(section).map((r) => `<small>${esc(r)}</small>`).join("");
+      const heading = sections.length < 2 || section.finished === undefined ? "" : `<li class="ssection"><span>${esc(sectionText(section.finished, snap.inputs))}</span>${reasons}</li>`;
+      return heading + section.strategies.map(row).join("");
     })
     .join("");
   $("strategy-list").innerHTML = `<li class="shead" aria-hidden="true"><span class="sname">Strategy</span><span class="dhead">Fill against <code>${esc(snap.baseline)}</code>: ± ${diffText(max, true).replace(/^[+−]/, "")}</span><span class="cells">${head}</span></li>${list}`;
@@ -277,6 +300,9 @@ function drawGaps(): void {
   for (const b of $("gap-corpora").querySelectorAll<HTMLButtonElement>("button")) b.setAttribute("aria-checked", String(Number(b.dataset["i"]) === gapCurrent));
   $("gap-note").innerHTML = `<b>${esc(meta.label)}</b> <code>${esc(snap.measure)}</code>: ${esc(meta.note)} The data: ${dataLine(snap.origin)}. ${inline(corpus?.note ?? "")} <code>${esc(snap.corpus)}</code>: ${snap.inputs} inputs in ${snap.cells.length} cells.`;
   $("gap-origin").innerHTML = originHtml(snap.origin);
+  const stopped = $("gap-stopped");
+  stopped.hidden = snap.stopped === undefined;
+  stopped.textContent = snap.stopped === undefined ? "" : `${snap.stopped} inputs left this table, because a wall budget ended a pair on them. Each strategy has the same inputs.`;
   const ranked = gapRanking(snap);
   const max = gapScale(snap);
   const below = snap.strategies.reduce((s, x) => s + x.all.below0, 0);

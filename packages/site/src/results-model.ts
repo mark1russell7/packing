@@ -1,6 +1,6 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { SnapshotBudget, StrategyFinished, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, StrategySnapshot, StrategySummary } from "./data.ts";
 import { esc } from "./format.ts";
 
 /** This function gives the verdict of a strategy on a measure, or `undefined`. */
@@ -13,6 +13,70 @@ export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict |
 export function rankStrategies(snap: StrategySnapshot, measure: string): StrategySummary[] {
   const key = (s: StrategySummary): number => verdictOf(s, measure)?.stratified?.mean ?? -Infinity;
   return snap.strategies.filter((s) => s.strategy !== snap.baseline).sort((x, y) => key(y) - key(x) || x.strategy.localeCompare(y.strategy));
+}
+
+/** The count of the items above which a standalone strategy refuses an input. `sync.test.ts` pins it to `STANDALONE_MAX_ITEMS`. */
+export const REFUSE_ITEMS = 256;
+
+/** The strategies that finished the same inputs, so that a page can compare them. */
+export interface RankSection {
+  /** The inputs of the section. A snapshot from before the wall budget does not have them. */
+  finished?: StrategyFinished;
+  strategies: StrategySummary[];
+}
+
+/**
+ * This function gives the sections of the ranking: one for each set of finished inputs, the most inputs first.
+ * Each section is in the order of `rankStrategies`. A page compares strategies only inside one section.
+ */
+export function rankSections(snap: StrategySnapshot, measure: string): RankSection[] {
+  const sections = new Map<string, RankSection>();
+  for (const s of rankStrategies(snap, measure)) {
+    const key = s.finished?.set ?? "";
+    const section = sections.get(key);
+    if (section !== undefined) section.strategies.push(s);
+    else sections.set(key, { ...(s.finished === undefined ? {} : { finished: s.finished }), strategies: [s] });
+  }
+  return [...sections.values()].sort((x, y) => (y.finished?.inputs ?? 0) - (x.finished?.inputs ?? 0) || (x.finished?.set ?? "").localeCompare(y.finished?.set ?? ""));
+}
+
+/** This function gives the heading of a section of the ranking. */
+export function sectionText(finished: StrategyFinished, inputs: number): string {
+  if (finished.inputs === 0) return "No input finished, so these strategies have no comparison.";
+  const size = finished.largest === null ? "" : `, up to ${finished.largest} items`;
+  return `Compared on the same ${finished.inputs} of ${inputs} inputs${size}. Do not compare these strategies with another group.`;
+}
+
+/** This function gives the meaning of a reason of a skipped record, or `undefined` for a reason without a fixed meaning. */
+export function reasonMeaning(reason: string): string | undefined {
+  if (reason === "over budget") return "Stopped at the budget. The time is a lower limit, so no mean reads it.";
+  if (reason === "not run: over budget at this size") return "Not started: 2 pairs of this strategy went over budget at this size or below.";
+  if (reason === "not run: job budget") return "Not started: the job reached its time limit.";
+  if (reason === "unsupported containerSize: refused") return `Refused: the strategy takes at most ${REFUSE_ITEMS} items. This is a real limit of the strategy and not a budget.`;
+  return undefined;
+}
+
+/** This function gives the different meanings of the budget and refusal reasons of a section of the ranking. */
+export function sectionReasons(section: RankSection): string[] {
+  return [...new Set(section.strategies.flatMap((s) => (s.reasons ?? []).flatMap((r) => reasonMeaning(r.reason) ?? [])))];
+}
+
+/** This function gives the text of the rules of a wall budget. */
+export function budgetText(b: SnapshotBudget): string {
+  const seconds = (ms: number): string => `${ms / 1000} s`;
+  const parts = [
+    `Each pair of a strategy and an input has a budget of ${seconds(b.smallPairMs)} up to ${b.smallItems} items, and ${seconds(b.pairMs)} above.`,
+    `After ${b.overruns} pairs over budget at one size, the strategy does not start at that size or above.`,
+    `A first pack over ${seconds(b.slowPackMs)} gives the pair 1 timed run.`,
+  ];
+  parts.push(`Each CI job also packs a control, the strategy ${b.control.entry}, ${b.control.packs} times on each of its largest inputs.`);
+  if (b.factor !== undefined) {
+    const between = b.factor.hi / b.factor.lo;
+    parts.push(`The load factors of the jobs are ${b.factor.lo} to ${b.factor.hi}. No verdict reads them.`);
+    if (b.factor.widest > between) parts.push(`The control times inside one job spread by ${b.factor.widest.toFixed(2)} times, over the ${between.toFixed(2)} times between jobs. So a factor does not correct this load, and a time near a budget is not exact.`);
+  }
+  if (b.noFactor !== undefined) parts.push(`${b.noFactor} jobs have too few control times for a factor.`);
+  return parts.join(" ");
 }
 
 /** This function gives the hash of the results page that opens the verdict of a strategy on a corpus. */

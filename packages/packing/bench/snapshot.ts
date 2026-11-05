@@ -12,6 +12,7 @@
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45,6 +46,7 @@ import {
   type SampledMeasure,
   type StrataMeasure,
 } from "./coverage.ts";
+import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 import type { PriorKind } from "./prior.ts";
 
@@ -71,6 +73,10 @@ export interface SnapshotOrigin {
 /** The parts of a record that the snapshots read */
 export interface SnapshotRecord extends VerdictRecord {
   readonly inputHash?: string;
+  /** The count of the items of the input. */
+  readonly nodes?: number;
+  /** The value is `true` when a measure of the pair chose 1 timed run and no warm-up. */
+  readonly oneRun?: boolean;
   readonly hard?: Readonly<Record<string, number>>;
   readonly ms?: number;
 }
@@ -144,7 +150,44 @@ export interface StrategySummary {
   verdicts: MeasureVerdict[];
   /** The family signs of the win measure in each group of families */
   groups: { group: string; wins: number; losses: number; ties: number }[];
+  /** The inputs that the strategy finished. */
+  finished: StrategyFinished;
+  /** The reason of each skipped record, with its count, the largest count first. */
+  reasons: { reason: string; count: number }[];
+  /** The count of the records with 1 timed run. */
+  oneRun: number;
 }
+
+/** The inputs that a strategy finished. Two strategies with the same `set` have the same inputs, so a page can compare them. */
+export interface StrategyFinished {
+  inputs: number;
+  /** The count of the items of the largest finished input, or `null` when no input finished. */
+  largest: number | null;
+  /** The first 8 hex characters of the SHA-256 of the sorted input keys. */
+  set: string;
+}
+
+/** The rules of the wall budget of a run, for the page. */
+export interface SnapshotBudget {
+  smallPairMs: number;
+  smallItems: number;
+  pairMs: number;
+  slowPackMs: number;
+  overruns: number;
+  deadlineMinutes?: number;
+  /** The entry and the count of packs of each key of the control of each job. */
+  control: { entry: string; packs: number; source: "pack" };
+  /**
+   * The load factors of the jobs. `lo` and `hi` are the lowest and the highest factor. `widest` is the largest quotient of the quartiles of one job.
+   * When `widest` is over `hi / lo`, the spread inside a job is over the spread that the factors correct.
+   */
+  factor?: { lo: number; hi: number; widest: number };
+  /** The count of the jobs with too few control keys for a factor. */
+  noFactor?: number;
+}
+
+/** The budget of a `run.json`, with the factor of each job from `controlFactor`. */
+export type RunBudget = SnapshotBudget & { factors?: readonly { factor?: number | undefined; low?: number; high?: number }[] };
 
 /** The strategy snapshot of one corpus */
 export interface StrategySnapshot {
@@ -158,11 +201,15 @@ export interface StrategySnapshot {
   families: number;
   measures: { id: MeasureId; direction: "higher" | "lower"; tie: number | { rel: number } }[];
   strategies: StrategySummary[];
+  /** The rules of the wall budget. A run without a budget does not have this field. */
+  budget?: SnapshotBudget;
 }
 
 /** The options of `strategySnapshot` */
 export interface StrategySnapshotOptions {
   corpus: string;
+  /** The rules of the wall budget of the run. */
+  budget?: SnapshotBudget;
   origin: SnapshotOrigin[];
   baseline?: string;
   measures?: readonly MeasureId[];
@@ -181,6 +228,48 @@ const tieOf = (id: MeasureId): number | { rel: number } => {
 
 /** This function sums the hard breaks of a record. */
 const breaksOf = (r: SnapshotRecord): number => Object.values(r.hard ?? {}).reduce((s, n) => s + n, 0);
+
+/** This function gives the key of the input of a record. */
+const inputKeyOf = (r: SnapshotRecord): string => `${r.input}#${r.seed}`;
+
+/** The reasons of a pair that a wall budget ended. The input of such a pair leaves a comparison of all strategies. */
+const BUDGET_REASONS: ReadonlySet<string> = new Set([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB]);
+
+/** This function gives the inputs that the measured records of a strategy finished. */
+function finishedOf(live: readonly SnapshotRecord[]): StrategyFinished {
+  const keys = [...new Set(live.map(inputKeyOf))].sort();
+  const largest = live.reduce<number | null>((max, r) => (r.nodes === undefined ? max : Math.max(max ?? 0, r.nodes)), null);
+  return { inputs: keys.length, largest, set: createHash("sha256").update(keys.join("\n")).digest("hex").slice(0, 8) };
+}
+
+/** This function gives the reason of each skipped record with its count. A reason keeps at most 80 characters, so a snapshot stays small. */
+function reasonsOf(records: readonly SnapshotRecord[]): { reason: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const r of records) {
+    if (r.skipped === undefined) continue;
+    const reason = r.skipped.slice(0, 80);
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  }
+  return [...counts].map(([reason, count]) => ({ reason, count })).sort((x, y) => y.count - x.count || x.reason.localeCompare(y.reason));
+}
+
+/** This function gives the rules of a budget of `run.json` for the page, with the range of the load factors of its jobs. */
+export function snapshotBudget(budget: RunBudget): SnapshotBudget {
+  const all = budget.factors ?? [];
+  const factors = all.flatMap((f) => (f.factor === undefined ? [] : [f.factor]));
+  const widths = all.flatMap((f) => (f.low === undefined || f.high === undefined || f.low <= 0 ? [] : [f.high / f.low]));
+  return {
+    smallPairMs: budget.smallPairMs,
+    smallItems: budget.smallItems,
+    pairMs: budget.pairMs,
+    slowPackMs: budget.slowPackMs,
+    overruns: budget.overruns,
+    control: budget.control,
+    ...(budget.deadlineMinutes === undefined ? {} : { deadlineMinutes: budget.deadlineMinutes }),
+    ...(factors.length === 0 ? {} : { factor: { lo: sig(Math.min(...factors)), hi: sig(Math.max(...factors)), widest: sig(Math.max(1, ...widths)) } }),
+    ...(all.length === factors.length ? {} : { noFactor: all.length - factors.length }),
+  };
+}
 
 /** This function gives the mean values of a measure of the two sides on the inputs where both sides have a value. */
 function meansOf(a: readonly SnapshotRecord[], b: readonly SnapshotRecord[], id: string): { a: number; b: number } | undefined {
@@ -282,6 +371,9 @@ export function strategySnapshot(records: readonly SnapshotRecord[], options: St
       hardBreaks: live.reduce((s, r) => s + breaksOf(r), 0),
       verdicts,
       groups,
+      finished: finishedOf(live),
+      reasons: reasonsOf(own),
+      oneRun: live.filter((r) => r.oneRun === true).length,
     };
   });
   const inputs = new Set(base.map((r) => `${r.input}#${r.seed}`)).size;
@@ -296,6 +388,7 @@ export function strategySnapshot(records: readonly SnapshotRecord[], options: St
     families: new Set(base.map((r) => familyOfInput(r.input))).size,
     measures: measures.map((id) => ({ id, direction: MEASURE_SPECS[id].direction as "higher" | "lower", tie: tieOf(id) })),
     strategies,
+    ...(options.budget === undefined ? {} : { budget: options.budget }),
   };
 }
 
@@ -583,6 +676,8 @@ export interface GapSnapshot {
   corpus: string;
   origin: SnapshotOrigin[];
   measure: GapMeasure;
+  /** The count of the inputs that left the table, because a wall budget ended a pair on them. Each strategy then has the same inputs. */
+  stopped?: number;
   inputs: number;
   /** The cells of the corpus, in the order of the manifest, with the count of their inputs */
   cells: { cell: string; inputs: number }[];
@@ -624,7 +719,9 @@ export function gapStats(values: readonly number[]): GapStats {
  * This function gives the gap snapshot of the records of one corpus. Each strategy gets the statistics of the measure
  * over all its records and in each cell. A record without a finite value of the measure counts as missing.
  */
-export function gapSnapshot(records: readonly SnapshotRecord[], options: GapSnapshotOptions): GapSnapshot {
+export function gapSnapshot(allRecords: readonly SnapshotRecord[], options: GapSnapshotOptions): GapSnapshot {
+  const stopped = new Set(allRecords.filter((r) => r.skipped !== undefined && BUDGET_REASONS.has(r.skipped)).map(inputKeyOf));
+  const records = allRecords.filter((r) => !stopped.has(inputKeyOf(r)));
   const cellOf = options.cellOf ?? ((input: string) => gapCellOf(familyOfInput(input)));
   const valueOf = (r: SnapshotRecord): number | undefined => {
     const v = r.skipped === undefined ? r.measures[options.measure] : undefined;
@@ -678,6 +775,7 @@ export function gapSnapshot(records: readonly SnapshotRecord[], options: GapSnap
     inputs,
     cells: cellOrder.map((cell) => ({ cell, inputs: cellInputs.get(cell)!.size })),
     strategies,
+    ...(stopped.size === 0 ? {} : { stopped: stopped.size }),
   };
 }
 
@@ -1131,12 +1229,12 @@ function writeSnapshot(file: string | URL, value: unknown): void {
 /** This function reads the folder of one artifact of `bench.yml`. */
 function readRun(folder: string): {
   records: SnapshotRecord[];
-  run: { corpus: string; commit: string; skipped?: unknown[] };
+  run: { corpus: string; commit: string; skipped?: unknown[]; budget?: RunBudget };
   specs: CorpusSpec[];
   inputs: { id: string; cell?: { containerSize?: string } }[];
 } {
   const records = readJsonLines<SnapshotRecord>(readFileSync(join(folder, "records.jsonl"), "utf8"));
-  const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string };
+  const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string; budget?: RunBudget };
   const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as { specs: CorpusSpec[]; inputs?: { id: string; cell?: { containerSize?: string } }[] };
   return { records, run, specs: manifest.specs, inputs: manifest.inputs ?? [] };
 }
@@ -1168,7 +1266,8 @@ export function snapshotMain(argv: readonly string[]): void {
     if (!Number.isInteger(run)) throw new Error("The snapshot strategies needs --run <id>.");
     const data = readRun(folder);
     const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"), optionOf(argv, "--date"));
-    const snap = strategySnapshot(data.records, { corpus: data.run.corpus, origin: [origin], baseline: optionOf(argv, "--baseline") ?? "rows" });
+    const budget = data.run.budget === undefined ? {} : { budget: snapshotBudget(data.run.budget) };
+    const snap = strategySnapshot(data.records, { corpus: data.run.corpus, origin: [origin], baseline: optionOf(argv, "--baseline") ?? "rows", ...budget });
     writeSnapshot(out ?? new URL(`strategies-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
     return;
   }
