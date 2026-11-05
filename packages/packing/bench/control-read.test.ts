@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { MEASURE_SPECS } from "@mark1russell7/packing";
 import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
 import { controlRead, controlReadText, controlRows, controlRules, familyOf } from "./control-read.ts";
-import { FILL_TRICK } from "./controls.ts";
-import type { BenchRecord } from "./run.ts";
+import { FILL_TRICK, KEEP_SHELF } from "./controls.ts";
+import { NOT_RUN_BASE, type BenchRecord } from "./run.ts";
 
 // The read of the controls on made-up records. The test reads no time.
 
@@ -42,6 +42,53 @@ function trickRecords(keys: number, family = "f"): BenchRecord[] {
     measured(FILL_TRICK, inputId(family, i), { fill: 0.95 + i * 1e-4, inversions: 0.6 + i * 1e-4, aspect: 2 + i * 1e-4 }),
   ]).flat();
 }
+
+/** This function gives records of a chain run: step 0 has no move value, and each later step has one. The control keeps each box and loses fill. */
+function chainRecords(keys: number): BenchRecord[] {
+  const row = (strategy: string, input: string, fill: number, moved?: number): BenchRecord => ({ strategy, input, measures: { "pack.fill": fill, ...(moved === undefined ? {} : { "pack.stability.moved": moved }) } }) as unknown as BenchRecord;
+  return Array.from({ length: keys }, (_, i) => [
+    row("push", inputId("root", i), 0.9),
+    row(KEEP_SHELF, inputId("root", i), 0.9),
+    row("push", inputId("step", i), 0.8 + i * 1e-3, 0.1 + i * 1e-3),
+    row(KEEP_SHELF, inputId("step", i), 0.6 + i * 1e-3, i * 1e-4),
+  ]).flat();
+}
+
+describe("the read of a chain run", () => {
+  it("adds the rule of a step only when the records have a step", () => {
+    expect(controlRules().map((r) => r.measure)).not.toContain("pack.stability.moved");
+    expect(controlRules(trickRecords(3)).map((r) => r.measure)).not.toContain("pack.stability.moved");
+    expect(controlRules(chainRecords(3)).find((r) => r.measure === "pack.stability.moved")).toMatchObject({ sense: "lower", controls: [KEEP_SHELF], partners: ["pack.fill"] });
+  });
+
+  it("keeps step 0 out of each measure, so that fill compares the same steps", () => {
+    const rows = controlRows(chainRecords(3), false);
+    expect(rows.filter((r) => r.key.includes("/root/"))).toEqual([]);
+    expect(rows.filter((r) => r.measure === "pack.fill")).toHaveLength(6);
+    expect(rows.filter((r) => r.measure === "pack.stability.moved")).toHaveLength(6);
+  });
+
+  it("reads the control as a win on the step measure, and the partner as lost", () => {
+    const read = controlRead(chainRecords(12), AS_OF);
+    const moved = read.pooled.reads.find((r) => r.measure === "pack.stability.moved" && r.control === KEEP_SHELF)!;
+    expect(moved.status).toBe("wins");
+    expect(read.pooled.findings.filter((f) => f.measure === "pack.stability.moved" && f.kind === "uncaught")).toEqual([]);
+  });
+
+  it("gives no finding of the control of a step to a run with no chain", () => {
+    const read = controlRead(trickRecords(12), AS_OF);
+    expect(read.pooled.findings.filter((f) => f.measure === "pack.stability.moved")).toEqual([]);
+  });
+
+  it("reads a lost base as a censored row", () => {
+    const records = [...chainRecords(3), { strategy: "push", input: inputId("step", 5), measures: {}, skipped: NOT_RUN_BASE } as unknown as BenchRecord];
+    expect(controlRows(records, false).filter((r) => r.censored === true)).toEqual([]);
+    const withStep = [...records, { strategy: KEEP_SHELF, input: inputId("step", 5), measures: { "pack.stability.moved": 0, "pack.fill": 0.6 } } as unknown as BenchRecord];
+    const censored = controlRows(withStep, false).filter((r) => r.censored === true);
+    expect(censored.map((r) => r.measure).sort()).toEqual(controlRules(withStep).map((r) => r.measure).sort());
+    expect(new Set(censored.map((r) => `${r.group}|${r.key}`))).toEqual(new Set([`push|${inputId("step", 5)}`]));
+  });
+});
 
 describe("the rules of the read", () => {
   it("gives pack.fill its control and its partners", () => {
@@ -92,7 +139,7 @@ describe("the rows of the read", () => {
     expect(controlRows([record], true).every((r) => r.stratum === "f")).toBe(true);
   });
 
-  it.each([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB])("gives censored rows for the reason %s", (reason) => {
+  it.each([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB, NOT_RUN_BASE])("gives censored rows for the reason %s", (reason) => {
     const rows = controlRows([skipped("a", inputId("f", 1), reason)], false);
     expect(rows.length).toBe(controlRules().length);
     expect(rows.every((r) => r.censored === true)).toBe(true);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { measure, outputHash, packWith, strategy, type PackInput } from "@mark1russell7/packing";
 import { hardBreaks } from "../src/select-key.ts";
-import { benchEntry, benchPack, benchStrategy, CONTROL_ENTRIES, FILL_TRICK, FILL_TRICK_MEMBERS, FILL_TRICK_WIDTHS, fillTrick, fillTrickWidths, isControl } from "./controls.ts";
+import { benchEntry, benchPack, benchStrategy, CONTROL_ENTRIES, FILL_TRICK, KEEP_SHELF, FILL_TRICK_MEMBERS, FILL_TRICK_WIDTHS, fillTrick, fillTrickWidths, isControl } from "./controls.ts";
 import { ENTRIES, entry } from "./entries.ts";
 import { strategyIds } from "./run.ts";
 
@@ -51,7 +51,7 @@ describe("the bench controls", () => {
   });
 
   it("tells a control from an entry", () => {
-    expect(CONTROL_ENTRIES.map((e) => e.id)).toEqual([FILL_TRICK]);
+    expect(CONTROL_ENTRIES.map((e) => e.id)).toEqual([FILL_TRICK, KEEP_SHELF]);
     expect(isControl(FILL_TRICK)).toBe(true);
     expect(isControl("skyline")).toBe(false);
     expect(benchStrategy(FILL_TRICK)).toBe(fillTrick);

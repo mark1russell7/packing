@@ -124,8 +124,9 @@ A control is a packer made to win one measure with a trick. It tests that measur
 | Control | Measure | The trick | Measures that see the trick |
 | --- | --- | --- | --- |
 | `fill-trick` | `pack.fill` | It packs with `maxrects-bl` and `skyline` at 12 widths and keeps the highest fill. It ignores the item order and the target aspect. | `pack.order.inversions`, `pack.aspectError` |
+| `keep-shelf` | `pack.stability.moved` | It keeps each old position and puts each new or blocked box on rows below all the boxes. Only a chain corpus starts it. | `pack.fill` on the same steps |
 
-The trick obeys the hard rules, and it drops no more items than its best member. Thus only the soft measures can catch it.
+The tricks obey the hard rules, and `fill-trick` drops no more items than its best member. Thus only the soft measures can catch them.
 
 `main.ts control-read --as-of <date> [--out file] <run dir>...` reads the controls over the records of a run, with `checkMeasures` of `@mark1russell7/rigor-bench`. The folders hold the records of the real entries and of the controls of one corpus.
 
@@ -193,6 +194,24 @@ The budgets are a committed record. Thus the size goes only down by default:
 
 - The module `bench/size-gate.ts` has no packing logic, so it can move to the planned home of gates (rigor-gates).
 
+## The output rows
+
+The catalog states if the positions and the sizes of each strategy are whole numbers. The file `src/strategy-output.ts` holds these rows. The script `bench/whole-positions.ts` writes it. Do not edit it.
+
+- The family `whole-positions/1` has 240 rect inputs: 5 container modes, 3 item counts, 2 gaps, 2 margins, 2 insets and 2 seeds. Each number of an input is a whole number.
+- An option set is the defaults of a strategy, or the options of one entry of the bench. A row states only its own option set.
+- The contract gives the class. One fractional input gives `fractional` at any count. With no fraction, fewer than 30 packed inputs give `untested`, and the row keeps the count.
+- The read has no clock, so one commit gives one result. The check compares the counts, and a changed count fails also when the class stays the same.
+
+The job `rows` of `output-rows.yml` starts on each pull request and each push to `main`. `CI OK` needs it. No path list can miss a file, because the job does not read the changed files.
+
+```sh
+node --no-warnings bench/write-catalog.ts                 # After a change to the rows or the version
+node --no-warnings bench/whole-positions.ts --write       # After a strategy changes its output on purpose
+node --no-warnings bench/whole-positions.ts --check       # The check of the job
+```
+
+The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
 ## The flip tests
 
 A gate that has not gone red on a known fault is not known to work. `packages/packing/bench/gate-flip.ts` starts the real command of a gate in a child process. A clean copy of its input must pass, and each copy with an injected fault must fail. The job of the gate fails when a case gives another code.
@@ -204,9 +223,11 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
 | `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. The records of that pair have 2 CPU models, so `maxrects-bl` over `rows` gives `no-read` at each floor, and `rows` over `maxrects-bl` gives a fail on its gain. |
+| Output rows | Half a position in each output of a strategy with whole rows, and half a size. The output must name the property. The table does not change. |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
+
 
 ## The runner
 
@@ -281,7 +302,14 @@ A wall budget is not one limit across computers, because the runners differ by l
 
 The strategies `binary-height`, `near-rects` and `raster-nofit` refuse an input with over 256 items, so those pairs have the reason `unsupported containerSize: refused` at no cost. This limit is a real limit of the strategies, and it is not part of the budget.
 
-A corpus with `base` inputs does not go with `--budget`. An input of such a corpus needs the output of its base in the same process. `--interleave` and `--anchor` do not go with it either.
+A chain corpus goes with `--budget`. The rules for an input with a `base` are these:
+
+- The steps of a chain stay together, in their order, so one child packs a step after its base.
+- A strategy that reads `previous` gets the reason `not run: base has no output` at each later step when a child ends or a base fails. It does not pack that step from nothing, because that changes the measure.
+- A strategy that does not read `previous` keeps its pack at such a step, and it has no stability value at that step.
+- The job deadline ends a chain run as it ends each other run: the finished records stay, and each other pair has the reason `not run: job budget`.
+
+`--interleave` and `--anchor` do not go with `--budget`.
 
 The estimate of the first run comes from a power law over the times of workflows `41897623562` and `41942254149`. Each has at most 100 items, so the estimate is not a measurement:
 
@@ -582,6 +610,22 @@ The report reads no time, so any computer can start it. The columns of the kinds
 - The share `moved` does not separate these 4 strategies: their means have a spread of 0.025. The prediction asked for 0.10. The mean distance has a larger spread, from 0.049 to 0.074.
 
 The script `bench/pin.ts` makes its own pairs, so its values are not in these records.
+
+### The read by step
+
+`node bench/change.ts --steps <run dir>...` prints the read by step of a run of this corpus. Roadmap item k159 added it for `push`, the one strategy of the mode `incremental`.
+
+- **Method:** a strategy of the mode `incremental` gets its own output at the base as `previous`. Each other strategy packs each step with no `previous`, so its row compares two packs from nothing. Step 0 has no base, so it is in the count of step 0 and in no other figure.
+- **Counts:** the corpus has 80 inputs at step 0 and 400 steps with a base. Time and stability read only the 400.
+- **Comparison:** each row names its comparison, `previous` or `no previous`. An offline row does not get `previous`, so its row is not a test of the same task as the row of `push`.
+- **Lost base:** a step whose base failed or is censored has a skipped record with the reason, for a strategy that reads `previous`.
+
+A strategy can buy stability, so a partner measure reads beside it:
+
+- The control `keep-shelf` moves almost no box, so `pack.stability.moved` alone does not call a strategy stable.
+- `main.ts control-read` reads `pack.stability.moved` with `pack.fill` as its partner, on the same steps. A run with no step has no such rule.
+- No page calls `push` stable on the stability measure alone. The page names the partner and shows both figures.
+- If `push` does not beat the control on `pack.fill` after correction, the page says so.
 
 ## Stability when an anchor moves
 
