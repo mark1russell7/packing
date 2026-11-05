@@ -1963,7 +1963,7 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - Do not read this as a general gain of the active draw. The 4 other measures show no gain.
 - The Monday run repeats the test with the same seeds and new code.
 
-- A push does not start the workflow. The grid takes about 3 hours, and a start from a merge does not pass the check of the free CI slots.
+- A push does not start the workflow. The grid takes approximately 3 hours, and a start from a merge does not pass the check of the free CI slots.
 - Thus a change of `src`, or of a file of the draw or the verdict, shows in the next Monday run, not at once. To read it earlier, start the workflow by hand.
 - A cancelled run writes no `cells.json`, so the records show only the runs that finished. A weekly run and a manual run have different groups, so one does not hold the other.
 - A person can also start the workflow, with other inputs.

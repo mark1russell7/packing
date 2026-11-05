@@ -1,6 +1,7 @@
 // The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
 // The page reads only the snapshot files of `packages/site/data/`.
 
+import { oldGapNote } from "./gap-definition.ts";
 import { marked } from "marked";
 import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover, type LawCoverCount } from "./corpus-cover-model.ts";
 import strategiesText from "../content/results-strategies.md?raw";
@@ -59,6 +60,8 @@ import {
   FORCED_LABEL,
   forcedText,
   trendChart,
+  trendNote,
+  entriesNote,
   verdictHash,
   verdictOf,
 } from "./results-model.ts";
@@ -298,7 +301,7 @@ function drawGaps(): void {
   const meta = GAP_LABELS[snap.measure];
   const corpus = CORPUS_LABELS[snap.corpus];
   for (const b of $("gap-corpora").querySelectorAll<HTMLButtonElement>("button")) b.setAttribute("aria-checked", String(Number(b.dataset["i"]) === gapCurrent));
-  $("gap-note").innerHTML = `<b>${esc(meta.label)}</b> <code>${esc(snap.measure)}</code>: ${esc(meta.note)} The data: ${dataLine(snap.origin)}. ${inline(corpus?.note ?? "")} <code>${esc(snap.corpus)}</code>: ${snap.inputs} inputs in ${snap.cells.length} cells.`;
+  $("gap-note").innerHTML = `<b>${esc(meta.label)}</b> <code>${esc(snap.measure)}</code>: ${esc(meta.note)} The data: ${dataLine(snap.origin)}. ${inline(corpus?.note ?? "")} <code>${esc(snap.corpus)}</code>: ${snap.inputs} inputs in ${snap.cells.length} cells.${snap.measure === "pack.gap" ? ` ${oldGapNote(snap.origin.map((o) => o.run))}` : ""}`;
   $("gap-origin").innerHTML = originHtml(snap.origin);
   const stopped = $("gap-stopped");
   stopped.hidden = snap.stopped === undefined;
@@ -431,8 +434,11 @@ function trendSvg(): string {
   const lines = chart.series
     .map((s, i) => {
       const cls = `s${i + 1}`;
-      const path = s.points.length > 1 ? `<polyline class="line ${cls}" points="${s.points.map((p) => `${p.x},${p.y}`).join(" ")}"/>` : "";
-      const dots = s.points.map((p) => `<circle class="dot ${cls}" cx="${p.x}" cy="${p.y}" r="5"><title>${esc(`${coverLabel(s.id)}, ${p.date}: ${percentText(p.share)} of the cells`)}</title></circle>`).join("");
+      const path = s.lines
+        .filter((line) => line.points.length > 1)
+        .map((line) => `<polyline class="line ${cls}${line.current ? "" : " past"}" points="${line.points.map((p) => `${p.x},${p.y}`).join(" ")}"/>`)
+        .join("");
+      const dots = s.points.map((p) => `<circle class="dot ${cls}${p.current ? "" : " past"}" cx="${p.x}" cy="${p.y}" r="5"><title>${esc(`${coverLabel(s.id)}, ${p.date}: ${percentText(p.share)} of the cells`)}</title></circle>`).join("");
       return path + dots;
     })
     .join("");
@@ -524,6 +530,8 @@ function mountCoverage(): void {
   });
   drawIndices();
   $("coverage-trend").innerHTML = trendSvg();
+  $("coverage-segments").innerHTML = trendNote(cover.trend);
+  $("coverage-entries").innerHTML = entriesNote(l.entries);
   const last = cover.trend.at(-1)!;
   $("coverage-legend").innerHTML = l.measures
     .map((m, i) => {
@@ -534,9 +542,9 @@ function mountCoverage(): void {
   const head = l.measures.map((m) => `<th scope="col" class="num">${esc(coverLabel(m.id))} <small>by spec (by input)</small></th>`).join("");
   const body = [...cover.trend]
     .reverse()
-    .map((p) => `<tr><th scope="row">${esc(p.date)}</th><td><code>${esc(p.corpus)}</code></td><td><code>${esc(p.commit)}</code></td>${l.measures.map((m) => `<td class="num">${p.shares[m.id] === undefined ? "" : percentText(p.shares[m.id]!)}${p.sharesByInput?.[m.id] === undefined ? "" : ` <small>(${percentText(p.sharesByInput[m.id]!)})</small>`}</td>`).join("")}</tr>`)
+    .map((p) => `<tr><th scope="row">${esc(p.date)}</th><td><code>${esc(p.corpus)}</code></td><td><code>${esc(p.commit)}</code></td><td class="num">${p.strategies === undefined ? "not recorded" : String(p.strategies.length)}</td>${l.measures.map((m) => `<td class="num">${p.shares[m.id] === undefined ? "" : percentText(p.shares[m.id]!)}${p.sharesByInput?.[m.id] === undefined ? "" : ` <small>(${percentText(p.sharesByInput[m.id]!)})</small>`}</td>`).join("")}</tr>`)
     .join("");
-  $("coverage-table").innerHTML = `<thead><tr><th scope="col">Date</th><th scope="col">Corpus</th><th scope="col">Commit</th>${head}</tr></thead><tbody>${body}</tbody>`;
+  $("coverage-table").innerHTML = `<thead><tr><th scope="col">Date</th><th scope="col">Corpus</th><th scope="col">Commit</th><th scope="col" class="num">Strategies</th>${head}</tr></thead><tbody>${body}</tbody>`;
 }
 
 mountStrategies();

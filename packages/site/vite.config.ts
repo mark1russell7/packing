@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { changelogVersions, kpiInput } from "./src/kpi.ts";
+import { changelogVersions, kpiInput, trendSegments, type SegmentedPoint } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
@@ -51,7 +51,7 @@ const versionTime = (): string => {
 /** This function gives the data of `kpi.json`. The time of the build is only the clock of the test of a weekly trend. */
 const kpiData = () => {
   const text = (name: string): string => readFileSync(page(name), "utf8");
-  const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly { date: string }[] };
+  const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly SegmentedPoint[]; latest: { entries?: { measured: number; planned: number } } };
   const facts = {
     picker: DEMO_IDS.length,
     strategies: allStrategies.length,
@@ -63,7 +63,8 @@ const kpiData = () => {
     versionAt: versionTime(),
     shownReleases,
     changelogReleases: changelogVersions(text("../packing/CHANGELOG.md")),
-    trend: coverage.trend.map((point) => point.date),
+    trend: trendSegments(coverage.trend).map((segment) => segment.map((point) => point.date)),
+    ...(coverage.latest.entries === undefined ? {} : { entries: { measured: coverage.latest.entries.measured, planned: coverage.latest.entries.planned } }),
     explorer: existsSync(page("./explorer/index.html")),
     commitAt: commitTime(),
     lawPairsAt: commitTime(page("./data/law-cover.json")),

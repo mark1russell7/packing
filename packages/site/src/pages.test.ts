@@ -43,8 +43,11 @@ import {
   COVERAGE_STRATA_SCOPE,
   COVERAGE_POOLED_SCOPE,
   spaceOf,
+  entriesNote,
   trendChart,
+  trendNote,
 } from "./results-model.ts";
+import { LAST_RUN_OLD_GAP, oldGapNote } from "./gap-definition.ts";
 
 const DATA = new URL("../data/", import.meta.url);
 const read = (name: string): string => readFileSync(new URL(name, DATA), "utf8");
@@ -595,5 +598,59 @@ describe("the space coverage of k105", () => {
     expect(chart.series[1]!.points).toHaveLength(1);
     expect(chart.ticks.map((t) => t.x)).toEqual([10, 90]);
     expect(trendChart(trend.slice(0, 1), ["f"], 100, 50, 10).series[0]!.points[0]!.x).toBe(50);
+  });
+
+  describe("the split of the trend", () => {
+    const point = (date: string, run: number, strategies: string[] | undefined, f: number) => ({
+      date,
+      run,
+      corpus: "c",
+      commit: "a",
+      ...(strategies === undefined ? {} : { strategies }),
+      shares: { f },
+    });
+    const later = LAST_RUN_OLD_GAP + 1;
+    const trend = [point("2026-10-28", later, undefined, 0.2), point("2026-10-29", later + 1, ["a"], 0.5), point("2026-11-05", later + 2, ["a"], 0.4), point("2026-11-05", later + 3, ["a", "b"], 0.3)];
+
+    it("joins points only inside a segment, and marks the segment of the last point", () => {
+      const series = trendChart(trend, ["f"], 100, 50, 10).series[0]!;
+      expect(series.lines.map((l) => [l.points.map((p) => p.share), l.current])).toEqual([
+        [[0.2], false],
+        [[0.5, 0.4], false],
+        [[0.3], true],
+      ]);
+      expect(series.points.map((p) => p.current)).toEqual([false, false, false, true]);
+    });
+
+    it("names each line", () => {
+      const note = trendNote(trend);
+      expect(note).toContain("<code>c</code> on a list that the point does not record: 2026-10-28");
+      expect(note).toContain("<code>c</code> on 1 strategies: 2026-10-29, 2026-11-05");
+      expect(note).toContain("<code>c</code> on 2 strategies: 2026-11-05");
+    });
+
+    it("says so only when a point has the older definition of the gap", () => {
+      expect(trendNote(trend)).not.toContain("before k118");
+      expect(trendNote([...trend, point("2026-10-29", LAST_RUN_OLD_GAP, ["a"], 0.5)])).toContain("before k118");
+      expect(oldGapNote([LAST_RUN_OLD_GAP + 1, null])).toBe("");
+      expect(oldGapNote([LAST_RUN_OLD_GAP + 1, LAST_RUN_OLD_GAP])).toContain("<code>result / bound - 1</code>");
+    });
+
+    it("counts the entries, and names each other entry with its reason", () => {
+      const note = entriesNote({
+        planned: 4,
+        measured: 1,
+        others: [
+          { entry: "x", reasons: [{ because: "refused", records: 2 }] },
+          { entry: "y", reasons: [{ because: "refused", records: 2 }] },
+          { entry: "z<", reasons: [{ because: "no row: job limit of 120 minutes", records: 0 }] },
+        ],
+      });
+      expect(note).toContain("<b>1 of 4 entries</b>");
+      expect(note).toContain("<li><code>x</code>, <code>y</code>: refused (2 records)</li>");
+      expect(note).toContain("<li><code>z&lt;</code>: no row: job limit of 120 minutes</li>");
+      expect(entriesNote(undefined)).toBe("");
+      expect(entriesNote({ planned: 1, measured: 1, others: [] })).not.toContain("<ul");
+    });
   });
 });

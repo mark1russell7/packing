@@ -12,6 +12,10 @@ on:
         description: "The finished bench runs on main, as <corpus>=<run id>, with spaces between them."
         type: string
         required: true
+      no-row:
+        description: "The reason of each entry with no row in the coverage run, as <entry>=<reason>, with semicolons between them."
+        type: string
+        default: ""
   workflow_run:
     workflows: ["Coverage nightly"]
     types: [completed]
@@ -56,6 +60,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RUNS: ${{ inputs.runs || format('pack-classes-v1={0}', github.event.workflow_run.id) }}
+          NO_ROW: ${{ inputs.no-row }}
           # The six strategies of the table of the gaps. The table has one column for each strategy.
           GAP_STRATEGIES: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
         run: |
@@ -93,7 +98,7 @@ jobs:
                 node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gapToOpt --strategies "$GAP_STRATEGIES"
                 ;;
               pack-classes-v1)
-                node bench/snapshot.ts coverage "$folder" "${origin[@]}"
+                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --no-row "$NO_ROW"
                 ;;
               *)
                 echo "The corpus $corpus has no file of the site."

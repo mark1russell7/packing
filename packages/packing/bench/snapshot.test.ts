@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { SELECT_TABLE } from "@mark1russell7/packing";
 import {
+  coverageEntries,
   COVERAGE_TOP,
   coverageSnapshot,
+  noRowOf,
+  NO_ROW_UNSTATED,
   familyOfInput,
   gapCellOf,
   gapSnapshot,
@@ -249,7 +252,7 @@ describe("the coverage snapshot (k105)", () => {
     const m = snap.latest.measures[0]!;
     expect(m).toMatchObject({ id: "pack.fill", mae: 0.01, baselineMae: 0.1, share: 0.6, cells: { space: 10, withRecords: 8, covered: 6 } });
     expect(m.indices).toHaveLength(COVERAGE_TOP);
-    expect(snap.trend).toEqual([{ date: "2026-10-28", run: 7, corpus: "c", commit: "abc1234", shares: { "pack.fill": 0.6 } }]);
+    expect(snap.trend).toEqual([{ date: "2026-10-28", run: 7, corpus: "c", commit: "abc1234", strategies: ["a", "b"], shares: { "pack.fill": 0.6 } }]);
   });
 
   it("adds a point to the trend, and replaces the point of the same run", () => {
@@ -279,6 +282,62 @@ describe("the coverage snapshot (k105)", () => {
       ["2026-10-28", 9],
       ["2026-11-04", null],
     ]);
+  });
+
+  describe("the entries with a measured record", () => {
+    const records = [
+      { strategy: "a", input: "i", measures: {} },
+      { strategy: "b", input: "i", skipped: "unsupported containerSize: fixed" },
+      { strategy: "b", input: "j", skipped: "unsupported containerSize: fixed" },
+      { strategy: "b", input: "k", skipped: "refused" },
+      { strategy: "c", input: "i", skipped: "refused" },
+      { strategy: "c", input: "j", measures: {} },
+    ];
+
+    it("counts an entry with one measured record, and gives the reasons of each other entry", () => {
+      expect(coverageEntries(records, ["a", "b", "c", "d"], new Map([["d", "job limit of 120 minutes"]]))).toEqual({
+        planned: 4,
+        measured: 2,
+        others: [
+          {
+            entry: "b",
+            reasons: [
+              { because: "refused", records: 1 },
+              { because: "unsupported containerSize: fixed", records: 2 },
+            ],
+          },
+          { entry: "d", reasons: [{ because: "no row: job limit of 120 minutes", records: 0 }] },
+        ],
+      });
+    });
+
+    it("says that a reason is not stated, and does not count a record of another entry", () => {
+      expect(coverageEntries(records, ["a", "d"]).others).toEqual([{ entry: "d", reasons: [{ because: `no row: ${NO_ROW_UNSTATED}`, records: 0 }] }]);
+    });
+
+    it("refuses a stale reason", () => {
+      expect(() => coverageEntries(records, ["a", "b"], new Map([["a", "x"]]))).toThrow(/has records/);
+      expect(() => coverageEntries(records, ["a", "b"], new Map([["b", "x"]]))).toThrow(/has records/);
+      expect(() => coverageEntries(records, ["a"], new Map([["z", "x"]]))).toThrow(/not an entry/);
+    });
+
+    it("reads the option of the reasons", () => {
+      expect([...noRowOf(undefined)]).toEqual([]);
+      expect([...noRowOf("")]).toEqual([]);
+      expect([...noRowOf("a=job limit; b=x=y")]).toEqual([
+        ["a", "job limit"],
+        ["b", "x=y"],
+      ]);
+      expect(() => noRowOf("a")).toThrow(/entry=reason/);
+      expect(() => noRowOf("=x")).toThrow(/entry=reason/);
+      expect(() => noRowOf("a=")).toThrow(/entry=reason/);
+    });
+
+    it("puts the count in the snapshot only when the command line gives it", () => {
+      const entries = coverageEntries(records, ["a", "b"]);
+      expect(coverageSnapshot(summary("2026-10-28", 0.5), origin, undefined, undefined, entries).latest.entries).toEqual(entries);
+      expect("entries" in coverageSnapshot(summary("2026-10-28", 0.5), origin).latest).toBe(false);
+    });
   });
 
   it("keeps the median errors, and puts the numbers of the folds by input next to the first numbers", () => {
