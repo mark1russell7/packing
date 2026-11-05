@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changelogVersions, kpiInput, releaseReading, segmentOf, staleText, trendSegments, weeklyTrend, type KpiFacts } from "./kpi.ts";
+import { changelogVersions, kpiInput, releaseReading, segmentOf, staleText, trendLines, trendSegments, weeklyTrend, type KpiFacts, type SegmentedPoint } from "./kpi.ts";
 
 const at = (date: string): number => Date.parse(`${date}T12:00:00Z`);
 
@@ -80,8 +80,38 @@ describe("the weekly trend", () => {
 
 describe("the segments of the trend", () => {
   const point = (date: string, run: number, strategies?: string[], corpus = "c") => ({ date, run, corpus, ...(strategies === undefined ? {} : { strategies }) });
-  const shown = (trend: readonly ReturnType<typeof point>[], now: string): number | undefined =>
-    kpiInput({ ...FACTS, trend: trendSegments(trend).map((s) => s.map((p) => p.date)) }, at(now)).measures.find((m) => m.id === "coverage-shown")?.value;
+  const measure = (trend: readonly SegmentedPoint[], now: string) => kpiInput({ ...FACTS, trend: trendLines(trend) }, at(now)).measures.find((m) => m.id === "coverage-shown");
+  const shown = (trend: readonly SegmentedPoint[], now: string): number | undefined => measure(trend, now)?.value;
+  const m = "repeats 5, warmup 2";
+  const shares = { f: 0.5 };
+
+  it("continues a line over the entries common to two points, with the count", () => {
+    const first = { ...point("2026-11-02", 1, ["a"]), method: m };
+    const second = { ...point("2026-11-09", 2, ["a", "b"]), method: m, over: [{ strategies: ["a"], shares }] };
+    const lines = trendSegments([first, second]);
+    expect(lines.map((line) => line.map((p) => p.date))).toEqual([["2026-11-02", "2026-11-09"], ["2026-11-09"]]);
+    expect(lines[0]![1]).toMatchObject({ strategies: ["a"], shares, commonOf: 2 });
+    expect(shown([first, second], "2026-11-10")).toBe(1);
+    expect(measure([first, second], "2026-11-10")?.unit).toBe("2 points on the same 1");
+  });
+
+  it("does not join two points that differ by one entry when the later point has no shares over the earlier list", () => {
+    expect(shown([{ ...point("2026-11-02", 1, ["a"]), method: m }, { ...point("2026-11-09", 2, ["a", "b"]), method: m }], "2026-11-10")).toBe(0);
+  });
+
+  it("does not join two methods, also with one list", () => {
+    expect(segmentOf({ ...point("2026-11-02", 1, ["a"]), method: m })).not.toBe(segmentOf({ ...point("2026-11-09", 2, ["a"]), method: `${m}, budget` }));
+    expect(shown([{ ...point("2026-11-02", 1, ["a"]), method: m }, { ...point("2026-11-09", 2, ["a"]), method: `${m}, budget` }], "2026-11-10")).toBe(0);
+  });
+
+  it("starts no line from a later point alone: an earlier list with no point gives nothing", () => {
+    expect(trendSegments([{ ...point("2026-11-09", 2, ["a", "b"]), method: m, over: [{ strategies: ["a"], shares }] }])).toHaveLength(1);
+  });
+
+  it("says how many points give the 1 on one list", () => {
+    expect(measure([{ ...point("2026-11-02", 1, ["a", "b"]), method: m }, { ...point("2026-11-09", 2, ["a", "b"]), method: m }], "2026-11-10")?.unit).toBe("2 points on the same 2");
+    expect(measure([point("2026-11-09", 2, ["a"])], "2026-11-10")).not.toHaveProperty("unit");
+  });
 
   it("keeps one corpus with one list in one segment, in any order of the list", () => {
     expect(segmentOf(point("2026-10-29", 1, ["a", "b"]))).toBe(segmentOf(point("2026-11-05", 2, ["b", "a"])));
@@ -109,7 +139,7 @@ describe("the segments of the trend", () => {
   });
 
   it("gives the count of the entries with a measured record, with the date of the coverage", () => {
-    const file = kpiInput({ ...FACTS, trend: [["2026-11-05"]], entries: { measured: 54, planned: 64 } }, at("2026-11-06"));
+    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-11-05"] }], entries: { measured: 54, planned: 64 } }, at("2026-11-06"));
     expect(file.measures.find((m) => m.id === "measured-entries")).toEqual({ id: "measured-entries", value: 54, unit: "of 64 entries", at: "2026-11-05T00:00:00Z" });
     expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "measured-entries")).toBe(false);
   });
@@ -123,7 +153,7 @@ describe("the file", () => {
   });
 
   it("gives each measure the time of its data and not the time of the build", () => {
-    const file = kpiInput({ ...FACTS, trend: [["2026-10-28", "2026-10-21"]] }, Date.parse("2026-11-04T17:00:00Z"));
+    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-10-28", "2026-10-21"] }] }, Date.parse("2026-11-04T17:00:00Z"));
     const times = Object.fromEntries(file.measures.map((m) => [m.id, m.at]));
     expect(times["picker-strategies"]).toBe(FACTS.commitAt);
     expect(times["stale-text"]).toBe(FACTS.commitAt);
@@ -139,7 +169,7 @@ describe("the file", () => {
   });
 
   it("gives the same file at another build time", () => {
-    const facts = { ...FACTS, trend: [["2026-11-02", "2026-10-28"]] };
+    const facts = { ...FACTS, trend: [{ dates: ["2026-11-02", "2026-10-28"] }] };
     expect(kpiInput(facts, at("2026-11-04"))).toEqual(kpiInput(facts, at("2026-11-05")));
   });
 

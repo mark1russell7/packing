@@ -340,6 +340,7 @@
 }
 
 .scroll {
+  --scroll-cue-bg: var(--surface);
   overflow-x: auto;
 }
 
