@@ -33,6 +33,25 @@ To start the workflow on a branch, add `--ref <branch>`. GitHub starts a workflo
 
 Watch the run with `gh run watch <run id>`. Get the result with `gh run download <run id> -n bench-<corpus>`.
 
+## The slow entries
+
+`SLOW_ENTRIES` in `packages/packing/bench/entries.ts` names the entries that need limits, so that a run of `all` can finish on the corpora with 1000 items. A slow entry has 1 timed run and no warm-up. Its `ms` is thus one time, not a median. An input over the limit of the entry gets a skipped record with the reason `over the bench limit of <n> items`. The count includes the obstacles. The summary of a run names the slow entries of the run. A run with `interleave` has no limits.
+
+A pair gets packed 2 times for determinism, once for each warm-up, once for each timed run and once with the next seed. The default thus gives 10 packs, and a slow entry gets 4. The input `job-minutes` of the workflow sets the time limit of one job. The default is 30 minutes.
+
+| Entry | Limit of items | Mean time at 100 items | Estimate at 1000 items | Estimate of one job on `pack-select-v2` |
+|---|---|---|---|---|
+| `near-rects` | the strategy refuses over 256 | 1158 ms | refused | 62 minutes |
+| `raster-nofit` | the strategy refuses over 256 | approximately 830 ms, on a local computer | refused | not measured in CI |
+| `beam` | 100 | 387 ms | 106 s | 21 minutes |
+| `overlap-min-skyline-k8192` | 100 | 442 ms | 7.8 s | 25 minutes |
+| `overlap-min-maxrects-bl-k8192` | 100 | 299 ms | 6.4 s | 17 minutes |
+| `force-maxrects-bl` | none | 18 ms | 2.8 s | 78 minutes |
+
+The times in CI come from workflow `41897623562` and workflow `41942254149` on the corpus `pack-classes-v1`, which has inputs with 20 to 100 items. The estimates at 1000 items and the estimates of a job are extrapolated with a power law, so they are not measurements. `raster-nofit` did not finish in 30 minutes in workflow `41942254149`, so its one time comes from 25 inputs on a local computer with other load.
+
+The mean of an entry with a limit covers only the smaller inputs. Do not compare it with the mean of an entry that packs each input. Compare the two entries on the same inputs.
+
 ## The entries
 
 An entry is a strategy of the registry with some options. `packages/packing/bench/entries.ts` lists them. Each record names its entry in the field `strategy`.

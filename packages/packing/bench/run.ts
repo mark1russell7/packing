@@ -35,7 +35,7 @@ import {
 import { declaredClaimOf, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
 import { portfolioWith } from "../src/portfolio.ts";
 import { assertClaim, declaredCounts, DECLARED_IDS } from "./claims.ts";
-import { COMPOSITE_IDS, ENTRIES, entry, type BenchEntry } from "./entries.ts";
+import { COMPOSITE_IDS, ENTRIES, entry, SLOW_ENTRIES, type BenchEntry, type SlowEntry } from "./entries.ts";
 import { gapToBound, GAP_TO_BOUND } from "./gap-to-bound.ts";
 import { compositeMembersOf, type CompositeMembers, type HeldOut, type PortfolioOptions } from "./portfolio.ts";
 import { moveCounts, OUTSIDE_EXACT, screenMarkdown, screenOf, shapesOf, type BenchScreen } from "./screen.ts";
@@ -140,6 +140,9 @@ export const isMeasured = (r: BenchRecord): r is MeasuredRecord => r.skipped ===
 /** This function gives the reason of a skipped record from the dimension and the value that the strategy does not support. */
 export const skipReason = (dimension: string, value: string): string => `unsupported ${dimension}: ${value}`;
 
+/** This function gives the reason of a skipped record when the input has more items than the limit of a slow entry. */
+export const overItemsReason = (maxItems: number): string => `over the bench limit of ${maxItems} items`;
+
 /** A pair of a strategy and an input that the runner did not pack, because the strategy does not support the cell. */
 export interface BenchSkip {
   strategy: string;
@@ -243,6 +246,8 @@ export interface BenchOptions {
    * The records keep the id of the entry, so a run with this field is not a run of the benchmark.
    */
   entryOptions?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  /** The limits of the slow entries, by the id of the entry. The default is `SLOW_ENTRIES`. A run with `interleave` has no limits. */
+  slowEntries?: Readonly<Record<string, SlowEntry>>;
 }
 
 /** The result of `runBench`: the facts of the run, the records, the manifest of the corpus and the outputs. */
@@ -654,6 +659,7 @@ export function runBench(options: BenchOptions): BenchResult {
     const kept = new Map<string, PackOutput>();
     outputs.set(id, kept);
     const defaults = { ...(s.defaults as Record<string, unknown>), ...e.options };
+    const slow = options.interleave === true ? undefined : (options.slowEntries ?? SLOW_ENTRIES)[id];
     for (const [index, file] of inputs.entries()) {
       const head = {
         schema: "layout-record/1",
@@ -669,7 +675,7 @@ export function runBench(options: BenchOptions): BenchResult {
         nodes: file.boxes.length + (file.obstacles?.length ?? 0),
         edges: file.edges.length,
       } as const;
-      const skip = (dimension: string, value: string): void => {
+      const skip = (dimension: string, value: string, reason: string = skipReason(dimension, value)): void => {
         skipped.push({ strategy: id, input: file.id, dimension, value });
         const record: SkippedRecord = {
           ...head,
@@ -679,7 +685,7 @@ export function runBench(options: BenchOptions): BenchResult {
           deterministic: null,
           prediction: options.prediction,
           ms: 0,
-          skipped: skipReason(dimension, value),
+          skipped: reason,
           env: options.env,
         };
         if (options.commit !== undefined) record.commit = options.commit;
@@ -688,6 +694,10 @@ export function runBench(options: BenchOptions): BenchResult {
       const miss = unsupportedOf(s.supports, manifest.inputs[index]!.cell);
       if (miss !== undefined) {
         skip(miss.dimension, miss.value);
+        continue;
+      }
+      if (slow?.maxItems !== undefined && head.nodes > slow.maxItems) {
+        skip("items", String(head.nodes), overItemsReason(slow.maxItems));
         continue;
       }
       const input = toPackInput(file);
@@ -704,8 +714,8 @@ export function runBench(options: BenchOptions): BenchResult {
         // The interleaved mode did the warm-up passes and the timed passes before this loop
         let times = interleaved?.get(id)?.get(file.id);
         if (times === undefined) {
-          for (let w = 0; w < warmup; w++) pack();
-          times = timeRuns(pack, repeats, clock);
+          for (let w = 0; w < (slow === undefined ? warmup : 0); w++) pack();
+          times = timeRuns(pack, slow === undefined ? repeats : 1, clock);
         }
         const { msRuns, searchMs } = times;
 
@@ -916,6 +926,17 @@ export function boundsMarkdown(strategies: readonly string[], records: readonly 
   return ["| strategy | objective | records | gap median | gap q0.95 | winning bounds |", "|---|---|---:|---:|---:|---|", ...rows];
 }
 
+/** This function gives the line of the summary that names the slow entries of a run. A run without slow entries has no line. */
+function slowLines(run: BenchRun): string[] {
+  if (run.interleave === true) return [];
+  const slow = run.strategies.flatMap((id) => {
+    const limits = SLOW_ENTRIES[id];
+    if (limits === undefined) return [];
+    return [limits.maxItems === undefined ? `\`${id}\`` : `\`${id}\` (up to ${limits.maxItems} items)`];
+  });
+  return slow.length === 0 ? [] : [`- Slow entries, with 1 timed run and no warm-up: ${slow.join(", ")}.`];
+}
+
 /**
  * This function writes the summary of a run as Markdown. The first table has one row for each strategy. A section for
  * each strategy has one row for each family. Then come the coverage, the sections of the screen, the skipped cells, the
@@ -932,6 +953,7 @@ export function summaryMarkdown(run: BenchRun, records: readonly BenchRecord[], 
     `- Computer: ${run.env.runner}, ${run.env.os} ${run.env.arch}, ${run.env.cpus} x ${run.env.cpu}, Node.js ${run.env.node}`,
     `- Runs of each pair: 2 for determinism, ${run.warmup} warm-up, ${run.repeats} timed. \`ms\` is the median of the timed runs.`,
     ...(run.interleave === true ? ["- The timed passes of each input alternate between the strategies: for each repeat, one timed pass of each strategy."] : []),
+    ...slowLines(run),
     `- Records: ${records.length}. Measured records: ${measured.length}. Skipped records: ${skips.length}. Errors: ${run.errors.length}.`,
     "",
     "## Strategies",
