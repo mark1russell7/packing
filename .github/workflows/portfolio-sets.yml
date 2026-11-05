@@ -36,6 +36,7 @@ jobs:
         with:
           paths: |
             packages/packing/bench/choose-sets.ts
+            packages/packing/bench/gate-flip.ts
             packages/packing/bench/portfolio.ts
             packages/packing/src/portfolio-cell.ts
             packages/packing/src/portfolio-sets.ts
@@ -75,6 +76,10 @@ jobs:
           path: ${{ runner.temp }}/portfolio-sets.ts
       - name: Compare the generated table with the committed table
         run: diff -u packages/packing/src/portfolio-sets.ts "$RUNNER_TEMP/portfolio-sets.ts"
+      # A clean copy of the records gives no difference, and a copy with no records of a chosen strategy gives one
+      - name: Flip test of the comparison
+        working-directory: packages/packing
+        run: node bench/gate-flip.ts portfolio --records "$RUNNER_TEMP/records" --run "$RECORDS_RUN" --committed src/portfolio-sets.ts --out "$RUNNER_TEMP/portfolio-flip"
 
   portfolio-sets-ok:
     name: Portfolio sets OK
