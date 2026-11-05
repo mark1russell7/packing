@@ -27,6 +27,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.seeds }}-${{ inputs.trials }}-${{ inputs.instance-trials }}
   cancel-in-progress: false
 
+# The shell bash has pipefail, so a failure before a tee fails the step.
+defaults:
+  run:
+    shell: bash
+
 env:
   SPARROW_COMMIT: 6067f007f02758b1a477be51b5a03a2f72db298b
 

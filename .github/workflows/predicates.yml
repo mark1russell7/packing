@@ -29,6 +29,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategies }}-${{ inputs.shards }}
   cancel-in-progress: false
 
+# The shell bash has pipefail, so a failure before a tee fails the step.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -138,7 +143,9 @@ jobs:
             fs.writeFileSync(file.replace(/predicates\.jsonl$/, "summary.json"), JSON.stringify({ corpus, ...sum }, null, 2) + "\n");
             console.log(JSON.stringify({ corpus, ...sum }));
           ' "$out/predicates.jsonl" "$CORPUS" | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      # A join that failed keeps its file for a look. The step above already failed the job.
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: predicates-${{ inputs.corpus }}
           path: ${{ runner.temp }}/predicates-${{ inputs.corpus }}
@@ -146,6 +153,6 @@ jobs:
       # A dump job that failed leaves a hole in the joined file. The artifact stays for a look, but the run fails.
       - name: Each dump job gave its part
         run: |
-          parts=$(ls -d "$RUNNER_TEMP"/parts/*/ 2>/dev/null | wc -l)
+          parts=$({ ls -d "$RUNNER_TEMP"/parts/*/ 2>/dev/null || true; } | wc -l)
           echo "$parts parts of $COUNT jobs"
           [ "$parts" -eq "$COUNT" ] || { echo "::error::$parts parts of $COUNT jobs: the joined dump is not complete"; exit 1; }
