@@ -260,6 +260,7 @@ describe("the calculations of the pages", () => {
     }
     expect(fillClaimOf("pack-free-v1").partner).toBeNull();
     expect(fillClaimOf("pack-screen-v1").partner).toBe("pack.balance.side.right");
+    expect(fillClaimOf("pack-select-v2").note).toContain("does not guard the order");
     expect(fillClaimOf("pack-unknown-v9")).toEqual({ partner: null, note: expect.stringContaining("no fill win") });
   });
 

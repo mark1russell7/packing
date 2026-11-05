@@ -785,7 +785,9 @@ export interface FillClaim {
 
 const RIGHT_STRIP: FillClaim = {
   partner: "pack.balance.side.right",
-  note: "A packer can raise the fill and leave the right strip of the container empty. Thus a fill win counts only when the right strip is not worse.",
+  note:
+    "A packer can raise the fill and leave the right strip of the container empty. Thus a fill win counts only when the right strip is not worse. " +
+    "This pair does not guard the order of the input. At this count of inputs, the order measure does not find a small rise of inversions.",
 };
 
 /** The fill claim of each corpus of the strategy snapshots. `fillClaimOf` gives the claim of a corpus that is not in this list. */
