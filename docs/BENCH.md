@@ -231,7 +231,7 @@ Each arm of a row of `bench/gates/tie-move.json` gives its changes, the changes 
 
 The first read, on 2026-11-05, has these results:
 
-- 79 option sets pack, and 76 of them have a larger move on ties than on the control. The other 3 are `binary-height`, `exact-strip` and the slice-and-dice treemap.
+- 79 option sets pack, and 76 of them have a larger move on ties than on the control. The other 3 are `binary-height`, `exact-strip` and the slice-and-dice treemap. `exact-strip` refuses each changed input, because it needs whole sizes, so it has no read of a move.
 - Over all option sets, 3928 changes on ties move a box by more than 1. The control has 37 such changes, and the edge inputs have 1096.
 - Through the margin, 0 changes on ties move a box, and 1464 changes on the edge inputs move a box. Thus the margin moves the problem to the edge of a bucket, and it does not remove the problem.
 - The margin loses at most 0.038 of fill. The value of `fillLost` is below 0 on one treemap, where the margin gains fill.
