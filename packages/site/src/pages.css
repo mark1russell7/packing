@@ -1468,3 +1468,44 @@
   color: var(--muted);
   background: var(--well);
 }
+
+.region-scope {
+  display: block;
+  margin-top: 0.2rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.region-share {
+  display: block;
+  min-width: 11rem;
+}
+
+.region-share small {
+  display: block;
+  color: var(--muted);
+}
+
+.region-bar {
+  position: relative;
+  display: block;
+  height: 8px;
+  margin-bottom: 0.25rem;
+  border-radius: 2px;
+  background: var(--well);
+}
+
+.region-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.region-bar b {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--ink);
+}
