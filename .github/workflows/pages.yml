@@ -33,7 +33,11 @@ jobs:
       pages: write
       id-token: write
     with:
-      build: pnpm --filter @packing/site run build
+      # The branch site-data holds the measured files of the latest runs (site-data.yml, docs/BENCH.md "The snapshots of the site").
+      # They replace the files of main. Without the branch, the build keeps the files of main, and the freshness gate reads their age.
+      build: |
+        if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C packages/site/data; fi
+        pnpm --filter @packing/site run build
       out: packages/site/dist
       env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'
       # The Releases page and the Status page (releases/, status/ and their data/*.json), at deploy time
