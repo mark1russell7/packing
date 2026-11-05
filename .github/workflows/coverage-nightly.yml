@@ -2,7 +2,12 @@
 # The job grid packs the corpus with bench.yml and no sample. The jobs sample pack the held-out sample in shards,
 # and the job held-out joins them. The merge fails on a missing pair. Each job arm draws one arm with one fold seed.
 # The job verdict gives the paired test of each fold seed and the result over the fold seeds.
-# Its prediction is packing-k120-nightly. A change of the inputs needs a new prediction first.
+# Its prediction is packing-k161-weekly-budget, after packing-k120-nightly. A change of the inputs needs a new prediction first.
+#
+# The grid has a wall budget for each pair and a job limit of 130 minutes, so a slow entry keeps the rows that it finished.
+# Its pairs stop at 120 minutes. That is the limit that cut raster-nofit with no row in run 41949891960.
+# With the old limit of 30 minutes, near-rects (42 minutes in that run) and raster-nofit fail the grid, and the arms do not start.
+# A scheduled run also starts site-data.yml, which writes the next point of the coverage trend.
 #
 # Each arm has a work budget: ROUNDS rounds of SAMPLE / ROUNDS pairs, the same for both arms. Thus a cell is the same on
 # each runner. MAX_MINUTES is only a timeout: an arm that it stops voids its cell (bench/nightly-plan.ts cells).
@@ -47,8 +52,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: coverage-nightly-${{ github.ref }}
-  # A newer push replaces a run of a push. A weekly or a manual run is not cancelled.
+  # A newer push replaces only a run of a push. A weekly or a manual run has its own group, so a push does not cancel it.
+  group: coverage-nightly-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 # The shell bash has pipefail, so a failure before a tee fails the step.
@@ -96,8 +101,10 @@ jobs:
     uses: ./.github/workflows/bench.yml
     with:
       corpus: ${{ inputs.corpus || 'pack-classes-v1' }}
-      prediction: packing-k120-nightly
+      prediction: packing-k161-weekly-budget
       sample: "0"
+      job-minutes: "130"
+      budget: true
 
   sample:
     needs: plan
