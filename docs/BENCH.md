@@ -211,6 +211,36 @@ node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+## The tie moves
+
+A tie decides a place. A very small change of one size can break the tie and move other boxes far (roadmap item k149).
+
+`bench/tie-move.ts` reads each option set of each strategy on the family `tie-move/1`. The family has 90 inputs: 5 kinds, 3 container modes, the counts 8, 20 and 50, and 2 seeds. Each input has 2 changes: the width and the height of the middle item go up by 0.01.
+
+| Arm | Inputs | What it tells |
+| --- | --- | --- |
+| `ties` | Equal heights, equal widths, or identical items | The move on an input with ties |
+| `none` | No ties | The control: the same change with no tie to break |
+| `edge` | Sizes at the edge of a bucket of the margin | The adversary of the margin |
+| `marginTies` | The inputs of `ties` through the margin | The move with the margin |
+| `marginEdge` | The inputs of `edge` through the margin | The move when a change crosses an edge |
+
+The margin is a wrapper of the bench. Each size goes up to the top of its bucket of width 1, and a bucket has a whole number at its middle. A change inside a bucket gives the same input, so `marginTies` reads no move by construction. This is not a gain alone. Read it with `marginEdge` and with `fillLost`, the mean fill that the margin loses. The read does not tell about a margin inside the comparisons of a strategy.
+
+Each arm of a row of `bench/gates/tie-move.json` gives its changes, the changes with a move above 1 and the changes with another set of items. It also gives the largest move and its input. The table states what the strategies do. It is not a promise of a limit.
+
+The first read, on 2026-11-05, has these results:
+
+- 79 option sets pack, and 76 of them have a larger move on ties than on the control. The other 3 are `binary-height`, `exact-strip` and the slice-and-dice treemap.
+- Over all option sets, 3928 changes on ties move a box by more than 1. The control has 37 such changes, and the edge inputs have 1096.
+- Through the margin, 0 changes on ties move a box, and 1464 changes on the edge inputs move a box. Thus the margin moves the problem to the edge of a bucket, and it does not remove the problem.
+- The margin loses at most 0.038 of fill. The value of `fillLost` is below 0 on one treemap, where the margin gains fill.
+- At 8 boxes, the default sets of 5 strategies move a box by 97 to 198. The largest moves come at 50 boxes in the free forms, where the size of the container also changes.
+
+The control is not always quiet. A search or a score can also move far with no tie, as in `anneal`, `overlap-min` and `maxrects-cp`.
+
+`--check` reads again and fails on each difference, also when a move falls, so a change to a strategy shows in the table. CI starts the check on each PR. After a change to a strategy, start `node bench/tie-move.ts --write` and read the difference. The strategies `circle-quasi-physical` and `hole-degree` pack no input of this rect family, so their rows have 0 inputs.
+
 ## The flip tests
 
 A gate that has not gone red on a known fault is not known to work. `packages/packing/bench/gate-flip.ts` starts the real command of a gate in a child process. A clean copy of its input must pass, and each copy with an injected fault must fail. The job of the gate fails when a case gives another code.
@@ -223,6 +253,7 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
 | `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. With a high time floor, `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. With the usual floor, `maxrects-bl` over `rows` gives a fail on its time tail, because the records have 2 CPU models. |
 | Output rows | Half a position in each output of a strategy with whole rows, and half a size. The output must name the property. The table does not change. |
+| Tie moves | A move of 100 on each change of a strategy. The output must name the arm. The table does not change. |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.

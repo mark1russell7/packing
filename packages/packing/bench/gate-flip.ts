@@ -11,6 +11,7 @@
 // - `smoke --dir <folder of a merged run> --out <folder>`
 // - `promotion --records <folder> --candidate <id> --default <id> --win <measure> --guards <set> --out <folder>`
 // - `output --strategy <id> --out <folder>`, with a strategy that has whole rows
+// - `tie --strategy <id> --out <folder>`
 //
 // The exit code is 0 when each row gives its stated code, and 1 when a row does not.
 
@@ -391,13 +392,24 @@ function flipOutput(argv: readonly string[]): FlipRow[] {
   ];
 }
 
+/** This function gives the rows of the flip test of the tie moves. The fault is on the function that packs, and the table stays the same. */
+function flipTie(argv: readonly string[]): FlipRow[] {
+  const out = optionOf(argv, "--out");
+  mkdirSync(out, { recursive: true });
+  const read = (...more: readonly string[]): string[] => [process.execPath, "--no-warnings", join(here, "tie-move.ts"), "--check", "--strategies", optionOf(argv, "--strategy"), ...more];
+  return [
+    runCase("clean", 0, read(), out, "0 findings"),
+    runCase("a move of 100 on each change", 1, read("--fault"), out, "ties: the table says"),
+  ];
+}
+
 /** This function starts the flip test of one gate, writes its table and gives its exit code. */
 export function flipMain(argv: readonly string[]): number {
   const gate = argv[0];
   const rest = argv.slice(1);
   const rows =
-    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : gate === "promotion" ? flipPromotion(rest) : gate === "output" ? flipOutput(rest) : undefined;
-  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio, smoke, promotion or output.");
+    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : gate === "promotion" ? flipPromotion(rest) : gate === "output" ? flipOutput(rest) : gate === "tie" ? flipTie(rest) : undefined;
+  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio, smoke, promotion, output or tie.");
   const text = flipMarkdown(gate!, rows);
   process.stdout.write(text);
   const summary = process.env["GITHUB_STEP_SUMMARY"];
