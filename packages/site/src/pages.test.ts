@@ -640,6 +640,29 @@ describe("the space coverage of k105", () => {
       expect(trendNote([first, second])).toContain(`<code>c</code> on 1 strategies (${m}): 2026-11-02, 2026-11-09 (1 common of 2)`);
     });
 
+    it("names a lost entry with its reason and its lower bound, and ends the line of its list", () => {
+      const M = "repeats 5, warmup 2";
+      const earlier = { ...point("2026-11-02", later, ["a", "b"], 0.3), method: M };
+      const lost = {
+        ...point("2026-11-09", later + 1, ["a"], 0.9),
+        method: M,
+        lost: [{ entry: "b<", reasons: [{ because: "over budget", records: 2, msAtLeast: 15000 }] }],
+      };
+      const note = trendNote([earlier, lost]);
+      expect(note).toContain("<li>2026-11-09, <code>c</code>: <code>b&lt;</code>: over budget (2 records, each at least 15 s)</li>");
+      expect(note).toContain(`<code>c</code> on 2 strategies (${M}): 2026-11-02.`);
+      expect(note).toContain(`<code>c</code> on 1 strategies (${M}): 2026-11-09.`);
+      expect(trendNote([earlier])).not.toContain("lost its row");
+    });
+
+    it("states a change of the count of measured records on one line", () => {
+      const M = "repeats 5, warmup 2";
+      const one = { ...point("2026-11-02", later, ["a"], 0.3), method: M, records: 100 };
+      const two = { ...point("2026-11-09", later + 1, ["a"], 0.4), method: M, records: 90 };
+      expect(trendNote([one, two])).toContain("The measured records differ: 100, 90.");
+      expect(trendNote([one, { ...two, records: 100 }])).not.toContain("The measured records differ");
+    });
+
     it("names each line", () => {
       const note = trendNote(trend);
       expect(note).toContain("<code>c</code> on a list that the point does not record: 2026-10-28");
@@ -667,6 +690,9 @@ describe("the space coverage of k105", () => {
       expect(note).toContain("<b>1 of 4 entries</b>");
       expect(note).toContain("<li><code>x</code>, <code>y</code>: refused (2 records)</li>");
       expect(note).toContain("<li><code>z&lt;</code>: no row: job limit of 120 minutes</li>");
+      expect(entriesNote({ planned: 1, measured: 0, others: [{ entry: "s", reasons: [{ because: "over budget", records: 3, msAtLeast: 30000 }] }] })).toContain(
+        "<li><code>s</code>: over budget (3 records, each at least 30 s)</li>",
+      );
       expect(entriesNote(undefined)).toBe("");
       expect(entriesNote({ planned: 1, measured: 1, others: [] })).not.toContain("<ul");
     });

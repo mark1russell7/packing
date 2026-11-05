@@ -916,6 +916,8 @@ export interface CoverageSnapshotSampled {
 export interface CoverageOver {
   strategies: string[];
   shares: Record<string, number>;
+  /** The measured records over this list */
+  records?: number;
 }
 
 /** One point of the trend of the coverage: the share of each measure on one date */
@@ -933,6 +935,10 @@ export interface CoveragePoint {
   method?: string;
   /** The shares of this point over each earlier list that it contains, with one method. Each one continues the line of that list. */
   over?: CoverageOver[];
+  /** The measured records of the point. A slow pair that loses its row lowers this count, and the entry keeps its row. */
+  records?: number;
+  /** The entries of the earlier point of the corpus with no measured record here, each with its reason. Each one ends the line of a list that has it. */
+  lost?: CoverageOtherEntry[];
   /** The share of each measure, with the folds of the summary */
   shares: Record<string, number>;
   /** The share of each measure with the folds by input, when the snapshot has them */
@@ -941,14 +947,14 @@ export interface CoveragePoint {
 
 /**
  * This function gives the method of a run: its timed runs, its warm-up runs and its wall budget.
- * A run with a budget has 1 timed run for a slow pair and no row for a pair over its budget, so it does not join a run without a budget.
+ * A run with a budget has 1 timed run for a slow pair and a censored record for a pair over its budget, so it does not join a run without a budget.
  */
 export const coverageMethod = (run: { readonly repeats?: number; readonly warmup?: number; readonly budget?: unknown }): string | undefined =>
   run.repeats === undefined || run.warmup === undefined ? undefined : `repeats ${run.repeats}, warmup ${run.warmup}${run.budget === undefined ? "" : ", budget"}`;
 
 /**
  * This function gives each earlier list of the trend that a new point continues: one corpus, one method, and each strategy of the list in the new list.
- * A list with a strategy that the new point does not have gives nothing, because the earlier point has no share without that strategy.
+ * A list with a strategy that the new point does not have gives nothing. Dropping a hard entry can raise a share, so a lost entry ends the line, and `lostEntries` names it.
  */
 export function earlierLists(trend: readonly CoveragePoint[], corpus: string, method: string | undefined, strategies: readonly string[]): string[][] {
   if (method === undefined) return [];
@@ -964,7 +970,8 @@ export function earlierLists(trend: readonly CoveragePoint[], corpus: string, me
 /** One entry of the bench with no measured record in a run, with each reason and its count of records. A reason with no row counts 0 records. */
 export interface CoverageOtherEntry {
   entry: string;
-  reasons: { because: string; records: number }[];
+  /** The value `msAtLeast` is the smallest lower bound on the time of the censored records of a reason. */
+  reasons: { because: string; records: number; msAtLeast?: number }[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run. */
@@ -1119,7 +1126,7 @@ export function coverageSnapshot(
   earlier?: CoverageSnapshot,
   byInput?: CoverageSummary,
   entries?: CoverageEntries,
-  line?: { readonly method?: string; readonly over?: readonly CoverageOver[] },
+  line?: { readonly method?: string; readonly over?: readonly CoverageOver[]; readonly lost?: readonly CoverageOtherEntry[] },
 ): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
@@ -1132,6 +1139,8 @@ export function coverageSnapshot(
     strategies: [...summary.strategies].sort(),
     ...(line?.method === undefined ? {} : { method: line.method }),
     ...(line?.over === undefined || line.over.length === 0 ? {} : { over: [...line.over] }),
+    records: summary.records,
+    ...(line?.lost === undefined || line.lost.length === 0 ? {} : { lost: [...line.lost] }),
     shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
     ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
   };
@@ -1287,37 +1296,60 @@ export function noRowOf(text: string | undefined): Map<string, string> {
 /** The reason of an entry with no row, when the command line does not state one */
 export const NO_ROW_UNSTATED = "the run has no record of this entry";
 
+/** The reason of a lost entry that is no longer a planned entry of the bench */
+export const NOT_AN_ENTRY = "no longer an entry of the bench";
+
+/** The longest text of an error in a reason */
+const ERROR_TEXT_MAX = 160;
+
 /**
  * This function counts the planned entries with a measured record, and gives the reasons of the other entries.
  * It throws an `Error` when `noRow` names an entry with a record or an entry that is not planned. Thus a stale reason does not reach the page.
  */
-export function coverageEntries(records: readonly CoverageRecord[], planned: readonly string[], noRow: ReadonlyMap<string, string> = new Map()): CoverageEntries {
+export function coverageEntries(
+  records: readonly CoverageRecord[],
+  planned: readonly string[],
+  noRow: ReadonlyMap<string, string> = new Map(),
+  errors: readonly { readonly strategy: string; readonly message: string }[] = [],
+): CoverageEntries {
   const measured = new Set(records.filter((r) => r.skipped === undefined).map((r) => r.strategy));
-  const skipped = new Map<string, Map<string, number>>();
+  const skipped = new Map<string, Map<string, { records: number; msAtLeast?: number }>>();
   for (const r of records) {
     if (r.skipped === undefined) continue;
-    const reasons = skipped.get(r.strategy) ?? new Map<string, number>();
-    reasons.set(r.skipped, (reasons.get(r.skipped) ?? 0) + 1);
+    const reasons = skipped.get(r.strategy) ?? new Map<string, { records: number; msAtLeast?: number }>();
+    const was = reasons.get(r.skipped);
+    const bounds = [was?.msAtLeast, r.msAtLeast].filter((b) => b !== undefined);
+    reasons.set(r.skipped, { records: (was?.records ?? 0) + 1, ...(bounds.length === 0 ? {} : { msAtLeast: Math.min(...bounds) }) });
     skipped.set(r.strategy, reasons);
   }
+  const failed = new Map<string, { first: string; records: number }>();
+  for (const e of errors) failed.set(e.strategy, { first: failed.get(e.strategy)?.first ?? e.message.slice(0, ERROR_TEXT_MAX), records: (failed.get(e.strategy)?.records ?? 0) + 1 });
   for (const entry of noRow.keys()) {
     if (!planned.includes(entry)) throw new Error(`--no-row names ${entry}, which is not an entry of the bench.`);
-    if (measured.has(entry) || skipped.has(entry)) throw new Error(`--no-row names ${entry}, which has records in this run.`);
+    if (measured.has(entry) || skipped.has(entry) || failed.has(entry)) throw new Error(`--no-row names ${entry}, which has records in this run.`);
   }
   const others = [...planned]
     .filter((entry) => !measured.has(entry))
     .sort()
     .map((entry): CoverageOtherEntry => {
-      const reasons = skipped.get(entry);
-      return {
-        entry,
-        reasons:
-          reasons === undefined
-            ? [{ because: `no row: ${noRow.get(entry) ?? NO_ROW_UNSTATED}`, records: 0 }]
-            : [...reasons].sort((a, b) => a[0].localeCompare(b[0])).map(([because, count]) => ({ because, records: count })),
-      };
+      const reasons = [...(skipped.get(entry) ?? [])].sort((a, b) => a[0].localeCompare(b[0])).map(([because, facts]) => ({ because, ...facts }));
+      const error = failed.get(entry);
+      const all = error === undefined ? reasons : [...reasons, { because: `error: ${error.first}`, records: error.records }];
+      return { entry, reasons: all.length > 0 ? all : [{ because: `no row: ${noRow.get(entry) ?? NO_ROW_UNSTATED}`, records: 0 }] };
     });
   return { planned: planned.length, measured: planned.length - others.length, others };
+}
+
+/**
+ * This function gives the entries of the earlier point of a corpus that have no measured record in this run, each with its reason.
+ * It reads the last earlier point with a list, with any method. A later point of the same run does not count as earlier.
+ */
+export function lostEntries(trend: readonly CoveragePoint[], corpus: string, run: number | null, strategies: readonly string[], others: readonly CoverageOtherEntry[]): CoverageOtherEntry[] {
+  const before = trend.filter((p) => p.corpus === corpus && p.run !== run && p.strategies !== undefined).at(-1);
+  const reasons = new Map(others.map((o) => [o.entry, o.reasons]));
+  return (before?.strategies ?? [])
+    .filter((s) => !strategies.includes(s))
+    .map((entry) => ({ entry, reasons: reasons.get(entry) ?? [{ because: NOT_AN_ENTRY, records: 0 }] }));
 }
 
 /** This function keeps the records of the named strategies. It throws for a name without a record, so a misspelled name does not empty a table. */
@@ -1403,7 +1435,14 @@ export function snapshotMain(argv: readonly string[]): void {
     const options = coverageOptions(argv);
     if (options.run === undefined || options.date === undefined) throw new Error("The snapshot coverage needs --run <id> and --date YYYY-MM-DD.");
     const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
-    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string; repeats?: number; warmup?: number; budget?: unknown };
+    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as {
+      corpus: string;
+      commit: string;
+      repeats?: number;
+      warmup?: number;
+      budget?: unknown;
+      errors?: readonly { strategy: string; message: string }[];
+    };
     const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as CoverageManifest;
     const origin = originOf(run.commit, options.run, `bench.yml, the artifact bench-${run.corpus}, and bench/coverage.ts`, optionOf(argv, "--release"), options.date);
     const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
@@ -1424,15 +1463,18 @@ export function snapshotMain(argv: readonly string[]): void {
       // k119, k122: the basis of the family prior, the same weight for each family by default
       ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
-    const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")));
+    const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []);
     // A new entry does not restart a line: the same fit over an earlier list gives the next point of that line.
     const method = coverageMethod(run);
     const over = earlierLists(earlier?.trend ?? [], run.corpus, method, grid.strategies).map((list) => {
       const kept = new Set(list);
       const fit = coverage(records.filter((r) => kept.has(r.strategy)), manifest, { ...options, by: "spec" });
-      return { strategies: list, shares: Object.fromEntries(fit.measures.map((m) => [m.id, m.share])) };
+      return { strategies: list, shares: Object.fromEntries(fit.measures.map((m) => [m.id, m.share])), records: fit.records };
     });
-    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over }));
+    // A lost entry ends a line. The annotation makes it a finding of the run, in addition to the note of the page.
+    const lost = lostEntries(earlier?.trend ?? [], run.corpus, options.run, grid.strategies, entries.others);
+    for (const l of lost) console.log(`::warning::${l.entry} lost its row on ${run.corpus}: ${l.reasons.map((r) => r.because).join(", ")}`);
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over, lost }));
     return;
   }
   if (kind === "paired" && folder !== undefined) {

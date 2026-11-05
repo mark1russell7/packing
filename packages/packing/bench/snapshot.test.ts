@@ -6,6 +6,8 @@ import {
   coverageMethod,
   coverageSnapshot,
   earlierLists,
+  lostEntries,
+  NOT_AN_ENTRY,
   noRowOf,
   NO_ROW_UNSTATED,
   familyOfInput,
@@ -377,6 +379,55 @@ describe("the coverage snapshot (k105)", () => {
       expect(() => noRowOf("a")).toThrow(/entry=reason/);
       expect(() => noRowOf("=x")).toThrow(/entry=reason/);
       expect(() => noRowOf("a=")).toThrow(/entry=reason/);
+    });
+
+    it("keeps the smallest lower bound of a censored reason, so an over-budget entry stays a row", () => {
+      const censored = [
+        { strategy: "s", input: "i", skipped: "over budget", msAtLeast: 30000 },
+        { strategy: "s", input: "j", skipped: "over budget", msAtLeast: 15000 },
+        { strategy: "s", input: "k", skipped: "not run: over budget at this size" },
+      ];
+      expect(coverageEntries(censored, ["s"]).others).toEqual([
+        {
+          entry: "s",
+          reasons: [
+            { because: "not run: over budget at this size", records: 1 },
+            { because: "over budget", records: 2, msAtLeast: 15000 },
+          ],
+        },
+      ]);
+    });
+
+    it("gives the reason of an entry with only errors, with the first text and the count", () => {
+      const errors = [
+        { strategy: "e", message: "first" },
+        { strategy: "e", message: "second" },
+        { strategy: "a", message: "an entry with a measured record is not in the list" },
+      ];
+      expect(coverageEntries(records, ["a", "e"], new Map(), errors).others).toEqual([{ entry: "e", reasons: [{ because: "error: first", records: 2 }] }]);
+      expect(() => coverageEntries(records, ["a", "e"], new Map([["e", "x"]]), errors)).toThrow(/has records/);
+    });
+
+    it("names each lost entry of the last earlier point of the corpus, with any method", () => {
+      const point = (date: string, run: number, corpus: string, strategies?: string[]) => ({ date, run, corpus, commit: "a", ...(strategies === undefined ? {} : { strategies }), shares: {} });
+      const trend = [point("2026-11-02", 1, "c", ["old", "a"]), point("2026-11-03", 2, "other", ["z"]), point("2026-11-04", 3, "c", ["a", "b", "gone"]), point("2026-11-05", 4, "c")];
+      const others = [{ entry: "b", reasons: [{ because: "over budget", records: 2, msAtLeast: 15000 }] }];
+      expect(lostEntries(trend, "c", 9, ["a"], others)).toEqual([
+        { entry: "b", reasons: others[0]!.reasons },
+        { entry: "gone", reasons: [{ because: NOT_AN_ENTRY, records: 0 }] },
+      ]);
+      expect(lostEntries(trend, "c", 9, ["a", "b", "gone", "new"], others)).toEqual([]);
+      expect(lostEntries(trend, "none", 9, ["a"], others)).toEqual([]);
+      // A second snapshot of one run reads the point before that run
+      expect(lostEntries(trend, "c", 3, ["a"], []).map((l) => l.entry)).toEqual(["old"]);
+    });
+
+    it("puts the lost entries and the count of records on the point", () => {
+      const lost = [{ entry: "b", reasons: [{ because: "refused", records: 1 }] }];
+      const point = coverageSnapshot(summary("2026-10-28", 0.5), origin, undefined, undefined, undefined, { lost }).trend[0]!;
+      expect(point.lost).toEqual(lost);
+      expect(point.records).toBe(summary("2026-10-28", 0.5).records);
+      expect("lost" in coverageSnapshot(summary("2026-10-28", 0.5), origin, undefined, undefined, undefined, { lost: [] }).trend[0]!).toBe(false);
     });
 
     it("puts the count in the snapshot only when the command line gives it", () => {

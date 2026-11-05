@@ -103,7 +103,7 @@ export interface SegmentedPoint {
   readonly strategies?: readonly string[];
   readonly method?: string;
   /** The shares of this point over each earlier list that it contains, with one method. */
-  readonly over?: readonly { readonly strategies: readonly string[]; readonly shares: Readonly<Record<string, number>> }[];
+  readonly over?: readonly { readonly strategies: readonly string[]; readonly shares: Readonly<Record<string, number>>; readonly records?: number }[];
 }
 
 /**
@@ -124,7 +124,7 @@ export function trendSegments<P extends SegmentedPoint>(trend: readonly P[]): P[
   for (const p of trend) {
     out.set(segmentOf(p), [...(out.get(segmentOf(p)) ?? []), p]);
     for (const o of p.over ?? []) {
-      const copy = { ...p, strategies: o.strategies, shares: o.shares, commonOf: p.strategies?.length } as P;
+      const copy = { ...p, strategies: o.strategies, shares: o.shares, ...(o.records === undefined ? {} : { records: o.records }), commonOf: p.strategies?.length } as P;
       const points = out.get(segmentOf(copy));
       if (points !== undefined) out.set(segmentOf(copy), [...points, copy]);
     }

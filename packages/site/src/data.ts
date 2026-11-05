@@ -374,7 +374,11 @@ export interface CoveragePoint {
   /** The method of the run. A point of a run before this field has no method. */
   method?: string;
   /** The shares of this point over each earlier list that it contains, with one method. */
-  over?: { strategies: string[]; shares: Record<string, number> }[];
+  over?: { strategies: string[]; shares: Record<string, number>; records?: number }[];
+  /** The measured records of the point. */
+  records?: number;
+  /** The entries of the earlier point of the corpus with no measured record here, each with its reason. */
+  lost?: { entry: string; reasons: { because: string; records: number; msAtLeast?: number }[] }[];
   /** The count of strategies of the point, when this copy of it continues the line of an earlier list. */
   commonOf?: number;
   shares: Record<string, number>;
@@ -384,7 +388,7 @@ export interface CoveragePoint {
 /** One entry of the bench with no measured record in a run, with each reason and its count of records */
 export interface CoverageOtherEntry {
   entry: string;
-  reasons: { because: string; records: number }[];
+  reasons: { because: string; records: number; msAtLeast?: number }[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run */

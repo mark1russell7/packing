@@ -527,13 +527,30 @@ const segmentText = (segment: readonly CoveragePoint[]): string => {
   const first = segment[0]!;
   const count = first.strategies === undefined ? "a list that the point does not record" : `${first.strategies.length} strategies`;
   const method = first.method === undefined ? "" : ` (${esc(first.method)})`;
-  return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p))).join(", ")}</li>`;
+  const counts = [...new Set(segment.flatMap((p) => (p.records === undefined ? [] : [p.records])))];
+  const pairs = counts.length < 2 ? "" : ` The measured records differ: ${counts.join(", ")}. A slow pair that loses its row can move a share, so read these points with this count.`;
+  return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p))).join(", ")}.${pairs}</li>`;
 };
 
-/** This function gives the HTML of the note of the trend. The note tells why the lines are separate, and if a point has an older `pack.gap`. */
+/** This function gives the words of the reasons of an entry with no measured record. A censored reason gives its lower bound on the time. */
+const reasonsText = (reasons: readonly { because: string; records: number; msAtLeast?: number }[]): string =>
+  reasons
+    .map((r) => {
+      if (r.records === 0) return r.because;
+      return r.msAtLeast === undefined ? `${r.because} (${r.records} records)` : `${r.because} (${r.records} records, each at least ${r.msAtLeast / 1000} s)`;
+    })
+    .join(", ");
+
+/** This function gives the HTML of the entries that lost their row. Dropping a hard entry can raise a share, so a lost entry ends a line and does not join it. */
+const lostNote = (trend: readonly CoveragePoint[]): string => {
+  const rows = trend.flatMap((p) => (p.lost ?? []).map((l) => `<li>${esc(p.date)}, <code>${esc(p.corpus)}</code>: <code>${esc(l.entry)}</code>: ${esc(reasonsText(l.reasons))}</li>`));
+  return rows.length === 0 ? "" : `<p class="hint"><b>An entry lost its row, so the line of its list ends.</b> A lost entry does not join a line, because dropping a hard entry can raise a share.</p><ul class="hint">${rows.join("")}</ul>`;
+};
+
+/** This function gives the HTML of the note of the trend. The note tells why the lines are separate, which entry lost its row, and if a point has an older `pack.gap`. */
 export function trendNote(trend: readonly CoveragePoint[]): string {
   const older = oldGapNote(trend.map((p) => p.run));
-  return `<p class="hint">A line joins only points with one corpus and one method. A later point with a new strategy continues the line over the strategies common to both points, and the new strategy starts its own line. The trend has these lines:</p><ul class="hint">${trendSegments(trend).map(segmentText).join("")}</ul>${older === "" ? "" : `<p class="hint">${older}</p>`}`;
+  return `<p class="hint">A line joins only points with one corpus and one method. A later point with a new strategy continues the line over the strategies common to both points, and the new strategy starts its own line. The trend has these lines:</p><ul class="hint">${trendSegments(trend).map(segmentText).join("")}</ul>${lostNote(trend)}${older === "" ? "" : `<p class="hint">${older}</p>`}`;
 }
 
 /** This function gives the HTML of the count of the entries with a measured record, with the reason of each other entry. */
@@ -541,7 +558,7 @@ export function entriesNote(entries: CoverageEntries | undefined): string {
   if (entries === undefined) return "";
   const groups = new Map<string, string[]>();
   for (const other of entries.others) {
-    const text = other.reasons.map((r) => (r.records === 0 ? r.because : `${r.because} (${r.records} records)`)).join(", ");
+    const text = reasonsText(other.reasons);
     groups.set(text, [...(groups.get(text) ?? []), other.entry]);
   }
   const rows = [...groups].map(([text, ids]) => `<li>${ids.map((id) => `<code>${esc(id)}</code>`).join(", ")}: ${esc(text)}</li>`).join("");
