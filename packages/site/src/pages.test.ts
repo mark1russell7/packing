@@ -45,6 +45,7 @@ import {
   spaceOf,
   entriesNote,
   trendChart,
+  stepReads,
   trendNote,
 } from "./results-model.ts";
 import { LAST_RUN_OLD_GAP, oldGapNote } from "./gap-definition.ts";
@@ -661,6 +662,39 @@ describe("the space coverage of k105", () => {
       const two = { ...point("2026-11-09", later + 1, ["a"], 0.4), method: M, records: 90 };
       expect(trendNote([one, two])).toContain("The measured records differ: 100, 90.");
       expect(trendNote([one, { ...two, records: 100 }])).not.toContain("The measured records differ");
+    });
+
+    it("does not call a step a gain when only the plain share gains", () => {
+      const M = "repeats 1, warmup 0, budget";
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M };
+      // A dropped hard pair raises the plain share, and the share over the common pairs stays
+      const dropped = { ...point("2026-11-16", later + 1, ["a"], 0.5), method: M, step: { from: later, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.3 } } };
+      expect(stepReads(earlier, dropped)).toEqual([{ measure: "pack.fill", plain: [0.3, 0.5], common: [0.3, 0.3], gain: false }]);
+      const note = trendNote([earlier, dropped]);
+      expect(note).toContain("90 common of 100 pairs. <code>pack.fill</code>: plain 0.300 to 0.500, common pairs 0.300 to 0.300.");
+      expect(note).not.toContain("a gain.");
+      const both = { ...dropped, step: { ...dropped.step, later: { "pack.fill": 0.4 } } };
+      expect(stepReads(earlier, both)[0]!.gain).toBe(true);
+      expect(trendNote([earlier, both])).toContain("common pairs 0.300 to 0.400: a gain.");
+      // The common figure gains and the plain share falls: no gain
+      expect(stepReads(earlier, { ...both, shares: { "pack.fill": 0.2 } })[0]!.gain).toBe(false);
+    });
+
+    it("reads the plain share of a step over the earlier list, so a new entry does not change it", () => {
+      const M = "repeats 1, warmup 0, budget";
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M };
+      const step = { from: later, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.4 } };
+      const grown = { ...point("2026-11-16", later + 1, ["a", "b"], 0.9), method: M, step, over: [{ strategies: ["a"], shares: { "pack.fill": 0.25 } }] };
+      expect(stepReads(earlier, grown)[0]).toMatchObject({ plain: [0.3, 0.25], gain: false });
+    });
+
+    it("states a step with no figure", () => {
+      const M = "repeats 1, warmup 0, budget";
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M };
+      const gone = { ...point("2026-11-16", later + 1, ["a"], 0.9), method: M, step: { from: later, noRead: "the records of the earlier run are gone" } };
+      expect(stepReads(earlier, gone)).toEqual([]);
+      expect(trendNote([earlier, gone])).toContain("<li>2026-11-16, <code>c</code>: no read: the records of the earlier run are gone</li>");
+      expect(trendNote([earlier])).not.toContain("Each step reads");
     });
 
     it("names each line", () => {

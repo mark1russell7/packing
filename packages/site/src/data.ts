@@ -364,6 +364,11 @@ export interface CoverageStrata {
 }
 
 /** One point of the trend of the coverage */
+/** The read of a step between two points of one line. A step with `noRead` has no figure. */
+export type CoverageStep =
+  | { from: number; common: number; of: number; earlier: Record<string, number>; later: Record<string, number> }
+  | { from: number; noRead: string };
+
 export interface CoveragePoint {
   date: string;
   run: number | null;
@@ -377,6 +382,8 @@ export interface CoveragePoint {
   over?: { strategies: string[]; shares: Record<string, number>; records?: number }[];
   /** The measured records of the point. */
   records?: number;
+  /** The read of the step from the earlier point of the line, over the pairs measured in both. */
+  step?: CoverageStep;
   /** The entries of the earlier point of the corpus with no measured record here, each with its reason. */
   lost?: { entry: string; reasons: { because: string; records: number; msAtLeast?: number }[] }[];
   /** The count of strategies of the point, when this copy of it continues the line of an earlier list. */

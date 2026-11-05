@@ -40,6 +40,7 @@ import {
   readSample,
   type ActiveCoverage,
   type CoverageManifest,
+  type CoverageOptions,
   type CoverageRecord,
   type CoverageSummary,
   type EvalMeasure,
@@ -937,6 +938,8 @@ export interface CoveragePoint {
   over?: CoverageOver[];
   /** The measured records of the point. A slow pair that loses its row lowers this count, and the entry keeps its row. */
   records?: number;
+  /** The read of the step from the earlier point of the line, over the pairs measured in both. */
+  step?: CoverageStep;
   /** The entries of the earlier point of the corpus with no measured record here, each with its reason. Each one ends the line of a list that has it. */
   lost?: CoverageOtherEntry[];
   /** The share of each measure, with the folds of the summary */
@@ -965,6 +968,63 @@ export function earlierLists(trend: readonly CoveragePoint[], corpus: string, me
     if (p.strategies.length < current.size && p.strategies.every((s) => current.has(s))) lists.set(p.strategies.join(","), p.strategies);
   }
   return [...lists.values()];
+}
+
+/** The reason of a step with no figure. */
+export const STEP_RECORDS_GONE = "the records of the earlier run are gone";
+
+/**
+ * The read of a step between two points of one line. `common` counts the pairs of a strategy and an input that are measured in both points.
+ * `of` counts the pairs measured in either point, over the strategies of the earlier point, so a new entry does not change it.
+ * `earlier` and `later` are the shares of each point over the common pairs. A step with `noRead` has no figure.
+ */
+export type CoverageStep =
+  | { readonly from: number; readonly common: number; readonly of: number; readonly earlier: Record<string, number>; readonly later: Record<string, number> }
+  | { readonly from: number; readonly noRead: string };
+
+/**
+ * This function gives the earlier point of a step: the last point of the corpus before the run `run`, when the new point continues its line.
+ * The point must have a run, the same method and a list that the new list contains. A change of the method and a lost entry end a line, so they give no step.
+ */
+export function stepFrom(
+  trend: readonly CoveragePoint[],
+  corpus: string,
+  method: string | undefined,
+  strategies: readonly string[],
+  run: number | undefined,
+): (CoveragePoint & { run: number }) | undefined {
+  const all = trend.filter((p) => p.corpus === corpus);
+  const at = all.findIndex((p) => p.run === run);
+  const last = (at === -1 ? all : all.slice(0, at)).at(-1);
+  if (last === undefined || last.run === null || method === undefined || last.method !== method || last.strategies === undefined) return undefined;
+  const current = new Set(strategies);
+  return last.strategies.every((s) => current.has(s)) ? (last as CoveragePoint & { run: number }) : undefined;
+}
+
+/** The key of a pair of a record. */
+const pairOf = (r: { readonly strategy: string; readonly input: string }): string => JSON.stringify([r.strategy, r.input]);
+
+/**
+ * This function gives the records of two points over the pairs measured in both, and the two counts of the step.
+ * A skipped record is not measured, so a dropped pair leaves both sides. A dropped hard pair can raise a plain share, but it cannot raise a share over these pairs.
+ */
+export function commonPairs<R extends { readonly strategy: string; readonly input: string; readonly skipped?: unknown }>(
+  earlier: readonly R[],
+  later: readonly R[],
+): { earlier: R[]; later: R[]; common: number; of: number } {
+  const measured = (records: readonly R[]): R[] => records.filter((r) => r.skipped === undefined);
+  const first = measured(earlier);
+  const listed = new Set(first.map((r) => r.strategy));
+  const second = measured(later).filter((r) => listed.has(r.strategy));
+  const inFirst = new Set(first.map(pairOf));
+  const inSecond = new Set(second.map(pairOf));
+  const common = new Set([...inFirst].filter((k) => inSecond.has(k)));
+  return {
+    earlier: first.filter((r) => common.has(pairOf(r))),
+    later: second.filter((r) => common.has(pairOf(r))),
+    common: common.size,
+    of: new Set([...inFirst, ...inSecond]).size,
+  };
 }
 
 /** One entry of the bench with no measured record in a run, with each reason and its count of records. A reason with no row counts 0 records. */
@@ -1126,7 +1186,7 @@ export function coverageSnapshot(
   earlier?: CoverageSnapshot,
   byInput?: CoverageSummary,
   entries?: CoverageEntries,
-  line?: { readonly method?: string; readonly over?: readonly CoverageOver[]; readonly lost?: readonly CoverageOtherEntry[] },
+  line?: { readonly method?: string; readonly over?: readonly CoverageOver[]; readonly lost?: readonly CoverageOtherEntry[]; readonly step?: CoverageStep },
 ): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
@@ -1140,6 +1200,7 @@ export function coverageSnapshot(
     ...(line?.method === undefined ? {} : { method: line.method }),
     ...(line?.over === undefined || line.over.length === 0 ? {} : { over: [...line.over] }),
     records: summary.records,
+    ...(line?.step === undefined ? {} : { step: line.step }),
     ...(line?.lost === undefined || line.lost.length === 0 ? {} : { lost: [...line.lost] }),
     shares: Object.fromEntries(summary.measures.map((m) => [m.id, m.share])),
     ...(byInput === undefined ? {} : { sharesByInput: Object.fromEntries(byInput.measures.map((m) => [m.id, m.share])) }),
@@ -1248,6 +1309,34 @@ export function coverageSnapshot(
 // ---- The command line ----
 
 /** This function gives the value of an option of the command line, or `undefined`. */
+/**
+ * This function reads the step of a new point: the fit of each point over the common pairs, with one set of options.
+ * With no earlier point on the line, it gives nothing. With no records of the earlier run in `folder`, the step has no figure.
+ */
+function readStep(
+  trend: readonly CoveragePoint[],
+  now: {
+    readonly corpus: string;
+    readonly method: string | undefined;
+    readonly strategies: readonly string[];
+    readonly run: number | undefined;
+    readonly records: readonly CoverageRecord[];
+    readonly manifest: CoverageManifest;
+    readonly options: CoverageOptions;
+    readonly folder?: string;
+  },
+): CoverageStep | undefined {
+  const from = stepFrom(trend, now.corpus, now.method, now.strategies, now.run);
+  if (from === undefined) return undefined;
+  if (now.folder === undefined || !existsSync(join(now.folder, "records.jsonl"))) return { from: from.run, noRead: STEP_RECORDS_GONE };
+  const before = readRecords(readFileSync(join(now.folder, "records.jsonl"), "utf8"));
+  const beforeManifest = JSON.parse(readFileSync(join(now.folder, "corpus.json"), "utf8")) as CoverageManifest;
+  const pairs = commonPairs(before, now.records);
+  const shares = (records: readonly CoverageRecord[], manifest: CoverageManifest): Record<string, number> =>
+    Object.fromEntries(coverage(records, manifest, { ...now.options, by: "spec" }).measures.map((m) => [m.id, m.share]));
+  return { from: from.run, common: pairs.common, of: pairs.of, earlier: shares(pairs.earlier, beforeManifest), later: shares(pairs.later, now.manifest) };
+}
+
 const optionOf = (argv: readonly string[], name: string): string | undefined => {
   const at = argv.indexOf(name);
   return at >= 0 ? argv[at + 1] : undefined;
@@ -1431,6 +1520,18 @@ export function snapshotMain(argv: readonly string[]): void {
     writeSnapshot(out ?? new URL(`gaps-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
     return;
   }
+  // The run of the earlier point of a step, so that the workflow can get its records. With no step, the output is empty.
+  if (kind === "coverage-earlier" && folder !== undefined) {
+    const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
+    if (!existsSync(file)) return;
+    const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; repeats?: number; warmup?: number; budget?: unknown };
+    const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
+    const strategies = [...new Set(records.filter((r) => r.skipped === undefined).map((r) => r.strategy))];
+    const trend = (JSON.parse(readFileSync(file, "utf8")) as CoverageSnapshot).trend;
+    const from = stepFrom(trend, run.corpus, coverageMethod(run), strategies, Number(optionOf(argv, "--run")));
+    if (from !== undefined) console.log(String(from.run));
+    return;
+  }
   if (kind === "coverage" && folder !== undefined) {
     const options = coverageOptions(argv);
     if (options.run === undefined || options.date === undefined) throw new Error("The snapshot coverage needs --run <id> and --date YYYY-MM-DD.");
@@ -1474,7 +1575,10 @@ export function snapshotMain(argv: readonly string[]): void {
     // A lost entry ends a line. The annotation makes it a finding of the run, in addition to the note of the page.
     const lost = lostEntries(earlier?.trend ?? [], run.corpus, options.run, grid.strategies, entries.others);
     for (const l of lost) console.log(`::warning::${l.entry} lost its row on ${run.corpus}: ${l.reasons.map((r) => r.because).join(", ")}`);
-    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over, lost }));
+    const earlierFolder = optionOf(argv, "--earlier");
+    const step = readStep(earlier?.trend ?? [], { corpus: run.corpus, method, strategies: grid.strategies, run: options.run, records, manifest, options, ...(earlierFolder === undefined ? {} : { folder: earlierFolder }) });
+    if (step !== undefined) console.log(`The step from run ${step.from}: ${"noRead" in step ? `no read: ${step.noRead}` : `${step.common} common of ${step.of} pairs`}`);
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over, lost, ...(step === undefined ? {} : { step }) }));
     return;
   }
   if (kind === "paired" && folder !== undefined) {

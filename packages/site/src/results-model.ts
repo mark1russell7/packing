@@ -528,7 +528,7 @@ const segmentText = (segment: readonly CoveragePoint[]): string => {
   const count = first.strategies === undefined ? "a list that the point does not record" : `${first.strategies.length} strategies`;
   const method = first.method === undefined ? "" : ` (${esc(first.method)})`;
   const counts = [...new Set(segment.flatMap((p) => (p.records === undefined ? [] : [p.records])))];
-  const pairs = counts.length < 2 ? "" : ` The measured records differ: ${counts.join(", ")}. A slow pair that loses its row can move a share, so read these points with this count.`;
+  const pairs = counts.length < 2 ? "" : ` The measured records differ: ${counts.join(", ")}. A slow pair that loses its row can move a share, so read the step with its common pairs.`;
   return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p))).join(", ")}.${pairs}</li>`;
 };
 
@@ -547,10 +547,58 @@ const lostNote = (trend: readonly CoveragePoint[]): string => {
   return rows.length === 0 ? "" : `<p class="hint"><b>An entry lost its row, so the line of its list ends.</b> A lost entry does not join a line, because dropping a hard entry can raise a share.</p><ul class="hint">${rows.join("")}</ul>`;
 };
 
+/** This function gives the words of two shares in the order of the step. */
+const shareText = ([a, b]: readonly [number, number]): string => `${a.toFixed(3)} to ${b.toFixed(3)}`;
+
+/** The read of one measure over one step of the trend. */
+export interface StepRead {
+  readonly measure: string;
+  readonly plain: readonly [number, number];
+  readonly common: readonly [number, number];
+  /** This value is true only when the plain share and the share over the common pairs both gain. */
+  readonly gain: boolean;
+}
+
+/**
+ * This function gives the read of each measure of a step, with no row for a measure that has a missing share.
+ * The later plain share is the share over the list of the earlier point, when the later point has it, so a new entry does not change the read.
+ */
+export function stepReads(earlier: CoveragePoint, later: CoveragePoint): StepRead[] {
+  const step = later.step;
+  if (step === undefined || "noRead" in step) return [];
+  const list = earlier.strategies?.join(",");
+  const plain = later.over?.find((o) => o.strategies.join(",") === list)?.shares ?? later.shares;
+  return Object.keys(step.later).flatMap((measure) => {
+    const a = earlier.shares[measure];
+    const b = plain[measure];
+    const c = step.earlier[measure];
+    const d = step.later[measure];
+    if (a === undefined || b === undefined || c === undefined || d === undefined) return [];
+    return [{ measure, plain: [a, b] as const, common: [c, d] as const, gain: b > a && d > c }];
+  });
+}
+
+/** This function gives the HTML of the steps of the trend. Each step shows its count and both figures of each measure. */
+const stepNote = (trend: readonly CoveragePoint[]): string => {
+  const rows = trend.flatMap((later) => {
+    const step = later.step;
+    if (step === undefined) return [];
+    const head = `${esc(later.date)}, <code>${esc(later.corpus)}</code>`;
+    if ("noRead" in step) return [`<li>${head}: no read: ${esc(step.noRead)}</li>`];
+    const earlier = trend.find((p) => p.run === step.from);
+    const reads = earlier === undefined ? [] : stepReads(earlier, later);
+    const text = reads.map((r) => `<code>${esc(r.measure)}</code>: plain ${shareText(r.plain)}, common pairs ${shareText(r.common)}${r.gain ? ": a gain" : ""}`).join(". ");
+    return [`<li>${head}: ${step.common} common of ${step.of} pairs. ${text}.</li>`];
+  });
+  return rows.length === 0
+    ? ""
+    : `<p class="hint"><b>Each step reads the pairs measured in both points.</b> A dropped hard pair can raise a plain share, but it cannot raise the share over the common pairs. A step is a gain only when both figures gain.</p><ul class="hint">${rows.join("")}</ul>`;
+};
+
 /** This function gives the HTML of the note of the trend. The note tells why the lines are separate, which entry lost its row, and if a point has an older `pack.gap`. */
 export function trendNote(trend: readonly CoveragePoint[]): string {
   const older = oldGapNote(trend.map((p) => p.run));
-  return `<p class="hint">A line joins only points with one corpus and one method. A later point with a new strategy continues the line over the strategies common to both points, and the new strategy starts its own line. The trend has these lines:</p><ul class="hint">${trendSegments(trend).map(segmentText).join("")}</ul>${lostNote(trend)}${older === "" ? "" : `<p class="hint">${older}</p>`}`;
+  return `<p class="hint">A line joins only points with one corpus and one method. A later point with a new strategy continues the line over the strategies common to both points, and the new strategy starts its own line. The trend has these lines:</p><ul class="hint">${trendSegments(trend).map(segmentText).join("")}</ul>${stepNote(trend)}${lostNote(trend)}${older === "" ? "" : `<p class="hint">${older}</p>`}`;
 }
 
 /** This function gives the HTML of the count of the entries with a measured record, with the reason of each other entry. */

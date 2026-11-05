@@ -6,6 +6,8 @@ import {
   coverageMethod,
   coverageSnapshot,
   earlierLists,
+  commonPairs,
+  stepFrom,
   lostEntries,
   NOT_AN_ENTRY,
   noRowOf,
@@ -428,6 +430,50 @@ describe("the coverage snapshot (k105)", () => {
       expect(point.lost).toEqual(lost);
       expect(point.records).toBe(summary("2026-10-28", 0.5).records);
       expect("lost" in coverageSnapshot(summary("2026-10-28", 0.5), origin, undefined, undefined, undefined, { lost: [] }).trend[0]!).toBe(false);
+    });
+
+    it("reads a step over the pairs measured in both points, so a dropped pair leaves both sides", () => {
+      const r = (strategy: string, input: string, skipped?: string) => ({ strategy, input, ...(skipped === undefined ? {} : { skipped }) });
+      const earlier = [r("a", "hard"), r("a", "easy"), r("b", "easy"), r("b", "old", "refused")];
+      const later = [r("a", "hard", "over budget"), r("a", "easy"), r("b", "easy"), r("b", "old"), r("new", "easy")];
+      const pairs = commonPairs(earlier, later);
+      expect(pairs.common).toBe(2);
+      expect(pairs.earlier.map((x) => [x.strategy, x.input])).toEqual([["a", "easy"], ["b", "easy"]]);
+      expect(pairs.later.map((x) => [x.strategy, x.input])).toEqual(pairs.earlier.map((x) => [x.strategy, x.input]));
+      // The pair of a new entry is not in the count. The hard pair and the pair measured only later are in the count.
+      expect(pairs.of).toBe(4);
+    });
+
+    it("does not join the strategy and the input of a pair by their text", () => {
+      expect(commonPairs([{ strategy: "a", input: "b|c" }], [{ strategy: "a", input: "b" }, { strategy: "a|b", input: "c" }]).common).toBe(0);
+    });
+
+    it("finds the earlier point of a step only on one line", () => {
+      const M = "repeats 1, warmup 0, budget";
+      const point = (run: number | null, strategies: string[] | undefined, method: string = M, corpus = "c") => ({ date: "2026-11-02", run, corpus, commit: "a", ...(strategies === undefined ? {} : { strategies }), method, shares: {} });
+      const list = ["a", "b"];
+      const runOf = (trend: Parameters<typeof stepFrom>[0], method: string | undefined = M, run: number | undefined = 9) => stepFrom(trend, "c", method, list, run)?.run;
+      expect(runOf([point(1, list), point(2, list)])).toBe(2);
+      // A new entry continues the line
+      expect(runOf([point(2, ["a"])])).toBe(2);
+      // A lost entry ends the line, so the point before it is not read
+      expect(runOf([point(1, ["a"]), point(2, ["a", "gone"])])).toBeUndefined();
+      // A change of the method ends the line
+      expect(runOf([point(2, list, "repeats 5, warmup 2")])).toBeUndefined();
+      expect(stepFrom([point(2, list)], "c", undefined, list, 9)).toBeUndefined();
+      expect(runOf([point(null, list)])).toBeUndefined();
+      expect(runOf([point(2, undefined)])).toBeUndefined();
+      expect(runOf([])).toBeUndefined();
+      // Another corpus has no line here, and a second snapshot of one run reads the point before that run
+      expect(runOf([point(2, list, M, "other")])).toBeUndefined();
+      expect(runOf([point(1, list), point(2, list), point(3, list)], M, 2)).toBe(1);
+      expect(runOf([point(1, list)], M, 1)).toBeUndefined();
+    });
+
+    it("puts the step on the point", () => {
+      const step = { from: 3, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.31 } };
+      expect(coverageSnapshot(summary("2026-10-28", 0.5), origin, undefined, undefined, undefined, { step }).trend[0]!.step).toEqual(step);
+      expect(coverageSnapshot(summary("2026-10-28", 0.5), origin).trend[0]!).not.toHaveProperty("step");
     });
 
     it("puts the count in the snapshot only when the command line gives it", () => {
