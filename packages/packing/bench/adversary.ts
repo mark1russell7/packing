@@ -327,6 +327,12 @@ export function mutateSizes(
   throw new RangeError(`No move applies to the ${n} items.`);
 }
 
+/**
+ * This constant gives the container forms of a class generator that version 1 of the search reads.
+ * A new value changes each later draw, and the corpus `pack-adversary-v1` holds the result of those draws. The free forms wait for a new version of the search.
+ */
+const SEARCH_CLASS_FORMS: readonly string[] = Object.freeze(["fixed", "freeHeight"]);
+
 /** The parameters of an origin that the search changes, with their values or their range. The knobs are not in the list. */
 interface ParamSpace {
   name: string;
@@ -344,7 +350,7 @@ function paramSpace(name: string, maxCount: number): ParamSpace[] {
     .filter((d) => keys.includes(d.name))
     .map((d): ParamSpace => {
       const values = Array.isArray(d.supported) ? (d.supported as readonly (string | number)[]) : d.values;
-      if (values !== undefined) return { name: d.name, values };
+      if (values !== undefined) return { name: d.name, values: d.name === "containerSize" ? values.filter((value) => SEARCH_CLASS_FORMS.includes(String(value))) : values };
       if (d.name === "count") return { name: d.name, min: Math.max(1, d.min ?? 1), max: Math.min(maxCount, d.max ?? maxCount) };
       return { name: d.name, min: d.min ?? 0, max: d.max ?? 0 };
     });

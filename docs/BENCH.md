@@ -408,7 +408,7 @@ Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`.
 
 The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
 
-The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items.
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws.
 
 - The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
 - The field `inputs` has the input files, in the order of `found`.
