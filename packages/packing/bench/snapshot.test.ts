@@ -10,6 +10,7 @@ import {
   groupOfFamily,
   leafWins,
   pairedSnapshot,
+  recordsOfStrategies,
   releaseEntries,
   SELECT_LEAF_WINS,
   selectSnapshot,
@@ -23,6 +24,22 @@ import { SLOW_SET, type PairedRecord } from "./paired.ts";
 import type { CoverageSummary } from "./coverage.ts";
 
 // The snapshots of the site (k32). Made-up records only.
+
+describe("recordsOfStrategies", () => {
+  const records = [{ strategy: "rows" }, { strategy: "skyline" }, { strategy: "shelf" }];
+
+  it("keeps each record without a list of names", () => {
+    expect(recordsOfStrategies(records, undefined)).toBe(records);
+  });
+
+  it("keeps the records of the named strategies", () => {
+    expect(recordsOfStrategies(records, ["shelf", "rows"]).map((r) => r.strategy)).toEqual(["rows", "shelf"]);
+  });
+
+  it("refuses a name without a record", () => {
+    expect(() => recordsOfStrategies(records, ["rows", "misspelled"])).toThrow(/misspelled/);
+  });
+});
 
 const rec = (strategy: string, input: string, seed: number, fill: number, extra: Partial<SnapshotRecord> = {}): SnapshotRecord => ({
   strategy,

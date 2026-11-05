@@ -1,11 +1,11 @@
 // The snapshots of the site (roadmap item k32). Each snapshot is a small JSON file in `packages/site/data/`, with the
 // summary of the records of one or more CI runs. The site reads only these files. The raw records stay out of git.
 //
-//   node bench/snapshot.ts strategies <run folder> --run <id> [--baseline rows] [--out <file>]
+//   node bench/snapshot.ts strategies <run folder> --run <id> [--baseline rows] [--release <version>] [--date YYYY-MM-DD] [--out <file>]
 //   node bench/snapshot.ts paired <run folder> --run <id> --commit <sha> --release <version> --arm-a <ref> --arm-b <ref> [--out <file>]
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
-//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--out <file>]
+//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>]
 //   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>] [--active <dir>] [--features family|input]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
@@ -1100,11 +1100,23 @@ function releaseOrigin(source: string): SnapshotOrigin {
   return { release: tag.slice(1), commit: git("rev-parse", "--short=7", commit), date: git("show", "-s", "--format=%cs", commit), run: null, source };
 }
 
-/** This function gives the origin of the data of a commit and a run. A commit outside the tags needs the release from the command line. */
-function originOf(commit: string, run: number | null, source: string, release?: string): SnapshotOrigin {
+/**
+ * This function gives the origin of the data of a commit and a run. A commit outside the tags needs the release from the command line.
+ * The date is the date of the commit, or `date` for a run that started later than its commit. The age of the data counts from that date.
+ */
+function originOf(commit: string, run: number | null, source: string, release?: string, date?: string): SnapshotOrigin {
   const found = release ?? releaseOf(commit);
   if (found === undefined) throw new Error(`No release tag contains the commit ${commit}. Give the release with --release.`);
-  return { release: found, commit: git("rev-parse", "--short=7", commit), date: git("show", "-s", "--format=%cs", commit), run, source };
+  return { release: found, commit: git("rev-parse", "--short=7", commit), date: date ?? git("show", "-s", "--format=%cs", commit), run, source };
+}
+
+/** This function keeps the records of the named strategies. It throws for a name without a record, so a misspelled name does not empty a table. */
+export function recordsOfStrategies<R extends { strategy: string }>(records: readonly R[], names: readonly string[] | undefined): readonly R[] {
+  if (names === undefined) return records;
+  for (const name of names) {
+    if (!records.some((r) => r.strategy === name)) throw new Error(`The run has no record of the strategy ${name}.`);
+  }
+  return records.filter((r) => names.includes(r.strategy));
 }
 
 /** This function writes a snapshot as JSON with one line end at the end. */
@@ -1155,7 +1167,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const run = Number(optionOf(argv, "--run"));
     if (!Number.isInteger(run)) throw new Error("The snapshot strategies needs --run <id>.");
     const data = readRun(folder);
-    const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`);
+    const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"), optionOf(argv, "--date"));
     const snap = strategySnapshot(data.records, { corpus: data.run.corpus, origin: [origin], baseline: optionOf(argv, "--baseline") ?? "rows" });
     writeSnapshot(out ?? new URL(`strategies-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
     return;
@@ -1166,8 +1178,8 @@ export function snapshotMain(argv: readonly string[]): void {
     if (!Number.isInteger(run) || !GAP_MEASURES.includes(measure as GapMeasure)) throw new Error(`The snapshot gaps needs --run <id> and --measure ${GAP_MEASURES.join("|")}.`);
     const data = readRun(folder);
     const sizes = new Map(data.inputs.map((i) => [i.id, i.cell?.containerSize]));
-    const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"));
-    const snap = gapSnapshot(data.records, {
+    const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"), optionOf(argv, "--date"));
+    const snap = gapSnapshot(recordsOfStrategies(data.records, optionOf(argv, "--strategies")?.split(",")), {
       corpus: data.run.corpus,
       origin: [origin],
       measure: measure as GapMeasure,
@@ -1182,7 +1194,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const records = readRecords(readFileSync(join(folder, "records.jsonl"), "utf8"));
     const run = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string };
     const manifest = JSON.parse(readFileSync(join(folder, "corpus.json"), "utf8")) as CoverageManifest;
-    const origin = originOf(run.commit, options.run, `bench.yml, the artifact bench-${run.corpus}, and bench/coverage.ts`, optionOf(argv, "--release"));
+    const origin = originOf(run.commit, options.run, `bench.yml, the artifact bench-${run.corpus}, and bench/coverage.ts`, optionOf(argv, "--release"), options.date);
     const file = out ?? new URL("coverage.json", SNAPSHOT_DIR);
     const earlier = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as CoverageSnapshot) : undefined;
     // The site shows the folds by spec, the stricter test. The folds by input give the second number.

@@ -60,6 +60,10 @@ on:
         type: choice
         options: ["off", stratum, mixed]
         default: "off"
+      job-minutes:
+        description: "The time limit of each job of the matrix, 1 to 350. A job that the limit stops uploads no records."
+        type: string
+        default: "30"
 
   # k120: coverage-nightly.yml packs the grid with this workflow. The inputs are the same, with strings for the choices.
   workflow_call:
@@ -76,6 +80,7 @@ on:
       features: { type: string, default: family }
       pairs: { type: string, default: "" }
       timing: { type: string, default: "off" }
+      job-minutes: { type: string, default: "30" }
 
 permissions:
   contents: read
@@ -117,7 +122,9 @@ jobs:
           FEATURES: ${{ inputs.features }}
           PAIRS: ${{ inputs.pairs }}
           TIMING: ${{ inputs.timing }}
+          JOB_MINUTES: ${{ inputs.job-minutes }}
         run: |
+          [[ "$JOB_MINUTES" =~ ^[1-9][0-9]*$ ]] && [ "$JOB_MINUTES" -le 350 ] || { echo "job-minutes must be a number from 1 to 350, not '$JOB_MINUTES'"; exit 1; }
           [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
           [[ "$SAMPLE" =~ ^[0-9]+$ ]] || { echo "sample must be a number of 0 or more, not '$SAMPLE'"; exit 1; }
           [[ "$DRAW" =~ ^(uniform|option|stratified|active)$ ]] || { echo "draw must be uniform, option, stratified or active, not '$DRAW'"; exit 1; }
@@ -144,7 +151,7 @@ jobs:
     needs: plan
     name: run (${{ matrix.strategy }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ fromJSON(inputs.job-minutes) }}
     strategy:
       fail-fast: false
       max-parallel: 3
