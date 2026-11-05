@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.2
+
+The time of `skyline` does not grow with the width of the input in units. Each output stays the same.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- The rule `bl` of `packSkyline` keeps its skyline as runs of equal height. It does not keep a cell for each unit of the width. At 1000 items on `freeArea`, one read gave 1.1 s at scale 1 and 57.9 s at scale 64.
+- A width too large for an array gave a `RangeError`. These widths pack at this time.
+
+### Not changed
+
+- The rule `mw` and a space that is not plain keep their cells, so their time still grows with the width.
+- Each output and each move count stay the same. A test pins 6,000 generated inputs on all paths.
+
 ## 0.9.1
 
 The class generators make 2 more container forms. Old params give the same bytes.

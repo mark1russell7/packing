@@ -444,6 +444,12 @@ function givenOf(e: BenchEntry, defaults: unknown): Record<string, unknown> | un
   return Object.keys(e.options).length === 0 ? undefined : { ...(defaults as Record<string, unknown>), ...e.options };
 }
 
+/** This function gives the id of the strategy of an entry and the options that the runner gives to `packWith`. */
+export function packOptionsOf(id: string): { strategy: string; options: Record<string, unknown> | undefined } {
+  const e = benchEntry(id);
+  return { strategy: e.strategy, options: givenOf(e, benchStrategy(e.strategy).defaults) };
+}
+
 /** One input of a corpus for the paired time test (k127): its id, its spec index, its seed and its cell. */
 export interface PairedCorpusInput {
   id: string;
@@ -585,7 +591,7 @@ export function anchorMeasures(input: PackInput, first: PackOutput, strategyId: 
 }
 
 /** This function sums one measure over the stages of a trace. */
-function traceSum(output: PackOutput, id: string): number {
+export function traceSum(output: PackOutput, id: string): number {
   let sum = 0;
   for (const stage of output.trace ?? []) sum += stage.measures?.[id] ?? 0;
   return sum;

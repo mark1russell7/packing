@@ -9,6 +9,7 @@
 // - `time --gate <file> --dir <folder of a paired run> --out <folder>`
 // - `portfolio --records <folder> --run <id> --committed <file> --out <folder>`
 // - `smoke --dir <folder of a merged run> --out <folder>`
+// - `skyline --out <folder>`
 // - `promotion --records <folder> --candidate <id> --default <id> --win <measure> --guards <set> --out <folder>`
 //
 // The exit code is 0 when each row gives its stated code, and 1 when a row does not.
@@ -22,6 +23,7 @@ import type { BenchRecord, BenchRun, MeasuredRecord } from "./run.ts";
 import { isMeasured } from "./run.ts";
 import { parseRecords } from "./smoke-check.ts";
 import { parseSizeGate, type SizeGate } from "./size-gate.ts";
+import { FAULTS as SKYLINE_FAULTS } from "./skyline-equal.ts";
 
 const here = import.meta.dirname;
 const MAIN = join(here, "main.ts");
@@ -378,13 +380,24 @@ function flipSmoke(argv: readonly string[]): FlipRow[] {
   return rows;
 }
 
+/** The cases of each row of the flip test of the skyline check. A fault shows in far fewer cases. */
+const SKYLINE_FLIP_CASES = "5000";
+
+/** This function is the flip test of the skyline check: a copy with no fault passes, and each wrong rule fails. */
+function flipSkyline(argv: readonly string[]): FlipRow[] {
+  const out = resolve(optionOf(argv, "--out"));
+  mkdirSync(out, { recursive: true });
+  const check = [process.execPath, join(here, "skyline-equal.ts"), "--cases", SKYLINE_FLIP_CASES];
+  return [runCase("no fault", 0, check, out), ...Object.keys(SKYLINE_FAULTS).map((fault) => runCase(fault, 1, [...check, "--fault", fault], out))];
+}
+
 /** This function starts the flip test of one gate, writes its table and gives its exit code. */
 export function flipMain(argv: readonly string[]): number {
   const gate = argv[0];
   const rest = argv.slice(1);
   const rows =
-    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : gate === "promotion" ? flipPromotion(rest) : undefined;
-  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio, smoke or promotion.");
+    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : gate === "skyline" ? flipSkyline(rest) : gate === "promotion" ? flipPromotion(rest) : undefined;
+  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio, smoke, skyline or promotion.");
   const text = flipMarkdown(gate!, rows);
   process.stdout.write(text);
   const summary = process.env["GITHUB_STEP_SUMMARY"];

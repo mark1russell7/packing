@@ -204,9 +204,54 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
 | `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. With a high time floor, `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. With the usual floor, `maxrects-bl` over `rows` gives a fail on its time tail, because the records have 2 CPU models. |
+| Equality of the runs of `skyline` | A break rule with no breaks of the limit, a break rule with no falling breaks, and a search that takes the last of equal windows. See "The width of `skyline`". |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
+
+## The width of `skyline`
+
+The time of `skyline` must not change with the unit of the numbers. A read on one CI job (run 42023828592) showed that it did. On `freeArea` at 1000 items, the time goes from 1.1 s at scale 1 to 57.9 s at scale 64. `bench/skyline-width.ts` makes this read.
+
+`src/skyline-runs.ts` keeps the skyline as runs of equal height. One search for the rule `bl` costs O(runs). A run count is at most 2 for each box, so a pack costs O(n squared) in the items and nothing in the width. Each output and each move count stays the same.
+
+### The rule of the breaks
+
+The search of the rule `bl` starts a window only at the cell 0 or at a break of the skyline or the limit. If a window starts at `x` with no break at `x`, then the cell `x - 1` has the height and the limit of the cell `x`. So the window at `x - 1` is valid and no higher. Thus the leftmost best window starts at the cell 0 or at a break. The leftmost valid window has the same property.
+
+This is a paper argument, so the check `bench/skyline-equal.ts` reads it. `ci.yml` starts this check, so `CI OK` needs it.
+
+| Read | The reference | Cases |
+|---|---|---:|
+| The search over the runs, with and without a limit on the height | `scanWindows` and `lowestWindow` | 8,000 for each family of heights |
+| The gaps, the rectangles under the skyline and the cells | The cell forms | 4,000 for each family |
+| The break rule, on limits that have their own breaks | `scanWindows` | 4,000 for each family |
+
+The families are whole heights, few heights, fractional heights, thirds and scaled heights with a fraction. The code has no limit in its search at this time, so the read of the limit examines the rule by itself.
+
+The flip test `gate-flip.ts skyline` gives 3 faults. The first is a rule with no breaks of the limit, and the second is a rule with no falling breaks. The third is a search that takes the last of equal windows. Each fault goes red, and a clean copy stays green.
+
+### The rule `mw` keeps its cells
+
+The rule `mw` compares the waste of 2 windows with a tolerance of `1e-9` of the waste. On a near tie under that tolerance, it can take a window away from each break. The read `rule mw at breaks` finds 442 of 1,000 such cases, and 0 of 1,000 on whole heights. So `skyline-mw` and each entry on it keep one cell for each unit of the width. Their time still grows with the width, and the rows of the width read state it.
+
+A space that is not plain also keeps its cells, because a curve can have a break at each cell.
+
+### Inputs that are not whole numbers
+
+The cells stay whole. The code takes the floor of the width and the ceiling of each box width. The left edge of a locked box takes the floor, and its right edge takes the ceiling. So each run starts at a whole number, and one cell is one unit of the input. A width below 1 returns the container with no change, as before.
+
+The memory of a pack on the rule `bl` grows with the items and not with the width. A width too large for an array gave a `RangeError` before this change. At this time, 100 items in a width of `1e12` pack, and a test pins it.
+
+### The measure, its partner and its control
+
+Time is the measure. The partner is the output. It is `outputHash` of each of the 14 entries that reach the engine, on a sample of 3 corpora, against the base commit. The job `base` of `.github/workflows/skyline-width.yml` reads it. One sample is not a proof, and the 6,000 generated inputs of `src/skyline-runs.test.ts` pin the same result on all paths of `packSkyline`.
+
+The control is the arm `coarse-cells`. It packs in a fixed count of cells, with each box width rounded up to a whole cell. So it gets a flat time from a worse pack, and its row sits in the same table with its fill. A claim on the slope must also hold the fill.
+
+The sweep of `packFreeWith` (`src/free-width.ts`) has its own read: the column of the tried widths, at each scale. The sweep costs up to approximately 73 packs, and a change of scale can change the count of distinct widths. The time of the sweep is not part of the claim on the engine.
+
+The workflow reports. A gate on the slope waits for 5 CI runs of the read, with a flip test that restores the O(width) path.
 
 ## The runner
 
