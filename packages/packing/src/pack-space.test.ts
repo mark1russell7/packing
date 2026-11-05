@@ -264,21 +264,26 @@ describe("packSpace and the shape kinds", () => {
       "pack.balance.side.bottom",
       "pack.balance.side.left",
       "pack.balance.sideRange",
+      // Contract 0.5.0: a circle beside a rect counts by its bounding box, so no-overlap is only safe for the 2 kinds of this input.
       "no-overlap",
-      "in-container",
+      "no-overlap",
     ]);
     expect(checkShapes({ id: "r", boxes: rect.items }, uses)).toEqual([]);
   });
 
-  // Contract 0.2.16: the hard rules no-overlap and in-container have a safe count on the other kinds
+  // Contract 0.2.16: the hard rules no-overlap and in-container have a safe count on the other kinds. Contract 0.5.0: these rules are exact on a circle, with a limit.
   it("accepts the safe counts of the hard rules on a shape only at the level safe", () => {
-    for (const kind of ["polygon", "circle", "free"] as const)
+    for (const kind of ["polygon", "free"] as const)
       expect(PACK_HARD_RULES.map((r) => ruleLevel(r, kind)), kind).toEqual(["safe", "safe", "exact", "exact"]);
-    expect(PACK_HARD_RULES.map((r) => ruleLevel(r, "rect"))).toEqual(["exact", "exact", "exact", "exact"]);
-    for (const input of [circle, polygon]) {
-      expect(checkShapes({ id: "s", boxes: input.items }, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])).toEqual(["no-overlap", "in-container"]);
+    for (const kind of ["rect", "circle"] as const)
+      expect(PACK_HARD_RULES.map((r) => ruleLevel(r, kind)), kind).toEqual(["exact", "exact", "exact", "exact"]);
+    for (const [input, refused] of [[circle, ["no-overlap", "no-overlap"]], [polygon, ["no-overlap", "in-container"]]] as const) {
+      expect(checkShapes({ id: "s", boxes: input.items }, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])).toEqual(refused);
       expect(checkShapes({ id: "s", boxes: input.items }, PACK_HARD_RULES, { level: "safe" })).toEqual([]);
     }
+    // Only circles, with no neighbour of another kind: the strict level accepts them.
+    const onlyCircles = [{ id: "c", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] as const;
+    expect(checkShapes({ id: "s", boxes: onlyCircles }, PACK_HARD_RULES)).toEqual([]);
   });
 
   // Contract 0.2.17: pack.shapeFill on a free shape is an upper bound. Only the level bound accepts it.

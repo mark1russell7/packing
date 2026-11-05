@@ -47,11 +47,12 @@ function fills(input: LayoutInput, out: PackOutput): { boxFill: number; shapeCov
 }
 
 describe("the strategy bbox on circles and convex polygons", () => {
-  it("checks the hard rules of a shape input at the level safe, and the strict level refuses them", () => {
+  it("checks the hard rules of a shape input at the level safe, and the strict level refuses an input with a polygon", () => {
     for (const family of FAMILIES) {
       const input = shapeInput(family, 1);
       expect(checkShapes(input, PACK_HARD_RULES, SAFE), family).toEqual([]);
-      expect(new Set(checkShapes(input, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])), family).toEqual(new Set(["no-overlap", "in-container"]));
+      // Contract 0.5.0: the rules are exact on circles, so only an input with a polygon gets a refusal from the strict level.
+      expect(new Set(checkShapes(input, PACK_HARD_RULES).map((b) => b.detail.split(" ")[0])), family).toEqual(new Set(family === "circle" ? [] : ["no-overlap", "in-container"]));
       // The measures of the box area stay rect only. The measure pack.shapeFill is exact on circles and polygons.
       expect(checkShapes(input, [MEASURE_SPECS["pack.shapeFill"]], SAFE), family).toEqual([]);
       expect(checkShapes(input, [MEASURE_SPECS["pack.fill"]], SAFE).length, family).toBeGreaterThan(0);
