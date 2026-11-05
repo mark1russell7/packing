@@ -487,6 +487,8 @@ Two checks hold the corpus:
 
 A change of the other package source, the entries or the lock file starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
 
+The report exits with the code 0, so a moved row is not seen on the PR that moves it. Thus `adversary.yml` also runs `--check` on main each Tuesday at 03:50 UTC. A red scheduled run asks for a dated answer: a new version of the rows, or a stated reason that the row stays.
+
 The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
 
 One test of `CI OK` still reads a strategy on a stored input: the winner of each row must not break a hard rule. Its failure text names the row and the rule, and says that the strategy is at fault, not the corpus.

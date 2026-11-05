@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -219,6 +219,15 @@ describe("the corpus pack-adversary-v1", () => {
       expect(ci).toContain("uses: ./.github/workflows/adversary.yml");
       expect(ci).toMatch(/needs: \[[^\]]*\badversary\b[^\]]*\]/);
       expect(ci).not.toMatch(/ALLOW_SKIP:.*adversary/);
+    });
+
+    it("runs --check on main each week, on a cron minute of its own", () => {
+      const minuteOf = (text: string) => /cron: "(\d+) /.exec(text)?.[1];
+      expect(held).toMatch(/\[ "\$EVENT" = schedule \]; then\s+echo "mode=check"/);
+      expect(/cron: "\d+ \d+ \* \* (\d)"/.exec(held)?.[1]).toBeDefined();
+      const others = readdirSync(workflows).filter((name) => name !== "adversary.yml").map((name) => minuteOf(readFileSync(join(workflows, name), "utf8")));
+      expect(others.filter((minute) => minute !== undefined).length).toBeGreaterThan(0);
+      expect(others).not.toContain(minuteOf(held));
     });
 
     it("runs --check on each file of the search", () => {
