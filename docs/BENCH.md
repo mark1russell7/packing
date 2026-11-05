@@ -2416,4 +2416,16 @@ The corpus covers 31 of the 87 pairs. The read gives laws for 544 specs and refu
 
 Two gaps are real. No spec over the floor gives a narrow area law or an extreme mixed aspect law. The generator `rect-grid` has `nearIdentical` and `extremeAspect` sizes, and no committed spec uses them. A spec with those sizes adds pairs.
 
-The number is under review. A refused spec adds no pair, and a misread spec can add a false pair, so the number is not a bound in either direction.
+A refused spec adds no pair, and a misread spec can add a false pair, so the number is not a bound in either direction.
+
+### The second reading
+
+The first count of modes joined many tight clusters, and with 12 clusters it could give 0. The fixed count gives 2 to 20 clusters at each tested size, and it keeps 1 for the areas of whole-number sides. The normal and log-normal scores are exact likelihoods.
+
+The review of that count found one more fault: groups of equal values gave a count that changed with the size of the sample. Of the 544 specs, 51 have 24 or fewer distinct areas, and 24 of them reach the count of modes. So the count reads few distinct values from their counts, and the result does not change with the size. No spec moved in that read.
+
+A third review found that the count changed under a flip of the axis. So neighbouring humps join in the order of the depth of their valleys. The read also looks at a list of 4 values for its shape. No spec moved in that read. Two constants of the direct read are choices. `SHAPE_RATIO` at 1.3125 moves 16 specs of `half-wide` and gives 33 pairs. `FEW_VALUES` at 30 moves 2 specs of `consecutive-squares` and gives 33 pairs. The other values, at 25 percent up and down, move no spec.
+
+The number stays 31 of 87, and the 56 missing pairs do not change. Of the 544 specs, 4 change their area law. 2 `bl-trap` specs go from bimodal to multimodal, and 2 `burke-kendall-whitwell` specs go from uniform to normal. One cell of 16 goes, and its pairs have other cells.
+
+Each of the 31 pairs has a spec with 300 items or more, or a spec with an area law that is not smooth. Under 300 items the choice of a smooth law is weak. 8 pairs have only one generator. At half and at three times its size, each spec with few distinct areas keeps its class of 1, 2 or more modes. 14 specs with 40 or more distinct areas change that class, because a kernel reads them. No pair of an area law rests only on their generators. The number stays an estimate: at 300 items the read gives the normal law for 85 percent of normal samples, and at 1,000 items for 97 percent.

@@ -114,6 +114,54 @@ describe("the modes of a sample", () => {
     expect(modeCount(Array.from({ length: 400 }, () => normal(r)))).toBe(1);
     expect(modeCount(Array.from({ length: 400 }, (_, i) => (i % 3 === 0 ? 4 : 0) + 0.3 * normal(r)))).toBe(2);
   });
+
+  it.each([6, 9, 12, 20])("counts %i tight clusters at 50 and at 1,000 values each", (count) => {
+    for (const size of [50, 1000]) {
+      const r = mulberry32(count * size);
+      expect(modeCount(Array.from({ length: count * size }, (_, i) => 100 * (i % count) + 0.5 * normal(r)))).toBe(count);
+    }
+  });
+
+  it("gives one result for few discrete sizes at each size of a sample", () => {
+    for (const sizes of [2, 4, 6, 12, 24]) {
+      for (const each of [10, 50, 200, 1000]) expect(modeCount(Array.from({ length: sizes * each }, (_, i) => i % sizes))).toBe(sizes);
+    }
+    expect(modeCount(Array.from({ length: 2500 }, (_, i) => i % 25))).toBe(1);
+  });
+
+  it("keeps one mode for a rounded bell at each size from 300 to 3,000", () => {
+    const r = mulberry32(21);
+    const normal = (): number => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+    for (const n of [300, 1000, 3000]) {
+      for (let i = 0; i < 20; i++) expect(modeCount(Array.from({ length: n }, () => Math.round(2 * normal())))).toBe(1);
+    }
+  });
+
+  it("gives one count for x and -x", () => {
+    const r = mulberry32(22);
+    for (let t = 0; t < 200; t++) {
+      const sizes = 2 + Math.floor(r() * 23);
+      const weights = Array.from({ length: sizes }, () => r() ** 2);
+      const total = weights.reduce((sum, weight) => sum + weight, 0);
+      const discrete = Array.from({ length: 500 }, () => {
+        let left = r() * total;
+        return weights.findIndex((weight) => (left -= weight) <= 0);
+      });
+      expect(modeCount(discrete.map((x) => -x))).toBe(modeCount(discrete));
+    }
+  });
+
+  it("keeps one mode for the log areas of whole-number sides", () => {
+    const r = mulberry32(20);
+    for (let i = 0; i < 100; i++) {
+      expect(modeCount(Array.from({ length: 900 }, () => Math.log((1 + Math.floor(r() * 20)) * (1 + Math.floor(r() * 20)))))).toBe(1);
+    }
+  });
+
+  it("joins clusters past the limit of the grid, and gives at least 1", () => {
+    const r = mulberry32(30);
+    expect(modeCount(Array.from({ length: 1500 }, (_, i) => 100 * (i % 30) + 0.5 * normal(r)))).toBe(1);
+  });
 });
 
 describe("the count of the pairs", () => {

@@ -15,10 +15,10 @@ export interface LawCoverCount {
   readonly floor: number;
 }
 
-/** This function gives the line of the law pairs. The count is under review, because a misread spec can add a false pair. */
+/** This function gives the line of the law pairs. The count is an estimate, because a misread spec can add a false pair or lose a true one. */
 export function lawLine(cover: LawCoverCount): string {
   const all = cover.specs + cover.refused;
-  return `A read of the generated items gives ${cover.covered} of the ${cover.pairs} pairs of two item laws. This count is under review: a misread spec can add a false pair. ${cover.refused} of ${all} specs have fewer than ${cover.floor} items, so they add no pair.`;
+  return `A read of the generated items gives ${cover.covered} of the ${cover.pairs} pairs of two item laws. This count is an estimate: a misread spec can add a false pair or lose a true one. ${cover.refused} of ${all} specs have fewer than ${cover.floor} items, so they add no pair.`;
 }
 
 /** The largest share of the accent in a square. Above it, the text of a square has low contrast in one of the themes. */

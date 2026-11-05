@@ -50,7 +50,21 @@ const SPREAD_NARROW_AREA = Math.log(1.5);
 const SPREAD_NARROW_ASPECT = Math.log(2);
 const SCALE_RATIO = 3;
 const MIN_MODE_SHARE = 0.1;
+const KERNEL_FACTOR = 0.45;
+const SPAN_FACTOR = 0.1;
+const SPAN_QUANTILE = 0.25;
+const TIGHT_RATIO = 0.1;
 const HALF_LOG_2PI_E = 0.5 * Math.log(2 * Math.PI * Math.E);
+const GRID = 96;
+const SAME_VALUE = 1e-9;
+const FEW_VALUES = GRID / 4;
+const MIN_REPEATS = 4;
+const MIN_BELL_VALUES = 4;
+const FLAT_RATIO = 3;
+const SHAPE_RATIO = 1.75;
+const RARE_VALUE = 0.01;
+const MIN_HUMP_VALUES = 3;
+const COUNT_Z = 3;
 const EXTREME_ASPECT = Math.log(3);
 const CENTRAL_ASPECT = Math.log(2);
 const CLUSTER_GAP = 0.03;
@@ -58,24 +72,147 @@ const CLUSTER_WIDTH = 0.08;
 const MAX_RATIOS = 8;
 const MAX_TYPES = 16;
 
+/** One hump of a series: its highest point, the sum of its points and the count of its points. */
+interface Hump {
+  readonly top: number;
+  readonly mass: number;
+  readonly points: number;
+}
+
 const at = (values: readonly number[], q: number): number => quantile(values, q);
 const spread = (values: readonly number[]): number => at(values, 0.95) - at(values, 0.05);
 const share = (values: readonly number[], test: (x: number) => boolean): number => values.filter(test).length / values.length;
 
 /**
- * This function counts the modes of a sample with a kernel estimate on a grid. A mode counts when it holds 5 percent of the mass and
- * the valley to a higher mode is under half of its own height.
+ * This function gives the width of the kernel. The width from the quartiles follows the distance between clusters, so it hides many
+ * tight clusters. A low quantile of the spans of neighbouring values follows the width of a cluster. The function uses that tight
+ * width only when it is far under the other width, so a smooth sample keeps its width. The tight width stays over the grid step. No
+ * width of a tight sample goes under the median gap of the distinct values. So the areas of whole-number sides keep the modes of
+ * their shape at each size.
+ */
+function kernelWidth(values: readonly number[], low: number, high: number): number {
+  const order = [...values].sort((a, b) => a - b);
+  const scale = Math.min(at(values, 0.75) - at(values, 0.25), high - low) / 1.34;
+  const wide = KERNEL_FACTOR * Math.max(scale, (high - low) / GRID) * values.length ** -0.2;
+  const neighbours = Math.min(values.length - 1, Math.ceil(SPAN_FACTOR * values.length ** 0.8));
+  const tight = at(order.slice(neighbours).map((x, i) => x - order[i]!), SPAN_QUANTILE);
+  if (tight >= TIGHT_RATIO * wide) return wide;
+  const distinct = order.filter((x, i) => i === 0 || x !== order[i - 1]);
+  const resolution = at(distinct.slice(1).map((x, i) => x - distinct[i]!), 0.5);
+  return Math.max(resolution, Math.min(wide, Math.max(tight, (high - low) / GRID)));
+}
+
+/** This function gives the count of each distinct value, in the order of the values. */
+function valueCounts(values: readonly number[], low: number, high: number): number[] {
+  const tie = SAME_VALUE * (high - low);
+  const counts: number[] = [];
+  let last = -Infinity;
+  for (const x of [...values].sort((a, b) => a - b)) {
+    if (x - last > tie) {
+      counts.push(0);
+      last = x;
+    }
+    counts[counts.length - 1]!++;
+  }
+  return counts;
+}
+
+/**
+ * This function tells that the counts are flat. The highest third of the counts stays under `FLAT_RATIO` times the lowest third, so a
+ * list of heavy and light values is not flat. The means of the first, the middle and the last third of the list stay under
+ * `SHAPE_RATIO` of each other. The noise of a sample cancels in those means, and a bell does not.
+ */
+function flatCounts(counts: readonly number[]): boolean {
+  const order = [...counts].sort((a, b) => a - b);
+  const third = Math.ceil(order.length / 3);
+  if (mean(order.slice(-third)) >= FLAT_RATIO * mean(order.slice(0, third))) return false;
+  const parts = [counts.slice(0, third), counts.slice(third, -third), counts.slice(-third)].filter((part) => part.length > 0).map((part) => mean(part));
+  return Math.max(...parts) < SHAPE_RATIO * Math.min(...parts);
+}
+
+/**
+ * This function gives the humps of a series. It first gives each rise and fall one hump. Then it joins the two neighbours
+ * with the closest valley, and again, until each valley has a closeness under the limit. The result has no direction,
+ * because the order of the joins comes from the depth of the valleys and not from their position.
+ */
+function humpsOf(series: ArrayLike<number>, closeness: (lower: number, valley: number) => number, limit: number): Hump[] {
+  const humps: Hump[] = [];
+  const valleys: number[] = [];
+  let index = 0;
+  while (index < series.length) {
+    let top = index;
+    while (top + 1 < series.length && series[top + 1]! >= series[top]!) top++;
+    let end = top;
+    while (end + 1 < series.length && series[end + 1]! < series[end]!) end++;
+    let mass = 0;
+    for (let i = index; i <= end; i++) mass += series[i]!;
+    humps.push({ top: series[top]!, mass, points: end + 1 - index });
+    if (end + 1 < series.length) valleys.push(series[end]!);
+    index = end + 1;
+  }
+  while (valleys.length > 0) {
+    const scores = valleys.map((valley, i) => closeness(Math.min(humps[i]!.top, humps[i + 1]!.top), valley));
+    const closest = scores.indexOf(Math.max(...scores));
+    if (scores[closest]! < limit) break;
+    const [left, right] = [humps[closest]!, humps[closest + 1]!];
+    humps.splice(closest, 2, { top: Math.max(left.top, right.top), mass: left.mass + right.mass, points: left.points + right.points });
+    valleys.splice(closest, 1);
+  }
+  return humps;
+}
+
+/** This function gives the closeness of a count to a valley: the negative of its height over the noise of a sample. */
+const countCloseness = (lower: number, valley: number): number => -(lower - valley) / Math.sqrt(lower + valley);
+
+/**
+ * This function gives the distances of the values from one end of the sample, in order. It takes the end that gives the
+ * smaller list, so `x` and `-x` give one list and one count.
+ */
+function fromOneEnd(values: readonly number[]): number[] {
+  const order = [...values].sort((a, b) => a - b);
+  const low = order[0]!;
+  const high = order[order.length - 1]!;
+  const rising = order.map((x) => x - low);
+  const falling = order.map((x) => high - x).reverse();
+  const first = rising.findIndex((x, i) => x !== falling[i]);
+  return first >= 0 && falling[first]! < rising[first]! ? falling : rising;
+}
+
+/**
+ * This function counts the modes of a sample with few distinct values, from the counts of those values. The result does not change
+ * with the size of the sample. Flat counts are a discrete law with one mode for each value, so the noise of a sample does not take a
+ * value out. Counts with one rise and one fall are a rounded smooth law with one mode.
+ */
+function fewValueModes(allCounts: readonly number[], total: number): number {
+  const counts = allCounts.filter((count) => count / total >= RARE_VALUE);
+  const each = counts.map((count) => count / total);
+  const overLimit = (masses: readonly number[], limit: number): number => masses.filter((part) => part >= limit).length;
+  if (counts.length < MIN_BELL_VALUES) return overLimit(each, Math.min(MIN_MODE_SHARE, Math.max(...each) / 2));
+  if (flatCounts(counts)) return overLimit(each, Math.min(MIN_MODE_SHARE, at(each, 0.5) / FLAT_RATIO));
+  const humps = humpsOf(counts, countCloseness, -COUNT_Z);
+  const narrow = humps.filter((hump) => hump.points < MIN_HUMP_VALUES).length;
+  const masses = 2 * narrow > humps.length ? each : humps.map((hump) => hump.mass / total);
+  return overLimit(masses, Math.min(MIN_MODE_SHARE, Math.max(...masses) / 2));
+}
+
+/**
+ * This function counts the modes of a sample. A mode counts when it holds 10 percent of the mass, or half of the mass of the largest
+ * mode. The result is at least 1. A sample with 24 or fewer distinct values, and 4 or more copies of each value on average, gets a
+ * direct read of those counts. So the result does not change with the size of the sample. A kernel estimate on a grid
+ * reads each other sample. The valley to the next mode is under half of the lower height, and the grid joins more than approximately
+ * 24 evenly spaced clusters. A copy of this count is in rigor-statistics, and this one goes with the release of that package.
  */
 export function modeCount(values: readonly number[]): number {
-  const GRID = 96;
-  const low = at(values, 0);
-  const high = at(values, 1);
+  const distances = fromOneEnd(values);
+  const low = 0;
+  const high = distances[distances.length - 1]!;
   if (high === low) return 1;
-  const scale = Math.min(at(values, 0.75) - at(values, 0.25), high - low) / 1.34;
-  const h = 0.45 * Math.max(scale, (high - low) / GRID) * values.length ** -0.2;
+  const counts = valueCounts(distances, low, high);
+  if (counts.length <= FEW_VALUES && values.length >= MIN_REPEATS * counts.length) return fewValueModes(counts, values.length);
+  const h = kernelWidth(distances, low, high);
   const step = (high - low + 6 * h) / (GRID - 1);
   const density = new Float64Array(GRID);
-  for (const x of values) {
+  for (const x of distances) {
     const first = Math.max(0, Math.floor((x - 3 * h - (low - 3 * h)) / step));
     const last = Math.min(GRID - 1, Math.ceil((x + 3 * h - (low - 3 * h)) / step));
     for (let i = first; i <= last; i++) {
@@ -84,31 +221,9 @@ export function modeCount(values: readonly number[]): number {
     }
   }
   const total = density.reduce((sum, d) => sum + d, 0);
-  const peaks: { index: number; height: number; start: number; end: number }[] = [];
-  let index = 0;
-  while (index < GRID) {
-    let top = index;
-    while (top + 1 < GRID && density[top + 1]! >= density[top]!) top++;
-    let end = top;
-    while (end + 1 < GRID && density[end + 1]! < density[end]!) end++;
-    peaks.push({ index: top, height: density[top]!, start: index, end });
-    index = end + 1;
-  }
-  const kept = [peaks[0]!];
-  for (const peak of peaks.slice(1)) {
-    const last = kept[kept.length - 1]!;
-    let valley = Infinity;
-    for (let i = last.index; i <= peak.index; i++) valley = Math.min(valley, density[i]!);
-    if (valley < 0.5 * Math.min(last.height, peak.height)) kept.push(peak);
-    else if (peak.height > last.height) kept[kept.length - 1] = { ...peak, start: last.start };
-    else last.end = peak.end;
-  }
-  const mass = (peak: { start: number; end: number }): number => {
-    let sum = 0;
-    for (let i = peak.start; i <= peak.end; i++) sum += density[i]!;
-    return sum / total;
-  };
-  return kept.filter((peak) => mass(peak) >= MIN_MODE_SHARE).length;
+  const masses = humpsOf(density, (lower, valley) => valley / lower, 0.5).map((hump) => hump.mass / total);
+  const limit = Math.min(MIN_MODE_SHARE, Math.max(...masses) / 2);
+  return masses.filter((part) => part >= limit).length;
 }
 
 /**
@@ -127,19 +242,21 @@ function logAreas(inputs: readonly LawInput[]): number[] {
 }
 
 /**
- * This function gives the smooth law with the highest likelihood. Each candidate has 2 fitted numbers, so the values compare with
- * no penalty. The value of each law is the mean log density at its best fit, from the closed form of that law.
+ * This function gives the smooth law with the highest likelihood. The value of each law is the exact mean log density at its best
+ * fit, from the closed form of that law. The laws with a fitted end have a benefit at small sizes. The floor of 200 items keeps
+ * the read over the sizes where the result is poor.
  */
 function smoothLaw(logs: readonly number[]): AreaLaw {
   const areas = logs.map(Math.exp);
   const low = at(areas, 0);
   const meanArea = mean(areas);
   const meanLog = mean(logs);
-  const logNormal = -Math.log(sd(logs)) - HALF_LOG_2PI_E - meanLog;
+  const toExact = 0.5 * Math.log(logs.length / (logs.length - 1));
+  const logNormal = -Math.log(sd(logs)) - HALF_LOG_2PI_E - meanLog + toExact;
   const alpha = 1 / (meanLog - Math.log(low));
   const scores: readonly (readonly [AreaLaw, number])[] = [
     ["uniform", -Math.log(at(areas, 1) - low)],
-    ["normal", -Math.log(sd(areas)) - HALF_LOG_2PI_E],
+    ["normal", -Math.log(sd(areas)) - HALF_LOG_2PI_E + toExact],
     ["exponential", -Math.log(meanArea - low) - 1],
     ["log-normal", logNormal],
     ["pareto", Math.log(alpha) + alpha * Math.log(low) - (alpha + 1) * meanLog],
