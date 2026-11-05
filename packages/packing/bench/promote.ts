@@ -229,6 +229,8 @@ export interface PromotionRecord extends ScreenRecord {
   deterministic?: boolean | null;
   /** The times of the timed runs, in milliseconds. `ms` is their median. */
   msRuns?: number[];
+  /** The value `true` when a measure of the pair chose 1 timed run and no warm-up. The time test does not read such a time. */
+  oneRun?: boolean;
   /** The corpus of the record */
   corpus?: string;
   /** The facts of the computer of the record. The time test reads its CPU model. */
@@ -680,8 +682,9 @@ export function hardTest(pairs: readonly InputPair[]): HardResult {
   return { inputs: pairs.length, breaks, notDeterministic: unstable, examples, pass: breaks === 0 && unstable === 0 };
 }
 
-/** This function gives the time of a record in milliseconds: the field `ms`, or the median of `msRuns`. */
+/** This function gives the time of a record in milliseconds: the field `ms`, or the median of `msRuns`. A record with `oneRun` has no time for the gate. */
 export function timeOf(r: PromotionRecord): number | undefined {
+  if (r.oneRun === true) return undefined;
   if (typeof r.ms === "number") return r.ms;
   return r.msRuns !== undefined && r.msRuns.length > 0 ? quantile(r.msRuns, 0.5) : undefined;
 }

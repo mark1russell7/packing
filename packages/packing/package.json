@@ -110,7 +110,7 @@
   },
   "dependencies": {
     "@mark1russell7/collections": "^0.1.0",
-    "@mark1russell7/layout-contract": "^0.3.10",
+    "@mark1russell7/layout-contract": "^0.3.11",
     "@mark1russell7/rigor-generators": "^0.1.1"
   },
   "scripts": {
@@ -122,8 +122,8 @@
   },
   "devDependencies": {
     "@mark1russell7/cue": "^1.0.2",
-    "@mark1russell7/rigor-bench": "^0.2.5",
-    "@mark1russell7/rigor-statistics": "^0.1.9",
+    "@mark1russell7/rigor-bench": "^0.2.13",
+    "@mark1russell7/rigor-statistics": "^0.1.11",
     "@types/node": "^26.6.4",
     "esbuild": "^0.28.2",
     "tsdown": "^0.23.1",
