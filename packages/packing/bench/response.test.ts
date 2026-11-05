@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { heldOutError, heldOutErrorAt, parseResponseRecord, type ResponseData } from "@mark1russell7/rigor-statistics";
 import { afterAll, describe, expect, it } from "vitest";
-import type { CoverageManifest, CoverageRecord } from "./coverage.ts";
+import { COVERAGE_MEASURES, type CoverageManifest, type CoverageRecord } from "./coverage.ts";
 import { coverageResponseData, fitCoverageResponse, responseMain } from "./response.ts";
 
 // The export of roadmap item k143, on made-up records. The test reads no time of a run.
@@ -115,6 +115,14 @@ describe("the measures", () => {
     expect(data.measures.map((m) => m.id)).toEqual(["pack.fill", "pack.gap", "ms"]);
     expect(data.measures[0]).toMatchObject({ direction: "higher", unit: "share", range: [0, 1] });
     expect(data.measures[2]).toEqual({ id: "ms", label: "time", unit: "ms", direction: "lower" });
+  });
+
+  it("gives the unit and the direction of each measure of the coverage", () => {
+    const { manifest, records } = madeUp(grid());
+    const all = records.map((r) => ({ ...r, measures: { ...r.measures, "pack.gapToBound": 0.2, "pack.overflow.excessArea": 0 } }));
+    const measures = coverageResponseData(all, manifest).measures;
+    expect(measures.map((m) => m.id)).toEqual(COVERAGE_MEASURES.map((m) => m.id));
+    expect(measures[0]).toMatchObject({ id: "pack.gapToBound", direction: "lower", unit: "share", range: [0, 1] });
   });
 
   it("leaves out the range when a value is outside it", () => {

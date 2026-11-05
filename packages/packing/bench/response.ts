@@ -22,6 +22,7 @@ import {
   type ResponsePoint,
   type ResponseRecord,
 } from "@mark1russell7/rigor-statistics";
+import { GAP_TO_BOUND } from "./gap-to-bound.ts";
 import { COVERAGE_MEASURES, inputDims, LOG_FLOOR, rawValue, readRecords, type CoverageManifest, type CoverageMeasure, type CoverageRecord, type InputDims } from "./coverage.ts";
 import { sig } from "./snapshot.ts";
 
@@ -92,10 +93,10 @@ function dimensionsOf(inputs: readonly InputDims[], strategies: readonly string[
   return { dimensions, params: varying, family };
 }
 
-/** This function gives the measure of the record, with the range of `MEASURE_SPECS` when each value is in it. */
+/** This function gives the measure of the record, with the range of its spec when each value is in it. The gap to the bound has no spec of its own, and it has the form of `pack.gap`. */
 function measureOf(m: CoverageMeasure, values: readonly number[]): ResponseMeasure {
   if (m.id === "ms") return { id: m.id, label: "time", unit: "ms", direction: "lower" };
-  const spec = MEASURE_SPECS[m.id as MeasureId];
+  const spec = MEASURE_SPECS[m.id === GAP_TO_BOUND ? "pack.gap" : (m.id as MeasureId)];
   const base = { id: m.id, label: m.id, unit: spec.unit, direction: spec.direction as "higher" | "lower" };
   const inside = values.every((v) => v >= spec.min && v <= spec.max);
   return Number.isFinite(spec.max) && inside ? { ...base, range: [spec.min, spec.max] } : base;
