@@ -561,7 +561,7 @@ export interface StepRead {
 
 /**
  * This function gives the read of each measure of a step, with no row for a measure that has a missing share.
- * The later plain share is the share over the list of the earlier point, when the later point has it, so a new entry does not change the read.
+ * The later plain share is the share over the list of the earlier point, when the later point has it. Thus a new entry does not change the read.
  */
 export function stepReads(earlier: CoveragePoint, later: CoveragePoint): StepRead[] {
   const step = later.step;

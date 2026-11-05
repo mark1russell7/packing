@@ -950,13 +950,13 @@ export interface CoveragePoint {
 
 /**
  * This function gives the method of a run: its timed runs, its warm-up runs and its wall budget.
- * A run with a budget has 1 timed run for a slow pair and a censored record for a pair over its budget, so it does not join a run without a budget.
+ * A run with a budget has 1 timed run for a slow pair and a censored record for a pair over its budget. Thus it does not join a run without a budget.
  */
 export const coverageMethod = (run: { readonly repeats?: number; readonly warmup?: number; readonly budget?: unknown }): string | undefined =>
   run.repeats === undefined || run.warmup === undefined ? undefined : `repeats ${run.repeats}, warmup ${run.warmup}${run.budget === undefined ? "" : ", budget"}`;
 
 /**
- * This function gives each earlier list of the trend that a new point continues: one corpus, one method, and each strategy of the list in the new list.
+ * This function gives each earlier list of the trend that a new point continues. The list has one corpus, one method, and each strategy in the new list.
  * A list with a strategy that the new point does not have gives nothing. Dropping a hard entry can raise a share, so a lost entry ends the line, and `lostEntries` names it.
  */
 export function earlierLists(trend: readonly CoveragePoint[], corpus: string, method: string | undefined, strategies: readonly string[]): string[][] {
@@ -983,7 +983,7 @@ export type CoverageStep =
   | { readonly from: number; readonly noRead: string };
 
 /**
- * This function gives the earlier point of a step: the last point of the corpus before the run `run`, when the new point continues its line.
+ * This function gives the earlier point of a step. It is the last point of the corpus before the run `run`, when the new point continues its line.
  * The point must have a run, the same method and a list that the new list contains. A change of the method and a lost entry end a line, so they give no step.
  */
 export function stepFrom(
