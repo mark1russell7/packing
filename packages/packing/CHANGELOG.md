@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.2
+## 0.10.1
 
 The time of `skyline` does not grow with the width of the input in units. Each output stays the same.
 
@@ -16,6 +16,24 @@ This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
 - The rule `mw` and a space that is not plain keep their cells, so their time still grows with the width.
 - Each output and each move count stay the same. A test pins 6,000 generated inputs on all paths.
 
+## 0.10.0
+
+The strategy catalog states a read of the output of each strategy: the positions and the sizes, on whole-number inputs.
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break.
+
+### Breaking
+
+- The file `strategy-catalog.json` has the schema `strategy-catalog/2`. A reader with `@mark1russell7/layout-contract` below `0.5.0` refuses this schema.
+
+### Added
+
+- Each entry of `strategyCatalog` has the field `output`. It has a row for `position-grid` and a row for `size-grid`, for each option set of the read.
+- Each row states the class, the packed count, the option set and the input family. The contract gives the class from the counts.
+
+### Not changed
+
+- The outputs of each strategy do not change.
 ## 0.9.1
 
 The class generators make 2 more container forms. Old params give the same bytes.

@@ -147,7 +147,7 @@ export interface SkippedRecord extends BenchRecordHead {
   budgetMs?: number;
   /** The lower limit of the time of the pair, in milliseconds. The time is censored: the supervisor stopped the pair at this time. */
   msAtLeast?: number;
-  /** The pairs that passed the budget, so that this pair did not start. Only a record of a stop at one size has it. */
+  /** The pairs that passed the budget, so that this pair did not start, or the base of a step with no output. Only a record of such a stop has it. */
   because?: string[];
 }
 
@@ -726,6 +726,12 @@ function skippedRecordOf(options: BenchOptions, head: ReturnType<typeof headOf>,
   return record;
 }
 
+/**
+ * The reason of a step of a chain whose base has no output. A strategy that reads the previous output does not pack such a step from nothing,
+ * because that changes what the step measures.
+ */
+export const NOT_RUN_BASE = "not run: base has no output";
+
 /** The results of some pairs: the records, the skips and the errors. */
 export interface PairResults {
   records: BenchRecord[];
@@ -754,8 +760,13 @@ function timingOf(options: BenchOptions): PairTiming {
 /**
  * This function gives the function that packs one pair and adds its results to `into`.
  * Without `outputs`, the function keeps no output, so a corpus with `base` inputs does not go with it.
+ *
+ * A strategy with the mode `incremental` takes each input of a chain, and it gets its own output at the base as `previous`.
+ * Another strategy packs each step with no `previous`, and a lost base takes away only the stability values of that step.
  */
 function pairPacker(options: BenchOptions, ids: readonly string[], manifest: CorpusManifest, inputs: readonly CorpusFile[], into: PairResults, timing: PairTiming, outputs?: Map<string, Map<string, PackOutput>>): (id: string, index: number) => void {
+  // The inputs of a chain: each step, and each input that a step names as its base
+  const chained = new Set(inputs.flatMap((file) => (file.base === undefined ? [] : [file.id, file.base])));
   const entries = new Map(
     ids.map((id) => {
       const e = entryWith(id, options.entryOptions);
@@ -780,26 +791,34 @@ function pairPacker(options: BenchOptions, ids: readonly string[], manifest: Cor
     const { e, s, given, done, kept, defaults } = entries.get(id)!;
     const file = inputs[index]!;
     const head = headOf(id, defaults, manifest.corpus, file);
-    const skip = (dimension: string, value: string, reason: string = skipReason(dimension, value)): void => {
+    const skip = (dimension: string, value: string, reason: string = skipReason(dimension, value), facts: Pick<SkippedRecord, "because"> = {}): void => {
       into.skipped.push({ strategy: id, input: file.id, dimension, value });
-      into.records.push(skippedRecordOf(options, head, reason));
+      into.records.push(skippedRecordOf(options, head, reason, facts));
     };
-    const miss = unsupportedOf(s.supports, manifest.inputs[index]!.cell);
+    const cell = manifest.inputs[index]!.cell;
+    const takesPrevious = chained.has(file.id) && s.supports.mode.includes("incremental");
+    const miss = unsupportedOf(s.supports, takesPrevious ? { ...cell, mode: "incremental" } : cell);
     if (miss !== undefined) {
       skip(miss.dimension, miss.value);
       return;
     }
+    const base = file.base === undefined ? undefined : done.get(file.base);
+    if (takesPrevious && file.base !== undefined && base === undefined) {
+      skip("budget", NOT_RUN_BASE, NOT_RUN_BASE, { because: [file.base] });
+      return;
+    }
+    const previous = takesPrevious ? base?.output : undefined;
     const input = toPackInput(file);
     try {
       const firstStart = options.slowPackMs === undefined ? 0 : timing.clock();
-      const first = benchPack(e.strategy, input, given, file.seed);
+      const first = benchPack(e.strategy, input, given, file.seed, previous);
       // Rule 5 of the budget: a measure of this pair chooses one timed run, and the record tells it
       const oneRun = options.slowPackMs !== undefined && timing.clock() - firstStart > options.slowPackMs;
-      const second = benchPack(e.strategy, input, given, file.seed);
+      const second = benchPack(e.strategy, input, given, file.seed, previous);
       // k121: each later pass counts for `deterministic` too, so a run with 10 repeats compares 11 outputs with the first
       const later: PackOutput[] = [second];
       const pack = (): PackOutput => {
-        const output = benchPack(e.strategy, input, given, file.seed);
+        const output = benchPack(e.strategy, input, given, file.seed, previous);
         later.push(output);
         return output;
       };
@@ -813,8 +832,7 @@ function pairPacker(options: BenchOptions, ids: readonly string[], manifest: Cor
 
       const values = pairValues(input, first, searchMs, file.known);
       // k123: the move between the outputs of two seeds, after the best alignment. A strategy that does not read the seed gives 0.
-      Object.assign(values, measureSeed(input, first, benchPack(e.strategy, input, given, file.seed + 1)));
-      const base = file.base === undefined ? undefined : done.get(file.base);
+      Object.assign(values, measureSeed(input, first, benchPack(e.strategy, input, given, file.seed + 1, previous)));
       if (base !== undefined) Object.assign(values, measureChange(base.input, base.output, input, first));
       // Only a run that asks for it gets the stability when an anchor moves (roadmap item k111)
       if (options.anchor !== undefined && options.anchor !== false) {
@@ -929,15 +947,17 @@ export interface BenchPair {
 }
 
 /**
- * This function packs some pairs in the order of the list, as `runBench` packs them, and keeps no results and no outputs.
- * `onStart` comes before each pair. `onEnd` gets the results of the pair. A corpus with `base` inputs does not go with this function.
+ * This function packs some pairs in the order of the list, as `runBench` packs them, and keeps no results.
+ * `onStart` comes before each pair. `onEnd` gets the results of the pair.
+ * A corpus with `base` inputs keeps the outputs of this process. So a step reads its base only when the same process packed that base.
  */
 export function runPairs(options: BenchOptions, pairs: readonly BenchPair[], onStart: (pair: BenchPair) => void, onEnd: (pair: BenchPair, results: PairResults) => void): void {
   const timing = timingOf(options);
   const { manifest, inputs } = corpus(options.corpus.corpus, options.corpus.specs);
   const indexes = new Map(inputs.map((file, index) => [file.id, index]));
   const into: PairResults = { records: [], skipped: [], errors: [] };
-  const packPair = pairPacker(options, [...new Set(pairs.map((p) => p.strategy))], manifest, inputs, into, timing);
+  const outputs = inputs.some((file) => file.base !== undefined) ? new Map<string, Map<string, PackOutput>>() : undefined;
+  const packPair = pairPacker(options, [...new Set(pairs.map((p) => p.strategy))], manifest, inputs, into, timing, outputs);
   for (const pair of pairs) {
     const index = indexes.get(pair.input);
     if (index === undefined) throw new RangeError(`The corpus has no input "${pair.input}".`);
