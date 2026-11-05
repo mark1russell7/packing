@@ -42,11 +42,19 @@ function cells(changes: Partial<Supports>): Supports {
 /** The cells of a free container. The columns or the frame set its size. */
 const FREE_SUPPORTS: Supports = /* @__PURE__ */ cells({ containerSize: ["freeAspect", "freeArea"] });
 
+/** The start of the message of a refusal. */
+const REFUSES = "The strategy refuses the input: ";
+
 /** This function gives an `UnsupportedCell` for a refusal of an input that no dimension of the taxonomy tells, for example a gap. */
 export function refusal(reason: string): UnsupportedCell {
   const error = new UnsupportedCell("containerSize", "refused");
-  error.message = `The strategy refuses the input: ${reason.replace(/\.$/u, "")}.`;
+  error.message = `${REFUSES}${reason.replace(/\.$/u, "")}.`;
   return error;
+}
+
+/** This function gives the text of a bench record for a result of `refusal`: `refused:` and the reason. Each other error gives `undefined`. */
+export function refusalRecord(error: UnsupportedCell): string | undefined {
+  return error.value === "refused" && error.message.startsWith(REFUSES) ? `refused: ${error.message.slice(REFUSES.length, -1)}` : undefined;
 }
 
 /**
