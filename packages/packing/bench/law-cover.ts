@@ -86,8 +86,8 @@ const share = (values: readonly number[], test: (x: number) => boolean): number 
 /**
  * This function gives the width of the kernel. The width from the quartiles follows the distance between clusters, so it hides many
  * tight clusters. A low quantile of the spans of neighbouring values follows the width of a cluster. The function uses that tight
- * width only when it is far under the other width, so a smooth sample keeps its width. The tight width stays over the grid step, and
- * no width of a tight sample goes under the median gap of the distinct values, so the areas of whole-number sides keep the modes of
+ * width only when it is far under the other width, so a smooth sample keeps its width. The tight width stays over the grid step. No
+ * width of a tight sample goes under the median gap of the distinct values. So the areas of whole-number sides keep the modes of
  * their shape at each size.
  */
 function kernelWidth(values: readonly number[], low: number, high: number): number {
@@ -198,7 +198,7 @@ function fewValueModes(allCounts: readonly number[], total: number): number {
 /**
  * This function counts the modes of a sample. A mode counts when it holds 10 percent of the mass, or half of the mass of the largest
  * mode. The result is at least 1. A sample with 24 or fewer distinct values, and 4 or more copies of each value on average, gets a
- * direct read of the counts of those values, so the result does not change with the size of the sample. A kernel estimate on a grid
+ * direct read of those counts. So the result does not change with the size of the sample. A kernel estimate on a grid
  * reads each other sample. The valley to the next mode is under half of the lower height, and the grid joins more than approximately
  * 24 evenly spaced clusters. A copy of this count is in rigor-statistics, and this one goes with the release of that package.
  */
@@ -243,7 +243,7 @@ function logAreas(inputs: readonly LawInput[]): number[] {
 
 /**
  * This function gives the smooth law with the highest likelihood. The value of each law is the exact mean log density at its best
- * fit, from the closed form of that law. The laws with a fitted end have a benefit at small sizes, and the floor of 200 items keeps
+ * fit, from the closed form of that law. The laws with a fitted end have a benefit at small sizes. The floor of 200 items keeps
  * the read over the sizes where the result is poor.
  */
 function smoothLaw(logs: readonly number[]): AreaLaw {
