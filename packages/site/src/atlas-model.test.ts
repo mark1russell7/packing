@@ -93,7 +93,9 @@ describe("the rule of the solved regions", () => {
 
   it("does not read a file with no count, or with another margin than the rule", () => {
     const { atMargin: _gone, ...bare } = cell("one", 36, 36);
-    expect(regionsOf(snap(36, { a: [bare] }), rule())[0]!.state).toBe("not-read");
+    const noMargin = regionsOf(snap(36, { a: [bare] }), rule());
+    expect(noMargin[0]!.state).toBe("not-read");
+    expect(atlasTiles(noMargin, rule())).toContain("an old run of pack.gap, or no read at the margin");
     expect(regionsOf(snap(36, { a: [cell("one", 36, 36, 0.1, 0.5)] }), rule())[0]!.state).toBe("not-read");
     expect(regionsOf(snap(36, { a: [cell("one", 36, 36)] }, { measure: "pack.other" as GapSnapshot["measure"] }), rule())[0]!.state).toBe("not-read");
   });
