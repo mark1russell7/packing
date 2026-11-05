@@ -203,7 +203,7 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Time gate | The arm is 3 times slower. A noisy A/A arm gives the code 3 on a first run, and the code 1 on a retry. The test reads a copy of a run with a pass. |
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
-| `Promotion OK` | Two fixed pairs on fixed records give their stated verdicts, by `--expect`: `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. |
+| `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. With a high time floor, `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. With the usual floor, `maxrects-bl` over `rows` gives a fail on its time tail, because the records have 2 CPU models. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
 

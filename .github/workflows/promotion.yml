@@ -2,8 +2,8 @@
 # and the current default on one runner, with the timed runs of each input in alternation. The job promotion downloads
 # the records of a bench run and the time records, runs bench/promote.ts with --times, and keeps promotion.json and
 # promotion.md as an artifact. The verdict of that candidate reports: a verdict "fail" does not fail the job.
-# The check "Promotion OK" reads two things: the tools start with no error, and two fixed pairs on fixed records
-# give their stated verdicts, one known win and one known loss. So a win test that is stuck on one answer turns it red.
+# The check "Promotion OK" reads two things: the tools start with no error, and fixed pairs on fixed records give
+# their stated verdicts: one known win, one known loss, and the win with its time test on. So a win test that is stuck on one answer turns it red.
 # A manual run reads only its own candidate. It stays report-only, and it does not read the fixed pairs.
 # With the input times_run, the job time does not pack: the job promotion downloads the time records of that earlier run.
 # The job promotion gives the verdict of the guard set of the input guards, and the verdicts of v1 and v2 side by side.
@@ -191,15 +191,18 @@ jobs:
         run: |
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate "$CANDIDATE" --default "$CURRENT" --win "$WIN" \
             --times "$RUNNER_TEMP/time" --guards "$GUARDS" --compare-guards --out "$RUNNER_TEMP/promotion"
-      # These pairs read no time records, so their verdicts are functions of the fixed records of the default run
-      - name: Read the fixed pairs, one known win and one known loss
+      # The verdicts are functions of the fixed records of the default run. Those records have 2 CPU models, so a time ratio of them is not a speed.
+      # A high floor takes the time test out of the win and the loss. The third read keeps the rule of the time test, and its known tail fails it.
+      - name: Read the fixed pairs, one known win, one known loss and one known time failure
         if: ${{ github.event_name != 'workflow_dispatch' }}
         working-directory: packages/packing
         run: |
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate maxrects-bl --default rows --win pack.fill \
-            --guards v2 --expect pass --out "$RUNNER_TEMP/fixed/win"
+            --guards v2 --time-floor-ms 1000000000 --expect pass --out "$RUNNER_TEMP/fixed/win"
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate rows --default maxrects-bl --win pack.fill \
-            --guards v2 --expect fail --out "$RUNNER_TEMP/fixed/loss"
+            --guards v2 --time-floor-ms 1000000000 --expect fail --out "$RUNNER_TEMP/fixed/loss"
+          node bench/promote.ts "$RUNNER_TEMP/records" --candidate maxrects-bl --default rows --win pack.fill \
+            --guards v2 --expect fail --out "$RUNNER_TEMP/fixed/time"
       - name: Write the verdict to the job summary
         if: ${{ !cancelled() }}
         run: |
