@@ -1306,6 +1306,7 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/3`, roadmap
 - Each CI job of mode `fresh` with the A/A arm gives one job of the pooled verdict. The candidate pair is (default, candidate), and the A/A pair is (default, `<default>~aa`).
 - Each input and each round of a report give one record of each pair. The two pairs share the time of the default of the round.
 - The first arm of a record comes from the order of `armOrder`. That order rotates the arms of the report by the round.
+- Each time gate prints the counts per order of its pair, and the order size from `orderSize` of `@mark1russell7/rigor-bench`. The size is a guide: it holds for a mean, and the verdict reads a median. If a future margin of a limit falls under approximately 3 times the size, even counts come back.
 - The job `j` uses the rounds from `j` times the rounds of a job. Thus the merged records have one record of each case and round.
 - With 3 arms, the rotation does not turn each pair in each round. In 5 rounds, the candidate pair starts with the default 3 times, and the A/A pair 2 times.
 - The balance of the orders then removes 4 records of each case in each pair from 5 jobs. The record keeps this count.
@@ -1609,7 +1610,7 @@ The results page reads each cell of a gap snapshot as a region (roadmap item k10
 - `pack.gapToOpt` compares with a known best value, so its margin stays 0 plus a numeric tolerance.
 - `pack.gap` has a margin of 0 until the exact runs measure the slack of the bound. Then a cell takes a high quantile of this slack, with its run.
 - A margin of 0 reads `optimal on N inputs`. A measured slack reads `within the bound's slack on N inputs`.
-- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. It shows no distance.
+- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. A row of any measure with no read at the margin reads the same. These rows show no distance.
 - The best strategy of a row is a pick after the fact: the same inputs choose it and score it. The selector column shows the figure that a user gets.
 - The Wilson bound counts the inputs as independent. This page does not prove that they are independent.
 - A strategy can also lead a weekly corpus. The count of weeks led needs 4 weekly points.

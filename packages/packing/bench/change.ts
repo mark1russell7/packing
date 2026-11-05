@@ -15,7 +15,7 @@ import type { DeclaredClaim } from "@mark1russell7/layout-contract";
 import { inline } from "./anchor.ts";
 import { declaredCounts } from "./claims.ts";
 import { STOPPED } from "./control-read.ts";
-import { benchStrategy } from "./controls.ts";
+import { benchEntry, benchStrategy } from "./controls.ts";
 import { isMeasured, parseCorpus, runBench, type BenchEnv, type BenchRecord } from "./run.ts";
 import { parseRecords } from "./smoke-check.ts";
 
@@ -138,7 +138,7 @@ export function stepRows(records: readonly BenchRecord[], strategies: readonly s
     const moved = values("pack.stability.moved");
     return {
       strategy,
-      comparison: benchStrategy(strategy).supports.mode.includes("incremental") ? "previous" : "no previous",
+      comparison: benchStrategy(benchEntry(strategy).strategy).supports.mode.includes("incremental") ? "previous" : "no previous",
       stepZero: measured.length - steps.length,
       steps: steps.length,
       censored: mine.filter((r) => !isMeasured(r) && !roots.has(r.input) && STOPPED.has(r.skipped)).length,

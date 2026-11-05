@@ -10,7 +10,7 @@ Where does a strategy reach the best result on all or nearly all inputs? A regio
 - `pack.gapToOpt` compares with a known best value, so its margin stays 0 plus a numeric tolerance.
 - `pack.gap` has a margin of 0 until the exact runs measure the slack of the bound. Then a cell takes a high quantile of this slack, with its run.
 - A margin of 0 reads `optimal on N inputs`. A measured slack reads `within the bound's slack on N inputs`.
-- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. It shows no distance.
+- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. A row of any measure with no read at the margin reads the same. These rows show no distance.
 - The best strategy of a row is a pick after the fact: the same inputs choose it and score it. The selector column shows the figure that a user gets.
 - The Wilson bound counts the inputs as independent. This page does not prove that they are independent.
 - A strategy can also lead a weekly corpus. The count of weeks led needs 4 weekly points.
