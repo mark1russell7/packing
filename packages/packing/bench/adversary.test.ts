@@ -253,13 +253,17 @@ describe("the corpus pack-adversary-v1", () => {
       expect(source).toContain("export const PARAM_SHARE = 0.2;");
       const changed = join(import.meta.dirname, `flip-${process.pid}-adversary.ts`);
       writeFileSync(changed, source.replace("export const PARAM_SHARE = 0.2;", "export const PARAM_SHARE = 0.25;"));
+      // The test compares with a row of a search of this head, so a strategy that moves a stored row does not fail it.
+      const folder = mkdtempSync(join(tmpdir(), "adversary-flip-"));
+      const own = join(folder, "own.json");
+      writeFileSync(own, adversaryCorpusText([searchAdversary(pairOptions(ADVERSARY_PAIRS[2]!))]));
       try {
-        const clean = spawnSync(process.execPath, ["--no-warnings", "bench/adversary.ts", "--check", "--pair", "2"], { encoding: "utf8" });
-        const flipped = spawnSync(process.execPath, ["--no-warnings", changed, "--check", "--pair", "2"], { encoding: "utf8" });
-        expect(clean.status).toBe(0);
-        expect(flipped.status).toBe(1);
+        const check = (script: string) => spawnSync(process.execPath, ["--no-warnings", script, "--check", "--pair", "2", "--file", own], { encoding: "utf8" }).status;
+        expect(check("bench/adversary.ts")).toBe(0);
+        expect(check(changed)).toBe(1);
       } finally {
         rmSync(changed, { force: true });
+        rmSync(folder, { recursive: true, force: true });
       }
     }, 60_000);
   });
