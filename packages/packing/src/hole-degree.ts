@@ -1,6 +1,8 @@
 // The strategy `hole-degree` of roadmap item k90 (`docs/PACKER.md`, "Circles by the maximum hole degree", idea S1 of the
 // survey). It packs circle items into a rectangle by the greedy rule A1.0 of Huang, Li, Akeb and Li (2005). Nothing default uses it.
 
+import { circleOverlaps as contractCircleOverlaps } from "@mark1russell7/layout-contract";
+import { circleBoxes } from "./check.ts";
 import { DEFAULT_TOLERANCE, marginOf, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 import { containerBounds, extentOf, now } from "./frame.ts";
 import { assertSupported, type Strategy, type Supports } from "./strategy.ts";
@@ -312,33 +314,12 @@ export const holeDegree: Strategy<HoleDegreeStrategyOptions> = {
 
 /**
  * This function counts the pairs of placed circle items that overlap, by the distance of their centers (roadmap item k90).
- * It is exact for circles. `packHard` of the contract counts the bounding boxes, so its count on circles is only safe.
+ * It gives `circleOverlaps` of the contract for an output. `packHard` does not read `input.gap`, and this function does.
  *
  * - Two circles break the rule when their centers are nearer than the two radii, the two margins and the gap, less `tolerance`.
  * - The margin of a circle is the largest side of its margin. A pair of `pairGaps` is apart by the two radii and its gap.
  * - An item without a circle shape, an unplaced item and a placement of an unknown id do not count.
  */
 export function circleOverlaps(input: PackInput, output: Pick<PackOutput, "placements">, tolerance: number = DEFAULT_TOLERANCE.overlap): number {
-  const gap = input.gap ?? 0;
-  const items = new Map(input.items.map((i) => [i.id, i]));
-  const pairs = new Map<string, number>();
-  for (const p of input.pairGaps ?? []) pairs.set(JSON.stringify(p.a < p.b ? [p.a, p.b] : [p.b, p.a]), p.gap);
-  const placed: { id: string; x: number; y: number; r: number; m: number }[] = [];
-  for (const p of output.placements) {
-    const item = items.get(p.id);
-    const s = item?.shape;
-    if (item === undefined || s?.kind !== "circle") continue;
-    const m = marginOf(item);
-    placed.push({ id: p.id, x: p.x + s.cx, y: p.y + s.cy, r: s.r, m: Math.max(m.top, m.right, m.bottom, m.left) });
-  }
-  let count = 0;
-  for (let i = 0; i < placed.length; i++)
-    for (let j = i + 1; j < placed.length; j++) {
-      const a = placed[i]!;
-      const b = placed[j]!;
-      const pg = pairs.get(JSON.stringify(a.id < b.id ? [a.id, b.id] : [b.id, a.id]));
-      const need = pg === undefined ? a.r + a.m + gap + b.m + b.r : a.r + b.r + pg;
-      if (Math.hypot(a.x - b.x, a.y - b.y) < need - tolerance) count++;
-    }
-  return count;
+  return contractCircleOverlaps(circleBoxes(input, output.placements), tolerance, input.pairGaps, input.gap ?? 0);
 }

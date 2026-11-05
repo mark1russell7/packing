@@ -30,7 +30,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { declaredClaimOf, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
+import { declaredClaimOf, HARD_RULE_VERSION, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
 import { controlFactor, type GroupFactor } from "@mark1russell7/rigor-bench";
 import { portfolioWith } from "../src/portfolio.ts";
 import { refusalRecord } from "../src/standalone-strategies.ts";
@@ -110,6 +110,8 @@ export interface MeasuredRecord extends BenchRecordHead {
   measures: Record<string, number>;
   /** The counts of `checkHard`, as an object type. An object type fits the index signature of the contract, and an interface does not. */
   hard: { [K in keyof PackHard]: PackHard[K] };
+  /** The version of the rules that made the counts of `hard`. */
+  hardRule?: number;
   /** The time of each timed run, in milliseconds, in the order of the runs. The median of this list is `ms`. */
   msRuns: number[];
   /**
@@ -821,6 +823,7 @@ function pairPacker(options: BenchOptions, ids: readonly string[], manifest: Cor
         ...head,
         measures: roundMeasures(finite(values)),
         hard: checkHard(input, first, DEFAULT_TOLERANCE),
+        hardRule: HARD_RULE_VERSION,
         tolerance: { overlap: DEFAULT_TOLERANCE.overlap },
         deterministic: later.every((output) => isDeterministic(first, output)),
         prediction: options.prediction,

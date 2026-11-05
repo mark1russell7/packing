@@ -1501,6 +1501,14 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
 A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
 
+- A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
+- A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
+- An entry that loses its row ends the line of each list that has it. Dropping a hard entry can raise a share, so it does not join. The point has `lost`: each entry with its reason, for example over budget, refused or an error. A censored reason keeps its lower bound on the time. The snapshot step gives a warning for each one.
+- A slow pair can lose its row while its entry keeps a row. That line continues, each point has its count of measured records, and the page states a change of that count.
+- A step between two points of one line reads the pairs measured in both points, by strategy and input. `site-data.yml` gets the records of the earlier run from its artifact, and both points get a new fit over these pairs. The page shows that figure beside the plain share, with the count, for example 90 common of 100 pairs.
+- A dropped hard pair can raise a plain share, but it cannot raise the figure over the common pairs. Thus the page calls a step a gain only when both figures gain.
+- The artifact of a run expires after 90 days. With no records of the earlier run, the step reads "no read" and has no figure. A change of the method and a lost entry end a line, so they have no step.
+- An entry that loses its row breaks the line of a list that has it. The earlier run has no share without that entry in the file.
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
 - The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.

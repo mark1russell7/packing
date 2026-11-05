@@ -98,7 +98,18 @@ jobs:
                 node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gapToOpt --strategies "$GAP_STRATEGIES"
                 ;;
               pack-classes-v1)
-                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --no-row "$NO_ROW"
+                # A step between two points reads the pairs measured in both, so it needs the records of the earlier point.
+                # With no records of that run, the step has no figure. Its artifact expires after 90 days.
+                earlier_args=()
+                earlier_run="$(node bench/snapshot.ts coverage-earlier "$folder" --run "$run")"
+                if [ -n "$earlier_run" ]; then
+                  if gh run download "$earlier_run" -R "$GITHUB_REPOSITORY" -n "bench-$corpus" -D "$RUNNER_TEMP/earlier/$corpus"; then
+                    earlier_args=(--earlier "$RUNNER_TEMP/earlier/$corpus")
+                  else
+                    echo "::warning::The records of the run $earlier_run are gone, so the step of $corpus has no figure."
+                  fi
+                fi
+                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --no-row "$NO_ROW" "${earlier_args[@]}"
                 ;;
               *)
                 echo "The corpus $corpus has no file of the site."

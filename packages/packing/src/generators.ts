@@ -1715,7 +1715,7 @@ const numberOf = (dims: DimensionValues, name: string): number => {
 function lockedClear(box: Item, file: Pick<GeneratedInput, "container" | "obstacles">): boolean {
   const input = toPackInput({ container: file.container, boxes: [box], ...(file.obstacles === undefined ? {} : { obstacles: file.obstacles }) });
   const output: PackOutput = { placements: [{ id: box.id, x: box.x ?? 0, y: box.y ?? 0 }], overflow: [], size: { w: 0, h: 0 }, moved: [] };
-  const hard = checkHard(input, output, DEFAULT_TOLERANCE);
+  const hard = checkHard(input, output, DEFAULT_TOLERANCE, { exactContainer: false });
   return hard["no-overlap"] === 0 && hard["in-container"] === 0;
 }
 
