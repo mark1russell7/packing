@@ -219,8 +219,8 @@ importers:
         specifier: ^1.0.2
         version: 1.1.0
       '@mark1russell7/rigor-bench':
-        specifier: ^0.2.18
-        version: 0.2.18
+        specifier: ^0.2.20
+        version: 0.2.20
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.11
         version: 0.1.11
@@ -504,8 +504,8 @@ packages:
     resolution: {integrity: sha512-bQa9FsW628WY0BJN0qxaFpb8lI2WR36REqkox8Fg7AkDNoOGGCYOd89fPXZpvXxglIbyw6G03YlM1RQn8UdYRA==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/rigor-bench@0.2.18':
-    resolution: {integrity: sha512-ZAHF3iw17OpUDzcoOG5TY5CjVBoc3lHlf+GhR7RBXXzaKy5AQq1tCki4W9rJ/pB3Vh1/3kxZI8RgoM9BIAY7gg==}
+  '@mark1russell7/rigor-bench@0.2.20':
+    resolution: {integrity: sha512-IgorUG2rLJxfqpX5CSg39ZK/Fbsr0xeE99ZSw328FjqUCU0PKxOIMbPftgkWAYp7BaXShuu/HnGZCJKZiqcRbA==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-generators@0.1.1':
@@ -1716,7 +1716,7 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.1
       '@mark1russell7/typeset': 0.1.0
 
-  '@mark1russell7/rigor-bench@0.2.18':
+  '@mark1russell7/rigor-bench@0.2.20':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.5
       '@mark1russell7/rigor-statistics': 0.1.13
