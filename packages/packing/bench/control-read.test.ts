@@ -84,7 +84,9 @@ describe("the read of a chain run", () => {
     const records = [...chainRecords(3), { strategy: "push", input: inputId("step", 5), measures: {}, skipped: NOT_RUN_BASE } as unknown as BenchRecord];
     expect(controlRows(records, false).filter((r) => r.censored === true)).toEqual([]);
     const withStep = [...records, { strategy: KEEP_SHELF, input: inputId("step", 5), measures: { "pack.stability.moved": 0, "pack.fill": 0.6 } } as unknown as BenchRecord];
-    expect(controlRows(withStep, false).filter((r) => r.censored === true).length).toBe(2);
+    const censored = controlRows(withStep, false).filter((r) => r.censored === true);
+    expect(censored.map((r) => r.measure).sort()).toEqual(controlRules(withStep).map((r) => r.measure).sort());
+    expect(new Set(censored.map((r) => `${r.group}|${r.key}`))).toEqual(new Set([`push|${inputId("step", 5)}`]));
   });
 });
 

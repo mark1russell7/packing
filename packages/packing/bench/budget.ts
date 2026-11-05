@@ -49,16 +49,16 @@ export interface SizedInput {
 
 const caseId = (strategyId: string, input: string): string => `${strategyId}|${input}`;
 
-/** This function gives the inputs in rising order of their size. A chain stays whole, in its own order, at the place of its first input. */
+/** This function gives the inputs in rising order of their size. A chain stays whole at the place of its first input, with each base before its steps. */
 function risingChains(inputs: readonly SizedInput[]): SizedInput[] {
   const byId = new Map(inputs.map((input, index) => [input.id, { input, index }]));
-  const rootOf = (input: SizedInput): { input: SizedInput; index: number } => {
+  const chainOf = (input: SizedInput, depth = 0): { root: { input: SizedInput; index: number }; depth: number } => {
     const base = input.base === undefined ? undefined : byId.get(input.base);
-    return base === undefined ? byId.get(input.id)! : rootOf(base.input);
+    return base === undefined ? { root: byId.get(input.id)!, depth } : chainOf(base.input, depth + 1);
   };
   return inputs
-    .map((input, index) => ({ input, index, root: rootOf(input) }))
-    .sort((a, b) => a.root.input.nodes - b.root.input.nodes || a.root.index - b.root.index || a.index - b.index)
+    .map((input, index) => ({ input, index, ...chainOf(input) }))
+    .sort((a, b) => a.root.input.nodes - b.root.input.nodes || a.root.index - b.root.index || a.depth - b.depth || a.index - b.index)
     .map((row) => row.input);
 }
 
