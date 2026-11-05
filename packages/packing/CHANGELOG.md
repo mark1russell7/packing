@@ -2,7 +2,13 @@
 
 ## 0.8.0
 
-This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
+A catalog file lists each strategy, `packSpace` has points for the standalone strategies, and `select` gives an unsupported cell to its next member.
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break.
+
+### Breaking
+
+Two changes can break a consumer:
 
 - `packSpace` has points for the standalone strategies, so pinned values of `spaceSize` change. With 3 levels, `base` goes from 3801 to 3830. With 1 level, `base` goes from 1123 to 1138. The `meta` counts also grow.
 - A `select` strategy with a member that does not support the input cell now gives the input to the next member that supports it. Before this release, that member threw its error.
@@ -26,7 +32,13 @@ The API report of 0.7.0 and of this version shows 0 removed names, 2 added names
 
 ## 0.7.0
 
-This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
+`allStrategies` lists all 31 strategies, with opt-in circle packing, the Sleator strip, beam search and methods that follow a change of the input.
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break.
+
+### Breaking
+
+Two changes can break a consumer:
 
 - `packSpace` has the new strategy `circle-quasi-physical`, so pinned values of `spaceSize` change. With 3 levels, `base` goes from 3798 to 3801. With 1 level, `base` goes from 1122 to 1123. The `meta` counts also grow. The rect counts and the old named config ids do not change.
 - `allStrategies` goes from 21 to 31 ids. A consumer that pins the count or lists each id sees new ids.
@@ -45,6 +57,8 @@ The API report of 0.6.1 and of this version shows 0 removed names, 37 added name
 
 ## 0.6.1
 
+`allStrategies` gives one list of each strategy, with near-rectangle packing and side anchors as new functions.
+
 This release raises the PATCH version: it adds exports and changes no default output. The API report of 0.6.0 and of this version shows 0 removed names and 12 added names.
 
 ### Added
@@ -55,7 +69,13 @@ This release raises the PATCH version: it adds exports and changes no default ou
 
 ## 0.6.0
 
-This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break. Two changes can break a consumer:
+The strategies `bottom-left` and `best-fit`, treemaps, masonry, a raster no-fit and an exact strip baseline.
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR, and an unclear break counts as a break.
+
+### Breaking
+
+Two changes can break a consumer:
 
 - `MAXRECTS_RULES` gains `wire`, so the type `MaxRectsRule` gains a value. A consumer with an exhaustive `Record<MaxRectsRule, T>` gets a type error.
 - `packSpace` has more options, so a pinned value of `spaceSize` changes.
@@ -84,6 +104,8 @@ The API report of 0.5.0 and of this version shows 0 removed names and 50 added n
 - The new dependency `@mark1russell7/rigor-generators` is `^0.1.1`. `mulberry32`, `fnv1a32` and `boxesOverlap` use their homes.
 
 ## 0.5.0
+
+The graph order `graph-bfs` and the option `links` make `pack` read the links between boxes.
 
 This release raises the MINOR version. Before 1.0.0, a breaking change raises MINOR, and the two breaks below are breaking changes. The release train publishes it.
 
