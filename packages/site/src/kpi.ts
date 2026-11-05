@@ -115,8 +115,9 @@ export const segmentOf = (p: SegmentedPoint): string =>
 
 /**
  * This function gives the points of each segment of a trend, in the order of the trend.
- * A newly measured entry does not restart a line. The later point has its shares over the earlier list, and a copy of the point with these shares
- * continues the line of that list, with `commonOf` as the count of the strategies of the point. The new entry starts its own line.
+ * A newly measured entry does not restart a line. The later point has its shares over the earlier list.
+ * A copy of the point with these shares continues the line of that list, with `commonOf` as the count of the strategies of the point.
+ * The new entry starts its own line.
  * A change of the method breaks a line.
  */
 export function trendSegments<P extends SegmentedPoint>(trend: readonly P[]): P[][] {

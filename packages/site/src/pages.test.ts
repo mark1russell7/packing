@@ -666,9 +666,9 @@ describe("the space coverage of k105", () => {
 
     it("does not call a step a gain when only the plain share gains", () => {
       const M = "repeats 1, warmup 0, budget";
-      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M };
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M, shares: { "pack.fill": 0.3 } };
       // A dropped hard pair raises the plain share, and the share over the common pairs stays
-      const dropped = { ...point("2026-11-16", later + 1, ["a"], 0.5), method: M, step: { from: later, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.3 } } };
+      const dropped = { ...point("2026-11-16", later + 1, ["a"], 0.5), method: M, shares: { "pack.fill": 0.5 }, step: { from: later, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.3 } } };
       expect(stepReads(earlier, dropped)).toEqual([{ measure: "pack.fill", plain: [0.3, 0.5], common: [0.3, 0.3], gain: false }]);
       const note = trendNote([earlier, dropped]);
       expect(note).toContain("90 common of 100 pairs. <code>pack.fill</code>: plain 0.300 to 0.500, common pairs 0.300 to 0.300.");
@@ -682,7 +682,7 @@ describe("the space coverage of k105", () => {
 
     it("reads the plain share of a step over the earlier list, so a new entry does not change it", () => {
       const M = "repeats 1, warmup 0, budget";
-      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M };
+      const earlier = { ...point("2026-11-09", later, ["a"], 0.3), method: M, shares: { "pack.fill": 0.3 } };
       const step = { from: later, common: 90, of: 100, earlier: { "pack.fill": 0.3 }, later: { "pack.fill": 0.4 } };
       const grown = { ...point("2026-11-16", later + 1, ["a", "b"], 0.9), method: M, step, over: [{ strategies: ["a"], shares: { "pack.fill": 0.25 } }] };
       expect(stepReads(earlier, grown)[0]).toMatchObject({ plain: [0.3, 0.25], gain: false });
