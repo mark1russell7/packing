@@ -24,6 +24,7 @@ import corpusCoverText from "../content/results-corpus-cover.md?raw";
 import corpusCoverJson from "../data/corpus-cover.json?raw";
 import lawCoverJson from "../data/law-cover.json?raw";
 import coverageJson from "../data/coverage.json?raw";
+import measuredJson from "../data/measured-entries.json?raw";
 import { mountChrome } from "./chrome.ts";
 import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
@@ -66,6 +67,7 @@ import {
   trendChart,
   trendNote,
   entriesNote,
+  measuredNote,
   verdictHash,
   verdictOf,
 } from "./results-model.ts";
@@ -84,6 +86,7 @@ const paired = parseSnapshot(pairedJson, "paired");
 const select = parseSnapshot(selectJson, "select");
 const gapSnaps = [gapsKnownJson, gapsSelectJson].map((t) => parseSnapshot(t, "gaps"));
 const cover = parseSnapshot(coverageJson, "coverage");
+const measuredEntries = parseSnapshot(measuredJson, "measured");
 const corpusCover = parseCorpusCover(corpusCoverJson);
 
 mountChrome($("links"), "results");
@@ -560,7 +563,7 @@ function mountCoverage(): void {
   drawIndices();
   $("coverage-trend").innerHTML = trendSvg();
   $("coverage-segments").innerHTML = trendNote(cover.trend);
-  $("coverage-entries").innerHTML = entriesNote(l.entries);
+  $("coverage-entries").innerHTML = entriesNote(l.entries) + measuredNote(measuredEntries);
   const last = cover.trend.at(-1)!;
   $("coverage-legend").innerHTML = l.measures
     .map((m, i) => {

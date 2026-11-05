@@ -1,6 +1,7 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, SkipWord, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasuredEntry, MeasuredRow, MeasuredSnapshot, MeasureVerdict, SelectLeaf, SkipWord, StrategySnapshot, StrategySummary } from "./data.ts";
+import { stopsEarly } from "./data.ts";
 import { esc } from "./format.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { isBudgetReason, segmentOf, skipCounts, trendSegments, type SkipSummary } from "./kpi.ts";
@@ -663,4 +664,27 @@ export function entriesNote(entries: CoverageEntries | undefined): string {
   }
   const rows = [...groups].map(([text, ids]) => `<li>${ids.map((id) => `<code>${esc(id)}</code>`).join(", ")}: ${esc(text)}</li>`).join("");
   return `<p class="hint"><b>${entries.measured} of ${entries.planned} entries</b> of the bench have measured records in this run. The shares read only these entries.</p>${rows === "" ? "" : `<ul class="hint">${rows}</ul>`}`;
+}
+
+/** This function gives the words of a row that stops early, with its records, its largest item count and the records that a budget stopped. */
+const earlyText = (entry: MeasuredEntry, row: MeasuredRow): string => {
+  const items = entry.largestItems === null || row.largestItems === null ? "" : `, up to ${entry.largestItems} of ${row.largestItems} items`;
+  const stopped = entry.stopped === 0 ? "" : `, and a budget stopped ${entry.stopped}`;
+  return `<li><code>${esc(entry.entry)}</code> on <code>${esc(row.corpus)}</code>: ${entry.measured} of ${entry.records} records measured${items}${stopped}</li>`;
+};
+
+/** This function gives the HTML of the count of the entries over the corpora. Each entry stands with its corpus and its run, and the note names each row that stops early. */
+export function measuredNote(snap: MeasuredSnapshot): string {
+  const runs = snap.rows.map((row) => {
+    const names = row.entries.map((e) => `<code>${esc(e.entry)}</code>`).join(", ");
+    const others = row.notPlanned.length === 0 ? "" : ` The run also has ${row.notPlanned.map((name) => `<code>${esc(name)}</code>`).join(", ")}, which are not planned entries and do not count.`;
+    return `<li><code>${esc(row.corpus)}</code>, run ${row.run}, ${esc(row.date)}: ${row.entries.length} entries. ${names}.${others}</li>`;
+  });
+  const early = snap.rows.flatMap((row) => row.entries.filter((e) => stopsEarly(e, row)).map((e) => earlyText(e, row)));
+  const none = snap.notMeasured.map((id) => `<code>${esc(id)}</code>`).join(", ");
+  return [
+    `<p class="hint"><b>${snap.measured} of ${snap.planned} entries</b> have measured records in one or more of these runs: ${snap.rows.map((row) => `<code>${esc(row.corpus)}</code>`).join(", ")}. An entry counts when one run measures it. That run tells nothing about the other corpora, and the entry can refuse some forms of its own corpus.${none === "" ? "" : ` No run measures ${none}.`}</p>`,
+    early.length === 0 ? "" : `<p class="hint">These rows count as measured, but they stop early:</p><ul class="hint">${early.join("")}</ul>`,
+    `<details class="notes"><summary>Each entry, with its corpus and its run</summary><ul class="hint">${runs.join("")}</ul></details>`,
+  ].join("");
 }

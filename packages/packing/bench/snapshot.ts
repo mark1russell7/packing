@@ -1475,6 +1475,107 @@ export function lostEntries(trend: readonly CoveragePoint[], corpus: string, run
     .map((entry) => ({ entry, reasons: reasons.get(entry) ?? [{ because: NOT_AN_ENTRY, records: 0 }] }));
 }
 
+/** The file of the count of the entries with a measured record, over the corpora */
+export const MEASURED_ENTRIES_FILE = "measured-entries.json";
+
+/** How far the records of one entry reach in one run. */
+export interface MeasuredEntry {
+  entry: string;
+  /** The records of the entry in the run with a measure. */
+  measured: number;
+  /** All the records of the entry in the run. */
+  records: number;
+  /** The records that a budget stopped. A refusal does not count here. */
+  stopped: number;
+  /** The largest item count of a measured record. The value is null when no input id of the entry gives a count. */
+  largestItems: number | null;
+}
+
+/** One run of one corpus in the count of the entries. */
+export interface MeasuredRow {
+  corpus: string;
+  run: number;
+  date: string;
+  /** The largest item count of any record of the run. The value is null when no input id gives a count. */
+  largestItems: number | null;
+  /** The planned entries with a measured record in the run, sorted. */
+  entries: MeasuredEntry[];
+  /** The other names with a measured record in the run, sorted. A control is one of these. They do not count. */
+  notPlanned: string[];
+}
+
+/** The snapshot of the planned entries with a measured record in any run of its rows. */
+export interface MeasuredSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "measured";
+  /** One origin for each row, in the same order. */
+  origin: SnapshotOrigin[];
+  planned: number;
+  measured: number;
+  /** The planned entries with no measured record in any row, sorted. */
+  notMeasured: string[];
+  rows: MeasuredRow[];
+}
+
+/** This function gives the item count in an input id, for example `pack-classes-v1/berkey-wang.I.fixed.n20/s1`, or null for an id with no count. */
+export function itemsOfInput(input: string): number | null {
+  const found = /\.n(\d+)(?:[./]|$)/.exec(input);
+  return found === null ? null : Number(found[1]);
+}
+
+/** This function gives the larger of two item counts. A null count is no count. */
+const largerItems = (a: number | null, b: number | null): number | null => (a === null ? b : b === null ? a : Math.max(a, b));
+
+/** This function reads the records of one run into its row. An entry with only skipped records gets no row entry, because a refusal is no measure. */
+export function measuredRow(records: readonly CoverageRecord[], at: { readonly corpus: string; readonly run: number; readonly date: string }, planned: readonly string[]): MeasuredRow {
+  const all = new Map<string, MeasuredEntry>();
+  let largestItems: number | null = null;
+  for (const r of records) {
+    const was = all.get(r.strategy) ?? { entry: r.strategy, measured: 0, records: 0, stopped: 0, largestItems: null };
+    const items = itemsOfInput(r.input);
+    largestItems = largerItems(largestItems, items);
+    all.set(r.strategy, {
+      ...was,
+      records: was.records + 1,
+      measured: was.measured + (r.skipped === undefined ? 1 : 0),
+      stopped: was.stopped + (r.skipped !== undefined && BUDGET_REASONS.has(r.skipped) ? 1 : 0),
+      largestItems: r.skipped === undefined ? largerItems(was.largestItems, items) : was.largestItems,
+    });
+  }
+  const found = [...all.values()].filter((e) => e.measured > 0).sort((a, b) => a.entry.localeCompare(b.entry));
+  return {
+    ...at,
+    largestItems,
+    entries: found.filter((e) => planned.includes(e.entry)),
+    notPlanned: found.filter((e) => !planned.includes(e.entry)).map((e) => e.entry),
+  };
+}
+
+/**
+ * This function counts the planned entries with a measured record in any row, over the union of the rows. Each row has its origin at the same place of `origin`.
+ * It reads the entries of a row again, so an entry that a later list does not plan stops counting.
+ */
+export function measuredSnapshot(rows: readonly { readonly row: MeasuredRow; readonly origin: SnapshotOrigin }[], planned: readonly string[]): MeasuredSnapshot {
+  const sorted = [...rows].sort((a, b) => a.row.corpus.localeCompare(b.row.corpus));
+  const found = new Set(sorted.flatMap(({ row }) => row.entries.map((e) => e.entry)));
+  const measured = planned.filter((entry) => found.has(entry));
+  return {
+    schema: SNAPSHOT_SCHEMA,
+    kind: "measured",
+    origin: sorted.map(({ origin }) => origin),
+    planned: planned.length,
+    measured: measured.length,
+    notMeasured: planned.filter((entry) => !found.has(entry)).sort(),
+    rows: sorted.map(({ row }) => row),
+  };
+}
+
+/** This function puts a row in the snapshot in place of the earlier row of its corpus. The rows of the other corpora stay. */
+export function withMeasuredRow(earlier: MeasuredSnapshot | undefined, row: MeasuredRow, origin: SnapshotOrigin, planned: readonly string[]): MeasuredSnapshot {
+  const kept = (earlier?.rows ?? []).flatMap((r, at) => (r.corpus === row.corpus ? [] : [{ row: r, origin: earlier!.origin[at]! }]));
+  return measuredSnapshot([...kept, { row, origin }], planned);
+}
+
 /** This function keeps the records of the named strategies. It throws for a name without a record, so a misspelled name does not empty a table. */
 export function recordsOfStrategies<R extends { strategy: string }>(records: readonly R[], names: readonly string[] | undefined): readonly R[] {
   if (names === undefined) return records;
@@ -1555,6 +1656,22 @@ export function snapshotMain(argv: readonly string[]): void {
       ...(data.run.budget === undefined ? {} : { budget: snapshotBudget(data.run.budget) }),
     });
     writeSnapshot(out ?? new URL(`gaps-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
+    return;
+  }
+  // The row of a run in the count of the entries. The rows of the other corpora stay in the file.
+  if (kind === "measured" && folder !== undefined) {
+    const run = Number(optionOf(argv, "--run"));
+    const date = optionOf(argv, "--date");
+    if (!Number.isInteger(run) || date === undefined) throw new Error("The snapshot measured needs --run <id> and --date YYYY-MM-DD.");
+    const facts = JSON.parse(readFileSync(join(folder, "run.json"), "utf8")) as { corpus: string; commit: string };
+    const planned = ENTRIES.map((e) => e.id);
+    const row = measuredRow(readRecords(readFileSync(join(folder, "records.jsonl"), "utf8")), { corpus: facts.corpus, run, date }, planned);
+    const origin = originOf(facts.commit, run, `bench.yml, the artifact bench-${facts.corpus}`, optionOf(argv, "--release"), date);
+    const file = out ?? new URL(MEASURED_ENTRIES_FILE, SNAPSHOT_DIR);
+    const earlier = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as MeasuredSnapshot) : undefined;
+    const snap = withMeasuredRow(earlier, row, origin, planned);
+    console.log(`The entries of ${facts.corpus}: ${row.entries.length}. The count over the corpora: ${snap.measured} of ${snap.planned}.`);
+    writeSnapshot(file, snap);
     return;
   }
   // The run of the earlier point of a step, so that the workflow can get its records. With no step, the output is empty.
