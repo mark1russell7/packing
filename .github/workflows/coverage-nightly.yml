@@ -2,6 +2,8 @@
 # The job grid packs the corpus with bench.yml and no sample. The jobs sample pack the held-out sample in shards,
 # and the job held-out joins them. The merge fails on a missing pair. Each job arm draws one arm with one fold seed.
 # The job verdict gives the paired test of each fold seed and the result over the fold seeds.
+# The jobs go one after the other: grid, sample, held-out, arm, verdict. Each group has max-parallel 3, so a run holds 3 slots at most.
+# A failed grid stops the arms and not the sample, and a failed shard stops held-out and not the arms.
 # Its prediction is packing-k161-weekly-budget, after packing-k120-nightly. A change of the inputs needs a new prediction first.
 #
 # The grid has a wall budget for each pair and a job limit of 130 minutes, so a slow entry keeps the rows that it finished.
@@ -98,7 +100,8 @@ jobs:
       budget: true
 
   sample:
-    needs: plan
+    needs: [plan, grid]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     name: sample (${{ matrix.shard }})
     runs-on: ubuntu-latest
     # Without a time limit, each pair of the shard finishes. The merge fails on a shard that the time limit stopped.
@@ -133,6 +136,7 @@ jobs:
 
   held-out:
     needs: sample
+    if: ${{ !cancelled() && needs.sample.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -161,7 +165,8 @@ jobs:
           if-no-files-found: error
 
   arm:
-    needs: [plan, grid]
+    needs: [plan, grid, held-out]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.grid.result == 'success' }}
     name: arm (${{ matrix.arm }}, ${{ matrix.seed }})
     runs-on: ubuntu-latest
     # The timeout MAX_MINUTES stops the rounds, and the fits of the rounds take some minutes.
