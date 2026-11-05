@@ -2,6 +2,8 @@
 // survey). It packs circle items into a circle: a local solve lowers the elastic energy of the overlaps, and quasi-human moves leave
 // each local minimum (Wang 2002, Huang 2011b, Huang 1999). Nothing default uses it.
 
+import { circlesOutside as contractCirclesOutside } from "@mark1russell7/layout-contract";
+import { circleBoxes } from "./check.ts";
 import { DEFAULT_TOLERANCE, marginOf, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 import { containerBounds } from "./frame.ts";
 import { assertSupported, type PackContext, type Strategy, type Supports } from "./strategy.ts";
@@ -776,8 +778,8 @@ export const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions> = {
 };
 
 /**
- * This function counts the placed circle items that go out of a circle container, by the distance of the centers (roadmap item k94). It is exact for circles.
- * The count `in-container` of `packHard` reads the bounding box of a circle, so it is only safe in a circle container.
+ * This function counts the placed circle items that go out of a circle container, by the distance of the centers (roadmap item k94).
+ * It gives `circlesOutside` of the contract for an output.
  *
  * - A circle breaks the rule when the reach is more than the container radius plus `tolerance`.
  * - The reach is the sum of the center distance, the radius, the largest side of the margin and the inset.
@@ -786,22 +788,6 @@ export const circleQuasiPhysical: Strategy<CircleQuasiPhysicalOptions> = {
  * - The function throws a `RangeError` for a container that is not a circle.
  */
 export function circlesOutside(input: PackInput, output: Pick<PackOutput, "placements" | "size">, tolerance: number = DEFAULT_TOLERANCE.overlap): number {
-  const shape = input.container.shape;
-  if (shape?.kind !== "circle") throw new RangeError("The function circlesOutside needs a circle container.");
-  const fixed = input.container.fixed === "size";
-  const radius = fixed ? shape.r : output.size.w / 2;
-  const cx = fixed ? shape.cx : shape.cx - shape.r + radius;
-  const cy = fixed ? shape.cy : shape.cy - shape.r + radius;
-  const inset = input.container.inset ?? 0;
-  const items = new Map(input.items.map((i) => [i.id, i]));
-  let count = 0;
-  for (const p of output.placements) {
-    const item = items.get(p.id);
-    const s = item?.shape;
-    if (item === undefined || s?.kind !== "circle") continue;
-    const m = marginOf(item);
-    const reach = Math.hypot(p.x + s.cx - cx, p.y + s.cy - cy) + s.r + Math.max(m.top, m.right, m.bottom, m.left) + inset;
-    if (reach > radius + tolerance) count++;
-  }
-  return count;
+  const container = { ...input.container, w: output.size.w, h: output.size.h };
+  return contractCirclesOutside({ schema: "layout-input/1", id: "check", container, boxes: circleBoxes(input, output.placements) }, tolerance);
 }

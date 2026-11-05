@@ -280,7 +280,7 @@ function framed(input: PackInput, base: PackOutput): Boxes {
 
 /** This function gives the sum of the hard breaks of an output. */
 function hardSum(input: PackInput, output: PackOutput): number {
-  return Object.values(checkHard(input, output)).reduce((a, b) => a + b, 0);
+  return Object.values(checkHard(input, output, undefined, { exactContainer: false })).reduce((a, b) => a + b, 0);
 }
 
 /**

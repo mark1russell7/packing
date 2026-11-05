@@ -414,7 +414,7 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 
 - The member packs one rectangle for each item: the bounding box of its shape (`boundsOf` of the contract). The margin and the other fields stay.
 - The placement of an item is the place of its box minus the offset of the bounding box. Thus each shape is inside its box.
-- Thus no two shapes overlap when no two boxes overlap. `packHard` of the contract tests the bounding boxes, so its count is safe.
+- Thus no two shapes overlap when no two boxes overlap. `packHard` of the contract tests the bounding boxes for each pair that is not two circles, so its count is safe.
 - `PACK_HARD_RULES` of the contract declares `no-overlap` and `in-container` with a safe count on `polygon`, `circle` and `free`. `ruleLevel` gives `safe` for them.
 - `packConfig` checks a `bbox` config with `checkShapes` at the level `safe`. Each other config gets the strict check, so it refuses a shape.
 - A locked item keeps its position. Its box is at the position plus the offset.
@@ -521,8 +521,8 @@ The rest is a choice of this project:
 
 The checks:
 
-- `circleOverlaps(input, output)` counts the pairs of circles that overlap, by the distance of their centers. Its count is exact.
-- `packHard` of the contract tests the bounding boxes. Two circles that touch on a diagonal have boxes that overlap. Thus its `no-overlap` count on circles is only safe.
+- `circleOverlaps(input, output)` counts the pairs of circles that overlap, by the distance of their centers. It calls the rule of the contract and adds `input.gap`.
+- `packHard` of the contract and `checkHard` count two circles by distance (rules of version 2). Two circles that touch on a diagonal have boxes that overlap, and they do not break the rule.
 - The count `in-container` of `packHard` is exact for a circle in a rectangle. Its bounding box touches the sides at the same points.
 - `packConfig` checks a `hole-degree` config with `checkShapes` at the level `safe`, as a `bbox` config.
 
@@ -590,7 +590,7 @@ The method comes from these sources:
 - The random numbers come from `context.rng`. The arithmetic has only the four operations and the square root, so the bytes do not depend on a trigonometry library.
 - `gap`, `margin`, `pairGaps` and `inset` have the same meaning as for `hole-degree`. An obstacle, a locked item and a group throw `UnsupportedCell`.
 - The cost of one solve step is `O(n^2)`. Thus the strategy is for some hundreds of circles at most.
-- The function `circlesOutside(input, output, tolerance?)` counts the circles out of a circle container by the center distance. The count `in-container` of `packHard` reads a bounding box. It is only safe in a circle container.
+- The function `circlesOutside(input, output, tolerance?)` counts the circles out of a circle container by the center distance. It calls the rule of the contract, and `in-container` of `checkHard` uses the same rule.
 
 In `packSpace`, the option `placement.circle-quasi-physical` has the param `iterations` and supports only `circle`. Constraints keep the order `input` and the size search `none` with it.
 The param stops at 1024, not at 65536. Each value is one base config. Without the limit, 65537 configs are 29 % of the base configs. A draw takes them as members, and a rect input refuses them.

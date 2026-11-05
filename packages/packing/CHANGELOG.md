@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.9.0
+
+`checkHard` takes the rules of version 2 of `@mark1russell7/layout-contract`, and the package uses the contract `^0.5.0`.
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR.
+
+### Breaking
+
+The meaning of two hard counts changes on circles and on shaped containers. A caller can read a different number for one placement. Each count on rectangles in a rectangle container stays the same.
+
+- `no-overlap`: two circle items count by the distance of their centers. A pair whose boxes overlap and whose circles do not is not a break.
+- `in-container`: a circle item in a circle container counts by distance, also with a free size.
+- The default of `exactContainer` is `true`. A box of a shaped container with the size `fixed` must stay inside the shape. With `{ exactContainer: false }`, the old count stays.
+- A bench record states the version of its rules in `hardRule`. A record without the field has version 1, so a page that compares across this change reads `hardRuleOf` of the contract.
+
+### Not changed
+
+- The strategies and the generators read `checkHard` with `{ exactContainer: false }`, so the outputs of each strategy on rectangle items stay byte-equal.
+- `circleOverlaps` and `circlesOutside` keep their signatures. They call the rules of the contract.
+
 ## 0.8.0
 
 A catalog file lists each strategy, `packSpace` has points for the standalone strategies, and `select` gives an unsupported cell to its next member.
