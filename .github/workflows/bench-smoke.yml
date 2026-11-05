@@ -53,6 +53,9 @@ jobs:
           cat "$RUNNER_TEMP/check.md" >> "$GITHUB_STEP_SUMMARY"
           cat "$RUNNER_TEMP/check.md"
           exit "$status"
+      # A clean copy of the merged run passes, and a copy with each kind of fault fails with that kind named
+      - name: Flip test of the check
+        run: node packages/packing/bench/gate-flip.ts smoke --dir "$RUNNER_TEMP/merged" --out "$RUNNER_TEMP/smoke-flip"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:

@@ -31,6 +31,12 @@ jobs:
         env:
           OUT: ${{ runner.temp }}/output-rows
         run: node --no-warnings bench/whole-positions.ts --check --out "$OUT"
+      # A clean read of a strategy with whole rows, then the same read with half a position and with half a size. Each fault fails the check.
+      - name: Flip test of the check
+        working-directory: packages/packing
+        env:
+          OUT: ${{ runner.temp }}/output-rows/flip
+        run: node --no-warnings bench/gate-flip.ts output --strategy rows --out "$OUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:

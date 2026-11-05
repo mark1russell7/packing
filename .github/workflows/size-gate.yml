@@ -39,6 +39,10 @@ jobs:
           node bench/main.ts size-gate --gate bench/gates/size.json --out "$OUT" || status=$?
           [ -f "$OUT/size.md" ] && cat "$OUT/size.md" >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+      # A clean copy passes, and a known fault fails: each bundle grows above its budget, and one export loses its entry
+      - name: Flip test of the size gate
+        working-directory: packages/packing
+        run: node bench/gate-flip.ts size --gate bench/gates/size.json --out "$RUNNER_TEMP/size-flip"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
