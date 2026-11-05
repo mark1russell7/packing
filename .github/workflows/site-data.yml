@@ -1,7 +1,7 @@
 # Writes the measured files of the site from the records of finished bench runs (docs/BENCH.md "The snapshots of the site").
 # The job snapshot reads the artifacts and checks the new files with the tests of the site. It has no write permission.
 # Only the job publish writes. It pushes the files to the branch site-data, never to main, and it starts the Pages build.
-# The Pages build puts the files of the branch over the files of main.
+# The Pages build takes a file of the branch only if its record is later than the file of main.
 # A scheduled run of coverage-nightly.yml or site-rerun.yml starts this workflow too. Each corpus with records in that run is a run of this one.
 name: Site data
 
@@ -81,7 +81,11 @@ jobs:
             [ -n "$RUNS" ] || { echo "The run $WEEKLY_RUN has no merged records of a corpus of the site."; exit 1; }
           fi
           # The earlier points of the coverage trend are on the branch.
-          if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C "$data"; fi
+          if git fetch -q origin site-data; then
+            mkdir -p "$RUNNER_TEMP/branch"
+            git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/branch"
+            node --no-warnings packages/site/scripts/overlay.ts "$RUNNER_TEMP/branch" "$data"
+          fi
           cd packages/packing
           select_args=()
           for pair in $RUNS; do
