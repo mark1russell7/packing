@@ -1,14 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { kpiInput, staleText, weeklyTrend, type KpiFacts } from "./kpi.ts";
+import { kpiInput, staleRelease, staleText, weeklyTrend, type KpiFacts } from "./kpi.ts";
 
 const at = (date: string): number => Date.parse(`${date}T12:00:00Z`);
 
-const FACTS: KpiFacts = { picker: 31, strategies: 31, families: 20, lawPairs: 40, pages: ["The 31 strategies."], trend: [], explorer: false, commitAt: "2026-11-04T16:00:00Z", lawPairsAt: "2026-11-04T15:00:00Z", coverageAt: "2026-10-29T02:50:10Z" };
+const FACTS: KpiFacts = { picker: 31, strategies: 31, families: 20, lawPairs: 40, pages: ["The 31 strategies."], release: "0.8.0", shownRelease: "0.8.0", trend: [], explorer: false, commitAt: "2026-11-04T16:00:00Z", lawPairsAt: "2026-11-04T15:00:00Z", coverageAt: "2026-10-29T02:50:10Z" };
 
 describe("the stale text", () => {
   it("counts each place with another count of strategies", () => {
     expect(staleText(["The 31 strategies.", "All 31 strategies."], 31)).toBe(0);
     expect(staleText(["The 8 strategies.", "Of 22 strategies, and 31 strategies."], 31)).toBe(2);
+  });
+
+  it("counts a latest release on the news page that differs from the package", () => {
+    expect(staleRelease("0.8.0", "0.8.0")).toBe(0);
+    expect(staleRelease("0.2.17", "0.8.0")).toBe(1);
+  });
+
+  it("adds both to the measure of the file", () => {
+    const value = (facts: KpiFacts): number | undefined => kpiInput(facts, 0).measures.find((m) => m.id === "stale-text")?.value;
+    expect(value(FACTS)).toBe(0);
+    expect(value({ ...FACTS, shownRelease: "0.2.17" })).toBe(1);
+    expect(value({ ...FACTS, shownRelease: "0.2.17", pages: ["The 8 strategies."] })).toBe(2);
   });
 });
 

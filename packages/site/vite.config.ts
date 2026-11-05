@@ -45,6 +45,8 @@ const kpiData = () => {
     families: corpusFamilies.length,
     lawPairs: (JSON.parse(text("./data/law-cover.json")) as { covered: number }).covered,
     pages: [text("./index.html"), text("./content/about.md")],
+    release: build.release,
+    shownRelease: (JSON.parse(text("./data/releases.json")) as { releases: readonly { release: string }[] }).releases[0]!.release,
     trend: coverage.trend.map((point) => point.date),
     explorer: existsSync(page("./explorer/index.html")),
     commitAt: commitTime(),

@@ -1390,7 +1390,7 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `strategies-pack-select-v2.json` | `node bench/snapshot.ts strategies <folder of 40708970161> --run 40708970161` | The same on `pack-select-v2`. |
 | `paired-k67.json` | `node bench/snapshot.ts paired <folder of 40741632077> --run 40741632077 --commit dd0eead --release 0.2.17 --arm-a v0.2.16 --arm-b k67-prune` | The paired time test of k67. |
 | `select-table.json` | `node bench/snapshot.ts select --train <folder of 40675490363>=40675490363 --train <folder of 40685309195>=40685309195 --test <folder of 40699801165>=40699801165 --test <folder of 40708970161>=40708970161` | The leaves of `SELECT_TABLE`, with the wins of each training and test run. |
-| `releases.json` | `node bench/snapshot.ts releases` | The releases of `CHANGELOG.md`, with the date, the commit and the pull request of each tag. |
+| `releases.json` | `node bench/snapshot.ts releases` | The releases of `CHANGELOG.md`, with the date, the commit and the pull request of each tag. The Pages build writes this file again, so its copy on `main` is not the source. |
 | `gaps-pack-select-v2.json` | `node bench/snapshot.ts gaps <folder of 40766464710> --run 40766464710 --measure pack.gap --release 0.2.17` | `pack.gap` of 6 strategies on `pack-select-v2`, by cell, with the kinds of the bounds (k51). |
 | `gaps-pack-known-v1.json` | `node bench/snapshot.ts gaps <folder of 40768140939> --run 40768140939 --measure pack.gapToOpt --release 0.2.17` | `pack.gapToOpt` of 6 strategies on `pack-known-v1`, by cell (k45). |
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
@@ -1408,7 +1408,8 @@ The workflow `site-data.yml` starts these commands in CI from finished runs on `
 - A gap snapshot gives the count, the quartiles and the values below 0 of the measure. It gives them for all inputs and for each cell.
 - The cell of a gap snapshot is the family up to its container size, for example `perfect-cut.guillotine.fixed`. A record without a finite value counts as missing.
 - The commits of the two gap runs come after the tag `v0.2.17`. Thus `--release 0.2.17` gives the release of their packers.
-- After a new release, start the command `releases` again. After a new bench run, start the command of its corpus again.
+- The Pages build starts the command `releases`. A new tag comes after the push of its version commit, so the news shows the release at the next build, at most 1 day later. The measure `stale-text` counts the page until then.
+- After a new bench run, start the command of its corpus again.
 - The command `coverage` keeps the earlier points of `coverage.json`. A point of the same run replaces the earlier point. Without a run, a point with the same date and corpus replaces it.
 - The section `uniform` of `coverage.json` keeps the last sample with a uniform draw, with its run and its date. A later uniform sample replaces it. A stratified sample keeps it.
 

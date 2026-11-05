@@ -34,9 +34,11 @@ jobs:
       id-token: write
     with:
       # The branch site-data holds the measured files of the latest runs (site-data.yml, docs/BENCH.md "The snapshots of the site").
+      # The file releases.json comes from the changelog and the tags at each build, so the news follows each release by the next build.
       # They replace the files of main. Without the branch, the build keeps the files of main, and the freshness gate reads their age.
       build: |
         if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C packages/site/data; fi
+        (cd packages/packing && node --no-warnings bench/snapshot.ts releases)
         pnpm --filter @packing/site run build
       out: packages/site/dist
       env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'

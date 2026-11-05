@@ -39,6 +39,10 @@ export interface KpiFacts {
   readonly lawPairs: number;
   /** The text of each page that states a count. */
   readonly pages: readonly string[];
+  /** The version of the package at the build. */
+  readonly release: string;
+  /** The latest release that the page of the news shows, from `data/releases.json`. */
+  readonly shownRelease: string;
   /** The date of each point of the coverage trend, as YYYY-MM-DD. */
   readonly trend: readonly string[];
   /** The value `true` when the site has the page of the response explorer. */
@@ -54,6 +58,11 @@ export interface KpiFacts {
 /** This function counts the places in the text of the pages that state a count of strategies that differs from the registry. */
 export function staleText(pages: readonly string[], strategies: number): number {
   return pages.flatMap((text) => [...text.matchAll(/(\d+) strategies/g)]).filter((m) => Number(m[1]) !== strategies).length;
+}
+
+/** This function gives 1 when the page of the news shows another latest release than the version of the package, else 0. */
+export function staleRelease(shown: string, release: string): number {
+  return shown === release ? 0 : 1;
 }
 
 /** This function gives the number of the calendar week of a day, with the week from Monday to Sunday. */
@@ -74,7 +83,7 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
   const coverageAt = facts.trend.length === 0 ? facts.coverageAt : `${[...facts.trend].sort().at(-1)!}T00:00:00Z`;
   const measures: SiteMeasure[] = [
     { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
-    { id: "stale-text", value: staleText(facts.pages, facts.strategies), unit: "places", at: facts.commitAt },
+    { id: "stale-text", value: staleText(facts.pages, facts.strategies) + staleRelease(facts.shownRelease, facts.release), unit: "places", at: facts.commitAt },
     { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
     { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
     { id: "coverage-shown", value: weeklyTrend(facts.trend, now) ? 1 : 0, at: coverageAt },
