@@ -31,6 +31,7 @@ import {
   type SelectNode,
 } from "@mark1russell7/packing";
 import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/layout-contract";
+import { firstSentence, sectionMarksBreak } from "@mark1russell7/site-pages";
 import {
   coverage,
   coverageOptions,
@@ -600,12 +601,6 @@ export interface ReleaseTag {
 /** The address of the repository on GitHub */
 export const REPO_URL = "https://github.com/mark1russell7/packing";
 
-/** This function gives the first sentence of a text. A sentence ends at a full stop before a space or the end. */
-function firstSentence(text: string): string {
-  const m = /^(.*?\.)(\s|$)/s.exec(text.trim());
-  return (m?.[1] ?? text.trim()).replace(/\s+/g, " ");
-}
-
 /**
  * This function gives the entries of the releases of `CHANGELOG.md` that have a tag. The title is the first sentence of the
  * first paragraph, or of the first list item without its `New:` or `Fix:` prefix. The entries come newest first.
@@ -623,7 +618,7 @@ export function releaseEntries(changelog: string, tags: readonly ReleaseTag[]): 
     const text = (para ?? "").startsWith("- ") ? (para ?? "").split("\n")[0]!.slice(2).replace(/^(New|Fix|Change):\s*/, "") : (para ?? "");
     const sentence = firstSentence(text);
     const title = sentence.charAt(0).toUpperCase() + sentence.slice(1);
-    const breaking = /has breaking changes/.test(body) || /^### Breaking/m.test(body);
+    const breaking = sectionMarksBreak(body);
     const pr = /\(#(\d+)\)\s*$/.exec(tag.subject)?.[1];
     out.push({
       release: version,

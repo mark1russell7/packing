@@ -2,9 +2,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
+import { changelogVersions } from "@mark1russell7/site-pages";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { changelogVersions, kpiInput, trendLines, type SegmentedPoint } from "./src/kpi.ts";
+import { kpiInput, trendLines, type SegmentedPoint } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.

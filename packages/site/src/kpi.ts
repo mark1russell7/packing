@@ -1,8 +1,13 @@
 // The numbers of the file `kpi.json` of the site (roadmap item k145). Each value comes from the registry or from a file of the site,
 // so no reader copies a number from a page. The build writes the file with `siteKpi` of `@mark1russell7/site-pages`.
 
+import { releaseReading } from "@mark1russell7/site-pages";
+
 /** The name of the project in the file. */
 export const KPI_PROJECT = "packing";
+
+/** What the measure `stale-text` leaves out. */
+const STALE_TEXT_NOT_COUNTED = "The count reads index.html and content/about.md, and the versions of the news against the changelog and the package. It leaves out the other pages and the text that a script draws.";
 
 /** The most days from the last point of the coverage trend to the build, for a weekly trend. */
 const TREND_MAX_DAYS = 7;
@@ -18,6 +23,8 @@ export interface SiteMeasure {
   readonly value: number;
   readonly unit?: string;
   readonly at: string;
+  /** The text that states what the count leaves out, for a count that reads only a part of the site. */
+  readonly notCounted?: string;
 }
 
 /** The data of the file, for the writer of the file. The time `at` is the time of the oldest measure. */
@@ -66,30 +73,6 @@ export interface KpiFacts {
 /** This function counts the places in the text of the pages that state a count of strategies that differs from the registry. */
 export function staleText(pages: readonly string[], strategies: number): number {
   return pages.flatMap((text) => [...text.matchAll(/(\d+) strategies/g)]).filter((m) => Number(m[1]) !== strategies).length;
-}
-
-/** This function gives the versions of the headings of a changelog. A heading with another text, for example the name of an older package, is not a version. */
-export function changelogVersions(changelog: string): string[] {
-  return [...changelog.matchAll(/^## (\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\s*$/gm)].map((m) => m[1]!);
-}
-
-/** The reading of the releases on the page of the news. */
-export interface ReleaseReading {
-  /** The count of the versions of the changelog and the package that the page does not show, less a version in flight. */
-  readonly stale: number;
-  /** The version of the package when it has no tag and its version commit is under 1 day old. */
-  readonly inFlight?: string;
-}
-
-/**
- * This function reads the versions that the page of the news does not show. An old list and a list with a missing release both count.
- * A tag comes after its version commit, so a version in flight does not count. Over 1 day it counts, so a failed release shows.
- */
-export function releaseReading(facts: Pick<KpiFacts, "release" | "tags" | "versionAt" | "shownReleases" | "changelogReleases">, now: number): ReleaseReading {
-  const inFlight = !facts.tags.includes(facts.release) && now - Date.parse(facts.versionAt) < DAY_MS ? facts.release : undefined;
-  const listed = new Set(facts.shownReleases);
-  const stale = [...new Set([facts.release, ...facts.changelogReleases])].filter((version) => !listed.has(version) && version !== inFlight).length;
-  return inFlight === undefined ? { stale } : { stale, inFlight };
 }
 
 /** This function gives the number of the calendar week of a day, with the week from Monday to Sunday. */
@@ -161,10 +144,10 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
   const dates = facts.trend.flatMap((line) => line.dates);
   const weekly = facts.trend.filter((line) => weeklyTrend(line.dates, now)).sort((a, b) => (b.strategies ?? 0) - (a.strategies ?? 0))[0];
   const coverageAt = dates.length === 0 ? facts.coverageAt : `${[...dates].sort().at(-1)!}T00:00:00Z`;
-  const releases = releaseReading(facts, now);
+  const releases = releaseReading(facts.shownReleases, { changelog: facts.changelogReleases, current: facts.release, tags: facts.tags, versionAt: facts.versionAt }, now);
   const measures: SiteMeasure[] = [
     { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
-    { id: "stale-text", value: staleText(facts.pages, facts.strategies) + releases.stale, unit: "places", at: facts.commitAt },
+    { id: "stale-text", value: staleText(facts.pages, facts.strategies) + releases.gaps.length, unit: "places", at: facts.commitAt, notCounted: STALE_TEXT_NOT_COUNTED },
     { id: "release-in-flight", value: releases.inFlight === undefined ? 0 : 1, unit: releases.inFlight === undefined ? "versions" : `version ${releases.inFlight}`, at: facts.commitAt },
     { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
     { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
