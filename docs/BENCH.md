@@ -212,6 +212,37 @@ node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
+## The tie moves
+
+A tie decides a place. A very small change of one size can break the tie and move other boxes far (roadmap item k149).
+
+`bench/tie-move.ts` reads each option set of each strategy on the family `tie-move/1`. The family has 90 inputs: 5 kinds, 3 container modes, the counts 8, 20 and 50, and 2 seeds. Each input has 2 changes: the width and the height of the middle item go up by 0.01.
+
+| Arm | Inputs | What it tells |
+| --- | --- | --- |
+| `ties` | Equal heights, equal widths, or identical items | The move on an input with ties |
+| `none` | No ties | The control: the same change with no tie to break |
+| `edge` | Sizes at the edge of a bucket of the margin | The adversary of the margin |
+| `marginTies` | The inputs of `ties` through the margin | The move with the margin |
+| `marginEdge` | The inputs of `edge` through the margin | The move when a change crosses an edge |
+
+The margin is a wrapper of the bench. Each size goes up to the top of its bucket of width 1, and a bucket has a whole number at its middle. A change inside a bucket gives the same input, so `marginTies` reads no move by construction. This is not a gain alone. Read it with `marginEdge` and with `fillLost`, the mean fill that the margin loses. The read does not tell about a margin inside the comparisons of a strategy.
+
+Each arm of a row of `bench/gates/tie-move.json` gives its changes, the changes with a move above 1 and the changes with another set of items. It also gives the largest move and its input. The table states what the strategies do. It is not a promise of a limit.
+
+The first read, on 2026-11-05, has these results:
+
+- 79 option sets pack, and 76 of them have a larger move on ties than on the control. The other 3 are `binary-height`, `exact-strip` and the slice-and-dice treemap. `exact-strip` refuses each changed input, because it needs whole sizes, so it has no read of a move.
+- Over all option sets, 3928 changes on ties move a box by more than 1. The control has 37 such changes, and the edge inputs have 1096.
+- Through the margin, 0 changes on ties move a box, and 1464 changes on the edge inputs move a box. Thus the margin moves the problem to the edge of a bucket, and it does not remove the problem.
+- The margin loses at most 0.038 of fill. The value of `fillLost` is below 0 on one treemap, where the margin gains fill.
+- At 8 boxes, the default sets of 5 strategies move a box by 97 to 198. The largest moves come at 50 boxes in the free forms, where the size of the container also changes.
+
+The control is not always quiet. A search or a score can also move far with no tie, as in `anneal`, `overlap-min` and `maxrects-cp`.
+
+`--check` reads again and fails on each difference, also when a move falls, so a change to a strategy shows in the table. CI starts the check on each PR. After a change to a strategy, start `node bench/tie-move.ts --write` and read the difference. The strategies `circle-quasi-physical` and `hole-degree` pack no input of this rect family, so their rows have 0 inputs.
+
 ## The flip tests
 
 A gate that has not gone red on a known fault is not known to work. `packages/packing/bench/gate-flip.ts` starts the real command of a gate in a child process. A clean copy of its input must pass, and each copy with an injected fault must fail. The job of the gate fails when a case gives another code.
@@ -222,9 +253,10 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Time gate | The arm is 3 times slower. A noisy A/A arm gives the code 3 on a first run, and the code 1 on a retry. The test reads a copy of a run with a pass. |
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
-| `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. With a high time floor, `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. With the usual floor, `maxrects-bl` over `rows` gives a fail on its time tail, because the records have 2 CPU models. |
+| `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. The records of that pair have 2 CPU models, so `maxrects-bl` over `rows` gives `no-read` at each floor, and `rows` over `maxrects-bl` gives a fail on its gain. |
 | Equality of the runs of `skyline` | A break rule with no breaks of the limit, a break rule with no falling breaks, and a search that takes the last of equal windows. See "The width of `skyline`". |
 | Output rows | Half a position in each output of a strategy with whole rows, and half a size. The output must name the property. The table does not change. |
+| Tie moves | A move of 100 on each change of a strategy. The output must name the arm. The table does not change. |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
@@ -544,6 +576,8 @@ Two checks hold the corpus:
 | The search gives the stored rows | `--check`, in `adversary.yml`, a job of `CI OK` | a change of the search, of a file that it reads for draws, hashes or values, of `rigor-generators`, of the corpus or of the workflow | The search changed its draws. The merge is blocked, because version 1 is frozen. |
 
 A change of the other package source, the entries or the lock file starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
+
+The report exits with the code 0, so a moved row is not seen on the PR that moves it. Thus `adversary.yml` also runs `--check` on main each Tuesday at 03:50 UTC. A red scheduled run asks for a dated answer: a new version of the rows, or a stated reason that the row stays.
 
 The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
 
@@ -1388,7 +1422,7 @@ The proposal 0.156 is the worst job plus the spread of the jobs (0.1379 + 0.0183
 
 - After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value plus the spread of 5 runs).
 
-The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
+The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. The record prints each CPU model with its job count. With 2 models, it states "models not tested at 5 jobs" and the floor of the model test as the reason. At a split of 3 and 2 jobs, the smallest p is 0.2. The verdict reads the ratios inside each job, and it does not say that the models agree. A page that quotes a budget result carries the same line. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 
 ### The speed claims
 
