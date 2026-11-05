@@ -113,6 +113,20 @@ An entry is a strategy of the registry with some options. `packages/packing/benc
 - The 4 entries of roadmap item k26 are `ORDER_SEARCH_ENTRIES`. Each one packs 16 orders with its member, and keeps the best output.
 - Their moves are `move.anneal`, `move.genetic` and `move.tabu`. `docs/PACKER.md` ("The searches over orders") tells them.
 
+## The controls of a measure
+
+A control is a packer made to win one measure with a trick. It tests that measure, and no user gets its output.
+
+- `bench/controls.ts` holds the controls. They are not in `ENTRIES`, the registry, the picker or the sites.
+- The value `all` of `--strategies` does not include a control. Name its id to start it: `--strategies fill-trick`.
+- A control uses the corpus and the seeds of the real entries, so a read can pair its records with their records.
+
+| Control | Measure | The trick | Measures that see the trick |
+| --- | --- | --- | --- |
+| `fill-trick` | `pack.fill` | It packs with `maxrects-bl` and `skyline` at 12 widths and keeps the highest fill. It ignores the item order and the target aspect. | `pack.order.inversions`, `pack.aspectError` |
+
+The trick obeys the hard rules, and it drops no more items than its best member. Thus only the soft measures can catch it.
+
 ## The jobs
 
 1. The job `plan` examines the inputs and makes a list of the entries with `main.ts list`.

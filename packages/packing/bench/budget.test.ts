@@ -6,6 +6,7 @@ import { corpus } from "@mark1russell7/packing";
 import { caseProgress, type SupervisedChild } from "@mark1russell7/rigor-bench/supervise";
 import { budgetCases, controlTimes, CONTROL_INPUTS, CONTROL_PACKS, endFacts, NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET, PAIR_MS, pairBudgetMs, runBudgeted, runCases, SMALL_PAIR_MS, type BudgetedOptions } from "./budget.ts";
 import { timeOf } from "./promote.ts";
+import { FILL_TRICK } from "./controls.ts";
 import { isMeasured, mergeRuns, parseCorpus, runBench, summaryMarkdown, type BenchEnv, type BenchPair, type BenchRecord, type BenchRun, type SkippedRecord } from "./run.ts";
 
 const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test", cpu: "test", cpus: 1 };
@@ -258,5 +259,14 @@ describe("the merge of runs with a budget", () => {
     expect(text).toContain("## Budget");
     expect(text).toContain("| x | 10 | 1 | 1 | 1 | - |");
     expect(summaryMarkdown({ ...runOf("x", 1), budget: undefined as never }, records)).not.toContain("## Budget");
+  });
+});
+
+describe("a control in a budget run", () => {
+  it("packs each pair with the control, as a real entry does", async () => {
+    const result = await runBudgeted({ ...base, strategies: [FILL_TRICK], start: stallsAt(() => false) });
+    expect(result.records).toHaveLength(sizes.size);
+    expect(result.records.every((r) => r.strategy === FILL_TRICK && isMeasured(r))).toBe(true);
+    expect(result.run.errors).toEqual([]);
   });
 });
