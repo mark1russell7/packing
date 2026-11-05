@@ -27,6 +27,46 @@ export interface SiteKpi {
   measures: SiteMeasure[];
 }
 
+/** The reasons of a pair that a wall budget ended. They have no word, because the strategy did not refuse the input. */
+const BUDGET_REASONS: ReadonlySet<string> = new Set(["over budget", "not run: over budget at this size", "not run: job budget"]);
+
+/** This function tells if a skip reason comes from a wall budget. */
+export const isBudgetReason = (reason: string): boolean => BUDGET_REASONS.has(reason);
+
+/** The skipped records of a snapshot of a corpus, by the word of their reason. A wall budget stays out of this count. */
+export interface SkipCounts {
+  /** The records with the word `not done`. They are coverage still owed, apart from a measured row. */
+  readonly owed: number;
+  readonly otherAlgorithm: number;
+  readonly noMeaning: number;
+  /** The records with no read: the word `not read`, a reason with no word, and a snapshot with no reasons. */
+  readonly notRead: number;
+}
+
+/** The parts of a summary of a strategy that `skipCounts` reads. */
+export interface SkipSummary {
+  readonly skipped: number;
+  readonly reasons?: readonly { readonly reason: string; readonly count: number; readonly word?: string }[];
+}
+
+/** This function counts the skipped records of some strategies by word. Records with no word count as `notRead`, so no record gets a word by default. */
+export function skipCounts(strategies: readonly SkipSummary[]): SkipCounts {
+  const count = { owed: 0, otherAlgorithm: 0, noMeaning: 0, notRead: 0 };
+  for (const s of strategies) {
+    const reasons = s.reasons ?? [];
+    const listed = reasons.reduce((sum, r) => sum + r.count, 0);
+    count.notRead += Math.max(0, s.skipped - listed);
+    for (const r of reasons) {
+      if (isBudgetReason(r.reason)) continue;
+      if (r.word === "not done") count.owed += r.count;
+      else if (r.word === "other algorithm") count.otherAlgorithm += r.count;
+      else if (r.word === "no meaning") count.noMeaning += r.count;
+      else count.notRead += r.count;
+    }
+  }
+  return count;
+}
+
 /** The facts that the measures read. */
 export interface KpiFacts {
   /** The count of the strategies of the demo. */
@@ -53,6 +93,10 @@ export interface KpiFacts {
   readonly trend: readonly TrendLine[];
   /** The entries of the bench with a measured record in the last coverage run, and all the entries. An older coverage file does not give them. */
   readonly entries?: { readonly measured: number; readonly planned: number };
+  /** The skipped records of the stored snapshots of the corpora, by word. */
+  readonly skips?: SkipCounts;
+  /** The time of the last commit of a stored snapshot of a corpus, in UTC. */
+  readonly skipsAt?: string;
   /** The value `true` when the site has the page of the response explorer. */
   readonly explorer: boolean;
   /** The time of the commit of the build, in UTC. */
@@ -176,6 +220,13 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
       at: coverageAt,
     },
     ...(facts.entries === undefined ? [] : [{ id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries`, at: coverageAt }]),
+    // A skip that the code can lift is coverage still owed. It counts apart, so it does not raise `measured-entries`.
+    ...(facts.skips === undefined
+      ? []
+      : [
+          { id: "skips-owed", value: facts.skips.owed, unit: "skipped records that the code can lift", at: facts.skipsAt ?? facts.commitAt },
+          { id: "skips-not-read", value: facts.skips.notRead, unit: "skipped records with no read", at: facts.skipsAt ?? facts.commitAt },
+        ]),
     { id: "explorer-live", value: facts.explorer ? 1 : 0, at: facts.commitAt },
   ];
   return { project: KPI_PROJECT, at: measures.map((m) => m.at).sort()[0]!, measures };

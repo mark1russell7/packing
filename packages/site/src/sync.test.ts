@@ -125,9 +125,9 @@ describe("the results page", () => {
   });
 
   it("gives a meaning to each reason of the budget of the bench", () => {
-    const budget = readFileSync(new URL("../../packing/bench/budget.ts", import.meta.url), "utf8");
-    const reasons = [...budget.matchAll(/^export const (?:OVER_BUDGET|NOT_RUN_\w+) = "([^"]+)";$/gm)].map((m) => m[1]!);
-    expect(reasons).toHaveLength(3);
+    const files = ["budget.ts", "run.ts"].map((name) => readFileSync(new URL(`../../packing/bench/${name}`, import.meta.url), "utf8"));
+    const reasons = files.flatMap((text) => [...text.matchAll(/^export const (?:OVER_BUDGET|NOT_RUN_\w+) = "([^"]+)";$/gm)].map((m) => m[1]!));
+    expect(reasons).toHaveLength(4);
     for (const reason of reasons) expect(reasonMeaning(reason), reason).toBeDefined();
   });
 });

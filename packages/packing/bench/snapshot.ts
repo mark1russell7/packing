@@ -5,7 +5,7 @@
 //   node bench/snapshot.ts paired <run folder> --run <id> --commit <sha> --release <version> --arm-a <ref> --arm-b <ref> [--out <file>]
 //   node bench/snapshot.ts select --train <run folder>=<id> [...] --test <run folder>=<id> [...] [--out <file>]
 //   node bench/snapshot.ts releases [--out <file>]
-//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>]
+//   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>] (the margins of data/solved-rule.json decide the count at the margin)
 //   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>] [--active <dir>] [--features family|input]
 //
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
@@ -48,7 +48,9 @@ import {
   type SampledMeasure,
   type StrataMeasure,
 } from "./coverage.ts";
+import { skipRead, type SkipRead } from "./skip-words.ts";
 import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
+import { NOT_RUN_BASE } from "./run.ts";
 import { ENTRIES } from "./entries.ts";
 import { SLOW_SET, type PairedRecord, type PairedSummary } from "./paired.ts";
 import type { PriorKind } from "./prior.ts";
@@ -155,8 +157,8 @@ export interface StrategySummary {
   groups: { group: string; wins: number; losses: number; ties: number }[];
   /** The inputs that the strategy finished. */
   finished: StrategyFinished;
-  /** The reason of each skipped record, with its count, the largest count first. */
-  reasons: { reason: string; count: number }[];
+  /** The reason of each skipped record, with its count, the largest count first. A reason that is no wall budget has its word. */
+  reasons: ({ reason: string; count: number } & Partial<SkipRead>)[];
   /** The count of the records with 1 timed run. */
   oneRun: number;
 }
@@ -236,7 +238,7 @@ const breaksOf = (r: SnapshotRecord): number => Object.values(r.hard ?? {}).redu
 const inputKeyOf = (r: SnapshotRecord): string => `${r.input}#${r.seed}`;
 
 /** The reasons of a pair that a wall budget ended. The input of such a pair leaves a comparison of all strategies. */
-const BUDGET_REASONS: ReadonlySet<string> = new Set([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB]);
+const BUDGET_REASONS: ReadonlySet<string> = new Set([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB, NOT_RUN_BASE]);
 
 /** This function gives the inputs that the measured records of a strategy finished. */
 function finishedOf(live: readonly SnapshotRecord[]): StrategyFinished {
@@ -246,14 +248,16 @@ function finishedOf(live: readonly SnapshotRecord[]): StrategyFinished {
 }
 
 /** This function gives the reason of each skipped record with its count. A reason keeps at most 80 characters, so a snapshot stays small. */
-function reasonsOf(records: readonly SnapshotRecord[]): { reason: string; count: number }[] {
+function reasonsOf(entry: string, records: readonly SnapshotRecord[]): StrategySummary["reasons"] {
   const counts = new Map<string, number>();
   for (const r of records) {
     if (r.skipped === undefined) continue;
     const reason = r.skipped.slice(0, 80);
     counts.set(reason, (counts.get(reason) ?? 0) + 1);
   }
-  return [...counts].map(([reason, count]) => ({ reason, count })).sort((x, y) => y.count - x.count || x.reason.localeCompare(y.reason));
+  return [...counts]
+    .map(([reason, count]) => ({ reason, count, ...(BUDGET_REASONS.has(reason) ? {} : skipRead(entry, reason)) }))
+    .sort((x, y) => y.count - x.count || x.reason.localeCompare(y.reason));
 }
 
 /** This function gives the rules of a budget of `run.json` for the page, with the range of the load factors of its jobs. */
@@ -375,7 +379,7 @@ export function strategySnapshot(records: readonly SnapshotRecord[], options: St
       verdicts,
       groups,
       finished: finishedOf(live),
-      reasons: reasonsOf(own),
+      reasons: reasonsOf(id, own),
       oneRun: live.filter((r) => r.oneRun === true).length,
     };
   });
@@ -659,6 +663,8 @@ export interface GapCell extends GapStats {
   cell: string;
   /** The count of the records of the cell without a value of the measure */
   missing: number;
+  /** The margin of the cell and the count of the values at or under it. */
+  atMargin?: { limit: number; n: number };
   /** The count of the records of each kind of bound of `BOUND_KINDS`. Only `pack.gap` has kinds. */
   kinds?: Record<string, number>;
 }
@@ -681,6 +687,8 @@ export interface GapSnapshot {
   measure: GapMeasure;
   /** The count of the inputs that left the table, because a wall budget ended a pair on them. Each strategy then has the same inputs. */
   stopped?: number;
+  /** The rules of the wall budget of the run. A run without a budget does not have this field. */
+  budget?: SnapshotBudget;
   inputs: number;
   /** The cells of the corpus, in the order of the manifest, with the count of their inputs */
   cells: { cell: string; inputs: number }[];
@@ -694,6 +702,19 @@ export interface GapSnapshotOptions {
   measure: GapMeasure;
   /** The cell of each input id. The default is `gapCellOf` of the family, without a container size. */
   cellOf?: (input: string) => string;
+  /** The highest value at the margin in each cell. The default is `GAP_TOLERANCE`, a margin of 0. */
+  limitOf?: (cell: string) => number;
+  /** The rules of the wall budget of the run. */
+  budget?: SnapshotBudget;
+}
+
+/** The numeric tolerance of a margin of 0. A gap of the corpus `pack-known-v1` is 0 or at least 0.03, so this value decides no record there. */
+export const GAP_TOLERANCE = 1e-9;
+
+/** The margin of one measure in `data/solved-rule.json`. */
+interface RuleMargin {
+  limit: number;
+  cells: Record<string, { limit: number }>;
 }
 
 /**
@@ -753,7 +774,8 @@ export function gapSnapshot(allRecords: readonly SnapshotRecord[], options: GapS
       const rs = own.filter((r) => cellOf(r.input) === cell);
       if (rs.length === 0) return [];
       const vs = rs.map(valueOf).filter((v): v is number => v !== undefined);
-      const out: GapCell = { cell, ...gapStats(vs), missing: rs.length - vs.length };
+      const limit = options.limitOf?.(cell) ?? GAP_TOLERANCE;
+      const out: GapCell = { cell, ...gapStats(vs), missing: rs.length - vs.length, atMargin: { limit, n: vs.filter((v) => v <= limit).length } };
       if (options.measure === "pack.gap") {
         const kinds: Record<string, number> = {};
         for (const r of rs) {
@@ -779,6 +801,7 @@ export function gapSnapshot(allRecords: readonly SnapshotRecord[], options: GapS
     cells: cellOrder.map((cell) => ({ cell, inputs: cellInputs.get(cell)!.size })),
     strategies,
     ...(stopped.size === 0 ? {} : { stopped: stopped.size }),
+    ...(options.budget === undefined ? {} : { budget: options.budget }),
   };
 }
 
@@ -1030,8 +1053,8 @@ export function commonPairs<R extends { readonly strategy: string; readonly inpu
 /** One entry of the bench with no measured record in a run, with each reason and its count of records. A reason with no row counts 0 records. */
 export interface CoverageOtherEntry {
   entry: string;
-  /** The value `msAtLeast` is the smallest lower bound on the time of the censored records of a reason. */
-  reasons: { because: string; records: number; msAtLeast?: number }[];
+  /** The value `msAtLeast` is the smallest lower bound on the time of the censored records of a reason. A reason that is no wall budget has its word on the page. */
+  reasons: ({ because: string; records: number; msAtLeast?: number } & Partial<SkipRead>)[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run. */
@@ -1429,6 +1452,17 @@ export function coverageEntries(
   return { planned: planned.length, measured: planned.length - others.length, others };
 }
 
+/** This function gives each reason of the other entries its word. A wall budget has no word, because the strategy did not refuse the input. */
+export function othersWithWords(entries: CoverageEntries): CoverageEntries {
+  return {
+    ...entries,
+    others: entries.others.map((other) => ({
+      ...other,
+      reasons: other.reasons.map((r) => (BUDGET_REASONS.has(r.because) ? r : { ...r, ...skipRead(other.entry, r.because) })),
+    })),
+  };
+}
+
 /**
  * This function gives the entries of the earlier point of a corpus that have no measured record in this run, each with its reason.
  * It reads the last earlier point with a list, with any method. A later point of the same run does not count as earlier.
@@ -1511,11 +1545,14 @@ export function snapshotMain(argv: readonly string[]): void {
     const data = readRun(folder);
     const sizes = new Map(data.inputs.map((i) => [i.id, i.cell?.containerSize]));
     const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"), optionOf(argv, "--date"));
+    const rule = (JSON.parse(readFileSync(new URL("solved-rule.json", SNAPSHOT_DIR), "utf8")) as { margins: Record<string, RuleMargin> }).margins[measure as GapMeasure]!;
     const snap = gapSnapshot(recordsOfStrategies(data.records, optionOf(argv, "--strategies")?.split(",")), {
       corpus: data.run.corpus,
       origin: [origin],
       measure: measure as GapMeasure,
       cellOf: (input) => gapCellOf(familyOfInput(input), sizes.get(input)),
+      limitOf: (cell) => rule.cells[`${data.run.corpus}/${cell}`]?.limit ?? rule.limit,
+      ...(data.run.budget === undefined ? {} : { budget: snapshotBudget(data.run.budget) }),
     });
     writeSnapshot(out ?? new URL(`gaps-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
     return;
@@ -1564,7 +1601,7 @@ export function snapshotMain(argv: readonly string[]): void {
       // k119, k122: the basis of the family prior, the same weight for each family by default
       ...(hasSample || hasActive ? { prior: priorOf(manifest, options) } : {}),
     };
-    const entries = coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []);
+    const entries = othersWithWords(coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []));
     // A new entry does not restart a line: the same fit over an earlier list gives the next point of that line.
     const method = coverageMethod(run);
     const over = earlierLists(earlier?.trend ?? [], run.corpus, method, grid.strategies).map((list) => {

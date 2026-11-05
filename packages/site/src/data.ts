@@ -50,8 +50,8 @@ export interface StrategySummary {
   groups: { group: string; wins: number; losses: number; ties: number }[];
   /** The inputs that the strategy finished. A snapshot from before the wall budget does not have this field. */
   finished?: StrategyFinished;
-  /** The reason of each skipped record, with its count. */
-  reasons?: { reason: string; count: number }[];
+  /** The reason of each skipped record, with its count. A reason that is no wall budget has its word, from the snapshots after the table of words. */
+  reasons?: { reason: string; count: number; word?: SkipWord; why?: string }[];
   /** The count of the records with 1 timed run. */
   oneRun?: number;
 }
@@ -170,6 +170,8 @@ export interface GapStats {
 export interface GapCell extends GapStats {
   cell: string;
   missing: number;
+  /** The count of the values at or under the highest value at the margin. An older file does not have this field. */
+  atMargin?: { limit: number; n: number };
   /** The count of the records of each kind of bound. Only `pack.gap` has kinds. */
   kinds?: Record<string, number>;
 }
@@ -194,6 +196,8 @@ export interface GapSnapshot {
   strategies: GapStrategy[];
   /** The count of the inputs that left the table, because a wall budget ended a pair on them. */
   stopped?: number;
+  /** The rules of the wall budget of the run. A run without a budget does not have this field. */
+  budget?: SnapshotBudget;
 }
 
 /** One measure of the coverage snapshot: the held-out error of the model, the share of the cells and the top indices */
@@ -392,10 +396,13 @@ export interface CoveragePoint {
   sharesByInput?: Record<string, number>;
 }
 
+/** The word of a skip. The word `not read` tells that nobody has read the pair of entry and reason. */
+export type SkipWord = "not done" | "other algorithm" | "no meaning" | "not read";
+
 /** One entry of the bench with no measured record in a run, with each reason and its count of records */
 export interface CoverageOtherEntry {
   entry: string;
-  reasons: { because: string; records: number; msAtLeast?: number }[];
+  reasons: { because: string; records: number; msAtLeast?: number; word?: SkipWord; why?: string }[];
 }
 
 /** The entries of the bench against the entries with a measured record in the run */

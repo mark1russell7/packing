@@ -33,7 +33,7 @@ function job(name: string, s: Shape = {}, over: Partial<PairedReport> = {}): Bud
     return { id: `case${c}`, group: "all", ms, median: { a: baseMs(c), b: baseMs(c) * ratio(c), "a~aa": baseMs(c) }, ratio: { b: ratio(c), "a~aa": 1 } };
   });
   const report = {
-    schema: "paired-time/2",
+    schema: "paired-time/3",
     mode: "fresh",
     env: { cpu: "Test CPU", cores: 1, os: "test", arch: "x64", node: "v0" },
     base: "a",
@@ -49,12 +49,12 @@ function job(name: string, s: Shape = {}, over: Partial<PairedReport> = {}): Bud
 const five = (s: Shape = {}) => [0, 1, 2, 3, 4].map((n) => job(`run${n + 1}`, s));
 
 describe("the records of rigor-bench", () => {
-  it("gives the first arm of each pair from the rotation of the 3 arms", () => {
-    // The order of the arms in the rounds 0, 1 and 2 is [a, b, a~aa], [b, a~aa, a] and [a~aa, a, b].
-    expect([0, 1, 2, 3].map((r) => firstOfPair(3, 0, 1, r))).toEqual(["a", "b", "a", "a"]);
+  it("gives the first arm of each pair from the order of the home", () => {
+    // The order of the arms in the rounds 0, 1, 2 and 3 is [a, b, a~aa], [a~aa, b, a], [b, a~aa, a] and [a, a~aa, b].
+    expect([0, 1, 2, 3].map((r) => firstOfPair(3, 0, 1, r))).toEqual(["a", "b", "b", "a"]);
     expect([0, 1, 2, 3].map((r) => firstOfPair(3, 0, 2, r))).toEqual(["a", "b", "b", "a"]);
-    // With 2 arms, the order turns each round.
-    expect([0, 1, 2].map((r) => firstOfPair(2, 0, 1, r))).toEqual(["a", "b", "a"]);
+    // With 2 arms, the order of round 2 is the order of round 1.
+    expect([0, 1, 2].map((r) => firstOfPair(2, 0, 1, r))).toEqual(["a", "b", "b"]);
   });
 
   it("maps the times, the rounds and the first arm of a report to records", () => {
@@ -63,7 +63,7 @@ describe("the records of rigor-bench", () => {
     expect(pairRecords(input.report, "a", "b", 6)).toEqual([
       { case: "case0", round: 6, first: "a", a: 10, b: 20 },
       { case: "case0", round: 7, first: "b", a: 11, b: 21 },
-      { case: "case0", round: 8, first: "a", a: 12, b: 22 },
+      { case: "case0", round: 8, first: "b", a: 12, b: 22 },
     ]);
     const records = jobRecords(input, "b", 2, 6);
     expect(records.job).toBe("2");
@@ -73,6 +73,14 @@ describe("the records of rigor-bench", () => {
       [8, "b", 12, 32],
     ]);
     expect(pairRecords(input.report, "a", "c", 0)).toEqual([]);
+  });
+});
+
+describe("the schema of a report", () => {
+  it("refuses a report of an older schema, and names the schema", () => {
+    const input = job("run1", { cases: 1, rounds: 3, ratio: () => 2, sigma: 0 });
+    const old = { ...input.report, schema: "paired-time/2" } as unknown as PairedReport;
+    expect(() => pairRecords(old, "a", "b", 0)).toThrow(/the schema paired-time\/2/);
   });
 });
 

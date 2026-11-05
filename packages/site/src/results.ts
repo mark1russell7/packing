@@ -1,6 +1,7 @@
 // The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
 // The page reads only the snapshot files of `packages/site/data/`.
 
+import { atlasFilter, atlasTable, atlasTiles, branchRunLines, regionsOf, ruleLine, type RegionState, type SolvedRule } from "./atlas-model.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { marked } from "marked";
 import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover, type LawCoverCount } from "./corpus-cover-model.ts";
@@ -16,6 +17,8 @@ import selectJson from "../data/select-table.json?raw";
 import gapsText from "../content/results-gaps.md?raw";
 import gapsKnownJson from "../data/gaps-pack-known-v1.json?raw";
 import gapsSelectJson from "../data/gaps-pack-select-v2.json?raw";
+import atlasText from "../content/results-atlas.md?raw";
+import solvedRuleJson from "../data/solved-rule.json?raw";
 import coverageText from "../content/results-coverage.md?raw";
 import corpusCoverText from "../content/results-corpus-cover.md?raw";
 import corpusCoverJson from "../data/corpus-cover.json?raw";
@@ -47,8 +50,9 @@ import {
   pickHolds,
   budgetText,
   rankSections,
-  reasonMeaning,
   sectionReasons,
+  skipLine,
+  skipsHtml,
   sectionText,
   ratioAt,
   scaleOf,
@@ -116,7 +120,7 @@ function finishedHtml(s: StrategySummary, snap: StrategySnapshot): string {
   if (s.finished === undefined) return "";
   const size = s.finished.largest === null ? "No input finished." : `The largest input finished has ${s.finished.largest} items: ${s.finished.inputs} of ${snap.inputs} inputs.`;
   const one = (s.oneRun ?? 0) === 0 ? "" : ` ${s.oneRun} records have 1 timed run, so no time gate reads them.`;
-  const reasons = (s.reasons ?? []).map((r) => `<li><b>${r.count}</b> ${esc(reasonMeaning(r.reason) ?? r.reason)}</li>`).join("");
+  const reasons = (s.reasons ?? []).map((r) => `<li><b>${r.count}</b> ${skipLine(r)}</li>`).join("");
   return `<p class="hint">${esc(size + one)}</p>${reasons === "" ? "" : `<ul class="reasons">${reasons}</ul>`}`;
 }
 
@@ -194,6 +198,7 @@ function drawStrategies(): void {
       return heading + section.strategies.map(row).join("");
     })
     .join("");
+  $("strategy-skips").innerHTML = skipsHtml(snap.strategies);
   $("strategy-list").innerHTML = `<li class="shead" aria-hidden="true"><span class="sname">Strategy</span><span class="dhead">Fill against <code>${esc(snap.baseline)}</code>: ± ${diffText(max, true).replace(/^[+−]/, "")}</span><span class="cells">${head}</span></li>${list}`;
 }
 
@@ -362,6 +367,32 @@ function mountGaps(): void {
     drawGaps();
   });
   drawGaps();
+}
+
+// ---- The solved regions of k109 ----
+
+function mountAtlas(): void {
+  const rule = JSON.parse(solvedRuleJson) as SolvedRule;
+  const regions = gapSnaps.flatMap((snap) => regionsOf(snap, rule));
+  let current: RegionState | "all" = "all";
+  const draw = (): void => {
+    $("atlas-filter").innerHTML = atlasFilter(regions, current);
+    $("atlas-table").innerHTML = atlasTable(regions, rule, current);
+  };
+  $("atlas-text").innerHTML = marked.parse(atlasText, { async: false });
+  $("atlas-rule").innerHTML = ruleLine(rule);
+  const records = branchRunLines(gapSnaps);
+  $("atlas-records").innerHTML = records.join(" ");
+  $("atlas-records").hidden = records.length === 0;
+  $("atlas-tiles").innerHTML = atlasTiles(regions, rule);
+  $("atlas-origin").innerHTML = originHtml(gapSnaps.flatMap((snap) => snap.origin));
+  $("atlas-filter").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-state]");
+    if (b === null) return;
+    current = b.dataset["state"] as RegionState | "all";
+    draw();
+  });
+  draw();
 }
 
 // ---- The space coverage of k105 ----
@@ -550,6 +581,7 @@ function mountCoverage(): void {
 
 mountStrategies();
 mountGaps();
+mountAtlas();
 mountSpeed();
 mountSelect();
 mountCoverage();

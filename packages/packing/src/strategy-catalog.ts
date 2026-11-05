@@ -1,16 +1,18 @@
 // The strategy catalog of the engine `packing` (roadmap item k144). It gives each strategy and each option as data of the schema
-// `strategy-catalog/1` of `@mark1russell7/layout-contract`, so a chooser renders them with no code for each strategy.
+// `strategy-catalog/2` of `@mark1russell7/layout-contract`, so a chooser renders them with no code for each strategy.
 // The ids, the families, the kinds, the supports and the defaults come from the live strategies. This module holds only the text and the ranges.
 // The subpath `./strategy-catalog` exports the constant, so the root bundle does not pay for the declarations.
 // The range of a number option is the range of a control. A strategy can take a value outside it, as the option comments of each strategy tell.
 
 import {
   catalogOptions,
+  outputGridClass,
   type AnyOption,
   type CatalogEntry,
   type CatalogLimit,
   type NoDefaultReason,
   type OptionSchema,
+  type OutputRow,
   type StrategyCatalogSource,
 } from "@mark1russell7/layout-contract";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
@@ -26,6 +28,7 @@ import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 import type { GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, SkylineStrategyOptions } from "./layout-strategy.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
+import { OUTPUT_READ_VERSION, OUTPUT_SOURCE, STRATEGY_OUTPUT, type GridCount, type OutputRead } from "./strategy-output.ts";
 import type { NearRectsOptions } from "./near-rects.ts";
 import { GRAPH_ORDERS, SORT_ORDERS } from "./order.ts";
 import type { AnnealStrategyOptions, GeneticStrategyOptions, TabuStrategyOptions } from "./order-search.ts";
@@ -386,6 +389,22 @@ const DETERMINISM_NOTES: Readonly<Record<string, string>> = {
   restarts: "The option budgetMs makes the result depend on the clock.",
 };
 
+/** This function gives the two rows of one read. The contract gives the class from the counts, so a row cannot state another class. */
+function rowsOf(read: OutputRead): OutputRow[] {
+  const row = (property: string, count: GridCount): OutputRow => {
+    const counts = { inputs: read.inputs, fractionalInputs: count.fractional, nearWholeInputs: count.nearWhole };
+    return { property, class: outputGridClass(counts), evidence: { ...counts, source: OUTPUT_SOURCE, optionSet: read.optionSet, catalogVersion: OUTPUT_READ_VERSION } };
+  };
+  return [row("position-grid", read.position), row("size-grid", read.size)];
+}
+
+/** This function gives the output rows of one strategy, from the generated table. */
+function outputRows(id: string): OutputRow[] {
+  const reads = STRATEGY_OUTPUT[id];
+  if (reads === undefined) throw new RangeError(`The table of output rows has no strategy "${id}". Start bench/whole-positions.ts --write.`);
+  return reads.flatMap(rowsOf);
+}
+
 /** This function gives the entry of one strategy, from the live fields and the declarations of this module. */
 function entryOf(listing: StrategyListing): CatalogEntry {
   const { id, family, kind, supports, deterministic } = listing;
@@ -405,6 +424,7 @@ function entryOf(listing: StrategyListing): CatalogEntry {
     ...(note === undefined ? {} : { determinismNote: note }),
     optIn: !registered.some((s) => s.id === id),
     options: catalogOptions(strategy(id).defaults as Readonly<Record<string, unknown>>, schema),
+    output: outputRows(id),
   };
 }
 
@@ -413,5 +433,5 @@ function catalog(): StrategyCatalogSource {
   return { engine: STRATEGY_CATALOG_ENGINE, strategies: allStrategies.map(entryOf).sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)) };
 }
 
-/** Each strategy and each option of the engine, as the source of `strategy-catalog/1`. The file `strategy-catalog.json` holds the same data with the version. */
+/** Each strategy and each option of the engine, as the source of `strategy-catalog/2`. The file `strategy-catalog.json` holds the same data with the version. */
 export const strategyCatalog: StrategyCatalogSource = /* @__PURE__ */ catalog();

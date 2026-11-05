@@ -8,14 +8,17 @@
 import { checkMeasures, type ControlRead, type MeasureChecks, type MeasureRow, type MeasureRule } from "@mark1russell7/rigor-bench";
 import { MEASURE_SPECS, type MeasureId } from "@mark1russell7/packing";
 import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
-import { CONTROL_ENTRIES, FILL_TRICK } from "./controls.ts";
-import { isMeasured, type BenchRecord } from "./run.ts";
+import { CONTROL_ENTRIES, FILL_TRICK, KEEP_SHELF } from "./controls.ts";
+import { isMeasured, NOT_RUN_BASE, type BenchRecord } from "./run.ts";
 
 /** The date of the next control of a measure with no control at this time. */
 const NEXT_CONTROLS = "2026-11-25";
 
 /** The reason of a measure with no control at this time. */
 const NO_CONTROL_YET = "The read of the first control comes first, and it tells how strong a control has to be.";
+
+/** The measure of a step of a chain. Only a run of a chain corpus has it. */
+const STEP_MEASURE: MeasureId = "pack.stability.moved";
 
 /** The measures that a verdict, a gate or a page reads, with their controls. A measure with no control has an open date. */
 const READ_MEASURES: readonly { readonly measure: MeasureId; readonly controls: readonly string[]; readonly partners: readonly MeasureId[] }[] = Object.freeze([
@@ -26,11 +29,23 @@ const READ_MEASURES: readonly { readonly measure: MeasureId; readonly controls: 
   { measure: "pack.overflow", controls: [], partners: [] },
   { measure: "pack.balance.sideRange", controls: [], partners: [] },
   { measure: "pack.raggedness", controls: [], partners: [] },
+  { measure: STEP_MEASURE, controls: [KEEP_SHELF], partners: ["pack.fill"] },
 ]);
 
-/** The rules of `checkMeasures` for the measures of the bench. The resolution is the minimum effect of the spec when that effect is a number above 0. */
-export function controlRules(): MeasureRule[] {
-  return READ_MEASURES.map(({ measure, controls, partners }) => {
+/** This function gives the inputs of the records that have the measure of a step. So step 0 of a chain, with no base, is not one of them. */
+function stepInputs(records: readonly BenchRecord[]): Set<string> {
+  return new Set(records.filter((r) => isMeasured(r) && (r.measures as Record<string, number | undefined>)[STEP_MEASURE] !== undefined).map((r) => r.input));
+}
+
+/** This function gives the measures of a read. A run with no chain has no rule for a step, because a rule with no rows is a finding. */
+const readMeasures = (steps: ReadonlySet<string>): typeof READ_MEASURES => (steps.size > 0 ? READ_MEASURES : READ_MEASURES.filter((m) => m.measure !== STEP_MEASURE));
+
+/**
+ * The rules of `checkMeasures` for the measures of the bench. The resolution is the minimum effect of the spec when that effect is a number above 0.
+ * The rule of a step comes only when the records have a step.
+ */
+export function controlRules(records: readonly BenchRecord[] = []): MeasureRule[] {
+  return readMeasures(stepInputs(records)).map(({ measure, controls, partners }) => {
     const spec = MEASURE_SPECS[measure];
     const effect = spec.minEffect;
     return {
@@ -45,7 +60,7 @@ export function controlRules(): MeasureRule[] {
 }
 
 /** The reasons of a skipped record that a budget stopped. Such a pair is censored. Each other skip is not work that the entry began. */
-const STOPPED: ReadonlySet<string> = new Set([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB]);
+export const STOPPED: ReadonlySet<string> = new Set([OVER_BUDGET, NOT_RUN_SIZE, NOT_RUN_JOB, NOT_RUN_BASE]);
 
 /** This function gives the family of an input from its id `<corpus>/<family>/<seed>`. An id of another form is its own family. */
 export function familyOf(input: string): string {
@@ -58,10 +73,13 @@ export function familyOf(input: string): string {
  * - The key is the input id, and it has the seed in it.
  * - A pair that a budget stopped gives a censored row of each measure. A refused or unsupported pair gives no row.
  * - The option `strata` puts the family of the input on each row.
+ * - A run of a chain corpus reads only the steps with a base. So each measure compares the same steps, and step 0 stays out.
  */
 export function controlRows(records: readonly BenchRecord[], strata: boolean): MeasureRow[] {
-  const measures = READ_MEASURES.map((m) => m.measure);
+  const steps = stepInputs(records);
+  const measures = readMeasures(steps).map((m) => m.measure);
   return records.flatMap((r) => {
+    if (steps.size > 0 && !steps.has(r.input)) return [];
     const stratum = strata ? { stratum: familyOf(r.input) } : {};
     if (!isMeasured(r)) return STOPPED.has(r.skipped) ? measures.map((measure) => ({ measure, group: r.strategy, key: r.input, value: 0, censored: true, ...stratum })) : [];
     return measures.flatMap((measure) => {
@@ -80,7 +98,7 @@ export interface ControlReadResult {
 
 /** This function reads the controls over the records of a run: once over all inputs, and once by the family of each input. */
 export function controlRead(records: readonly BenchRecord[], asOf: string): ControlReadResult {
-  const options = { rules: controlRules(), controls: CONTROL_ENTRIES.map((e) => e.id), asOf };
+  const options = { rules: controlRules(records), controls: CONTROL_ENTRIES.map((e) => e.id), asOf };
   return { asOf, pooled: checkMeasures(controlRows(records, false), options), stratified: checkMeasures(controlRows(records, true), options) };
 }
 
