@@ -1576,7 +1576,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const lost = lostEntries(earlier?.trend ?? [], run.corpus, options.run, grid.strategies, entries.others);
     for (const l of lost) console.log(`::warning::${l.entry} lost its row on ${run.corpus}: ${l.reasons.map((r) => r.because).join(", ")}`);
     const earlierFolder = optionOf(argv, "--earlier");
-    const step = readStep(earlier?.trend ?? [], { corpus: run.corpus, method, strategies: grid.strategies, run: options.run, records, manifest, options, ...(earlierFolder === undefined ? {} : { folder: earlierFolder }) });
+    const step = readStep(earlier?.trend ?? [], { corpus: run.corpus, method, strategies: grid.strategies, run: options.run ?? undefined, records, manifest, options, ...(earlierFolder === undefined ? {} : { folder: earlierFolder }) });
     if (step !== undefined) console.log(`The step from run ${step.from}: ${"noRead" in step ? `no read: ${step.noRead}` : `${step.common} common of ${step.of} pairs`}`);
     writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over, lost, ...(step === undefined ? {} : { step }) }));
     return;

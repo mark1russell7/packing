@@ -258,7 +258,7 @@ describe("the coverage snapshot (k105)", () => {
     const m = snap.latest.measures[0]!;
     expect(m).toMatchObject({ id: "pack.fill", mae: 0.01, baselineMae: 0.1, share: 0.6, cells: { space: 10, withRecords: 8, covered: 6 } });
     expect(m.indices).toHaveLength(COVERAGE_TOP);
-    expect(snap.trend).toEqual([{ date: "2026-10-28", run: 7, corpus: "c", commit: "abc1234", strategies: ["a", "b"], shares: { "pack.fill": 0.6 } }]);
+    expect(snap.trend).toEqual([{ date: "2026-10-28", run: 7, corpus: "c", commit: "abc1234", strategies: ["a", "b"], records: 10, shares: { "pack.fill": 0.6 } }]);
   });
 
   it("records the method of the point and its shares over an earlier list", () => {
