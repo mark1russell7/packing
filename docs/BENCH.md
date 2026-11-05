@@ -1306,6 +1306,7 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/3`, roadmap
 - Each CI job of mode `fresh` with the A/A arm gives one job of the pooled verdict. The candidate pair is (default, candidate), and the A/A pair is (default, `<default>~aa`).
 - Each input and each round of a report give one record of each pair. The two pairs share the time of the default of the round.
 - The first arm of a record comes from the order of `armOrder`. That order rotates the arms of the report by the round.
+- Each time gate prints the counts per order of its pair, and the order size from `orderSize` of `@mark1russell7/rigor-bench`. The size is a guide: it holds for a mean, and the verdict reads a median. If a future margin of a limit falls under approximately 3 times the size, even counts come back.
 - The job `j` uses the rounds from `j` times the rounds of a job. Thus the merged records have one record of each case and round.
 - With 3 arms, the rotation does not turn each pair in each round. In 5 rounds, the candidate pair starts with the default 3 times, and the A/A pair 2 times.
 - The balance of the orders then removes 4 records of each case in each pair from 5 jobs. The record keeps this count.
