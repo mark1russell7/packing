@@ -58,7 +58,7 @@ describe("the types of packing and of the contract", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.3.10");
+    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.3.11");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
     // mulberry32 and fnv1a32 of the package come from their home at run time
     expect(pkg.dependencies?.["@mark1russell7/rigor-generators"]).toBe("^0.1.1");

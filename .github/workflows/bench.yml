@@ -64,6 +64,10 @@ on:
         description: "The time limit of each job of the matrix, 1 to 350. A job that the limit stops uploads no records."
         type: string
         default: "30"
+      budget:
+        description: "true gives each pair a wall budget (docs/BENCH.md). The pairs of a job stop 10 minutes before job-minutes."
+        type: boolean
+        default: false
 
   # k120: coverage-nightly.yml packs the grid with this workflow. The inputs are the same, with strings for the choices.
   workflow_call:
@@ -81,6 +85,7 @@ on:
       pairs: { type: string, default: "" }
       timing: { type: string, default: "off" }
       job-minutes: { type: string, default: "30" }
+      budget: { type: boolean, default: false }
 
 permissions:
   contents: read
@@ -123,8 +128,10 @@ jobs:
           PAIRS: ${{ inputs.pairs }}
           TIMING: ${{ inputs.timing }}
           JOB_MINUTES: ${{ inputs.job-minutes }}
+          BUDGET: ${{ inputs.budget }}
         run: |
           [[ "$JOB_MINUTES" =~ ^[1-9][0-9]*$ ]] && [ "$JOB_MINUTES" -le 350 ] || { echo "job-minutes must be a number from 1 to 350, not '$JOB_MINUTES'"; exit 1; }
+          if [ "$BUDGET" = "true" ] && [ "$JOB_MINUTES" -le 10 ]; then echo "budget needs a job-minutes above 10"; exit 1; fi
           [[ "$CORPUS" =~ ^[a-z0-9][a-z0-9.-]*$ ]] || { echo "corpus must be a-z, 0-9, dot and hyphen, not '$CORPUS'"; exit 1; }
           [[ "$SAMPLE" =~ ^[0-9]+$ ]] || { echo "sample must be a number of 0 or more, not '$SAMPLE'"; exit 1; }
           [[ "$DRAW" =~ ^(uniform|option|stratified|active)$ ]] || { echo "draw must be uniform, option, stratified or active, not '$DRAW'"; exit 1; }
@@ -164,6 +171,8 @@ jobs:
       REPEATS: ${{ inputs.repeats }}
       WARMUP: ${{ inputs.warmup }}
       ANCHOR: ${{ inputs.anchor }}
+      BUDGET: ${{ inputs.budget }}
+      JOB_MINUTES: ${{ inputs.job-minutes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -179,9 +188,12 @@ jobs:
           out="$RUNNER_TEMP/bench/$STRATEGY"
           start=$SECONDS
           status=0
+          budget=()
+          # The pairs stop 10 minutes before the limit of the job, so the job has time for the corpus, the summary and the upload
+          if [ "$BUDGET" = "true" ]; then budget=(--budget --deadline-minutes "$((JOB_MINUTES - 10))"); fi
           pnpm --filter @mark1russell7/packing bench run --corpus "$CORPUS" --strategies "$STRATEGY" \
             --prediction "$PREDICTION" --repeats "$REPEATS" --warmup "$WARMUP" --out "$out" \
-            $([ "$ANCHOR" = "true" ] && echo --anchor) || status=$?
+            "${budget[@]}" $([ "$ANCHOR" = "true" ] && echo --anchor) || status=$?
           if [ -f "$out/summary.md" ]; then
             {
               cat "$out/summary.md"
