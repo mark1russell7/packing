@@ -8,6 +8,7 @@ import {
   noisyAa,
   rowHolds,
   slowArm,
+  moveToModel,
   slowStrategy,
   SMOKE_FAULTS,
   withoutStrategy,
@@ -146,9 +147,18 @@ describe("the fault of the time test of the win test", () => {
   });
 });
 
+describe("moveToModel", () => {
+  it("replaces the CPU model of one strategy, and keeps each other field and record", () => {
+    const text = `${JSON.stringify({ strategy: "a", ms: 2, env: { cpu: "A", cores: 4 } })}\n${JSON.stringify({ strategy: "b", ms: 3, env: { cpu: "A" } })}\n`;
+    const [moved, other] = moveToModel(text, "a", "B").split("\n");
+    expect(JSON.parse(moved!)).toEqual({ strategy: "a", ms: 2, env: { cpu: "B", cores: 4 } });
+    expect(JSON.parse(other!)).toEqual({ strategy: "b", ms: 3, env: { cpu: "A" } });
+  });
+});
+
 describe("the failed parts of a win test", () => {
   const passed = { pass: true };
-  const tests = { hard: passed, guards: [passed], stability: [passed], gain: passed, time: passed } as unknown as Parameters<typeof failedTests>[0];
+  const tests = { hard: passed, guards: [passed], stability: [passed], gain: passed, time: passed, models: { a: ["A"], b: ["A"], one: true } } as unknown as Parameters<typeof failedTests>[0];
 
   it("gives no name when each part passes", () => {
     expect(failedTests(tests)).toEqual([]);
@@ -160,23 +170,39 @@ describe("the failed parts of a win test", () => {
     expect(failedTests({ ...tests, gain: failed, guards: [passed, failed] } as unknown as typeof tests)).toEqual(["guards", "gain"]);
     expect(failedTests({ ...tests, hard: failed, stability: [failed] } as unknown as typeof tests)).toEqual(["hard", "stability"]);
   });
+
+  it("does not name the time test without one known CPU model, and names the other parts", () => {
+    const failed = { pass: false };
+    const models = { a: ["A"], b: ["B"], one: false };
+    expect(failedTests({ ...tests, time: failed, models } as typeof tests)).toEqual([]);
+    expect(failedTests({ ...tests, time: failed, gain: failed, models } as typeof tests)).toEqual(["gain"]);
+  });
 });
 
 describe("the stated verdict of a fixed pair", () => {
   it("gives 0 with no stated verdict, on a pass and on a fail", () => {
-    expect(verdictCode({ pass: true }, undefined)).toBe(0);
-    expect(verdictCode({ pass: false }, undefined)).toBe(0);
+    expect(verdictCode({ status: "pass" }, undefined)).toBe(0);
+    expect(verdictCode({ status: "fail" }, undefined)).toBe(0);
+    expect(verdictCode({ status: "no read" }, undefined)).toBe(0);
   });
 
   it("gives 1 when the verdict differs from the stated one, in both directions", () => {
-    expect(verdictCode({ pass: true }, "pass")).toBe(0);
-    expect(verdictCode({ pass: false }, "fail")).toBe(0);
-    expect(verdictCode({ pass: false }, "pass")).toBe(1);
-    expect(verdictCode({ pass: true }, "fail")).toBe(1);
+    expect(verdictCode({ status: "pass" }, "pass")).toBe(0);
+    expect(verdictCode({ status: "fail" }, "fail")).toBe(0);
+    expect(verdictCode({ status: "fail" }, "pass")).toBe(1);
+    expect(verdictCode({ status: "pass" }, "fail")).toBe(1);
+  });
+
+  it("reads no-read as its own state: it is not a pass and not a fail", () => {
+    expect(verdictCode({ status: "no read" }, "no-read")).toBe(0);
+    expect(verdictCode({ status: "no read" }, "pass")).toBe(1);
+    expect(verdictCode({ status: "no read" }, "fail")).toBe(1);
+    expect(verdictCode({ status: "pass" }, "no-read")).toBe(1);
+    expect(verdictCode({ status: "fail" }, "no-read")).toBe(1);
   });
 
   it("refuses another value", () => {
-    expect(() => verdictCode({ pass: true }, "win")).toThrow(/pass or fail/);
+    expect(() => verdictCode({ status: "pass" }, "win")).toThrow(/pass, fail or no-read/);
   });
 });
 

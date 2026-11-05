@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PairedReport } from "./paired-time.ts";
-import { BUDGET_POLICY, budgetMarkdown, firstOfPair, jobRecords, pairRecords, timeBudget, type BudgetInput } from "./time-budget.ts";
+import { BUDGET_POLICY, budgetMarkdown, budgetModelLines, budgetModels, firstOfPair, jobRecords, pairRecords, timeBudget, type BudgetInput } from "./time-budget.ts";
 
 // Each report of this file is made-up data. The noise is a fixed pattern of offsets on a log scale, not a random draw.
 const OFFSETS = [-1, 0.5, 0, -0.5, 1];
@@ -81,6 +81,36 @@ describe("the schema of a report", () => {
     const input = job("run1", { cases: 1, rounds: 3, ratio: () => 2, sigma: 0 });
     const old = { ...input.report, schema: "paired-time/2" } as unknown as PairedReport;
     expect(() => pairRecords(old, "a", "b", 0)).toThrow(/the schema paired-time\/2/);
+  });
+});
+
+describe("the CPU models of a time budget", () => {
+  it("prints each model with its job count, and the floor as the reason", () => {
+    const m = budgetModels(["B", "A", "B", "A", "B"]);
+    expect(m.models).toEqual([{ model: "A", jobs: 2 }, { model: "B", jobs: 3 }]);
+    expect(m.floor).toBeCloseTo(0.2, 12);
+    expect(m.level).toBeCloseTo(0.025, 12);
+    expect(m.line).toBe("models not tested at 5 jobs: the smallest p of this split is 0.2000, and the first level of Holm is 0.0250");
+    expect(budgetModelLines(m)[0]).toContain("CPU models: A (2 jobs), B (3 jobs). models not tested at 5 jobs");
+    expect(budgetModelLines(m)[0]).toContain("it does not say that the models agree");
+  });
+
+  it("has nothing to test with 1 model, and reads each job on its own model as no row", () => {
+    expect(budgetModels(["A", "A", "A", "A", "A"])).toEqual({ models: [{ model: "A", jobs: 5 }], line: null, floor: null, level: null });
+    expect(budgetModelLines(budgetModels(["A", "A"]))).toEqual(["CPU model: A (2 jobs)."]);
+    expect(budgetModels(["A", "B"]).line).toBe("models not tested at 2 jobs: no model has 2 jobs and other jobs to compare");
+    expect(budgetModelLines(budgetModels([]))).toEqual([]);
+  });
+
+  it("keeps the verdict: 2 models change no verdict, and the record states them", () => {
+    const one = [0, 1, 2, 3, 4].map((j) => job(`run${j}`, { ratio: () => 1, sigma: 0 }));
+    const two = one.map((input, j) => ({ ...input, report: { ...input.report, env: { ...input.report.env, cpu: j < 3 ? "A" : "B" } } }));
+    const plain = timeBudget(one, "a");
+    const mixed = timeBudget(two, "a");
+    expect(mixed.verdict).toBe(plain.verdict);
+    expect(mixed.models.models).toEqual([{ model: "A", jobs: 3 }, { model: "B", jobs: 2 }]);
+    expect(budgetMarkdown(mixed)).toContain("models not tested at 5 jobs");
+    expect(budgetMarkdown(plain)).not.toContain("models not tested");
   });
 });
 

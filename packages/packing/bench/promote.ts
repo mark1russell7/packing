@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { compareMeasure, type Verdict } from "@mark1russell7/layout-contract";
+import { armModels, type ArmModels, type ArmPair } from "@mark1russell7/rigor-bench";
 import { MEASURE_SPECS, medianRatio, mulberry32, pairedRatio, quantile, tailShare, type MeasureId, type MeasureSpec } from "@mark1russell7/packing";
 import { readRecords } from "./choose-sets.ts";
 import { hardOf } from "./portfolio.ts";
@@ -379,6 +380,8 @@ export interface TimeInput {
   input: string;
   candidate: number | undefined;
   current: number | undefined;
+  /** The CPU models of the two records: `a` for the candidate, `b` for the default */
+  models: ArmPair;
 }
 
 /** The time test of some inputs. */
@@ -483,7 +486,7 @@ export function pairsOf(records: readonly PromotionRecord[], candidate: string, 
 }
 
 /** This function gives the times of each pair. */
-export const timeInputsOf = (pairs: readonly InputPair[]): TimeInput[] => pairs.map((p) => ({ input: p.input, candidate: timeOf(p.candidate), current: timeOf(p.current) }));
+export const timeInputsOf = (pairs: readonly InputPair[]): TimeInput[] => pairs.map((p) => ({ input: p.input, candidate: timeOf(p.candidate), current: timeOf(p.current), models: { a: p.candidate.env?.cpu, b: p.current.env?.cpu } }));
 
 /** This function gives the ratios and the classes of one measure over some inputs. An input without the measure in a record does not count. */
 export function ratiosOf(measure: MeasureId, pairs: readonly InputPair[], listIds = false): MeasureRatios {
@@ -556,8 +559,16 @@ export interface WinTests {
   stability: GuardResult[];
   gain: { measures: GainResult[]; pass: boolean };
   time: TimeResult;
+  /** The CPU models of the time pairs. Without one known model, a time ratio compares two computers. */
+  models: ArmModels;
+  /** The result of the tests. The value `no read` needs each other test to pass, and time pairs without one known model. */
+  status: WinStatus;
+  /** The value `true` when `status` is `pass`. It is `false` on `no read`. */
   pass: boolean;
 }
+
+/** The result of a win test. A fail on another test stands. The time test alone cannot read across CPU models, so it gives `no read`. */
+export type WinStatus = "pass" | "fail" | "no read";
 
 /** The source of the times of the time test. */
 export interface TimeSource {
@@ -569,8 +580,8 @@ export interface TimeSource {
   corpora: string[];
   /** The CPU models of the time records of each strategy, sorted. A record without a CPU model gives `unknown`. */
   cpu: { candidate: string[]; current: string[] };
-  /** The value `true` when each time record of the two strategies has the same CPU model */
-  sameCpu: boolean;
+  /** The value `true` when all the time records of the two strategies have one known CPU model. The value `unknown` is not a known model. */
+  oneModel: boolean;
 }
 
 /** The verdict of the win test. */
@@ -594,8 +605,12 @@ export interface PromotionVerdict {
   /** The inputs that each guard of `guardSet` covers and leaves out, over all the inputs */
   coverage: GuardCoverage[];
   tests: WinTests;
-  /** The value `true` when each test passes on all the inputs */
+  /** The value `true` when each test passes on all the inputs, with one known CPU model. It is `false` on `no read`. */
   pass: boolean;
+  /** The result of the tests on all the inputs */
+  status: WinStatus;
+  /** The reason of `no read`, with the count and the names of the models. It is absent on each other status. */
+  reason?: string;
   /** The same tests for each container shape, as information for a rule of the selector. They do not change `pass`. */
   shapes: Record<string, WinTests & { cellMin: boolean }>;
   /** The verdict of each guard set on the same records. Only the option `compareGuards` gives it. It does not change `pass`. */
@@ -776,8 +791,10 @@ export function testsOf(
   const hard = hardTest(pairs);
   const time = timeTest(times, params, timeInputs.length - times.length);
   const gain = { measures: gains, pass: gains.some((g) => g.pass) };
-  const pass = pairs.length > 0 && hard.pass && guards.every((g) => g.pass) && stability.every((g) => g.pass) && gain.pass && time.pass;
-  return { inputs: pairs.length, hard, guards, stability, gain, time, pass };
+  const models = armModels(timeInputs.filter((t) => t.candidate !== undefined && t.current !== undefined).map((t) => t.models));
+  const others = pairs.length > 0 && hard.pass && guards.every((g) => g.pass) && stability.every((g) => g.pass) && gain.pass;
+  const status: WinStatus = !others ? "fail" : !models.one ? "no read" : time.pass ? "pass" : "fail";
+  return { inputs: pairs.length, hard, guards, stability, gain, time, models, status, pass: status === "pass" };
 }
 
 /**
@@ -837,6 +854,8 @@ export function winTest(records: readonly PromotionRecord[], options: WinTestOpt
     coverage,
     tests,
     pass: tests.pass,
+    status: tests.status,
+    ...(tests.status === "no read" ? { reason: noReadText(tests.models) } : {}),
     shapes,
     ...(compare === undefined ? {} : { compare }),
     ...(views === undefined ? {} : { views }),
@@ -848,12 +867,17 @@ const distinct = (values: readonly string[]): string[] => [...new Set(values)].t
 
 /** This function gives the source of the times from the pairs of the time test. */
 export function timeSourceOf(pairs: readonly InputPair[], kind: TimeSource["kind"], folder?: string): TimeSource {
-  const cpuOf = (r: PromotionRecord): string => r.env?.cpu ?? "unknown";
-  const candidate = distinct(pairs.map((p) => cpuOf(p.candidate)));
-  const current = distinct(pairs.map((p) => cpuOf(p.current)));
+  const models = armModels(pairs.map((p) => ({ a: p.candidate.env?.cpu, b: p.current.env?.cpu })));
   const corpora = distinct(pairs.flatMap((p) => [p.candidate.corpus, p.current.corpus]).filter((c): c is string => c !== undefined));
-  const sameCpu = distinct([...candidate, ...current]).length <= 1;
-  return { kind, ...(folder === undefined ? {} : { folder }), corpora, cpu: { candidate, current }, sameCpu };
+  return { kind, ...(folder === undefined ? {} : { folder }), corpora, cpu: { candidate: [...models.a], current: [...models.b] }, oneModel: models.one };
+}
+
+/** This function gives the reason of `no read`, from the CPU models of the time pairs. */
+export function noReadText(models: ArmModels): string {
+  const names = distinct([...models.a, ...models.b]);
+  if (names.length === 0) return "no read: no time pairs";
+  if (names.length === 1) return "no read: 1 unknown CPU model";
+  return `no read: ${names.length} CPU models (${names.join(", ")})`;
 }
 
 /** This function writes the lines of the time source for `promotion.md`. */
@@ -865,7 +889,7 @@ function timeSourceLines(v: PromotionVerdict): string[] {
     `- The time source: the field \`${v.timeField}\` of ${where}. The corpus of the time records: ${code(s.corpora)}.`,
     `- The CPU models of the time records: ${code(s.cpu.candidate)} for the candidate, ${code(s.cpu.current)} for the default.`,
   ];
-  if (!s.sameCpu) lines.push("- **Warning:** The time records of the candidate and the default come from different CPU models. The time ratios then compare two computers.");
+  if (!s.oneModel) lines.push("- **No read:** The time records do not have one known CPU model. The time ratios then compare two computers, so the time test gives no pass and no fail.");
   return lines;
 }
 
@@ -876,7 +900,10 @@ export const numText = (v: number): string => (Number.isNaN(v) ? "-" : Number.is
 const passText = (pass: boolean): string => (pass ? "pass" : "fail");
 
 /** This function writes the rows of a check. */
-const checkRow = (test: string, measure: string, c: Check): string => `| ${test} | ${measure} | ${numText(c.value)} | ${numText(c.limit)} | ${passText(c.pass)} |`;
+const checkRow = (test: string, measure: string, c: Check, result: string = passText(c.pass)): string => `| ${test} | ${measure} | ${numText(c.value)} | ${numText(c.limit)} | ${result} |`;
+
+/** This function writes the result of the time test. Without one known CPU model, it gives no pass and no fail. */
+const timeText = (t: Pick<WinTests, "time" | "models">, c: Check = t.time): string => (t.models.one ? passText(c.pass) : "no read");
 
 /** This function writes the rows of the tests of the win test. */
 function testRows(t: WinTests, tailWorse: number): string[] {
@@ -894,8 +921,8 @@ function testRows(t: WinTests, tailWorse: number): string[] {
     rows.push("high" in b ? `| gain bootstrap high | \`${g.measure}\` (${b.level} interval ${numText(b.low)} to ${numText(b.high)}) | ${numText(b.high)} | < 1 | ${passText(b.pass)} |` : `| gain bootstrap high | \`${g.measure}\` | - | < 1 | fail |`);
   }
   rows.push(`| gain | one win measure passes | ${t.gain.measures.filter((g) => g.pass).length} | 1 or more | ${passText(t.gain.pass)} |`);
-  rows.push(checkRow("time median", `time ratio (${t.time.inputs} inputs)`, t.time.median));
-  rows.push(checkRow(`time quantile ${t.time.tail.q}`, `time ratio (${t.time.inputs} inputs)`, t.time.tail));
+  rows.push(checkRow("time median", `time ratio (${t.time.inputs} inputs)`, t.time.median, timeText(t, t.time.median)));
+  rows.push(checkRow(`time quantile ${t.time.tail.q}`, `time ratio (${t.time.inputs} inputs)`, t.time.tail, timeText(t, t.time.tail)));
   return rows;
 }
 
@@ -939,8 +966,8 @@ function compareLines(compare: NonNullable<PromotionVerdict["compare"]>): string
       }),
     );
   }
-  lines.push(row("time", (v) => `${v.tests.time.inputs} | ${numText(v.tests.time.median.value)} | - | ${passText(v.tests.time.pass)}`));
-  lines.push(row("**verdict**", (v) => `${v.tests.inputs} | - | - | **${passText(v.pass)}**`));
+  lines.push(row("time", (v) => `${v.tests.time.inputs} | ${numText(v.tests.time.median.value)} | - | ${timeText(v.tests)}`));
+  lines.push(row("**verdict**", (v) => `${v.tests.inputs} | - | - | **${v.tests.status}**`));
   for (const s of sets) lines.push("", `The coverage of the guard set \`${s}\`:`, "", ...coverageRows(compare[s].coverage));
   lines.push("");
   return lines;
@@ -960,7 +987,7 @@ function viewLines(v2: GuardSetVerdict, view: GuardView): string[] {
     "|---|---:|---:|---:|---|---:|---:|---:|---|",
     row("hard rules", (v) => `${v.tests.hard.inputs} | - | - | ${passText(v.tests.hard.pass)}`),
     ...measures.map((m) => row(`\`${m}\``, (v) => guardCells(v.tests, m))),
-    row("**verdict**", (v) => `${v.tests.inputs} | - | - | **${passText(v.pass)}**`),
+    row("**verdict**", (v) => `${v.tests.inputs} | - | - | **${v.tests.status}**`),
     "",
   ];
 }
@@ -972,7 +999,7 @@ export function promotionMarkdown(v: PromotionVerdict): string {
   const lines = [
     `# The win test of \`${v.candidate}\` against \`${v.current}\``,
     "",
-    `The verdict is **${v.pass ? "pass" : "fail"}**. The candidate ${v.pass ? "can" : "cannot"} replace the default by the win test.`,
+    `The verdict is **${v.reason ?? v.status}**. The candidate ${v.pass ? "can" : "cannot"} replace the default by the win test.`,
     "",
     `- The inputs: ${v.inputs}. The test leaves out ${v.leftOut.inputs} inputs: ${v.leftOut.candidate} without a measured record of the candidate, ${v.leftOut.current} without one of the default.`,
     `- The confirmation count: ${v.confirm.inputs} inputs of ${v.confirm.needed} (\`confirmInputs\`), ${v.confirm.enough ? "enough" : "not enough"} for a confirmation run.`,
@@ -1014,7 +1041,7 @@ export function promotionMarkdown(v: PromotionVerdict): string {
     const failed = [...s.guards, ...s.stability].filter((x) => !x.pass).map((x) => `\`${x.measure}\``);
     const high = g !== undefined && "high" in g.bootstrap ? numText(g.bootstrap.high) : "-";
     lines.push(
-      `| ${shape} | ${s.inputs} | ${s.cellMin ? "yes" : "no"} | ${passText(s.hard.pass)} | ${failed.length === 0 ? "pass" : `fail: ${failed.join(", ")}`} | ${g === undefined ? "-" : numText(g.median.value)} | ${g === undefined ? "-" : g.sign.p.toPrecision(3)} | ${high} | ${numText(s.time.median.value)} | ${numText(s.time.tail.value)} | ${passText(s.pass)} |`,
+      `| ${shape} | ${s.inputs} | ${s.cellMin ? "yes" : "no"} | ${passText(s.hard.pass)} | ${failed.length === 0 ? "pass" : `fail: ${failed.join(", ")}`} | ${g === undefined ? "-" : numText(g.median.value)} | ${g === undefined ? "-" : g.sign.p.toPrecision(3)} | ${high} | ${numText(s.time.median.value)} | ${numText(s.time.tail.value)} | ${s.status} |`,
     );
   }
   lines.push("", "The gain columns of the shapes show the first win measure.", "");
@@ -1062,7 +1089,7 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
   const out = optionOf(argv, "--out");
   if (folder === undefined || candidate === undefined || current === undefined || out === undefined) {
     throw new Error(
-      "Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--expect pass|fail] [--win <measure>[,<measure>]] [--time-floor-ms <n>] [--times <folder>] [--guards v1|v2] [--compare-guards]",
+      "Start the test with: node bench/promote.ts <folder> --candidate <id> --default <id> --out <folder> [--expect pass|fail|no-read] [--win <measure>[,<measure>]] [--time-floor-ms <n>] [--times <folder>] [--guards v1|v2] [--compare-guards]",
     );
   }
   const guards = optionOf(argv, "--guards") ?? GUARD_SET;
@@ -1089,33 +1116,33 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
   writeFileSync(join(out, "promotion.json"), promotionJson(verdict));
   writeFileSync(join(out, "promotion.md"), promotionMarkdown(verdict));
   const view = verdict.views?.[ORDER_FREE_VIEW];
-  const viewText = view === undefined ? "" : ` The view ${ORDER_FREE_VIEW}, which decides nothing, gives ${passText(view.pass)}.`;
-  const others = verdict.compare === undefined ? "" : ` The guard set v1 gives ${passText(verdict.compare.v1.pass)}, and v2 gives ${passText(verdict.compare.v2.pass)}.${viewText}`;
-  console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs with the guard set ${verdict.guardSet}: ${passText(verdict.pass)}.${others}`);
+  const viewText = view === undefined ? "" : ` The view ${ORDER_FREE_VIEW}, which decides nothing, gives ${view.tests.status}.`;
+  const others = verdict.compare === undefined ? "" : ` The guard set v1 gives ${verdict.compare.v1.tests.status}, and v2 gives ${verdict.compare.v2.tests.status}.${viewText}`;
+  console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs with the guard set ${verdict.guardSet}: ${verdict.reason ?? verdict.status}.${others}`);
   console.log(`The failed parts: ${failedTests(verdict.tests).join(", ") || "none"}.`);
   return verdict;
 }
 
-/** This function gives the names of the failed parts of a win test, in a fixed order. */
-export function failedTests(tests: Pick<WinTests, "hard" | "guards" | "stability" | "gain" | "time">): string[] {
+/** This function gives the names of the failed parts of a win test, in a fixed order. Without one known CPU model, the time test is not a failed part. */
+export function failedTests(tests: Pick<WinTests, "hard" | "guards" | "stability" | "gain" | "time" | "models">): string[] {
   const parts: readonly (readonly [string, boolean])[] = [
     ["hard", tests.hard.pass],
     ["guards", tests.guards.every((g) => g.pass)],
     ["stability", tests.stability.every((g) => g.pass)],
     ["gain", tests.gain.pass],
-    ["time", tests.time.pass],
+    ["time", tests.time.pass || !tests.models.one],
   ];
   return parts.filter(([, pass]) => !pass).map(([name]) => name);
 }
 
 /**
  * This function gives the exit code of the win test. With no stated verdict, the code is 0: a verdict of a real candidate reports and does not fail.
- * With a stated verdict of a fixed pair, a different verdict gives the code 1. The stated value is `pass` or `fail`.
+ * With a stated verdict of a fixed pair, a different verdict gives the code 1. The stated value is `pass`, `fail` or `no-read`.
  */
-export function verdictCode(verdict: Pick<PromotionVerdict, "pass">, stated: string | undefined): number {
+export function verdictCode(verdict: Pick<PromotionVerdict, "status">, stated: string | undefined): number {
   if (stated === undefined) return 0;
-  if (stated !== "pass" && stated !== "fail") throw new Error(`The option --expect needs pass or fail, not ${stated}.`);
-  const given = verdict.pass ? "pass" : "fail";
+  if (stated !== "pass" && stated !== "fail" && stated !== "no-read") throw new Error(`The option --expect needs pass, fail or no-read, not ${stated}.`);
+  const given = verdict.status === "no read" ? "no-read" : verdict.status;
   if (given === stated) return 0;
   console.error(`The win test gives ${given}, and the stated verdict of this pair is ${stated}.`);
   return 1;
