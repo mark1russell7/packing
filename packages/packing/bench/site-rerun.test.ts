@@ -61,10 +61,10 @@ describe("the weekly rerun of the corpora of the site", () => {
     }
   });
 
-  it("starts the writer of the files, and only a scheduled run gives data", () => {
+  it("starts the writer of the files, and each completed run on main gives data (k185)", () => {
     expect(rerun).toMatch(/^name: Site rerun$/m);
     expect(siteData).toContain('workflows: ["Coverage nightly", "Site rerun"]');
-    expect(siteData).toContain("github.event.workflow_run.event == 'schedule'");
+    expect(siteData).toContain("github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion != 'cancelled'");
   });
 
   it("lets a run write only its own files, and the branch keeps the others", () => {
