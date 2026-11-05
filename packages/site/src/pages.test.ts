@@ -161,6 +161,15 @@ describe("navLinks", () => {
   });
 });
 
+describe("the line of the home page about the explorer", () => {
+  it("is in the served HTML with a link, so a read with no script finds it", () => {
+    const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    const line = /<p id="explorer-line">(.*?)<\/p>/.exec(html)?.[1];
+    expect(line).toContain('<a href="./explorer/">response explorer</a>');
+    expect(line).toContain("?");
+  });
+});
+
 describe("the snapshot files", () => {
   it("has exactly the files that the pages read", () => {
     expect(readdirSync(DATA).sort()).toEqual([...Object.keys(KINDS), ...OWN_SCHEMA].sort());
