@@ -2,6 +2,7 @@
 # The job snapshot reads the artifacts and checks the new files with the tests of the site. It has no write permission.
 # Only the job publish writes. It pushes the files to the branch site-data, never to main, and it starts the Pages build.
 # The Pages build puts the files of the branch over the files of main.
+# A scheduled run of coverage-nightly.yml starts this workflow too, with its own grid as the run of pack-classes-v1.
 name: Site data
 
 on:
@@ -15,6 +16,9 @@ on:
         description: "The reason of each entry with no row in the coverage run, as <entry>=<reason>, with semicolons between them."
         type: string
         default: ""
+  workflow_run:
+    workflows: ["Coverage nightly"]
+    types: [completed]
 
 permissions: {}
 
@@ -30,7 +34,10 @@ defaults:
 
 jobs:
   snapshot:
-    if: github.ref == 'refs/heads/main'
+    # Only a manual start or a scheduled weekly run gives a point. A weekly run that failed after its grid still has its records.
+    if: >-
+      github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion != 'cancelled'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -52,7 +59,7 @@ jobs:
       - name: Write the files from the runs
         env:
           GH_TOKEN: ${{ github.token }}
-          RUNS: ${{ inputs.runs }}
+          RUNS: ${{ inputs.runs || format('pack-classes-v1={0}', github.event.workflow_run.id) }}
           NO_ROW: ${{ inputs.no-row }}
           # The six strategies of the table of the gaps. The table has one column for each strategy.
           GAP_STRATEGIES: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
@@ -148,7 +155,7 @@ jobs:
       - name: Push the files to the branch site-data, and start the Pages build
         env:
           GH_TOKEN: ${{ github.token }}
-          RUNS: ${{ inputs.runs }}
+          RUNS: ${{ inputs.runs || format('pack-classes-v1={0}', github.event.workflow_run.id) }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
