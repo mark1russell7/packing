@@ -423,13 +423,26 @@ Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`.
 
 The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
 
-The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them. Roadmap item k164 is the next version. The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. The workflow `adversary.yml` repeats all 6 pairs when the package source, the entries, the search or the corpus changes.
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them. Roadmap item k164 is the next version. The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. From PR #360, the weekly held-out sample of `drawInput` moves, because a new form of a class generator changes its draws.
 
 - The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
 - The field `inputs` has the input files, in the order of `found`.
 - The file has no specs, so the runner does not read it. A test reads its inputs.
 - `node bench/adversary.ts` writes the file. `node bench/adversary.ts --check` compares the file with a new search of each pair.
-- `node bench/adversary.ts --check --pair 2` examines the pair with the index 2 only. A test examines that pair and the hash of each input.
+- `node bench/adversary.ts --check --pair 2` examines the pair with the index 2 only. A test examines the hash of each input.
+
+Two checks hold the corpus:
+
+| Check | Command | Starts on | A failure means |
+|---|---|---|---|
+| The stored rows are the same | `--rows`, in a test of `CI OK` | each change | The file changed. A change of the rows needs a new version of the corpus. |
+| The search gives the stored rows | `--check`, in `adversary.yml` | a change of the search, the corpus or the workflow | The search changed its draws. |
+
+A change of the package source or the entries starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
+
+The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
+
+One test still reads a strategy on a stored input: the winner of each row must not break a hard rule. A failure there is a fault of the strategy.
 
 The losses of the corpus:
 

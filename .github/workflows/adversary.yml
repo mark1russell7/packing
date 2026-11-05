@@ -1,6 +1,7 @@
 # The check of the corpus pack-adversary-v1 (docs/BENCH.md, "The adversarial search"). It repeats the search of all 6
-# pairs and compares the result with the committed file, byte for byte. A test of the package repeats only 1 pair.
-# The job needs no timing, because the search reads no clock.
+# pairs. On a change of the search or the corpus, it compares the result with the committed file, byte for byte. On a
+# change of a strategy, it only reports the moved rows, because a better strategy is not a fault of the corpus.
+# A test of the package holds the bytes of the stored rows on each change. The job needs no timing.
 name: Adversary corpus
 
 on:
@@ -25,6 +26,7 @@ jobs:
       pull-requests: read
     outputs:
       match: ${{ steps.changes.outputs.match }}
+      search: ${{ steps.search.outputs.match }}
     steps:
       - id: changes
         uses: mark1russell7/template/.github/actions/changes@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
@@ -34,6 +36,13 @@ jobs:
             packages/packing/bench/entries.ts
             packages/packing/bench/corpora/pack-adversary-v1.json
             packages/packing/src/**
+            .github/workflows/adversary.yml
+      - id: search
+        uses: mark1russell7/template/.github/actions/changes@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
+        with:
+          paths: |
+            packages/packing/bench/adversary.ts
+            packages/packing/bench/corpora/pack-adversary-v1.json
             .github/workflows/adversary.yml
 
   check:
@@ -53,9 +62,16 @@ jobs:
           node-version: 26
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Compare a new search of each pair with the corpus
+      - name: Compare a new search of each pair with the corpus, or report the moved rows
         working-directory: packages/packing
-        run: node --no-warnings bench/adversary.ts --check
+        env:
+          SEARCH: ${{ needs.changes.outputs.search }}
+        run: |
+          if [ "$SEARCH" = true ]; then
+            node --no-warnings bench/adversary.ts --check
+          else
+            node --no-warnings bench/adversary.ts --report | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
 
   adversary-ok:
     name: Adversary corpus OK

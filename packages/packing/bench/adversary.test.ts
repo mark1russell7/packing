@@ -7,12 +7,14 @@ import { checkHard, checkInput, DEFAULT_TOLERANCE, generator, hashInput, measure
 import {
   ADVERSARY_CORPUS,
   ADVERSARY_FILE,
+  adversaryCorpusText,
+  movedRows,
+  storedRowsFault,
   ADVERSARY_MAX_COUNT,
   ADVERSARY_PAIRS,
   BEST,
   candidateFile,
   foundLine,
-  inputLine,
   lossOf,
   mutateSizes,
   pairOptions,
@@ -187,25 +189,51 @@ describe("the corpus pack-adversary-v1", () => {
     }
   });
 
-  it("gives exit 0 for the stored row, and a failure when one value of that row changes", () => {
+  describe("the two checks", () => {
+    const run = (...args: readonly string[]) => spawnSync(process.execPath, ["--no-warnings", "bench/adversary.ts", ...args], { encoding: "utf8" });
     const hash = file.found[2]!["hash"] as string;
-    const folder = mkdtempSync(join(tmpdir(), "adversary-check-"));
-    try {
-      const changed = join(folder, "changed.json");
-      const other = text.replace(`"hash": "${hash}"`, `"hash": "${"0".repeat(hash.length)}"`);
-      expect(other).not.toBe(text);
-      writeFileSync(changed, other);
-      const check = (path: string): number | null => spawnSync(process.execPath, ["--no-warnings", "bench/adversary.ts", "--check", "--pair", "2", "--file", path], { encoding: "utf8" }).status;
-      expect(check(ADVERSARY_FILE)).toBe(0);
-      expect(check(changed)).toBe(1);
-    } finally {
-      rmSync(folder, { recursive: true, force: true });
-    }
-  }, 60_000);
+    const other = text.replace(`"hash": "${hash}"`, `"hash": "${"0".repeat(hash.length)}"`);
 
-  it("matches a rerun of the search of one pair, byte for byte", () => {
+    it("holds the stored rows: one changed value is a fault, and the search does not start", () => {
+      expect(other).not.toBe(text);
+      expect(storedRowsFault(text)).toBeUndefined();
+      expect(storedRowsFault(other)).toContain(ADVERSARY_CORPUS);
+      const folder = mkdtempSync(join(tmpdir(), "adversary-check-"));
+      try {
+        const changed = join(folder, "changed.json");
+        writeFileSync(changed, other);
+        expect(run("--rows").status).toBe(0);
+        expect(run("--rows", "--file", changed).status).toBe(1);
+        expect(run("--check", "--pair", "2", "--file", changed).status).toBe(1);
+      } finally {
+        rmSync(folder, { recursive: true, force: true });
+      }
+    }, 60_000);
+
+    it("does not block a change of a strategy: the report names the row and exits 0, and the strict check exits 1", () => {
+      const report = run("--report", "--pair", "2", "--fault");
+      expect(report.status).toBe(0);
+      expect(report.stdout).toContain("rows to maxrects-bl: the search does not find the stored row.");
+      expect(report.stdout).toContain("1 of 1 rows moved.");
+      expect(run("--rows").status).toBe(0);
+      expect(run("--check", "--pair", "2", "--fault").status).toBe(1);
+    }, 60_000);
+
+    it("needs a read mode for a fault, so a fault cannot write the file", () => {
+      const write = run("--fault", "--pair", "2");
+      expect(write.status).not.toBe(0);
+      expect(readFileSync(ADVERSARY_FILE, "utf8")).toBe(text);
+    });
+  });
+
+  it("gives the same search of one pair twice, with no stored row in the test", () => {
+    const options = pairOptions(ADVERSARY_PAIRS[2]!);
+    expect(foundLine(searchAdversary(options))).toBe(foundLine(searchAdversary(options)));
+  });
+
+  it("gives a line for a result that the text does not hold, and no line for one that it holds", () => {
     const result = searchAdversary(pairOptions(ADVERSARY_PAIRS[2]!));
-    expect(text).toContain(`    ${foundLine(result)}`);
-    expect(text).toContain(`    ${inputLine(result)!}`);
+    expect(movedRows(adversaryCorpusText([result]), [result])).toEqual([]);
+    expect(movedRows(`{"found": [], "inputs": []}`, [result])[0]).toContain("rows to maxrects-bl: the search does not find the stored row.");
   });
 });
