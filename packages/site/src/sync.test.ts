@@ -12,7 +12,7 @@ import { dimensionControls, familyKey } from "./corpus-input.ts";
 import { staleText } from "./kpi.ts";
 import { STRATEGIES } from "./model.ts";
 import { DEMO_IDS, MEMBER_ENTRIES, optionControls, packOptions, startValues } from "./options.ts";
-import { REFUSE_ITEMS } from "./results-model.ts";
+import { reasonMeaning, REFUSE_ITEMS } from "./results-model.ts";
 
 describe("the compare page", () => {
   it("offers each entry of ENTRIES, in its order, from the import", () => {
@@ -122,5 +122,12 @@ describe("the demo", () => {
 describe("the results page", () => {
   it("states the limit of the standalone strategies", () => {
     expect(REFUSE_ITEMS).toBe(STANDALONE_MAX_ITEMS);
+  });
+
+  it("gives a meaning to each reason of the budget of the bench", () => {
+    const budget = readFileSync(new URL("../../packing/bench/budget.ts", import.meta.url), "utf8");
+    const reasons = [...budget.matchAll(/^export const (?:OVER_BUDGET|NOT_RUN_\w+) = "([^"]+)";$/gm)].map((m) => m[1]!);
+    expect(reasons).toHaveLength(3);
+    for (const reason of reasons) expect(reasonMeaning(reason), reason).toBeDefined();
   });
 });
