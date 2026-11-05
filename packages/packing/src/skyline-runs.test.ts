@@ -96,7 +96,7 @@ describe("SkylineRuns", () => {
     skyline.raise(6, 8, 7);
     skyline.raise(8, 10, 1);
     expect(skyline.window(2)).toEqual({ x: 3, y: 1, first: 0 });
-    expect(skyline.window(2, 6, 6.5)).toEqual({ x: 3, y: 1, first: 3 });
+    expect(skyline.window(2, 5, 6.5)).toEqual({ x: 3, y: 1, first: 3 });
     expect(skyline.window(2, 100, 50).y).toBe(Infinity);
     expect(skyline.window(2, 100, 50).first).toBe(-1);
     expect(skyline.highest()).toBe(7);

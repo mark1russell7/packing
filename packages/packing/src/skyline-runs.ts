@@ -49,7 +49,7 @@ export class SkylineRuns {
    * plus `rh` is not more than `cap`. Only the start of a run can give the result. From any other cell, one step to the left adds
    * a cell of the same height. So the window stays valid and does not rise. A deque makes the search O(runs) for one box.
    */
-  window(rw: number, rh = 0, cap = Infinity): RunWindow {
+  window(rw: number, rh: number = 0, cap: number = Infinity): RunWindow {
     const { xs, ys, width } = this;
     const runs = xs.length;
     if (this.deque.length < runs) this.deque = new Int32Array(runs * 2);

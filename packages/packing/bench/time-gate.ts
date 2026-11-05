@@ -7,7 +7,7 @@
 // The noise cap: a run with an A/A noise above 3 times the quiet noise of the derivation runs cannot decide.
 // The A/A noise grows with the spread and with a shift of the A/A ratios, so the cap also replaces the rule of schema 2 that the A/A band contains 1.
 
-import { aaBand, armOrder, caseRatios, timeVerdict, type Band, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
+import { aaBand, armOrder, caseRatios, orderSize, timeVerdict, type Band, type OrderSize, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
 import { aaId, assertPairedOrder, quantileOf, warmInputs, type PairedInput, type PairedReport } from "./paired-time.ts";
 
 /**
@@ -109,6 +109,8 @@ export interface GateResult {
   verdict: GateVerdict;
   /** The time verdict of rigor-bench for the first check: `faster`, `slower`, `same` or `cannot decide`. It is a report. */
   time: TimeOutcome | null;
+  /** The counts per order and the order size of `orderSize` of rigor-bench for the first check. It is a report. */
+  order: OrderSize | null;
   /** The reasons that the report is not of the test of the gate. A report with a reason does not pass. */
   refused: string[];
   lines: GateLine[];
@@ -296,21 +298,30 @@ export function checkTimeGate(gate: TimeGate, report: PairedReport, corpus: stri
   for (const r of gate.reports) add(r, null);
   const first = gate.checks[0];
   let time: TimeOutcome | null = null;
+  let order: OrderSize | null = null;
   if (first !== undefined && aa !== null && refused.length === 0) {
     const records = gateRecords(report, gate.arm, first.measure, entryOptions(gate, first));
     time = timeVerdict(records, pairRecords(report, report.inputs, aaId(gate.base))).outcome;
+    order = orderSize(records);
   }
   const pass = refused.length === 0 && lines.every((l) => l.pass);
   // A noisy run decides nothing: not a pass, and not a fail of a measure either. Only a second noisy run fails.
   const verdict: GateVerdict = pass ? "pass" : noisy && !retry && refused.length === 0 ? "cannot-decide" : "fail";
-  return { gate: gate.id, pass, verdict, time, refused, lines };
+  return { gate: gate.id, pass, verdict, time, order, refused, lines };
+}
+
+/** This function gives the line of the counts per order and the order size. The size is a guide: it holds for a mean, and the verdict reads a median. */
+function orderLine({ aFirst, bFirst, effect, size }: OrderSize): string {
+  const value = (x: number | null): string => (x === null ? "not read" : x.toFixed(4));
+  return `The order of the arms: ${aFirst} records with the base first, ${bFirst} with the arm first. The order effect on the log ratio is ${value(effect)}. The order size is ${value(size)}: unequal counts can move the mean of a case by that amount. It is a guide, because the verdict reads a median.`;
 }
 
 /** This function writes the result of a time gate as Markdown. */
 export function gateMarkdown(result: GateResult): string {
   const rows = result.lines.map((l) => `| ${l.measure}${l.steady === true ? " (steady)" : ""} | ${l.measure === "steady.inputs" ? String(l.value) : l.value.toFixed(4)} | ${l.max === null ? "report" : l.max.toFixed(4)} | ${l.max === null ? "-" : l.pass ? "pass" : "fail"} |`);
   const time = result.time === null ? [] : ["", `The time verdict of rigor-bench for the arm against the base: ${result.time}.`];
+  const order = result.order === null ? [] : ["", orderLine(result.order)];
   const refused = result.refused.length === 0 ? [] : ["", `The gate refuses the report: ${result.refused.join(", ")}.`];
   const noisy = result.verdict === "cannot-decide" ? ["", "The A/A noise of the run is above the noise cap. The gate starts one more run on a fresh runner."] : [];
-  return [`## The time gate ${result.gate}: ${result.verdict}`, "", "| Measure | Value | Limit | Result |", "| --- | --- | --- | --- |", ...rows, ...time, ...refused, ...noisy, ""].join("\n");
+  return [`## The time gate ${result.gate}: ${result.verdict}`, "", "| Measure | Value | Limit | Result |", "| --- | --- | --- | --- |", ...rows, ...time, ...order, ...refused, ...noisy, ""].join("\n");
 }
