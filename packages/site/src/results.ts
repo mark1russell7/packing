@@ -65,6 +65,7 @@ import {
   verdictHash,
   verdictOf,
 } from "./results-model.ts";
+import "@mark1russell7/site-pages/scroll-cue.css";
 import "./style.css";
 import "./pages.css";
 
@@ -139,7 +140,7 @@ function details(s: StrategySummary, snap: StrategySnapshot): string {
   return `
     <p class="hint">${s.records} records, ${s.skipped} skipped, ${s.hardBreaks} hard breaks, ${ms}.</p>
     ${finishedHtml(s, snap)}
-    <div class="scroll"><table class="vtable">
+    <div class="scroll scroll-cue" tabindex="0" aria-label="The measures of this strategy"><table class="vtable">
       <thead><tr><th scope="col">Measure</th><th scope="col">Verdict</th><th scope="col"><code>${esc(snap.baseline)}</code> → this</th><th scope="col">Interval</th><th scope="col">Families: better, worse, tie</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>

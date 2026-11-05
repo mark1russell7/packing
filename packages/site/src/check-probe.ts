@@ -3,7 +3,7 @@
  * deploy. A failed check stops the deploy.
  *
  * The probe drives the core of the site: it packs items, reads the boxes of the layout, and changes the input. No two
- * boxes of a layout can overlap, so the probe reads that from the drawn boxes, in the same way that a reader sees them.
+ * boxes of a layout can overlap. The probe reads this from the drawn boxes, as a reader sees them.
  *
  * The site check reads this TypeScript file directly. It removes the types and the `export` line, and it starts the
  * result as the body of an async function.
