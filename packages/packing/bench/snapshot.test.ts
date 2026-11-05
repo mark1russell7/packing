@@ -704,7 +704,7 @@ describe("the finished inputs of a snapshot (k153)", () => {
 
   it("counts the reasons and the records with 1 timed run", () => {
     expect(of("x").reasons).toEqual([{ reason: "over budget", count: 1 }]);
-    expect(of("none").reasons).toEqual([{ reason: "unsupported mode: offline", count: 2 }]);
+    expect(of("none").reasons).toEqual([{ reason: "unsupported mode: offline", count: 2, word: "not read" }]);
     expect(of("z").reasons).toEqual([]);
     expect(of("x").oneRun).toBe(1);
     expect(of("y").oneRun).toBe(0);
