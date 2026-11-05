@@ -8,11 +8,12 @@ import {
   noisyAa,
   rowHolds,
   slowArm,
+  slowStrategy,
   SMOKE_FAULTS,
   withoutStrategy,
 } from "./gate-flip.ts";
 import type { PairedReport } from "./paired-time.ts";
-import { verdictCode } from "./promote.ts";
+import { failedTests, verdictCode } from "./promote.ts";
 import type { BenchRecord, BenchRun, MeasuredRecord } from "./run.ts";
 import { sizeCoverage, type SizeGate } from "./size-gate.ts";
 import { smokeCheck } from "./smoke-check.ts";
@@ -126,6 +127,38 @@ describe("the faults of the smoke check", () => {
 
   it("has a fault for each kind, with a different text for each", () => {
     expect(new Set(SMOKE_FAULTS.map((f) => f.names)).size).toBe(SMOKE_FAULTS.length);
+  });
+});
+
+describe("the fault of the time test of the win test", () => {
+  const line = (strategy: string, more: object): string => JSON.stringify({ strategy, input: "i", ...more });
+
+  it("multiplies each time of the strategy, and keeps each other field and record", () => {
+    const text = `${line("a", { ms: 2, msRuns: [1, 2, 3], fill: 0.5 })}\n\n${line("b", { ms: 2 })}\n`;
+    const [slow, other] = slowStrategy(text, "a", 10).split("\n");
+    expect(JSON.parse(slow!)).toEqual({ strategy: "a", input: "i", ms: 20, msRuns: [10, 20, 30], fill: 0.5 });
+    expect(other).toBe(line("b", { ms: 2 }));
+  });
+
+  it("adds no time to a record with no time", () => {
+    const text = line("a", { skipped: "refused" });
+    expect(slowStrategy(text, "a", 10)).toBe(JSON.stringify(JSON.parse(text)));
+  });
+});
+
+describe("the failed parts of a win test", () => {
+  const passed = { pass: true };
+  const tests = { hard: passed, guards: [passed], stability: [passed], gain: passed, time: passed } as unknown as Parameters<typeof failedTests>[0];
+
+  it("gives no name when each part passes", () => {
+    expect(failedTests(tests)).toEqual([]);
+  });
+
+  it("names each failed part, so a fault names only its own part", () => {
+    const failed = { pass: false };
+    expect(failedTests({ ...tests, time: failed } as typeof tests)).toEqual(["time"]);
+    expect(failedTests({ ...tests, gain: failed, guards: [passed, failed] } as unknown as typeof tests)).toEqual(["guards", "gain"]);
+    expect(failedTests({ ...tests, hard: failed, stability: [failed] } as unknown as typeof tests)).toEqual(["hard", "stability"]);
   });
 });
 

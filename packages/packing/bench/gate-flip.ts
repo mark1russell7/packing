@@ -9,6 +9,7 @@
 // - `time --gate <file> --dir <folder of a paired run> --out <folder>`
 // - `portfolio --records <folder> --run <id> --committed <file> --out <folder>`
 // - `smoke --dir <folder of a merged run> --out <folder>`
+// - `promotion --records <folder> --candidate <id> --default <id> --win <measure> --guards <set> --out <folder>`
 //
 // The exit code is 0 when each row gives its stated code, and 1 when a row does not.
 
@@ -148,6 +149,9 @@ function pairedCopy(dir: string, out: string, name: string, report: PairedReport
 
 /** The factor of a fault on times. The gate of the time limit stands far under it, so the fault is not a near case. */
 const TIME_FAULT = 3;
+
+/** The factor of the time fault of the win test. The clean pair has a tail under its limit of 2, and this fault puts it far above the limit. */
+const WIN_TIME_FAULT = 10;
 
 /** The exit code of a time gate that cannot decide: the A/A noise of the run is above its cap. */
 const CANNOT_DECIDE = 3;
@@ -296,6 +300,62 @@ export const SMOKE_FAULTS: readonly SmokeFault[] = [
   },
 ];
 
+/** This function gives the JSON Lines text with each time of `strategy` multiplied by `factor`. Each other field and each other record stay the same. */
+export function slowStrategy(text: string, strategy: string, factor: number): string {
+  return text
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => {
+      const r = JSON.parse(line) as { strategy: string; ms?: number; msRuns?: number[] };
+      if (r.strategy !== strategy) return line;
+      return JSON.stringify({
+        ...r,
+        ...(r.ms === undefined ? {} : { ms: r.ms * factor }),
+        ...(r.msRuns === undefined ? {} : { msRuns: r.msRuns.map((t) => t * factor) }),
+      });
+    })
+    .join("\n");
+}
+
+/**
+ * This function is the flip test of the time test of the win test, on records with one CPU model and at the usual floor.
+ * The clean pair must pass with no failed part. A copy with a slow candidate must fail, and the only failed part must be the time test.
+ * A row also reads that the time records of the pair have one CPU model, so a time ratio of them is a fair read.
+ */
+function flipPromotion(argv: readonly string[]): FlipRow[] {
+  const records = resolve(optionOf(argv, "--records"));
+  const candidate = optionOf(argv, "--candidate");
+  const out = resolve(optionOf(argv, "--out"));
+  mkdirSync(out, { recursive: true });
+  const slow = join(out, "slow-records");
+  cpSync(records, slow, { recursive: true });
+  writeFileSync(join(slow, "records.jsonl"), slowStrategy(readFileSync(join(records, "records.jsonl"), "utf8"), candidate, WIN_TIME_FAULT));
+  const read = (folder: string, verdict: string): string[] => [
+    process.execPath,
+    join(here, "promote.ts"),
+    folder,
+    "--candidate",
+    candidate,
+    "--default",
+    optionOf(argv, "--default"),
+    "--win",
+    optionOf(argv, "--win"),
+    "--guards",
+    optionOf(argv, "--guards"),
+    "--expect",
+    "pass",
+    "--out",
+    join(out, verdict),
+  ];
+  const rows = [
+    runCase("clean, the usual floor", 0, read(records, "clean"), out, "The failed parts: none."),
+    runCase(`the candidate ${WIN_TIME_FAULT} times slower, the usual floor`, 1, read(slow, "slow"), out, "The failed parts: time."),
+  ];
+  const clean = JSON.parse(readFileSync(join(out, "clean", "promotion.json"), "utf8")) as { timeSource: { sameCpu: boolean } };
+  rows.push({ name: "the time records of the clean pair have one CPU model", expected: 1, got: clean.timeSource.sameCpu ? 1 : 0 });
+  return rows;
+}
+
 /** This function is the flip test of the smoke check: a clean copy of the merged run, and one copy for each fault. */
 function flipSmoke(argv: readonly string[]): FlipRow[] {
   const dir = resolve(optionOf(argv, "--dir"));
@@ -323,8 +383,8 @@ export function flipMain(argv: readonly string[]): number {
   const gate = argv[0];
   const rest = argv.slice(1);
   const rows =
-    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : undefined;
-  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio or smoke.");
+    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : gate === "promotion" ? flipPromotion(rest) : undefined;
+  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio, smoke or promotion.");
   const text = flipMarkdown(gate!, rows);
   process.stdout.write(text);
   const summary = process.env["GITHUB_STEP_SUMMARY"];

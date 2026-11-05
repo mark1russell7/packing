@@ -1092,7 +1092,20 @@ export function promoteMain(argv: readonly string[]): PromotionVerdict {
   const viewText = view === undefined ? "" : ` The view ${ORDER_FREE_VIEW}, which decides nothing, gives ${passText(view.pass)}.`;
   const others = verdict.compare === undefined ? "" : ` The guard set v1 gives ${passText(verdict.compare.v1.pass)}, and v2 gives ${passText(verdict.compare.v2.pass)}.${viewText}`;
   console.log(`The win test of ${candidate} against ${current} on ${verdict.inputs} inputs with the guard set ${verdict.guardSet}: ${passText(verdict.pass)}.${others}`);
+  console.log(`The failed parts: ${failedTests(verdict.tests).join(", ") || "none"}.`);
   return verdict;
+}
+
+/** This function gives the names of the failed parts of a win test, in a fixed order. */
+export function failedTests(tests: Pick<WinTests, "hard" | "guards" | "stability" | "gain" | "time">): string[] {
+  const parts: readonly (readonly [string, boolean])[] = [
+    ["hard", tests.hard.pass],
+    ["guards", tests.guards.every((g) => g.pass)],
+    ["stability", tests.stability.every((g) => g.pass)],
+    ["gain", tests.gain.pass],
+    ["time", tests.time.pass],
+  ];
+  return parts.filter(([, pass]) => !pass).map(([name]) => name);
 }
 
 /**

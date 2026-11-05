@@ -3,7 +3,8 @@
 # the records of a bench run and the time records, runs bench/promote.ts with --times, and keeps promotion.json and
 # promotion.md as an artifact. The verdict of that candidate reports: a verdict "fail" does not fail the job.
 # The check "Promotion OK" reads two things: the tools start with no error, and fixed pairs on fixed records give
-# their stated verdicts: one known win, one known loss, and the win with its time test on. So a win test that is stuck on one answer turns it red.
+# their stated verdicts: one known win, one known loss, and the win with its time test on. A flip test reads the time test on one CPU model.
+# So a win test that is stuck on one answer turns it red.
 # A manual run reads only its own candidate. It stays report-only, and it does not read the fixed pairs.
 # With the input times_run, the job time does not pack: the job promotion downloads the time records of that earlier run.
 # The job promotion gives the verdict of the guard set of the input guards, and the verdicts of v1 and v2 side by side.
@@ -191,8 +192,8 @@ jobs:
         run: |
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate "$CANDIDATE" --default "$CURRENT" --win "$WIN" \
             --times "$RUNNER_TEMP/time" --guards "$GUARDS" --compare-guards --out "$RUNNER_TEMP/promotion"
-      # The verdicts are functions of the fixed records of the default run. Those records have 2 CPU models, so a time ratio of them is not a speed.
-      # A high floor takes the time test out of the win and the loss. The third read keeps the rule of the time test, and its known tail fails it.
+      # The verdicts are functions of the fixed records of the default run. The pair maxrects-bl and rows has 2 CPU models, so its time ratio is not a speed.
+      # A high floor takes the time test out of the win and the loss. The third read keeps the usual floor on that pair: it reads the time test across 2 models.
       - name: Read the fixed pairs, one known win, one known loss and one known time failure
         if: ${{ github.event_name != 'workflow_dispatch' }}
         working-directory: packages/packing
@@ -203,6 +204,13 @@ jobs:
             --guards v2 --time-floor-ms 1000000000 --expect fail --out "$RUNNER_TEMP/fixed/loss"
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate maxrects-bl --default rows --win pack.fill \
             --guards v2 --expect fail --out "$RUNNER_TEMP/fixed/time"
+      # The flip of the time test: one CPU model, the usual floor. A clean pair passes, and a copy with a slow candidate fails on the time test alone.
+      - name: Flip test of the time test on one CPU model
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        working-directory: packages/packing
+        run: |
+          node bench/gate-flip.ts promotion --records "$RUNNER_TEMP/records" --candidate maxrects-bl --default maxrects-cp \
+            --win pack.fill --guards v2 --out "$RUNNER_TEMP/fixed/flip"
       - name: Write the verdict to the job summary
         if: ${{ !cancelled() }}
         run: |

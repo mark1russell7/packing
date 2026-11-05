@@ -204,6 +204,7 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
 | `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. With a high time floor, `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. With the usual floor, `maxrects-bl` over `rows` gives a fail on its time tail, because the records have 2 CPU models. |
+| Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
 
