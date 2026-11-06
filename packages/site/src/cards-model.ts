@@ -112,6 +112,16 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     rule: "Stack the boxes wider than half the strip. Above them, put levels of the other boxes, tallest first, on the half with the lower top.",
     cost: "`O(n log n)`",
   },
+  "shelf-breaks": {
+    stage: "placement",
+    rule: "Keep the reading order of the boxes. Choose all the row breaks at once, so that the sum of the row heights is the least.",
+    cost: "`O(n k)` for rows of at most `k` boxes",
+  },
+  "shelf-online": {
+    stage: "placement",
+    rule: "Put each box when it comes on a shelf of its class of height, a power of `r`. Do not move it later.",
+    cost: "`O(n s)` for `s` shelves",
+  },
   beam: {
     stage: "placement",
     rule: "Keep the `width` best partial layouts. Give each state one more box in its lowest valley, and rank the children by a greedy completion.",

@@ -146,6 +146,12 @@ export const STRATEGY_OUTPUT: OutputTable = {
     {"optionSet":"shelf-first-input","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
     {"optionSet":"shelf-next","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
   ],
+  "shelf-breaks": [
+    {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
+  "shelf-online": [
+    {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
   "side-anchors": [
     {"optionSet":"default","inputs":144,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":25,"nearWhole":0}},
     {"optionSet":"side-anchors-first-left","inputs":72,"position":{"fractional":44,"nearWhole":0},"size":{"fractional":33,"nearWhole":0}},

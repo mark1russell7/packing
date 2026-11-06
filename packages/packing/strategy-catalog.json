@@ -3770,6 +3770,149 @@
       }
     },
     {
+      "key": "shelf-breaks",
+      "id": "shelf-breaks",
+      "family": "shelf",
+      "kind": "single",
+      "describe": "This strategy packs a strip into rows in the reading order, with the breaks of the least height.",
+      "supports": {
+        "containerSize": [
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "output": [
+        {
+          "property": "position-grid",
+          "class": "untested",
+          "evidence": {
+            "inputs": 6,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "default",
+            "catalogVersion": "0.10.3"
+          }
+        },
+        {
+          "property": "size-grid",
+          "class": "untested",
+          "evidence": {
+            "inputs": 6,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "default",
+            "catalogVersion": "0.10.3"
+          }
+        }
+      ],
+      "options": {}
+    },
+    {
+      "key": "shelf-online",
+      "id": "shelf-online",
+      "family": "shelf",
+      "kind": "single",
+      "describe": "This strategy packs a strip online: each box takes a shelf of its class of height and does not move later.",
+      "supports": {
+        "containerSize": [
+          "freeHeight"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": true,
+      "output": [
+        {
+          "property": "position-grid",
+          "class": "untested",
+          "evidence": {
+            "inputs": 6,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "default",
+            "catalogVersion": "0.10.3"
+          }
+        },
+        {
+          "property": "size-grid",
+          "class": "untested",
+          "evidence": {
+            "inputs": 6,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "default",
+            "catalogVersion": "0.10.3"
+          }
+        }
+      ],
+      "options": {
+        "r": {
+          "type": "number",
+          "describe": "The ratio of the heights of two classes of shelves that follow each other.",
+          "min": 0.1,
+          "max": 0.9,
+          "default": 0.5
+        },
+        "fit": {
+          "type": "enum",
+          "describe": "The rule to choose a shelf in the class of the item.",
+          "values": [
+            "next",
+            "first"
+          ],
+          "default": "first"
+        }
+      }
+    },
+    {
       "key": "side-anchors",
       "id": "side-anchors",
       "family": "side-anchors",

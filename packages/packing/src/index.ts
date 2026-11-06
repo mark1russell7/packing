@@ -210,6 +210,8 @@ export {
   type BoundOptions,
   type ObjectiveBound,
 } from "./bounds.ts";
+export { shelfBreaks, shelfBreaksRefusal, type ShelfBreaksResult } from "./shelf-breaks.ts";
+export { shelfOnline, shelfOnlineRefusal, type ShelfOnlineFit, type ShelfOnlineOptions, type ShelfOnlineResult } from "./shelf-online.ts";
 export { sleatorRefusal, sleatorStrip, type SleatorResult } from "./sleator.ts";
 export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
 export { BEAM_WIDTH, beamStrip, type BeamOptions, type BeamResult } from "./beam.ts";

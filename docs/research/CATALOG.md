@@ -463,8 +463,8 @@ An online packer puts each box when it comes, and does not move it later. An inc
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `online-nfs-r` | Next Fit Shelf with parameter `r` | Round each height up to a power of `r`. Keep one open shelf for each class of height. | Baker 1983 | density, online | `O(n)` | asymptotic `2/r·OPT` (Baker 1983, unverified) | planned | k30 |
-| `online-ffs-r` | First Fit Shelf with parameter `r` | Do `online-nfs-r`, but put a box in the first shelf of its class where it fits. | Baker 1983 | density, online | `O(n log n)` | asymptotic `1.7/r·OPT` (Baker 1983, unverified) | planned | k30 |
+| `online-nfs-r` | Next Fit Shelf with parameter `r` | Round each height up to a power of `r`. Keep one open shelf for each class of height. | Baker 1983 | density, online | `O(n)` | asymptotic `2/r·OPT` (Baker 1983, unverified) | done | `shelfOnline` with `fit: "next"`, k30 |
+| `online-ffs-r` | First Fit Shelf with parameter `r` | Do `online-nfs-r`, but put a box in the first shelf of its class where it fits. | Baker 1983 | density, online | `O(n log n)` | asymptotic `1.7/r·OPT` (Baker 1983, unverified) | done | `shelfOnline` with `fit: "first"`, k30 |
 | `shelf-online-harmonic` | Harmonic shelf | Do `online-ffs-r` with classes of width too, as the harmonic bin packing does. | Csirik 1997 | density, online | `O(n log n)` | asymptotic `1.69·OPT` (Csirik 1997, unverified) | planned | k30 |
 | `online-bl` | Online bottom-left | Do `bl-chazelle` in the order of arrival. Its bound is a lower bound for all online packers. | Brown 1982 | online | `O(n^2)` | — | planned | k30 |
 | `online-dynamic-bins` | Dynamic bin packing | Boxes come and go. Put each new box with First Fit, and do not move the boxes left. | Coffman 1983 | stability | `O(n log n)` | — | planned | k30 |
@@ -514,6 +514,7 @@ These methods come from the layout of text and of user interfaces. They are pack
 | `flex-wrap` | Flexbox wrap | `shelf-nf` in the input order, with a rule for the space that is left in each row (start, center, end or between). | W3C flexbox | order | `O(n)` | — | planned | k28 |
 | `flex-wrap-grow` | Flexbox wrap with grow | Do `flex-wrap`, then give the space left in each row to the boxes that can grow. | W3C flexbox | order, raggedness | `O(n)` | — | planned | k28 |
 | `line-break-knuth-plass` | Line breaking of boxes | Choose all the row breaks of the input order at once. The cost of a row is the square of its free width. The last row has no cost. | Knuth 1981 | order, raggedness | `O(n w)` | the best breaks for its cost (Knuth 1981) | planned | k29 |
+| `line-break-height` | Row breaks of the least height | Choose all the row breaks of the input order at once. The cost of a row is the height of its tallest box. | Knuth 1981, with the height as the cost | order, density | `O(n k)` for rows of at most `k` boxes | the least height of all rows in the input order, and at most the height of `shelf-nf` in the same order | done | `shelfBreaks`, k29 |
 | `label-greedy` | Greedy label placement | For each point, choose one of four places for its label. Take the place with the fewest overlaps. | Christensen 1995 | overlap | `O(n log n)` | — | planned | new item |
 | `label-annealing` | Label placement by annealing | Do `label-greedy`, then anneal over the choices. | Christensen 1995 | overlap | steps x `O(log n)` | — | planned | new item |
 | `label-four-place` | Four-place labels | Choose one of four corners of each point for its square label. Make the labels as large as possible with no overlap. | Formann 1991 | overlap | `O(n log n)` | labels of `1/2` of the best size (Formann 1991, unverified) | planned | new item |

@@ -42,6 +42,8 @@ export const SKIP_ROWS: readonly SkipRow[] = [
       "relax-maxrects-bl",
       "relax-rows",
       "relax-skyline-bl-waste",
+      "shelf-breaks",
+      "shelf-online",
       "side-anchors-first-left",
       "sleator",
     ],

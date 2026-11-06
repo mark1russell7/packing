@@ -68,14 +68,48 @@ function sizedFor(input: PackInput, output: PackOutput): PackOutput {
   return { ...output, size: { w, h } };
 }
 
+/** The output that `fill-trick` keeps, with the member and the width that gave it. */
+export interface FillTrickChoice {
+  readonly output: PackOutput;
+  /** The id of the member that gave the output. */
+  readonly member: string;
+  /** The width that the member packed at. `null` is the container of the input, with no tried width. */
+  readonly width: number | null;
+}
+
 /**
- * The control of `pack.fill`. It ignores the order of the items and the target aspect.
+ * This function gives the choice of `fill-trick` on an input.
  *
  * - It packs with each member on the input, then at each width of `fillTrickWidths`.
  * - It keeps the output with the highest `pack.fill`, from the outputs with no hard break and no more overflow than the first output.
  * - The overflow limit stops the trick from dropping items. A dropped item is a different trick, and another measure sees it.
  * - A container with a shape gets only the outputs of the members on the input.
+ * - When each output has a hard break, it gives the first member on the input.
  */
+export function fillTrickChoice(input: PackInput, seed: number): FillTrickChoice {
+  const firsts: FillTrickChoice[] = FILL_TRICK_MEMBERS.map((m) => ({ output: packWith(m.id, input, m.options, seed), member: m.id, width: null }));
+  const overflow = Math.min(...firsts.map((c) => c.output.overflow.length));
+  const clean = (o: PackOutput): boolean => hardBreaks(input, o) === 0 && o.overflow.length <= overflow;
+  const tried: FillTrickChoice[] = input.container.shape !== undefined
+    ? []
+    : fillTrickWidths(input).flatMap((w) => {
+        const at: PackInput = { ...input, container: { ...input.container, fixed: "width", w } };
+        return FILL_TRICK_MEMBERS.map((m) => ({ output: sizedFor(input, packWith(m.id, at, m.options, seed)), member: m.id, width: w }));
+      });
+  let best: FillTrickChoice | undefined;
+  let bestFill = -Infinity;
+  for (const choice of [...firsts, ...tried]) {
+    if (!clean(choice.output)) continue;
+    const fill = fillOf(input, choice.output);
+    if (fill > bestFill) {
+      best = choice;
+      bestFill = fill;
+    }
+  }
+  return best ?? firsts[0]!;
+}
+
+/** The control of `pack.fill`. It ignores the order of the items and the target aspect. `fillTrickChoice` tells how it chooses. */
 export const fillTrick: Strategy<Record<string, never>> = {
   id: FILL_TRICK,
   family: "control",
@@ -84,27 +118,7 @@ export const fillTrick: Strategy<Record<string, never>> = {
   defaults: {},
   deterministic: true,
   pack(input: PackInput, _options: Record<string, never>, context: PackContext): PackOutput {
-    const firsts = FILL_TRICK_MEMBERS.map((m) => packWith(m.id, input, m.options, context.seed));
-    const first = firsts[0]!;
-    const overflow = Math.min(...firsts.map((o) => o.overflow.length));
-    const clean = (o: PackOutput): boolean => hardBreaks(input, o) === 0 && o.overflow.length <= overflow;
-    const tried = input.container.shape !== undefined
-      ? []
-      : fillTrickWidths(input).flatMap((w) => {
-          const at: PackInput = { ...input, container: { ...input.container, fixed: "width", w } };
-          return FILL_TRICK_MEMBERS.map((m) => sizedFor(input, packWith(m.id, at, m.options, context.seed)));
-        });
-    let best: PackOutput | undefined;
-    let bestFill = -Infinity;
-    for (const output of [...firsts, ...tried]) {
-      if (!clean(output)) continue;
-      const fill = fillOf(input, output);
-      if (fill > bestFill) {
-        best = output;
-        bestFill = fill;
-      }
-    }
-    return best ?? first;
+    return fillTrickChoice(input, context.seed).output;
   },
 };
 
