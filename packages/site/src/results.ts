@@ -1,7 +1,7 @@
 // The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
 // The page reads only the snapshot files of `packages/site/data/`.
 
-import { atlasFilter, atlasTable, atlasTiles, regionsOf, ruleLine, type RegionState } from "./atlas-model.ts";
+import { atlasFilter, atlasTable, atlasTiles, branchRunLines, regionsOf, ruleLine, type RegionState } from "./atlas-model.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { marked } from "marked";
 import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover } from "./corpus-cover-model.ts";
@@ -381,6 +381,9 @@ function mountAtlas(): void {
   };
   $("atlas-text").innerHTML = marked.parse(atlasText, { async: false });
   $("atlas-rule").innerHTML = ruleLine(rule);
+  const records = branchRunLines(gapSnaps);
+  $("atlas-records").innerHTML = records.join(" ");
+  $("atlas-records").hidden = records.length === 0;
   $("atlas-tiles").innerHTML = atlasTiles(regions, rule);
   $("atlas-origin").innerHTML = originHtml(gapSnaps.flatMap((snap) => snap.origin));
   $("atlas-filter").addEventListener("click", (e) => {

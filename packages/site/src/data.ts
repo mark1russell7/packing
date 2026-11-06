@@ -388,6 +388,8 @@ export interface CoveragePoint {
   strategies?: string[];
   /** The method of the run. A point of a run before this field has no method. */
   method?: string;
+  /** The start of the run: the weekly schedule, a dispatch by hand, or a push. A point of a run before this field has no start. */
+  trigger?: "schedule" | "dispatch" | "push";
   /** The shares of this point over each earlier list that it contains, with one method. */
   over?: { strategies: string[]; shares: Record<string, number>; records?: number }[];
   /** The measured records of the point. */

@@ -1,8 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { SELECT_TABLE } from "@mark1russell7/packing";
 import {
   coverageEntries,
   COVERAGE_TOP,
+  snapshotMain,
+  writtenFiles,
+  writeSnapshot,
   coverageMethod,
   coverageSnapshot,
   earlierLists,
@@ -28,6 +34,7 @@ import {
   snapshotBudget,
   strategySnapshot,
   tableLeaves,
+  triggerOf,
   type LeafWins,
   type SnapshotRecord,
 } from "./snapshot.ts";
@@ -35,6 +42,54 @@ import { SLOW_SET, type PairedRecord } from "./paired.ts";
 import type { CoverageSummary } from "./coverage.ts";
 
 // The snapshots of the site (k32). Made-up records only.
+
+describe("the files that a run of the site data writes", () => {
+  const folders: string[] = [];
+  const folder = (files: Readonly<Record<string, string>>): string => {
+    const path = mkdtempSync(join(tmpdir(), "written-"));
+    folders.push(path);
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(path, name), text);
+    return path;
+  };
+  afterEach(() => {
+    for (const path of folders.splice(0)) rmSync(path, { recursive: true, force: true });
+  });
+
+  const before = { "gaps-pack-known-v1.json": "old known", "strategies-pack-free-v1.json": "free", "coverage.json": "coverage", "kpi.json": "kpi" };
+
+  it("gives a file that the run changed, and no file of another corpus", () => {
+    const after = folder({ ...before, "strategies-pack-free-v1.json": "new free" });
+    expect(writtenFiles(folder(before), after)).toEqual(["strategies-pack-free-v1.json"]);
+  });
+
+  it("gives a new file", () => {
+    const after = folder({ ...before, "gaps-pack-select-v2.json": "gaps" });
+    expect(writtenFiles(folder(before), after)).toEqual(["gaps-pack-select-v2.json"]);
+  });
+
+  it("gives no file that is not measured, although it changed", () => {
+    expect(writtenFiles(folder(before), folder({ ...before, "kpi.json": "new kpi" }))).toEqual([]);
+  });
+
+  it("gives nothing when a run changes nothing", () => {
+    expect(writtenFiles(folder(before), folder(before))).toEqual([]);
+  });
+
+  it("copies only these files to the output folder, and makes that folder", () => {
+    const after = folder({ ...before, "coverage.json": "new coverage", "select-table.json": "new table" });
+    const out = join(folder({}), "out");
+    snapshotMain(["written", folder(before), after, out]);
+    expect(readdirSync(out).sort()).toEqual(["coverage.json", "select-table.json"]);
+    expect(readFileSync(join(out, "coverage.json"), "utf8")).toBe("new coverage");
+    expect(existsSync(join(out, "gaps-pack-known-v1.json"))).toBe(false);
+  });
+
+  it("refuses a command with no output folder", () => {
+    const path = folder({});
+    mkdirSync(join(path, "after"));
+    expect(() => snapshotMain(["written", path, join(path, "after")])).toThrow("<output folder>");
+  });
+});
 
 describe("recordsOfStrategies", () => {
   const records = [{ strategy: "rows" }, { strategy: "skyline" }, { strategy: "shelf" }];
@@ -287,6 +342,20 @@ describe("the coverage snapshot (k105)", () => {
     const snap = coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { method: "repeats 5, warmup 2", over });
     expect(snap.trend[0]).toMatchObject({ method: "repeats 5, warmup 2", over });
     expect(coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { over: [] }).trend[0]).not.toHaveProperty("over");
+  });
+
+  it("records the start of the run of the point, and a point with no start has no field", () => {
+    const snap = coverageSnapshot(summary("2026-10-28", 0.6), origin, undefined, undefined, undefined, { method: "repeats 5, warmup 2", trigger: "dispatch" });
+    expect(snap.trend[0]).toMatchObject({ run: 7, method: "repeats 5, warmup 2", trigger: "dispatch" });
+    expect(coverageSnapshot(summary("2026-10-28", 0.6), origin).trend[0]).not.toHaveProperty("trigger");
+  });
+
+  it("gives the start of a run from its event, and refuses an unknown event", () => {
+    expect(triggerOf("schedule")).toBe("schedule");
+    expect(triggerOf("workflow_dispatch")).toBe("dispatch");
+    expect(triggerOf("push")).toBe("push");
+    expect(() => triggerOf("workflow_run")).toThrow(/workflow_run/);
+    expect(() => triggerOf("")).toThrow(/schedule, workflow_dispatch or push/);
   });
 
   it("names the method of a run, and a budget changes it", () => {
@@ -738,5 +807,22 @@ describe("the finished inputs of a snapshot (k153)", () => {
     const refused = gapSnapshot([gap("p", a), gap("q", a, { measures: {}, skipped: "unsupported containerSize: refused" })], { corpus: "c", origin, measure: "pack.gap" });
     expect("stopped" in refused).toBe(false);
     expect(refused.strategies.find((s) => s.strategy === "q")!.all.missing).toBe(1);
+  });
+});
+
+describe("the writer of the snapshot files (k186)", () => {
+  it("writes compact JSON with one line end, because the site bundles each file as raw text", () => {
+    const dir = mkdtempSync(join(tmpdir(), "snapshot-write-"));
+    try {
+      const value = { schema: "s", kind: "strategies", strategies: [{ strategy: "a", groups: [{ group: "g", wins: 1 }] }] };
+      const file = join(dir, "x.json");
+      writeSnapshot(file, value);
+      const text = readFileSync(file, "utf8");
+      expect(text).toBe(`${JSON.stringify(value)}\n`);
+      expect(text.split("\n")).toHaveLength(2);
+      expect(JSON.parse(text)).toEqual(value);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -265,6 +265,7 @@ const point = fields<CoveragePoint>({
   run: nullNum,
   corpus: text,
   commit: text,
+  trigger: optional(oneOf("schedule", "dispatch", "push")),
   strategies: optional(texts),
   method: optional(text),
   over: optional(list(fields<NonNullable<CoveragePoint["over"]>[number]>({ strategies: texts, shares: numbers, records: optional(num) }))),

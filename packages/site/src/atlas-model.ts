@@ -136,6 +136,23 @@ export function regionsOf(snap: GapSnapshot, rule: SolvedRule): Region[] {
   });
 }
 
+/**
+ * The bench runs of the gap records that did not start on `main`, with the branch of each run.
+ * The workflow `site-data.yml` refuses such a run, so this list does not grow.
+ */
+export const BRANCH_RUNS: Readonly<Record<number, string>> = { 40766464710: "k51-lower-bounds", 40768140939: "k45-known-best" };
+
+/** This function gives one line for each record with a run that did not start on `main`. A later run on `main` removes the line. */
+export function branchRunLines(snaps: readonly GapSnapshot[]): string[] {
+  return snaps.flatMap((snap) =>
+    snap.origin.flatMap((o) => {
+      const branch = o.run === null ? undefined : BRANCH_RUNS[o.run];
+      if (branch === undefined) return [];
+      return [`The regions on <code>${esc(snap.corpus)}</code> read the record of ${esc(o.date)}. Its run ${o.run} started on the branch <code>${esc(branch)}</code>, not on <code>main</code>.`];
+    }),
+  );
+}
+
 /** This function gives the count of regions in each state. */
 export function stateCounts(regions: readonly Region[]): Record<RegionState, number> {
   const counts: Record<RegionState, number> = { solved: 0, holds: 0, open: 0, "too-few": 0, "not-read": 0 };
@@ -154,7 +171,7 @@ export function atlasTiles(regions: readonly Region[], rule: SolvedRule): string
     ${tile("holds", "passes the test, the search has not run", counts.holds === 0 ? "unmeasured" : "mixed")}
     ${tile("open", "under the floor, or a search hit", counts.open === 0 ? "unmeasured" : "worse")}
     ${tile("too-few", "too few to pass the test", "unmeasured")}
-    ${tile("not-read", "from a run before the change of pack.gap", "unmeasured")}
+    ${tile("not-read", "an old run of pack.gap, or no read at the margin", "unmeasured")}
     <div class="tile unmeasured"><span>Weeks led</span><b>${rule.weekly.weeksLed} of ${rule.weekly.need}</b><small>${esc(rule.weekly.corpus)}, first possible ${esc(rule.weekly.firstPossible)}</small></div>`;
 }
 

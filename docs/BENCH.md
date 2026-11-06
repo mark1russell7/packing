@@ -212,6 +212,37 @@ node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
+## The tie moves
+
+A tie decides a place. A very small change of one size can break the tie and move other boxes far (roadmap item k149).
+
+`bench/tie-move.ts` reads each option set of each strategy on the family `tie-move/1`. The family has 90 inputs: 5 kinds, 3 container modes, the counts 8, 20 and 50, and 2 seeds. Each input has 2 changes: the width and the height of the middle item go up by 0.01.
+
+| Arm | Inputs | What it tells |
+| --- | --- | --- |
+| `ties` | Equal heights, equal widths, or identical items | The move on an input with ties |
+| `none` | No ties | The control: the same change with no tie to break |
+| `edge` | Sizes at the edge of a bucket of the margin | The adversary of the margin |
+| `marginTies` | The inputs of `ties` through the margin | The move with the margin |
+| `marginEdge` | The inputs of `edge` through the margin | The move when a change crosses an edge |
+
+The margin is a wrapper of the bench. Each size goes up to the top of its bucket of width 1, and a bucket has a whole number at its middle. A change inside a bucket gives the same input, so `marginTies` reads no move by construction. This is not a gain alone. Read it with `marginEdge` and with `fillLost`, the mean fill that the margin loses. The read does not tell about a margin inside the comparisons of a strategy.
+
+Each arm of a row of `bench/gates/tie-move.json` gives its changes, the changes with a move above 1 and the changes with another set of items. It also gives the largest move and its input. The table states what the strategies do. It is not a promise of a limit.
+
+The first read, on 2026-11-05, has these results:
+
+- 79 option sets pack, and 76 of them have a larger move on ties than on the control. The other 3 are `binary-height`, `exact-strip` and the slice-and-dice treemap. `exact-strip` refuses each changed input, because it needs whole sizes, so it has no read of a move.
+- Over all option sets, 3928 changes on ties move a box by more than 1. The control has 37 such changes, and the edge inputs have 1096.
+- Through the margin, 0 changes on ties move a box, and 1464 changes on the edge inputs move a box. Thus the margin moves the problem to the edge of a bucket, and it does not remove the problem.
+- The margin loses at most 0.038 of fill. The value of `fillLost` is below 0 on one treemap, where the margin gains fill.
+- At 8 boxes, the default sets of 5 strategies move a box by 97 to 198. The largest moves come at 50 boxes in the free forms, where the size of the container also changes.
+
+The control is not always quiet. A search or a score can also move far with no tie, as in `anneal`, `overlap-min` and `maxrects-cp`.
+
+`--check` reads again and fails on each difference, also when a move falls, so a change to a strategy shows in the table. CI starts the check on each PR. After a change to a strategy, start `node bench/tie-move.ts --write` and read the difference. The strategies `circle-quasi-physical` and `hole-degree` pack no input of this rect family, so their rows have 0 inputs.
+
 ## The flip tests
 
 A gate that has not gone red on a known fault is not known to work. `packages/packing/bench/gate-flip.ts` starts the real command of a gate in a child process. A clean copy of its input must pass, and each copy with an injected fault must fail. The job of the gate fails when a case gives another code.
@@ -222,9 +253,10 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Time gate | The arm is 3 times slower. A noisy A/A arm gives the code 3 on a first run, and the code 1 on a retry. The test reads a copy of a run with a pass. |
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
-| `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. With a high time floor, `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. With the usual floor, `maxrects-bl` over `rows` gives a fail on its time tail, because the records have 2 CPU models. |
+| `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. The records of that pair have 2 CPU models, so `maxrects-bl` over `rows` gives `no-read` at each floor, and `rows` over `maxrects-bl` gives a fail on its gain. |
 | Output rows | Half a position in each output of a strategy with whole rows, and half a size. The output must name the property. The table does not change. |
 | Data files of the site | The old `gaps-pack-known-v1.json` of the branch `site-data` must fail, name that file and `atMargin`, and print the order of a new field. A file with no reader must fail with its name. A clean copy must pass. |
+| Tie moves | A move of 100 on each change of a strategy. The output must name the arm. The table does not change. |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
@@ -487,6 +519,8 @@ Two checks hold the corpus:
 | The search gives the stored rows | `--check`, in `adversary.yml`, a job of `CI OK` | a change of the search, of a file that it reads for draws, hashes or values, of `rigor-generators`, of the corpus or of the workflow | The search changed its draws. The merge is blocked, because version 1 is frozen. |
 
 A change of the other package source, the entries or the lock file starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
+
+The report exits with the code 0, so a moved row is not seen on the PR that moves it. Thus `adversary.yml` also runs `--check` on main each Tuesday at 03:50 UTC. A red scheduled run asks for a dated answer: a new version of the rows, or a stated reason that the row stays.
 
 The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
 
@@ -1307,6 +1341,7 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/3`, roadmap
 - Each CI job of mode `fresh` with the A/A arm gives one job of the pooled verdict. The candidate pair is (default, candidate), and the A/A pair is (default, `<default>~aa`).
 - Each input and each round of a report give one record of each pair. The two pairs share the time of the default of the round.
 - The first arm of a record comes from the order of `armOrder`. That order rotates the arms of the report by the round.
+- Each time gate prints the counts per order of its pair, and the order size from `orderSize` of `@mark1russell7/rigor-bench`. The size is a guide: it holds for a mean, and the verdict reads a median. If a future margin of a limit falls under approximately 3 times the size, even counts come back.
 - The job `j` uses the rounds from `j` times the rounds of a job. Thus the merged records have one record of each case and round.
 - With 3 arms, the rotation does not turn each pair in each round. In 5 rounds, the candidate pair starts with the default 3 times, and the A/A pair 2 times.
 - The balance of the orders then removes 4 records of each case in each pair from 5 jobs. The record keeps this count.
@@ -1330,7 +1365,7 @@ The proposal 0.156 is the worst job plus the spread of the jobs (0.1379 + 0.0183
 
 - After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value plus the spread of 5 runs).
 
-The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
+The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. The record prints each CPU model with its job count. With 2 models, it states "models not tested at 5 jobs" and the floor of the model test as the reason. At a split of 3 and 2 jobs, the smallest p is 0.2. The verdict reads the ratios inside each job, and it does not say that the models agree. A page that quotes a budget result carries the same line. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 
 ### The speed claims
 
@@ -1548,6 +1583,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 ## The snapshots of the site
 
 The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
+The script writes compact JSON with no indent, because the site bundles each file as raw text. A file of 64 strategies is approximately 140 KB, and the limit of the test is 200,000 bytes for each file.
 
 The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A run folder holds the files of one artifact: `records.jsonl`, `run.json` and `corpus.json`. Download it with `gh run download <id>` into a folder outside git.
 
@@ -1565,9 +1601,13 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
-A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
+A completed run of `coverage-nightly.yml` on `main` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch.
 
-The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A scheduled run also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
+A run that a person starts gives a point too, because a point is a measure, but a cancelled run gives no point.
+Each point records the start of its run: `schedule`, `dispatch` or `push`. The trend shows it with the link of the run. The start does not change the line of a point.
+`bench/site-data-trigger.test.ts` holds the condition of the job. Before this change, a filter on the event lost the point of run 41993720877, which measured for 8 hours.
+
+The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A completed run on `main` also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
 
 - A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
 - A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
@@ -1590,7 +1630,12 @@ The workflow `site-rerun.yml` reruns the other five corpora of the site each Wed
 - A measured cell of `pack.gapToOpt`, or of `pack.gap` from a new run, needs its read at the margin. An old run of `pack.gap` goes without it.
 - A red Pages build does not deploy, so the last good page stays up.
 - Each build prints the count of the fields that hold a value while their state is `not read`. A row in that state states nothing false, so only this count shows a whole class of such rows.
-- The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.
+- A run writes only the files that it changes. The job `snapshot` compares each file with the copy that it made after the overlay, with `snapshot.ts written`. The job `publish` removes nothing from the branch.
+- A file on the branch stays until a run for its corpus writes it.
+- The build in `pages.yml` compares the time in the `origin` of each file. It takes a file of the branch only if that time is later than on `main`. The time is the date of the latest run, then the run id for two runs of one day. A tie goes to `main`.
+- A file with no readable time stops the build with the file name, on either side. Each build prints the source of each file of the branch. A build without the branch uses the files of `main`.
+- A later file of the branch can still lack a new field, so this rule does not replace a read of each file.
+- A file on `main` that is later than `coverage.json` of the branch hides the points of the trend that are only on the branch.
 - The table of the gaps has one column for each strategy, so the job keeps 6 strategies with `--strategies`.
 - `--date` gives the start date of the run. The age of the data counts from that date, and not from the date of the commit.
 
@@ -1619,7 +1664,7 @@ The results page reads each cell of a gap snapshot as a region (roadmap item k10
 - `pack.gapToOpt` compares with a known best value, so its margin stays 0 plus a numeric tolerance.
 - `pack.gap` has a margin of 0 until the exact runs measure the slack of the bound. Then a cell takes a high quantile of this slack, with its run.
 - A margin of 0 reads `optimal on N inputs`. A measured slack reads `within the bound's slack on N inputs`.
-- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. It shows no distance.
+- A row of `pack.gap` from a run before the change of that measure reads `not read on the current measure`. A row of any measure with no read at the margin reads the same. These rows show no distance.
 - The best strategy of a row is a pick after the fact: the same inputs choose it and score it. The selector column shows the figure that a user gets.
 - The Wilson bound counts the inputs as independent. This page does not prove that they are independent.
 - A strategy can also lead a weekly corpus. The count of weeks led needs 4 weekly points.

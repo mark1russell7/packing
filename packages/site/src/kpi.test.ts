@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { changelogVersions, kpiInput, releaseReading, segmentOf, staleText, trendLines, trendSegments, weeklyTrend, type KpiFacts, type SegmentedPoint } from "./kpi.ts";
+import { changelogFaults, changelogVersions } from "@mark1russell7/site-pages";
+import { kpiInput, segmentOf, staleText, trendLines, trendSegments, weeklyTrend, type KpiFacts, type SegmentedPoint } from "./kpi.ts";
 
 const at = (date: string): number => Date.parse(`${date}T12:00:00Z`);
 
@@ -21,32 +23,46 @@ describe("the stale text", () => {
     const OLD = "2026-11-01T00:00:00Z";
     const released = { release: "0.8.0", tags: ["0.8.0", "0.7.0", "0.6.0"], versionAt: OLD, shownReleases: ["0.8.0", "0.7.0", "0.6.0"], changelogReleases: ["0.8.0", "0.7.0", "0.6.0"] };
     const bumped = { ...released, release: "0.9.0", changelogReleases: ["0.9.0", ...released.changelogReleases] };
+    const releaseRead = (facts: Partial<KpiFacts>): { stale: number; inFlight?: string } => {
+      const measures = kpiInput({ ...FACTS, ...facts }, NOW).measures;
+      const stale = measures.find((m) => m.id === "stale-text")!.value;
+      const flight = measures.find((m) => m.id === "release-in-flight")!;
+      return flight.value === 0 ? { stale } : { stale, inFlight: flight.unit!.replace("version ", "") };
+    };
 
     it("reads 0 and no version in flight when the version has a tag and the news shows each version", () => {
-      expect(releaseReading(released, NOW)).toEqual({ stale: 0 });
+      expect(releaseRead(released)).toEqual({ stale: 0 });
     });
 
     it("names a version with no tag and a version commit under 1 day old, and does not count it", () => {
-      expect(releaseReading({ ...bumped, versionAt: "2026-11-05T11:00:00Z" }, NOW)).toEqual({ stale: 0, inFlight: "0.9.0" });
+      expect(releaseRead({ ...bumped, versionAt: "2026-11-05T11:00:00Z" })).toEqual({ stale: 0, inFlight: "0.9.0" });
     });
 
     it("counts a version with no tag and a version commit of 1 day or more, once", () => {
-      expect(releaseReading({ ...bumped, versionAt: "2026-11-04T12:00:00Z" }, NOW)).toEqual({ stale: 1 });
-      expect(releaseReading({ ...bumped, versionAt: OLD }, NOW)).toEqual({ stale: 1 });
+      expect(releaseRead({ ...bumped, versionAt: "2026-11-04T12:00:00Z" })).toEqual({ stale: 1 });
+      expect(releaseRead({ ...bumped, versionAt: OLD })).toEqual({ stale: 1 });
     });
 
     it("counts a version with a tag that the news does not show, at any age", () => {
-      expect(releaseReading({ ...released, shownReleases: ["0.7.0", "0.6.0"], versionAt: "2026-11-05T11:00:00Z" }, NOW)).toEqual({ stale: 1 });
+      expect(releaseRead({ ...released, shownReleases: ["0.7.0", "0.6.0"], versionAt: "2026-11-05T11:00:00Z" })).toEqual({ stale: 1 });
     });
 
     it("counts a missing middle release, also beside a version in flight", () => {
-      expect(releaseReading({ ...released, shownReleases: ["0.8.0", "0.6.0"] }, NOW)).toEqual({ stale: 1 });
-      expect(releaseReading({ ...bumped, shownReleases: ["0.8.0", "0.6.0"], versionAt: "2026-11-05T11:00:00Z" }, NOW)).toEqual({ stale: 1, inFlight: "0.9.0" });
+      expect(releaseRead({ ...released, shownReleases: ["0.8.0", "0.6.0"] })).toEqual({ stale: 1 });
+      expect(releaseRead({ ...bumped, shownReleases: ["0.8.0", "0.6.0"], versionAt: "2026-11-05T11:00:00Z" })).toEqual({ stale: 1, inFlight: "0.9.0" });
     });
 
     it("reads 0 for a release on the list that the changelog does not name", () => {
-      expect(releaseReading({ ...released, shownReleases: [...released.shownReleases, "0.1.0"] }, NOW)).toEqual({ stale: 0 });
+      expect(releaseRead({ ...released, shownReleases: [...released.shownReleases, "0.1.0"] })).toEqual({ stale: 0 });
     });
+  });
+
+  it("states what the measure leaves out", () => {
+    expect(kpiInput(FACTS, 0).measures.find((m) => m.id === "stale-text")?.notCounted).toContain("a script draws");
+  });
+
+  it("reads the changelog of the package with no fault", () => {
+    expect(changelogFaults(readFileSync(new URL("../../packing/CHANGELOG.md", import.meta.url), "utf8"))).toEqual([]);
   });
 
   it("adds both to the measure of the file", () => {
@@ -111,6 +127,13 @@ describe("the segments of the trend", () => {
   it("says how many points give the 1 on one list", () => {
     expect(measure([{ ...point("2026-11-02", 1, ["a", "b"]), method: m }, { ...point("2026-11-09", 2, ["a", "b"]), method: m }], "2026-11-10")?.unit).toBe("2 points on the same 2");
     expect(measure([point("2026-11-09", 2, ["a"])], "2026-11-10")).not.toHaveProperty("unit");
+  });
+
+  it("keeps a point of a dispatch and a point of the schedule in one line (k185)", () => {
+    const m = "repeats 5, warmup 2, budget";
+    const trend = [{ ...point("2026-11-05", 1, ["a"]), method: m, trigger: "dispatch" }, { ...point("2026-11-09", 2, ["a"]), method: m, trigger: "schedule" }];
+    expect(segmentOf(trend[0]!)).toBe(segmentOf(trend[1]!));
+    expect(measure(trend, "2026-11-10")).toMatchObject({ value: 1, unit: "2 points on the same 1" });
   });
 
   it("keeps one corpus with one list in one segment, in any order of the list", () => {

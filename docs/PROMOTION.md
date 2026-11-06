@@ -93,6 +93,19 @@ The screens test many ideas on one corpus, so some ideas pass by chance. The gai
 The sign test replaces a fixed share of better inputs. A share of 60% of 20 inputs is not a signal, but 60% of 2000 inputs is a strong signal.
 <!-- /shared:noise-guard -->
 
+### A time test across CPU models
+
+A time ratio compares two computers when its pairs do not have one known CPU model. So the win test has a third result.
+
+- The status `no read` needs each other test to pass, and time pairs without one known model. Its reason gives the count and the names of the models, for example `no read: 2 CPU models (A, B)`.
+- The status `no read` also comes from a measured record of the candidate with the value `null` in `deterministic`: one run gives no read of determinism. A skipped record does not count, and the value `false` stays a fail.
+- The field `pass` is false on `no read`, so a promotion cannot go through. The field `status` carries the difference. It is not a claim of a loss.
+- A fail on the hard rules, a guard, stability or gain stands. Those measures do not depend on the computer. The time test is then not a failed part.
+- A record with no CPU model gives `unknown`, and `unknown` is not a known model.
+- The option `--expect` of a fixed pair takes `pass`, `fail` or `no-read`.
+
+The time budget of `bench/time-budget.ts` reads a ratio inside each job, so a job on another model does not stop it. At 5 jobs, the model test cannot read a difference, because the smallest p of a split of 3 and 2 is 0.2. So the record prints each model with its job count and "models not tested at 5 jobs", with that floor as the reason. It does not say that the models agree.
+
 <!-- shared:confirmation-run -->
 ### The confirmation run
 

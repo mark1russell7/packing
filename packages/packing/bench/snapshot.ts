@@ -8,12 +8,14 @@
 //   node bench/snapshot.ts gaps <run folder> --run <id> --measure pack.gap|pack.gapToOpt [--release <version>] [--date YYYY-MM-DD] [--strategies <a,b>] [--out <file>] (the margins of data/solved-rule.json decide the count at the margin)
 //   node bench/snapshot.ts coverage <run folder> --run <id> --date YYYY-MM-DD [--release <version>] [--out <file>] [--sample <dir>] [--active <dir>] [--features family|input]
 //
+//   node bench/snapshot.ts written <folder before> <folder after> <output folder>
+//
 // A run folder holds the files of one artifact of `bench.yml` or `paired.yml`: `records.jsonl`, `run.json` and `corpus.json`.
 // `docs/BENCH.md` ("The snapshots of the site") tells the commands of the snapshots of today.
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -31,6 +33,7 @@ import {
   type SelectNode,
 } from "@mark1russell7/packing";
 import { verdict, type VerdictLabel, type VerdictRecord } from "@mark1russell7/layout-contract";
+import { firstSentence, sectionMarksBreak } from "@mark1russell7/site-pages";
 import {
   coverage,
   coverageOptions,
@@ -604,12 +607,6 @@ export interface ReleaseTag {
 /** The address of the repository on GitHub */
 export const REPO_URL = "https://github.com/mark1russell7/packing";
 
-/** This function gives the first sentence of a text. A sentence ends at a full stop before a space or the end. */
-function firstSentence(text: string): string {
-  const m = /^(.*?\.)(\s|$)/s.exec(text.trim());
-  return (m?.[1] ?? text.trim()).replace(/\s+/g, " ");
-}
-
 /**
  * This function gives the entries of the releases of `CHANGELOG.md` that have a tag. The title is the first sentence of the
  * first paragraph, or of the first list item without its `New:` or `Fix:` prefix. The entries come newest first.
@@ -627,7 +624,7 @@ export function releaseEntries(changelog: string, tags: readonly ReleaseTag[]): 
     const text = (para ?? "").startsWith("- ") ? (para ?? "").split("\n")[0]!.slice(2).replace(/^(New|Fix|Change):\s*/, "") : (para ?? "");
     const sentence = firstSentence(text);
     const title = sentence.charAt(0).toUpperCase() + sentence.slice(1);
-    const breaking = /has breaking changes/.test(body) || /^### Breaking/m.test(body);
+    const breaking = sectionMarksBreak(body);
     const pr = /\(#(\d+)\)\s*$/.exec(tag.subject)?.[1];
     out.push({
       release: version,
@@ -944,6 +941,16 @@ export interface CoverageOver {
   records?: number;
 }
 
+/** The start of the run of a coverage point: the weekly schedule, a dispatch by hand, or a push. */
+export type CoverageTrigger = "schedule" | "dispatch" | "push";
+
+/** This function gives the start of a run from the event of the run in GitHub Actions. An unknown event is an error. */
+export function triggerOf(event: string): CoverageTrigger {
+  if (event === "schedule" || event === "push") return event;
+  if (event === "workflow_dispatch") return "dispatch";
+  throw new Error(`The event of a coverage run must be schedule, workflow_dispatch or push, not '${event}'.`);
+}
+
 /** One point of the trend of the coverage: the share of each measure on one date */
 export interface CoveragePoint {
   date: string;
@@ -957,6 +964,8 @@ export interface CoveragePoint {
   strategies?: string[];
   /** The method of the run, from `coverageMethod`. A point of a run before this field has no method, so it joins no other point. */
   method?: string;
+  /** The start of the run. A point of a run before this field has no start. The start does not change the line of a point. */
+  trigger?: CoverageTrigger;
   /** The shares of this point over each earlier list that it contains, with one method. Each one continues the line of that list. */
   over?: CoverageOver[];
   /** The measured records of the point. A slow pair that loses its row lowers this count, and the entry keeps its row. */
@@ -1209,7 +1218,13 @@ export function coverageSnapshot(
   earlier?: CoverageSnapshot,
   byInput?: CoverageSummary,
   entries?: CoverageEntries,
-  line?: { readonly method?: string; readonly over?: readonly CoverageOver[]; readonly lost?: readonly CoverageOtherEntry[]; readonly step?: CoverageStep },
+  line?: {
+    readonly method?: string;
+    readonly trigger?: CoverageTrigger;
+    readonly over?: readonly CoverageOver[];
+    readonly lost?: readonly CoverageOtherEntry[];
+    readonly step?: CoverageStep;
+  },
 ): CoverageSnapshot {
   const second = new Map((byInput?.measures ?? []).map((m) => [m.id, m]));
   const sampled = new Map((summary.sampled?.measures ?? []).map((m) => [m.id, m]));
@@ -1221,6 +1236,7 @@ export function coverageSnapshot(
     commit: origin.commit,
     strategies: [...summary.strategies].sort(),
     ...(line?.method === undefined ? {} : { method: line.method }),
+    ...(line?.trigger === undefined ? {} : { trigger: line.trigger }),
     ...(line?.over === undefined || line.over.length === 0 ? {} : { over: [...line.over] }),
     records: summary.records,
     ...(line?.step === undefined ? {} : { step: line.step }),
@@ -1484,11 +1500,14 @@ export function recordsOfStrategies<R extends { strategy: string }>(records: rea
   return records.filter((r) => names.includes(r.strategy));
 }
 
-/** This function writes a snapshot as JSON with one line end at the end. */
-function writeSnapshot(file: string | URL, value: unknown): void {
+/**
+ * This function writes a snapshot as compact JSON with one line end at the end.
+ * The site bundles each file as raw text, so each space is page weight (k186).
+ */
+export function writeSnapshot(file: string | URL, value: unknown): void {
   const path = file instanceof URL ? fileURLToPath(file) : resolve(file);
   mkdirSync(dirname(path), { recursive: true });
-  const text = `${JSON.stringify(value, null, 1)}\n`;
+  const text = `${JSON.stringify(value)}\n`;
   writeFileSync(path, text);
   console.log(`${path}: ${text.length} bytes`);
 }
@@ -1524,10 +1543,35 @@ function leavesOfRun(name: string, specs: readonly CorpusSpec[], records: readon
   };
 }
 
+/** The form of the name of a measured file of the branch `site-data`. */
+const MEASURED_FILE = /^(?:strategies-.+|gaps-.+|coverage|select-table)\.json$/;
+
+/** This function gives the names of the measured files of `after` that are new or differ from `before`, in name order. */
+export function writtenFiles(before: string, after: string): string[] {
+  const differs = (name: string): boolean => {
+    const earlier = join(before, name);
+    return !existsSync(earlier) || !readFileSync(earlier).equals(readFileSync(join(after, name)));
+  };
+  return readdirSync(after)
+    .filter((name) => MEASURED_FILE.test(name) && differs(name))
+    .sort();
+}
+
 /** This function starts a snapshot from the arguments of the command line. */
 export function snapshotMain(argv: readonly string[]): void {
   const [kind, folder] = argv;
   const out = optionOf(argv, "--out");
+  // The files that a run of `site-data.yml` writes. A file of another corpus stays out, so the branch keeps it as its own run wrote it.
+  if (kind === "written") {
+    const [, before, after, target] = argv;
+    if (before === undefined || after === undefined || target === undefined) throw new Error("The command written needs <folder before> <folder after> <output folder>.");
+    mkdirSync(target, { recursive: true });
+    for (const name of writtenFiles(before, after)) {
+      copyFileSync(join(after, name), join(target, name));
+      console.log(name);
+    }
+    return;
+  }
   if (kind === "strategies" && folder !== undefined) {
     const run = Number(optionOf(argv, "--run"));
     if (!Number.isInteger(run)) throw new Error("The snapshot strategies needs --run <id>.");
@@ -1604,6 +1648,8 @@ export function snapshotMain(argv: readonly string[]): void {
     const entries = othersWithWords(coverageEntries(records, ENTRIES.map((e) => e.id), noRowOf(optionOf(argv, "--no-row")), run.errors ?? []));
     // A new entry does not restart a line: the same fit over an earlier list gives the next point of that line.
     const method = coverageMethod(run);
+    const event = optionOf(argv, "--event");
+    const trigger = event === undefined ? undefined : triggerOf(event);
     const over = earlierLists(earlier?.trend ?? [], run.corpus, method, grid.strategies).map((list) => {
       const kept = new Set(list);
       const fit = coverage(records.filter((r) => kept.has(r.strategy)), manifest, { ...options, by: "spec" });
@@ -1615,7 +1661,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const earlierFolder = optionOf(argv, "--earlier");
     const step = readStep(earlier?.trend ?? [], { corpus: run.corpus, method, strategies: grid.strategies, run: options.run ?? undefined, records, manifest, options, ...(earlierFolder === undefined ? {} : { folder: earlierFolder }) });
     if (step !== undefined) console.log(`The step from run ${step.from}: ${"noRead" in step ? `no read: ${step.noRead}` : `${step.common} common of ${step.of} pairs`}`);
-    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), over, lost, ...(step === undefined ? {} : { step }) }));
+    writeSnapshot(file, coverageSnapshot(bySpec, origin, earlier, byInput, entries, { ...(method === undefined ? {} : { method }), ...(trigger === undefined ? {} : { trigger }), over, lost, ...(step === undefined ? {} : { step }) }));
     return;
   }
   if (kind === "paired" && folder !== undefined) {
