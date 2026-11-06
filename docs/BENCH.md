@@ -2500,6 +2500,21 @@ Roadmap item k141 adds 14 entries to `ENTRIES`: `STANDALONE_ENTRIES` of `bench/e
 - Roadmap item k142 adds 9 strata to the sampler, 38 in all. The strata `exact-strip:1` and `treemap:1` accept few inputs, so a short sample misses them.
 - The entries are not members of the adversary or of the portfolio tools, because they do not support each cell.
 
+## The split of the free space
+
+`bench/split-fill.ts` reads the mean fill of 4 placements alone and through the split `obstacle-cuts` of roadmap item k41. It has 120 inputs of `rect-grid`: 6 obstacle layouts, a fixed size and a free height, 10 seeds and 60 items. The prediction is `packing-k41-split-stage`.
+
+| Placement | Fill alone | Fill through `obstacle-cuts` | Overflow alone | Overflow through `obstacle-cuts` |
+| --- | --- | --- | --- | --- |
+| `skyline` | 0.5854 | 0.6260 | 176 | 95 |
+| `maxrects` | 0.5246 | 0.5887 | 45 | 94 |
+| `rows` | 0.7022 | 0.6178 | 265 | 95 |
+| `shelf` | 0.7179 | 0.6152 | 349 | 98 |
+
+- The prediction told a lower fill for `skyline` through the split. The fill is higher, so this outcome is a miss.
+- Through the split, `rows` and `shelf` have a lower fill and fewer overflow items. The fill reads only the placed items, so a placement with more items in the overflow can have a higher fill.
+- `maxrects` packs around the obstacles by itself, and has more overflow items through the split. Thus a split helps a placement that packs one rectangle, and not a placement that packs around obstacles.
+
 ## The rank window
 
 `bench/window.ts` measures the curve of the idea `new-rank-window` of roadmap item k31. A height and an order are not a time, so any computer can start it. The prediction is `packing-k31-rank-window`.
