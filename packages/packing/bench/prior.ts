@@ -54,10 +54,10 @@ export const SAMPLER_FAMILIES: readonly string[] = Object.freeze(corpusFamilies.
  * An `adversary` input is a searched worst case, not a draw of its origin family. Thus it gives no weight.
  * A `change-walk` input is a step of a chain, and the sampler does not draw it. Thus it gives no weight.
  */
-export const PRIOR_ALIASES: Readonly<Record<string, string | null>> = Object.freeze({ "adversary@1": null, "change-walk@1": null });
+export const PRIOR_ALIASES: Readonly<Record<string, string | null>> = Object.freeze({ "adversary@1": null, "adversary@2": null, "change-walk@1": null });
 
 /** The corpus families that are a stratum of their own. They give no weight, and the basis gives their inputs apart. An `adversary` input is a deliberate worst case. */
-export const PRIOR_STRATA: readonly string[] = Object.freeze(["adversary@1"]);
+export const PRIOR_STRATA: readonly string[] = Object.freeze(["adversary@1", "adversary@2"]);
 
 /**
  * This function gives the sampler family of a corpus family, or `null` when the sampler does not draw it.

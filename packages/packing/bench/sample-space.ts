@@ -52,6 +52,7 @@ import {
   type StrategyConfig,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
+import { random, stablePick } from "@mark1russell7/rigor-generators";
 import { finite, hasClockLimit, pairValues, timeRuns, type BenchEnv } from "./run.ts";
 import { parseShard, shardInputs, type Shard } from "./shard.ts";
 
@@ -556,6 +557,16 @@ export interface InputDrawOptions {
   readonly knobs?: boolean;
   /** The scale of the knobs. The default is `absolute`. A relative draw puts the ratios in `ratios` and 0 in `dims`. */
   readonly knobScale?: KnobScale;
+  /**
+   * The version of the draw (roadmap item k164). The default is 1, so each stored sample stays the same.
+   *
+   * - Version 1 reads a list by its length, and a draw reads more numbers for a family with more dimensions. A new family
+   *   or a new value of a list thus moves each later draw. This is the stored fault of version 1.
+   * - Version 2 reads one number of the stream for each draw. It draws in a stream of its own from that number, and picks a
+   *   family or a value of a list with `stablePick`. A new family or value then moves only the draws that it wins, approximately
+   *   1 in n + 1 of them.
+   */
+  readonly drawVersion?: 1 | 2;
 }
 
 /** The knobs of a family that `--no-knobs` keeps at their defaults. */
@@ -590,9 +601,18 @@ export function drawDimension(r: Random, d: CorpusDimension): ParamValue {
   return Math.min(max, Math.max(min, Math.round(v * f) / f));
 }
 
+/** This function draws one value of a dimension for version 2 of the draw: `stablePick` for a list, else `drawDimension`. */
+function drawDimensionV2(r: Random, d: CorpusDimension): ParamValue {
+  if (d.kind !== "enum" && d.kind !== "bool") return drawDimension(r, d);
+  return stablePick(Math.floor(r() * 0x1_0000_0000), supportedList(d), String);
+}
+
 /** This function draws an input: a family with the same chance for each family, then each active dimension of the family. */
-export function drawInput(r: Random, families: readonly CorpusFamily<GeneratedInput>[], options: InputDrawOptions = {}): InputDraw {
-  const f = families[Number(uniformBig(r, BigInt(families.length)))]!;
+export function drawInput(given: Random, families: readonly CorpusFamily<GeneratedInput>[], options: InputDrawOptions = {}): InputDraw {
+  const stable = options.drawVersion === 2;
+  const own = stable ? random(Math.floor(given() * 0x1_0000_0000)) : undefined;
+  const r: Random = own === undefined ? given : () => own.next();
+  const f = stable ? stablePick(Math.floor(r() * 0x1_0000_0000), families, (x) => `${x.name}@${x.version}`) : families[Number(uniformBig(r, BigInt(families.length)))]!;
   const dims: Record<string, ParamValue> = {};
   const ratios: Record<string, number> = {};
   for (const d of f.dimensions) {
@@ -604,7 +624,7 @@ export function drawInput(r: Random, families: readonly CorpusFamily<GeneratedIn
       dims[d.name] = 0;
       continue;
     }
-    dims[d.name] = drawDimension(r, d);
+    dims[d.name] = stable ? drawDimensionV2(r, d) : drawDimension(r, d);
   }
   const seed = Math.floor(r() * 2147483648);
   return { family: f.name, version: f.version, dims, seed, ...(Object.keys(ratios).length === 0 ? {} : { ratios }) };

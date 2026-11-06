@@ -159,13 +159,13 @@ export interface AdversaryResult {
 }
 
 /** A whole number from lo to hi, both included. */
-const int = (r: () => number, lo: number, hi: number): number => lo + Math.floor(r() * (hi - lo + 1));
+export const int = (r: () => number, lo: number, hi: number): number => lo + Math.floor(r() * (hi - lo + 1));
 
 /** One size of an item. */
-type Size = readonly [number, number];
+export type Size = readonly [number, number];
 
 /** The state of the search: the origin, the container, the cell of the origin and the sizes in the order of the input. */
-interface State {
+export interface State {
   origin: Origin;
   container: LayoutContainer;
   cell: CorpusCell;
@@ -196,16 +196,16 @@ export function candidateFile(options: AdversaryOptions, state: Pick<State, "ori
 }
 
 /** This function gives the cell of a candidate: the cell of its origin with the count of its items. */
-const cellOf = (state: State): CorpusCell => ({ ...state.cell, count: countCell(state.sizes.length) });
+export const cellOf = (state: State): CorpusCell => ({ ...state.cell, count: countCell(state.sizes.length) });
 
 /** The value of an entry on an input, and the count of its breaks of the hard rules. */
-interface EntryValue {
+export interface EntryValue {
   value: number;
   hard: number;
 }
 
 /** This function packs an input with an entry. It gives `undefined` when the entry does not support the cell or the measure has no value. */
-function valueOf(id: string, input: PackInput, cell: CorpusCell, seed: number, kind: LossMeasure): EntryValue | undefined {
+export function valueOf(id: string, input: PackInput, cell: CorpusCell, seed: number, kind: LossMeasure): EntryValue | undefined {
   const e = entry(id);
   const s = strategy(e.strategy);
   if (unsupportedOf(s.supports, cell) !== undefined) return undefined;
@@ -222,7 +222,7 @@ function valueOf(id: string, input: PackInput, cell: CorpusCell, seed: number, k
 }
 
 /** This type is the function that gives the value of one entry on one input. */
-type ValueRead = typeof valueOf;
+export type ValueRead = typeof valueOf;
 
 /**
  * This function gives the value of an entry with a changed strategy, for the flip test.
@@ -261,17 +261,17 @@ export const lossMeasureOf = (container: LayoutContainer): LossMeasure => (conta
 
 /**
  * This function gives the loss of A to B on one input. It gives `undefined` when B breaks a hard rule, when A or B does
- * not support the cell, or when a measure has no value. With `best`, B is the single entry with the best value and no
- * break. The first entry of `SINGLE_ENTRIES` wins a tie.
+ * not support the cell, or when a measure has no value. With `best`, B is the entry of `pool` with the best value and no
+ * break. The first entry of `pool` wins a tie. The default pool is `SINGLE_ENTRIES`, the pool of version 1.
  */
-export function lossOf(a: string, b: string, file: GeneratedInput, cell: CorpusCell, read: ValueRead = valueOf): Loss | undefined {
+export function lossOf(a: string, b: string, file: GeneratedInput, cell: CorpusCell, read: ValueRead = valueOf, pool: readonly string[] = SINGLE_ENTRIES): Loss | undefined {
   const input = toPackInput(file);
   const kind = lossMeasureOf(file.container);
   const valueA = read(a, input, cell, file.seed, kind);
   if (valueA === undefined) return undefined;
   let winner: string | undefined;
   let valueB: number | undefined;
-  for (const id of b === BEST ? SINGLE_ENTRIES.filter((x) => x !== a) : [b]) {
+  for (const id of b === BEST ? pool.filter((x) => x !== a) : [b]) {
     const v = read(id, input, cell, file.seed, kind);
     if (v === undefined || v.hard > 0) continue;
     if (valueB === undefined || (kind === "fill" ? v.value > valueB : v.value < valueB)) {
@@ -397,7 +397,7 @@ function paramSpace(name: string, maxCount: number): ParamSpace[] {
 const randomValue = (p: ParamSpace, r: () => number): string | number => (p.values !== undefined ? p.values[int(r, 0, p.values.length - 1)]! : int(r, p.min!, p.max!));
 
 /** This function gives the state of an origin. A list longer than `maxCount` keeps its first `maxCount` items. */
-function stateOf(origin: Origin, maxCount: number): State {
+export function stateOf(origin: Origin, maxCount: number): State {
   const gen = generator(origin.generator, origin.version);
   const file = gen.generate(origin.seed, origin.params);
   return {
@@ -434,7 +434,7 @@ function mutateOrigin(origin: Origin, maxCount: number, r: () => number): { orig
 }
 
 /** This function tells the origin of a state in a move of the path. */
-const startMove = (o: Origin): string => `start ${o.generator} ${Object.entries(o.params).map(([k, v]) => `${k}=${v}`).join(" ")} seed=${o.seed}`;
+export const startMove = (o: Origin): string => `start ${o.generator} ${Object.entries(o.params).map(([k, v]) => `${k}=${v}`).join(" ")} seed=${o.seed}`;
 
 /**
  * This function searches for the input where A loses most to B. It is a seeded hill climb with restarts.
@@ -512,13 +512,13 @@ export function searchAdversary(options: AdversaryOptions, observe?: (file: Gene
 }
 
 /** This function rounds a number to 6 decimals, for the file of the corpus. */
-const round6 = (x: number): number => Math.round(x * 1e6) / 1e6 + 0;
+export const round6 = (x: number): number => Math.round(x * 1e6) / 1e6 + 0;
 
 /** This function gives the options of the search of a pair of the corpus. */
 export const pairOptions = ([a, b]: readonly [string, string]): AdversaryOptions => ({ a, b, seed: ADVERSARY_SEED, budget: ADVERSARY_BUDGET, maxCount: ADVERSARY_MAX_COUNT });
 
 /** This function gives a JSON value on one line, with a space after each colon and each comma. */
-function inline(value: unknown): string {
+export function inline(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(inline).join(", ")}]`;
   if (value !== null && typeof value === "object") return `{${Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${inline(v)}`).join(", ")}}`;
   return JSON.stringify(value);
