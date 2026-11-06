@@ -1619,8 +1619,11 @@ The workflow `site-rerun.yml` reruns the other five corpora of the site each Wed
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
 - A run writes only the files that it changes. The job `snapshot` compares each file with the copy that it made after the overlay, with `snapshot.ts written`. The job `publish` removes nothing from the branch.
-- A file on the branch stays until a run for its corpus writes it, and the files of the branch replace the files of `main`.
-- The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.
+- A file on the branch stays until a run for its corpus writes it.
+- The build in `pages.yml` compares the time in the `origin` of each file. It takes a file of the branch only if that time is later than on `main`. The time is the date of the latest run, then the run id for two runs of one day. A tie goes to `main`.
+- A file with no readable time stops the build with the file name, on either side. Each build prints the source of each file of the branch. A build without the branch uses the files of `main`.
+- A later file of the branch can still lack a new field, so this rule does not replace a read of each file.
+- A file on `main` that is later than `coverage.json` of the branch hides the points of the trend that are only on the branch.
 - The table of the gaps has one column for each strategy, so the job keeps 6 strategies with `--strategies`.
 - `--date` gives the start date of the run. The age of the data counts from that date, and not from the date of the commit.
 

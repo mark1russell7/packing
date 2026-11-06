@@ -187,6 +187,7 @@ Status: done, done, waiting, next, done.
 | k177 | The home page reached the response explorer only through a bare word in the menu. A line in the served HTML of the home page says what the explorer answers, with a link. | site | done | |
 | k165 | Mode `fresh` of `armOrder` rotates the arms by round, so with 3 or more arms one arm of a pair goes first in 2 of 3 rounds. The gate `k130-time` has 3 arms: the base, its A/A copy and the arm. When `rigor-bench` has its mirrored order, `armOrder` calls it, a read gives the order effect on the kept records, and the PR states if a limit moves. | bench | waiting | |
 | k175 | A run of `site-data.yml` for one corpus rewrote the file of each corpus from the overlay. A run now writes only the files that it changes, and the job `publish` removes nothing from the branch. | site | active | |
+| k176 | A file of the data branch replaced the file of `main` at any age. The overlay takes a file of the branch only if its own record is later, a tie goes to `main`, and a file with no readable time stops the build. | site | active | |
 
 ## The queue
 

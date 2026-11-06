@@ -42,9 +42,14 @@ jobs:
     with:
       # The branch site-data holds the measured files of the latest runs (site-data.yml, docs/BENCH.md "The snapshots of the site").
       # The file releases.json comes from the changelog and the tags at each build, so the news follows each release.
-      # They replace the files of main. Without the branch, the build keeps the files of main, and the freshness gate reads their age.
+      # A file of the branch replaces the file of main only if its own record is later (packages/site/src/overlay.ts). A tie goes to main.
+      # Without the branch, the build keeps the files of main, and the freshness gate reads their age.
       build: |
-        if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C packages/site/data; fi
+        if git fetch -q origin site-data; then
+          branch="$(mktemp -d)"
+          git archive FETCH_HEAD | tar -x -C "$branch"
+          node --no-warnings packages/site/scripts/overlay.ts "$branch" packages/site/data
+        fi
         (cd packages/packing && node --no-warnings bench/snapshot.ts releases)
         pnpm --filter @packing/site run build
       out: packages/site/dist
