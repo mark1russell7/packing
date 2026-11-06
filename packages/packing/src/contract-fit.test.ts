@@ -60,8 +60,8 @@ describe("the types of packing and of the contract", () => {
     };
     expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.5.0");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
-    // mulberry32 and fnv1a32 of the package come from their home at run time
-    expect(pkg.dependencies?.["@mark1russell7/rigor-generators"]).toBe("^0.1.1");
+    // mulberry32, fnv1a32 and stablePick of the package come from their home at run time. stablePick is new in 0.1.6.
+    expect(pkg.dependencies?.["@mark1russell7/rigor-generators"]).toBe("^0.1.6");
     expect(pkg.devDependencies?.["@mark1russell7/rigor-generators"]).toBeUndefined();
   });
 
