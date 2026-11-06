@@ -784,7 +784,38 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
   "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container that a better packer can place. Less is better.", share: true },
   "pack.raggedness": { label: "Ragged edge", note: "The longest row less the shortest row, as a share of the hull width. Less is better.", share: true },
   "pack.overflow": { label: "Not placed", note: "The count of boxes that the packer did not place. Less is better.", share: false },
+  "pack.balance.side.right": { label: "Right strip", note: "The empty share of the strip at the right side of the container. Less is better.", share: true },
 };
+
+/** The partner of the fill claim of a corpus (roadmap item k154). */
+export interface FillClaim {
+  /** The measure that a fill win needs, not worse. `null` is a corpus with no partner: its page claims no fill win. */
+  readonly partner: string | null;
+  /** The reason of the partner, for the page. */
+  readonly note: string;
+}
+
+const RIGHT_STRIP: FillClaim = {
+  partner: "pack.balance.side.right",
+  note:
+    "A packer can raise the fill and leave the right strip of the container empty. Thus a fill win counts only when the right strip is not worse. " +
+    "This pair does not guard the order of the input. At this count of inputs, the order measure does not find a small rise of inversions.",
+};
+
+/** The fill claim of each corpus of the strategy snapshots. `fillClaimOf` gives the claim of a corpus that is not in this list. */
+export const FILL_CLAIMS: Record<string, FillClaim> = {
+  "pack-screen-v1": RIGHT_STRIP,
+  "pack-select-v1": RIGHT_STRIP,
+  "pack-select-v2": RIGHT_STRIP,
+  "pack-free-v1": {
+    partner: null,
+    note: "On this corpus, no other measure catches a packer that is built only to raise the fill (bench run 42074008497). Thus this page claims no fill win here.",
+  },
+};
+
+/** This function gives the fill claim of a corpus. A corpus with no entry in `FILL_CLAIMS` has no partner. */
+export const fillClaimOf = (corpus: string): FillClaim =>
+  FILL_CLAIMS[corpus] ?? { partner: null, note: "No partner of the fill is chosen for this corpus. Thus this page claims no fill win here." };
 
 /** The names and the notes of the measures of the compare page: the measures of the results page, and the side skew (k123) */
 export const COMPARE_LABELS: Record<string, { label: string; note: string; share: boolean }> = {

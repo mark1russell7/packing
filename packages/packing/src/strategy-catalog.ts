@@ -20,6 +20,7 @@ import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
 import type { BboxStrategyOptions } from "./bbox.ts";
 import type { BeamOptions } from "./beam.ts";
 import { BEAM_WIDTH } from "./beam.ts";
+import type { ShelfOnlineOptions } from "./shelf-online.ts";
 import type { BestFitStrategyOptions, BottomLeftStrategyOptions } from "./bottom-left-strategy.ts";
 import type { BinaryHeightOptions } from "./binary-height.ts";
 import { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE, type ExactStripOptions } from "./exact-strip.ts";
@@ -293,6 +294,11 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
     iterations: { ...ITERATIONS, describe: "The count of the force steps. With 0, the output is the member output." },
     rounds: { type: "integer", describe: "The most rounds of the overlap removal.", min: 0, max: 32 },
   } satisfies OptionSchema<ForceStrategyOptions>,
+  "shelf-breaks": {},
+  "shelf-online": {
+    r: { type: "number", describe: "The ratio of the heights of two classes of shelves that follow each other.", min: 0.1, max: 0.9, default: 0.5 },
+    fit: { type: "enum", describe: "The rule to choose a shelf in the class of the item.", values: ["next", "first"], default: "first" },
+  } satisfies OptionSchema<ShelfOnlineOptions>,
   sleator: {},
   beam: {
     width: { type: "integer", describe: "The count of the states that each level keeps, and the count of the children of a state.", min: 1, max: 64, scale: "log", default: BEAM_WIDTH },
@@ -356,6 +362,8 @@ const DESCRIBES: Readonly<Record<string, string>> = {
   tabu: "This strategy searches the orders of the items with a tabu list.",
   relax: "This strategy moves the boxes of the member layout to equal gaps and to their linked boxes.",
   force: "This strategy moves the boxes of the member layout with forces, then it removes the overlaps.",
+  "shelf-breaks": "This strategy packs a strip into rows in the reading order, with the breaks of the least height.",
+  "shelf-online": "This strategy packs a strip online: each box takes a shelf of its class of height and does not move later.",
   sleator: "This strategy packs a strip with the algorithm of Sleator, with a proved bound of 2.5 times the optimum.",
   beam: "This strategy packs a strip with a beam search over the next item.",
   "exact-strip": "This strategy searches a small strip until it proves the smallest height.",
