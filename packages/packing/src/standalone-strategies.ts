@@ -10,6 +10,7 @@ import { packNearRects, type NearRectsOptions } from "./near-rects.ts";
 import { packRasterNofit, type RasterNofitOptions } from "./raster-nofit.ts";
 import { packSideAnchors, type SideAnchor, type SideAnchorOptions } from "./side-anchors.ts";
 import { shelfBreaks, shelfBreaksRefusal } from "./shelf-breaks.ts";
+import { shelfOnline, shelfOnlineRefusal, type ShelfOnlineOptions } from "./shelf-online.ts";
 import { sleatorRefusal, sleatorStrip } from "./sleator.ts";
 import { assertSupported, UnsupportedCell, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSquarified, treemapStrip, type TreemapLayout } from "./treemap.ts";
@@ -108,6 +109,22 @@ export const shelfBreaksStrategy: Strategy<Record<string, never>> = {
     const reason = shelfBreaksRefusal(input);
     if (reason !== null) throw refusal(reason);
     return shelfBreaks(input).output;
+  },
+};
+
+/** The strategy `shelf-online`: `shelfOnline` of roadmap item k30. Each box takes a shelf when it comes, and it does not move later. */
+export const shelfOnlineStrategy: Strategy<ShelfOnlineOptions> = {
+  id: "shelf-online",
+  family: "shelf",
+  catalog: [],
+  supports: BREAKS_SUPPORTS,
+  defaults: {},
+  deterministic: true,
+  pack(input: PackInput, options: ShelfOnlineOptions): PackOutput {
+    assertSupported(shelfOnlineStrategy.supports, input);
+    const reason = shelfOnlineRefusal(input);
+    if (reason !== null) throw refusal(reason);
+    return refusing(() => shelfOnline(input, options).output);
   },
 };
 
@@ -281,4 +298,4 @@ export const sideAnchorsStrategy: Strategy<SideAnchorStrategyOptions> = {
 /**
  * The single strategies that a bench entry reaches by id. Each corpus run skips the cells that a strategy does not support.
  */
-export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, shelfBreaksStrategy, beamStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);
+export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, shelfBreaksStrategy, shelfOnlineStrategy, beamStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);

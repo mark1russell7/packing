@@ -97,6 +97,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   force: "Force",
   sleator: "Sleator",
   "shelf-breaks": "Shelf with the best breaks",
+  "shelf-online": "Online shelf",
   beam: "Beam search",
   "exact-strip": "Exact strip",
   "binary-height": "Binary height",

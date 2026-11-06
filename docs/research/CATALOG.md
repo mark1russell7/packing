@@ -463,8 +463,8 @@ An online packer puts each box when it comes, and does not move it later. An inc
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `online-nfs-r` | Next Fit Shelf with parameter `r` | Round each height up to a power of `r`. Keep one open shelf for each class of height. | Baker 1983 | density, online | `O(n)` | asymptotic `2/r·OPT` (Baker 1983, unverified) | planned | k30 |
-| `online-ffs-r` | First Fit Shelf with parameter `r` | Do `online-nfs-r`, but put a box in the first shelf of its class where it fits. | Baker 1983 | density, online | `O(n log n)` | asymptotic `1.7/r·OPT` (Baker 1983, unverified) | planned | k30 |
+| `online-nfs-r` | Next Fit Shelf with parameter `r` | Round each height up to a power of `r`. Keep one open shelf for each class of height. | Baker 1983 | density, online | `O(n)` | asymptotic `2/r·OPT` (Baker 1983, unverified) | done | `shelfOnline` with `fit: "next"`, k30 |
+| `online-ffs-r` | First Fit Shelf with parameter `r` | Do `online-nfs-r`, but put a box in the first shelf of its class where it fits. | Baker 1983 | density, online | `O(n log n)` | asymptotic `1.7/r·OPT` (Baker 1983, unverified) | done | `shelfOnline` with `fit: "first"`, k30 |
 | `shelf-online-harmonic` | Harmonic shelf | Do `online-ffs-r` with classes of width too, as the harmonic bin packing does. | Csirik 1997 | density, online | `O(n log n)` | asymptotic `1.69·OPT` (Csirik 1997, unverified) | planned | k30 |
 | `online-bl` | Online bottom-left | Do `bl-chazelle` in the order of arrival. Its bound is a lower bound for all online packers. | Brown 1982 | online | `O(n^2)` | — | planned | k30 |
 | `online-dynamic-bins` | Dynamic bin packing | Boxes come and go. Put each new box with First Fit, and do not move the boxes left. | Coffman 1983 | stability | `O(n log n)` | — | planned | k30 |
