@@ -1621,7 +1621,8 @@ The workflow `site-rerun.yml` reruns the other five corpora of the site each Wed
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
 - The script `check:data` of the site reads each data file through the reader of the page. A fault stops it, with the file and the field. The shape of each file comes from its TypeScript type.
 - Three workflows start that script. `site-data.yml` starts it before a push to the branch. `pages.yml` starts it before each build, each day and after each run of `Site data`.
-- `site-check.yml` starts it over the files of the branch on each push to `main`, and on a pull request that changes the reader. Other pull requests cannot change the result, so they do not wait for a queued run. A test holds the list of files equal to the imports of the gate.
+- `site-check.yml` starts it over the files of the branch on each push to `main`, and on a pull request that changes the reader. Other pull requests cannot change the result, so they do not wait for a queued run.
+- `site-check.yml` lays the branch over the files of `main` with `scripts/overlay.ts`, as the Pages build does. A file of the branch replaces a file of `main` only if its record is later. A test holds the list of files equal to the imports of the gate and of the overlay.
 - A new field has an order, because only a run of `Site data` writes the branch, and that run reads the code of `main`:
   1. A pull request adds the writer, and the reader accepts a missing field as `not read`. Merge it.
   2. Start `Site data`.

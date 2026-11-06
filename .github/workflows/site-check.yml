@@ -42,12 +42,13 @@ jobs:
       # file of the branch cannot pass together, and the check CI OK goes red before the merge. A pull request does this read
       # only if it changes the reader: other pull requests cannot change the result, and they do not wait for a queued run.
       # The Pages build reads the branch each day and after each run of Site data, so a stale branch does not go unseen.
-      # src/data-gate.test.ts holds this list equal to the imports of the gate.
+      # src/data-gate.test.ts holds this list equal to the imports of the gate and of the overlay.
       - id: reader
         uses: mark1russell7/template/.github/actions/changes@10b3cb8311b894311f86a0ac975f0a047e969f82 # main
         with:
           paths: |
             packages/site/scripts/data-gate.ts
+            packages/site/scripts/overlay.ts
             packages/site/src/atlas-model.ts
             packages/site/src/corpus-cover-model.ts
             packages/site/src/data-gate.ts
@@ -57,6 +58,7 @@ jobs:
             packages/site/src/format.ts
             packages/site/src/gap-definition.ts
             packages/site/src/kpi.ts
+            packages/site/src/overlay.ts
             packages/site/data/**
             pnpm-lock.yaml
             .github/workflows/site-check.yml
@@ -66,7 +68,12 @@ jobs:
           data="$RUNNER_TEMP/site-data"
           mkdir -p "$data"
           cp packages/site/data/* "$data/"
-          if git fetch -q origin site-data; then git archive FETCH_HEAD | tar -x -C "$data"; fi
+          # A file of the branch replaces the file of main only if its own record is later, as in the Pages build.
+          if git fetch -q origin site-data; then
+            branch="$(mktemp -d)"
+            git archive FETCH_HEAD | tar -x -C "$branch"
+            node --no-warnings packages/site/scripts/overlay.ts "$branch" "$data"
+          fi
           node --no-warnings packages/site/scripts/data-gate.ts "$data"
       - name: The flip test of the data gate
         run: node --no-warnings packages/packing/bench/gate-flip.ts data --site packages/site --out "$RUNNER_TEMP/data-flip"

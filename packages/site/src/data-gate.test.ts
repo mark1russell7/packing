@@ -128,8 +128,8 @@ describe("the files that start the read of the data branch on a pull request", (
   const start = workflow.indexOf("id: reader");
   const listed = workflow.slice(start, workflow.indexOf("- name:", start)).split("\n").map((line) => line.trim()).filter((line) => line.startsWith("packages/"));
 
-  /** This function gives each file of the site that the gate reads, from its local imports. */
-  function closure(from: string): Set<string> {
+  /** This function gives each file of the site that the gate reads, from the local imports of the gate and of the overlay. */
+  function closure(...from: string[]): Set<string> {
     const seen = new Set<string>();
     const walk = (file: string): void => {
       if (seen.has(file)) return;
@@ -138,18 +138,19 @@ describe("the files that start the read of the data branch on a pull request", (
         walk(new URL(path!, new URL(file, "file:///")).pathname.slice(1));
       }
     };
-    walk(from);
+    for (const file of from) walk(file);
     return seen;
   }
 
   it("lists each file that the gate imports, so a change of the reader cannot skip the read", () => {
-    const files = [...closure("scripts/data-gate.ts")];
+    const files = [...closure("scripts/data-gate.ts", "scripts/overlay.ts")];
     expect(files).toContain("src/data-shapes.ts");
+    expect(files).toContain("src/overlay.ts");
     expect(files.filter((file) => !listed.includes(`packages/site/${file}`))).toEqual([]);
   });
 
   it("lists no file outside the gate, so a change of a page does not wait for a queued run of the data", () => {
-    const files = closure("scripts/data-gate.ts");
+    const files = closure("scripts/data-gate.ts", "scripts/overlay.ts");
     expect(listed.filter((path) => path.startsWith("packages/site/src/") || path.startsWith("packages/site/scripts/")).filter((path) => !files.has(path.slice("packages/site/".length)))).toEqual([]);
   });
 });
