@@ -234,6 +234,8 @@ describe("the corpus pack-adversary-v1", () => {
       for (const path of [
         "packages/packing/bench/adversary.ts",
         "packages/packing/bench/corpora/pack-adversary-v1.json",
+        "packages/packing/bench/adversary-v2.ts",
+        "packages/packing/bench/corpora/pack-adversary-v2.json",
         "packages/packing/src/generators.ts",
         "packages/packing/src/layout-input.ts",
         "packages/packing/src/strategy.ts",
@@ -251,7 +253,7 @@ describe("the corpus pack-adversary-v1", () => {
         expect(search.test(path), path).toBe(false);
         expect(report.test(path), path).toBe(true);
       }
-      for (const path of ["docs/BENCH.md", "packages/packing/bench/run.ts", "packages/site/src/results.ts"]) {
+      for (const path of ["docs/BENCH.md", "packages/packing/bench/run.ts", "packages/site/src/results.ts", "packages/packing/bench/adversary-v3.ts"]) {
         expect(search.test(path), path).toBe(false);
         expect(report.test(path), path).toBe(false);
       }

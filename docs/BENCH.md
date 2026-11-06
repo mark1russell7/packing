@@ -379,6 +379,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-classes-free-v1` | 600 | The same classes with free sizes of roadmap item k158, and small strips of k160. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
 | `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. Free forms not searched by version 1. |
+| `pack-adversary-v2` | 102 | The worst input of each cell of each pair of version 2 of the search, roadmap item k164. The file holds the inputs, not specs. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 | `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
@@ -510,7 +511,9 @@ Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`.
 
 The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
 
-The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them. Roadmap item k164 is the next version. The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. From PR #360, the weekly held-out sample of `drawInput` moves, because a new form of a class generator changes its draws.
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them.
+
+Roadmap item k164 is the next version ("The adversarial search, version 2"). The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. From PR #360, the weekly held-out sample of `drawInput` moves, because a new form of a class generator changes its draws.
 
 - The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
 - The field `inputs` has the input files, in the order of `found`.
@@ -552,6 +555,57 @@ The corpus `pack-strip-v1` has 160 specs and 528 inputs. It has the published se
 - Each spec has the containers `fixed` (the object or the stock) and `freeHeight` (a strip of its width).
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 264 and `shaped` 0.
 - The builder `bench/strip.ts` writes the file. `node bench/strip.ts --check` and a test compare the file with the builder.
+
+### The adversarial search, version 2
+
+Roadmap item k164 adds version 2 of the search. The file `bench/adversary-v2.ts` has it. Version 1 stays frozen, and its corpus does not change.
+
+Version 1 takes each draw of a pair from one stream, and a draw reads the length of a list. Thus a new form or a new class moves the later draws of each origin. Version 2 splits each pair into cells:
+
+- A cell is one generator of `ORIGINS` with one value of `containerSize`. The generator `ladder` has no such parameter, so it has one cell.
+- The 4 adversarial families have the cells `fixed` and `freeHeight`. `berkey-wang` and `martello-vigo` also have `freeAspect` and `freeArea`. Thus a pair has 17 cells.
+- Each cell has its own stream, from the pair, the seed and the name of the cell. Each cell has its own budget of 400 evaluations.
+- A value of a list comes from `stablePick` of `@mark1russell7/rigor-generators`. Each pick reads one number of the stream, for any length of the list.
+- In a cell, the search is the hill climb of version 1. It starts again after 100 evaluations with no gain.
+
+A test adds, removes and moves cells, and the rows of the other cells stay byte-equal. With one stream for all the cells, that test fails.
+
+The pool of `best` is the list `POOL_V2`: 32 single entries. The list `POOL_OUT` names each entry that is not in the pool, with its reason:
+
+- `push` packs only a change of an earlier layout.
+- `beam`, `near-rects` and `raster-nofit` took more than 50 ms for one pack of 60 items of `berkey-wang` class `III`.
+- `exact-strip` is an exact search that refuses 60 items.
+- The composite entries are not in the pool, because each one packs with other entries.
+
+A test fails when an entry of the benchmark is in neither list. Thus a new entry needs a choice, and a change of the pool is a change of the stored rows.
+
+The file has one row for each cell of each pair, in the field `found`: 102 rows. A loss of `fill` and a loss of `gap` are not on one scale, so the console gives the worst row of each measure. A row with a loss of 0 or less tells that A does not lose in that cell. Each search has the seed 1, the budget 400 for each cell and the cap of 60 items.
+
+| A | B | Measure | Loss | Items | Cell | Winner |
+|---|---|---|---|---|---|---|
+| `skyline` | `maxrects-bl` | fill | 0.451 | 38 | `skyline-gap.fixed` | `maxrects-bl` |
+| `skyline` | `maxrects-bl` | gap | 1.104 | 12 | `berkey-wang.freeHeight` | `maxrects-bl` |
+| `shelf-best` | `maxrects-bl` | fill | 0.415 | 60 | `tall-row.fixed` | `maxrects-bl` |
+| `shelf-best` | `maxrects-bl` | gap | 0.646 | 36 | `martello-vigo.freeAspect` | `maxrects-bl` |
+| `rows` | `maxrects-bl` | fill | 0.456 | 51 | `tall-row.fixed` | `maxrects-bl` |
+| `rows` | `maxrects-bl` | gap | 0.611 | 9 | `martello-vigo.freeHeight` | `maxrects-bl` |
+| `maxrects-bl` | `skyline` | fill | 0.059 | 46 | `martello-vigo.fixed` | `skyline` |
+| `maxrects-bl` | `skyline` | gap | 0.524 | 25 | `martello-vigo.freeAspect` | `skyline` |
+| `maxrects-bl` | `restarts-maxrects-bl-k16` | fill | 0.799 | 7 | `martello-vigo.fixed` | `restarts-maxrects-bl-k16` |
+| `maxrects-bl` | `restarts-maxrects-bl-k16` | gap | 0.374 | 21 | `martello-vigo.freeHeight` | `restarts-maxrects-bl-k16` |
+| `select-rows-bl` | `best` | fill | 0.949 | 8 | `skyline-gap.fixed` | `guillotine-baf-sas` |
+| `select-rows-bl` | `best` | gap | 0.706 | 45 | `bl-trap.freeHeight` | `best-fit` |
+
+Version 1 does not search the forms `freeAspect` and `freeArea`. In each of their 4 cells, `skyline` loses to `maxrects-bl`, with a gap loss from 0.072 to 0.176. The worst row of each pair has a larger loss than the row of version 1. Version 2 has more evaluations for each pair: 17 cells of 400, not 2000.
+
+The same two checks of version 1 hold the corpus. The test of `--rows` reads the hash `ADVERSARY_V2_SHA256`. The job `search-v2` of `adversary.yml` starts `--check` or `--report` with the same rules as the job of version 1. On 2026-11-06, one search of the 6 pairs took 5 minutes and 6 seconds on a development computer, with approximately one core.
+
+The draw of an input of the sample space has a version 2 too: the option `drawVersion` of `drawInput`. The default is 1, so each stored sample stays the same.
+
+- Version 1 reads a list by its length, and a family with more dimensions reads more numbers. A new family or value thus moves each later draw. This is the stored fault of version 1.
+- Version 2 reads one number of the given stream for each draw, and draws in a stream of its own from that number. It picks a family or a value of a list with `stablePick`.
+- A test adds a family and a value, and only the draws that they win move. The share of a new family is approximately 1 in n + 1.
+- No sample uses version 2 yet. A new version of a sample can take it.
 
 ### The categories of Hopper and Turton
 
@@ -1622,6 +1676,7 @@ The workflow `site-rerun.yml` reruns the other five corpora of the site each Wed
 - An entry that loses its row ends the line of each list that has it. Dropping a hard entry can raise a share, so it does not join. The point has `lost`: each entry with its reason, for example over budget, refused or an error. A censored reason keeps its lower bound on the time. The snapshot step gives a warning for each one.
 - A slow pair can lose its row while its entry keeps a row. That line continues, each point has its count of measured records, and the page states a change of that count.
 - A step between two points of one line reads the pairs measured in both points, by strategy and input. `site-data.yml` gets the records of the earlier run from its artifact, and both points get a new fit over these pairs. The page shows that figure beside the plain share, with the count, for example 90 common of 100 pairs.
+- A point reads the whole space from the sample of its run. A Bench run keeps the sample in the folder `sample` of its records. A coverage run keeps it in the artifact `nightly-held-out`, and `site-data.yml` gives that folder to `snapshot.ts coverage` as `--sample` (k188). Without a sample, the point has no blocks `sampled`, `strata` and `prior`, and its block `uniform` stays from an earlier run.
 - A dropped hard pair can raise a plain share, but it cannot raise the figure over the common pairs. Thus the page calls a step a gain only when both figures gain.
 - The artifact of a run expires after 90 days. With no records of the earlier run, the step reads "no read" and has no figure. A change of the method and a lost entry end a line, so they have no step.
 - An entry that loses its row breaks the line of a list that has it. The earlier run has no share without that entry in the file.
@@ -1691,7 +1746,7 @@ Read these limits:
 - The product counts cells that no input can be. So `cellShare` is a lower limit, not a target.
 - The dimensions are `containerSize`, `containerShape`, `obstacles`, `itemShape`, `rotation`, `sizes`, `count`, `order`, `groups` and `mode`. `obstacleMove` is not a dimension here, because only a cell with obstacles has it. A cell has no `objective`.
 - A cell is the statement of the generator. The script does not compare it with the generated input.
-- `pack-adversary-v1` has no specs, so the script lists it in `skipped`.
+- `pack-adversary-v1` and `pack-adversary-v2` have no specs, so the script lists them in `skipped`.
 - A value outside `COVER_DIMENSIONS` stops the script with a `RangeError`.
 
 ## The space coverage
@@ -2038,7 +2093,7 @@ The prior `union` uses all the committed corpora of `bench/corpora`.
 - The order of the corpora does not change the weights.
 - A sampler family without inputs in the corpora gets the weight 0. The field `absent` of the basis lists it.
 - A corpus family that the sampler does not draw gives no weight. The field `unmapped` of the basis lists it.
-- The inputs of `pack-adversary-v1` are searched worst cases, not draws of their origin family. Thus `adversary@1` is unmapped.
+- The inputs of `pack-adversary-v1` and `pack-adversary-v2` are searched worst cases, not draws of their origin family. Thus `adversary@1` and `adversary@2` are unmapped.
 
 The field `prior` of `coverage.json` keeps the basis: its kind, its corpora, its inputs and the weight of each family. The job summary shows it too.
 
