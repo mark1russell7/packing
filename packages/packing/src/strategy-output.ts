@@ -23,7 +23,7 @@ export type OutputTable = Readonly<Record<string, readonly OutputRead[]>>;
 export const OUTPUT_SOURCE = "whole-positions/1";
 
 /** The version of the package at the read that wrote this file. A version change alone does not change a row. */
-export const OUTPUT_READ_VERSION = "0.10.0";
+export const OUTPUT_READ_VERSION = "0.10.2";
 
 /** The rows of `strategyCatalog`, by strategy. */
 export const STRATEGY_OUTPUT: OutputTable = {
@@ -145,6 +145,12 @@ export const STRATEGY_OUTPUT: OutputTable = {
     {"optionSet":"shelf-first","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
     {"optionSet":"shelf-first-input","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
     {"optionSet":"shelf-next","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
+  "shelf-breaks": [
+    {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
+  "shelf-online": [
+    {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
   ],
   "side-anchors": [
     {"optionSet":"default","inputs":144,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":25,"nearWhole":0}},

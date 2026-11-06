@@ -72,6 +72,6 @@ describe("the word of a skip", () => {
     const pairs = freePairs();
     expect(pairs.filter((p) => skipRead(p.entry, p.reason).word === "not read")).toEqual([]);
     const count = (word: string): number => pairs.filter((p) => skipRead(p.entry, p.reason).word === word).length;
-    expect({ pairs: pairs.length, done: count("not done"), other: count("other algorithm"), meaning: count("no meaning") }).toEqual({ pairs: 95, done: 68, other: 25, meaning: 2 });
+    expect({ pairs: pairs.length, done: count("not done"), other: count("other algorithm"), meaning: count("no meaning") }).toEqual({ pairs: 99, done: 72, other: 25, meaning: 2 });
   });
 });

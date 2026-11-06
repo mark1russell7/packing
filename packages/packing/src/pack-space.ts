@@ -22,6 +22,7 @@ import {
 import type { BestFitStrategyOptions, BottomLeftStrategyOptions, GuillotineStrategyOptions, LayoutStrategyOptions, MaxRectsStrategyOptions, PushStrategyOptions, SkylineStrategyOptions } from "./adapters.ts";
 import { BBOX_SHAPES, type BboxStrategyOptions } from "./bbox.ts";
 import { BEAM_WIDTH, type BeamOptions } from "./beam.ts";
+import type { ShelfOnlineOptions } from "./shelf-online.ts";
 import type { BinaryHeightOptions } from "./binary-height.ts";
 import type { CircleQuasiPhysicalOptions } from "./circle-quasi-physical.ts";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
@@ -173,7 +174,7 @@ const TABU_PARAMS: readonly SpaceParam[] = [
  * The placements of the standalone strategies of roadmap item k142. Each one goes with the order `input` and the size search `none`, because it does its own search.
  * A composite finds only a member of the registry, so `packConfig` refuses a composite with one of these members.
  */
-const STANDALONE_PLACEMENTS: readonly string[] = ["sleator", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"];
+const STANDALONE_PLACEMENTS: readonly string[] = ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"];
 
 /** The values of the param `nodeLimit` of `exact-strip`. The largest value is the default of the strategy, so a draw costs no more than the named config. */
 const EXACT_NODE_LIMITS: readonly number[] = [1000, 10000, EXACT_STRATEGY_NODE_LIMIT];
@@ -316,6 +317,15 @@ const STAGES: readonly SpaceStage[] = [
       { id: "hole-degree", params: [{ name: "steps", kind: "int", min: 0, max: HOLE_DEGREE_MAX_STEPS, default: 8 }], supports: CIRCLE_ONLY },
       { id: "circle-quasi-physical", params: [{ name: "iterations", kind: "int", min: 0, max: CIRCLE_SPACE_MAX_ITERATIONS, default: 256 }], supports: CIRCLE_ONLY },
       { id: "sleator", params: [], supports: RECT_ONLY },
+      { id: "shelf-breaks", params: [], supports: RECT_ONLY },
+      {
+        id: "shelf-online",
+        params: [
+          { name: "r", kind: "real", min: 0.1, max: 0.9, default: 0.5 },
+          { name: "fit", kind: "enum", values: ["next", "first"], default: "first" },
+        ],
+        supports: RECT_ONLY,
+      },
       { id: "beam", params: [{ name: "width", kind: "int", min: 1, max: 64, scale: "log", default: BEAM_WIDTH }], supports: RECT_ONLY },
       { id: "exact-strip", params: [{ name: "nodeLimit", kind: "enum", values: [...EXACT_NODE_LIMITS], default: EXACT_STRATEGY_NODE_LIMIT }], supports: RECT_ONLY },
       { id: "binary-height", params: [{ name: "trials", kind: "int", min: 1, max: 1024, scale: "log", default: BINARY_HEIGHT_TRIALS }], supports: RECT_ONLY },
@@ -393,6 +403,8 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "best-fit-short": baseConfig("best-fit", { side: "short" }),
   "circle-quasi-physical": baseConfig("circle-quasi-physical"),
   sleator: baseConfig("sleator"),
+  "shelf-breaks": baseConfig("shelf-breaks"),
+  "shelf-online": baseConfig("shelf-online"),
   beam: baseConfig("beam"),
   "exact-strip": baseConfig("exact-strip"),
   "binary-height": baseConfig("binary-height"),
@@ -628,6 +640,8 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     turned: null,
   } satisfies Places<PackLayoutOptions>,
   sleator: {},
+  "shelf-breaks": {},
+  "shelf-online": { r: "placement.shelf-online.r", fit: "placement.shelf-online.fit" } satisfies Places<ShelfOnlineOptions>,
   beam: { width: "placement.beam.width" } satisfies Places<BeamOptions>,
   "exact-strip": { nodeLimit: "placement.exact-strip.nodeLimit" } satisfies Places<ExactStripOptions>,
   "binary-height": { trials: "placement.binary-height.trials", seed: null, precision: null } satisfies Places<BinaryHeightOptions>,

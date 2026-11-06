@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 490 names
+## . (build/index.d.ts): 498 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -241,7 +241,11 @@ type SelectLevel: @mark1russell7/layout-contract#SelectLevel (external)
 type SelectNode: build/index.d.ts#SelectNode
 type SelectNumberFeature: build/index.d.ts#SelectNumberFeature
 type SelectStrategyOptions: build/index.d.ts#SelectStrategyOptions
+type ShelfBreaksResult: build/index.d.ts#ShelfBreaksResult
 type ShelfFit: build/layout-strategy.d.ts#ShelfFit
+type ShelfOnlineFit: build/index.d.ts#ShelfOnlineFit
+type ShelfOnlineOptions: build/index.d.ts#ShelfOnlineOptions
+type ShelfOnlineResult: build/index.d.ts#ShelfOnlineResult
 type ShelfOptions: build/layout-strategy.d.ts#ShelfOptions
 type Side: @mark1russell7/layout-contract#Side (external)
 type SideAnchor: build/index.d.ts#SideAnchor
@@ -460,6 +464,10 @@ selectLeaf: build/index.d.ts#selectLeaf
 selectStrategy: build/index.d.ts#selectStrategy
 shapeStrategies: build/index.d.ts#shapeStrategies
 shelf: build/shelf-strategy.d.ts#shelf
+shelfBreaks: build/index.d.ts#shelfBreaks
+shelfBreaksRefusal: build/index.d.ts#shelfBreaksRefusal
+shelfOnline: build/index.d.ts#shelfOnline
+shelfOnlineRefusal: build/index.d.ts#shelfOnlineRefusal
 sideAnchorsStrategy: build/index.d.ts#sideAnchorsStrategy
 skyline: build/skyline-strategy.d.ts#skyline
 skylineGap: build/index.d.ts#skylineGap
@@ -1625,6 +1633,29 @@ interface SelectStrategyOptions {
   table?: SelectNode;
 }
 
+### build/index.d.ts#ShelfBreaksResult
+interface ShelfBreaksResult {
+  readonly output: PackOutput;
+  readonly height: number;
+  readonly rows: number;
+}
+
+### build/index.d.ts#ShelfOnlineFit
+type ShelfOnlineFit = "next" | "first";
+
+### build/index.d.ts#ShelfOnlineOptions
+interface ShelfOnlineOptions {
+  readonly r?: number;
+  readonly fit?: ShelfOnlineFit;
+}
+
+### build/index.d.ts#ShelfOnlineResult
+interface ShelfOnlineResult {
+  readonly output: PackOutput;
+  readonly height: number;
+  readonly shelves: number;
+}
+
 ### build/index.d.ts#SideAnchor
 interface SideAnchor {
   readonly id: string;
@@ -2246,6 +2277,18 @@ export declare const selectStrategy: Strategy<SelectStrategyOptions>;
 
 ### build/index.d.ts#shapeStrategies
 export declare const shapeStrategies: readonly Strategy[];
+
+### build/index.d.ts#shelfBreaks
+export declare function shelfBreaks(input: PackInput): ShelfBreaksResult;
+
+### build/index.d.ts#shelfBreaksRefusal
+export declare function shelfBreaksRefusal(input: PackInput): string | null;
+
+### build/index.d.ts#shelfOnline
+export declare function shelfOnline(input: PackInput, options?: ShelfOnlineOptions): ShelfOnlineResult;
+
+### build/index.d.ts#shelfOnlineRefusal
+export declare function shelfOnlineRefusal(input: PackInput): string | null;
 
 ### build/index.d.ts#sideAnchorsStrategy
 export declare const sideAnchorsStrategy: Strategy<SideAnchorStrategyOptions>;
