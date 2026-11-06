@@ -99,12 +99,13 @@ interface SizeSearch {
   search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
 }
 
-/** The split of the free space around the obstacles and the holes (k41, k42). */
+/** The split of the free space around the obstacles and the locked items (k41, k42). It is in src/split.ts. */
 interface Split {
-  id: string; // "maximal-rects", "slabs", "obstacle-cuts", "cells", "one-region"
-  split(container: LayoutContainer, obstacles: readonly Obstacle[], gap: number): Part[];
+  id: string; // "one-region" and "obstacle-cuts" (k41); "maximal-rects", "slabs", "cells" (k42)
+  split(input: PackInput): Part[];
 }
-interface Part { id: string; region: Region; }
+/** A rectangle of the free space, in the coordinates of the container. "whole" is the container of the input. */
+interface Part { id: string; x: number; y: number; w: number; h: number; whole?: boolean; }
 
 /** The assignment of the items to the parts (k43). */
 interface Assign {
@@ -131,6 +132,9 @@ function pipeline(parts: {
 
 - `pipeline` computes the `supports` of the result from its stages. A size search adds `freeAspect` and `freeArea`. A split adds the container shapes and the obstacles that it supports.
 - The turn of the axes is a free stage: it gives each strategy of `freeHeight` the cell `freeWidth`.
+- `packParts(input, split, place, options, context)` packs the items through a split, one part after another in reading order. It is the stage `reading-greedy` of k43, before `Assign` exists.
+- The split `one-region` gives one part with `whole`, so `packParts` gives the output of `place` with no change.
+- The split `obstacle-cuts` cuts the free space at the top edge and the bottom edge of each obstacle and each locked item. Each free span of a band is a part.
 - Each stage writes one `StageTrace`, with its id, its time and its own measures (for example `pack.search.widths`, `pack.part.fill`).
 
 ## The selector
