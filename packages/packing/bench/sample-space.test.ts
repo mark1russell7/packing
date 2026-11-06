@@ -10,6 +10,8 @@ import {
   stepRandom,
   STRATEGY_SPACE_SCHEMA,
   type CorpusDimension,
+  type CorpusFamily,
+  type ParamValue,
   type SpaceParam,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
@@ -235,6 +237,62 @@ describe("the draw of an input", () => {
       const d = drawInput(r, corpusFamilies, { knobs: false });
       expect("margin" in d.dims || "gap" in d.dims).toBe(false);
     }
+  });
+
+  describe("version 2 of the draw (roadmap item k164)", () => {
+    const draws = (seed: number, families: readonly CorpusFamily<GeneratedInput>[], drawVersion?: 1 | 2) => {
+      const r = stepRandom(seed, "k164");
+      return Array.from({ length: 1500 }, () => drawInput(r, families, drawVersion === undefined ? {} : { drawVersion }));
+    };
+    const n = corpusFamilies.length;
+
+    it("draws version 1 when no version is given, so each stored sample stays the same", () => {
+      expect(draws(5, corpusFamilies)).toEqual(draws(5, corpusFamilies, 1));
+    });
+
+    it("reads one number of the stream for each draw, and keeps each dimension in its supported values", () => {
+      const r0 = stepRandom(6, "k164-count");
+      let reads = 0;
+      const r = () => {
+        reads++;
+        return r0();
+      };
+      const byName = new Map(corpusFamilies.map((f) => [`${f.name}@${f.version}`, f]));
+      for (let i = 0; i < 300; i++) {
+        const d = drawInput(r, corpusFamilies, { drawVersion: 2 });
+        const f = byName.get(`${d.family}@${d.version}`)!;
+        for (const [name, v] of Object.entries(d.dims)) expect(dimensionSupports(f.dimensions.find((x) => x.name === name) as CorpusDimension, v), `${d.family} ${name}`).toBe(true);
+      }
+      expect(reads).toBe(300);
+    });
+
+    it("moves only the draws that a new family wins, approximately 1 in n + 1, and version 1 moves most draws", () => {
+      // The new family is first: `stablePick` does not read the order, and a pick by position then moves many draws.
+      const more = [{ ...corpusFamilies[0]!, name: "zz-new-family" }, ...corpusFamilies];
+      const before = draws(7, corpusFamilies, 2);
+      const after = draws(7, more, 2);
+      const won = after.filter((d) => d.family === "zz-new-family").length;
+      expect(after.filter((d, i) => d.family !== "zz-new-family" && JSON.stringify(d) !== JSON.stringify(before[i]))).toEqual([]);
+      expect(won / after.length).toBeGreaterThan(0.5 / (n + 1));
+      expect(won / after.length).toBeLessThan(1.5 / (n + 1));
+      const oldBefore = draws(7, corpusFamilies);
+      const oldAfter = draws(7, more);
+      expect(oldAfter.filter((d, i) => JSON.stringify(d) !== JSON.stringify(oldBefore[i])).length / oldAfter.length).toBeGreaterThan(0.5);
+    });
+
+    it("moves only the draws that a new value of a list wins", () => {
+      const at = corpusFamilies.findIndex((f) => f.dimensions.some((d) => d.kind === "enum" && (d.values?.length ?? 0) >= 2));
+      const family = corpusFamilies[at]!;
+      const dim = family.dimensions.find((d) => d.kind === "enum" && (d.values?.length ?? 0) >= 2)!;
+      // The new value is first, for the same reason as the new family.
+      const wider: CorpusDimension = { ...dim, values: ["zz-new-value", ...dim.values!], ...(Array.isArray(dim.supported) ? { supported: ["zz-new-value", ...(dim.supported as readonly ParamValue[])] } : {}) };
+      const changed = corpusFamilies.map((f, i) => (i === at ? { ...f, dimensions: f.dimensions.map((d) => (d === dim ? wider : d)) } : f));
+      const before = draws(8, corpusFamilies, 2);
+      const after = draws(8, changed, 2);
+      const won = after.filter((d) => d.dims[dim.name] === "zz-new-value");
+      expect(won.length).toBeGreaterThan(0);
+      expect(after.filter((d, i) => d.dims[dim.name] !== "zz-new-value" && JSON.stringify(d) !== JSON.stringify(before[i]))).toEqual([]);
+    });
   });
 });
 
