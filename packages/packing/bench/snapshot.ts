@@ -90,7 +90,7 @@ export interface SnapshotRecord extends VerdictRecord {
 }
 
 /** The measures of the strategy snapshot. `pack.fill` is the win measure, the others are guards. */
-export const SNAPSHOT_MEASURES: readonly MeasureId[] = ["pack.fill", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea"];
+export const SNAPSHOT_MEASURES: readonly MeasureId[] = ["pack.fill", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.balance.side.right"];
 
 /** The significance level of each verdict. It is the parameter `signP` of `docs/PROMOTION.md`. */
 export const SNAPSHOT_LEVEL = 0.05;
@@ -1500,11 +1500,14 @@ export function recordsOfStrategies<R extends { strategy: string }>(records: rea
   return records.filter((r) => names.includes(r.strategy));
 }
 
-/** This function writes a snapshot as JSON with one line end at the end. */
-function writeSnapshot(file: string | URL, value: unknown): void {
+/**
+ * This function writes a snapshot as compact JSON with one line end at the end.
+ * The site bundles each file as raw text, so each space is page weight (k186).
+ */
+export function writeSnapshot(file: string | URL, value: unknown): void {
   const path = file instanceof URL ? fileURLToPath(file) : resolve(file);
   mkdirSync(dirname(path), { recursive: true });
-  const text = `${JSON.stringify(value, null, 1)}\n`;
+  const text = `${JSON.stringify(value)}\n`;
   writeFileSync(path, text);
   console.log(`${path}: ${text.length} bytes`);
 }

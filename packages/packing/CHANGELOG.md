@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.1
+
+The strategy `shelf-breaks` packs a strip into rows in the reading order, with the breaks of the least height.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The functions `shelfBreaks` and `shelfBreaksRefusal`, and the type `ShelfBreaksResult`. The height is at most the height of the greedy shelf in the same order.
+- The strategy `shelf-breaks` in `standaloneStrategies`, the option `shelf-breaks` of the stage `placement` of `packSpace`, and the bench entry `shelf-breaks`.
+- The entry `shelf-breaks` of `strategyCatalog`.
+
+### Not changed
+
+- The outputs of each other strategy do not change. Each old named config of `packSpace` keeps its `configId`.
+
 ## 0.10.0
 
 The strategy catalog states a read of the output of each strategy: the positions and the sizes, on whole-number inputs.

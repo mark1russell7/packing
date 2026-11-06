@@ -59,8 +59,9 @@ const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "20963f4950107879", "3f8e28fece
 // The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
 // Roadmap item k94 adds the base configs of circle-quasi-physical to the members of the meta configs. Before k94 the counts were 91590358728953040752342089373 and 91590358728953039561241613290.
 // Roadmap item k142 adds the base configs of the standalone placements to the members, and the option side-anchors. Before k142 the counts were 93933758014846374732506608748 and 93933758014846373534955689790.
-const CLOCK_FREE_META = 97223615252208789169500820039n;
-const CLOCK_CONFIGS = 97223615252208787963100427090n;
+const CLOCK_FREE_META = 97225989163093744903710893550n;
+// Roadmap item k29 adds the base config of shelf-breaks to the members. Before k29 the counts were 97223615252208789169500820039 and 97223615252208787963100427090.
+const CLOCK_CONFIGS = 97225989163093743697304199810n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -136,8 +137,9 @@ describe("the counts of the configs", () => {
     // Roadmap item k94 adds circle-quasi-physical with the order input only and the iterations 0 to 1024.
     // Roadmap item k142 adds the 8 standalone placements with the order input only: 1 + 64 + 3 + 1024 + 5 + 256 + 3 * 16 + 4 configs.
     // Roadmap item k25 adds bottom-left with its rules and best-fit with its sides. Before k25 the base count was 160538.
+    // Roadmap item k29 adds the standalone placement shelf-breaks with 1 config. Before k29 the base count was 204779.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
-    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1405));
+    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1406));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force", "side-anchors"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
@@ -359,7 +361,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 38 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 39 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -374,6 +376,7 @@ describe("the strata of k115", () => {
       "hole-degree:1",
       "circle-quasi-physical:1",
       "sleator:1",
+      "shelf-breaks:1",
       "beam:1",
       "exact-strip:1",
       "binary-height:1",
@@ -500,7 +503,7 @@ describe("the strata of k115", () => {
     const at = strata.indexOf("hole-degree:1");
     const tries = 60;
     // Roadmap item k142: a standalone stratum accepts few inputs, so it draws many. This test counts only the draws of hole-degree:1.
-    const outside = new Set<string | null>(["sleator", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"]);
+    const outside = new Set<string | null>(["sleator", "shelf-breaks", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"]);
     const space = {
       ...packSpace,
       stages: packSpace.stages.filter((s) => s.name !== "combine").map((s) => ({ ...s, options: s.options.filter((o) => !(s.name === "placement" && outside.has(o.id))) })),

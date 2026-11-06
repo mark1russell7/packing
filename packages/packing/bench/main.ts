@@ -10,6 +10,7 @@
 //   node bench/main.ts merge --out <dir> <job dir>...
 //   node bench/main.ts check <dir>
 //   node bench/main.ts control-read --as-of <YYYY-MM-DD> [--out file] <run dir>...
+//   node bench/main.ts fill-widths --out <file> [--runs <corpus>=<run id>,...] <run dir>...
 //
 // The times of a run on a local computer do not count. Only the times of CI compare.
 
@@ -40,6 +41,7 @@ import {
 } from "./run.ts";
 import { runBudgeted, runCases } from "./budget.ts";
 import { controlRead, controlReadText } from "./control-read.ts";
+import { fillWidthsJson, fillWidthsOfRuns, fillWidthsText } from "./fill-widths.ts";
 import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
 import { dumpPredicates, NEAR, parseShard } from "./predicates.ts";
 import { deriveSizeGate, measureSizes, parseSizeGate, publishedExports, sizeCoverage, sizeMarkdown, sizeVerdict, type PublishedPackage, type SizeBundler } from "./size-gate.ts";
@@ -429,6 +431,22 @@ function main(): number | Promise<number> {
       process.stdout.write(smokeMarkdown(result));
       return result.failures.length > 0 ? 1 : 0;
     }
+    case "fill-widths": {
+      // The replay of the widths of the fill trick. It stops on each difference from the records of the runs.
+      const out = opt("--out");
+      if (out === undefined) throw new Error("A replay of the fill widths needs --out <file>.");
+      const runs = (opt("--runs") ?? "").split(",").filter((pair) => pair !== "");
+      const dirs = rest.filter((arg, i) => !arg.startsWith("--") && rest[i - 1] !== "--out" && rest[i - 1] !== "--runs");
+      if (dirs.length === 0) throw new Error("A replay of the fill widths needs one folder of a run or more.");
+      const { file, differences } = fillWidthsOfRuns(dirs, runs);
+      if (differences.length > 0) {
+        process.stderr.write(`${differences.length} differences from the records:\n${differences.slice(0, 20).join("\n")}\n`);
+        return 1;
+      }
+      writeFileSync(resolve(out), fillWidthsJson(file));
+      process.stdout.write(fillWidthsText(file));
+      return 0;
+    }
     case "control-read": {
       // The read of the controls: the pooled result and the result by stratum. It only reports, so its exit code does not read the result.
       const asOf = opt("--as-of");
@@ -444,7 +462,7 @@ function main(): number | Promise<number> {
       return 0;
     }
     default:
-      process.stderr.write("Usage: node bench/main.ts run|list|merge|check|control-read|paired|predicates. docs/BENCH.md gives the options.\n");
+      process.stderr.write("Usage: node bench/main.ts run|list|merge|check|control-read|fill-widths|paired|predicates. docs/BENCH.md gives the options.\n");
       return 2;
   }
 }
