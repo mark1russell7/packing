@@ -1582,6 +1582,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 ## The snapshots of the site
 
 The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
+The script writes compact JSON with no indent, because the site bundles each file as raw text. A file of 64 strategies is approximately 140 KB, and the limit of the test is 200,000 bytes for each file.
 
 The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A run folder holds the files of one artifact: `records.jsonl`, `run.json` and `corpus.json`. Download it with `gh run download <id>` into a folder outside git.
 
