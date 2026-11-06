@@ -2356,6 +2356,25 @@ The script reads each input of a corpus of `bench/corpora`, with `pack-screen-v1
 
 The script refuses each input with no fixed width. Thus `pack-screen-v1` gives only 20 inputs. No height is higher than the greedy height, and the proof in `docs/PACKER.md` gives the same result. The mean ratio of `pack-screen-v1` is above 0.97, so the prediction of a mean ratio of at most 0.97 is false. The row of `pack-strip-v1` is a second read, not the measure of the prediction.
 
+## The online shelf
+
+`bench/online.ts` compares `shelfOnline` of roadmap item k30 with its bound and with the strategy `shelf` with `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k30-online-shelf`.
+
+```bash
+node --no-warnings bench/online.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-strip-v1` as the default. It packs each input that `shelfOnlineRefusal` accepts with `r: 0.5` and each fit. It writes one JSON line. For each fit, the line has the count of heights at or over the bound. It also has the mean and the largest ratio to the greedy height, and the largest share of the bound.
+
+| Corpus | Accepted | Fit | Over the bound | Mean ratio | Largest ratio | Largest share of the bound |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-strip-v1` | 264 | `next` | 0 | 1.061 | 1.730 | 0.538 |
+| `pack-strip-v1` | 264 | `first` | 0 | 1.009 | 1.730 | 0.487 |
+| `pack-screen-v1` | 20 | `next` | 0 | 1.192 | 1.945 | 0.498 |
+| `pack-screen-v1` | 20 | `first` | 0 | 1.175 | 1.945 | 0.498 |
+
+No height is at or over the bound, and the proof in `docs/PACKER.md` gives the same result. The greedy shelf knows each item of its row before the next row starts. The online shelf does not, so a ratio over 1 is the cost of a place that does not move later.
+
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
