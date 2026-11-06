@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.1
+## 0.10.4
 
 The time of `skyline` does not grow with the width of the input in units. Each output stays the same.
 
@@ -15,6 +15,37 @@ This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
 
 - The rule `mw` and a space that is not plain keep their cells, so their time still grows with the width.
 - Each output and each move count stay the same. A test pins 6,000 generated inputs on all paths.
+## 0.10.2
+
+The strategy `shelf-online` packs a strip online. Each box takes a shelf of its class of height when it comes, and it does not move later.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The functions `shelfOnline` and `shelfOnlineRefusal`, and the types `ShelfOnlineFit`, `ShelfOnlineOptions` and `ShelfOnlineResult`. These are the shelf algorithms of Baker 1983 with the parameter `r`.
+- The strategy `shelf-online` in `standaloneStrategies`, the option `shelf-online` of the stage `placement` of `packSpace` with the params `r` and `fit`, and the bench entry `shelf-online`.
+- The entry `shelf-online` of `strategyCatalog`.
+
+### Not changed
+
+- The outputs of each other strategy do not change. Each old named config of `packSpace` keeps its `configId`.
+
+## 0.10.1
+
+The strategy `shelf-breaks` packs a strip into rows in the reading order, with the breaks of the least height.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The functions `shelfBreaks` and `shelfBreaksRefusal`, and the type `ShelfBreaksResult`. The height is at most the height of the greedy shelf in the same order.
+- The strategy `shelf-breaks` in `standaloneStrategies`, the option `shelf-breaks` of the stage `placement` of `packSpace`, and the bench entry `shelf-breaks`.
+- The entry `shelf-breaks` of `strategyCatalog`.
+
+### Not changed
+
+- The outputs of each other strategy do not change. Each old named config of `packSpace` keeps its `configId`.
 
 ## 0.10.0
 

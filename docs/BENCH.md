@@ -136,6 +136,14 @@ The tricks obey the hard rules, and `fill-trick` drops no more items than its be
 - A pair that a budget stopped gives a censored row. A refused pair gives no row.
 - The read only reports. No gate reads its result at this time.
 
+`main.ts fill-widths --out <file> [--runs <corpus>=<run id>,...] <run dir>...` replays the width that `fill-trick` chose on each input. A record does not hold this width.
+
+- The command packs the control again on each input of each run. It stops when `pack.area` or `outputHash` differs from the record.
+- `bench/fixtures/fill-trick-widths.json` holds the replay of the runs 42074008497 (`pack-free-v1`) and 42074060697 (`pack-classes-v1`), at commit `aed4626`. All 1220 inputs agree with their records.
+- On a fixed width, the output keeps the width of the container. Thus `pack.area` does not show the tried width, and only the file shows it.
+- The test of the file packs each input again in CI. A different member, width or output fails it, so each change of the control shows.
+- On `pack-free-v1`, the control kept a tried width on 56 of 720 inputs. On `pack-classes-v1`, it kept one on 155 of 500.
+
 ## The jobs
 
 1. The job `plan` examines the inputs and makes a list of the entries with `main.ts list`.
@@ -1640,6 +1648,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 ## The snapshots of the site
 
 The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
+The script writes compact JSON with no indent, because the site bundles each file as raw text. A file of 64 strategies is approximately 140 KB, and the limit of the test is 200,000 bytes for each file.
 
 The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A run folder holds the files of one artifact: `records.jsonl`, `run.json` and `corpus.json`. Download it with `gh run download <id>` into a folder outside git.
 
@@ -1657,9 +1666,13 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
-A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
+A completed run of `coverage-nightly.yml` on `main` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch.
 
-The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A scheduled run also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
+A run that a person starts gives a point too, because a point is a measure, but a cancelled run gives no point.
+Each point records the start of its run: `schedule`, `dispatch` or `push`. The trend shows it with the link of the run. The start does not change the line of a point.
+`bench/site-data-trigger.test.ts` holds the condition of the job. Before this change, a filter on the event lost the point of run 41993720877, which measured for 8 hours.
+
+The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A completed run on `main` also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
 
 - A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
 - A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
@@ -1671,7 +1684,12 @@ The workflow `site-rerun.yml` reruns the other five corpora of the site each Wed
 - An entry that loses its row breaks the line of a list that has it. The earlier run has no share without that entry in the file.
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
-- The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.
+- A run writes only the files that it changes. The job `snapshot` compares each file with the copy that it made after the overlay, with `snapshot.ts written`. The job `publish` removes nothing from the branch.
+- A file on the branch stays until a run for its corpus writes it.
+- The build in `pages.yml` compares the time in the `origin` of each file. It takes a file of the branch only if that time is later than on `main`. The time is the date of the latest run, then the run id for two runs of one day. A tie goes to `main`.
+- A file with no readable time stops the build with the file name, on either side. Each build prints the source of each file of the branch. A build without the branch uses the files of `main`.
+- A later file of the branch can still lack a new field, so this rule does not replace a read of each file.
+- A file on `main` that is later than `coverage.json` of the branch hides the points of the trend that are only on the branch.
 - The table of the gaps has one column for each strategy, so the job keeps 6 strategies with `--strategies`.
 - `--date` gives the start date of the run. The age of the data counts from that date, and not from the date of the commit.
 
@@ -2390,6 +2408,42 @@ The strip has a width of 200. Each family has made-up items with a height from 1
 | wide | 500 | 1.312 | 1.116 | 100 % |
 
 Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
+
+## The shelf with the best breaks
+
+`bench/breaks.ts` compares `shelfBreaks` of roadmap item k29 with the strategy `shelf` and the option `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k29-optimal-breaks`.
+
+```bash
+node --no-warnings bench/breaks.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-screen-v1` as the default. It packs each input that `shelfBreaksRefusal` accepts with the two strategies. It writes one JSON line. The line has the counts of refusals, of higher heights and of lower heights. It also has the mean and the least ratio of the two heights.
+
+| Corpus | Inputs | Accepted | Higher | Lower | Mean ratio | Least ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-screen-v1` | 1305 | 20 | 0 | 10 | 0.979 | 0.891 |
+| `pack-strip-v1` | 528 | 264 | 0 | 216 | 0.955 | 0.763 |
+
+The script refuses each input with no fixed width. Thus `pack-screen-v1` gives only 20 inputs. No height is higher than the greedy height, and the proof in `docs/PACKER.md` gives the same result. The mean ratio of `pack-screen-v1` is above 0.97, so the prediction of a mean ratio of at most 0.97 is false. The row of `pack-strip-v1` is a second read, not the measure of the prediction.
+
+## The online shelf
+
+`bench/online.ts` compares `shelfOnline` of roadmap item k30 with its bound and with the strategy `shelf` with `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k30-online-shelf`.
+
+```bash
+node --no-warnings bench/online.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-strip-v1` as the default. It packs each input that `shelfOnlineRefusal` accepts with `r: 0.5` and each fit. It writes one JSON line. For each fit, the line has the count of heights at or over the bound. It also has the mean and the largest ratio to the greedy height, and the largest share of the bound.
+
+| Corpus | Accepted | Fit | Over the bound | Mean ratio | Largest ratio | Largest share of the bound |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-strip-v1` | 264 | `next` | 0 | 1.061 | 1.730 | 0.538 |
+| `pack-strip-v1` | 264 | `first` | 0 | 1.009 | 1.730 | 0.487 |
+| `pack-screen-v1` | 20 | `next` | 0 | 1.192 | 1.945 | 0.498 |
+| `pack-screen-v1` | 20 | `first` | 0 | 1.175 | 1.945 | 0.498 |
+
+No height is at or over the bound, and the proof in `docs/PACKER.md` gives the same result. The greedy shelf knows each item of its row before the next row starts. The online shelf does not, so a ratio over 1 is the cost of a place that does not move later.
 
 ## Side anchors
 
