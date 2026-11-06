@@ -35,7 +35,7 @@ Status: done, done, waiting, next, done.
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | done | k6, k7 |
 | k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi | strategies | later | k6, k7 |
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
-| k29 | Methods that keep the reading order or the layout under change | strategies | active | k6, k7 |
+| k29 | Methods that keep the reading order or the layout under change. The first slice is `shelfBreaks` in 0.10.1: rows in the reading order with the least height, at most the greedy height. On `pack-screen-v1` the mean ratio is 0.979 on 20 inputs, so the prediction of 0.97 is false. | strategies | active | k6, k7 |
 | k30 | Online and incremental packing | strategies | active | k6, k7 |
 | k31 | New ideas of our own | strategies | active | k6, k7 |
 | k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. Part 1 (#92): the pages `results/` and `whats-new/`, from the snapshots in `packages/site/data/`. | site | active | k11, k14 |

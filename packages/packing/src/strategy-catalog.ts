@@ -293,6 +293,7 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
     iterations: { ...ITERATIONS, describe: "The count of the force steps. With 0, the output is the member output." },
     rounds: { type: "integer", describe: "The most rounds of the overlap removal.", min: 0, max: 32 },
   } satisfies OptionSchema<ForceStrategyOptions>,
+  "shelf-breaks": {},
   sleator: {},
   beam: {
     width: { type: "integer", describe: "The count of the states that each level keeps, and the count of the children of a state.", min: 1, max: 64, scale: "log", default: BEAM_WIDTH },
@@ -356,6 +357,7 @@ const DESCRIBES: Readonly<Record<string, string>> = {
   tabu: "This strategy searches the orders of the items with a tabu list.",
   relax: "This strategy moves the boxes of the member layout to equal gaps and to their linked boxes.",
   force: "This strategy moves the boxes of the member layout with forces, then it removes the overlaps.",
+  "shelf-breaks": "This strategy packs a strip into rows in the reading order, with the breaks of the least height.",
   sleator: "This strategy packs a strip with the algorithm of Sleator, with a proved bound of 2.5 times the optimum.",
   beam: "This strategy packs a strip with a beam search over the next item.",
   "exact-strip": "This strategy searches a small strip until it proves the smallest height.",
