@@ -136,6 +136,14 @@ The tricks obey the hard rules, and `fill-trick` drops no more items than its be
 - A pair that a budget stopped gives a censored row. A refused pair gives no row.
 - The read only reports. No gate reads its result at this time.
 
+`main.ts fill-widths --out <file> [--runs <corpus>=<run id>,...] <run dir>...` replays the width that `fill-trick` chose on each input. A record does not hold this width.
+
+- The command packs the control again on each input of each run. It stops when `pack.area` or `outputHash` differs from the record.
+- `bench/fixtures/fill-trick-widths.json` holds the replay of the runs 42074008497 (`pack-free-v1`) and 42074060697 (`pack-classes-v1`), at commit `aed4626`. All 1220 inputs agree with their records.
+- On a fixed width, the output keeps the width of the container. Thus `pack.area` does not show the tried width, and only the file shows it.
+- The test of the file packs each input again in CI. A different member, width or output fails it, so each change of the control shows.
+- On `pack-free-v1`, the control kept a tried width on 56 of 720 inputs. On `pack-classes-v1`, it kept one on 155 of 500.
+
 ## The jobs
 
 1. The job `plan` examines the inputs and makes a list of the entries with `main.ts list`.
@@ -2356,6 +2364,42 @@ The strip has a width of 200. Each family has made-up items with a height from 1
 
 Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
 
+## The shelf with the best breaks
+
+`bench/breaks.ts` compares `shelfBreaks` of roadmap item k29 with the strategy `shelf` and the option `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k29-optimal-breaks`.
+
+```bash
+node --no-warnings bench/breaks.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-screen-v1` as the default. It packs each input that `shelfBreaksRefusal` accepts with the two strategies. It writes one JSON line. The line has the counts of refusals, of higher heights and of lower heights. It also has the mean and the least ratio of the two heights.
+
+| Corpus | Inputs | Accepted | Higher | Lower | Mean ratio | Least ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-screen-v1` | 1305 | 20 | 0 | 10 | 0.979 | 0.891 |
+| `pack-strip-v1` | 528 | 264 | 0 | 216 | 0.955 | 0.763 |
+
+The script refuses each input with no fixed width. Thus `pack-screen-v1` gives only 20 inputs. No height is higher than the greedy height, and the proof in `docs/PACKER.md` gives the same result. The mean ratio of `pack-screen-v1` is above 0.97, so the prediction of a mean ratio of at most 0.97 is false. The row of `pack-strip-v1` is a second read, not the measure of the prediction.
+
+## The online shelf
+
+`bench/online.ts` compares `shelfOnline` of roadmap item k30 with its bound and with the strategy `shelf` with `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k30-online-shelf`.
+
+```bash
+node --no-warnings bench/online.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-strip-v1` as the default. It packs each input that `shelfOnlineRefusal` accepts with `r: 0.5` and each fit. It writes one JSON line. For each fit, the line has the count of heights at or over the bound. It also has the mean and the largest ratio to the greedy height, and the largest share of the bound.
+
+| Corpus | Accepted | Fit | Over the bound | Mean ratio | Largest ratio | Largest share of the bound |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-strip-v1` | 264 | `next` | 0 | 1.061 | 1.730 | 0.538 |
+| `pack-strip-v1` | 264 | `first` | 0 | 1.009 | 1.730 | 0.487 |
+| `pack-screen-v1` | 20 | `next` | 0 | 1.192 | 1.945 | 0.498 |
+| `pack-screen-v1` | 20 | `first` | 0 | 1.175 | 1.945 | 0.498 |
+
+No height is at or over the bound, and the proof in `docs/PACKER.md` gives the same result. The greedy shelf knows each item of its row before the next row starts. The online shelf does not, so a ratio over 1 is the cost of a place that does not move later.
+
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
@@ -2467,6 +2511,21 @@ Roadmap item k141 adds 14 entries to `ENTRIES`: `STANDALONE_ENTRIES` of `bench/e
 - The entries are in `packSpace` since roadmap item k142. Each entry has a named config. `bench/pack-space.test.ts` compares its output with the entry on inputs that it accepts.
 - Roadmap item k142 adds 9 strata to the sampler, 38 in all. The strata `exact-strip:1` and `treemap:1` accept few inputs, so a short sample misses them.
 - The entries are not members of the adversary or of the portfolio tools, because they do not support each cell.
+
+## The split of the free space
+
+`bench/split-fill.ts` reads the mean fill of 4 placements alone and through the split `obstacle-cuts` of roadmap item k41. It has 120 inputs of `rect-grid`: 6 obstacle layouts, a fixed size and a free height, 10 seeds and 60 items. The prediction is `packing-k41-split-stage`.
+
+| Placement | Fill alone | Fill through `obstacle-cuts` | Overflow alone | Overflow through `obstacle-cuts` |
+| --- | --- | --- | --- | --- |
+| `skyline` | 0.5854 | 0.6260 | 176 | 95 |
+| `maxrects` | 0.5246 | 0.5887 | 45 | 94 |
+| `rows` | 0.7022 | 0.6178 | 265 | 95 |
+| `shelf` | 0.7179 | 0.6152 | 349 | 98 |
+
+- The prediction told a lower fill for `skyline` through the split. The fill is higher, so this outcome is a miss.
+- Through the split, `rows` and `shelf` have a lower fill and fewer overflow items. The fill reads only the placed items, so a placement with more items in the overflow can have a higher fill.
+- `maxrects` packs around the obstacles by itself, and has more overflow items through the split. Thus a split helps a placement that packs one rectangle, and not a placement that packs around obstacles.
 
 ## The rank window
 

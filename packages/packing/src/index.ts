@@ -3,6 +3,7 @@ export { Rect } from "./rect.ts";
 export { defaultLayoutOf, pack, packRows, rectFeatures, type PackOptions, type PackLayoutOptions } from "./pack.ts";
 export { packSkyline, lowestWindow, SKYLINE_RULES, type SkylineOptions, type SkylineRule } from "./skyline.ts";
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
+export { obstacleCuts, oneRegion, packParts, SPLITS, type Part, type Split } from "./split.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
 export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule, type MaxRectsScore } from "./maxrects.ts";
 export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
@@ -210,6 +211,8 @@ export {
   type BoundOptions,
   type ObjectiveBound,
 } from "./bounds.ts";
+export { shelfBreaks, shelfBreaksRefusal, type ShelfBreaksResult } from "./shelf-breaks.ts";
+export { shelfOnline, shelfOnlineRefusal, type ShelfOnlineFit, type ShelfOnlineOptions, type ShelfOnlineResult } from "./shelf-online.ts";
 export { sleatorRefusal, sleatorStrip, type SleatorResult } from "./sleator.ts";
 export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
 export { BEAM_WIDTH, beamStrip, type BeamOptions, type BeamResult } from "./beam.ts";
