@@ -172,6 +172,38 @@ export function labelCounts(snap: StrategySnapshot, measure: string): Record<Lab
   return out;
 }
 
+/** The counts of the fill claim of a snapshot (roadmap item k154). Each strategy other than the baseline is in one count. */
+export interface FillClaimCounts {
+  /** The strategies with the fill better and the partner not worse. Only these count as a fill win. */
+  pair: number;
+  /** The strategies with the fill better and the partner worse. */
+  givesUp: number;
+  /** The strategies with the fill better and no verdict of the partner: a corpus with no partner, or a snapshot without the partner. */
+  unpaired: number;
+  worse: number;
+  /** The strategies with no verdict or a mixed verdict on the fill. */
+  other: number;
+  unmeasured: number;
+}
+
+/** This function gives the share of a fill claim of one strategy: `pair`, `givesUp` or `unpaired` when the fill is better. */
+export function fillClaimOfStrategy(s: StrategySummary, fill: string, partner: string | null): keyof FillClaimCounts {
+  const label = verdictOf(s, fill)?.label;
+  if (label === undefined || label === "not measured") return "unmeasured";
+  if (label === "worse") return "worse";
+  if (label !== "better") return "other";
+  const other = partner === null ? undefined : verdictOf(s, partner)?.label;
+  if (other === undefined || other === "not measured") return "unpaired";
+  return other === "worse" ? "givesUp" : "pair";
+}
+
+/** This function counts the fill claim of each strategy other than the baseline. */
+export function fillClaimCounts(snap: StrategySnapshot, fill: string, partner: string | null): FillClaimCounts {
+  const out: FillClaimCounts = { pair: 0, givesUp: 0, unpaired: 0, worse: 0, other: 0, unmeasured: 0 };
+  for (const s of snap.strategies) if (s.strategy !== snap.baseline) out[fillClaimOfStrategy(s, fill, partner)]++;
+  return out;
+}
+
 /** This function gives the largest absolute value of the interval ends of a measure, for a shared scale. It is at least `floor`. */
 export function scaleOf(snap: StrategySnapshot, measure: string, floor = 1e-6): number {
   let max = floor;
