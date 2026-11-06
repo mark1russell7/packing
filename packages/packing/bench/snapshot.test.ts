@@ -8,6 +8,7 @@ import {
   COVERAGE_TOP,
   snapshotMain,
   writtenFiles,
+  writeSnapshot,
   coverageMethod,
   coverageSnapshot,
   earlierLists,
@@ -806,5 +807,22 @@ describe("the finished inputs of a snapshot (k153)", () => {
     const refused = gapSnapshot([gap("p", a), gap("q", a, { measures: {}, skipped: "unsupported containerSize: refused" })], { corpus: "c", origin, measure: "pack.gap" });
     expect("stopped" in refused).toBe(false);
     expect(refused.strategies.find((s) => s.strategy === "q")!.all.missing).toBe(1);
+  });
+});
+
+describe("the writer of the snapshot files (k186)", () => {
+  it("writes compact JSON with one line end, because the site bundles each file as raw text", () => {
+    const dir = mkdtempSync(join(tmpdir(), "snapshot-write-"));
+    try {
+      const value = { schema: "s", kind: "strategies", strategies: [{ strategy: "a", groups: [{ group: "g", wins: 1 }] }] };
+      const file = join(dir, "x.json");
+      writeSnapshot(file, value);
+      const text = readFileSync(file, "utf8");
+      expect(text).toBe(`${JSON.stringify(value)}\n`);
+      expect(text.split("\n")).toHaveLength(2);
+      expect(JSON.parse(text)).toEqual(value);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
