@@ -1805,6 +1805,21 @@ const output = matchPlaces(baseOutput, changeInput, fresh);
 
 The function needs sizes that repeat, such as cards on a dashboard. With free sizes, each class has one box and nothing changes. `docs/BENCH.md`, "Repack and match", has the numbers.
 
+## The pin and repack
+
+The function `repackPinned` is a slice of roadmap item k31, the idea `new-pin-repack`. It packs a changed input with a packer that it gets, and moves as few boxes as it can. No default uses it.
+
+```ts
+const pack = (input: PackInput) => packWith("maxrects", input, { rule: "bl" });
+const { output, input, method, pinned } = repackPinned(baseInput, baseOutput, changeInput, pack);
+```
+
+1. The function pins each unchanged box with `pinUnchanged`, and packs the free boxes into the holes.
+2. If an item overflows, it pins only the boxes before the first change with `keepPrefix`, and packs again.
+3. If an item still overflows, it packs the changed input fresh, with no pin.
+
+The function keeps the first pack with no overflow, and `method` names it. Thus it places each item when a fresh pack places each item. A strip has no overflow, so step 1 is the result there. Check the hard rules of `output` against the `input` of the result, because it has the locks. `docs/BENCH.md`, "The pin and repack", has the numbers.
+
 ## The kept prefix
 
 The function `keepPrefix` locks each box before the first change of the item list (roadmap item k30). It changes an input and does not pack, as `pinUnchanged` does. No default uses it.

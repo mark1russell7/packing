@@ -667,6 +667,7 @@ These ideas are new for this project. Some of them join two published methods. E
 
 Results:
 
+- `new-pin-repack` (k31): `repackPinned`. In a container of slack 1.1, it moves 0.47 and 0.50 of the boxes that a fresh pack moves, on `maxrects-bl` and `skyline`. It places each item when a fresh pack does. On a strip, the pin always fits: it moves 0.010 of the boxes, and costs 21 to 32 % of height at step 10 (`bench/pin.ts`). Thus the row claim of a small cost fails on strips. `docs/BENCH.md`, "The pin and repack", has the table.
 - `new-rank-window` (k31): the prediction of its row failed. On made-up strips of 100 items, window 6 gives 9 % of the height gain, and half of the gain needs window 32. `docs/BENCH.md`, "The rank window", has the curve.
 
 ## Measures to add
