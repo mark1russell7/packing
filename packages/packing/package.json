@@ -111,7 +111,7 @@
   "dependencies": {
     "@mark1russell7/collections": "^0.1.0",
     "@mark1russell7/layout-contract": "^0.5.0",
-    "@mark1russell7/rigor-generators": "^0.1.1"
+    "@mark1russell7/rigor-generators": "^0.1.6"
   },
   "scripts": {
     "bench": "node bench/main.ts",

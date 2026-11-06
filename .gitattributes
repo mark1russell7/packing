@@ -5,3 +5,4 @@
 *.ico binary
 *.woff2 binary
 *.pdf binary
+packages/packing/bench/corpora/pack-adversary-v2.json linguist-generated=true
