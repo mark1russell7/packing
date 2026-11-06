@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TreemapNode } from "../src/treemap.ts";
-import { ARMS, BANDS, layoutChange, literatureRows, meanAspectOf, PUBLISHED, readabilityOf, reportOf, treeOf, WALKS } from "./treemap-literature.ts";
+import { ARMS, BANDS, layoutChange, literatureRows, meanAspectOf, PUBLISHED, readabilityOf, reportOf, SPIRAL_LIMITS, spiralRows, treeOf, WALKS, type Compared } from "./treemap-literature.ts";
 
 describe("the measures of Bederson 2002", () => {
   it("gives the unweighted mean of the aspects", () => {
@@ -73,5 +73,31 @@ describe("the report", () => {
     const report = reportOf([{ walk: "w", table: "t", arm: "a", aspect: value, change: value, readability: { ...value, inBand: true } }], 2, 2);
     expect(report).toContain("| w | t | a | 3.00 [3.00, 3.00] / 2.00 OUT | 3.00 [3.00, 3.00] / 2.00 OUT | 3.00 [3.00, 3.00] / 2.00 in |");
     expect(BANDS.aspect).toBe(0.15);
+  });
+});
+
+describe("spiral against strip", () => {
+  const value = (measured: number): Compared => ({ published: null, measured, low: measured, high: measured, inBand: null });
+  const row = (arm: string, aspect: number, change: number, readability: number) => ({ walk: "w", table: "t", arm, aspect: value(aspect), change: value(change), readability: value(readability) });
+
+  it("gives the spiral arm no published row and no verdict of a band", () => {
+    const rows = literatureRows(2, 2).filter((r) => r.arm === "spiral");
+    expect(rows).toHaveLength(WALKS.length * PUBLISHED.length);
+    for (const r of rows) for (const measure of [r.aspect, r.change, r.readability]) expect([measure.published, measure.inBand]).toEqual([null, null]);
+    expect(reportOf(literatureRows(2, 2), 2, 2)).toContain("| sd-0.05 | I (20x1) | spiral | ");
+  });
+
+  it("gives each limit at its edge as ok, and a value past it as over", () => {
+    const edge = spiralRows([row("strip", 2, 4, 0.5), row("spiral", 2 * SPIRAL_LIMITS.aspect, 4, 0.5)]);
+    expect(edge).toEqual([{ walk: "w", table: "t", aspectRatio: SPIRAL_LIMITS.aspect, changeRatio: 1, readabilityGain: 0, aspectOk: true, changeOk: true, readabilityOk: true }]);
+    const past = spiralRows([row("strip", 2, 4, 0.5), row("spiral", 2.6, 4.4, 0.4)])[0]!;
+    expect([past.aspectOk, past.changeOk, past.readabilityOk]).toEqual([false, false, false]);
+    const report = reportOf([row("strip", 2, 4, 0.5), row("spiral", 2.6, 4.4, 0.4)], 2, 2);
+    expect(report).toContain("| w | t | 1.300 OVER | 1.100 OVER | -0.100 OVER |");
+    expect(report).toContain("| w | t | spiral | 2.60 [2.60, 2.60] / no row |");
+  });
+
+  it("gives no spiral row without a strip row of the same walk and table", () => {
+    expect(spiralRows([row("spiral", 1, 1, 1)])).toEqual([]);
   });
 });

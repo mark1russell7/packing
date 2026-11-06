@@ -1887,7 +1887,7 @@ The registry does not hold these strategies. `strategy`, `packWith` and `allStra
 | `treemap` | `treemapPack` | `treemap` | `single` | `freeAspect`, `freeArea` | `rect` |
 | `side-anchors` | `packSideAnchors` | `side-anchors` | `composite` | `fixed`, `freeHeight`, `freeWidth` | `rect` |
 
-- The option `method` of `masonry` picks one of its three functions. The option `method` of `treemap` picks one of its four layouts.
+- The option `method` of `masonry` picks one of its three functions. The option `method` of `treemap` picks one of its five layouts.
 - `beam` has no catalog row. The first slice is neither the filtered search of Chen 2025 nor the parallel search of Wen 2025.
 - `exact-strip` has a limit of 100,000 nodes, and `binary-height` has 32 trials. The functions have higher defaults. These strategies take less time in a bench or on a page.
 - `binary-height`, `near-rects` and `raster-nofit` refuse more than 256 items, because the time of their search grows fast with the count.
@@ -1923,7 +1923,7 @@ Roadmap item k142 gives each strategy of this section a point in `packSpace`. Th
 | `near-rects` | `placement` | `rounds` | 0 to 4 | 2 |
 | `raster-nofit` | `placement` | `trials` | 1 to 256, log scale | 64 |
 | `masonry` | `placement` | `method`, `columns` | 3 methods, 1 to 16 | `shortest`, 4 |
-| `treemap` | `placement` | `method` | 4 methods | `squarified` |
+| `treemap` | `placement` | `method` | 5 methods | `squarified` |
 | `side-anchors` | `combine` | `side`, `at` | 4 sides, 0 to 1 | `left`, 0.5 |
 
 - Constraints keep the order `input` and the size search `none` with each placement option.

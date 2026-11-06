@@ -367,6 +367,7 @@ export {
   treemapPack,
   treemapPivotSplit,
   treemapSliceDice,
+  treemapSpiral,
   treemapSquarified,
   treemapStrip,
   type TreemapCell,

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 498 names
+## . (build/index.d.ts): 499 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -491,6 +491,7 @@ toRects: build/index.d.ts#toRects
 treemapPack: build/index.d.ts#treemapPack
 treemapPivotSplit: build/index.d.ts#treemapPivotSplit
 treemapSliceDice: build/index.d.ts#treemapSliceDice
+treemapSpiral: build/index.d.ts#treemapSpiral
 treemapSquarified: build/index.d.ts#treemapSquarified
 treemapStrip: build/index.d.ts#treemapStrip
 turnItem: build/strategy.d.ts#turnItem
@@ -1773,7 +1774,7 @@ interface TreemapFrame {
 type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
 
 ### build/index.d.ts#TreemapMethod
-type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split";
+type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split" | "spiral";
 
 ### build/index.d.ts#TreemapNode
 type TreemapNode = {
@@ -2352,6 +2353,9 @@ export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: 
 
 ### build/index.d.ts#treemapSliceDice
 export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapSpiral
+export declare function treemapSpiral(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapSquarified
 export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
