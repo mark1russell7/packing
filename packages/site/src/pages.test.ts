@@ -4,7 +4,7 @@ import { parseResponseRecord } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
 import { buildLine, navLinks } from "./chrome.ts";
 import { coverageLine, explorerFacts, NO_COVERAGE_LINE, RECORD_ORIGIN } from "./explorer-model.ts";
-import { byDate, COVERAGE_LABELS, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
+import { byDate, COVERAGE_LABELS, FILL_CLAIMS, fillClaimOf, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -22,6 +22,8 @@ import {
   percentText,
   pickHolds,
   budgetText,
+  fillClaimCounts,
+  fillClaimOfStrategy,
   rankSections,
   rankStrategies,
   reasonMeaning,
@@ -241,6 +243,35 @@ describe("the calculations of the pages", () => {
     expect(sections.map((x) => x.strategies.map((s) => s.strategy))).toEqual([["big-high", "big-low"], ["small-high"]]);
     expect(sectionText(sections[1]!.finished!, 10)).toBe("Compared on the same 6 of 10 inputs, up to 100 items. Do not compare these strategies with another group.");
     expect(sectionText({ set: "none", inputs: 0, largest: null }, 10)).toBe("No input finished, so these strategies have no comparison.");
+  });
+
+  it("counts a fill win only with the partner not worse, and claims no fill win on a corpus with no partner (k154)", () => {
+    const fill = snap.strategies[0]!.verdicts[0]!;
+    const one = (strategy: string, f: string, right?: string): StrategySummary => ({
+      ...snap.strategies[0]!,
+      strategy,
+      verdicts: [{ ...fill, measure: "pack.fill", label: f }, ...(right === undefined ? [] : [{ ...fill, measure: "pack.balance.side.right", label: right }])],
+    }) as StrategySummary;
+    const made = {
+      ...snap,
+      baseline: "base",
+      strategies: [one("base", "better", "better"), one("pair", "better", "no verdict"), one("pair2", "better", "better"), one("gives", "better", "worse"), one("bare", "better"), one("low", "worse", "better"), one("mix", "depends on the mix"), one("tie", "no verdict"), one("off", "not measured")],
+    } as StrategySnapshot;
+    const right = "pack.balance.side.right";
+    expect(made.strategies.map((s) => fillClaimOfStrategy(s, "pack.fill", right))).toEqual(["pair", "pair", "pair", "givesUp", "unpaired", "worse", "other", "other", "unmeasured"]);
+    expect(fillClaimCounts(made, "pack.fill", right)).toEqual({ pair: 2, givesUp: 1, unpaired: 1, worse: 1, other: 2, unmeasured: 1 });
+    expect(fillClaimCounts(made, "pack.fill", null)).toEqual({ pair: 0, givesUp: 0, unpaired: 4, worse: 1, other: 2, unmeasured: 1 });
+  });
+
+  it("gives each corpus of the results page a fill claim, with no partner on the free corpus (k154)", () => {
+    for (const name of ["strategies-pack-screen-v1.json", "strategies-pack-select-v1.json", "strategies-pack-select-v2.json", "strategies-pack-free-v1.json"]) {
+      const corpus = (parseSnapshot(read(name), "strategies") as StrategySnapshot).corpus;
+      expect(FILL_CLAIMS[corpus], corpus).toBeDefined();
+    }
+    expect(fillClaimOf("pack-free-v1").partner).toBeNull();
+    expect(fillClaimOf("pack-screen-v1").partner).toBe("pack.balance.side.right");
+    expect(fillClaimOf("pack-select-v2").note).toContain("does not guard the order");
+    expect(fillClaimOf("pack-unknown-v9")).toEqual({ partner: null, note: expect.stringContaining("no fill win") });
   });
 
   it("gives the meaning of the budget reasons and of a refusal, and no meaning for another reason", () => {

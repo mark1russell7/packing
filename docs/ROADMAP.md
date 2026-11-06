@@ -35,8 +35,8 @@ Status: done, done, waiting, next, done.
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | done | k6, k7 |
 | k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi | strategies | later | k6, k7 |
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
-| k29 | Methods that keep the reading order or the layout under change | strategies | active | k6, k7 |
-| k30 | Online and incremental packing | strategies | active | k6, k7 |
+| k29 | Methods that keep the reading order or the layout under change. The first slice is `shelfBreaks` in 0.10.1: rows in the reading order with the least height, at most the greedy height. On `pack-screen-v1` the mean ratio is 0.979 on 20 inputs, so the prediction of 0.97 is false. | strategies | active | k6, k7 |
+| k30 | Online and incremental packing. The slice of 0.10.2 is `shelfOnline`, the online shelf of Baker 1983: no box moves later, and the height stays under its bound on `pack-strip-v1` and `pack-screen-v1`. | strategies | active | k6, k7 |
 | k31 | New ideas of our own | strategies | active | k6, k7 |
 | k32 | Every result on the site, the losers too. Each item that ships a strategy, a result or a bench change commits a summary of its records, and the site shows it. Part 1 (#92): the pages `results/` and `whats-new/`, from the snapshots in `packages/site/data/`. | site | active | k11, k14 |
 | k33 | Free width: `packFree` searches the width for a target aspect | core | done |  |
@@ -162,7 +162,7 @@ Status: done, done, waiting, next, done.
 | k151 | A wall budget for each pair of the bench: 15 s up to 30 items, 30 s above. A pair over budget keeps a censored record. After 2 overruns of an entry at one size, its other pairs at that size and above do not start. A job records its control time, so a censored result near the budget can be read. | bench | active | k148 |
 | k152 | An ordered group in `superviseCases` of `rigor-bench`: a stop at one size also stops the larger sizes. `budgetCases` gives each case the entry as its group and its size as its `rank` (`rigor-bench` 0.2.13), so the stage keys that never run are gone | bench | done | k151 |
 | k153 | The page of each measured result shows the budget, the largest input that each strategy finished in budget and the reason of each refusal, and it compares strategies only on inputs that each one finished. The date is 2026-11-08 | site | active | k151 |
-| k154 | Adversary controls. Each measure that a verdict or a page reads gets a control built to win that measure and nothing else. A measure that its control wins names a partner measure and does not call a win alone. The read also reports each measure with no spread on the real corpus. The date is 2026-11-10 | bench | later | k148 |
+| k154 | Adversary controls. Each measure that a verdict or a page reads gets a control built to win that measure and nothing else. A measure that its control wins names a partner measure and does not call a win alone. The read also reports each measure with no spread on the real corpus. The results page counts a fill win only when the right strip is not worse. It claims no fill win on the free corpus. The date is 2026-11-10 | bench | active | k148 |
 | k178 | The record states the width that the fill control chose, if a partner of fill catches the control. The date is 2026-11-23 | measure | later | k154 |
 | k179 | `rigor-bench` reports a narrow spread: one or two entries alone separate, and the other pairs tie. It is a report only, in 0.2.24. The date is 2026-11-16 | measure | active | k154 |
 | k180 | A partner catches a control only when the median real entry beats the control on it. `rigor-bench` reports the count of entries that beat it and the entries left out. It is a report only, in 0.2.25. The date is 2026-11-12 | measure | active | k179 |

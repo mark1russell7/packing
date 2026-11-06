@@ -1641,6 +1641,32 @@ The tests compare the bound with a known optimum: 1000 perfect cuts and 100 stri
 
 The source of these steps is the statement in the strip packing article of Wikipedia and the catalog row. The paper is behind a paywall, so this repository has no reading of the proof itself.
 
+## The shelf with the best breaks
+
+The function `shelfBreaks` packs a strip into rows that keep the reading order (roadmap item k29). The strategy `shelf-breaks` wraps it. No default uses it.
+
+1. The items take the order of `byRank`: by `rank`, then by the index in the input.
+2. A row is a run of that order that fits the width. Its height is the height of its tallest item.
+3. A dynamic program finds the least height for each start of the order.
+4. On a tie of height, the function takes fewer rows. On a tie of both, it takes the longest last row.
+
+The greedy shelf in the same order fills each row until the next item does not fit. The program examines those breaks too, so the height of `shelfBreaks` is at most the greedy height. The cost is the count of items times the length of the longest row. The function accepts the same inputs as `sleatorStrip`.
+
+The method is the line breaking of Knuth 1981 with a different cost: the cost of a row is its height, not its free width. The read `bench/breaks.ts` compares the two heights on a corpus. Refer to "The shelf with the best breaks" in `docs/BENCH.md`.
+
+## The online shelf
+
+The function `shelfOnline` packs a strip online, with the shelf algorithms of Baker 1983 (roadmap item k30). The strategy `shelf-online` wraps it. No default uses it.
+
+1. The items come in the order of `byRank`. Only the items before an item change its place, and no item moves later.
+2. An item of height `h` has the class `k` with `r^(k+1) < h <= r^k`. A shelf of class `k` has the height `r^k`.
+3. With `fit: "next"`, an item goes on the last shelf of its class. With `fit: "first"`, it goes on the first shelf of its class where it fits.
+4. If no shelf of its class fits, the item opens a new shelf on top of all the shelves.
+
+Two shelves of one class that follow each other hold items of more than the width together. Each item is taller than `r` times its shelf. Thus the height is less than `2 / r` times the area over the width, plus `hmax / (r (1 - r))`. The test of `src/shelf-online.test.ts` examines this bound, and each prefix of an input gives the same places to its items.
+
+The defaults are `r: 0.5` and `fit: "first"`. The read `bench/online.ts` compares the height with the bound and with the greedy shelf. Refer to "The online shelf" in `docs/BENCH.md`.
+
 ## Side anchors
 
 `packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
@@ -1854,6 +1880,8 @@ The registry does not hold these strategies. `strategy`, `packWith` and `allStra
 | Id | Function | Family | Kind | Container | Item shape |
 | --- | --- | --- | --- | --- | --- |
 | `sleator` | `sleatorStrip` | `sleator` | `single` | `freeHeight` | `rect` |
+| `shelf-breaks` | `shelfBreaks` | `shelf` | `single` | `freeHeight` | `rect` |
+| `shelf-online` | `shelfOnline` | `shelf` | `single` | `freeHeight` | `rect` |
 | `exact-strip` | `exactStrip` | `exact` | `single` | `freeHeight` | `rect` |
 | `binary-height` | `packBinaryHeight` | `binary-height` | `single` | `freeHeight` | `rect` |
 | `beam` | `beamStrip` | `beam` | `single` | `freeHeight` | `rect` |
@@ -1891,6 +1919,8 @@ Roadmap item k142 gives each strategy of this section a point in `packSpace`. Th
 | Option | Stage | Param | Values | Default |
 | --- | --- | --- | --- | --- |
 | `sleator` | `placement` | none | | |
+| `shelf-breaks` | `placement` | none | | |
+| `shelf-online` | `placement` | `r`, `fit` | 0.1 to 0.9, and `next` or `first` | 0.5 and `first` |
 | `beam` | `placement` | `width` | 1 to 64, log scale | 16 |
 | `exact-strip` | `placement` | `nodeLimit` | 1,000, 10,000, 100,000 | 100,000 |
 | `binary-height` | `placement` | `trials` | 1 to 1,024, log scale | 32 |
