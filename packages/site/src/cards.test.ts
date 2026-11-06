@@ -122,7 +122,7 @@ describe("the parts of a card", () => {
     const rows = stripOf("rows", snapshots);
     expect(rows.every((r) => r.cells.every((c) => c.label === "baseline"))).toBe(true);
     const select = stripOf("select-rows-bl", snapshots);
-    expect(select.map((r) => r.cells[0]!.label)).toEqual(["better", "better", "not measured", "not measured"]);
+    expect(select.map((r) => r.cells[0]!.label)).toEqual(["better", "better", "not measured", "not measured", "not measured"]);
     expect(stripOf("push", snapshots).every((r) => r.cells.every((c) => c.label === "not measured"))).toBe(true);
   });
 
