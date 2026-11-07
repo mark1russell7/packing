@@ -203,8 +203,14 @@ const CIRCLE_SPACE_MAX_ITERATIONS = 1024;
 /** The inputs of the options `hole-degree` of roadmap item k90 and `circle-quasi-physical` of roadmap item k94: only the shape kind `circle`. */
 const CIRCLE_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["circle"] as const) });
 
-/** The inputs of the options that a `hole-degree` config shares with the rect configs: `rect` and `circle`. */
-const RECT_OR_CIRCLE: OptionSupports = Object.freeze({ shape: Object.freeze(["rect", "circle"] as const) });
+/**
+ * The inputs of the options `near-rects` of roadmap item k97 and `raster-nofit` of roadmap item k92: `rect`, `polygon` and `circle`.
+ * These are the item shapes of their entries in the registry (roadmap item k200). A `mixed` input is a mix of these kinds.
+ */
+const OUTLINES: OptionSupports = Object.freeze({ shape: Object.freeze(["rect", "polygon", "circle"] as const) });
+
+/** The inputs of the options that the configs of a shaped placement share with the rect configs: the kinds of `OUTLINES`. */
+const PASS_THROUGH: OptionSupports = OUTLINES;
 
 /** This function gives the stage choice of a param list, without an empty list of params. */
 const choice = (option: string, params: Record<string, string | number | boolean> = {}): StageChoice =>
@@ -272,12 +278,12 @@ const pool: readonly StrategyConfig[] = Object.values(POOL);
 
 /** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
 const STAGES: readonly SpaceStage[] = [
-  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => ({ id, params: [], supports: id === "input" ? RECT_OR_CIRCLE : RECT_ONLY })) },
+  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => ({ id, params: [], supports: id === "input" ? PASS_THROUGH : RECT_ONLY })) },
   {
     name: "size-search",
     options: [
       { id: "log-sweep", params: [{ name: "samples", kind: "int", min: 12, max: 192, scale: "log", default: 48 }], supports: RECT_ONLY },
-      { id: "none", params: [], supports: RECT_OR_CIRCLE },
+      { id: "none", params: [], supports: PASS_THROUGH },
     ],
   },
   {
@@ -332,8 +338,8 @@ const STAGES: readonly SpaceStage[] = [
       { id: "beam", params: [{ name: "width", kind: "int", min: 1, max: 64, scale: "log", default: BEAM_WIDTH }], supports: RECT_ONLY },
       { id: "exact-strip", params: [{ name: "nodeLimit", kind: "enum", values: [...EXACT_NODE_LIMITS], default: EXACT_STRATEGY_NODE_LIMIT }], supports: RECT_ONLY },
       { id: "binary-height", params: [{ name: "trials", kind: "int", min: 1, max: 1024, scale: "log", default: BINARY_HEIGHT_TRIALS }], supports: RECT_ONLY },
-      { id: "near-rects", params: [{ name: "rounds", kind: "int", min: 0, max: 4, default: 2 }], supports: RECT_ONLY },
-      { id: "raster-nofit", params: [{ name: "trials", kind: "int", min: 1, max: 256, scale: "log", default: 64 }], supports: RECT_ONLY },
+      { id: "near-rects", params: [{ name: "rounds", kind: "int", min: 0, max: 4, default: 2 }], supports: OUTLINES },
+      { id: "raster-nofit", params: [{ name: "trials", kind: "int", min: 1, max: 256, scale: "log", default: 64 }], supports: OUTLINES },
       {
         id: "masonry",
         params: [
@@ -345,7 +351,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "treemap", params: [{ name: "method", kind: "enum", values: [...TREEMAP_METHOD_IDS], default: "squarified" }], supports: RECT_ONLY },
     ],
   },
-  { name: "local-search", options: [{ id: "none", params: [], supports: RECT_OR_CIRCLE }] },
+  { name: "local-search", options: [{ id: "none", params: [], supports: PASS_THROUGH }] },
   {
     name: "combine",
     optional: true,
@@ -851,8 +857,12 @@ const BBOX_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
  */
 const CIRCLE_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
 
-/** The placements that take the level `CIRCLE_CHECK`. */
-const CIRCLE_PLACEMENTS: readonly string[] = ["hole-degree", "circle-quasi-physical"];
+/**
+ * The placements that take the level `CIRCLE_CHECK`. `near-rects` and `raster-nofit` place the outline of each item (roadmap item k200).
+ * Two outlines that nest have bounding boxes that overlap, and the measures of `MEASURE_SPECS` read only `rect` items.
+ * Thus these placements get only the hard rules, at the level `safe`.
+ */
+const CIRCLE_PLACEMENTS: readonly string[] = ["hole-degree", "circle-quasi-physical", "near-rects", "raster-nofit"];
 
 /** The id of the input in the breaks of `checkShapes`. A `PackInput` has no id. */
 const SHAPE_INPUT_ID = "pack-input";

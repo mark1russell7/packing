@@ -420,7 +420,7 @@ const lower = packWith("bbox", input, { member: "skyline", turn: true });
 - The placement of an item is the place of its box minus the offset of the bounding box. Thus each shape is inside its box.
 - Thus no two shapes overlap when no two boxes overlap. `packHard` of the contract tests the bounding boxes for each pair that is not two circles, so its count is safe.
 - `PACK_HARD_RULES` of the contract declares `no-overlap` and `in-container` with a safe count on `polygon`, `circle` and `free`. `ruleLevel` gives `safe` for them.
-- `packConfig` checks a `bbox` config with `checkShapes` at the level `safe`. Each other config gets the strict check, so it refuses a shape.
+- `packConfig` checks a `bbox` config with `checkShapes` at the level `safe`. A config of a shaped placement also gets the level `safe` (roadmap items k90, k94 and k200). Each other config gets the strict check, so it refuses a shape.
 - A locked item keeps its position. Its box is at the position plus the offset.
 - With `turn`, a turn wins when its box area is smaller, then when its box is lower. A tie keeps the item unturned.
 - A turn of 90 degrees does not change the area of a bounding box. Thus only the lower box decides a turn.
@@ -1951,7 +1951,9 @@ Roadmap item k142 gives each strategy of this section a point in `packSpace`. Th
 - `configOfStrategy` and the named configs reach each id. The named config `side-anchors-first-left` is the bench entry of that name.
 - `packConfig` refuses a composite with a standalone member. A composite finds only a member of the registry. The refusal is an `UnsupportedCell`, so the sampler draws again.
 - The contract has no rule that keeps a placement out of the members. Thus 10 of the 18 placements in a member draw give a refusal, and the sampler misses more strata.
-- The points of `near-rects` and `raster-nofit` support only `rect` in this slice. Their strategies also take polygons and circles.
+- The points of `near-rects` and `raster-nofit` support `rect`, `polygon` and `circle`, as their entries of the registry do (roadmap item k200). Before k200 they supported only `rect`, and `packConfig` refused a circle that `packWith` packed.
+- `packConfig` checks these points with the hard rules at the level `safe`, and not with the measures. The measures read only `rect` items. Thus `packConfig` gives the output of `packWith` on each of these kinds.
+- The order `input` and the options `none` of the size search and the local search support the same 3 kinds. Each other option keeps its kinds. Thus a polygon input gets only the points of `near-rects` and `raster-nofit`, and the `bbox` configs.
 - `PACK_SPACE_LEFT_OUT` lists each option with no param: `seed`, `cell`, `precision`, `columnWidth` and `anchors`.
 
 | `spaceSize` | Before k142 | Since k142 |

@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.10.5
+
+`packConfig` packs the inputs of `near-rects` and `raster-nofit` with circle and polygon items, as `packWith` does.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- The points of `near-rects` and `raster-nofit` in `packSpace` supported only `rect` items, so `packConfig` gave `UnsupportedShape` on a circle or a polygon input. These points support `rect`, `polygon` and `circle`, as the registry entries of the 2 strategies do.
+- `packConfig` checks a config of these 2 points with the hard rules at the level `safe`, as it checks a config of `hole-degree`.
+
+### Not changed
+
+- Each rect input gets the same check result and the same output as before.
+- An ellipse, of the kind `free`, stays refused by `packWith` and by `packConfig`.
+
+## 0.10.4
+
+The time of `skyline` does not grow with the width of the input in units. Each output of `skyline` stays the same. The point of `side-anchors` with no anchor packs as `side-anchors`.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- The rule `bl` of `packSkyline` keeps its skyline as runs of equal height. It does not keep a cell for each unit of the width. At 1000 items on `freeArea`, one read gave 1.1 s at scale 1 and 57.9 s at scale 64.
+- A width too large for an array gave a `RangeError`. These widths pack at this time.
+- The point of `side-anchors` with no anchor packed as its member, so `packConfig` packed inputs that `side-anchors` refuses. The param `side` gets the value `none`, and this point packs as `side-anchors` with no `first`.
+
+### Not changed
+
+- The rule `mw` and a space that is not plain keep their cells, so their time still grows with the width.
+- Each output and each move count stay the same. A test pins 6,000 generated inputs on all paths.
+
 ## 0.10.3
 
 The function `repackPinned` packs a changed input again, and moves as few boxes as it can (roadmap item k31).
@@ -15,6 +48,7 @@ This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
 ### Not changed
 
 - The outputs of each strategy do not change.
+
 ## 0.10.2
 
 The strategy `shelf-online` packs a strip online. Each box takes a shelf of its class of height when it comes, and it does not move later.

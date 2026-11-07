@@ -48,7 +48,7 @@ import type {
 import { bool, either, fields, list, nullable, num, oneOf, optional, recordOf, text, type Shape } from "./data-shape.ts";
 
 const schema = oneOf("packing-site-snapshot/1");
-const skipWord: Shape<SkipWord> = oneOf("not done", "other algorithm", "no meaning", "not read");
+const skipWord: Shape<SkipWord> = oneOf("not done", "composition", "other algorithm", "no meaning", "not read");
 const direction = oneOf("higher", "lower");
 const texts = list(text);
 const numbers = recordOf(num);

@@ -82,6 +82,7 @@ export function reasonMeaning(reason: string): string | undefined {
 /** The meaning of each word of a skip on the page */
 export const SKIP_WORD_TEXT: Readonly<Record<SkipWord, string>> = {
   "not done": "a limit of the code that small work lifts, so coverage is still owed",
+  composition: "a named composition of the strategy lifts this limit, so the strategy keeps its refusal",
   "other algorithm": "this form needs another algorithm",
   "no meaning": "this input has no meaning for the strategy",
   "not read": "nobody has read this reason",
@@ -106,7 +107,7 @@ interface SkipEntry extends SkipSummary {
 /** This function gives the HTML of the skips of a corpus by word. It is empty for a corpus with no refusal. A record with no word counts as `not read`. */
 export function skipsHtml(strategies: readonly SkipEntry[]): string {
   const c = skipCounts(strategies);
-  const total = c.owed + c.otherAlgorithm + c.noMeaning + c.notRead;
+  const total = c.owed + c.composition + c.otherAlgorithm + c.noMeaning + c.notRead;
   if (total === 0) return "";
   const groups = new Map<string, { word: SkipWord; why: string; entries: Set<string>; records: number }>();
   for (const s of strategies) {
@@ -124,7 +125,7 @@ export function skipsHtml(strategies: readonly SkipEntry[]): string {
     .sort((a, b) => a.word.localeCompare(b.word) || b.records - a.records)
     .map((g) => `<li><code>${esc(g.word)}</code> <b>${g.records}</b> records: ${esc(g.why)} ${[...g.entries].map((id) => `<code>${esc(id)}</code>`).join(", ")}</li>`)
     .join("");
-  const line = `<p class="hint"><b>${total} skipped records</b> by word: ${c.owed} <code>not done</code> (${SKIP_WORD_TEXT["not done"]}), ${c.otherAlgorithm} <code>other algorithm</code>, ${c.noMeaning} <code>no meaning</code> and ${c.notRead} <code>not read</code>. A wall budget stays out of this count.</p>`;
+  const line = `<p class="hint"><b>${total} skipped records</b> by word: ${c.owed} <code>not done</code> (${SKIP_WORD_TEXT["not done"]}), ${c.composition} <code>composition</code> (${SKIP_WORD_TEXT.composition}), ${c.otherAlgorithm} <code>other algorithm</code>, ${c.noMeaning} <code>no meaning</code> and ${c.notRead} <code>not read</code>. A wall budget stays out of this count.</p>`;
   return rows === "" ? line : `${line}<details><summary>Each skip, by word</summary><ul class="reasons">${rows}</ul></details>`;
 }
 

@@ -41,7 +41,7 @@ describe("the word of a skip", () => {
   });
 
   it("gives each word with its reason", () => {
-    expect(skipRead("beam", "unsupported containerSize: freeArea").word).toBe("not done");
+    expect(skipRead("beam", "unsupported containerSize: freeArea").word).toBe("composition");
     expect(skipRead("push", "unsupported containerSize: freeAspect").word).toBe("no meaning");
     expect(skipRead("treemap-strip", "unsupported containerShape: circle").word).toBe("other algorithm");
     for (const row of SKIP_ROWS) expect(skipRead(row.entries[0]!, row.reasons[0]!).why).toBe(row.why);
@@ -96,6 +96,7 @@ describe("the word of a skip", () => {
     const pairs = freePairs();
     expect(pairs.filter((p) => skipRead(p.entry, p.reason).word === "not read")).toEqual([]);
     const count = (word: string): number => pairs.filter((p) => skipRead(p.entry, p.reason).word === word).length;
-    expect({ pairs: pairs.length, done: count("not done"), other: count("other algorithm"), meaning: count("no meaning") }).toEqual({ pairs: 99, done: 72, other: 25, meaning: 2 });
+    const counts = { pairs: pairs.length, done: count("not done"), composition: count("composition"), other: count("other algorithm"), meaning: count("no meaning") };
+    expect(counts).toEqual({ pairs: 99, done: 38, composition: 34, other: 25, meaning: 2 });
   });
 });
