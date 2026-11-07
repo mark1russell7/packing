@@ -7,6 +7,7 @@
 #
 # The corpus pack-classes-v1 has its own weekly run, in coverage-nightly.yml.
 # The job classes-free packs pack-classes-free-v1 with rows and the entries that take only free sizes (k158).
+# The job change packs pack-change-v1, the corpus of steps. It gives only its row of the count of the entries (k148).
 # bench/site-rerun.test.ts holds the list of the corpora here and in site-data.yml.
 name: Site rerun
 
@@ -90,4 +91,17 @@ jobs:
       prediction: p-2026-11-06-k158-weekly-classes-free
       sample: "0"
       job-minutes: "340"
+      budget: true
+
+  change:
+    needs: classes-free
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/bench.yml
+    with:
+      corpus: pack-change-v1
+      # The strategies of the run 42050010460 of 2026-11-05, which wrote the row of this corpus.
+      strategies: push,keep-shelf,fill-trick,rows,shelf,skyline,maxrects-bl
+      prediction: p-2026-11-07-k148-weekly-change
+      sample: "0"
+      job-minutes: "30"
       budget: true
