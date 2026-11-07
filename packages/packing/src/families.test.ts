@@ -31,12 +31,14 @@ const WORST = ["tall-row", "skyline-gap", "bl-trap", "half-wide", "ladder"];
 const STRIP = ["hopper-turton", "burke-kendall-whitwell", "beasley-gcut"];
 // The family of roadmap item k111 has its own dimensions and counts. The file wall-locks.test.ts tests it.
 const ANCHOR = ["wall-locks"];
+// The family of roadmap item k190 has its own dimensions. The file item-law.test.ts tests it.
+const LAWS = ["item-law"];
 
 describe("the corpus families", () => {
   it("have the parameters of their generator, then the knobs", () => {
     expect(names(rectGridFamily)).toEqual(["containerSize", "containerShape", "obstacles", "sizes", "count", ...KNOBS]);
     expect(names(rectGridV2Family)).toEqual(["containerSize", "containerShape", "obstacles", "sizes", "order", "count", ...KNOBS]);
-    for (const f of corpusFamilies.filter((x) => !["rect-grid", "edge-cases", "perfect-cut", "berkey-wang", "martello-vigo", ...WORST, ...STRIP, ...ANCHOR].includes(x.name))) expect(names(f), f.name).toEqual(["containerSize", "count", ...KNOBS]);
+    for (const f of corpusFamilies.filter((x) => !["rect-grid", "edge-cases", "perfect-cut", "berkey-wang", "martello-vigo", ...WORST, ...STRIP, ...ANCHOR, ...LAWS].includes(x.name))) expect(names(f), f.name).toEqual(["containerSize", "count", ...KNOBS]);
     expect(names(edgeCasesFamily)).toEqual(["case", "count", ...KNOBS]);
     expect(names(perfectCutFamily)).toEqual(["cut", "containerSize", "count", ...KNOBS]);
     for (const f of [berkeyWangFamily, martelloVigoFamily]) expect(names(f)).toEqual(["class", "containerSize", "count", ...KNOBS]);
@@ -46,8 +48,8 @@ describe("the corpus families", () => {
     expect(names(ladderFamily)).toEqual(["axis", "rung", "count", ...KNOBS]);
   });
 
-  it("are libm-dependent for rect-grid and exact for the others", () => {
-    for (const f of corpusFamilies) expect(f.crossEngine, f.name).toBe(f.name === "rect-grid" ? "libm-dependent" : "exact");
+  it("are libm-dependent for rect-grid and item-law, and exact for the others", () => {
+    for (const f of corpusFamilies) expect(f.crossEngine, f.name).toBe(f.name === "rect-grid" || f.name === "item-law" ? "libm-dependent" : "exact");
     expect(corpusFamilies.every((f) => f.owner === "packing")).toBe(true);
   });
 

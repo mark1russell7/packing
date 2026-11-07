@@ -8,6 +8,7 @@ import {
   rectScattered,
   worstGenerators,
   anchorGenerators,
+  lawGenerators,
   stripGenerators,
   edgeCases,
   gallery,
@@ -49,8 +50,8 @@ const CASES: Case[] = (() => {
   };
   for (const gen of generators) {
     // The class generators of k106 have their own pinned hashes in `classes.test.ts`, the generators of k107 in `worst.test.ts`, and the generators of k46 in `strip.test.ts`
-    // The generator of k111 has its pinned hashes in `wall-locks.test.ts`, and the generator of k48 in `bench/change.test.ts`
-    if (changeGenerators.includes(gen) || gen === rectGridV2 || classGenerators.includes(gen) || worstGenerators.includes(gen) || stripGenerators.includes(gen) || anchorGenerators.includes(gen)) continue;
+    // The generator of k111 has its pinned hashes in `wall-locks.test.ts`, the generator of k48 in `bench/change.test.ts`, and the generator of k190 in `item-law.test.ts`
+    if (changeGenerators.includes(gen) || gen === rectGridV2 || classGenerators.includes(gen) || worstGenerators.includes(gen) || stripGenerators.includes(gen) || anchorGenerators.includes(gen) || lawGenerators.includes(gen)) continue;
     add(gen, {});
     for (const [key, values] of Object.entries(gen.values)) for (const value of values ?? []) add(gen, { [key]: value });
     if (gen.name === "rect-grid") for (const count of COUNTS) add(gen, { count });

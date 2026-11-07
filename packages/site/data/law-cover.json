@@ -1,11 +1,20 @@
 {
   "schema": "packing-law-cover/1",
-  "covered": 31,
+  "covered": 81,
   "pairs": 87,
-  "specs": 624,
+  "specs": 678,
   "refused": 361,
   "floor": 200,
   "cells": [
+    {
+      "area": "bimodal",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
     {
       "area": "bimodal",
       "aspect": "discrete",
@@ -17,35 +26,128 @@
     },
     {
       "area": "bimodal",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "bimodal",
+      "aspect": "fixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "bimodal",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "bimodal",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 30,
+      "specs": 31,
       "generators": [
+        "item-law",
         "martello-vigo",
         "skyline-gap",
         "tall-row"
       ]
     },
     {
+      "area": "bimodal",
+      "aspect": "wide",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "exponential",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "exponential",
+      "aspect": "discrete",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "exponential",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
       "area": "exponential",
       "aspect": "fixed",
       "assortment": "all-differ",
-      "specs": 4,
+      "specs": 5,
       "generators": [
-        "consecutive-squares"
+        "consecutive-squares",
+        "item-law"
+      ]
+    },
+    {
+      "area": "exponential",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
       ]
     },
     {
       "area": "exponential",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 156,
+      "specs": 157,
       "generators": [
         "berkey-wang",
+        "item-law",
         "ladder",
         "martello-vigo",
         "skyline-gap",
         "word-cloud"
+      ]
+    },
+    {
+      "area": "identical",
+      "aspect": "discrete",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "identical",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
       ]
     },
     {
@@ -62,24 +164,98 @@
       "area": "identical",
       "aspect": "fixed",
       "assortment": "few-types",
-      "specs": 25,
+      "specs": 27,
       "generators": [
         "gallery",
+        "item-law",
         "rect-grid"
+      ]
+    },
+    {
+      "area": "identical",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "identical",
+      "aspect": "wide",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "log-normal",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "log-normal",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "log-normal",
+      "aspect": "fixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "log-normal",
+      "aspect": "fixed",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "log-normal",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
       ]
     },
     {
       "area": "log-normal",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 241,
+      "specs": 242,
       "generators": [
         "beasley-gcut",
         "change-walk",
         "edge-cases",
+        "item-law",
         "ladder",
         "rect-grid",
         "tall-row"
+      ]
+    },
+    {
+      "area": "multimodal",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
       ]
     },
     {
@@ -102,6 +278,51 @@
     },
     {
       "area": "multimodal",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "multimodal",
+      "aspect": "extreme-mixed",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "multimodal",
+      "aspect": "fixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "multimodal",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "multimodal",
+      "aspect": "wide",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "multimodal",
       "aspect": "wide",
       "assortment": "cut-from-box",
       "specs": 16,
@@ -111,12 +332,112 @@
       ]
     },
     {
+      "area": "narrow",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "narrow",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "narrow",
+      "aspect": "fixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "narrow",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "narrow",
+      "aspect": "narrow",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "narrow",
+      "aspect": "wide",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "normal",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "normal",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "normal",
+      "aspect": "extreme-mixed",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "normal",
+      "aspect": "fixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "normal",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
       "area": "normal",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 5,
+      "specs": 6,
       "generators": [
         "edge-cases",
+        "item-law",
         "ladder",
         "perfect-cut"
       ]
@@ -134,20 +455,103 @@
     },
     {
       "area": "pareto",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "pareto",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "pareto",
+      "aspect": "fixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "pareto",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "pareto",
+      "aspect": "narrow",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "pareto",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 46,
+      "specs": 47,
       "generators": [
+        "item-law",
         "rect-grid"
+      ]
+    },
+    {
+      "area": "uniform",
+      "aspect": "discrete",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "uniform",
+      "aspect": "extreme-mixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "uniform",
+      "aspect": "fixed",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
+    },
+    {
+      "area": "uniform",
+      "aspect": "narrow",
+      "assortment": "all-differ",
+      "specs": 1,
+      "generators": [
+        "item-law"
       ]
     },
     {
       "area": "uniform",
       "aspect": "wide",
       "assortment": "all-differ",
-      "specs": 18,
+      "specs": 19,
       "generators": [
         "cards",
+        "item-law",
         "martello-vigo",
         "perfect-cut",
         "skyline-gap",
@@ -164,64 +568,23 @@
         "hopper-turton",
         "perfect-cut"
       ]
+    },
+    {
+      "area": "uniform",
+      "aspect": "wide",
+      "assortment": "few-types",
+      "specs": 1,
+      "generators": [
+        "item-law"
+      ]
     }
   ],
   "missing": [
-    "area:identical+aspect:narrow",
-    "area:identical+aspect:wide",
-    "area:identical+aspect:extreme-mixed",
-    "area:identical+aspect:discrete",
-    "area:narrow+aspect:fixed",
-    "area:narrow+aspect:narrow",
-    "area:narrow+aspect:wide",
-    "area:narrow+aspect:extreme-mixed",
-    "area:narrow+aspect:discrete",
-    "area:uniform+aspect:fixed",
-    "area:uniform+aspect:narrow",
-    "area:uniform+aspect:extreme-mixed",
-    "area:uniform+aspect:discrete",
-    "area:normal+aspect:fixed",
-    "area:normal+aspect:narrow",
-    "area:normal+aspect:extreme-mixed",
-    "area:normal+aspect:discrete",
-    "area:exponential+aspect:narrow",
-    "area:exponential+aspect:extreme-mixed",
-    "area:exponential+aspect:discrete",
-    "area:log-normal+aspect:fixed",
-    "area:log-normal+aspect:narrow",
-    "area:log-normal+aspect:extreme-mixed",
-    "area:log-normal+aspect:discrete",
-    "area:pareto+aspect:fixed",
-    "area:pareto+aspect:narrow",
-    "area:pareto+aspect:extreme-mixed",
-    "area:pareto+aspect:discrete",
-    "area:bimodal+aspect:fixed",
-    "area:bimodal+aspect:narrow",
-    "area:bimodal+aspect:extreme-mixed",
-    "area:multimodal+aspect:fixed",
-    "area:multimodal+aspect:narrow",
-    "area:multimodal+aspect:extreme-mixed",
-    "area:identical+assortment:all-differ",
-    "area:narrow+assortment:all-differ",
-    "area:narrow+assortment:few-types",
     "area:narrow+assortment:cut-from-box",
-    "area:uniform+assortment:few-types",
-    "area:normal+assortment:few-types",
-    "area:exponential+assortment:few-types",
     "area:exponential+assortment:cut-from-box",
-    "area:log-normal+assortment:few-types",
     "area:log-normal+assortment:cut-from-box",
-    "area:pareto+assortment:few-types",
     "area:pareto+assortment:cut-from-box",
-    "area:bimodal+assortment:few-types",
-    "area:multimodal+assortment:all-differ",
-    "aspect:narrow+assortment:all-differ",
-    "aspect:narrow+assortment:few-types",
     "aspect:narrow+assortment:cut-from-box",
-    "aspect:wide+assortment:few-types",
-    "aspect:extreme-mixed+assortment:all-differ",
-    "aspect:extreme-mixed+assortment:few-types",
-    "aspect:extreme-mixed+assortment:cut-from-box",
-    "aspect:discrete+assortment:all-differ"
+    "aspect:extreme-mixed+assortment:cut-from-box"
   ]
 }

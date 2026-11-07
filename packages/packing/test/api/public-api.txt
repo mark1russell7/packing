@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 507 names
+## . (build/index.d.ts): 518 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -122,13 +122,21 @@ type HoleDegreeStrategyOptions: build/hole-degree.d.ts#HoleDegreeStrategyOptions
 type HopperTurtonCategory: build/index.d.ts#HopperTurtonCategory
 type HopperTurtonParams: build/index.d.ts#HopperTurtonParams
 type HopperTurtonRule: build/index.d.ts#HopperTurtonRule
+ITEM_AREA_LAWS: build/index.d.ts#ITEM_AREA_LAWS
+ITEM_ASPECT_LAWS: build/index.d.ts#ITEM_ASPECT_LAWS
+ITEM_ASSORTMENTS: build/index.d.ts#ITEM_ASSORTMENTS
 type Item: @mark1russell7/layout-contract#Item (external)
+type ItemAreaLaw: build/index.d.ts#ItemAreaLaw
+type ItemAspectLaw: build/index.d.ts#ItemAspectLaw
+type ItemAssortment: build/index.d.ts#ItemAssortment
+type ItemLawParams: build/index.d.ts#ItemLawParams
 type ItemLink: build/order.d.ts#ItemLink
 type ItemOrder: build/order.d.ts#ItemOrder
 type KnownBest: build/index.d.ts#KnownBest
 LADDER_RUNGS: build/index.d.ts#LADDER_RUNGS
 LADDER_SIDE: build/index.d.ts#LADDER_SIDE
 LADDER_WIDTH: build/index.d.ts#LADDER_WIDTH
+LAW_TYPES: build/index.d.ts#LAW_TYPES
 LEVEL_COUNTS: build/index.d.ts#LEVEL_COUNTS
 type LadderAxis: build/index.d.ts#LadderAxis
 type LadderParams: build/index.d.ts#LadderParams
@@ -390,11 +398,14 @@ hopperTurtonOf: build/index.d.ts#hopperTurtonOf
 isAnchor: build/index.d.ts#isAnchor
 isDeterministic: build/index.d.ts#isDeterministic
 isGraphOrder: build/order.d.ts#isGraphOrder
+itemLaw: build/index.d.ts#itemLaw
+itemLawFamily: build/index.d.ts#itemLawFamily
 keepOrthogonal: build/index.d.ts#keepOrthogonal
 keepPrefix: build/index.d.ts#keepPrefix
 ladder: build/index.d.ts#ladder
 ladderFamily: build/index.d.ts#ladderFamily
 ladderRung: build/index.d.ts#ladderRung
+lawGenerators: build/index.d.ts#lawGenerators
 legalizeRows: build/index.d.ts#legalizeRows
 logSweep: build/index.d.ts#logSweep
 lowestWindow: build/layout-strategy.d.ts#lowestWindow
@@ -1183,6 +1194,32 @@ interface HopperTurtonRule {
   readonly counts: readonly [number, number, number];
 }
 
+### build/index.d.ts#ITEM_AREA_LAWS
+export declare const ITEM_AREA_LAWS: readonly ["identical", "narrow", "uniform", "normal", "exponential", "log-normal", "pareto", "bimodal", "multimodal"];
+
+### build/index.d.ts#ITEM_ASPECT_LAWS
+export declare const ITEM_ASPECT_LAWS: readonly ["fixed", "narrow", "wide", "extreme-mixed", "discrete"];
+
+### build/index.d.ts#ITEM_ASSORTMENTS
+export declare const ITEM_ASSORTMENTS: readonly ["all-differ", "few-types"];
+
+### build/index.d.ts#ItemAreaLaw
+type ItemAreaLaw = (typeof ITEM_AREA_LAWS)[number];
+
+### build/index.d.ts#ItemAspectLaw
+type ItemAspectLaw = (typeof ITEM_ASPECT_LAWS)[number];
+
+### build/index.d.ts#ItemAssortment
+type ItemAssortment = (typeof ITEM_ASSORTMENTS)[number];
+
+### build/index.d.ts#ItemLawParams
+type ItemLawParams = {
+  areaLaw: ItemAreaLaw;
+  aspectLaw: ItemAspectLaw;
+  assortment: ItemAssortment;
+  count: number;
+};
+
 ### build/index.d.ts#KnownBest
 interface KnownBest {
   readonly kind: "optimum" | "bound";
@@ -1199,6 +1236,9 @@ export declare const LADDER_SIDE = 256;
 
 ### build/index.d.ts#LADDER_WIDTH
 export declare const LADDER_WIDTH = 1024;
+
+### build/index.d.ts#LAW_TYPES
+export declare const LAW_TYPES = 16;
 
 ### build/index.d.ts#LEVEL_COUNTS
 export declare const LEVEL_COUNTS: readonly number[];
@@ -2108,6 +2148,12 @@ export declare function isAnchor(input: PackInput, id: string): boolean;
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
 
+### build/index.d.ts#itemLaw
+export declare const itemLaw: CorpusGenerator<ItemLawParams>;
+
+### build/index.d.ts#itemLawFamily
+export declare const itemLawFamily: CorpusFamily<GeneratedInput>;
+
 ### build/index.d.ts#keepOrthogonal
 export declare function keepOrthogonal(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
 
@@ -2126,6 +2172,9 @@ export declare function ladderRung(p: Pick<LadderParams, "axis" | "rung" | "coun
   min: number;
   max: number;
 };
+
+### build/index.d.ts#lawGenerators
+export declare const lawGenerators: readonly CorpusGenerator[];
 
 ### build/index.d.ts#legalizeRows
 export declare function legalizeRows(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput, options?: LegalizeOptions): PackOutput;

@@ -1637,9 +1637,148 @@ export const changeWalk: CorpusGenerator<ChangeWalkParams> = defineGenerator<Cha
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The generator of the item laws (roadmap item k190): one area law, one aspect law and one assortment for each input.
+
+/** The area laws of an item. `bench/law-cover.ts` reads the same names from the items. */
+export const ITEM_AREA_LAWS: readonly ["identical", "narrow", "uniform", "normal", "exponential", "log-normal", "pareto", "bimodal", "multimodal"] = Object.freeze(["identical", "narrow", "uniform", "normal", "exponential", "log-normal", "pareto", "bimodal", "multimodal"]) as readonly ["identical", "narrow", "uniform", "normal", "exponential", "log-normal", "pareto", "bimodal", "multimodal"];
+
+/** The aspect laws of an item: the law of the ratio of the width to the height. */
+export const ITEM_ASPECT_LAWS: readonly ["fixed", "narrow", "wide", "extreme-mixed", "discrete"] = Object.freeze(["fixed", "narrow", "wide", "extreme-mixed", "discrete"]) as readonly ["fixed", "narrow", "wide", "extreme-mixed", "discrete"];
+
+/** The assortments that `item-law` makes. A cut of a box fixes the laws of the pieces, so `item-law` does not make it. */
+export const ITEM_ASSORTMENTS: readonly ["all-differ", "few-types"] = Object.freeze(["all-differ", "few-types"]) as readonly ["all-differ", "few-types"];
+
+/** An area law of an item. */
+export type ItemAreaLaw = (typeof ITEM_AREA_LAWS)[number];
+
+/** An aspect law of an item. */
+export type ItemAspectLaw = (typeof ITEM_ASPECT_LAWS)[number];
+
+/** An assortment of `item-law`. */
+export type ItemAssortment = (typeof ITEM_ASSORTMENTS)[number];
+
+/** The parameters of `item-law`. */
+export type ItemLawParams = { areaLaw: ItemAreaLaw; aspectLaw: ItemAspectLaw; assortment: ItemAssortment; count: number };
+
+/** The median item area of `item-law`. A side of approximately 200 units keeps the rounding error of a side under 0.5 %. */
+const LAW_AREA = 40_000;
+
+/** The count of the types of an input of `item-law` with the assortment `few-types`. */
+export const LAW_TYPES = 16;
+
+/** The count of the draws in each stratum of the types. A stratum gives one type, at a random rank of its draws. */
+const LAW_STRATUM_DRAWS = 25;
+
+/** The fixed ratio of the width to the height of the aspect law `fixed`. */
+const LAW_FIXED_RATIO = 1.5;
+
+/** The ratios of the aspect law `discrete`, as whole numbers of the width and the height. */
+const LAW_RATIOS: readonly (readonly [number, number])[] = Object.freeze([[1, 1], [2, 1], [1, 2], [3, 1], [1, 3]]);
+
+/** This function gives a draw of the standard normal law, by the method of Box and Muller. */
+const standardNormal = (r: () => number): number => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+
+/** This function gives one item area of an area law. The median area is near `LAW_AREA`. */
+function lawArea(r: () => number, law: ItemAreaLaw): number {
+  switch (law) {
+    case "identical":
+      return LAW_AREA;
+    case "narrow":
+      return LAW_AREA * Math.exp(-0.15 + 0.3 * r());
+    case "uniform":
+      return LAW_AREA * (0.1 + 1.9 * r());
+    case "normal":
+      return LAW_AREA * Math.max(0.2, 1 + 0.2 * standardNormal(r));
+    case "exponential":
+      return LAW_AREA * (0.1 - Math.log(1 - r()));
+    case "log-normal":
+      return LAW_AREA * Math.exp(0.6 * standardNormal(r));
+    case "pareto":
+      return 0.4 * LAW_AREA * (1 - r()) ** -0.5;
+    case "bimodal":
+      return LAW_AREA * Math.exp((r() < 0.5 ? -1.1 : 1.1) + 0.08 * standardNormal(r));
+    case "multimodal":
+      return LAW_AREA * Math.exp([-1.4, 0, 1.4][Math.floor(r() * 3)]! + 0.08 * standardNormal(r));
+  }
+}
+
+/** This function gives the whole sides of an area with an exact ratio of whole numbers. */
+function sidesOfRatio(area: number, [k, j]: readonly [number, number]): [number, number] {
+  const m = Math.max(1, Math.round(Math.sqrt(area / (k * j))));
+  return [k * m, j * m];
+}
+
+/** This function gives the whole sides of an item of an area and an aspect law. A `ratio` index picks the ratio of the law `discrete`. */
+function lawSides(r: () => number, area: number, law: ItemAspectLaw, ratio?: number): [number, number] {
+  if (law === "discrete") return sidesOfRatio(area, LAW_RATIOS[ratio ?? Math.floor(r() * LAW_RATIOS.length)]!);
+  if (law === "fixed") {
+    const w = Math.max(1, Math.round(Math.sqrt(area * LAW_FIXED_RATIO)));
+    return [w, Math.max(1, Math.round(w / LAW_FIXED_RATIO))];
+  }
+  const logRatio = law === "narrow" ? -0.25 + 0.5 * r() : law === "wide" ? -1.2 + 2.4 * r() : (r() < 0.5 ? -1 : 1) * (1.3 + 0.7 * r());
+  const w = Math.max(1, Math.round(Math.sqrt(area * Math.exp(logRatio))));
+  return [w, Math.max(1, Math.round(area / w))];
+}
+
+/** This function gives `n` areas of a law, one in each of `n` strata of equal probability, in a random order. */
+function strataAreas(r: () => number, law: ItemAreaLaw, n: number): number[] {
+  const draws = Array.from({ length: n * LAW_STRATUM_DRAWS }, () => lawArea(r, law)).sort((a, b) => a - b);
+  const out = Array.from({ length: n }, (_, g) => draws[g * LAW_STRATUM_DRAWS + Math.floor(r() * LAW_STRATUM_DRAWS)]!);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+/** This function gives the size label of the cell of an area law and an aspect law. */
+function lawSizes(area: ItemAreaLaw, aspect: ItemAspectLaw): SizeDistribution {
+  if (aspect === "extreme-mixed") return "extremeAspect";
+  if (area === "identical" || area === "bimodal") return area;
+  if (area === "narrow") return "nearIdentical";
+  if (area === "multimodal") return "bimodal";
+  return area === "uniform" || area === "normal" ? "uniform" : "heavyTail";
+}
+
+/**
+ * The generator `item-law`, version 1: each input has one area law, one aspect law and one assortment (roadmap item k190).
+ * The container is a strip. Its width is the larger of the widest item and the root of the item area.
+ *
+ * - With `all-differ`, each item has its own draw of the area law and the aspect law.
+ * - With `few-types`, the input has `LAW_TYPES` types, one in each stratum of the area law, and each type has the same count of items.
+ *   Thus the means of the inputs stay near each other, and the pooled areas keep the shape of the law.
+ * - The laws `fixed` and `discrete` give exact ratios of whole numbers. With the area law `identical`, the items then have 1 to 5 types.
+ * - The width of the strip is not a divisor of the item area. Thus the items do not claim a cut of a box.
+ */
+export const itemLaw: CorpusGenerator<ItemLawParams> = defineGenerator<ItemLawParams>({
+  name: "item-law",
+  version: 1,
+  set: "laws-v1",
+  defaults: { areaLaw: "log-normal", aspectLaw: "wide", assortment: "all-differ", count: 80 },
+  values: { areaLaw: ITEM_AREA_LAWS, aspectLaw: ITEM_ASPECT_LAWS, assortment: ITEM_ASSORTMENTS },
+  family: (p) => `item-law.${p.areaLaw}.${p.aspectLaw}.${p.assortment}.n${p.count}`,
+  cell: (p) => cellWith("freeHeight", "rect", "none", lawSizes(p.areaLaw, p.aspectLaw), p.count),
+  build(seed, p) {
+    const r = stepRandom(seed, "boxes");
+    let sizes: [number, number][];
+    if (p.assortment === "few-types") {
+      const types = strataAreas(r, p.areaLaw, LAW_TYPES).map((a, i) => lawSides(r, a, p.aspectLaw, i % LAW_RATIOS.length));
+      sizes = Array.from({ length: p.count }, (_, i) => types[i % LAW_TYPES]!);
+    } else {
+      sizes = Array.from({ length: p.count }, () => lawSides(r, lawArea(r, p.areaLaw), p.aspectLaw));
+    }
+    const total = sizes.reduce((sum, [w, h]) => sum + w * h, 0);
+    const widest = sizes.reduce((max, [w]) => Math.max(max, w), 1);
+    let width = Math.max(widest, Math.round(Math.sqrt(total)));
+    if (total % width === 0) width++;
+    return { container: containerOf("freeHeight", width, 0), obstacles: [], boxes: itemsOf(sizes) };
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 /** Each generator of the package. */
-export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder,hopperTurton, burkeKendallWhitwell, beasleyGcut, wallLocks, changeWalk] as CorpusGenerator[]);
+export const generators: readonly CorpusGenerator[] = Object.freeze([rectScattered, rectGrid, rectGridV2, gallery, dashboard, cards, wordCloud, edgeCases, perfectCut, consecutiveSquares, berkeyWang, martelloVigo, tallRow, skylineGap, blTrap, halfWide, ladder,hopperTurton, burkeKendallWhitwell, beasleyGcut, wallLocks, changeWalk, itemLaw] as CorpusGenerator[]);
 
 /** The generators of the classes of the literature (roadmap item k106). */
 export const classGenerators: readonly CorpusGenerator[] = Object.freeze([berkeyWang, martelloVigo] as CorpusGenerator[]);
@@ -1652,6 +1791,9 @@ export const changeGenerators: readonly CorpusGenerator[] = Object.freeze([chang
 
 /** The generators of the inputs for the worst case (roadmap item k107). */
 export const worstGenerators: readonly CorpusGenerator[] = Object.freeze([tallRow, skylineGap, blTrap, halfWide, ladder] as CorpusGenerator[]);
+
+/** The generators of the item laws (roadmap item k190). */
+export const lawGenerators: readonly CorpusGenerator[] = Object.freeze([itemLaw] as CorpusGenerator[]);
 
 /** The generators of the published sets of strip packing (roadmap item k46). */
 export const stripGenerators: readonly CorpusGenerator[] = Object.freeze([hopperTurton, burkeKendallWhitwell, beasleyGcut] as CorpusGenerator[]);
@@ -2023,6 +2165,19 @@ export const beasleyGcutFamily: CorpusFamily<GeneratedInput> = familyOf(beasleyG
   seeding: "stepRandom(seed, boxes) gives the sides of the pieces. The side gives the container, so the container takes no random numbers.",
 });
 
+/** The family of `itemLaw`: one area law, one aspect law and one assortment for each input (roadmap item k190). */
+export const itemLawFamily: CorpusFamily<GeneratedInput> = familyOf(itemLaw, {
+  meaning: "Items of one area law, one aspect law and one assortment, in a strip. bench/law-cover.ts reads the laws back from the items.",
+  dimensions: [
+    ownerDimension("areaLaw", { kind: "enum", values: ITEM_AREA_LAWS, default: "log-normal", meaning: "The law of the item areas.", engines: ["packing"] }),
+    ownerDimension("aspectLaw", { kind: "enum", values: ITEM_ASPECT_LAWS, default: "wide", meaning: "The law of the ratio of the width to the height of an item.", engines: ["packing"] }),
+    ownerDimension("assortment", { kind: "enum", values: ITEM_ASSORTMENTS, default: "all-differ", meaning: "Each item with its own draw, or 16 types with the same count of items.", engines: ["packing"] }),
+    countDimension(80),
+  ],
+  crossEngine: "libm-dependent",
+  seeding: "stepRandom(seed, boxes) gives the sizes. The rule gives the width of the strip.",
+});
+
 /** The family of `wallLocks`: 1 to 4 locked items on the walls of a box (roadmap item k111). */
 export const wallLocksFamily: CorpusFamily<GeneratedInput> = familyOf(wallLocks, {
   meaning: "Locked items on the walls of a box, and free items. The measure anchorStability moves one locked item along its wall.",
@@ -2063,4 +2218,5 @@ export const corpusFamilies: readonly CorpusFamily<GeneratedInput>[] = Object.fr
   burkeKendallWhitwellFamily,
   beasleyGcutFamily,
   wallLocksFamily,
+  itemLawFamily,
 ]);
