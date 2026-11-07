@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0
+
+The release train changes the range of `@mark1russell7/collections` to a version outside the old range. The public types name @mark1russell7/collections, so its new version outside the old range can change them.
+
 ## 0.10.3
 
 The function `repackPinned` packs a changed input again, and moves as few boxes as it can (roadmap item k31).
