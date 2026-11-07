@@ -9,12 +9,30 @@ import { isBudgetReason, segmentOf, skipCounts, trendSegments, type SkipSummary 
 export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict | undefined => s.verdicts.find((v) => v.measure === measure);
 
 /**
+ * This function orders items by a fill, best first. The results page and the compare page rank with it, so they rank in one way.
+ *
+ * - An item that keeps the partner of the fill comes before each item that gives up the partner. Thus a fill that a packer buys with its partner does not lead a list.
+ * - An item with no fill comes last.
+ * - A tie keeps the order of `tie`.
+ */
+export function partnerOrder<T>(items: readonly T[], fill: (item: T) => number | undefined, keeps: (item: T) => boolean, tie: (a: T, b: T) => number): T[] {
+  const tier = (item: T): number => (fill(item) === undefined ? 2 : keeps(item) ? 0 : 1);
+  return items.toSorted((a, b) => tier(a) - tier(b) || (fill(b) ?? 0) - (fill(a) ?? 0) || tie(a, b));
+}
+
+/**
  * This function gives the strategies other than the baseline, by the stratified mean of a measure, best first.
  * A strategy that is not measured comes last.
+ * With a partner, a strategy whose verdict on the partner is worse comes after the others, as `fillClaimOfStrategy` counts a fill claim.
  */
-export function rankStrategies(snap: StrategySnapshot, measure: string): StrategySummary[] {
-  const key = (s: StrategySummary): number => verdictOf(s, measure)?.stratified?.mean ?? -Infinity;
-  return snap.strategies.filter((s) => s.strategy !== snap.baseline).sort((x, y) => key(y) - key(x) || x.strategy.localeCompare(y.strategy));
+export function rankStrategies(snap: StrategySnapshot, measure: string, partner: string | null = null): StrategySummary[] {
+  const keeps = (s: StrategySummary): boolean => partner === null || verdictOf(s, partner)?.label !== "worse";
+  return partnerOrder(
+    snap.strategies.filter((s) => s.strategy !== snap.baseline),
+    (s) => verdictOf(s, measure)?.stratified?.mean,
+    keeps,
+    (x, y) => x.strategy.localeCompare(y.strategy),
+  );
 }
 
 /** The count of the items above which a standalone strategy refuses an input. `sync.test.ts` pins it to `STANDALONE_MAX_ITEMS`. */
@@ -31,9 +49,9 @@ export interface RankSection {
  * This function gives the sections of the ranking: one for each set of finished inputs, the most inputs first.
  * Each section is in the order of `rankStrategies`. A page compares strategies only inside one section.
  */
-export function rankSections(snap: StrategySnapshot, measure: string): RankSection[] {
+export function rankSections(snap: StrategySnapshot, measure: string, partner: string | null = null): RankSection[] {
   const sections = new Map<string, RankSection>();
-  for (const s of rankStrategies(snap, measure)) {
+  for (const s of rankStrategies(snap, measure, partner)) {
     const key = s.finished?.set ?? "";
     const section = sections.get(key);
     if (section !== undefined) section.strategies.push(s);

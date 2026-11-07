@@ -6,6 +6,10 @@ import type { BenchEntry } from "@mark1russell7/packing/bench/entries";
 import { mountChrome } from "./chrome.ts";
 import {
   bestIds,
+  FILL_PARTNER,
+  keepsPartner,
+  PARTNER_BASELINE,
+  partnerReference,
   boardInput,
   COMPARE_ENTRIES,
   COMPARE_MEASURES,
@@ -285,18 +289,26 @@ function drawCards(): void {
   $("progress").textContent = input === undefined ? "" : done < total ? `Packing ${done + 1} of ${total} strategies.` : `${total} strategies packed.`;
   const unsupported = results.filter((r) => r.unsupported).length;
   const failed = results.filter((r) => r.error !== undefined && !r.unsupported).length;
-  const fillBest = bestIds(results, "pack.fill");
+  const reference = input === undefined ? undefined : partnerReference(input.input, results);
+  const keeps = (r: EntryResult): boolean => keepsPartner(r, reference);
+  const fillBest = bestIds(results, "pack.fill", keeps);
   const best = results.find((r) => fillBest.has(r.entry.id));
   const fillM = COMPARE_MEASURES.find((m) => m.id === "pack.fill")!;
+  const rightM = COMPARE_MEASURES.find((m) => m.id === FILL_PARTNER)!;
+  const bestRight = best?.measures?.[FILL_PARTNER];
+  const fillName =
+    reference === undefined
+      ? "best fill, with no partner (the width is free)"
+      : `best fill, right strip kept${bestRight === undefined ? "" : ` (${valueText(rightM, bestRight)} empty, <code>${PARTNER_BASELINE}</code> ${valueText(rightM, reference)})`}`;
   $("summary").innerHTML = `
     <div class="tile"><b>${done} of ${total}</b><span>strategies packed</span></div>
     <div class="tile unmeasured"><b>${unsupported}</b><span>not supported for this input</span></div>
     ${failed > 0 ? `<div class="tile worse"><b>${failed}</b><span>stop with an error</span></div>` : ""}
-    <div class="tile better"><b>${best?.measures?.["pack.fill"] === undefined ? "–" : valueText(fillM, best.measures["pack.fill"])}</b><span>best fill${fillBest.size > 0 ? `: ${[...fillBest].map((x) => `<code>${esc(x)}</code>`).join(", ")}` : ""}</span></div>`;
+    <div class="tile better"><b>${best?.measures?.["pack.fill"] === undefined ? "–" : valueText(fillM, best.measures["pack.fill"])}</b><span>${fillName}${fillBest.size > 0 ? `: ${[...fillBest].map((x) => `<code>${esc(x)}</code>`).join(", ")}` : ""}</span></div>`;
 
-  const bests = new Map<string, Set<string>>([...COMPARE_MEASURES.map((m) => [m.id, bestIds(results, m.id)] as const), ["ms", bestIds(results, "ms")]]);
+  const bests = new Map<string, Set<string>>([...COMPARE_MEASURES.map((m) => [m.id, m.id === "pack.fill" ? fillBest : bestIds(results, m.id)] as const), ["ms", bestIds(results, "ms")]]);
   const pending = entries.slice(done).map((e) => `<li class="ccard pending"><header><code>${esc(e.id)}</code></header><p class="hint">Waiting to pack.</p></li>`);
-  const cards = sortResults(results, state.sort).map((r) => card(r, bests));
+  const cards = sortResults(results, state.sort, reference).map((r) => card(r, bests, !keeps(r)));
   $("cards").innerHTML = [...cards, ...pending].join("");
   drawFront();
 }
@@ -312,7 +324,7 @@ function drawFront(): void {
   $("front-note").innerHTML = `<b>Compact or spread.</b> A strategy on the line has no other strategy with more fill and less skew. On the line: ${on.map((p) => `<code>${esc(p.id)}</code>`).join(", ")}.`;
 }
 
-function card(r: EntryResult, bests: Map<string, Set<string>>): string {
+function card(r: EntryResult, bests: Map<string, Set<string>>, givesUp: boolean): string {
   const id = r.entry.id;
   const head = `<header><code class="cname">${esc(id)}</code><small>${esc(r.entry.strategy)}</small></header>`;
   if (r.output === undefined) {
@@ -320,7 +332,7 @@ function card(r: EntryResult, bests: Map<string, Set<string>>): string {
     return `<li class="ccard ${r.unsupported ? "unsupported" : "failed"}">${head}<p class="cstate">${text}</p><p class="hint">${esc(r.error ?? "")}</p>${verdictLink(id)}</li>`;
   }
   const wins = [...bests].filter(([, set]) => set.has(id)).map(([key]) => (key === "ms" ? "Time" : (COMPARE_MEASURES.find((m) => m.id === key)?.label ?? key)));
-  const badges = wins.map((w) => `<span class="cbest">Best ${esc(w.toLowerCase())}</span>`).join("");
+  const badges = [...wins.map((w) => `<span class="cbest">Best ${esc(w.toLowerCase())}</span>`), ...(givesUp ? [`<small class="gives">gives up right strip</small>`] : [])].join("");
   const fillM = COMPARE_MEASURES.find((m) => m.id === "pack.fill")!;
   const fill = r.measures?.["pack.fill"];
   const rows = COMPARE_MEASURES.map((m) => {

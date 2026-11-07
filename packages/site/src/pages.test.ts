@@ -221,6 +221,26 @@ describe("the calculations of the pages", () => {
     expect([...means].sort((a, b) => b - a)).toEqual(means);
   });
 
+  it("ranks a strategy that gives up the partner of the fill after the others, from the same function as the compare page (k154)", () => {
+    const v = snap.strategies[0]!.verdicts[0]!;
+    const summary = (strategy: string, mean: number | undefined, right: "better" | "worse"): StrategySummary => ({
+      ...snap.strategies[0]!,
+      strategy,
+      verdicts: [
+        ...(mean === undefined ? [] : [{ ...v, measure: "pack.fill", stratified: { mean, lo: mean, hi: mean } }]),
+        { ...v, measure: "pack.balance.side.right", label: right },
+      ],
+    });
+    const made = {
+      ...snap,
+      baseline: "base",
+      strategies: [summary("base", 0, "better"), summary("trick", 0.9, "worse"), summary("keeps", 0.5, "better"), summary("none", undefined, "better")],
+    } as StrategySnapshot;
+    expect(rankStrategies(made, "pack.fill", "pack.balance.side.right").map((s) => s.strategy)).toEqual(["keeps", "trick", "none"]);
+    expect(rankStrategies(made, "pack.fill").map((s) => s.strategy)).toEqual(["trick", "keeps", "none"]);
+    expect(rankSections(made, "pack.fill", "pack.balance.side.right")[0]!.strategies.map((s) => s.strategy)).toEqual(["keeps", "trick", "none"]);
+  });
+
   it("gives one section without a heading fact for a snapshot from before the budget", () => {
     const sections = rankSections(snap, "pack.fill");
     expect(sections).toHaveLength(1);
