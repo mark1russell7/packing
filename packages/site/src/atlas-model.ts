@@ -4,7 +4,7 @@
 import { wilson } from "@mark1russell7/rigor-statistics";
 import type { GapCell, GapSnapshot } from "./data.ts";
 import { esc } from "./format.ts";
-import { LAST_RUN_OLD_GAP } from "./gap-definition.ts";
+import { onOldMeasure } from "./gap-definition.ts";
 
 /** The schema of the rule file */
 export const SOLVED_RULE_SCHEMA = "packing-solved-rule/1";
@@ -101,11 +101,6 @@ export function limitOf(rule: SolvedRule, measure: string, corpus: string, cell:
 /** This function tells if a count of inputs can pass: all inputs at the margin give a lower bound at the floor or above. */
 export function canPass(inputs: number, floor: number): boolean {
   return wilson(inputs, inputs).low >= floor;
-}
-
-/** This function tells if a snapshot comes from a run before the change of the definition of `pack.gap`. */
-function onOldMeasure(snap: GapSnapshot): boolean {
-  return snap.measure === "pack.gap" && snap.origin.some((o) => o.run !== null && o.run <= LAST_RUN_OLD_GAP);
 }
 
 function figureOf(strategy: string, c: GapCell, inputs: number): RegionFigure {
