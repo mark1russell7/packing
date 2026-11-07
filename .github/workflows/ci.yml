@@ -44,6 +44,11 @@ jobs:
       contents: read
 
   # The time gates of bench/gates (k130). A pull request runs them only when a file of the gates changed.
+  skyline-equal:
+    uses: ./.github/workflows/skyline-equal.yml
+    permissions:
+      contents: read
+
   time-gate:
     uses: ./.github/workflows/time-gate.yml
     permissions:
@@ -93,7 +98,7 @@ jobs:
   ci-ok:
     name: CI OK
     if: always()
-    needs: [ci, bench-smoke, site-check, size-gate, output-rows, time-gate, adversary, presets]
+    needs: [ci, bench-smoke, site-check, size-gate, skyline-equal, output-rows, time-gate, adversary, presets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
