@@ -20,6 +20,7 @@ import {
   shapeStrategies,
   sideAnchorsStrategy,
   standaloneStrategies,
+  strategy,
   strategies,
   toPackInput,
   UnsupportedCell,
@@ -144,14 +145,15 @@ describe("packSpace and the shape kinds", () => {
   const circle: PackInput = { container: { fixed: "none" }, items: [...items, { id: "c", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] };
   const polygon: PackInput = { container: { fixed: "none" }, items: [...items, { id: "p", w: 10, h: 10, shape: { kind: "polygon", points: [[0, 0], [10, 0], [5, 10]] } }] };
 
-  it("declares the shape kind rect on each option of each stage, but bbox and the options of hole-degree", () => {
-    // Roadmap items k90 and k94: hole-degree and circle-quasi-physical support only circle. The order input and the options none also support circle.
-    const circleToo = ["order.input", "size-search.none", "local-search.none"];
+  it("declares the shape kind rect on each option of each stage, but bbox and the options of the shaped placements", () => {
+    // Roadmap items k90 and k94: hole-degree and circle-quasi-physical support only circle.
+    // Roadmap item k200: near-rects and raster-nofit support rect, polygon and circle. The order input and the options none support these 3 kinds.
+    const outlines = ["placement.near-rects", "placement.raster-nofit", "order.input", "size-search.none", "local-search.none"];
     for (const s of packSpace.stages)
       for (const o of s.options) {
         const at = `${s.name}.${o.id}`;
         if (o.id === "bbox") continue;
-        const want = at === "placement.hole-degree" || at === "placement.circle-quasi-physical" ? ["circle"] : circleToo.includes(at) ? ["rect", "circle"] : ["rect"];
+        const want = at === "placement.hole-degree" || at === "placement.circle-quasi-physical" ? ["circle"] : outlines.includes(at) ? ["rect", "polygon", "circle"] : ["rect"];
         expect(o.supports, at).toEqual({ shape: want });
       }
     // Roadmap item k91: the option bbox supports each kind, and its members get the bounding boxes (view bounds of contract 0.2.16)
@@ -164,18 +166,22 @@ describe("packSpace and the shape kinds", () => {
     // A bbox config has 1 base member and the param turn: 2 times the base configs of the rect space. Before L34 the meta counts were 5940 and 1780, and the rect counts 2970 and 890.
     const base3 = spaceSize(packSpace, { levels: 3, shapes: ["rect"] }).base;
     const base1 = spaceSize(packSpace, { levels: 1, shapes: ["rect"] }).base;
-    for (const kind of ["polygon", "free"] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 7662n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 2278n });
+    // Roadmap item k200: a polygon input gets the base configs of near-rects and raster-nofit, 3 for each with 3 levels and 1 for each with 1 level.
+    // Before k200 the polygon counts were 0 and 0.
+    for (const [kind, three, one] of [["polygon", 6n, 2n], ["free", 0n, 0n]] as const) {
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: three, meta: 7662n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: one, meta: 2278n });
     }
     // Roadmap item k25 adds 75 rect configs with 3 levels and 25 with 1 level. Before k25 the rect counts were 2970 and 890, and the bbox counts were 5940 and 1780.
     // Roadmap item k29 adds 1 rect config with each count of levels. Before k29 the rect counts were 3824 and 1136, and the shape counts 7648 and 2272.
     // Roadmap item k30 adds 6 rect configs with 3 levels and 2 with 1 level. Before k30 the rect counts were 3825 and 1137, and the shape counts 7650 and 2274.
     // Roadmap items k90 and k94: a circle input also gets the base configs of hole-degree and circle-quasi-physical, 1 for each level. Before k94 the counts were 3 and 1.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 6n, meta: 7662n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 2n, meta: 2278n });
+    // Roadmap item k200 adds the 6 and 2 base configs of near-rects and raster-nofit. Before k200 the circle counts were 6 and 2.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 12n, meta: 7662n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 4n, meta: 2278n });
     expect([base3, base1]).toEqual([3831n, 1139n]);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
+    // A mix of rect and circle items gets only the configs that support both kinds: near-rects and raster-nofit. Before k200 the base count was 0.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 6n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 6n);
   });
 
@@ -215,6 +221,35 @@ describe("packSpace and the shape kinds", () => {
   it("gives a RangeError for a bad config before the shape check", () => {
     expect(() => packConfig(circle, { space: "packing", stages: {} })).toThrow(RangeError);
     expect(() => packConfig(circle, { space: "packing", stages: {} })).not.toThrow(UnsupportedShape);
+  });
+
+  // Roadmap item k200: packConfig refused a circle item for near-rects and raster-nofit, but packWith packed it.
+  it("packs each shape kind of the registry entries of near-rects and raster-nofit as packWith does", () => {
+    const strip = (items: PackInput["items"]): PackInput => ({ container: { w: 24, fixed: "width" }, items });
+    const disc = (id: string, r: number) => ({ id, w: 2 * r, h: 2 * r, shape: { kind: "circle" as const, cx: r, cy: r, r } });
+    const wedge = (id: string) => ({ id, w: 8, h: 6, shape: { kind: "polygon" as const, points: [[0, 0], [8, 0], [0, 6]] as [number, number][] } });
+    const inputs: Record<string, PackInput> = {
+      rect: strip(items),
+      circle: strip([disc("a", 3), disc("b", 2), disc("c", 4)]),
+      polygon: strip([wedge("a"), wedge("b"), wedge("c")]),
+      mixed: strip([wedge("a"), disc("b", 2), { id: "c", w: 6, h: 4 }]),
+    };
+    for (const id of ["near-rects", "raster-nofit"]) {
+      // The option of packSpace takes the item shapes of the registry entry. The cell mixed is a mix of these kinds.
+      const placement = packSpace.stages.find((s) => s.name === "placement")!.options.find((o) => o.id === id)!;
+      const kinds = [...placement.supports!.shape!, "mixed"];
+      expect([...strategy(id).supports.itemShape!].sort(), id).toEqual([...kinds].sort());
+      const point = configOfStrategy(id);
+      if (!point.ok) throw new Error(point.reason);
+      for (const [kind, input] of Object.entries(inputs)) {
+        expect(kinds, `${id} ${kind}`).toContain(kind);
+        expect(outputHash(packConfig(input, point.config, 5)), `${id} ${kind}`).toBe(outputHash(packWith(id, input, {}, 5)));
+      }
+      // An ellipse has the shape kind free, and free is not a kind of the entry: packConfig refuses it, and packWith too.
+      const free = strip([{ id: "f", w: 4, h: 2, shape: { kind: "ellipse", cx: 2, cy: 1, rx: 2, ry: 1 } }]);
+      expect(() => packConfig(free, point.config), id).toThrow(UnsupportedShape);
+      expect(() => packWith(id, free, {}, 5), id).toThrow();
+    }
   });
 
   it("packs a rect input as packWith does", () => {
