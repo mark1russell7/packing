@@ -6,6 +6,7 @@ import { SELECT_TABLE } from "@mark1russell7/packing";
 import {
   coverageEntries,
   COVERAGE_TOP,
+  MEASURED_ENTRIES_FILE,
   snapshotMain,
   writtenFiles,
   writeSnapshot,
@@ -75,6 +76,26 @@ describe("the files that a run of the site data writes", () => {
 
   it("gives no file that is not measured, although it changed", () => {
     expect(writtenFiles(folder(before), folder({ ...before, "kpi.json": "new kpi" }))).toEqual([]);
+  });
+
+  it("gives each file that a command of site-data.yml writes, with the count of the measured entries", () => {
+    // The file that each command writes, for a made-up corpus. `null` is a command that writes no data file.
+    const fileOf: Readonly<Record<string, string | null>> = {
+      strategies: "strategies-pack-made-v1.json",
+      gaps: "gaps-pack-made-v1.json",
+      coverage: "coverage.json",
+      "coverage-earlier": null,
+      measured: MEASURED_ENTRIES_FILE,
+      select: "select-table.json",
+      written: null,
+    };
+    const workflow = readFileSync(new URL("../../../.github/workflows/site-data.yml", import.meta.url), "utf8");
+    const kinds = [...new Set([...workflow.matchAll(/node bench\/snapshot\.ts ([a-z-]+)/g)].map((m) => m[1]!))].sort();
+    expect(kinds).toContain("measured");
+    for (const kind of kinds) expect(Object.keys(fileOf), `the command ${kind} of site-data.yml`).toContain(kind);
+    const names = kinds.flatMap((kind) => (fileOf[kind] === null || fileOf[kind] === undefined ? [] : [fileOf[kind]]));
+    const after = folder(Object.fromEntries(names.map((name) => [name, `new ${name}`])));
+    expect(writtenFiles(folder({}), after)).toEqual([...names].sort());
   });
 
   it("gives nothing when a run changes nothing", () => {

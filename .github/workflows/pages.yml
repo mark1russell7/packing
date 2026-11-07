@@ -44,6 +44,8 @@ jobs:
       # The file releases.json comes from the changelog and the tags at each build, so the news follows each release.
       # A file of the branch replaces the file of main only if its own record is later (packages/site/src/overlay.ts). A tie goes to main.
       # Without the branch, the build keeps the files of main, and the freshness gate reads their age.
+      # The script check:data reads each file through the reader of the page, after the branch lands. A fault stops the build
+      # with the file and the field, so the job deploy does not start, and the last good page stays up.
       build: |
         if git fetch -q origin site-data; then
           branch="$(mktemp -d)"
@@ -51,6 +53,7 @@ jobs:
           node --no-warnings packages/site/scripts/overlay.ts "$branch" packages/site/data
         fi
         (cd packages/packing && node --no-warnings bench/snapshot.ts releases)
+        pnpm --filter @packing/site run check:data
         pnpm --filter @packing/site run build
       out: packages/site/dist
       env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'
