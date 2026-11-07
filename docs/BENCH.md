@@ -2640,6 +2640,33 @@ The family `cards` rounds each size up to steps of 20 and 25, so it has 12 sizes
 - Pin and compaction moves far fewer boxes, and it costs 12 to 21 % of height at step 10. The match is the choice when the height cannot rise.
 - The 100 items share 12 sizes, so a class has approximately 8 boxes. This run does not measure other class sizes.
 
+## The pin and repack
+
+`bench/repack.ts` compares `repackPinned` of roadmap item k31 with a fresh pack, on the chains of `bench/pin.ts` in a container of fixed size. A movement is not a time, so any computer can start it. The prediction is `packing-k31-pin-repack`.
+
+```bash
+node bench/repack.ts --out <file.json> [--seeds 30] [--count 100] [--share 0.05] [--steps 10] [--slack 1.1]
+```
+
+The container has the width 200 and `slack` times the height of the first fresh pack of the strip. The columns Pin, Prefix and Fresh are the shares of the steps where `repackPinned` keeps that pack. The hard rules have 0 breaks.
+
+| Slack | Entry | Moved, fresh | Moved, repack | Ratio | Pin | Prefix | Fresh | Fresh overflows |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1.1 | `maxrects-bl` | 0.757 | 0.352 | 0.465 | 0.537 | 0.330 | 0.133 | 2 |
+| 1.1 | `skyline` | 0.807 | 0.403 | 0.499 | 0.553 | 0.013 | 0.433 | 16 |
+| 1.05 | `maxrects-bl` | 0.754 | 0.549 | 0.727 | 0.277 | 0.303 | 0.420 | 40 |
+| 1.05 | `skyline` | 0.804 | 0.637 | 0.792 | 0.240 | 0.027 | 0.733 | 55 |
+| 1.2 | `maxrects-bl` | 0.757 | 0.089 | 0.118 | 0.893 | 0.100 | 0.007 | 0 |
+| 1.2 | `skyline` | 0.808 | 0.156 | 0.194 | 0.847 | 0.010 | 0.143 | 0 |
+| 1.3 | `maxrects-bl` | 0.757 | 0.026 | 0.034 | 0.980 | 0.020 | 0 | 0 |
+| 1.3 | `skyline` | 0.808 | 0.069 | 0.085 | 0.940 | 0.003 | 0.057 | 0 |
+
+- The prediction is on the slack 1.1. It asked for 0 steps where the fresh pack places each item and the repack does not, and the read has 0. It also asked for a ratio of at most 0.5 on each entry. Both entries hold the claim, `skyline` with 0.4988, only 0.0012 under the limit.
+- The rows of the other slacks were read after the first read, and they are not a prediction.
+- The free room decides the gain. With more room, the pin fits on more steps, and the repack moves fewer boxes.
+- `skyline` rarely keeps the prefix. A low box of the prefix pushes the suffix below it, and the suffix overflows. Refer to "The kept prefix".
+- The moved column counts each step, also a step where the fresh pack overflows.
+
 ## The kept prefix
 
 `bench/prefix.ts` compares `keepPrefix` of roadmap item k30 with a fresh pack, and with `pinUnchanged` and `compactUp`, on the chains of `bench/pin.ts`. A height and a movement are not a time, so any computer can start it. The prediction is `packing-k30-keep-prefix`.

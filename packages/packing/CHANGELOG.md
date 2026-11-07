@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.10.3
+
+The function `repackPinned` packs a changed input again, and moves as few boxes as it can (roadmap item k31).
+
+This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
+
+### Added
+
+- `repackPinned` pins each unchanged box. If an item overflows, it keeps only the prefix, and then it packs fresh.
+- The types `Repacked` and `RepackMethod`.
+- The read `bench/repack.ts` and its section in `docs/BENCH.md`.
+
+### Not changed
+
+- The outputs of each strategy do not change.
 ## 0.10.2
 
 The strategy `shelf-online` packs a strip online. Each box takes a shelf of its class of height when it comes, and it does not move later.
