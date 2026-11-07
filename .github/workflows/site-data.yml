@@ -71,7 +71,7 @@ jobs:
           RUNS: ${{ inputs.runs }}
           WEEKLY_RUN: ${{ github.event.workflow_run.id }}
           # The corpora with a file of the site. bench/site-rerun.test.ts compares this list with the case below.
-          SITE_CORPORA: pack-free-v1 pack-screen-v1 pack-select-v1 pack-select-v2 pack-known-v1 pack-classes-v1 pack-classes-free-v1
+          SITE_CORPORA: pack-free-v1 pack-screen-v1 pack-select-v1 pack-select-v2 pack-known-v1 pack-classes-v1 pack-classes-free-v1 pack-change-v1
           NO_ROW: ${{ inputs.no-row }}
           # The six strategies of the table of the gaps. The table has one column for each strategy.
           GAP_STRATEGIES: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
@@ -154,11 +154,16 @@ jobs:
                 # The point records how its run started, so the trend shows a point of a dispatch as one.
                 node bench/snapshot.ts coverage "$folder" "${origin[@]}" --event "$event" --no-row "$NO_ROW" "${earlier_args[@]}" "${sample_args[@]}"
                 ;;
+              pack-change-v1)
+                # This corpus has only its row in the count of the entries, below.
+                ;;
               *)
                 echo "The corpus $corpus has no file of the site."
                 exit 1
                 ;;
             esac
+            # Each corpus has one row in the count of the entries. The rows of the other corpora stay.
+            node bench/snapshot.ts measured "$folder" "${origin[@]}"
           done
           echo "runs=$RUNS" >> "$GITHUB_OUTPUT"
           # The table needs both training runs and both test runs. A change of the wins stops the command, and the file of the table stays.

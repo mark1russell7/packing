@@ -20,6 +20,7 @@ import corpusCoverText from "../content/results-corpus-cover.md?raw";
 import corpusCoverJson from "../data/corpus-cover.json?raw";
 import lawCoverJson from "../data/law-cover.json?raw";
 import coverageJson from "../data/coverage.json?raw";
+import measuredJson from "../data/measured-entries.json?raw";
 import { mountChrome } from "./chrome.ts";
 import { CORPUS_LABELS, COVERAGE_LABELS, fillClaimOf, GAP_LABELS, MEASURE_LABELS, parseLawCover, parseSnapshot, parseSolvedRule, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { strategySnapshots } from "./strategy-snapshots.ts";
@@ -64,6 +65,7 @@ import {
   trendChart,
   trendNote,
   entriesNote,
+  measuredNote,
   verdictHash,
   verdictOf,
 } from "./results-model.ts";
@@ -82,6 +84,7 @@ const paired = parseSnapshot(pairedJson, "paired");
 const select = parseSnapshot(selectJson, "select");
 const gapSnaps = [gapsKnownJson, gapsSelectJson].map((t) => parseSnapshot(t, "gaps"));
 const cover = parseSnapshot(coverageJson, "coverage");
+const measuredEntries = parseSnapshot(measuredJson, "measured");
 const corpusCover = parseCorpusCover(corpusCoverJson);
 
 mountChrome($("links"), "results");
@@ -188,7 +191,7 @@ function drawStrategies(): void {
   $("fill-claim").innerHTML = esc(claim.note);
   const max = scaleOf(snap, WIN);
   const head = snap.measures.map((m) => `<span class="mhead" title="${esc(MEASURE_LABELS[m.id]?.note ?? m.id)}">${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}</span>`).join("");
-  const sections = rankSections(snap, WIN);
+  const sections = rankSections(snap, WIN, claim.partner);
   const row = (s: StrategySummary): string => {
     const fill = verdictOf(s, WIN);
     const share = fillClaimOfStrategy(s, WIN, claim.partner);
@@ -578,7 +581,7 @@ function mountCoverage(): void {
   drawIndices();
   $("coverage-trend").innerHTML = trendSvg();
   $("coverage-segments").innerHTML = trendNote(cover.trend);
-  $("coverage-entries").innerHTML = entriesNote(l.entries);
+  $("coverage-entries").innerHTML = entriesNote(l.entries) + measuredNote(measuredEntries);
   const last = cover.trend.at(-1)!;
   $("coverage-legend").innerHTML = l.measures
     .map((m, i) => {

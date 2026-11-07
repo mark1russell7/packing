@@ -61,7 +61,8 @@ const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "20963f4950107879", "3f8e28fece
 // The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
 // Roadmap item k94 adds the base configs of circle-quasi-physical to the members of the meta configs. Before k94 the counts were 91590358728953040752342089373 and 91590358728953039561241613290.
 // Roadmap item k142 adds the base configs of the standalone placements to the members, and the option side-anchors. Before k142 the counts were 93933758014846374732506608748 and 93933758014846373534955689790.
-const CLOCK_FREE_META = 97230737123976843015729743524n;
+// Roadmap item k193 adds the side none to side-anchors. Before k193 the count was 97230737123976843015729743524.
+const CLOCK_FREE_META = 97230737123976843015729948306n;
 // Roadmap item k29 adds the base config of shelf-breaks to the members. Before k29 the counts were 97223615252208789169500820039 and 97223615252208787963100427090.
 // Roadmap item k30 adds the base configs of shelf-online to the members. Before k30 the counts were 97225989163093744903710893550 and 97225989163093743697304199810.
 const CLOCK_CONFIGS = 97230737123976841809310448190n;

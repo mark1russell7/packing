@@ -4,7 +4,7 @@ import { parseResponseRecord } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
 import { buildLine, navLinks } from "./chrome.ts";
 import { coverageLine, explorerFacts, NO_COVERAGE_LINE, RECORD_ORIGIN } from "./explorer-model.ts";
-import { byDate, COVERAGE_LABELS, FILL_CLAIMS, fillClaimOf, NEWS, newsByDate, parseSnapshot, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
+import { byDate, COVERAGE_LABELS, FILL_CLAIMS, fillClaimOf, NEWS, newsByDate, parseSnapshot, SNAPSHOT_SCHEMA, stopsEarly, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type MeasuredRow, type MeasuredSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -46,6 +46,7 @@ import {
   COVERAGE_POOLED_SCOPE,
   spaceOf,
   entriesNote,
+  measuredNote,
   trendChart,
   stepReads,
   trendNote,
@@ -61,6 +62,7 @@ const KINDS: Record<string, Snapshot["kind"]> = {
   "coverage.json": "coverage",
   "gaps-pack-known-v1.json": "gaps",
   "gaps-pack-select-v2.json": "gaps",
+  "measured-entries.json": "measured",
   "paired-k67.json": "paired",
   "releases.json": "releases",
   "select-table.json": "select",
@@ -219,6 +221,26 @@ describe("the calculations of the pages", () => {
     expect(ranked.at(-1)!.strategy).toBe("push");
     const means = ranked.flatMap((s) => s.verdicts.filter((v) => v.measure === "pack.fill" && v.stratified !== undefined).map((v) => v.stratified!.mean));
     expect([...means].sort((a, b) => b - a)).toEqual(means);
+  });
+
+  it("ranks a strategy that gives up the partner of the fill after the others, from the same function as the compare page (k154)", () => {
+    const v = snap.strategies[0]!.verdicts[0]!;
+    const summary = (strategy: string, mean: number | undefined, right: "better" | "worse"): StrategySummary => ({
+      ...snap.strategies[0]!,
+      strategy,
+      verdicts: [
+        ...(mean === undefined ? [] : [{ ...v, measure: "pack.fill", stratified: { mean, lo: mean, hi: mean } }]),
+        { ...v, measure: "pack.balance.side.right", label: right },
+      ],
+    });
+    const made = {
+      ...snap,
+      baseline: "base",
+      strategies: [summary("base", 0, "better"), summary("trick", 0.9, "worse"), summary("keeps", 0.5, "better"), summary("none", undefined, "better")],
+    } as StrategySnapshot;
+    expect(rankStrategies(made, "pack.fill", "pack.balance.side.right").map((s) => s.strategy)).toEqual(["keeps", "trick", "none"]);
+    expect(rankStrategies(made, "pack.fill").map((s) => s.strategy)).toEqual(["trick", "keeps", "none"]);
+    expect(rankSections(made, "pack.fill", "pack.balance.side.right")[0]!.strategies.map((s) => s.strategy)).toEqual(["keeps", "trick", "none"]);
   });
 
   it("gives one section without a heading fact for a snapshot from before the budget", () => {
@@ -772,6 +794,62 @@ describe("the space coverage of k105", () => {
       );
       expect(entriesNote(undefined)).toBe("");
       expect(entriesNote({ planned: 1, measured: 1, others: [] })).not.toContain("<ul");
+    });
+
+    describe("the count over the corpora", () => {
+      const entry = (name: string, measured: number, records: number, stopped: number, largestItems: number | null) => ({ entry: name, measured, records, stopped, largestItems });
+      const row: MeasuredRow = { corpus: "c<", run: 7, date: "2026-11-05", largestItems: 100, entries: [entry("full", 9, 9, 0, 100), entry("cut", 50, 500, 450, 20), entry("small", 4, 9, 0, 40)], notPlanned: ["control"] };
+      const snap: MeasuredSnapshot = { schema: SNAPSHOT_SCHEMA, kind: "measured", origin: [], planned: 4, measured: 3, notMeasured: ["none"], rows: [row] };
+
+      it("states the count, the corpus, the run and each entry", () => {
+        const note = measuredNote(snap);
+        expect(note).toContain("<b>3 of 4 entries</b>");
+        expect(note).toContain("<code>c&lt;</code>, run 7, 2026-11-05: 3 entries.");
+        for (const e of row.entries) expect(note).toContain(`<code>${e.entry}</code>`);
+        expect(note).toContain("No run measures <code>none</code>.");
+      });
+
+      it("states that a control does not count", () => {
+        expect(measuredNote(snap)).toContain("<code>control</code>, which are not planned entries and do not count");
+      });
+
+      it("names each row that stops early, and only those", () => {
+        const note = measuredNote(snap);
+        expect(note).toContain("<li><code>cut</code> on <code>c&lt;</code>: 50 of 500 records measured, up to 20 of 100 items, and a budget stopped 450</li>");
+        expect(note).toContain("<li><code>small</code> on <code>c&lt;</code>: 4 of 9 records measured, up to 40 of 100 items</li>");
+        expect(note).not.toContain("<code>full</code> on");
+        expect(row.entries.filter((e) => stopsEarly(e, row)).map((e) => e.entry)).toEqual(["cut", "small"]);
+      });
+
+      it("has no list of early rows when each row reaches the end, and an unknown size is no early stop", () => {
+        const plain: MeasuredRow = { ...row, largestItems: null, entries: [entry("full", 9, 9, 0, null)], notPlanned: [] };
+        expect(measuredNote({ ...snap, rows: [plain], notMeasured: [] })).not.toContain("stop early");
+        expect(stopsEarly(plain.entries[0]!, plain)).toBe(false);
+      });
+    });
+  });
+
+  describe("the file of the count over the corpora", () => {
+    const snap = parseSnapshot(read("measured-entries.json"), "measured");
+
+    it("has one origin for each row, with the same run and date", () => {
+      expect(snap.origin.map((o) => [o.run, o.date])).toEqual(snap.rows.map((row) => [row.run, row.date]));
+    });
+
+    it("counts each entry of its rows once, and each planned entry is in a row or in the list of no run", () => {
+      const found = new Set(snap.rows.flatMap((row) => row.entries.map((e) => e.entry)));
+      expect(found.size).toBe(snap.measured);
+      expect(snap.measured + snap.notMeasured.length).toBe(snap.planned);
+      for (const name of snap.notMeasured) expect(found.has(name)).toBe(false);
+    });
+
+    it("has only measured entries in a row", () => {
+      for (const row of snap.rows) for (const e of row.entries) expect(e.measured).toBeGreaterThan(0);
+    });
+
+    it("states the row that stops early on the page, for each row of the file", () => {
+      const note = measuredNote(snap);
+      for (const row of snap.rows) for (const e of row.entries) if (stopsEarly(e, row)) expect(note).toContain(`<code>${e.entry}</code> on <code>${row.corpus}</code>: ${e.measured} of ${e.records}`);
     });
   });
 });

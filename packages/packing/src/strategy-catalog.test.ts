@@ -329,4 +329,9 @@ describe("the file strategy-catalog.json (k144)", () => {
     expect(parsed.ok).toBe(true);
     if (parsed.ok) expect(parsed.catalog.version).toBe(pkg.version);
   });
+
+  // A tool that sets a new version starts the script `version`. Without it, this file keeps the old version, and the test above fails.
+  it("is written again by the script version of the package, after the output rows", () => {
+    expect(pkg.scripts.version).toBe("node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/write-catalog.ts");
+  });
 });
