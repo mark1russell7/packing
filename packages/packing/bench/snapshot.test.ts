@@ -24,7 +24,10 @@ import {
   gapSnapshot,
   gapStats,
   groupOfFamily,
+  itemsOfInput,
   leafWins,
+  measuredRow,
+  measuredSnapshot,
   pairedSnapshot,
   recordsOfStrategies,
   releaseEntries,
@@ -35,9 +38,12 @@ import {
   strategySnapshot,
   tableLeaves,
   triggerOf,
+  withMeasuredRow,
   type LeafWins,
+  type SnapshotOrigin,
   type SnapshotRecord,
 } from "./snapshot.ts";
+import { NOT_RUN_JOB, OVER_BUDGET } from "./budget.ts";
 import { SLOW_SET, type PairedRecord } from "./paired.ts";
 import type { CoverageSummary } from "./coverage.ts";
 
@@ -738,6 +744,84 @@ describe("the coverage snapshot (k105)", () => {
     const a = snap.latest.measures[0]!.active!;
     expect(a.start).toEqual({ share: 0.05, mae: 0.2, equal: 0.05, prior: 0.04, priorCount });
     expect(a.rounds[0]).toMatchObject({ prior: 0.3, priorCount, after: { prior: 0.04, priorCount } });
+  });
+});
+
+describe("the count of the entries over the corpora", () => {
+  const origin = (run: number): SnapshotOrigin => ({ release: "0.1.0", commit: "abc1234", date: "2026-11-05", run, source: "made up" });
+  const at = (corpus: string, run: number) => ({ corpus, run, date: "2026-11-05" });
+  const measured = (strategy: string, input = "c/f.n20/s1") => ({ strategy, input, measures: {} });
+  const skipped = (strategy: string, reason: string, input = "c/f.n100/s1") => ({ strategy, input, skipped: reason });
+  const planned = ["a", "b", "c", "d"];
+  const rowA = measuredRow([measured("a"), measured("b")], at("first", 1), planned);
+  const rowB = measuredRow([measured("a"), measured("c")], at("second", 2), planned);
+
+  it("counts a planned entry that any row measures, once", () => {
+    const snap = measuredSnapshot([{ row: rowA, origin: origin(1) }, { row: rowB, origin: origin(2) }], planned);
+    expect(snap.measured).toBe(3);
+    expect(snap.planned).toBe(4);
+    expect(snap.notMeasured).toEqual(["d"]);
+  });
+
+  it("states a corpus and a run for each measured entry, over all planned entries", () => {
+    const snap = measuredSnapshot([{ row: rowB, origin: origin(2) }, { row: rowA, origin: origin(1) }], planned);
+    expect(snap.rows.map((r) => r.corpus)).toEqual(["first", "second"]);
+    expect(snap.origin.map((o) => o.run)).toEqual([1, 2]);
+    for (const entry of planned) {
+      const rows = snap.rows.filter((r) => r.entries.some((e) => e.entry === entry));
+      expect(rows.length > 0).toBe(!snap.notMeasured.includes(entry));
+      for (const row of rows) {
+        expect(row.corpus).toMatch(/^(first|second)$/);
+        expect(row.run).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("does not count an entry with only skipped records, in any row", () => {
+    const row = measuredRow([skipped("a", "refused: over item limit 16"), skipped("b", OVER_BUDGET), measured("c")], at("first", 1), planned);
+    expect(row.entries.map((e) => e.entry)).toEqual(["c"]);
+    expect(measuredSnapshot([{ row, origin: origin(1) }], planned).measured).toBe(1);
+  });
+
+  it("does not count a name that is not planned, and keeps it apart", () => {
+    const row = measuredRow([measured("a"), measured("control")], at("first", 1), planned);
+    expect(row.notPlanned).toEqual(["control"]);
+    expect(measuredSnapshot([{ row, origin: origin(1) }], planned).measured).toBe(1);
+  });
+
+  it("does not count an entry that a later list does not plan", () => {
+    const snap = measuredSnapshot([{ row: rowA, origin: origin(1) }], ["a"]);
+    expect(snap.measured).toBe(1);
+    expect(snap.planned).toBe(1);
+  });
+
+  it("states how far a row reaches: its records, the budget stops and the largest count of items", () => {
+    const row = measuredRow(
+      [measured("a", "c/f.n20/s1"), measured("a", "c/f.n20/s2"), skipped("a", OVER_BUDGET, "c/f.n40/s1"), skipped("a", NOT_RUN_JOB, "c/f.n100/s1"), skipped("a", "refused: free height", "c/g.n100/s1")],
+      at("first", 1),
+      planned,
+    );
+    expect(row.largestItems).toBe(100);
+    expect(row.entries).toEqual([{ entry: "a", measured: 2, records: 5, stopped: 2, largestItems: 20 }]);
+  });
+
+  it("reads the item count of an input id, and null for an id with no count", () => {
+    expect(itemsOfInput("pack-classes-v1/berkey-wang.I.fixed.n20/s1")).toBe(20);
+    expect(itemsOfInput("pack-change-v1/change-walk.add.n60.step0/s1")).toBe(60);
+    expect(itemsOfInput("pack-x-v1/f.n7")).toBe(7);
+    expect(itemsOfInput("pack-x-v1/family/s1")).toBeNull();
+    expect(itemsOfInput("pack-x-v1/f.notes/s1")).toBeNull();
+  });
+
+  it("replaces only the row of its corpus, so a run of one corpus keeps the others", () => {
+    const first = withMeasuredRow(undefined, rowA, origin(1), planned);
+    const both = withMeasuredRow(first, rowB, origin(2), planned);
+    expect(both.measured).toBe(3);
+    const again = withMeasuredRow(both, { ...rowA, run: 9, entries: rowA.entries.filter((e) => e.entry === "a") }, origin(9), planned);
+    expect(again.rows.map((r) => [r.corpus, r.run])).toEqual([["first", 9], ["second", 2]]);
+    expect(again.origin.map((o) => o.run)).toEqual([9, 2]);
+    expect(again.measured).toBe(2);
+    expect(again.notMeasured).toEqual(["b", "d"]);
   });
 });
 
