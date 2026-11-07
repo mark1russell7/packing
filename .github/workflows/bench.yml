@@ -93,7 +93,7 @@ permissions:
 # The runner budget of the account (strategist, 2026-10-30): 3 jobs of the matrix at one time.
 # The group has the inputs, so only a true duplicate replaces a run that waits.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.corpus }}-${{ inputs.strategies }}-${{ inputs.prediction }}-${{ inputs.sample }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}-${{ inputs.corpus }}-${{ inputs.strategies }}-${{ inputs.prediction }}-${{ inputs.sample }}
   cancel-in-progress: false
 
 # The shell bash has pipefail, so a failure before a tee fails the step.
