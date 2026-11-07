@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.0
+
+The strategy `treemap` has the method `spiral`, the spiral treemap of Tu and Shen 2007. Each two boxes in a row of the input order share an edge.
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR. The type `TreemapMethod` has a new member, so a `switch` over all of its members does not compile until it has the case `spiral`.
+
+### Added
+
+- The function `treemapSpiral`. Each level lays its items in strips along the top, the right, the bottom and the left side of the free frame in turn. An item joins a strip while the mean aspect of the strip does not get higher.
+- The method `spiral` of the strategy `treemap`, and the option value `spiral` of the param `method` of `packSpace`. The named config and the bench entry `treemap-spiral`, with its tie-move row.
+- The arm `spiral` of `bench/treemap-literature.ts`, with a section that compares it with `strip` on the same trials.
+
+### Changed
+
+- The type `TreemapMethod` has the member `"spiral"`, and `TREEMAP_METHOD_IDS` has the id `spiral`.
+
 ## 0.10.2
 
 The strategy `shelf-online` packs a strip online. Each box takes a shelf of its class of height when it comes, and it does not move later.
