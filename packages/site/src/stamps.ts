@@ -24,7 +24,7 @@ export const STRATEGY_FILES: readonly string[] = [
  * The page `compare/` packs in the browser. It links to the verdicts of `results/` and shows no number of a snapshot, so it has no stamp.
  */
 export const STAMPED_PAGES: Readonly<Record<string, readonly string[]>> = {
-  "results/index.html": [...STRATEGY_FILES, "gaps-pack-known-v1.json", "gaps-pack-select-v2.json", "coverage.json"],
+  "results/index.html": [...STRATEGY_FILES, "gaps-pack-known-v1.json", "gaps-pack-select-v2.json", "coverage.json", "measured-entries.json"],
   "strategies/index.html": STRATEGY_FILES,
 };
 
