@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bestFit, bottomLeft, BOTTOM_LEFT_RULES, checkHard, orderRects, outputHash, packDefault, packWith, Rect, strategies, UnsupportedCell, type ItemOrder, type PackInput } from "@mark1russell7/packing";
 import { runBottomLeft, type BottomLeftOptions } from "./bottom-left.ts";
-import { perfectCut, rectGrid, rectScattered, wallLocks } from "./generators.ts";
+import { berkeyWang, perfectCut, rectGrid, rectScattered, wallLocks } from "./generators.ts";
 import { toPackInput } from "./layout-input.ts";
 
 // The slide strategies of roadmap item k25. Made-up inputs only.
@@ -76,6 +76,79 @@ function bruteLowestLeft(input: PackInput, order: ItemOrder): Map<string, [numbe
     found.set(r.id as string, best);
   }
   return found;
+}
+
+/** The length of the common part of the range from `a0` to `a1` and the range from `b0` to `b1`. */
+const common = (a0: number, a1: number, b0: number, b1: number): number => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+
+/** A placed box, by its edges. */
+interface Edges4 {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/**
+ * This helper packs rectangles by the rule touching perimeter of Lodi 1999, with a brute-force scan. The boxes go in the order
+ * `area-desc`. Each box goes to a normal place. At a normal place, the edge of the box at `x` touches the frame or a box.
+ * The edge at `y` also touches the frame or a box.
+ *
+ * Of these places, the box takes the place with the most length of its edges on the frame and on the other boxes. A tie
+ * goes to the smallest `y + h`, then to the smallest `y`, then to the smallest `x`. The test compares the rule with
+ * `maxrects` and the rule `cp`, so the package does not need a strategy for this rule.
+ */
+function bruteTouchingPerimeter(input: PackInput): Map<string, [number, number]> {
+  const width = input.container.w!;
+  const fixed = input.container.fixed === "size";
+  const height = fixed ? input.container.h! : Infinity;
+  const rects = input.items.map((item) => {
+    const r = rect(item.w, item.h);
+    r.id = item.id;
+    return r;
+  });
+  const placed: Edges4[] = [];
+  const found = new Map<string, [number, number]>();
+  const contact = (b: Edges4): number => {
+    let sum = (b.x0 === 0 ? b.y1 - b.y0 : 0) + (b.x1 === width ? b.y1 - b.y0 : 0) + (b.y0 === 0 ? b.x1 - b.x0 : 0) + (fixed && b.y1 === height ? b.x1 - b.x0 : 0);
+    for (const p of placed) {
+      if (p.x1 === b.x0 || p.x0 === b.x1) sum += common(b.y0, b.y1, p.y0, p.y1);
+      if (p.y1 === b.y0 || p.y0 === b.y1) sum += common(b.x0, b.x1, p.x0, p.x1);
+    }
+    return sum;
+  };
+  for (const r of orderRects(rects, "area-desc")) {
+    let best: { box: Edges4; touch: number } | undefined;
+    for (const y of new Set([0, ...placed.map((p) => p.y1)])) {
+      for (const x of new Set([0, ...placed.map((p) => p.x1)])) {
+        const box = { x0: x, y0: y, x1: x + r.size.x, y1: y + r.size.y };
+        if (box.x1 > width || box.y1 > height) continue;
+        if (placed.some((p) => common(box.x0, box.x1, p.x0, p.x1) > 0 && common(box.y0, box.y1, p.y0, p.y1) > 0)) continue;
+        const left = x === 0 || placed.some((p) => p.x1 === x && common(box.y0, box.y1, p.y0, p.y1) > 0);
+        const under = y === 0 || placed.some((p) => p.y1 === y && common(box.x0, box.x1, p.x0, p.x1) > 0);
+        if (!left || !under) continue;
+        const touch = contact(box);
+        const b = best?.box;
+        if (!b || touch > best!.touch || (touch === best!.touch && (box.y1 < b.y1 || (box.y1 === b.y1 && (y < b.y0 || (y === b.y0 && x < b.x0)))))) best = { box, touch };
+      }
+    }
+    if (!best) continue;
+    placed.push(best.box);
+    found.set(r.id as string, [best.box.x0, best.box.y0]);
+  }
+  return found;
+}
+
+/** This helper gives seeded inputs with whole sizes: the Berkey and Wang class `I`, and the grids with each size rounded. */
+function wholeInputs(containerSize: "fixed" | "freeHeight"): PackInput[] {
+  const round = (v: number): number => Math.max(1, Math.round(v));
+  return Array.from({ length: 12 }, (_, s) => {
+    const grid = toPackInput(rectGrid.generate(s + 1, { count: 40, containerSize }));
+    const { w, h } = grid.container;
+    const container = { ...grid.container, ...(w === undefined ? {} : { w: round(w) }), ...(h === undefined ? {} : { h: round(h) }) };
+    const whole: PackInput = { ...grid, container, items: grid.items.map((i) => ({ ...i, w: round(i.w), h: round(i.h) })) };
+    return [toPackInput(berkeyWang.generate(s + 1, { class: "I", count: 20, containerSize })), whole];
+  }).flat();
 }
 
 /**
@@ -177,6 +250,19 @@ describe("the methods with the same output as maxrects-bl", () => {
           const brute = bruteLowestLeft(input, order);
           expect(new Map(output.placements.map((p) => [p.id, [p.x, p.y]])), `${size} ${order}`).toEqual(brute);
         }
+      }
+    }
+  });
+});
+
+describe("the methods with the same output as maxrects-cp", () => {
+  // On sizes that are not whole, two sums of the same contact can differ in the last bit, and then a tie goes another way.
+  // So this test reads whole sizes only.
+  it("gives the places of the brute-force rule touching perimeter, with the order area-desc", () => {
+    for (const size of ["fixed", "freeHeight"] as const) {
+      for (const input of wholeInputs(size)) {
+        const output = packWith("maxrects", input, { rule: "cp", sortOrder: "area-desc" });
+        expect(new Map(output.placements.map((p) => [p.id, [p.x, p.y]])), size).toEqual(bruteTouchingPerimeter(input));
       }
     }
   });

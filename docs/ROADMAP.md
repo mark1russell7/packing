@@ -31,7 +31,7 @@ Status: done, done, waiting, next, done.
 | k22 | Skyline variants: bottom-left, minimum waste, with a waste map | strategies | done | k6, k7 |
 | k23 | Guillotine: each rule to choose a free rectangle and to split it | strategies | done | k6, k7 |
 | k24 | MaxRects: best short side, best long side, best area, bottom-left, contact point | strategies | done | k6, k7 |
-| k25 | Bottom-left fill: Baker, Chazelle and the lowest-gap variants | strategies | later | k6, k7 |
+| k25 | Bottom-left fill: Baker, Chazelle and the lowest-gap variants | strategies | in progress | k6, k7 |
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | done | k6, k7 |
 | k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi | strategies | later | k6, k7 |
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | later | k6, k7 |
