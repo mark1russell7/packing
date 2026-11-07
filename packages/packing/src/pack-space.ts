@@ -179,10 +179,13 @@ const STANDALONE_PLACEMENTS: readonly string[] = ["sleator", "shelf-breaks", "sh
 /** The values of the param `nodeLimit` of `exact-strip`. The largest value is the default of the strategy, so a draw costs no more than the named config. */
 const EXACT_NODE_LIMITS: readonly number[] = [1000, 10000, EXACT_STRATEGY_NODE_LIMIT];
 
-/** The param of `side-anchors` of roadmap item k142: the side and the place of one anchor for the first item. */
+/**
+ * The param of `side-anchors` of roadmap item k142: the side and the place of one anchor for the first item.
+ * The side `none` is the strategy with no anchor (roadmap item k193). It refuses the inputs that `side-anchors` refuses.
+ */
 const SIDE_ANCHOR_PARAMS: readonly SpaceParam[] = [
-  { name: "side", kind: "enum", values: ["left", "right", "top", "bottom"], default: "left" },
-  { name: "at", kind: "real", min: 0, max: 1, default: 0.5 },
+  { name: "side", kind: "enum", values: ["left", "right", "top", "bottom", "none"], default: "left" },
+  { name: "at", kind: "real", min: 0, max: 1, default: 0.5, when: { param: "side", in: ["left", "right", "top", "bottom"] } },
 ];
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
@@ -727,7 +730,7 @@ const notMember = (member: string): string => `The strategy ${member} is not in 
 
 /**
  * This function gives the point of `side-anchors`. The option `first` gives the params, and `strategy` with `strategyOptions` gives the member.
- * With no `first`, the strategy gives the layout of its member. Thus the point is the config of the member.
+ * With no `first`, the point has the side `none`. The point is not the config of the member, because `side-anchors` has its own supports (roadmap item k193).
  */
 function sideAnchorsPoint(options: Readonly<Record<string, unknown>>): StrategyPoint {
   const inner = options["strategy"] === undefined ? "maxrects" : String(options["strategy"]);
@@ -736,7 +739,7 @@ function sideAnchorsPoint(options: Readonly<Record<string, unknown>>): StrategyP
   const member = rawConfig(inner, innerOptions);
   if (!member.ok) return { ok: false, reason: `The member ${inner} of the option side-anchors.strategy has no point. ${member.reason}` };
   const first = options["first"];
-  if (first === undefined) return member;
+  if (first === undefined) return { ok: true, config: metaConfig("side-anchors", [member.config], { side: "none" }) };
   if (!isRecord(first) || typeof first["side"] !== "string" || typeof first["at"] !== "number") return { ok: false, reason: "packSpace holds the option side-anchors.first only with side and at." };
   return { ok: true, config: metaConfig("side-anchors", [member.config], { side: first["side"], at: first["at"] }) };
 }
@@ -1012,7 +1015,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return packWith("force", input, { member: entryOf(members[0]!), iterations: params["iterations"], rounds: params["rounds"] }, seed);
     case "side-anchors": {
       const run = runOf(members[0]!);
-      return packWith("side-anchors", input, { strategy: run.strategy, strategyOptions: run.options, first: { side: params["side"], at: params["at"] } }, seed);
+      const first = params["side"] === "none" ? {} : { first: { side: params["side"], at: params["at"] } };
+      return packWith("side-anchors", input, { strategy: run.strategy, strategyOptions: run.options, ...first }, seed);
     }
     default: {
       const run = runOf(members[0]!);
