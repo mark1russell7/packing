@@ -71,7 +71,7 @@ jobs:
           RUNS: ${{ inputs.runs }}
           WEEKLY_RUN: ${{ github.event.workflow_run.id }}
           # The corpora with a file of the site. bench/site-rerun.test.ts compares this list with the case below.
-          SITE_CORPORA: pack-free-v1 pack-screen-v1 pack-select-v1 pack-select-v2 pack-known-v1 pack-classes-v1
+          SITE_CORPORA: pack-free-v1 pack-screen-v1 pack-select-v1 pack-select-v2 pack-known-v1 pack-classes-v1 pack-classes-free-v1
           NO_ROW: ${{ inputs.no-row }}
           # The six strategies of the table of the gaps. The table has one column for each strategy.
           GAP_STRATEGIES: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
@@ -123,6 +123,10 @@ jobs:
                 node bench/snapshot.ts strategies "$folder" "${origin[@]}"
                 node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gap --strategies "$GAP_STRATEGIES"
                 select_args+=(--test "$folder=$run")
+                ;;
+              pack-classes-free-v1)
+                # The free class corpus gives the verdicts of the entries that take only free sizes (k158). It is not a corpus of the selection table.
+                node bench/snapshot.ts strategies "$folder" "${origin[@]}"
                 ;;
               pack-known-v1)
                 node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gapToOpt --strategies "$GAP_STRATEGIES"
