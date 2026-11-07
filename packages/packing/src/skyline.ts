@@ -2,6 +2,7 @@ import { cut, type Box } from "./maxrects.ts";
 import { countMove, MOVES } from "./moves.ts";
 import { orderRects, type ItemLink, type ItemOrder } from "./order.ts";
 import type { Rect } from "./rect.ts";
+import { SkylineRuns } from "./skyline-runs.ts";
 import type { FreeSpace } from "./space.ts";
 
 /**
@@ -132,7 +133,7 @@ interface Scan {
  * This function finds the best window of each rule for a box of `rw` cells and the height `rh`. A window is valid when
  * its height plus `rh` is not more than `cap`. It is also not more than the smallest value of `limit` in the window.
  */
-function scanWindows(skyline: ArrayLike<number>, width: number, rw: number, rh: number, cap: number, limit?: ArrayLike<number>): Scan {
+export function scanWindows(skyline: ArrayLike<number>, width: number, rw: number, rh: number, cap: number, limit?: ArrayLike<number>): Scan {
   const high = new Int32Array(width);
   const low = new Int32Array(width);
   const sum = new Float64Array(width + 1);
@@ -172,8 +173,8 @@ function scanWindows(skyline: ArrayLike<number>, width: number, rw: number, rh: 
   return out;
 }
 
-/** A place on the skyline for one box: the window, the turn, the cells and the skyline that the window is on. */
-interface Place {
+/** A place on the skyline for one box: the window, the turn and the cells. */
+interface Spot {
   x: number;
   y: number;
   cells: number;
@@ -182,12 +183,16 @@ interface Place {
   turn: boolean;
   waste: number;
   first: number;
+}
+
+/** A place in the cells of a free space: a `Spot` and the skyline that the window is on. */
+interface Place extends Spot {
   sky: Float64Array;
   lim: Float64Array | undefined;
 }
 
 /** This function tells if the place `a` is better than the place `b` by the rule. A tie keeps `b`. */
-function better(rule: SkylineRule, a: Place, b: Place | undefined): boolean {
+function better(rule: SkylineRule, a: Spot, b: Spot | undefined): boolean {
   if (b === undefined) return true;
   if (rule === "mw") {
     const tol = 1e-9 * Math.max(1, Math.abs(b.waste));
@@ -222,10 +227,10 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
   }
   if (rule !== "bl" || options.wasteMap === true || (options.turnable !== undefined && options.turnable.size > 0)) return packSkylineVariant(rects, outer, rule, options);
   if (options.space !== undefined && !options.space.plain) return packSkylineInSpace(rects, outer, options.sortOrder ?? "height-desc", options.space, options.links);
-  // a cell for each whole unit of the width: a rectangle never goes past the right edge
+  // The skyline covers each whole unit of the width: a rectangle never goes past the right edge
   const width = Math.floor(outer.size.x);
   if (width <= 0) return outer;
-  const skyline = new Float64Array(width);
+  const skyline = new SkylineRuns(width);
 
   for (const rect of rects) {
     if (!rect.locked) continue;
@@ -233,7 +238,7 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
     const x0 = Math.max(0, Math.floor(rect.position.x - outer.position.x));
     const x1 = Math.min(width, Math.ceil(rect.position.x - outer.position.x + rect.size.x));
     const bottom = rect.position.y - outer.position.y + rect.size.y;
-    for (let i = x0; i < x1; i++) skyline[i] = Math.max(skyline[i]!, bottom);
+    skyline.lift(x0, x1, bottom);
     if (!outer.fixedSize) outer.size.y = Math.max(outer.size.y, bottom);
   }
 
@@ -248,10 +253,9 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
     if (rw > width) {
       if (outer.fixedSize) continue;
       x = 0;
-      y = 0;
-      for (let i = 0; i < width; i++) if (skyline[i]! > y) y = skyline[i]!;
+      y = skyline.highest();
     } else {
-      const found = findWindow(skyline, width, rw);
+      const found = skyline.window(rw);
       ({ x, y } = found);
       if (outer.fixedSize && y + rh > outer.size.y) continue;
       countWindow(found);
@@ -260,7 +264,7 @@ export function packSkyline<T>(rects: Rect<T>[], outer: Rect<T>, options: Skylin
     rect.position.set(x + outer.position.x, y + outer.position.y);
     rect.wasPacked = true;
     const top = y + rh;
-    for (let i = x; i < Math.min(width, x + rw); i++) skyline[i] = top;
+    skyline.raise(x, Math.min(width, x + rw), top);
     if (!outer.fixedSize) outer.size.y = Math.max(outer.size.y, top);
   }
   return outer;
@@ -368,25 +372,20 @@ function packSkylineInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: ItemOrde
   return outer;
 }
 
-/**
- * This function packs rectangles with a rule, a waste map or turns, as `packSkyline` tells. Without a space that is not plain,
- * the skyline starts at the bottom edge of the locked rectangles. With the waste map, the free areas under that start are
- * free rectangles too.
- */
-function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRule, options: SkylineOptions): Rect<T> {
-  const width = Math.floor(outer.size.x);
-  if (width <= 0) return outer;
-  const space = options.space !== undefined && !options.space.plain ? options.space : undefined;
-  const ox = outer.position.x;
-  const oy = outer.position.y;
-  const fixed = outer.fixedSize;
-  const end = fixed ? outer.size.y : Infinity;
+/** The boxes of a variant in their order, with the smallest sides that a free rectangle has a use for. */
+interface VariantBoxes<T> {
+  sorted: Rect<T>[];
+  turns: (r: Rect<T>) => boolean;
+  minW: number;
+  minH: number;
+}
+
+/** This function marks the locked rectangles as packed, and it gives the boxes of a variant. */
+function variantBoxes<T>(rects: Rect<T>[], options: SkylineOptions): VariantBoxes<T> {
   const turnable = options.turnable;
-  const waste = options.wasteMap === true;
   for (const rect of rects) if (rect.locked) rect.wasPacked = true;
   const sorted = orderRects(rects, options.sortOrder ?? "height-desc", options.links).filter((r) => !r.wasPacked && Math.ceil(r.size.x) > 0 && r.size.y > 0);
   const turns = (r: Rect<T>): boolean => turnable?.has(r) === true && r.size.x !== r.size.y;
-
   // The smallest sides of the boxes: a free rectangle with less room has no use
   let minW = Infinity;
   let minH = Infinity;
@@ -395,14 +394,174 @@ function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRu
     minW = Math.min(minW, turns(r) ? short : r.size.x);
     minH = Math.min(minH, turns(r) ? short : r.size.y);
   }
+  return { sorted, turns, minW, minH };
+}
+
+/** This type puts a rectangle at a place in the outer rectangle, with its turn. */
+type Put<T> = (rect: Rect<T>, x: number, y: number, w: number, h: number, turn: boolean) => void;
+
+/** This function gives the `Put` of an outer rectangle. */
+function placer<T>(outer: Rect<T>, options: SkylineOptions): Put<T> {
+  const ox = outer.position.x;
+  const oy = outer.position.y;
+  return (rect, x, y, w, h, turn) => {
+    if (turn) {
+      rect.size.set(w, h);
+      options.turned?.add(rect);
+    }
+    rect.position.set(x + ox, y + oy);
+    rect.wasPacked = true;
+    if (!outer.fixedSize) outer.size.y = Math.max(outer.size.y, y + h);
+  };
+}
+
+/**
+ * This function is the step of the waste map. It puts the box in the free rectangle with the best short side fit, then the higher
+ * place, then the place on the left. It gives the free rectangles that stay, or `undefined` when no free rectangle takes the box.
+ */
+function placeInFree<T>(free: Box[], rect: Rect<T>, ways: readonly boolean[], put: Put<T>, minW: number, minH: number): Box[] | undefined {
+  const w = rect.size.x;
+  const h = rect.size.y;
+  let pick: { f: Box; turn: boolean; s1: number; s2: number } | undefined;
+  for (const f of free) {
+    for (const turn of ways) {
+      const bw = turn ? h : w;
+      const bh = turn ? w : h;
+      if (f.x0 + bw > f.x1 || f.y0 + bh > f.y1) continue;
+      const lw = f.x1 - f.x0 - bw;
+      const lh = f.y1 - f.y0 - bh;
+      const s1 = Math.min(lw, lh);
+      const s2 = Math.max(lw, lh);
+      if (pick === undefined || s1 < pick.s1 || (s1 === pick.s1 && (s2 < pick.s2 || (s2 === pick.s2 && (f.y0 < pick.f.y0 || (f.y0 === pick.f.y0 && f.x0 < pick.f.x0)))))) {
+        pick = { f, turn, s1, s2 };
+      }
+    }
+  }
+  if (pick === undefined) return undefined;
+  const bw = pick.turn ? h : w;
+  const bh = pick.turn ? w : h;
+  const { x0, y0 } = pick.f;
+  put(rect, x0, y0, bw, bh, pick.turn);
+  countMove(MOVES.wasteFill);
+  return cut(free, { x0, y0, x1: x0 + bw, y1: y0 + bh }, minW, minH).free;
+}
+
+/**
+ * This function packs rectangles with a rule, a waste map or turns, with no space that is not plain. The skyline starts at the
+ * bottom edge of the locked rectangles. With the waste map, the free areas under that start are free rectangles too. The rule `bl`
+ * reads the runs. The rule `mw` reads each cell, because its tolerance can pick a window that does not start or end at a break.
+ */
+function packPlainVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRule, options: SkylineOptions): Rect<T> {
+  const width = Math.floor(outer.size.x);
+  if (width <= 0) return outer;
+  const ox = outer.position.x;
+  const oy = outer.position.y;
+  const fixed = outer.fixedSize;
+  const end = fixed ? outer.size.y : Infinity;
+  const waste = options.wasteMap === true;
+  const { sorted, turns, minW, minH } = variantBoxes(rects, options);
+  const skyline = new SkylineRuns(width);
+  const cells = rule === "mw" ? new Float64Array(width) : undefined;
+  let free: Box[] = [];
+
+  const boxes: Box[] = [];
+  for (const rect of rects) {
+    if (!rect.locked) continue;
+    const x0 = Math.max(0, Math.floor(rect.position.x - ox));
+    const x1 = Math.min(width, Math.ceil(rect.position.x - ox + rect.size.x));
+    const bottom = rect.position.y - oy + rect.size.y;
+    skyline.lift(x0, x1, bottom);
+    if (!fixed) outer.size.y = Math.max(outer.size.y, bottom);
+    boxes.push({ x0: rect.position.x - ox, y0: rect.position.y - oy, x1: rect.position.x - ox + rect.size.x, y1: bottom });
+  }
+  if (waste && boxes.length > 0) {
+    // The area under the start of the skyline, less the locked rectangles
+    skyline.under(end, minW, minH, (l, r, level) => free.push({ x0: l, y0: 0, x1: r, y1: level }));
+    for (const b of boxes) free = cut(free, b, minW, minH).free;
+  }
+
+  const addGaps = (x0: number, x1: number, y: number): void => {
+    if (waste) skyline.gaps(x0, x1, y, minW, minH, (l, r, level) => free.push({ x0: l, y0: level, x1: r, y1: y }));
+  };
+  const put = placer(outer, options);
+
+  for (const rect of sorted) {
+    const w = rect.size.x;
+    const h = rect.size.y;
+    const ways = turns(rect) ? [false, true] : [false];
+
+    if (waste && free.length > 0) {
+      const left = placeInFree(free, rect, ways, put, minW, minH);
+      if (left !== undefined) {
+        free = left;
+        continue;
+      }
+    }
+
+    // The skyline: the best place of the rule, and the place of `bl` for the move count of `mw`
+    let best: Spot | undefined;
+    let low: Spot | undefined;
+    let fits = false;
+    if (cells !== undefined) skyline.fill(cells);
+    for (const turn of ways) {
+      const bw = turn ? h : w;
+      const bh = turn ? w : h;
+      const need = Math.ceil(bw);
+      if (need > width) continue;
+      fits = true;
+      const scan = cells === undefined ? undefined : scanWindows(cells, width, need, bh, end);
+      const s = scan ?? skyline.window(need, bh, end);
+      if (!Number.isFinite(s.y)) continue;
+      const bl: Spot = { x: s.x, y: s.y, cells: need, w: bw, h: bh, turn, waste: 0, first: s.first };
+      if (better("bl", bl, low)) low = bl;
+      const own = scan === undefined ? bl : { ...bl, x: scan.wx, y: scan.wy, waste: scan.waste };
+      if (better(rule, own, best)) best = own;
+    }
+
+    if (best === undefined) {
+      if (fits || fixed) continue;
+      // The box is wider than all the cells: it goes at the left edge, under each other box
+      const y = skyline.highest();
+      addGaps(0, width, y);
+      put(rect, 0, y, w, h, false);
+      skyline.raise(0, width, y + h);
+      continue;
+    }
+
+    const place: Spot = best;
+    if (rule === "bl") {
+      if (place.first >= 0 && place.x !== place.first) countMove(MOVES.skyline);
+    } else if (low !== undefined && (low.x !== place.x || low.y !== place.y || low.turn !== place.turn)) countMove(MOVES.minWaste);
+    addGaps(place.x, place.x + place.cells, place.y);
+    put(rect, place.x, place.y, place.w, place.h, place.turn);
+    skyline.raise(place.x, place.x + place.cells, place.y + place.h);
+  }
+  return outer;
+}
+
+/**
+ * This function packs rectangles with a rule, a waste map or turns, as `packSkyline` tells. A space that is not plain gives each
+ * cell its own free range, so this path reads each cell.
+ */
+function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRule, options: SkylineOptions): Rect<T> {
+  if (options.space === undefined || options.space.plain) return packPlainVariant(rects, outer, rule, options);
+  const width = Math.floor(outer.size.x);
+  if (width <= 0) return outer;
+  const space = options.space;
+  const ox = outer.position.x;
+  const oy = outer.position.y;
+  const fixed = outer.fixedSize;
+  const end = fixed ? outer.size.y : Infinity;
+  const waste = options.wasteMap === true;
+  const { sorted, turns, minW, minH } = variantBoxes(rects, options);
 
   const rangeOf = (i: number, from: number): [number, number] => {
-    const r = space!.column(ox + i, ox + i + 1, from + oy);
+    const r = space.column(ox + i, ox + i + 1, from + oy);
     if (r === undefined) return [Infinity, -Infinity];
     return [r.start - oy, Math.min(r.end - oy, end)];
   };
   const skyline = new Float64Array(width);
-  const limit = new Float64Array(width).fill(Infinity);
+  const limit = new Float64Array(width);
   let free: Box[] = [];
 
   // The free rectangles of the gap between `base` and `y` over the cells `[x0, x1)`: for each level of the gap, the widest run of cells at or below it
@@ -423,36 +582,7 @@ function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRu
     }
   };
 
-  if (space === undefined) {
-    const boxes: Box[] = [];
-    for (const rect of rects) {
-      if (!rect.locked) continue;
-      const x0 = Math.max(0, Math.floor(rect.position.x - ox));
-      const x1 = Math.min(width, Math.ceil(rect.position.x - ox + rect.size.x));
-      const bottom = rect.position.y - oy + rect.size.y;
-      for (let i = x0; i < x1; i++) skyline[i] = Math.max(skyline[i]!, bottom);
-      if (!fixed) outer.size.y = Math.max(outer.size.y, bottom);
-      boxes.push({ x0: rect.position.x - ox, y0: rect.position.y - oy, x1: rect.position.x - ox + rect.size.x, y1: bottom });
-    }
-    if (waste && boxes.length > 0) {
-      // The area under the start of the skyline, less the locked rectangles: for each level, the widest run of cells at or above it
-      const top = skyline.map((s) => Math.min(s, end));
-      const seen = new Set<string>();
-      for (let i = 0; i < width; i++) {
-        const level = top[i]!;
-        if (!(level > 0) || (i > 0 && top[i - 1]! === level)) continue;
-        let l = i;
-        let r = i + 1;
-        while (l > 0 && top[l - 1]! >= level) l--;
-        while (r < width && top[r]! >= level) r++;
-        const key = `${l},${r},${level}`;
-        if (seen.has(key) || r - l < minW || level < minH) continue;
-        seen.add(key);
-        free.push({ x0: l, y0: 0, x1: r, y1: level });
-      }
-      for (const b of boxes) free = cut(free, b, minW, minH).free;
-    }
-  } else for (let i = 0; i < width; i++) [skyline[i], limit[i]] = rangeOf(i, 0);
+  for (let i = 0; i < width; i++) [skyline[i], limit[i]] = rangeOf(i, 0);
 
   const lowest = new Float64Array(sorted.length + 1).fill(Infinity);
   for (let k = sorted.length - 1; k >= 0; k--) {
@@ -460,51 +590,21 @@ function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRu
     lowest[k] = Math.min(lowest[k + 1]!, turns(r) ? Math.min(r.size.x, r.size.y) : r.size.y);
   }
 
-  const put = (rect: Rect<T>, x: number, y: number, w: number, h: number, turn: boolean): void => {
-    if (turn) {
-      rect.size.set(w, h);
-      options.turned?.add(rect);
-    }
-    rect.position.set(x + ox, y + oy);
-    rect.wasPacked = true;
-    if (!fixed) outer.size.y = Math.max(outer.size.y, y + h);
-  };
+  const put = placer(outer, options);
 
   for (const [k, rect] of sorted.entries()) {
-    if (space !== undefined) {
-      const need = lowest[k]!;
-      for (let i = 0; i < width && Number.isFinite(need); i++) {
-        while (Number.isFinite(limit[i]!) && limit[i]! - skyline[i]! < need && limit[i]! < end) [skyline[i], limit[i]] = rangeOf(i, limit[i]!);
-      }
+    const need = lowest[k]!;
+    for (let i = 0; i < width && Number.isFinite(need); i++) {
+      while (Number.isFinite(limit[i]!) && limit[i]! - skyline[i]! < need && limit[i]! < end) [skyline[i], limit[i]] = rangeOf(i, limit[i]!);
     }
     const w = rect.size.x;
     const h = rect.size.y;
     const ways = turns(rect) ? [false, true] : [false];
 
     if (waste && free.length > 0) {
-      // The waste map: the free rectangle with the best short side fit, then the higher place, then the place on the left
-      let pick: { f: Box; turn: boolean; s1: number; s2: number } | undefined;
-      for (const f of free) {
-        for (const turn of ways) {
-          const bw = turn ? h : w;
-          const bh = turn ? w : h;
-          if (f.x0 + bw > f.x1 || f.y0 + bh > f.y1) continue;
-          const lw = f.x1 - f.x0 - bw;
-          const lh = f.y1 - f.y0 - bh;
-          const s1 = Math.min(lw, lh);
-          const s2 = Math.max(lw, lh);
-          if (pick === undefined || s1 < pick.s1 || (s1 === pick.s1 && (s2 < pick.s2 || (s2 === pick.s2 && (f.y0 < pick.f.y0 || (f.y0 === pick.f.y0 && f.x0 < pick.f.x0)))))) {
-            pick = { f, turn, s1, s2 };
-          }
-        }
-      }
-      if (pick !== undefined) {
-        const bw = pick.turn ? h : w;
-        const bh = pick.turn ? w : h;
-        const { x0, y0 } = pick.f;
-        put(rect, x0, y0, bw, bh, pick.turn);
-        free = cut(free, { x0, y0, x1: x0 + bw, y1: y0 + bh }, minW, minH).free;
-        countMove(MOVES.wasteFill);
+      const left = placeInFree(free, rect, ways, put, minW, minH);
+      if (left !== undefined) {
+        free = left;
         continue;
       }
     }
@@ -519,15 +619,15 @@ function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRu
       const cells = Math.ceil(bw);
       if (cells > width) return;
       fits = true;
-      const s = scanWindows(sky, width, cells, bh, space === undefined ? end : Infinity, lim);
+      const s = scanWindows(sky, width, cells, bh, Infinity, lim);
       if (!Number.isFinite(s.y)) return;
       const bl: Place = { x: s.x, y: s.y, cells, w: bw, h: bh, turn, waste: 0, first: s.first, sky, lim };
       if (better("bl", bl, low)) low = bl;
       const own = rule === "bl" ? bl : { ...bl, x: s.wx, y: s.wy, waste: s.waste };
       if (better(rule, own, best)) best = own;
     };
-    for (const turn of ways) tryOn(skyline, space === undefined ? undefined : limit, turn);
-    if (best === undefined && space !== undefined && fits) {
+    for (const turn of ways) tryOn(skyline, limit, turn);
+    if (best === undefined && fits) {
       // The second try: each cell goes to its first free range with room for the box
       for (const turn of ways) {
         const bh = turn ? w : h;
@@ -545,26 +645,23 @@ function packSkylineVariant<T>(rects: Rect<T>[], outer: Rect<T>, rule: SkylineRu
       // The box is wider than all the cells: it goes at the left edge, under each other box
       let y = 0;
       for (let i = 0; i < width; i++) if (Number.isFinite(skyline[i]!) && skyline[i]! > y) y = skyline[i]!;
-      if (space !== undefined) {
-        for (let moved = true; moved; ) {
-          moved = false;
-          for (let i = 0; i < width; i++) {
-            if (!Number.isFinite(skyline[i]!)) continue;
-            const [s, e] = rangeOf(i, y);
-            const next = s > y ? s : e < y + h ? rangeOf(i, e)[0] : y;
-            if (next > y && Number.isFinite(next)) {
-              y = next;
-              moved = true;
-            }
+      for (let moved = true; moved; ) {
+        moved = false;
+        for (let i = 0; i < width; i++) {
+          if (!Number.isFinite(skyline[i]!)) continue;
+          const [s, e] = rangeOf(i, y);
+          const next = s > y ? s : e < y + h ? rangeOf(i, e)[0] : y;
+          if (next > y && Number.isFinite(next)) {
+            y = next;
+            moved = true;
           }
         }
-      } else addGaps(skyline, 0, width, y);
+      }
       put(rect, 0, y, w, h, false);
       const top = y + h;
       for (let i = 0; i < width; i++) {
-        if (space === undefined) skyline[i] = top;
-        else if (!Number.isFinite(skyline[i]!)) continue;
-        else if (top <= limit[i]!) skyline[i] = top;
+        if (!Number.isFinite(skyline[i]!)) continue;
+        if (top <= limit[i]!) skyline[i] = top;
         else [skyline[i], limit[i]] = rangeOf(i, top);
       }
       continue;
