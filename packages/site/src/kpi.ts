@@ -80,7 +80,7 @@ export interface KpiFacts {
   readonly picker: number;
   /** The count of the strategies of the registry. */
   readonly strategies: number;
-  /** The count of the input families of the generators. */
+  /** The count of the cells of an area law and an aspect law that the corpus emits, from the cells of `data/law-cover.json`. */
   readonly families: number;
   /** The count of the pairs of two item laws that the corpus emits, from `data/law-cover.json`. */
   readonly lawPairs: number;
@@ -99,7 +99,7 @@ export interface KpiFacts {
   /** The dates of each segment of the coverage trend, as YYYY-MM-DD. */
   readonly trend: readonly TrendLine[];
   /** The entries of the bench with a measured record in any run of `data/measured-entries.json`, the corpora of these runs and the rows that stop early. */
-  readonly entries?: { readonly measured: number; readonly planned: number; readonly corpora: readonly string[]; readonly stopEarly: number };
+  readonly entries?: { readonly measured: number; readonly planned: number; readonly notMeasured: number; readonly corpora: readonly string[]; readonly stopEarly: number };
   /** The date of the last run of `data/measured-entries.json`, in UTC. */
   readonly entriesAt?: string;
   /** The skipped records of the stored snapshots of the corpora, by word. */
@@ -162,6 +162,15 @@ export function trendSegments<P extends SegmentedPoint>(trend: readonly P[]): P[
   return [...out.values()];
 }
 
+/** The area law and the aspect law of one cell of `data/law-cover.json` */
+export interface LawCell {
+  readonly area: string;
+  readonly aspect: string;
+}
+
+/** This function gives the count of the different pairs of an area law and an aspect law in the cells. */
+export const emittedCells = (cells: readonly LawCell[]): number => new Set(cells.map((cell) => JSON.stringify([cell.area, cell.aspect]))).size;
+
 /** One line of the coverage trend for the measures: its dates and its count of strategies, when the points have a list. */
 export interface TrendLine {
   readonly dates: readonly string[];
@@ -195,7 +204,8 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
     { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
     { id: "stale-text", value: staleText(facts.pages, facts.strategies) + releases.gaps.length, unit: "places", at: facts.commitAt, notCounted: STALE_TEXT_NOT_COUNTED },
     { id: "release-in-flight", value: releases.inFlight === undefined ? 0 : 1, unit: releases.inFlight === undefined ? "versions" : `version ${releases.inFlight}`, at: facts.commitAt },
-    { id: "input-families", value: facts.families, unit: "families", at: facts.commitAt },
+    // The measure counts the cells of the area and aspect laws, not the generators. The cells come from the law-cover file, so they have its time.
+    { id: "input-families", value: facts.families, unit: "area and aspect cells", at: facts.lawPairsAt },
     { id: "law-pairs-covered", value: facts.lawPairs, unit: "pairs", at: facts.lawPairsAt },
     // A trend counts only inside one line. The text tells which line gives the 1, because the count of points on one list is the claim.
     {
@@ -206,7 +216,10 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
     },
     ...(facts.entries === undefined
       ? []
-      : [{ id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries, over ${facts.entries.corpora.join(", ")}; rows that stop early: ${facts.entries.stopEarly}`, at: facts.entriesAt ?? coverageAt }]),
+      : [
+          { id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries, over ${facts.entries.corpora.join(", ")}; rows that stop early: ${facts.entries.stopEarly}`, at: facts.entriesAt ?? coverageAt },
+          { id: "unmeasured-entries", value: facts.entries.notMeasured, unit: `of ${facts.entries.planned} entries with no measured record`, at: facts.entriesAt ?? coverageAt },
+        ]),
     // A skip that the code can lift is coverage still owed. It counts apart, so it does not raise `measured-entries`.
     ...(facts.skips === undefined
       ? []
