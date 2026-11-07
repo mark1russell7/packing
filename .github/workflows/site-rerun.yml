@@ -6,6 +6,7 @@
 # A manual run writes no file. It reads the cost of a change.
 #
 # The corpus pack-classes-v1 has its own weekly run, in coverage-nightly.yml.
+# The job classes-free packs pack-classes-free-v1 with rows and the entries that take only free sizes (k158).
 # bench/site-rerun.test.ts holds the list of the corpora here and in site-data.yml.
 name: Site rerun
 
@@ -74,6 +75,19 @@ jobs:
       # The six strategies of the table of the gaps. The table has one column for each strategy.
       strategies: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
       prediction: p-2026-11-05-k148-weekly-known
+      sample: "0"
+      job-minutes: "340"
+      budget: true
+
+  classes-free:
+    needs: known
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/bench.yml
+    with:
+      corpus: pack-classes-free-v1
+      # The entries that take only free sizes or only short strips (k158, k160), and rows, the baseline of their verdicts.
+      strategies: rows,columns-linear-partition,exact-strip,masonry-lpt,masonry-shortest,treemap-pivot-split,treemap-slice-dice,treemap-squarified,treemap-strip
+      prediction: p-2026-11-06-k158-weekly-classes-free
       sample: "0"
       job-minutes: "340"
       budget: true

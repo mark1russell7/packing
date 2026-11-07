@@ -752,7 +752,17 @@ export const CORPUS_LABELS: Record<string, { label: string; note: string }> = {
   "pack-select-v1": { label: "Test 1", note: "The boards of the two other corpora, with the fresh seeds 21 to 25. No fit used these seeds." },
   "pack-select-v2": { label: "Test 2", note: "The boards of the two other corpora, with the fresh seeds 31 to 35. No fit used these seeds." },
   "pack-known-v1": { label: "Known best", note: "Perfect cuts, guillotine and free, and consecutive squares. Each input has a known best value. Each board has 12 seeds." },
+  "pack-classes-free-v1": {
+    label: "Free classes",
+    note: "The 10 classes of Berkey and Wang and of Martello and Vigo, with a target aspect or a free area, and strips of 8 and 16 items.",
+  },
 };
+
+/**
+ * The corpora of the strategy snapshots, in the order of the rows of a verdict strip. Each corpus has the file
+ * `data/strategies-<corpus>.json`. The free classes come last, because only a few entries take only free sizes (k158).
+ */
+export const STRATEGY_CORPORA = ["pack-select-v2", "pack-select-v1", "pack-screen-v1", "pack-free-v1", "pack-classes-free-v1"] as const;
 
 /** The names and the notes of the gap measures */
 export const GAP_LABELS: Record<GapSnapshot["measure"], { label: string; note: string }> = {

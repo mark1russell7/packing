@@ -64,6 +64,7 @@ const KINDS: Record<string, Snapshot["kind"]> = {
   "paired-k67.json": "paired",
   "releases.json": "releases",
   "select-table.json": "select",
+  "strategies-pack-classes-free-v1.json": "strategies",
   "strategies-pack-free-v1.json": "strategies",
   "strategies-pack-screen-v1.json": "strategies",
   "strategies-pack-select-v1.json": "strategies",

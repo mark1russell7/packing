@@ -4,10 +4,6 @@
 import { composites, shapeStrategies, sideAnchorsStrategy, standaloneStrategies, strategies } from "@mark1russell7/packing";
 import { ENTRIES } from "@mark1russell7/packing/bench/entries";
 import catalogText from "../../../docs/research/CATALOG.md?raw";
-import screenJson from "../data/strategies-pack-screen-v1.json?raw";
-import freeJson from "../data/strategies-pack-free-v1.json?raw";
-import test1Json from "../data/strategies-pack-select-v1.json?raw";
-import test2Json from "../data/strategies-pack-select-v2.json?raw";
 import {
   bibText,
   buildCards,
@@ -27,7 +23,8 @@ import {
   type StripLabel,
 } from "./cards-model.ts";
 import { mountChrome } from "./chrome.ts";
-import { CORPUS_LABELS, MEASURE_LABELS, parseSnapshot } from "./data.ts";
+import { CORPUS_LABELS, MEASURE_LABELS } from "./data.ts";
+import { strategySnapshots } from "./strategy-snapshots.ts";
 import { LABEL_LOOK } from "./format.ts";
 import surveyJson from "../../../docs/research/survey.json?raw";
 import { mountSurvey } from "./survey-section.ts";
@@ -44,7 +41,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
 
 const CATALOG_URL = "https://github.com/mark1russell7/packing/blob/main/docs/research/CATALOG.md";
 const catalog = parseCatalog(catalogText);
-const snapshots = [test2Json, test1Json, screenJson, freeJson].map((t) => parseSnapshot(t, "strategies"));
+const snapshots = strategySnapshots;
 const cards = buildCards({ strategies: [...strategies, ...shapeStrategies, ...standaloneStrategies], composites: [...composites, sideAnchorsStrategy], entries: ENTRIES, catalog, snapshots });
 
 mountChrome($("links"), "strategies");

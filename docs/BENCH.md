@@ -1668,7 +1668,7 @@ A run that a person starts gives a point too, because a point is a measure, but 
 Each point records the start of its run: `schedule`, `dispatch` or `push`. The trend shows it with the link of the run. The start does not change the line of a point.
 `bench/site-data-trigger.test.ts` holds the condition of the job. Before this change, a filter on the event lost the point of run 41993720877, which measured for 8 hours.
 
-The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A completed run on `main` also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
+The workflow `site-rerun.yml` reruns the other six corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A completed run on `main` also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
 
 - A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
 - A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
