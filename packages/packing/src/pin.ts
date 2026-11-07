@@ -1,5 +1,6 @@
 // The pin of unchanged boxes (roadmap item k29, first slice). `docs/PACKER.md`, "The pin of unchanged boxes", tells the
-// rule. The function changes an input and does not pack: a strategy packs the new input and goes around the locked boxes.
+// rule. `pinUnchanged` and `keepPrefix` change an input and do not pack: a strategy packs the new input and goes around the
+// locked boxes. `repackPinned` (roadmap item k31) packs with a packer that it gets, and falls back to a pin of fewer boxes.
 
 import { boundsOf } from "@mark1russell7/layout-contract";
 import type { Item, PackInput, PackOutput, Placement } from "./contract.ts";
@@ -106,4 +107,40 @@ export function keepPrefix(baseInput: PackInput, baseOutput: PackOutput, changeI
     items[at] = { ...item, x: place.x, y: place.y, locked: true };
   }
   return { input: { ...changeInput, items }, pinned };
+}
+
+/** The pack that `repackPinned` keeps. */
+export type RepackMethod = "pin" | "prefix" | "fresh";
+
+/** The result of `repackPinned`. */
+export interface Repacked {
+  /** The layout of the changed input. */
+  readonly output: PackOutput;
+  /** The input that gave `output`, with the pinned items locked. Check the hard rules of `output` against this input. */
+  readonly input: PackInput;
+  /** The pack that `repackPinned` keeps: the first of `pin`, `prefix` and `fresh` with no overflow. */
+  readonly method: RepackMethod;
+  /** The ids of the items that `method` locks at their old places. A fresh pack locks no item. */
+  readonly pinned: readonly string[];
+}
+
+/**
+ * This function packs a changed input again, and moves as few boxes as it can (the idea `new-pin-repack`, roadmap item
+ * k31). The argument `pack` is any packer that goes around the locked boxes.
+ *
+ * 1. The function pins each unchanged box with `pinUnchanged`, and packs the free boxes into the holes.
+ * 2. If an item overflows, it pins only the boxes before the first change with `keepPrefix`, and packs again.
+ * 3. If an item still overflows, it packs the changed input fresh, with no pin.
+ *
+ * The function keeps the first pack with no overflow. Thus it places each item when a fresh pack places each item. A strip
+ * has no overflow, so step 1 is the result there. When the fresh pack overflows too, the result is that fresh pack.
+ */
+export function repackPinned(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput, pack: (input: PackInput) => PackOutput): Repacked {
+  const pin = pinUnchanged(baseInput, baseOutput, changeInput);
+  const pinOutput = pack(pin.input);
+  if (pinOutput.overflow.length === 0) return { output: pinOutput, input: pin.input, method: "pin", pinned: pin.pinned };
+  const prefix = keepPrefix(baseInput, baseOutput, changeInput);
+  const prefixOutput = pack(prefix.input);
+  if (prefixOutput.overflow.length === 0) return { output: prefixOutput, input: prefix.input, method: "prefix", pinned: prefix.pinned };
+  return { output: pack(changeInput), input: changeInput, method: "fresh", pinned: [] };
 }
