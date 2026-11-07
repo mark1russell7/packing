@@ -1644,8 +1644,11 @@ function leavesOfRun(name: string, specs: readonly CorpusSpec[], records: readon
   };
 }
 
-/** The form of the name of a measured file of the branch `site-data`. */
-const MEASURED_FILE = /^(?:strategies-.+|gaps-.+|coverage|select-table)\.json$/;
+/**
+ * The form of the name of a measured file of the branch `site-data`. Each file that a command of `site-data.yml` writes has this form.
+ * A test reads the commands of the workflow, so a new command with a new file fails it until the file has a name here.
+ */
+const MEASURED_FILE = /^(?:strategies-.+|gaps-.+|coverage|select-table|measured-entries)\.json$/;
 
 /** This function gives the names of the measured files of `after` that are new or differ from `before`, in name order. */
 export function writtenFiles(before: string, after: string): string[] {
