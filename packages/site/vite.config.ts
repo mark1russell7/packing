@@ -1,12 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
+import { allStrategies } from "@mark1russell7/packing";
 import { changelogVersions } from "@mark1russell7/site-pages";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
 import { parseSnapshot, stopsEarly } from "./src/data.ts";
-import { kpiInput, skipCounts, trendLines, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
+import { emittedCells, kpiInput, skipCounts, trendLines, type LawCell, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
@@ -55,13 +55,14 @@ const kpiData = () => {
   const text = (name: string): string => readFileSync(page(name), "utf8");
   const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly SegmentedPoint[] };
   const measured = parseSnapshot(text("./data/measured-entries.json"), "measured");
+  const lawCover = JSON.parse(text("./data/law-cover.json")) as { covered: number; cells: readonly LawCell[] };
   const snapshots = readdirSync(page("./data")).filter((name) => /^strategies-.*\.json$/.test(name));
   const summaries = snapshots.flatMap((name) => (JSON.parse(text(`./data/${name}`)) as { strategies: readonly SkipSummary[] }).strategies);
   const facts = {
     picker: DEMO_IDS.length,
     strategies: allStrategies.length,
-    families: corpusFamilies.length,
-    lawPairs: (JSON.parse(text("./data/law-cover.json")) as { covered: number }).covered,
+    families: emittedCells(lawCover.cells),
+    lawPairs: lawCover.covered,
     pages: [text("./index.html"), text("./content/about.md")],
     release: packageVersion,
     tags: git("tag", "--list", "v*").split("\n").map((tag) => tag.slice(1)),
@@ -72,6 +73,7 @@ const kpiData = () => {
     entries: {
       measured: measured.measured,
       planned: measured.planned,
+      notMeasured: measured.notMeasured.length,
       corpora: measured.rows.map((row) => row.corpus),
       stopEarly: measured.rows.flatMap((row) => row.entries.filter((entry) => stopsEarly(entry, row))).length,
     },
