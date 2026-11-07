@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.6
+
+Two new pivot treemaps of Shneiderman 2001: `treemapPivotMiddle` and `treemapPivotSize`.
+
+This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
+
+### Added
+
+- `treemapPivotMiddle` uses the steps of `treemapPivotSplit`, with the item in the middle of the order as the pivot. For an even count, the pivot is the second of the two middle items.
+- `treemapPivotSize` uses the same steps, with the largest item as the pivot. A tie goes to the first of the largest items.
+
+### Not changed
+
+- The type `TreemapMethod` and the strategy `treemap` do not change. The two pivots become methods of the strategy with the next break.
+- The output of `treemapPivotSplit` stays the same.
+
 ## 0.10.5
 
 `packConfig` packs the inputs of `near-rects` and `raster-nofit` with circle and polygon items, as `packWith` does.
