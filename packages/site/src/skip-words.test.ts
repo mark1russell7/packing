@@ -14,7 +14,7 @@ const FACTS: KpiFacts = {
   shownReleases: ["1.0.0"],
   changelogReleases: ["1.0.0"],
   trend: [],
-  entries: { measured: 2, planned: 4 },
+  entries: { measured: 2, planned: 4, corpora: ["pack-a-v1"], stopEarly: 0 },
   explorer: true,
   commitAt: "2026-01-03T00:00:00Z",
   lawPairsAt: "2026-01-03T00:00:00Z",

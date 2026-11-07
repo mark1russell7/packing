@@ -1660,6 +1660,15 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `gaps-pack-select-v2.json` | `node bench/snapshot.ts gaps <folder of 40766464710> --run 40766464710 --measure pack.gap --release 0.2.17` | `pack.gap` of 6 strategies on `pack-select-v2`, by cell, with the kinds of the bounds (k51). |
 | `gaps-pack-known-v1.json` | `node bench/snapshot.ts gaps <folder of 40768140939> --run 40768140939 --measure pack.gapToOpt --release 0.2.17` | `pack.gapToOpt` of 6 strategies on `pack-known-v1`, by cell (k45). |
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
+| `measured-entries.json` | `node bench/snapshot.ts measured <folder of 42050010460> --run 42050010460 --date 2026-11-05 --release 0.9.1` | One row for each corpus: its run, its date, and how far the records of each entry reach (k159). |
+
+The file `measured-entries.json` gives the count of the entries over the corpora:
+
+- An entry counts when it is planned and one row measures it. A refusal does not count, and a control does not count.
+- Each entry stands with its corpus and its run. A row says nothing about the other corpora, and it does not cover each form of its own corpus.
+- A row stops early when a budget stopped some of its records, or when its measured records stop at a smaller item count. The page names each such row, and `kpi.json` counts them.
+- A run of a corpus replaces only the row of that corpus. Each row keeps its date, because a corpus can be older than the others.
+- The count uses the planned list of the last write. A new entry changes the count at the next run of `Site data`.
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
 A completed run of `coverage-nightly.yml` on `main` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch.

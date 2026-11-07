@@ -98,8 +98,10 @@ export interface KpiFacts {
   readonly changelogReleases: readonly string[];
   /** The dates of each segment of the coverage trend, as YYYY-MM-DD. */
   readonly trend: readonly TrendLine[];
-  /** The entries of the bench with a measured record in the last coverage run, and all the entries. An older coverage file does not give them. */
-  readonly entries?: { readonly measured: number; readonly planned: number };
+  /** The entries of the bench with a measured record in any run of `data/measured-entries.json`, the corpora of these runs and the rows that stop early. */
+  readonly entries?: { readonly measured: number; readonly planned: number; readonly corpora: readonly string[]; readonly stopEarly: number };
+  /** The date of the last run of `data/measured-entries.json`, in UTC. */
+  readonly entriesAt?: string;
   /** The skipped records of the stored snapshots of the corpora, by word. */
   readonly skips?: SkipCounts;
   /** The time of the last commit of a stored snapshot of a corpus, in UTC. */
@@ -202,7 +204,9 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
       ...(weekly?.strategies === undefined ? {} : { unit: `${weekly.dates.length} points on the same ${weekly.strategies}` }),
       at: coverageAt,
     },
-    ...(facts.entries === undefined ? [] : [{ id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries`, at: coverageAt }]),
+    ...(facts.entries === undefined
+      ? []
+      : [{ id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries, over ${facts.entries.corpora.join(", ")}; rows that stop early: ${facts.entries.stopEarly}`, at: facts.entriesAt ?? coverageAt }]),
     // A skip that the code can lift is coverage still owed. It counts apart, so it does not raise `measured-entries`.
     ...(facts.skips === undefined
       ? []

@@ -161,9 +161,10 @@ describe("the segments of the trend", () => {
     expect(shown([point("2026-10-29", 1, ["a"]), point("2026-11-05", 2, ["a"]), point("2026-11-05", 2, ["a", "b"])], "2026-11-13")).toBe(0);
   });
 
-  it("gives the count of the entries with a measured record, with the date of the coverage", () => {
-    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-11-05"] }], entries: { measured: 54, planned: 64 } }, at("2026-11-06"));
-    expect(file.measures.find((m) => m.id === "measured-entries")).toEqual({ id: "measured-entries", value: 54, unit: "of 64 entries", at: "2026-11-05T00:00:00Z" });
+  it("gives the count of the entries over the corpora, with the corpora, the early rows and the date of the last run", () => {
+    const entries = { measured: 54, planned: 64, corpora: ["pack-a-v1", "pack-b-v1"], stopEarly: 3 };
+    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-11-05"] }], entries, entriesAt: "2026-11-03T00:00:00Z" }, at("2026-11-06"));
+    expect(file.measures.find((m) => m.id === "measured-entries")).toEqual({ id: "measured-entries", value: 54, unit: "of 64 entries, over pack-a-v1, pack-b-v1; rows that stop early: 3", at: "2026-11-03T00:00:00Z" });
     expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "measured-entries")).toBe(false);
   });
 });
