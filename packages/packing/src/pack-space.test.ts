@@ -23,6 +23,7 @@ import {
   toPackInput,
   UnsupportedCell,
   UnsupportedShape,
+  type PackOutput,
   type StrategyConfig,
   type StrategyPoint,
 } from "./index.ts";
@@ -84,10 +85,13 @@ describe("packSpace", () => {
     // Roadmap item k94 adds base configs to the members of the meta configs. Before k94 the counts were 946077247154414479086 and 317504231368154898.
     // Roadmap item k29 adds a base config to the members. Before k29 the counts were 986629892909639107990 and 340836128598216010.
     // Roadmap item k30 adds base configs to the members. Before k30 the counts were 987919200607642297485 and 342338667185079123.
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(995683381705634112939n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(345359641400039281n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3831n, meta: 987919200607642297485n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1139n, meta: 342338667185079123n });
+    // Roadmap item k193 adds the side none to side-anchors: one config for each member. Before k193 the count was 995683381705634112939.
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(995683381705634116776n);
+    // Roadmap item k193 adds the side none to side-anchors. Before k193 the count with 1 level was 345359641400039281.
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(345359641400040422n);
+    // Roadmap item k193 adds the side none to side-anchors. Before k193 the rect counts were 987919200607642297485 and 342338667185079123.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3831n, meta: 987919200607642301316n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1139n, meta: 342338667185080262n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -509,5 +513,54 @@ describe("configOfStrategy (k135)", () => {
     const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", ...standaloneNames];
     const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
+  });
+});
+
+describe("the point of side-anchors (k193)", () => {
+  // Made-up inputs: each container size, with no obstacle, with rectangle obstacles and with a holed container.
+  const CASES = (["fixed", "freeHeight", "freeWidth", "freeAspect", "freeArea"] as const).flatMap((containerSize) =>
+    (
+      [
+        ["rect", "none"],
+        ["rect", "scattered"],
+        ["rect", "corridors"],
+        ["holes", "corridors"],
+      ] as const
+    ).map(([containerShape, obstacles]) => ({ containerSize, containerShape, obstacles, sizes: "uniform" as const, count: 10 })),
+  );
+
+  /** This function gives the hash of an output, or the name of the error class of a refusal. */
+  const result = (pack: () => PackOutput): string => {
+    try {
+      return outputHash(pack());
+    } catch (error) {
+      return `refused ${(error as Error).constructor.name}`;
+    }
+  };
+
+  it.each([{}, { first: { side: "left", at: 0.5 } }, { first: { side: "top", at: 0.25 } }])("packs as packWith with the same options: %j", (options) => {
+    const point = configOfStrategy("side-anchors", options);
+    expect(point.ok).toBe(true);
+    if (!point.ok) return;
+    const results = CASES.map((params) => {
+      const input = toPackInput(rectGrid.generate(1, params));
+      const viaWith = result(() => packWith("side-anchors", input, options, 3));
+      const viaConfig = result(() => packConfig(input, point.config, 3));
+      expect(viaConfig, JSON.stringify(params)).toBe(viaWith);
+      return viaWith;
+    });
+    // Each case packs or refuses in both paths. Some cases of each kind exist.
+    expect(results.some((r) => r.startsWith("refused"))).toBe(true);
+    expect(results.some((r) => !r.startsWith("refused"))).toBe(true);
+  });
+
+  it("gives the side none with no anchor, and not the config of the member", () => {
+    const point = configOfStrategy("side-anchors", {});
+    const member = configOfStrategy("maxrects", { rule: "bl" });
+    expect(point.ok && member.ok).toBe(true);
+    if (!point.ok || !member.ok) return;
+    expect(point.config.stages["combine"]?.option).toBe("side-anchors");
+    expect(point.config.stages["combine"]?.params).toEqual({ side: "none" });
+    expect(configId(packSpace, point.config)).not.toBe(configId(packSpace, member.config));
   });
 });
