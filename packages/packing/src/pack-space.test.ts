@@ -2,6 +2,7 @@ import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, ruleLe
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  allStrategies,
   checkSelectTable,
   composites,
   configOfStrategy,
@@ -552,6 +553,42 @@ describe("the point of side-anchors (k193)", () => {
     // Each case packs or refuses in both paths. Some cases of each kind exist.
     expect(results.some((r) => r.startsWith("refused"))).toBe(true);
     expect(results.some((r) => !r.startsWith("refused"))).toBe(true);
+  });
+
+  /**
+   * The strategies whose point is not the strategy with no options, with the reason.
+   * `aspect-fit` needs an inner strategy, so `packWith` refuses it, and its point wraps `maxrects`.
+   */
+  const POINT_DIFFERS: Readonly<Record<string, string>> = { "aspect-fit": "wraps maxrects" };
+
+  it.each(allStrategies.map((s) => s.id).filter((id) => !(id in POINT_DIFFERS)))("packs the point of %s as packWith packs it with no options", (id) => {
+    const point = configOfStrategy(id, {});
+    expect(point.ok, id).toBe(true);
+    if (!point.ok) return;
+    // A refusal matches a refusal. The two paths can throw different error classes.
+    const kind = (r: string): string => (r.startsWith("refused") ? "refused" : r);
+    const differ: string[] = [];
+    for (const params of CASES) {
+      const input = toPackInput(rectGrid.generate(1, params));
+      const viaWith = kind(result(() => packWith(id, input, {}, 3)));
+      const viaConfig = kind(result(() => packConfig(input, point.config, 3)));
+      if (viaWith !== viaConfig) differ.push(`${JSON.stringify(params)}: ${viaWith} against ${viaConfig}`);
+    }
+    expect(differ).toEqual([]);
+  });
+
+  it("names only strategies of the list in POINT_DIFFERS, and each of them differs", () => {
+    const params = CASES[0];
+    expect(params).toBeDefined();
+    if (params === undefined) return;
+    const input = toPackInput(rectGrid.generate(1, params));
+    for (const id of Object.keys(POINT_DIFFERS)) {
+      expect(allStrategies.some((s) => s.id === id), id).toBe(true);
+      const point = configOfStrategy(id, {});
+      expect(point.ok, id).toBe(true);
+      if (!point.ok) continue;
+      expect(result(() => packWith(id, input, {}, 3)), id).not.toBe(result(() => packConfig(input, point.config, 3)));
+    }
   });
 
   it("gives the side none with no anchor, and not the config of the member", () => {
