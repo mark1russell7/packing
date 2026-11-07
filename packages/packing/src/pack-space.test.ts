@@ -561,6 +561,8 @@ describe("the point of side-anchors (k193)", () => {
    */
   const POINT_DIFFERS: Readonly<Record<string, string>> = { "aspect-fit": "wraps maxrects" };
 
+  // The limit of each case. A search strategy (`anneal`, `genetic`, `tabu`) packs the 20 inputs two times. On a runner, `anneal` took
+  // 3539 ms and 3743 ms on two green runs, and 5322 ms on a red run, over the 5000 ms default. 30 s is approximately 5 times the slowest.
   it.each(allStrategies.map((s) => s.id).filter((id) => !(id in POINT_DIFFERS)))("packs the point of %s as packWith packs it with no options", (id) => {
     const point = configOfStrategy(id, {});
     expect(point.ok, id).toBe(true);
@@ -575,7 +577,7 @@ describe("the point of side-anchors (k193)", () => {
       if (viaWith !== viaConfig) differ.push(`${JSON.stringify(params)}: ${viaWith} against ${viaConfig}`);
     }
     expect(differ).toEqual([]);
-  });
+  }, 30_000);
 
   it("names only strategies of the list in POINT_DIFFERS, and each of them differs", () => {
     const params = CASES[0];
