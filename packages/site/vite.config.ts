@@ -5,6 +5,7 @@ import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
 import { changelogVersions } from "@mark1russell7/site-pages";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
+import { parseSnapshot, stopsEarly } from "./src/data.ts";
 import { kpiInput, skipCounts, trendLines, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
@@ -52,7 +53,8 @@ const versionTime = (): string => {
 /** This function gives the data of `kpi.json`. The time of the build is only the clock of the test of a weekly trend. */
 const kpiData = () => {
   const text = (name: string): string => readFileSync(page(name), "utf8");
-  const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly SegmentedPoint[]; latest: { entries?: { measured: number; planned: number } } };
+  const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly SegmentedPoint[] };
+  const measured = parseSnapshot(text("./data/measured-entries.json"), "measured");
   const snapshots = readdirSync(page("./data")).filter((name) => /^strategies-.*\.json$/.test(name));
   const summaries = snapshots.flatMap((name) => (JSON.parse(text(`./data/${name}`)) as { strategies: readonly SkipSummary[] }).strategies);
   const facts = {
@@ -67,7 +69,13 @@ const kpiData = () => {
     shownReleases,
     changelogReleases: changelogVersions(text("../packing/CHANGELOG.md")),
     trend: trendLines(coverage.trend),
-    ...(coverage.latest.entries === undefined ? {} : { entries: { measured: coverage.latest.entries.measured, planned: coverage.latest.entries.planned } }),
+    entries: {
+      measured: measured.measured,
+      planned: measured.planned,
+      corpora: measured.rows.map((row) => row.corpus),
+      stopEarly: measured.rows.flatMap((row) => row.entries.filter((entry) => stopsEarly(entry, row))).length,
+    },
+    entriesAt: `${measured.rows.map((row) => row.date).sort().at(-1)!}T00:00:00Z`,
     skips: skipCounts(summaries),
     skipsAt: commitTime(...snapshots.map((name) => page(`./data/${name}`))),
     explorer: existsSync(page("./explorer/index.html")),
