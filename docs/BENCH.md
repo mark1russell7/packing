@@ -1692,6 +1692,7 @@ The workflow `site-rerun.yml` reruns the other six corpora of the site each Wedn
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
 - A run writes only the files that it changes. The job `snapshot` compares each file with the copy that it made after the overlay, with `snapshot.ts written`. The job `publish` removes nothing from the branch.
+- `snapshot.ts written` keeps each file that a command of `site-data.yml` writes, `measured-entries.json` too. A test reads the commands of the workflow and holds this rule.
 - A file on the branch stays until a run for its corpus writes it.
 - The build in `pages.yml` compares the time in the `origin` of each file. It takes a file of the branch only if that time is later than on `main`. The time is the date of the latest run, then the run id for two runs of one day. A tie goes to `main`.
 - A file with no readable time stops the build with the file name, on either side. Each build prints the source of each file of the branch. A build without the branch uses the files of `main`.
