@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ENTRIES } from "./entries.ts";
 import { benchStrategy } from "./controls.ts";
 import { skipReason } from "./run.ts";
-import { SKIP_ROWS, cellOfReason, skipRead, staleRows, type SkipRow } from "./skip-words.ts";
+import { LEFT_OUT_WORDS, SKIP_ROWS, cellOfReason, leftOutWord, skipRead, staleRows, type SkipRow } from "./skip-words.ts";
 
 /** This function gives the cells that an entry supports. */
 const supportsOf = (id: string): Supports => {
@@ -41,7 +41,7 @@ describe("the word of a skip", () => {
   });
 
   it("gives each word with its reason", () => {
-    expect(skipRead("beam", "unsupported containerSize: freeArea").word).toBe("not done");
+    expect(skipRead("beam", "unsupported containerSize: freeArea").word).toBe("composition");
     expect(skipRead("push", "unsupported containerSize: freeAspect").word).toBe("no meaning");
     expect(skipRead("treemap-strip", "unsupported containerShape: circle").word).toBe("other algorithm");
     for (const row of SKIP_ROWS) expect(skipRead(row.entries[0]!, row.reasons[0]!).why).toBe(row.why);
@@ -63,6 +63,30 @@ describe("the word of a skip", () => {
     expect(staleRows([noCell], supportsOf)).toEqual(['beam: the reason "over budget" names no cell']);
   });
 
+  // Roadmap item k197: a record with one of these words leaves the measured share of its entry. The list of the pairs is pinned.
+  // A new pair needs a test that the entry has no defined result on an input of that form, and the page shows its word with its count.
+  it("leaves out only the pinned pairs, and each one is a cell that the entry refuses", () => {
+    const pairs = SKIP_ROWS.filter((row) => (LEFT_OUT_WORDS as readonly string[]).includes(row.word)).flatMap((row) =>
+      row.entries.flatMap((entry) => row.reasons.map((reason) => `${row.word}|${entry}|${reason}`)),
+    );
+    const shapes = ["circle", "convex", "ellipse", "holes", "polygon"].map((shape) => `unsupported containerShape: ${shape}`);
+    const pinned = [
+      ...["unsupported containerSize: freeArea", "unsupported containerSize: freeAspect"].map((reason) => `no meaning|push|${reason}`),
+      ...["treemap-pivot-split", "treemap-slice-dice", "treemap-squarified", "treemap-strip", "columns-linear-partition"].flatMap((entry) =>
+        shapes.map((reason) => `other algorithm|${entry}|${reason}`),
+      ),
+    ];
+    expect([...pairs].sort()).toEqual([...pinned].sort());
+    for (const pair of pairs) {
+      const [word, entry, reason] = pair.split("|") as [string, string, string];
+      expect(leftOutWord(entry, reason), pair).toBe(word);
+      const cell = cellOfReason(reason)!;
+      expect(unsupportedOf(supportsOf(entry), { [cell.dimension]: cell.value }), pair).toBeDefined();
+    }
+    expect(leftOutWord("beam", "unsupported containerSize: freeArea")).toBeUndefined();
+    expect(leftOutWord("beam", "unsupported containerShape: circle")).toBeUndefined();
+  });
+
   it("reads the cell of a reason", () => {
     expect(cellOfReason("unsupported order: soft")).toEqual({ dimension: "order", value: "soft" });
     expect(cellOfReason("over budget")).toBeUndefined();
@@ -72,6 +96,7 @@ describe("the word of a skip", () => {
     const pairs = freePairs();
     expect(pairs.filter((p) => skipRead(p.entry, p.reason).word === "not read")).toEqual([]);
     const count = (word: string): number => pairs.filter((p) => skipRead(p.entry, p.reason).word === word).length;
-    expect({ pairs: pairs.length, done: count("not done"), other: count("other algorithm"), meaning: count("no meaning") }).toEqual({ pairs: 99, done: 72, other: 25, meaning: 2 });
+    const counts = { pairs: pairs.length, done: count("not done"), composition: count("composition"), other: count("other algorithm"), meaning: count("no meaning") };
+    expect(counts).toEqual({ pairs: 99, done: 38, composition: 34, other: 25, meaning: 2 });
   });
 });

@@ -51,7 +51,7 @@ import {
   type SampledMeasure,
   type StrataMeasure,
 } from "./coverage.ts";
-import { skipRead, type SkipRead } from "./skip-words.ts";
+import { leftOutWord, skipRead, type LeftOutWord, type SkipRead } from "./skip-words.ts";
 import { NOT_RUN_JOB, NOT_RUN_SIZE, OVER_BUDGET } from "./budget.ts";
 import { NOT_RUN_BASE } from "./run.ts";
 import { ENTRIES } from "./entries.ts";
@@ -1505,6 +1505,11 @@ export interface MeasuredEntry {
   stopped: number;
   /** The largest item count of a measured record. The value is null when no input id of the entry gives a count. */
   largestItems: number | null;
+  /**
+   * The refused records with a word of `LEFT_OUT_WORDS`, by word (roadmap item k197). A word with no record has no key.
+   * The measured share of the entry is `measured` over `records` less these records.
+   */
+  leftOut: Partial<Record<LeftOutWord, number>>;
 }
 
 /** One run of one corpus in the count of the entries. */
@@ -1514,7 +1519,7 @@ export interface MeasuredRow {
   date: string;
   /** The largest item count of any record of the run. The value is null when no input id gives a count. */
   largestItems: number | null;
-  /** The planned entries with a measured record in the run, sorted. */
+  /** The planned entries with a record in the run, sorted. An entry with 0 measured records stays, because its records count in its share (roadmap item k197). */
   entries: MeasuredEntry[];
   /** The other names with a measured record in the run, sorted. A control is one of these. They do not count. */
   notPlanned: string[];
@@ -1542,28 +1547,33 @@ export function itemsOfInput(input: string): number | null {
 /** This function gives the larger of two item counts. A null count is no count. */
 const largerItems = (a: number | null, b: number | null): number | null => (a === null ? b : b === null ? a : Math.max(a, b));
 
-/** This function reads the records of one run into its row. An entry with only skipped records gets no row entry, because a refusal is no measure. */
+/**
+ * This function reads the records of one run into its row. A planned entry with only skipped records keeps its row entry with 0 measured records,
+ * because its records count in its share. `measuredSnapshot` does not count it as measured. A name that is not planned counts only with a measured record.
+ */
 export function measuredRow(records: readonly CoverageRecord[], at: { readonly corpus: string; readonly run: number; readonly date: string }, planned: readonly string[]): MeasuredRow {
   const all = new Map<string, MeasuredEntry>();
   let largestItems: number | null = null;
   for (const r of records) {
-    const was = all.get(r.strategy) ?? { entry: r.strategy, measured: 0, records: 0, stopped: 0, largestItems: null };
+    const was = all.get(r.strategy) ?? { entry: r.strategy, measured: 0, records: 0, stopped: 0, largestItems: null, leftOut: {} };
     const items = itemsOfInput(r.input);
     largestItems = largerItems(largestItems, items);
+    const word = r.skipped === undefined || BUDGET_REASONS.has(r.skipped) ? undefined : leftOutWord(r.strategy, r.skipped);
     all.set(r.strategy, {
       ...was,
+      leftOut: word === undefined ? was.leftOut : { ...was.leftOut, [word]: (was.leftOut[word] ?? 0) + 1 },
       records: was.records + 1,
       measured: was.measured + (r.skipped === undefined ? 1 : 0),
       stopped: was.stopped + (r.skipped !== undefined && BUDGET_REASONS.has(r.skipped) ? 1 : 0),
       largestItems: r.skipped === undefined ? largerItems(was.largestItems, items) : was.largestItems,
     });
   }
-  const found = [...all.values()].filter((e) => e.measured > 0).sort((a, b) => a.entry.localeCompare(b.entry));
+  const sorted = [...all.values()].sort((a, b) => a.entry.localeCompare(b.entry));
   return {
     ...at,
     largestItems,
-    entries: found.filter((e) => planned.includes(e.entry)),
-    notPlanned: found.filter((e) => !planned.includes(e.entry)).map((e) => e.entry),
+    entries: sorted.filter((e) => planned.includes(e.entry)),
+    notPlanned: sorted.filter((e) => e.measured > 0 && !planned.includes(e.entry)).map((e) => e.entry),
   };
 }
 
@@ -1573,7 +1583,7 @@ export function measuredRow(records: readonly CoverageRecord[], at: { readonly c
  */
 export function measuredSnapshot(rows: readonly { readonly row: MeasuredRow; readonly origin: SnapshotOrigin }[], planned: readonly string[]): MeasuredSnapshot {
   const sorted = [...rows].sort((a, b) => a.row.corpus.localeCompare(b.row.corpus));
-  const found = new Set(sorted.flatMap(({ row }) => row.entries.map((e) => e.entry)));
+  const found = new Set(sorted.flatMap(({ row }) => row.entries.filter((e) => e.measured > 0).map((e) => e.entry)));
   const measured = planned.filter((entry) => found.has(entry));
   return {
     schema: SNAPSHOT_SCHEMA,
@@ -1717,7 +1727,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const file = out ?? new URL(MEASURED_ENTRIES_FILE, SNAPSHOT_DIR);
     const earlier = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as MeasuredSnapshot) : undefined;
     const snap = withMeasuredRow(earlier, row, origin, planned);
-    console.log(`The entries of ${facts.corpus}: ${row.entries.length}. The count over the corpora: ${snap.measured} of ${snap.planned}.`);
+    console.log(`The entries of ${facts.corpus}: ${row.entries.filter((e) => e.measured > 0).length} measured of ${row.entries.length}. The count over the corpora: ${snap.measured} of ${snap.planned}.`);
     writeSnapshot(file, snap);
     return;
   }

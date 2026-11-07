@@ -26,11 +26,12 @@ jobs:
     permissions:
       contents: read
 
+  # The job verify of release.yml uses this workflow with only `contents: read`. A job that asks for more stops each release
+  # before it starts (bench/release-permissions.test.ts).
   site-check:
     uses: ./.github/workflows/site-check.yml
     permissions:
       contents: read
-      pull-requests: read
 
   # The size gate of the published exports (k132): the gzip bytes of a small consumer of each, against a budget.
   size-gate:
@@ -45,6 +46,11 @@ jobs:
       contents: read
 
   # The time gates of bench/gates (k130). A pull request runs them only when a file of the gates changed.
+  skyline-equal:
+    uses: ./.github/workflows/skyline-equal.yml
+    permissions:
+      contents: read
+
   time-gate:
     uses: ./.github/workflows/time-gate.yml
     permissions:
@@ -94,7 +100,7 @@ jobs:
   ci-ok:
     name: CI OK
     if: always()
-    needs: [ci, bench-smoke, site-check, size-gate, output-rows, time-gate, adversary, presets]
+    needs: [ci, bench-smoke, site-check, size-gate, skyline-equal, output-rows, time-gate, adversary, presets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}

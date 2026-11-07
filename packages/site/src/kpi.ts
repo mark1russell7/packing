@@ -2,6 +2,7 @@
 // so no reader copies a number from a page. The build writes the file with `siteKpi` of `@mark1russell7/site-pages`.
 
 import { releaseReading } from "@mark1russell7/site-pages";
+import { LEFT_OUT_WORDS, type LeftOutWord } from "./data.ts";
 
 /** The name of the project in the file. */
 export const KPI_PROJECT = "packing";
@@ -42,8 +43,10 @@ export const isBudgetReason = (reason: string): boolean => BUDGET_REASONS.has(re
 
 /** The skipped records of a snapshot of a corpus, by the word of their reason. A wall budget stays out of this count. */
 export interface SkipCounts {
-  /** The records with the word `not done`. They are coverage still owed, apart from a measured row. */
+  /** The records with the word `not done`. They are coverage still owed by the entry itself, apart from a measured row. */
   readonly owed: number;
+  /** The records with the word `composition`. A named composition of the entry lifts them, so the entry does not owe them (roadmap item k198). */
+  readonly composition: number;
   readonly otherAlgorithm: number;
   readonly noMeaning: number;
   /** The records with no read: the word `not read`, a reason with no word, and a snapshot with no reasons. */
@@ -58,7 +61,7 @@ export interface SkipSummary {
 
 /** This function counts the skipped records of some strategies by word. Records with no word count as `notRead`, so no record gets a word by default. */
 export function skipCounts(strategies: readonly SkipSummary[]): SkipCounts {
-  const count = { owed: 0, otherAlgorithm: 0, noMeaning: 0, notRead: 0 };
+  const count = { owed: 0, composition: 0, otherAlgorithm: 0, noMeaning: 0, notRead: 0 };
   for (const s of strategies) {
     const reasons = s.reasons ?? [];
     const listed = reasons.reduce((sum, r) => sum + r.count, 0);
@@ -66,6 +69,7 @@ export function skipCounts(strategies: readonly SkipSummary[]): SkipCounts {
     for (const r of reasons) {
       if (isBudgetReason(r.reason)) continue;
       if (r.word === "not done") count.owed += r.count;
+      else if (r.word === "composition") count.composition += r.count;
       else if (r.word === "other algorithm") count.otherAlgorithm += r.count;
       else if (r.word === "no meaning") count.noMeaning += r.count;
       else count.notRead += r.count;
@@ -100,6 +104,11 @@ export interface KpiFacts {
   readonly trend: readonly TrendLine[];
   /** The entries of the bench with a measured record in any run of `data/measured-entries.json`, the corpora of these runs and the rows that stop early. */
   readonly entries?: { readonly measured: number; readonly planned: number; readonly notMeasured: number; readonly corpora: readonly string[]; readonly stopEarly: number };
+  /**
+   * The measured shares of the entries (roadmap item k197): the entries with a read share, the entries under `UNDER_HALF`,
+   * and the left-out records by word. An entry has no read share when a row of it comes from an earlier bench.
+   */
+  readonly shares?: { readonly read: number; readonly underHalf: number; readonly leftOut: Partial<Record<LeftOutWord, number>> };
   /** The date of the last run of `data/measured-entries.json`, in UTC. */
   readonly entriesAt?: string;
   /** The skipped records of the stored snapshots of the corpora, by word. */
@@ -220,11 +229,24 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
           { id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries, over ${facts.entries.corpora.join(", ")}; rows that stop early: ${facts.entries.stopEarly}`, at: facts.entriesAt ?? coverageAt },
           { id: "unmeasured-entries", value: facts.entries.notMeasured, unit: `of ${facts.entries.planned} entries with no measured record`, at: facts.entriesAt ?? coverageAt },
         ]),
+    // An entry counts in `measured-entries` with one measured record. This measure reads how far each entry reaches on its own records.
+    // The text names each left-out word with its count, because the count of the denominator is part of the claim.
+    ...(facts.shares === undefined || facts.shares.read === 0
+      ? []
+      : [
+          {
+            id: "entries-under-half",
+            value: facts.shares.underHalf,
+            unit: `of ${facts.shares.read} entries with a read share measure under half of their records; left out: ${LEFT_OUT_WORDS.map((word) => `${word} ${facts.shares!.leftOut[word] ?? 0}`).join(", ")}`,
+            at: facts.entriesAt ?? coverageAt,
+          },
+        ]),
     // A skip that the code can lift is coverage still owed. It counts apart, so it does not raise `measured-entries`.
     ...(facts.skips === undefined
       ? []
       : [
-          { id: "skips-owed", value: facts.skips.owed, unit: "skipped records that the code can lift", at: facts.skipsAt ?? facts.commitAt },
+          { id: "skips-owed", value: facts.skips.owed, unit: "skipped records that the entry itself can lift", at: facts.skipsAt ?? facts.commitAt },
+          { id: "skips-composition", value: facts.skips.composition, unit: "skipped records that a named composition of the entry lifts", at: facts.skipsAt ?? facts.commitAt },
           { id: "skips-not-read", value: facts.skips.notRead, unit: "skipped records with no read", at: facts.skipsAt ?? facts.commitAt },
         ]),
     { id: "explorer-live", value: facts.explorer ? 1 : 0, at: facts.commitAt },
