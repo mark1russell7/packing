@@ -1975,11 +1975,13 @@ import { checkCatalog, writeStrategyCatalog } from "@mark1russell7/layout-contra
 - The range of a number option is the range of a control. A strategy can take a value outside this range.
 - A strategy of `standaloneStrategies` has the flag `optIn`, because the registry of `pack` does not hold it.
 
-A version pull request starts this command, because a test compares the file with the writer output and with the version of `package.json`:
+A test compares the file with the writer output and with the version of `package.json`. Thus a version pull request starts the script `version` of `packages/packing`:
 
 ```sh
-node --no-warnings bench/write-catalog.ts
+pnpm run version    # bench/whole-positions.ts --write, then bench/write-catalog.ts
 ```
+
+The commands `npm version` and `pnpm version` start this script after they set the version. A tool that changes the version of the package also starts it.
 
 The test `src/strategy-catalog.test.ts` packs each strategy, each probe of the supports and each choice of a strategy option. It pins the findings of `checkCatalog`, each with its reason.
 
