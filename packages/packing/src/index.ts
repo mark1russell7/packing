@@ -3,6 +3,7 @@ export { Rect } from "./rect.ts";
 export { defaultLayoutOf, pack, packRows, rectFeatures, type PackOptions, type PackLayoutOptions } from "./pack.ts";
 export { packSkyline, lowestWindow, SKYLINE_RULES, type SkylineOptions, type SkylineRule } from "./skyline.ts";
 export { freeSpace, type FreeSpace, type FreeSpan, type SpaceRect } from "./space.ts";
+export { obstacleCuts, oneRegion, packParts, SPLITS, type Part, type Split } from "./split.ts";
 export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf.ts";
 export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule, type MaxRectsScore } from "./maxrects.ts";
 export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
@@ -137,7 +138,7 @@ export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions }
 export { compactUp } from "./compact.ts";
 export { matchPlaces } from "./match.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
-export { keepPrefix, pinUnchanged, type PinnedInput } from "./pin.ts";
+export { keepPrefix, pinUnchanged, repackPinned, type PinnedInput, type Repacked, type RepackMethod } from "./pin.ts";
 export { NEAR_RECTS_STAGE, packNearRects, type NearRectsOptions } from "./near-rects.ts";
 export { packRasterNofit, RASTER_NOFIT_MAX_CELLS, RASTER_NOFIT_STAGE, rasterCell, rasterCover, type RasterCover, type RasterNofitOptions } from "./raster-nofit.ts";
 export {

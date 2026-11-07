@@ -17,12 +17,12 @@ import {
   stripOf,
   type EntryLike,
 } from "./cards-model.ts";
-import { parseSnapshot, type StrategySnapshot } from "./data.ts";
+import { parseSnapshot, STRATEGY_CORPORA, type StrategySnapshot } from "./data.ts";
 
 const catalogText = readFileSync(new URL("../../../docs/research/CATALOG.md", import.meta.url), "utf8");
 const catalog = parseCatalog(catalogText);
 const snapshot = (name: string): StrategySnapshot => parseSnapshot(readFileSync(new URL(`../data/${name}.json`, import.meta.url), "utf8"), "strategies");
-const snapshots = ["strategies-pack-select-v2", "strategies-pack-select-v1", "strategies-pack-screen-v1", "strategies-pack-free-v1"].map(snapshot);
+const snapshots = STRATEGY_CORPORA.map((corpus) => snapshot(`strategies-${corpus}`));
 // This line checks that the type of `ENTRIES` fits the cards.
 const entries: readonly EntryLike[] = ENTRIES;
 const singles = [...strategies, ...shapeStrategies, ...standaloneStrategies];
@@ -122,7 +122,7 @@ describe("the parts of a card", () => {
     const rows = stripOf("rows", snapshots);
     expect(rows.every((r) => r.cells.every((c) => c.label === "baseline"))).toBe(true);
     const select = stripOf("select-rows-bl", snapshots);
-    expect(select.map((r) => r.cells[0]!.label)).toEqual(["better", "better", "not measured", "not measured"]);
+    expect(select.map((r) => r.cells[0]!.label)).toEqual(["better", "better", "not measured", "not measured", "not measured"]);
     expect(stripOf("push", snapshots).every((r) => r.cells.every((c) => c.label === "not measured"))).toBe(true);
   });
 

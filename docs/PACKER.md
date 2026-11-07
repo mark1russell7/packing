@@ -99,12 +99,13 @@ interface SizeSearch {
   search(input: PackInput, inner: Strategy, context: PackContext, options?: unknown): PackOutput;
 }
 
-/** The split of the free space around the obstacles and the holes (k41, k42). */
+/** The split of the free space around the obstacles and the locked items (k41, k42). It is in src/split.ts. */
 interface Split {
-  id: string; // "maximal-rects", "slabs", "obstacle-cuts", "cells", "one-region"
-  split(container: LayoutContainer, obstacles: readonly Obstacle[], gap: number): Part[];
+  id: string; // "one-region" and "obstacle-cuts" (k41); "maximal-rects", "slabs", "cells" (k42)
+  split(input: PackInput): Part[];
 }
-interface Part { id: string; region: Region; }
+/** A rectangle of the free space, in the coordinates of the container. "whole" is the container of the input. */
+interface Part { id: string; x: number; y: number; w: number; h: number; whole?: boolean; }
 
 /** The assignment of the items to the parts (k43). */
 interface Assign {
@@ -131,6 +132,9 @@ function pipeline(parts: {
 
 - `pipeline` computes the `supports` of the result from its stages. A size search adds `freeAspect` and `freeArea`. A split adds the container shapes and the obstacles that it supports.
 - The turn of the axes is a free stage: it gives each strategy of `freeHeight` the cell `freeWidth`.
+- `packParts(input, split, place, options, context)` packs the items through a split, one part after another in reading order. It is the stage `reading-greedy` of k43, before `Assign` exists.
+- The split `one-region` gives one part with `whole`, so `packParts` gives the output of `place` with no change.
+- The split `obstacle-cuts` cuts the free space at the top edge and the bottom edge of each obstacle and each locked item. Each free span of a band is a part.
 - Each stage writes one `StageTrace`, with its id, its time and its own measures (for example `pack.search.widths`, `pack.part.fill`).
 
 ## The selector
@@ -1831,6 +1835,21 @@ const output = matchPlaces(baseOutput, changeInput, fresh);
 
 The function needs sizes that repeat, such as cards on a dashboard. With free sizes, each class has one box and nothing changes. `docs/BENCH.md`, "Repack and match", has the numbers.
 
+## The pin and repack
+
+The function `repackPinned` is a slice of roadmap item k31, the idea `new-pin-repack`. It packs a changed input with a packer that it gets, and moves as few boxes as it can. No default uses it.
+
+```ts
+const pack = (input: PackInput) => packWith("maxrects", input, { rule: "bl" });
+const { output, input, method, pinned } = repackPinned(baseInput, baseOutput, changeInput, pack);
+```
+
+1. The function pins each unchanged box with `pinUnchanged`, and packs the free boxes into the holes.
+2. If an item overflows, it pins only the boxes before the first change with `keepPrefix`, and packs again.
+3. If an item still overflows, it packs the changed input fresh, with no pin.
+
+The function keeps the first pack with no overflow, and `method` names it. Thus it places each item when a fresh pack places each item. A strip has no overflow, so step 1 is the result there. Check the hard rules of `output` against the `input` of the result, because it has the locks. `docs/BENCH.md`, "The pin and repack", has the numbers.
+
 ## The kept prefix
 
 The function `keepPrefix` locks each box before the first change of the item list (roadmap item k30). It changes an input and does not pack, as `pinUnchanged` does. No default uses it.
@@ -1956,11 +1975,13 @@ import { checkCatalog, writeStrategyCatalog } from "@mark1russell7/layout-contra
 - The range of a number option is the range of a control. A strategy can take a value outside this range.
 - A strategy of `standaloneStrategies` has the flag `optIn`, because the registry of `pack` does not hold it.
 
-A version pull request starts this command, because a test compares the file with the writer output and with the version of `package.json`:
+A test compares the file with the writer output and with the version of `package.json`. Thus a version pull request starts the script `version` of `packages/packing`:
 
 ```sh
-node --no-warnings bench/write-catalog.ts
+pnpm run version    # bench/whole-positions.ts --write, then bench/write-catalog.ts
 ```
+
+The commands `npm version` and `pnpm version` start this script after they set the version. A tool that changes the version of the package also starts it.
 
 The test `src/strategy-catalog.test.ts` packs each strategy, each probe of the supports and each choice of a strategy option. It pins the findings of `checkCatalog`, each with its reason.
 

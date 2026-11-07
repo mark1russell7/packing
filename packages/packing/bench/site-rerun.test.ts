@@ -25,15 +25,15 @@ const value = (job: RerunJob, key: string): string | undefined => new RegExp(`^ 
 describe("the weekly rerun of the corpora of the site", () => {
   const jobs = rerunJobs();
 
-  it("has five jobs, each with a corpus", () => {
-    expect(jobs.length).toBe(5);
+  it("has six jobs, each with a corpus", () => {
+    expect(jobs.length).toBe(6);
     for (const job of jobs) expect(value(job, "corpus")).toMatch(/^pack-[a-z0-9-]+$/);
   });
 
-  it("packs the same corpora as the files of site-data.yml, with the weekly coverage run as the sixth", () => {
+  it("packs the same corpora as the files of site-data.yml, with the weekly coverage run as the seventh and the corpus of steps as a row only", () => {
     const body = siteData.slice(siteData.indexOf('case "$corpus" in'), siteData.indexOf("esac"));
     const cases = [...body.matchAll(/^ +((?:pack-[a-z0-9-]+)(?: \| pack-[a-z0-9-]+)*)\)$/gm)].flatMap((m) => m[1]!.split(" | "));
-    expect(cases.sort()).toEqual([...jobs.map((job) => value(job, "corpus")!), "pack-classes-v1"].sort());
+    expect(cases.sort()).toEqual([...jobs.map((job) => value(job, "corpus")!), "pack-classes-v1", "pack-change-v1"].sort());
     const listed = /^ +SITE_CORPORA: (.+)$/m.exec(siteData)?.[1]?.split(" ");
     expect(listed?.sort()).toEqual([...cases].sort());
   });

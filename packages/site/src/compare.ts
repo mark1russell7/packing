@@ -2,10 +2,6 @@
 // packs with the strategies for circles. The entries pack one at a time, so the page stays responsive. The hash of the URL
 // keeps the input and the sort.
 
-import screenJson from "../data/strategies-pack-screen-v1.json?raw";
-import freeJson from "../data/strategies-pack-free-v1.json?raw";
-import test1Json from "../data/strategies-pack-select-v1.json?raw";
-import test2Json from "../data/strategies-pack-select-v2.json?raw";
 import type { BenchEntry } from "@mark1russell7/packing/bench/entries";
 import { mountChrome } from "./chrome.ts";
 import {
@@ -40,7 +36,8 @@ import {
   writeDimensions,
   type DimensionValues,
 } from "./corpus-input.ts";
-import { CORPUS_LABELS, parseSnapshot } from "./data.ts";
+import { CORPUS_LABELS } from "./data.ts";
+import { strategySnapshots } from "./strategy-snapshots.ts";
 import { esc, msText } from "./format.ts";
 import { PRESETS, presetOf } from "./model.ts";
 import { verdictHash, verdictSnapshot } from "./results-model.ts";
@@ -55,7 +52,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
 
 mountChrome($("links"), "compare");
 
-const snapshots = [test2Json, test1Json, screenJson, freeJson].map((t) => parseSnapshot(t, "strategies"));
+const snapshots = strategySnapshots;
 const resultsBase = `${import.meta.env.BASE_URL}results/`;
 
 type Source = "board" | "demo";

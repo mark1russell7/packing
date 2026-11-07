@@ -71,7 +71,7 @@ jobs:
           RUNS: ${{ inputs.runs }}
           WEEKLY_RUN: ${{ github.event.workflow_run.id }}
           # The corpora with a file of the site. bench/site-rerun.test.ts compares this list with the case below.
-          SITE_CORPORA: pack-free-v1 pack-screen-v1 pack-select-v1 pack-select-v2 pack-known-v1 pack-classes-v1
+          SITE_CORPORA: pack-free-v1 pack-screen-v1 pack-select-v1 pack-select-v2 pack-known-v1 pack-classes-v1 pack-classes-free-v1 pack-change-v1
           NO_ROW: ${{ inputs.no-row }}
           # The six strategies of the table of the gaps. The table has one column for each strategy.
           GAP_STRATEGIES: maxrects-bl,portfolio-k2,rows,select-rows-bl,shelf-best,skyline
@@ -124,6 +124,10 @@ jobs:
                 node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gap --strategies "$GAP_STRATEGIES"
                 select_args+=(--test "$folder=$run")
                 ;;
+              pack-classes-free-v1)
+                # The free class corpus gives the verdicts of the entries that take only free sizes (k158). It is not a corpus of the selection table.
+                node bench/snapshot.ts strategies "$folder" "${origin[@]}"
+                ;;
               pack-known-v1)
                 node bench/snapshot.ts gaps "$folder" "${origin[@]}" --measure pack.gapToOpt --strategies "$GAP_STRATEGIES"
                 ;;
@@ -139,14 +143,27 @@ jobs:
                     echo "::warning::The records of the run $earlier_run are gone, so the step of $corpus has no figure."
                   fi
                 fi
+                # A Bench run keeps its sample in the folder sample of its records. A coverage run keeps it in the artifact
+                # nightly-held-out (k188). Without that sample, the point has no read of the whole space by the prior.
+                sample_args=()
+                artifacts="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$run/artifacts" -q '.artifacts[].name')"
+                if grep -qxF nightly-held-out <<<"$artifacts"; then
+                  gh run download "$run" -R "$GITHUB_REPOSITORY" -n nightly-held-out -D "$RUNNER_TEMP/held-out/$corpus"
+                  sample_args=(--sample "$RUNNER_TEMP/held-out/$corpus")
+                fi
                 # The point records how its run started, so the trend shows a point of a dispatch as one.
-                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --event "$event" --no-row "$NO_ROW" "${earlier_args[@]}"
+                node bench/snapshot.ts coverage "$folder" "${origin[@]}" --event "$event" --no-row "$NO_ROW" "${earlier_args[@]}" "${sample_args[@]}"
+                ;;
+              pack-change-v1)
+                # This corpus has only its row in the count of the entries, below.
                 ;;
               *)
                 echo "The corpus $corpus has no file of the site."
                 exit 1
                 ;;
             esac
+            # Each corpus has one row in the count of the entries. The rows of the other corpora stay.
+            node bench/snapshot.ts measured "$folder" "${origin[@]}"
           done
           echo "runs=$RUNS" >> "$GITHUB_OUTPUT"
           # The table needs both training runs and both test runs. A change of the wins stops the command, and the file of the table stays.

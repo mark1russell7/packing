@@ -40,6 +40,14 @@ describe("the condition of the site data job", () => {
     expect(siteData).toMatch(/node bench\/snapshot\.ts coverage "\$folder" "\$\{origin\[@\]\}" --event "\$event" /);
   });
 
+  it("gives the held-out sample of a coverage run to the coverage point", () => {
+    // The point of dispatch 41993720877 lost its read of the whole space, because the step read only the grid artifact (k188).
+    // A here-string, not a pipe: with pipefail, an early exit of grep -q can fail the pipe and hide the artifact.
+    expect(siteData).toMatch(/artifacts="\$\(gh api --paginate "repos\/\$GITHUB_REPOSITORY\/actions\/runs\/\$run\/artifacts" -q '\.artifacts\[\]\.name'\)"\n/);
+    expect(siteData).toMatch(/grep -qxF nightly-held-out <<<"\$artifacts"; then\n {18}gh run download "\$run" -R "\$GITHUB_REPOSITORY" -n nightly-held-out -D "\$RUNNER_TEMP\/held-out\/\$corpus"\n {18}sample_args=\(--sample "\$RUNNER_TEMP\/held-out\/\$corpus"\)\n/);
+    expect(siteData).toMatch(/node bench\/snapshot\.ts coverage .* "\$\{sample_args\[@\]\}"\n/);
+  });
+
   it("starts from the two weekly workflows, which start only from the schedule or a dispatch", () => {
     expect(/workflows: \["Coverage nightly", "Site rerun"\]/.test(siteData)).toBe(true);
     for (const name of ["coverage-nightly.yml", "site-rerun.yml"]) expect(triggersOf(workflow(name)).sort(), name).toEqual(["schedule", "workflow_dispatch"]);

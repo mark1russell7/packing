@@ -457,8 +457,46 @@ export interface CoverageUniform {
   measures: Record<string, CoverageSampled>;
 }
 
+/** How far the records of one entry reach in one run */
+export interface MeasuredEntry {
+  entry: string;
+  measured: number;
+  records: number;
+  /** The records that a budget stopped. A refusal does not count here. */
+  stopped: number;
+  /** The largest item count of a measured record, or null when no input id gives a count */
+  largestItems: number | null;
+}
+
+/** One run of one corpus in the count of the entries */
+export interface MeasuredRow {
+  corpus: string;
+  run: number;
+  date: string;
+  /** The largest item count of any record of the run, or null when no input id gives a count */
+  largestItems: number | null;
+  entries: MeasuredEntry[];
+  /** The other names with a measured record in the run. A control is one of these. They do not count. */
+  notPlanned: string[];
+}
+
+/** The snapshot of the planned entries with a measured record in any run of its rows */
+export interface MeasuredSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "measured";
+  origin: Origin[];
+  planned: number;
+  measured: number;
+  notMeasured: string[];
+  rows: MeasuredRow[];
+}
+
+/** This function tells if the measured records of an entry stop early. A budget stopped some of them, or they stop at a smaller item count. */
+export const stopsEarly = (entry: MeasuredEntry, row: MeasuredRow): boolean =>
+  entry.stopped > 0 || (entry.largestItems !== null && row.largestItems !== null && entry.largestItems < row.largestItems);
+
 /** Each kind of snapshot */
-export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot | GapSnapshot | CoverageSnapshot;
+export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot | GapSnapshot | CoverageSnapshot | MeasuredSnapshot;
 
 /** This function tells if a value is a plain object. */
 const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -488,7 +526,7 @@ export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K)
   if (value["kind"] !== kind) throw new Error(`The snapshot has the kind ${String(value["kind"])}, not ${kind}.`);
   const origin = value["origin"];
   if (!Array.isArray(origin) || origin.length === 0 || !origin.every(isOrigin)) throw new Error("Each origin of a snapshot has a release, a commit, a date, a run and a source.");
-  const lists: Record<Snapshot["kind"], unknown> = { strategies: value["strategies"], gaps: value["strategies"], paired: value["classes"], select: value["leaves"], releases: value["releases"], coverage: value["trend"] };
+  const lists: Record<Snapshot["kind"], unknown> = { strategies: value["strategies"], gaps: value["strategies"], paired: value["classes"], select: value["leaves"], releases: value["releases"], coverage: value["trend"], measured: value["rows"] };
   const list = lists[kind];
   if (!Array.isArray(list) || list.length === 0) throw new Error(`The snapshot of the kind ${kind} has no entries.`);
   return value as unknown as Extract<Snapshot, { kind: K }>;
@@ -752,7 +790,17 @@ export const CORPUS_LABELS: Record<string, { label: string; note: string }> = {
   "pack-select-v1": { label: "Test 1", note: "The boards of the two other corpora, with the fresh seeds 21 to 25. No fit used these seeds." },
   "pack-select-v2": { label: "Test 2", note: "The boards of the two other corpora, with the fresh seeds 31 to 35. No fit used these seeds." },
   "pack-known-v1": { label: "Known best", note: "Perfect cuts, guillotine and free, and consecutive squares. Each input has a known best value. Each board has 12 seeds." },
+  "pack-classes-free-v1": {
+    label: "Free classes",
+    note: "The 10 classes of Berkey and Wang and of Martello and Vigo, with a target aspect or a free area, and strips of 8 and 16 items.",
+  },
 };
+
+/**
+ * The corpora of the strategy snapshots, in the order of the rows of a verdict strip. Each corpus has the file
+ * `data/strategies-<corpus>.json`. The free classes come last, because only a few entries take only free sizes (k158).
+ */
+export const STRATEGY_CORPORA = ["pack-select-v2", "pack-select-v1", "pack-screen-v1", "pack-free-v1", "pack-classes-free-v1"] as const;
 
 /** The names and the notes of the gap measures */
 export const GAP_LABELS: Record<GapSnapshot["measure"], { label: string; note: string }> = {

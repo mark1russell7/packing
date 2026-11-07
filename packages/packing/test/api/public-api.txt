@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 498 names
+## . (build/index.d.ts): 507 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -186,6 +186,7 @@ type PackOptions: build/layout-strategy.d.ts#PackOptions
 type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
 type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
 type PackingMetrics: build/index.d.ts#PackingMetrics
+type Part: build/index.d.ts#Part
 type PerfectCutParams: build/index.d.ts#PerfectCutParams
 type PerfectStripRule: build/index.d.ts#PerfectStripRule
 type PinnedInput: build/index.d.ts#PinnedInput
@@ -222,6 +223,8 @@ type RectGridV2Params: build/index.d.ts#RectGridV2Params
 type RectScatteredParams: build/index.d.ts#RectScatteredParams
 type Region: @mark1russell7/layout-contract#Region (external)
 type RelaxStrategyOptions: build/index.d.ts#RelaxStrategyOptions
+type RepackMethod: build/index.d.ts#RepackMethod
+type Repacked: build/index.d.ts#Repacked
 type RestartPerturb: build/index.d.ts#RestartPerturb
 type RestartsStrategyOptions: build/index.d.ts#RestartsStrategyOptions
 type RuinKind: build/index.d.ts#RuinKind
@@ -233,6 +236,7 @@ SELECT_TABLE: build/index.d.ts#SELECT_TABLE
 SHELF_FITS: build/layout-strategy.d.ts#SHELF_FITS
 SKYLINE_RULES: build/layout-strategy.d.ts#SKYLINE_RULES
 SORT_ORDERS: build/order.d.ts#SORT_ORDERS
+SPLITS: build/index.d.ts#SPLITS
 SPREAD_THRESHOLDS: build/index.d.ts#SPREAD_THRESHOLDS
 STANDALONE_MAX_ITEMS: build/index.d.ts#STANDALONE_MAX_ITEMS
 type SelectFeatures: build/index.d.ts#SelectFeatures
@@ -262,6 +266,7 @@ type SkylineStrategyOptions: build/layout-strategy.d.ts#SkylineStrategyOptions
 type SleatorResult: build/index.d.ts#SleatorResult
 type SortOrder: build/order.d.ts#SortOrder
 type SpaceRect: build/layout-strategy.d.ts#SpaceRect
+type Split: build/index.d.ts#Split
 type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
 type Strategy: build/strategy.d.ts#Strategy
@@ -409,6 +414,8 @@ moveAnchor: build/index.d.ts#moveAnchor
 mulberry32: build/strategy.d.ts#mulberry32
 objectiveBound: build/index.d.ts#objectiveBound
 objectiveResult: build/index.d.ts#objectiveResult
+obstacleCuts: build/index.d.ts#obstacleCuts
+oneRegion: build/index.d.ts#oneRegion
 orderRects: build/order.d.ts#orderRects
 outputHash: build/index.d.ts#outputHash
 overlapMinStrategy: build/index.d.ts#overlapMinStrategy
@@ -420,6 +427,7 @@ packFree: build/index.d.ts#packFree
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
 packNearRects: build/index.d.ts#packNearRects
+packParts: build/index.d.ts#packParts
 packPortfolio: build/index.d.ts#packPortfolio
 packRasterNofit: build/index.d.ts#packRasterNofit
 packRows: build/layout-strategy.d.ts#packRows
@@ -454,6 +462,7 @@ rectGridV2: build/index.d.ts#rectGridV2
 rectGridV2Family: build/index.d.ts#rectGridV2Family
 rectScattered: build/index.d.ts#rectScattered
 relaxStrategy: build/index.d.ts#relaxStrategy
+repackPinned: build/index.d.ts#repackPinned
 restartsStrategy: build/index.d.ts#restartsStrategy
 round3: build/index.d.ts#round3
 roundMeasures: build/index.d.ts#roundMeasures
@@ -1393,6 +1402,16 @@ interface PackingMetrics {
   widestOverMedian: number;
 }
 
+### build/index.d.ts#Part
+interface Part {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+  readonly whole?: boolean;
+}
+
 ### build/index.d.ts#PerfectCutParams
 type PerfectCutParams = {
   cut: "guillotine" | "free";
@@ -1550,6 +1569,17 @@ interface RelaxStrategyOptions {
   pull?: number;
 }
 
+### build/index.d.ts#RepackMethod
+type RepackMethod = "pin" | "prefix" | "fresh";
+
+### build/index.d.ts#Repacked
+interface Repacked {
+  readonly output: PackOutput;
+  readonly input: PackInput;
+  readonly method: RepackMethod;
+  readonly pinned: readonly string[];
+}
+
 ### build/index.d.ts#RestartPerturb
 type RestartPerturb = "swap" | "shuffle-blocks" | "shuffle";
 
@@ -1588,6 +1618,9 @@ export declare const SELECT_STAGE = "select";
 
 ### build/index.d.ts#SELECT_TABLE
 export declare const SELECT_TABLE: SelectNode;
+
+### build/index.d.ts#SPLITS
+export declare const SPLITS: Readonly<Record<string, Split>>;
 
 ### build/index.d.ts#SPREAD_THRESHOLDS
 export declare const SPREAD_THRESHOLDS: Readonly<{
@@ -1699,6 +1732,12 @@ type SkylineGapParams = {
 interface SleatorResult {
   readonly output: PackOutput;
   readonly height: number;
+}
+
+### build/index.d.ts#Split
+interface Split {
+  readonly id: string;
+  split(input: PackInput): Part[];
 }
 
 ### build/index.d.ts#SpreadBand
@@ -2138,6 +2177,12 @@ export declare function objectiveBound(input: PackInput, options?: BoundOptions)
 ### build/index.d.ts#objectiveResult
 export declare function objectiveResult(input: PackInput, output: PackOutput, bound: ObjectiveBound): number | undefined;
 
+### build/index.d.ts#obstacleCuts
+export declare const obstacleCuts: Split;
+
+### build/index.d.ts#oneRegion
+export declare const oneRegion: Split;
+
 ### build/index.d.ts#outputHash
 export declare function outputHash(output: Pick<PackOutput, "placements">): string;
 
@@ -2158,6 +2203,9 @@ export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?:
 
 ### build/index.d.ts#packNearRects
 export declare function packNearRects(input: PackInput, options?: NearRectsOptions): PackOutput;
+
+### build/index.d.ts#packParts
+export declare function packParts(input: PackInput, split: Split, place: Strategy, options: unknown, context: PackContext): PackOutput;
 
 ### build/index.d.ts#packPortfolio
 export declare function packPortfolio(members: readonly (string | PortfolioEntry)[] | ((input: PackInput) => readonly (string | PortfolioEntry)[]), options?: PackPortfolioOptions): Portfolio$1<PackInput, PackOutput>;
@@ -2250,6 +2298,9 @@ export declare const rectScattered: CorpusGenerator<RectScatteredParams>;
 
 ### build/index.d.ts#relaxStrategy
 export declare const relaxStrategy: Strategy<RelaxStrategyOptions>;
+
+### build/index.d.ts#repackPinned
+export declare function repackPinned(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput, pack: (input: PackInput) => PackOutput): Repacked;
 
 ### build/index.d.ts#restartsStrategy
 export declare const restartsStrategy: Strategy<RestartsStrategyOptions>;
