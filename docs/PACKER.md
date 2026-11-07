@@ -1943,10 +1943,11 @@ Roadmap item k142 gives each strategy of this section a point in `packSpace`. Th
 | `raster-nofit` | `placement` | `trials` | 1 to 256, log scale | 64 |
 | `masonry` | `placement` | `method`, `columns` | 3 methods, 1 to 16 | `shortest`, 4 |
 | `treemap` | `placement` | `method` | 4 methods | `squarified` |
-| `side-anchors` | `combine` | `side`, `at` | 4 sides, 0 to 1 | `left`, 0.5 |
+| `side-anchors` | `combine` | `side`, `at` | 4 sides and `none`, 0 to 1 | `left`, 0.5 |
 
 - Constraints keep the order `input` and the size search `none` with each placement option.
 - The `combine` option `side-anchors` has 1 member. The params tell the anchor of the first item.
+- The side `none` is `side-anchors` with no anchor, and `at` is not a param of it. `configOfStrategy("side-anchors", {})` gives this config, not the config of the member. Thus `packConfig` refuses the inputs that `packWith("side-anchors")` refuses (roadmap item k193).
 - `configOfStrategy` and the named configs reach each id. The named config `side-anchors-first-left` is the bench entry of that name.
 - `packConfig` refuses a composite with a standalone member. A composite finds only a member of the registry. The refusal is an `UnsupportedCell`, so the sampler draws again.
 - The contract has no rule that keeps a placement out of the members. Thus 10 of the 18 placements in a member draw give a refusal, and the sampler misses more strata.
@@ -1975,11 +1976,13 @@ import { checkCatalog, writeStrategyCatalog } from "@mark1russell7/layout-contra
 - The range of a number option is the range of a control. A strategy can take a value outside this range.
 - A strategy of `standaloneStrategies` has the flag `optIn`, because the registry of `pack` does not hold it.
 
-A version pull request starts this command, because a test compares the file with the writer output and with the version of `package.json`:
+A test compares the file with the writer output and with the version of `package.json`. Thus a version pull request starts the script `version` of `packages/packing`:
 
 ```sh
-node --no-warnings bench/write-catalog.ts
+pnpm run version    # bench/whole-positions.ts --write, then bench/write-catalog.ts
 ```
+
+The commands `npm version` and `pnpm version` start this script after they set the version. A tool that changes the version of the package also starts it.
 
 The test `src/strategy-catalog.test.ts` packs each strategy, each probe of the supports and each choice of a strategy option. It pins the findings of `checkCatalog`, each with its reason.
 

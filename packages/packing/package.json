@@ -118,6 +118,7 @@
     "build": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
+    "version": "node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/write-catalog.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "devDependencies": {

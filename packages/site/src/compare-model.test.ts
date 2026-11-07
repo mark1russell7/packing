@@ -12,7 +12,10 @@ import {
   entriesFor,
   frontPoints,
   frontSvg,
+  keepsPartner,
   MAX_COMPARE_COUNT,
+  PARTNER_BASELINE,
+  partnerReference,
   presetInput,
   runAll,
   runEntry,
@@ -26,6 +29,51 @@ import { parseSnapshot } from "./data.ts";
 import { parseVerdictHash, verdictHash, verdictSnapshot } from "./results-model.ts";
 
 const snapshot = (name: string) => parseSnapshot(readFileSync(new URL(`../data/strategies-${name}.json`, import.meta.url), "utf8"), "strategies");
+
+describe("the partner of the fill on the compare page (k154)", () => {
+  // Made-up results with the means of the fill control on pack-change-v1. The control packs narrower than the given width,
+  // so its fill is high and its right strip is empty.
+  const r = (id: string, index: number, fill: number, right: number): EntryResult => ({
+    entry: { ...COMPARE_ENTRIES[index]!, id },
+    index,
+    ms: 0,
+    output: { placements: [], overflow: [], size: { w: 1, h: 1 }, moved: [] },
+    measures: { "pack.fill": fill, "pack.balance.side.right": right },
+  });
+  const list = [r(PARTNER_BASELINE, 0, 0.7, 0.25), r("trick", 1, 0.876, 0.849), r("maxrects-bl", 2, 0.8, 0.199)];
+  const given = presetInput("cards", 24, 640, 1).input;
+  const free = { ...given, container: { fixed: "none" as const } };
+
+  it("does not put a fill that gives up the right strip first, and does not call it the best fill", () => {
+    const reference = partnerReference(given, list);
+    expect(reference).toBe(0.25);
+    expect(sortResults(list, "pack.fill", reference).map((x) => x.entry.id)).toEqual(["maxrects-bl", PARTNER_BASELINE, "trick"]);
+    expect([...bestIds(list, "pack.fill", (x) => keepsPartner(x, reference))]).toEqual(["maxrects-bl"]);
+  });
+
+  it("ranks by the fill alone with no partner: then the trick leads", () => {
+    expect(partnerReference(free, list)).toBeUndefined();
+    expect(sortResults(list, "pack.fill").map((x) => x.entry.id)).toEqual(["trick", "maxrects-bl", PARTNER_BASELINE]);
+    expect([...bestIds(list, "pack.fill")]).toEqual(["trick"]);
+    expect(keepsPartner(list[1]!, undefined)).toBe(true);
+  });
+
+  it("keeps the partner within the noise of a float, and gives no reference when the baseline has no value", () => {
+    expect(keepsPartner(r("near", 3, 0.9, 0.25 + 1e-12), 0.25)).toBe(true);
+    expect(keepsPartner(r("over", 3, 0.9, 0.2501), 0.25)).toBe(false);
+    expect(partnerReference(given, list.slice(1))).toBeUndefined();
+  });
+
+  it("compares with the baseline of the results page", () => {
+    for (const name of ["pack-screen-v1", "pack-free-v1"]) expect(snapshot(name).baseline).toBe(PARTNER_BASELINE);
+  });
+
+  it("packs no control of the bench: a control is built to win one measure", () => {
+    const ids = [...COMPARE_ENTRIES, ...SHAPE_ENTRIES].map((e) => e.id);
+    expect(ids).toContain(PARTNER_BASELINE);
+    for (const control of ["fill-trick", "keep-shelf"]) expect(ids).not.toContain(control);
+  });
+});
 
 describe("the input of the compare page", () => {
   it("makes a board of each family with its defaults", () => {

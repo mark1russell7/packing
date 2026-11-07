@@ -183,7 +183,7 @@ function drawStrategies(): void {
   $("fill-claim").innerHTML = esc(claim.note);
   const max = scaleOf(snap, WIN);
   const head = snap.measures.map((m) => `<span class="mhead" title="${esc(MEASURE_LABELS[m.id]?.note ?? m.id)}">${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}</span>`).join("");
-  const sections = rankSections(snap, WIN);
+  const sections = rankSections(snap, WIN, claim.partner);
   const row = (s: StrategySummary): string => {
     const fill = verdictOf(s, WIN);
     const share = fillClaimOfStrategy(s, WIN, claim.partner);
