@@ -366,6 +366,8 @@ export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type Corpus
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
   treemapPack,
+  treemapPivotMiddle,
+  treemapPivotSize,
   treemapPivotSplit,
   treemapSliceDice,
   treemapSquarified,
