@@ -6,6 +6,7 @@ import {
   columnBalance,
   columnReading,
   columnsLinearPartition,
+  masonryDifferencing,
   masonryLpt,
   masonryShortest,
   mulberry32,
@@ -18,6 +19,7 @@ import {
 const METHODS: readonly (readonly [string, MasonryLayout])[] = [
   ["masonryShortest", masonryShortest],
   ["masonryLpt", masonryLpt],
+  ["masonryDifferencing", masonryDifferencing],
   ["columnsLinearPartition", columnsLinearPartition],
 ];
 
@@ -194,6 +196,49 @@ describe("columnsLinearPartition", () => {
       const before = placements[index - 1]!;
       const after = placements[index]!;
       expect(after.x > before.x || (after.x === before.x && after.y > before.y)).toBe(true);
+    }
+  });
+});
+
+describe("masonryDifferencing", () => {
+  const cases = Array.from({ length: 300 }, (_, seed) => {
+    const columns = 2 + (seed % 3);
+    const count = columns + 1 + (seed % (9 - columns));
+    return { columns, heights: heightsOf(seed + 3000, count, columns, seed % 2 === 0) };
+  });
+
+  it("balances 8, 7, 6, 5 and 4 in 2 columns better than masonryLpt", () => {
+    const heights = [8, 7, 6, 5, 4];
+    const input = wall(heights);
+    // The joins: 8 with 7, 6 with 5, then 4 with (8, 7) gives (11, 8), and (11, 8) with (6, 5) gives (16, 14).
+    expect(optimum(heights, 2)).toBe(15);
+    expect(tallestOf(input, masonryDifferencing(input, { columns: 2 }), 2)).toBe(16);
+    expect(tallestOf(input, masonryLpt(input, { columns: 2 }), 2)).toBe(17);
+  });
+
+  it("stays at or under 4/3 - 1/(3c) of an enumerated optimum", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      if (tallestOf(input, masonryDifferencing(input, { columns }), columns) > (4 / 3 - 1 / (3 * columns)) * optimum(heights, columns) + 1e-9) breaks += 1;
+    }
+    expect(breaks).toBe(0);
+  });
+
+  it("puts the columns in the order of their first card, and each column reads from the top in the input order", () => {
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      const placements = masonryDifferencing(input, { columns }).placements;
+      expect(placements[0]!.x).toBe(0);
+      const firstAt = new Map<number, number>();
+      const lastY = new Map<number, number>();
+      for (const [index, placement] of placements.entries()) {
+        if (!firstAt.has(placement.x)) firstAt.set(placement.x, index);
+        expect(placement.y).toBeGreaterThanOrEqual(lastY.get(placement.x) ?? 0);
+        lastY.set(placement.x, placement.y + heights[index]!);
+      }
+      const lefts = [...firstAt.keys()];
+      expect(lefts).toEqual(lefts.toSorted((a, b) => a - b));
     }
   });
 });
