@@ -14,6 +14,8 @@ const fixed: PackInput = { container: { fixed: "size", w: 16, h: 16 }, items };
 /** The ids of the strategies that take each input of a cell, and the input. */
 const INPUTS: readonly (readonly [string, PackInput])[] = [
   ["sleator", strip],
+  ["shelf-breaks", strip],
+  ["shelf-online", strip],
   ["beam", strip],
   ["exact-strip", strip],
   ["binary-height", strip],
@@ -66,13 +68,13 @@ describe("the standalone strategies", () => {
   });
 
   it("gives an UnsupportedCell for an input outside the cells", () => {
-    for (const id of ["sleator", "beam", "exact-strip", "binary-height"]) expect(() => packWith(id, free), id).toThrow(UnsupportedCell);
+    for (const id of ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height"]) expect(() => packWith(id, free), id).toThrow(UnsupportedCell);
     for (const id of ["masonry", "treemap"]) expect(() => packWith(id, strip), id).toThrow(UnsupportedCell);
   });
 
   it("gives an UnsupportedCell for an input that a function refuses", () => {
     const gapped: PackInput = { ...strip, gap: 1 };
-    for (const id of ["sleator", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit"]) expect(() => packWith(id, gapped), id).toThrow(UnsupportedCell);
+    for (const id of ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit"]) expect(() => packWith(id, gapped), id).toThrow(UnsupportedCell);
   });
 
   it("refuses a count of items above the limit of a search", () => {

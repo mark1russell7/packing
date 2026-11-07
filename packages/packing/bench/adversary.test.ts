@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -221,10 +221,21 @@ describe("the corpus pack-adversary-v1", () => {
       expect(ci).not.toMatch(/ALLOW_SKIP:.*adversary/);
     });
 
+    it("runs --check on main each week, on a cron minute of its own", () => {
+      const minuteOf = (text: string) => /cron: "(\d+) /.exec(text)?.[1];
+      expect(held).toMatch(/\[ "\$EVENT" = schedule \]; then\s+echo "mode=check"/);
+      expect(/cron: "\d+ \d+ \* \* (\d)"/.exec(held)?.[1]).toBeDefined();
+      const others = readdirSync(workflows).filter((name) => name !== "adversary.yml").map((name) => minuteOf(readFileSync(join(workflows, name), "utf8")));
+      expect(others.filter((minute) => minute !== undefined).length).toBeGreaterThan(0);
+      expect(others).not.toContain(minuteOf(held));
+    });
+
     it("runs --check on each file of the search", () => {
       for (const path of [
         "packages/packing/bench/adversary.ts",
         "packages/packing/bench/corpora/pack-adversary-v1.json",
+        "packages/packing/bench/adversary-v2.ts",
+        "packages/packing/bench/corpora/pack-adversary-v2.json",
         "packages/packing/src/generators.ts",
         "packages/packing/src/layout-input.ts",
         "packages/packing/src/strategy.ts",
@@ -242,7 +253,7 @@ describe("the corpus pack-adversary-v1", () => {
         expect(search.test(path), path).toBe(false);
         expect(report.test(path), path).toBe(true);
       }
-      for (const path of ["docs/BENCH.md", "packages/packing/bench/run.ts", "packages/site/src/results.ts"]) {
+      for (const path of ["docs/BENCH.md", "packages/packing/bench/run.ts", "packages/site/src/results.ts", "packages/packing/bench/adversary-v3.ts"]) {
         expect(search.test(path), path).toBe(false);
         expect(report.test(path), path).toBe(false);
       }

@@ -70,8 +70,8 @@ describe("the family prior of k119", () => {
       for (const i of m.specs === undefined ? (m.inputs ?? []) : []) if (i.generator !== undefined) families.add(familyKey(i.generator.name, i.generator.version));
     }
     const mapping = Object.fromEntries([...families].sort().map((f) => [f, samplerFamilyOf(f)]));
-    expect(mapping).toEqual({ ...Object.fromEntries(SAMPLER_FAMILIES.map((f) => [f, f])), "adversary@1": null, "change-walk@1": null });
-    expect(PRIOR_ALIASES).toEqual({ "adversary@1": null, "change-walk@1": null });
+    expect(mapping).toEqual({ ...Object.fromEntries(SAMPLER_FAMILIES.map((f) => [f, f])), "adversary@1": null, "adversary@2": null, "change-walk@1": null });
+    expect(PRIOR_ALIASES).toEqual({ "adversary@1": null, "adversary@2": null, "change-walk@1": null });
     expect(SAMPLER_FAMILIES).toEqual(corpusFamilies.map((f) => `${f.name}@${f.version}`));
   });
 
@@ -79,7 +79,7 @@ describe("the family prior of k119", () => {
     const b = unionPrior();
     expect(b.corpora.length).toBe(readCorpora().length);
     expect(b.families.map((f) => f.family)).toEqual(SAMPLER_FAMILIES.filter((f) => !b.absent.includes(f)));
-    expect(b.unmapped).toEqual([{ family: "adversary@1", inputs: 6 }, { family: "change-walk@1", inputs: 480 }]);
+    expect(b.unmapped).toEqual([{ family: "adversary@1", inputs: 6 }, { family: "adversary@2", inputs: 102 }, { family: "change-walk@1", inputs: 480 }]);
     expect([...priorWeights(b).values()].reduce((s, v) => s + v, 0)).toBeCloseTo(1, 12);
     expect(unionPrior()).toBe(b);
     expect(basisLines(b)[0]).toMatch(/^The family prior: the union of \d+ corpora/);
@@ -117,14 +117,15 @@ describe("the family prior of k119", () => {
     expect(priorBasis([m], "union", families).power).toBeUndefined();
   });
 
-  it("keeps the adversary family as a stratum of its own, with no weight", () => {
-    expect(PRIOR_STRATA).toEqual(["adversary@1"]);
+  it("keeps each version of the adversary family as a stratum of its own, with no weight", () => {
+    expect(PRIOR_STRATA).toEqual(["adversary@1", "adversary@2"]);
     for (const kind of ["union", "family-flat", "tempered"] as const) {
       const b = corporaPrior(kind);
-      expect(b.strata).toEqual([{ family: "adversary@1", inputs: 6 }]);
+      expect(b.strata).toEqual([{ family: "adversary@1", inputs: 6 }, { family: "adversary@2", inputs: 102 }]);
       expect(priorWeights(b).has("adversary@1")).toBe(false);
+      expect(priorWeights(b).has("adversary@2")).toBe(false);
     }
-    expect(basisLines(unionPrior()).at(-1)).toBe("Strata of their own: adversary@1 (6).");
+    expect(basisLines(unionPrior()).at(-1)).toBe("Strata of their own: adversary@1 (6), adversary@2 (102).");
   });
 
   it("reads a spec without a version as version 1, and an input without specs from its generator", () => {

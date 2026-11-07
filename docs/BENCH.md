@@ -136,6 +136,14 @@ The tricks obey the hard rules, and `fill-trick` drops no more items than its be
 - A pair that a budget stopped gives a censored row. A refused pair gives no row.
 - The read only reports. No gate reads its result at this time.
 
+`main.ts fill-widths --out <file> [--runs <corpus>=<run id>,...] <run dir>...` replays the width that `fill-trick` chose on each input. A record does not hold this width.
+
+- The command packs the control again on each input of each run. It stops when `pack.area` or `outputHash` differs from the record.
+- `bench/fixtures/fill-trick-widths.json` holds the replay of the runs 42074008497 (`pack-free-v1`) and 42074060697 (`pack-classes-v1`), at commit `aed4626`. All 1220 inputs agree with their records.
+- On a fixed width, the output keeps the width of the container. Thus `pack.area` does not show the tried width, and only the file shows it.
+- The test of the file packs each input again in CI. A different member, width or output fails it, so each change of the control shows.
+- On `pack-free-v1`, the control kept a tried width on 56 of 720 inputs. On `pack-classes-v1`, it kept one on 155 of 500.
+
 ## The jobs
 
 1. The job `plan` examines the inputs and makes a list of the entries with `main.ts list`.
@@ -212,6 +220,37 @@ node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
+## The tie moves
+
+A tie decides a place. A very small change of one size can break the tie and move other boxes far (roadmap item k149).
+
+`bench/tie-move.ts` reads each option set of each strategy on the family `tie-move/1`. The family has 90 inputs: 5 kinds, 3 container modes, the counts 8, 20 and 50, and 2 seeds. Each input has 2 changes: the width and the height of the middle item go up by 0.01.
+
+| Arm | Inputs | What it tells |
+| --- | --- | --- |
+| `ties` | Equal heights, equal widths, or identical items | The move on an input with ties |
+| `none` | No ties | The control: the same change with no tie to break |
+| `edge` | Sizes at the edge of a bucket of the margin | The adversary of the margin |
+| `marginTies` | The inputs of `ties` through the margin | The move with the margin |
+| `marginEdge` | The inputs of `edge` through the margin | The move when a change crosses an edge |
+
+The margin is a wrapper of the bench. Each size goes up to the top of its bucket of width 1, and a bucket has a whole number at its middle. A change inside a bucket gives the same input, so `marginTies` reads no move by construction. This is not a gain alone. Read it with `marginEdge` and with `fillLost`, the mean fill that the margin loses. The read does not tell about a margin inside the comparisons of a strategy.
+
+Each arm of a row of `bench/gates/tie-move.json` gives its changes, the changes with a move above 1 and the changes with another set of items. It also gives the largest move and its input. The table states what the strategies do. It is not a promise of a limit.
+
+The first read, on 2026-11-05, has these results:
+
+- 79 option sets pack, and 76 of them have a larger move on ties than on the control. The other 3 are `binary-height`, `exact-strip` and the slice-and-dice treemap. `exact-strip` refuses each changed input, because it needs whole sizes, so it has no read of a move.
+- Over all option sets, 3928 changes on ties move a box by more than 1. The control has 37 such changes, and the edge inputs have 1096.
+- Through the margin, 0 changes on ties move a box, and 1464 changes on the edge inputs move a box. Thus the margin moves the problem to the edge of a bucket, and it does not remove the problem.
+- The margin loses at most 0.038 of fill. The value of `fillLost` is below 0 on one treemap, where the margin gains fill.
+- At 8 boxes, the default sets of 5 strategies move a box by 97 to 198. The largest moves come at 50 boxes in the free forms, where the size of the container also changes.
+
+The control is not always quiet. A search or a score can also move far with no tie, as in `anneal`, `overlap-min` and `maxrects-cp`.
+
+`--check` reads again and fails on each difference, also when a move falls, so a change to a strategy shows in the table. CI starts the check on each PR. After a change to a strategy, start `node bench/tie-move.ts --write` and read the difference. The strategies `circle-quasi-physical` and `hole-degree` pack no input of this rect family, so their rows have 0 inputs.
+
 ## The flip tests
 
 A gate that has not gone red on a known fault is not known to work. `packages/packing/bench/gate-flip.ts` starts the real command of a gate in a child process. A clean copy of its input must pass, and each copy with an injected fault must fail. The job of the gate fails when a case gives another code.
@@ -222,8 +261,9 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Time gate | The arm is 3 times slower. A noisy A/A arm gives the code 3 on a first run, and the code 1 on a retry. The test reads a copy of a run with a pass. |
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
-| `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. With a high time floor, `maxrects-bl` over `rows` gives a pass, and `rows` over `maxrects-bl` gives a fail. With the usual floor, `maxrects-bl` over `rows` gives a fail on its time tail, because the records have 2 CPU models. |
+| `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. The records of that pair have 2 CPU models, so `maxrects-bl` over `rows` gives `no-read` at each floor, and `rows` over `maxrects-bl` gives a fail on its gain. |
 | Output rows | Half a position in each output of a strategy with whole rows, and half a size. The output must name the property. The table does not change. |
+| Tie moves | A move of 100 on each change of a strategy. The output must name the arm. The table does not change. |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
@@ -339,6 +379,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-classes-free-v1` | 600 | The same classes with free sizes of roadmap item k158, and small strips of k160. Write its prediction first. |
 | `pack-worst-v1` | 342 | The adversarial families and the scaling ladder of roadmap item k107. Write its prediction first. |
 | `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. Free forms not searched by version 1. |
+| `pack-adversary-v2` | 102 | The worst input of each cell of each pair of version 2 of the search, roadmap item k164. The file holds the inputs, not specs. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 | `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
@@ -470,7 +511,9 @@ Each candidate is a `layout-input/1` file with its hash and `source: "made-up"`.
 
 The result has the worst input, its loss, and the path. The path is the list of the moves from the origin to the worst input. Each move of the path makes the loss larger.
 
-The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them. Roadmap item k164 is the next version. The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. From PR #360, the weekly held-out sample of `drawInput` moves, because a new form of a class generator changes its draws.
+The corpus `pack-adversary-v1` has the worst input of 6 pairs. Each search has the seed 1, the budget 2000 and the cap of 60 items. Version 1 of the search reads only the forms `fixed` and `freeHeight`. Thus the free forms of the class generators do not change its draws, and the search does not explore them.
+
+Roadmap item k164 is the next version ("The adversarial search, version 2"). The pool of `best` also stays at the 16 single entries of 2026-10-28, because a new entry can change a stored row. From PR #360, the weekly held-out sample of `drawInput` moves, because a new form of a class generator changes its draws.
 
 - The field `found` has one line for each pair: the loss, the values of A and B, the winner, the origin and the path.
 - The field `inputs` has the input files, in the order of `found`.
@@ -486,6 +529,8 @@ Two checks hold the corpus:
 | The search gives the stored rows | `--check`, in `adversary.yml`, a job of `CI OK` | a change of the search, of a file that it reads for draws, hashes or values, of `rigor-generators`, of the corpus or of the workflow | The search changed its draws. The merge is blocked, because version 1 is frozen. |
 
 A change of the other package source, the entries or the lock file starts `--report` in `adversary.yml` in place of `--check`. The report names each row that a new search does not find, and it exits with the code 0. A moved row is not a fault of the corpus, because the stored inputs stay valid. A better strategy thus does not block a pull request.
+
+The report exits with the code 0, so a moved row is not seen on the PR that moves it. Thus `adversary.yml` also runs `--check` on main each Tuesday at 03:50 UTC. A red scheduled run asks for a dated answer: a new version of the rows, or a stated reason that the row stays.
 
 The test of `--check` has a limit. After a strategy moves a row, `--check` also fails on a later change of the search, and the failure names that row. Compare the report of `main` before you read that failure as a change of the draws. Version 1 of the search stays frozen, so this case is not normal.
 
@@ -510,6 +555,57 @@ The corpus `pack-strip-v1` has 160 specs and 528 inputs. It has the published se
 - Each spec has the containers `fixed` (the object or the stock) and `freeHeight` (a strip of its width).
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 264 and `shaped` 0.
 - The builder `bench/strip.ts` writes the file. `node bench/strip.ts --check` and a test compare the file with the builder.
+
+### The adversarial search, version 2
+
+Roadmap item k164 adds version 2 of the search. The file `bench/adversary-v2.ts` has it. Version 1 stays frozen, and its corpus does not change.
+
+Version 1 takes each draw of a pair from one stream, and a draw reads the length of a list. Thus a new form or a new class moves the later draws of each origin. Version 2 splits each pair into cells:
+
+- A cell is one generator of `ORIGINS` with one value of `containerSize`. The generator `ladder` has no such parameter, so it has one cell.
+- The 4 adversarial families have the cells `fixed` and `freeHeight`. `berkey-wang` and `martello-vigo` also have `freeAspect` and `freeArea`. Thus a pair has 17 cells.
+- Each cell has its own stream, from the pair, the seed and the name of the cell. Each cell has its own budget of 400 evaluations.
+- A value of a list comes from `stablePick` of `@mark1russell7/rigor-generators`. Each pick reads one number of the stream, for any length of the list.
+- In a cell, the search is the hill climb of version 1. It starts again after 100 evaluations with no gain.
+
+A test adds, removes and moves cells, and the rows of the other cells stay byte-equal. With one stream for all the cells, that test fails.
+
+The pool of `best` is the list `POOL_V2`: 32 single entries. The list `POOL_OUT` names each entry that is not in the pool, with its reason:
+
+- `push` packs only a change of an earlier layout.
+- `beam`, `near-rects` and `raster-nofit` took more than 50 ms for one pack of 60 items of `berkey-wang` class `III`.
+- `exact-strip` is an exact search that refuses 60 items.
+- The composite entries are not in the pool, because each one packs with other entries.
+
+A test fails when an entry of the benchmark is in neither list. Thus a new entry needs a choice, and a change of the pool is a change of the stored rows.
+
+The file has one row for each cell of each pair, in the field `found`: 102 rows. A loss of `fill` and a loss of `gap` are not on one scale, so the console gives the worst row of each measure. A row with a loss of 0 or less tells that A does not lose in that cell. Each search has the seed 1, the budget 400 for each cell and the cap of 60 items.
+
+| A | B | Measure | Loss | Items | Cell | Winner |
+|---|---|---|---|---|---|---|
+| `skyline` | `maxrects-bl` | fill | 0.451 | 38 | `skyline-gap.fixed` | `maxrects-bl` |
+| `skyline` | `maxrects-bl` | gap | 1.104 | 12 | `berkey-wang.freeHeight` | `maxrects-bl` |
+| `shelf-best` | `maxrects-bl` | fill | 0.415 | 60 | `tall-row.fixed` | `maxrects-bl` |
+| `shelf-best` | `maxrects-bl` | gap | 0.646 | 36 | `martello-vigo.freeAspect` | `maxrects-bl` |
+| `rows` | `maxrects-bl` | fill | 0.456 | 51 | `tall-row.fixed` | `maxrects-bl` |
+| `rows` | `maxrects-bl` | gap | 0.611 | 9 | `martello-vigo.freeHeight` | `maxrects-bl` |
+| `maxrects-bl` | `skyline` | fill | 0.059 | 46 | `martello-vigo.fixed` | `skyline` |
+| `maxrects-bl` | `skyline` | gap | 0.524 | 25 | `martello-vigo.freeAspect` | `skyline` |
+| `maxrects-bl` | `restarts-maxrects-bl-k16` | fill | 0.799 | 7 | `martello-vigo.fixed` | `restarts-maxrects-bl-k16` |
+| `maxrects-bl` | `restarts-maxrects-bl-k16` | gap | 0.374 | 21 | `martello-vigo.freeHeight` | `restarts-maxrects-bl-k16` |
+| `select-rows-bl` | `best` | fill | 0.949 | 8 | `skyline-gap.fixed` | `guillotine-baf-sas` |
+| `select-rows-bl` | `best` | gap | 0.706 | 45 | `bl-trap.freeHeight` | `best-fit` |
+
+Version 1 does not search the forms `freeAspect` and `freeArea`. In each of their 4 cells, `skyline` loses to `maxrects-bl`, with a gap loss from 0.072 to 0.176. The worst row of each pair has a larger loss than the row of version 1. Version 2 has more evaluations for each pair: 17 cells of 400, not 2000.
+
+The same two checks of version 1 hold the corpus. The test of `--rows` reads the hash `ADVERSARY_V2_SHA256`. The job `search-v2` of `adversary.yml` starts `--check` or `--report` with the same rules as the job of version 1. On 2026-11-06, one search of the 6 pairs took 5 minutes and 6 seconds on a development computer, with approximately one core.
+
+The draw of an input of the sample space has a version 2 too: the option `drawVersion` of `drawInput`. The default is 1, so each stored sample stays the same.
+
+- Version 1 reads a list by its length, and a family with more dimensions reads more numbers. A new family or value thus moves each later draw. This is the stored fault of version 1.
+- Version 2 reads one number of the given stream for each draw, and draws in a stream of its own from that number. It picks a family or a value of a list with `stablePick`.
+- A test adds a family and a value, and only the draws that they win move. The share of a new family is approximately 1 in n + 1.
+- No sample uses version 2 yet. A new version of a sample can take it.
 
 ### The categories of Hopper and Turton
 
@@ -1306,6 +1402,7 @@ The time budget (`bench/time-budget.ts`, schema `packing-time-budget/3`, roadmap
 - Each CI job of mode `fresh` with the A/A arm gives one job of the pooled verdict. The candidate pair is (default, candidate), and the A/A pair is (default, `<default>~aa`).
 - Each input and each round of a report give one record of each pair. The two pairs share the time of the default of the round.
 - The first arm of a record comes from the order of `armOrder`. That order rotates the arms of the report by the round.
+- Each time gate prints the counts per order of its pair, and the order size from `orderSize` of `@mark1russell7/rigor-bench`. The size is a guide: it holds for a mean, and the verdict reads a median. If a future margin of a limit falls under approximately 3 times the size, even counts come back.
 - The job `j` uses the rounds from `j` times the rounds of a job. Thus the merged records have one record of each case and round.
 - With 3 arms, the rotation does not turn each pair in each round. In 5 rounds, the candidate pair starts with the default 3 times, and the A/A pair 2 times.
 - The balance of the orders then removes 4 records of each case in each pair from 5 jobs. The record keeps this count.
@@ -1329,7 +1426,7 @@ The proposal 0.156 is the worst job plus the spread of the jobs (0.1379 + 0.0183
 
 - After a promotion, the strategy gets a time gate in `bench/gates/` (the worst value plus the spread of 5 runs).
 
-The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
+The input `budget` of `paired-time.yml` names the candidate arm. With `runs` 5, the job `budget` writes `budget.json` and `budget.md`. The record prints each CPU model with its job count. With 2 models, it states "models not tested at 5 jobs" and the floor of the model test as the reason. At a split of 3 and 2 jobs, the smallest p is 0.2. The verdict reads the ratios inside each job, and it does not say that the models agree. A page that quotes a budget result carries the same line. Locally, `node bench/main.ts paired-budget --dir <folder of runs> --arm <id>` gives the same record.
 
 ### The speed claims
 
@@ -1547,6 +1644,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 ## The snapshots of the site
 
 The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
+The script writes compact JSON with no indent, because the site bundles each file as raw text. A file of 64 strategies is approximately 140 KB, and the limit of the test is 200,000 bytes for each file.
 
 The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A run folder holds the files of one artifact: `records.jsonl`, `run.json` and `corpus.json`. Download it with `gh run download <id>` into a folder outside git.
 
@@ -1573,21 +1671,31 @@ The file `measured-entries.json` gives the count of the entries over the corpora
 - The count uses the planned list of the last write. A new entry changes the count at the next run of `Site data`.
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
-A scheduled run of `coverage-nightly.yml` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch. A manual run gives no point, and a cancelled run gives no point.
+A completed run of `coverage-nightly.yml` on `main` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch.
 
-The workflow `site-rerun.yml` reruns the other five corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A scheduled run also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
+A run that a person starts gives a point too, because a point is a measure, but a cancelled run gives no point.
+Each point records the start of its run: `schedule`, `dispatch` or `push`. The trend shows it with the link of the run. The start does not change the line of a point.
+`bench/site-data-trigger.test.ts` holds the condition of the job. Before this change, a filter on the event lost the point of run 41993720877, which measured for 8 hours.
+
+The workflow `site-rerun.yml` reruns the other six corpora of the site each Wednesday, one corpus after another, with the wall budget of each pair. A completed run on `main` also starts `site-data.yml`, which writes the files of each corpus with merged records in that run. A corpus that failed keeps its earlier file. `bench/site-rerun.test.ts` compares the corpora of the two workflows.
 
 - A point of the coverage trend has its corpus, its list of strategies and its method. The method is the timed runs, the warm-up runs and the wall budget. A line of the trend joins only points with one corpus and one method.
 - A newly measured entry does not restart a line. The snapshot also fits the records of the run over each earlier list with the same method. That share continues the line of the list. The page states the count, for example `54 common of 55`, and the new entry starts its own line.
 - An entry that loses its row ends the line of each list that has it. Dropping a hard entry can raise a share, so it does not join. The point has `lost`: each entry with its reason, for example over budget, refused or an error. A censored reason keeps its lower bound on the time. The snapshot step gives a warning for each one.
 - A slow pair can lose its row while its entry keeps a row. That line continues, each point has its count of measured records, and the page states a change of that count.
 - A step between two points of one line reads the pairs measured in both points, by strategy and input. `site-data.yml` gets the records of the earlier run from its artifact, and both points get a new fit over these pairs. The page shows that figure beside the plain share, with the count, for example 90 common of 100 pairs.
+- A point reads the whole space from the sample of its run. A Bench run keeps the sample in the folder `sample` of its records. A coverage run keeps it in the artifact `nightly-held-out`, and `site-data.yml` gives that folder to `snapshot.ts coverage` as `--sample` (k188). Without a sample, the point has no blocks `sampled`, `strata` and `prior`, and its block `uniform` stays from an earlier run.
 - A dropped hard pair can raise a plain share, but it cannot raise the figure over the common pairs. Thus the page calls a step a gain only when both figures gain.
 - The artifact of a run expires after 90 days. With no records of the earlier run, the step reads "no read" and has no figure. A change of the method and a lost entry end a line, so they have no step.
 - An entry that loses its row breaks the line of a list that has it. The earlier run has no share without that entry in the file.
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
-- The build in `pages.yml` puts the files of the branch over the files of `main`. So the files of the branch are the current data. A build without the branch uses the files of `main`.
+- A run writes only the files that it changes. The job `snapshot` compares each file with the copy that it made after the overlay, with `snapshot.ts written`. The job `publish` removes nothing from the branch.
+- A file on the branch stays until a run for its corpus writes it.
+- The build in `pages.yml` compares the time in the `origin` of each file. It takes a file of the branch only if that time is later than on `main`. The time is the date of the latest run, then the run id for two runs of one day. A tie goes to `main`.
+- A file with no readable time stops the build with the file name, on either side. Each build prints the source of each file of the branch. A build without the branch uses the files of `main`.
+- A later file of the branch can still lack a new field, so this rule does not replace a read of each file.
+- A file on `main` that is later than `coverage.json` of the branch hides the points of the trend that are only on the branch.
 - The table of the gaps has one column for each strategy, so the job keeps 6 strategies with `--strategies`.
 - `--date` gives the start date of the run. The age of the data counts from that date, and not from the date of the commit.
 
@@ -1646,7 +1754,7 @@ Read these limits:
 - The product counts cells that no input can be. So `cellShare` is a lower limit, not a target.
 - The dimensions are `containerSize`, `containerShape`, `obstacles`, `itemShape`, `rotation`, `sizes`, `count`, `order`, `groups` and `mode`. `obstacleMove` is not a dimension here, because only a cell with obstacles has it. A cell has no `objective`.
 - A cell is the statement of the generator. The script does not compare it with the generated input.
-- `pack-adversary-v1` has no specs, so the script lists it in `skipped`.
+- `pack-adversary-v1` and `pack-adversary-v2` have no specs, so the script lists them in `skipped`.
 - A value outside `COVER_DIMENSIONS` stops the script with a `RangeError`.
 
 ## The space coverage
@@ -1993,7 +2101,7 @@ The prior `union` uses all the committed corpora of `bench/corpora`.
 - The order of the corpora does not change the weights.
 - A sampler family without inputs in the corpora gets the weight 0. The field `absent` of the basis lists it.
 - A corpus family that the sampler does not draw gives no weight. The field `unmapped` of the basis lists it.
-- The inputs of `pack-adversary-v1` are searched worst cases, not draws of their origin family. Thus `adversary@1` is unmapped.
+- The inputs of `pack-adversary-v1` and `pack-adversary-v2` are searched worst cases, not draws of their origin family. Thus `adversary@1` and `adversary@2` are unmapped.
 
 The field `prior` of `coverage.json` keeps the basis: its kind, its corpora, its inputs and the weight of each family. The job summary shows it too.
 
@@ -2307,6 +2415,42 @@ The strip has a width of 200. Each family has made-up items with a height from 1
 
 Over the 270 inputs, the mean height over the larger bound is 1.301, and `maxrects-bl` is lower or equal on 98.9 %. The hard rules have 0 breaks. The first column uses a lower bound, not the optimum, so it is above the true ratio.
 
+## The shelf with the best breaks
+
+`bench/breaks.ts` compares `shelfBreaks` of roadmap item k29 with the strategy `shelf` and the option `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k29-optimal-breaks`.
+
+```bash
+node --no-warnings bench/breaks.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-screen-v1` as the default. It packs each input that `shelfBreaksRefusal` accepts with the two strategies. It writes one JSON line. The line has the counts of refusals, of higher heights and of lower heights. It also has the mean and the least ratio of the two heights.
+
+| Corpus | Inputs | Accepted | Higher | Lower | Mean ratio | Least ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-screen-v1` | 1305 | 20 | 0 | 10 | 0.979 | 0.891 |
+| `pack-strip-v1` | 528 | 264 | 0 | 216 | 0.955 | 0.763 |
+
+The script refuses each input with no fixed width. Thus `pack-screen-v1` gives only 20 inputs. No height is higher than the greedy height, and the proof in `docs/PACKER.md` gives the same result. The mean ratio of `pack-screen-v1` is above 0.97, so the prediction of a mean ratio of at most 0.97 is false. The row of `pack-strip-v1` is a second read, not the measure of the prediction.
+
+## The online shelf
+
+`bench/online.ts` compares `shelfOnline` of roadmap item k30 with its bound and with the strategy `shelf` with `sortOrder: "input"`. A height is not a time, so any computer can start it. The prediction is `packing-k30-online-shelf`.
+
+```bash
+node --no-warnings bench/online.ts [corpus]
+```
+
+The script reads each input of a corpus of `bench/corpora`, with `pack-strip-v1` as the default. It packs each input that `shelfOnlineRefusal` accepts with `r: 0.5` and each fit. It writes one JSON line. For each fit, the line has the count of heights at or over the bound. It also has the mean and the largest ratio to the greedy height, and the largest share of the bound.
+
+| Corpus | Accepted | Fit | Over the bound | Mean ratio | Largest ratio | Largest share of the bound |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pack-strip-v1` | 264 | `next` | 0 | 1.061 | 1.730 | 0.538 |
+| `pack-strip-v1` | 264 | `first` | 0 | 1.009 | 1.730 | 0.487 |
+| `pack-screen-v1` | 20 | `next` | 0 | 1.192 | 1.945 | 0.498 |
+| `pack-screen-v1` | 20 | `first` | 0 | 1.175 | 1.945 | 0.498 |
+
+No height is at or over the bound, and the proof in `docs/PACKER.md` gives the same result. The greedy shelf knows each item of its row before the next row starts. The online shelf does not, so a ratio over 1 is the cost of a place that does not move later.
+
 ## Side anchors
 
 `bench/side-anchors.ts` measures `packSideAnchors` of roadmap item `k110`. A height is not a time, so any computer can start it. The prediction is `packing-k110-side-anchors`.
@@ -2418,6 +2562,21 @@ Roadmap item k141 adds 14 entries to `ENTRIES`: `STANDALONE_ENTRIES` of `bench/e
 - The entries are in `packSpace` since roadmap item k142. Each entry has a named config. `bench/pack-space.test.ts` compares its output with the entry on inputs that it accepts.
 - Roadmap item k142 adds 9 strata to the sampler, 38 in all. The strata `exact-strip:1` and `treemap:1` accept few inputs, so a short sample misses them.
 - The entries are not members of the adversary or of the portfolio tools, because they do not support each cell.
+
+## The split of the free space
+
+`bench/split-fill.ts` reads the mean fill of 4 placements alone and through the split `obstacle-cuts` of roadmap item k41. It has 120 inputs of `rect-grid`: 6 obstacle layouts, a fixed size and a free height, 10 seeds and 60 items. The prediction is `packing-k41-split-stage`.
+
+| Placement | Fill alone | Fill through `obstacle-cuts` | Overflow alone | Overflow through `obstacle-cuts` |
+| --- | --- | --- | --- | --- |
+| `skyline` | 0.5854 | 0.6260 | 176 | 95 |
+| `maxrects` | 0.5246 | 0.5887 | 45 | 94 |
+| `rows` | 0.7022 | 0.6178 | 265 | 95 |
+| `shelf` | 0.7179 | 0.6152 | 349 | 98 |
+
+- The prediction told a lower fill for `skyline` through the split. The fill is higher, so this outcome is a miss.
+- Through the split, `rows` and `shelf` have a lower fill and fewer overflow items. The fill reads only the placed items, so a placement with more items in the overflow can have a higher fill.
+- `maxrects` packs around the obstacles by itself, and has more overflow items through the split. Thus a split helps a placement that packs one rectangle, and not a placement that packs around obstacles.
 
 ## The rank window
 

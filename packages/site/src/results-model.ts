@@ -2,7 +2,7 @@
 
 import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasuredEntry, MeasuredRow, MeasuredSnapshot, MeasureVerdict, SelectLeaf, SkipWord, StrategySnapshot, StrategySummary } from "./data.ts";
 import { stopsEarly } from "./data.ts";
-import { esc } from "./format.ts";
+import { esc, REPO } from "./format.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { isBudgetReason, segmentOf, skipCounts, trendSegments, type SkipSummary } from "./kpi.ts";
 
@@ -170,6 +170,38 @@ export function labelCounts(snap: StrategySnapshot, measure: string): Record<Lab
     const v = verdictOf(s, measure);
     if (v !== undefined) out[v.label]++;
   }
+  return out;
+}
+
+/** The counts of the fill claim of a snapshot (roadmap item k154). Each strategy other than the baseline is in one count. */
+export interface FillClaimCounts {
+  /** The strategies with the fill better and the partner not worse. Only these count as a fill win. */
+  pair: number;
+  /** The strategies with the fill better and the partner worse. */
+  givesUp: number;
+  /** The strategies with the fill better and no verdict of the partner: a corpus with no partner, or a snapshot without the partner. */
+  unpaired: number;
+  worse: number;
+  /** The strategies with no verdict or a mixed verdict on the fill. */
+  other: number;
+  unmeasured: number;
+}
+
+/** This function gives the share of a fill claim of one strategy: `pair`, `givesUp` or `unpaired` when the fill is better. */
+export function fillClaimOfStrategy(s: StrategySummary, fill: string, partner: string | null): keyof FillClaimCounts {
+  const label = verdictOf(s, fill)?.label;
+  if (label === undefined || label === "not measured") return "unmeasured";
+  if (label === "worse") return "worse";
+  if (label !== "better") return "other";
+  const other = partner === null ? undefined : verdictOf(s, partner)?.label;
+  if (other === undefined || other === "not measured") return "unpaired";
+  return other === "worse" ? "givesUp" : "pair";
+}
+
+/** This function counts the fill claim of each strategy other than the baseline. */
+export function fillClaimCounts(snap: StrategySnapshot, fill: string, partner: string | null): FillClaimCounts {
+  const out: FillClaimCounts = { pair: 0, givesUp: 0, unpaired: 0, worse: 0, other: 0, unmeasured: 0 };
+  for (const s of snap.strategies) if (s.strategy !== snap.baseline) out[fillClaimOfStrategy(s, fill, partner)]++;
   return out;
 }
 
@@ -552,6 +584,13 @@ const dayOf = (date: string): number => Date.parse(`${date}T00:00:00Z`) / 86_400
 /** This function gives the count of a point that continues the line of an earlier list, for example ` (54 common of 55)`. */
 const commonText = (p: CoveragePoint): string => (p.commonOf === undefined ? "" : ` (${p.strategies?.length ?? 0} common of ${p.commonOf})`);
 
+/** The words of the start of the run of a point. */
+const TRIGGER_WORDS: Readonly<Record<NonNullable<CoveragePoint["trigger"]>, string>> = { schedule: "weekly run", dispatch: "run started by hand", push: "run of a push" };
+
+/** This function gives the words of the start of the run of a point, with the link of the run. A point with no start or no run gives no words. */
+export const triggerText = (p: CoveragePoint): string =>
+  p.trigger === undefined || p.run === null ? "" : `, <a href="${REPO}/actions/runs/${p.run}">${TRIGGER_WORDS[p.trigger]}</a>`;
+
 /**
  * This function gives the geometry of the trend chart in a box of `width` by `height`, with a margin `pad` on each side.
  * The x axis is the date, and the y axis is the share from 0 at the bottom to 1 at the top. One date goes to the middle.
@@ -581,7 +620,7 @@ const segmentText = (segment: readonly CoveragePoint[]): string => {
   const method = first.method === undefined ? "" : ` (${esc(first.method)})`;
   const counts = [...new Set(segment.flatMap((p) => (p.records === undefined ? [] : [p.records])))];
   const pairs = counts.length < 2 ? "" : ` The measured records differ: ${counts.join(", ")}. A slow pair that loses its row can move a share, so read the step with its common pairs.`;
-  return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p))).join(", ")}.${pairs}</li>`;
+  return `<li><code>${esc(first.corpus)}</code> on ${count}${method}: ${segment.map((p) => esc(p.date + commonText(p)) + triggerText(p)).join(", ")}.${pairs}</li>`;
 };
 
 /** This function gives the words of the reasons of an entry with no measured record. A censored reason gives its lower bound on the time. */

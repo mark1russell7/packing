@@ -4,7 +4,7 @@ import { parseResponseRecord } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
 import { buildLine, navLinks } from "./chrome.ts";
 import { coverageLine, explorerFacts, NO_COVERAGE_LINE, RECORD_ORIGIN } from "./explorer-model.ts";
-import { byDate, COVERAGE_LABELS, NEWS, newsByDate, parseSnapshot, SNAPSHOT_SCHEMA, stopsEarly, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type MeasuredRow, type MeasuredSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
+import { byDate, COVERAGE_LABELS, FILL_CLAIMS, fillClaimOf, NEWS, newsByDate, parseSnapshot, SNAPSHOT_SCHEMA, stopsEarly, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type MeasuredRow, type MeasuredSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -22,6 +22,8 @@ import {
   percentText,
   pickHolds,
   budgetText,
+  fillClaimCounts,
+  fillClaimOfStrategy,
   rankSections,
   rankStrategies,
   reasonMeaning,
@@ -48,6 +50,7 @@ import {
   trendChart,
   stepReads,
   trendNote,
+  triggerText,
 } from "./results-model.ts";
 import { LAST_RUN_OLD_GAP, oldGapNote } from "./gap-definition.ts";
 
@@ -63,6 +66,7 @@ const KINDS: Record<string, Snapshot["kind"]> = {
   "paired-k67.json": "paired",
   "releases.json": "releases",
   "select-table.json": "select",
+  "strategies-pack-classes-free-v1.json": "strategies",
   "strategies-pack-free-v1.json": "strategies",
   "strategies-pack-screen-v1.json": "strategies",
   "strategies-pack-select-v1.json": "strategies",
@@ -163,6 +167,15 @@ describe("navLinks", () => {
   });
 });
 
+describe("the line of the home page about the explorer", () => {
+  it("is in the served HTML with a link, so a read with no script finds it", () => {
+    const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    const line = /<p id="explorer-line">(.*?)<\/p>/.exec(html)?.[1];
+    expect(line).toContain('<a href="./explorer/">response explorer</a>');
+    expect(line).toContain("?");
+  });
+});
+
 describe("the snapshot files", () => {
   it("has exactly the files that the pages read", () => {
     expect(readdirSync(DATA).sort()).toEqual([...Object.keys(KINDS), ...OWN_SCHEMA].sort());
@@ -233,6 +246,35 @@ describe("the calculations of the pages", () => {
     expect(sections.map((x) => x.strategies.map((s) => s.strategy))).toEqual([["big-high", "big-low"], ["small-high"]]);
     expect(sectionText(sections[1]!.finished!, 10)).toBe("Compared on the same 6 of 10 inputs, up to 100 items. Do not compare these strategies with another group.");
     expect(sectionText({ set: "none", inputs: 0, largest: null }, 10)).toBe("No input finished, so these strategies have no comparison.");
+  });
+
+  it("counts a fill win only with the partner not worse, and claims no fill win on a corpus with no partner (k154)", () => {
+    const fill = snap.strategies[0]!.verdicts[0]!;
+    const one = (strategy: string, f: string, right?: string): StrategySummary => ({
+      ...snap.strategies[0]!,
+      strategy,
+      verdicts: [{ ...fill, measure: "pack.fill", label: f }, ...(right === undefined ? [] : [{ ...fill, measure: "pack.balance.side.right", label: right }])],
+    }) as StrategySummary;
+    const made = {
+      ...snap,
+      baseline: "base",
+      strategies: [one("base", "better", "better"), one("pair", "better", "no verdict"), one("pair2", "better", "better"), one("gives", "better", "worse"), one("bare", "better"), one("low", "worse", "better"), one("mix", "depends on the mix"), one("tie", "no verdict"), one("off", "not measured")],
+    } as StrategySnapshot;
+    const right = "pack.balance.side.right";
+    expect(made.strategies.map((s) => fillClaimOfStrategy(s, "pack.fill", right))).toEqual(["pair", "pair", "pair", "givesUp", "unpaired", "worse", "other", "other", "unmeasured"]);
+    expect(fillClaimCounts(made, "pack.fill", right)).toEqual({ pair: 2, givesUp: 1, unpaired: 1, worse: 1, other: 2, unmeasured: 1 });
+    expect(fillClaimCounts(made, "pack.fill", null)).toEqual({ pair: 0, givesUp: 0, unpaired: 4, worse: 1, other: 2, unmeasured: 1 });
+  });
+
+  it("gives each corpus of the results page a fill claim, with no partner on the free corpus (k154)", () => {
+    for (const name of ["strategies-pack-screen-v1.json", "strategies-pack-select-v1.json", "strategies-pack-select-v2.json", "strategies-pack-free-v1.json"]) {
+      const corpus = (parseSnapshot(read(name), "strategies") as StrategySnapshot).corpus;
+      expect(FILL_CLAIMS[corpus], corpus).toBeDefined();
+    }
+    expect(fillClaimOf("pack-free-v1").partner).toBeNull();
+    expect(fillClaimOf("pack-screen-v1").partner).toBe("pack.balance.side.right");
+    expect(fillClaimOf("pack-select-v2").note).toContain("does not guard the order");
+    expect(fillClaimOf("pack-unknown-v9")).toEqual({ partner: null, note: expect.stringContaining("no fill win") });
   });
 
   it("gives the meaning of the budget reasons and of a refusal, and no meaning for another reason", () => {
@@ -789,5 +831,20 @@ describe("the space coverage of k105", () => {
       const note = measuredNote(snap);
       for (const row of snap.rows) for (const e of row.entries) if (stopsEarly(e, row)) expect(note).toContain(`<code>${e.entry}</code> on <code>${row.corpus}</code>: ${e.measured} of ${e.records}`);
     });
+  });
+});
+
+describe("the start of the run of a coverage point (k185)", () => {
+  const p = { date: "2026-11-05", run: 41993720877, corpus: "pack-classes-v1", commit: "441bb21", shares: {} };
+
+  it("names a dispatch, a weekly run and a push, with the link of the run", () => {
+    expect(triggerText({ ...p, trigger: "dispatch" })).toBe(', <a href="https://github.com/mark1russell7/packing/actions/runs/41993720877">run started by hand</a>');
+    expect(triggerText({ ...p, trigger: "schedule" })).toContain(">weekly run</a>");
+    expect(triggerText({ ...p, trigger: "push" })).toContain(">run of a push</a>");
+  });
+
+  it("gives no words for a point with no start or no run", () => {
+    expect(triggerText(p)).toBe("");
+    expect(triggerText({ ...p, run: null, trigger: "dispatch" })).toBe("");
   });
 });

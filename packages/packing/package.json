@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/packing",
-  "version": "0.10.0",
+  "version": "0.10.2",
   "description": "Rectangle packing: shelf, guillotine and skyline strategies, push cascades and measures of a layout.",
   "keywords": [
     "rectangle-packing",
@@ -111,7 +111,7 @@
   "dependencies": {
     "@mark1russell7/collections": "^0.1.0",
     "@mark1russell7/layout-contract": "^0.5.0",
-    "@mark1russell7/rigor-generators": "^0.1.1"
+    "@mark1russell7/rigor-generators": "^0.1.6"
   },
   "scripts": {
     "bench": "node bench/main.ts",
@@ -122,8 +122,9 @@
   },
   "devDependencies": {
     "@mark1russell7/cue": "^1.0.2",
-    "@mark1russell7/rigor-bench": "^0.2.18",
+    "@mark1russell7/rigor-bench": "^0.2.20",
     "@mark1russell7/rigor-statistics": "^0.1.11",
+    "@mark1russell7/site-pages": "^0.2.20",
     "@types/node": "^26.6.4",
     "esbuild": "^0.28.2",
     "tsdown": "^0.23.1",

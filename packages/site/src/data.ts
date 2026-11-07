@@ -382,6 +382,8 @@ export interface CoveragePoint {
   strategies?: string[];
   /** The method of the run. A point of a run before this field has no method. */
   method?: string;
+  /** The start of the run: the weekly schedule, a dispatch by hand, or a push. A point of a run before this field has no start. */
+  trigger?: "schedule" | "dispatch" | "push";
   /** The shares of this point over each earlier list that it contains, with one method. */
   over?: { strategies: string[]; shares: Record<string, number>; records?: number }[];
   /** The measured records of the point. */
@@ -788,7 +790,17 @@ export const CORPUS_LABELS: Record<string, { label: string; note: string }> = {
   "pack-select-v1": { label: "Test 1", note: "The boards of the two other corpora, with the fresh seeds 21 to 25. No fit used these seeds." },
   "pack-select-v2": { label: "Test 2", note: "The boards of the two other corpora, with the fresh seeds 31 to 35. No fit used these seeds." },
   "pack-known-v1": { label: "Known best", note: "Perfect cuts, guillotine and free, and consecutive squares. Each input has a known best value. Each board has 12 seeds." },
+  "pack-classes-free-v1": {
+    label: "Free classes",
+    note: "The 10 classes of Berkey and Wang and of Martello and Vigo, with a target aspect or a free area, and strips of 8 and 16 items.",
+  },
 };
+
+/**
+ * The corpora of the strategy snapshots, in the order of the rows of a verdict strip. Each corpus has the file
+ * `data/strategies-<corpus>.json`. The free classes come last, because only a few entries take only free sizes (k158).
+ */
+export const STRATEGY_CORPORA = ["pack-select-v2", "pack-select-v1", "pack-screen-v1", "pack-free-v1", "pack-classes-free-v1"] as const;
 
 /** The names and the notes of the gap measures */
 export const GAP_LABELS: Record<GapSnapshot["measure"], { label: string; note: string }> = {
@@ -810,7 +822,38 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
   "pack.overflow.excessArea": { label: "Overflow", note: "The share of box area outside the container that a better packer can place. Less is better.", share: true },
   "pack.raggedness": { label: "Ragged edge", note: "The longest row less the shortest row, as a share of the hull width. Less is better.", share: true },
   "pack.overflow": { label: "Not placed", note: "The count of boxes that the packer did not place. Less is better.", share: false },
+  "pack.balance.side.right": { label: "Right strip", note: "The empty share of the strip at the right side of the container. Less is better.", share: true },
 };
+
+/** The partner of the fill claim of a corpus (roadmap item k154). */
+export interface FillClaim {
+  /** The measure that a fill win needs, not worse. `null` is a corpus with no partner: its page claims no fill win. */
+  readonly partner: string | null;
+  /** The reason of the partner, for the page. */
+  readonly note: string;
+}
+
+const RIGHT_STRIP: FillClaim = {
+  partner: "pack.balance.side.right",
+  note:
+    "A packer can raise the fill and leave the right strip of the container empty. Thus a fill win counts only when the right strip is not worse. " +
+    "This pair does not guard the order of the input. At this count of inputs, the order measure does not find a small rise of inversions.",
+};
+
+/** The fill claim of each corpus of the strategy snapshots. `fillClaimOf` gives the claim of a corpus that is not in this list. */
+export const FILL_CLAIMS: Record<string, FillClaim> = {
+  "pack-screen-v1": RIGHT_STRIP,
+  "pack-select-v1": RIGHT_STRIP,
+  "pack-select-v2": RIGHT_STRIP,
+  "pack-free-v1": {
+    partner: null,
+    note: "On this corpus, no other measure catches a packer that is built only to raise the fill (bench run 42074008497). Thus this page claims no fill win here.",
+  },
+};
+
+/** This function gives the fill claim of a corpus. A corpus with no entry in `FILL_CLAIMS` has no partner. */
+export const fillClaimOf = (corpus: string): FillClaim =>
+  FILL_CLAIMS[corpus] ?? { partner: null, note: "No partner of the fill is chosen for this corpus. Thus this page claims no fill win here." };
 
 /** The names and the notes of the measures of the compare page: the measures of the results page, and the side skew (k123) */
 export const COMPARE_LABELS: Record<string, { label: string; note: string; share: boolean }> = {

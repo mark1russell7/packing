@@ -5,3 +5,7 @@
 *.ico binary
 *.woff2 binary
 *.pdf binary
+
+# The fixtures of the bench and the corpus of the search are data that a command or a run writes. GitHub folds them in a review diff.
+packages/packing/bench/fixtures/*.json linguist-generated=true
+packages/packing/bench/corpora/pack-adversary-v2.json linguist-generated=true

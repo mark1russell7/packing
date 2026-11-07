@@ -1,17 +1,13 @@
 // The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
 // The page reads only the snapshot files of `packages/site/data/`.
 
-import { atlasFilter, atlasTable, atlasTiles, regionsOf, ruleLine, type RegionState, type SolvedRule } from "./atlas-model.ts";
+import { atlasFilter, atlasTable, atlasTiles, branchRunLines, regionsOf, ruleLine, type RegionState, type SolvedRule } from "./atlas-model.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { marked } from "marked";
 import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover, type LawCoverCount } from "./corpus-cover-model.ts";
 import strategiesText from "../content/results-strategies.md?raw";
 import speedText from "../content/results-speed.md?raw";
 import selectText from "../content/results-select.md?raw";
-import screenJson from "../data/strategies-pack-screen-v1.json?raw";
-import freeJson from "../data/strategies-pack-free-v1.json?raw";
-import test1Json from "../data/strategies-pack-select-v1.json?raw";
-import test2Json from "../data/strategies-pack-select-v2.json?raw";
 import pairedJson from "../data/paired-k67.json?raw";
 import selectJson from "../data/select-table.json?raw";
 import gapsText from "../content/results-gaps.md?raw";
@@ -26,7 +22,8 @@ import lawCoverJson from "../data/law-cover.json?raw";
 import coverageJson from "../data/coverage.json?raw";
 import measuredJson from "../data/measured-entries.json?raw";
 import { mountChrome } from "./chrome.ts";
-import { CORPUS_LABELS, COVERAGE_LABELS, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
+import { CORPUS_LABELS, COVERAGE_LABELS, fillClaimOf, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
+import { strategySnapshots } from "./strategy-snapshots.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -45,7 +42,8 @@ import {
   gapShade,
   gapTable,
   gapText,
-  labelCounts,
+  fillClaimCounts,
+  fillClaimOfStrategy,
   parseVerdictHash,
   percentText,
   pickHolds,
@@ -81,7 +79,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
-const snapshots: StrategySnapshot[] = [test2Json, test1Json, screenJson, freeJson].map((t) => parseSnapshot(t, "strategies"));
+const snapshots = strategySnapshots;
 const paired = parseSnapshot(pairedJson, "paired");
 const select = parseSnapshot(selectJson, "select");
 const gapSnaps = [gapsKnownJson, gapsSelectJson].map((t) => parseSnapshot(t, "gaps"));
@@ -96,17 +94,20 @@ let current = 0;
 
 // ---- Each strategy against rows ----
 
-/** This function gives the chip of one verdict. */
-function chip(v: MeasureVerdict | undefined): string {
+/** The look of a better fill on a corpus with no partner: the fill is higher, and the page claims no win. */
+const NO_CLAIM = { mark: "•", word: "Higher, no claim", cls: "none" };
+
+/** This function gives the chip of one verdict. With `noClaim`, a better verdict shows as `NO_CLAIM`. */
+function chip(v: MeasureVerdict | undefined, noClaim = false): string {
   if (v === undefined) return `<span class="chip unmeasured">○ Not measured</span>`;
-  const look = LABEL_LOOK[v.label];
+  const look = noClaim && v.label === "better" ? NO_CLAIM : LABEL_LOOK[v.label];
   const share = MEASURE_LABELS[v.measure]?.share ?? false;
   const value = v.stratified === undefined ? "" : ` <b>${diffText(v.stratified.mean, share)}</b>`;
   return `<span class="chip ${look.cls}" title="${esc(v.summary)}"><span aria-hidden="true">${look.mark}</span> ${look.word}${value}</span>`;
 }
 
 /** This function gives the bar of the stratified mean of the win measure, with its interval, on a shared scale. */
-function bar(v: MeasureVerdict | undefined, max: number): string {
+function bar(v: MeasureVerdict | undefined, max: number, noClaim = false): string {
   const s = v?.stratified;
   if (s === undefined || v === undefined) return `<div class="dbar empty" aria-hidden="true"></div>`;
   const at = divergingAt(s.mean, max);
@@ -114,7 +115,7 @@ function bar(v: MeasureVerdict | undefined, max: number): string {
   const width = Math.abs(at - 50);
   const lo = divergingAt(s.lo, max);
   const hi = divergingAt(s.hi, max);
-  const cls = LABEL_LOOK[v.label].cls;
+  const cls = noClaim && v.label === "better" ? NO_CLAIM.cls : LABEL_LOOK[v.label].cls;
   return `<div class="dbar" aria-hidden="true"><span class="zero"></span><span class="fillbar ${cls}" style="left:${left}%;width:${width}%"></span><span class="whisker" style="left:${lo}%;width:${Math.max(0.5, hi - lo)}%"></span></div>`;
 }
 
@@ -171,23 +172,37 @@ function drawStrategies(): void {
   const budget = $("corpus-budget");
   budget.hidden = snap.budget === undefined;
   budget.textContent = snap.budget === undefined ? "" : budgetText(snap.budget);
-  const counts = labelCounts(snap, WIN);
+  const claim = fillClaimOf(snap.corpus);
+  const partner = claim.partner === null ? undefined : (MEASURE_LABELS[claim.partner]?.label ?? claim.partner).toLowerCase();
+  const counts = fillClaimCounts(snap, WIN, claim.partner);
+  const base = `<code>${esc(snap.baseline)}</code>`;
+  const winTiles =
+    partner === undefined
+      ? `<div class="tile none"><b>${counts.unpaired}</b><span>fill higher than ${base}, with no partner: no win claim</span></div>`
+      : `<div class="tile better"><b>${counts.pair}</b><span>fill better than ${base}, ${esc(partner)} not worse</span></div>
+    <div class="tile mixed"><b>${counts.givesUp}</b><span>fill better, but ${esc(partner)} worse</span></div>${
+      counts.unpaired === 0 ? "" : `\n    <div class="tile none"><b>${counts.unpaired}</b><span>fill better, ${esc(partner)} not in this snapshot: no win claim</span></div>`
+    }`;
   $("headline").innerHTML = `
-    <div class="tile better"><b>${counts.better}</b><span>fill better than <code>${esc(snap.baseline)}</code></span></div>
+    ${winTiles}
     <div class="tile worse"><b>${counts.worse}</b><span>fill worse</span></div>
-    <div class="tile none"><b>${counts["no verdict"] + counts["depends on the mix"]}</b><span>no verdict or mixed</span></div>
-    <div class="tile unmeasured"><b>${counts["not measured"]}</b><span>not measured</span></div>`;
+    <div class="tile none"><b>${counts.other}</b><span>no verdict or mixed</span></div>
+    <div class="tile unmeasured"><b>${counts.unmeasured}</b><span>not measured</span></div>`;
+  $("fill-claim").innerHTML = esc(claim.note);
   const max = scaleOf(snap, WIN);
   const head = snap.measures.map((m) => `<span class="mhead" title="${esc(MEASURE_LABELS[m.id]?.note ?? m.id)}">${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}</span>`).join("");
   const sections = rankSections(snap, WIN);
   const row = (s: StrategySummary): string => {
     const fill = verdictOf(s, WIN);
-    const chips = snap.measures.map((m) => `<span class="cell" data-m="${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}">${chip(verdictOf(s, m.id))}</span>`).join("");
+    const share = fillClaimOfStrategy(s, WIN, claim.partner);
+    const noClaim = share === "unpaired";
+    const gives = share === "givesUp" && partner !== undefined ? `<small class="gives">gives up ${esc(partner)}</small>` : "";
+    const chips = snap.measures.map((m) => `<span class="cell" data-m="${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}">${chip(verdictOf(s, m.id), noClaim && m.id === WIN)}</span>`).join("");
     return `<li class="srow" id="${esc(verdictHash(snap.corpus, s.strategy).slice(1))}" data-strategy="${esc(s.strategy)}">
       <details>
         <summary>
-          <span class="sname"><code>${esc(s.strategy)}</code>${s.msMedian === null ? "" : `<small>${msText(s.msMedian)}</small>`}</span>
-          ${bar(fill, max)}
+          <span class="sname"><code>${esc(s.strategy)}</code>${s.msMedian === null ? "" : `<small>${msText(s.msMedian)}</small>`}${gives}</span>
+          ${bar(fill, max, noClaim)}
           <span class="cells">${chips}</span>
         </summary>
         <div class="sdetails">${details(s, snap)}</div>
@@ -384,6 +399,9 @@ function mountAtlas(): void {
   };
   $("atlas-text").innerHTML = marked.parse(atlasText, { async: false });
   $("atlas-rule").innerHTML = ruleLine(rule);
+  const records = branchRunLines(gapSnaps);
+  $("atlas-records").innerHTML = records.join(" ");
+  $("atlas-records").hidden = records.length === 0;
   $("atlas-tiles").innerHTML = atlasTiles(regions, rule);
   $("atlas-origin").innerHTML = originHtml(gapSnaps.flatMap((snap) => snap.origin));
   $("atlas-filter").addEventListener("click", (e) => {
