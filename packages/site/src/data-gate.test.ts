@@ -67,7 +67,7 @@ describe("the data gate on a folder", () => {
     expect(lines[0]).toBe(
       `FAULT ${KNOWN}: strategies[0].cells[0].atMargin is missing: a measured cell of a current measure needs its read at the margin (48 fields of this form)`,
     );
-    expect(lines[1]).toBe("Data gate: 15 files read, 48 faults.");
+    expect(lines[1]).toBe(`Data gate: ${Object.keys(DATA_READERS).length} files read, 48 faults.`);
   });
 
   it("stays green on a clean copy of that file", () => {
@@ -284,6 +284,12 @@ describe("the line that replaces a file with a fault", () => {
       expect(DATA_READERS[file]).toBeDefined();
       for (const corpus of corpora) expect(workflow).toMatch(new RegExp(`(^|[\\s|])${corpus}( \\||\\))`, "m"));
     }
+  });
+
+  it("gives each corpus of the workflow for the measured entries, because each corpus can own a row", () => {
+    const corpora = /SITE_CORPORA: (.+)$/m.exec(workflow)?.[1]?.trim().split(/\s+/);
+    expect(corpora).toBeDefined();
+    expect(CORPORA_OF_FILE["measured-entries.json"]).toEqual(corpora);
   });
 
   it("gives each run of the table of the selector", () => {

@@ -17,6 +17,7 @@ export const DATA_READERS: Readonly<Record<string, (text: string) => unknown>> =
   "gaps-pack-known-v1.json": (t) => parseSnapshot(t, "gaps"),
   "gaps-pack-select-v2.json": (t) => parseSnapshot(t, "gaps"),
   "law-cover.json": parseLawCover,
+  "measured-entries.json": (t) => parseSnapshot(t, "measured"),
   "paired-k67.json": (t) => parseSnapshot(t, "paired"),
   "releases.json": (t) => parseSnapshot(t, "releases"),
   "response-coverage.json": (t) => {
@@ -116,6 +117,8 @@ export const CORPORA_OF_FILE: Readonly<Record<string, readonly string[]>> = {
   "coverage.json": ["pack-classes-v1"],
   "gaps-pack-known-v1.json": ["pack-known-v1"],
   "gaps-pack-select-v2.json": ["pack-select-v2"],
+  // Each corpus of the workflow can own a row of this file, and a run replaces only the row of its corpus. So a full replacement needs each corpus.
+  "measured-entries.json": ["pack-free-v1", "pack-screen-v1", "pack-select-v1", "pack-select-v2", "pack-known-v1", "pack-classes-v1", "pack-classes-free-v1", "pack-change-v1"],
   "select-table.json": ["pack-screen-v1", "pack-free-v1", "pack-select-v1", "pack-select-v2"],
   "strategies-pack-classes-free-v1.json": ["pack-classes-free-v1"],
   "strategies-pack-free-v1.json": ["pack-free-v1"],

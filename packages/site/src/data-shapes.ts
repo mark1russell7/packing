@@ -27,6 +27,9 @@ import type {
   GapSnapshot,
   GapStrategy,
   Interval,
+  MeasuredEntry,
+  MeasuredRow,
+  MeasuredSnapshot,
   MeasureVerdict,
   Origin,
   PairedGroup,
@@ -355,6 +358,20 @@ const latest = fields<Latest>({
 
 const coverage = fields<CoverageSnapshot>({ schema, kind: oneOf("coverage"), origin: list(origin), latest, trend: list(point) });
 
+const measuredEntry = fields<MeasuredEntry>({ entry: text, measured: num, records: num, stopped: num, largestItems: nullNum });
+
+const measuredRow = fields<MeasuredRow>({ corpus: text, run: num, date: text, largestItems: nullNum, entries: list(measuredEntry), notPlanned: texts });
+
+const measured = fields<MeasuredSnapshot>({
+  schema,
+  kind: oneOf("measured"),
+  origin: list(origin),
+  planned: num,
+  measured: num,
+  notMeasured: texts,
+  rows: list(measuredRow),
+});
+
 /** The shape of a snapshot of each kind */
 export const SNAPSHOT_SHAPES: { readonly [K in Snapshot["kind"]]: Shape<Extract<Snapshot, { kind: K }>> } = {
   strategies,
@@ -363,6 +380,7 @@ export const SNAPSHOT_SHAPES: { readonly [K in Snapshot["kind"]]: Shape<Extract<
   releases,
   gaps,
   coverage,
+  measured,
 };
 
 const dimension = fields<CoverDimension>({ name: text, values: texts });
