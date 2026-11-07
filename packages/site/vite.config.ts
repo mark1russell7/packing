@@ -3,10 +3,11 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
 import { changelogVersions } from "@mark1russell7/site-pages";
-import { siteKpi } from "@mark1russell7/site-pages/vite";
+import { siteKpi, siteStamps } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
 import { kpiInput, skipCounts, trendLines, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
+import { siteDataStamps } from "./src/stamps.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
@@ -78,11 +79,17 @@ const kpiData = () => {
   return kpiInput(facts, Date.now());
 };
 
-// The site has six pages: the live demo, the compare page, the strategy cards, the measured results, the response explorer and the news. The deploy adds `status/` and `releases/`.
+/** This function gives the full commit of a short commit, or "unknown" when the history of the build has no such commit. */
+const fullCommit = (commit: string): string => git("rev-parse", "--verify", "--quiet", `${commit}^{commit}`);
+
+/** The data stamps of the measured pages, from the files of `data/` at the time of the build (`src/stamps.ts`). */
+const dataStamps = () => siteDataStamps((file) => readFileSync(page(`./data/${file}`), "utf8"), fullCommit);
+
+// The site has seven pages: the live demo, the compare page, the strategy cards, the measured results, the fixed studies, the response explorer and the news. The deploy adds `status/` and `releases/`.
 export default defineConfig({
   base,
   define: { __SITE_BUILD__: JSON.stringify(build) },
-  plugins: [siteKpi(kpiData, env)],
+  plugins: [siteKpi(kpiData, env), siteStamps(dataStamps)],
   build: {
     target: "es2022",
     rollupOptions: {
@@ -91,6 +98,7 @@ export default defineConfig({
         compare: page("./compare/index.html"),
         strategies: page("./strategies/index.html"),
         results: page("./results/index.html"),
+        "results-studies": page("./results/studies/index.html"),
         explorer: page("./explorer/index.html"),
         "whats-new": page("./whats-new/index.html"),
       },
