@@ -2,7 +2,7 @@
 
 ## 0.10.4
 
-The time of `skyline` does not grow with the width of the input in units. Each output stays the same.
+The time of `skyline` does not grow with the width of the input in units. Each output of `skyline` stays the same. The point of `side-anchors` with no anchor packs as `side-anchors`.
 
 This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
 
@@ -10,6 +10,7 @@ This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
 
 - The rule `bl` of `packSkyline` keeps its skyline as runs of equal height. It does not keep a cell for each unit of the width. At 1000 items on `freeArea`, one read gave 1.1 s at scale 1 and 57.9 s at scale 64.
 - A width too large for an array gave a `RangeError`. These widths pack at this time.
+- The point of `side-anchors` with no anchor packed as its member, so `packConfig` packed inputs that `side-anchors` refuses. The param `side` gets the value `none`, and this point packs as `side-anchors` with no `first`.
 
 ### Not changed
 
