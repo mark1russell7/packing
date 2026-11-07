@@ -405,7 +405,7 @@ export interface CoveragePoint {
 }
 
 /** The word of a skip. The word `not read` tells that nobody has read the pair of entry and reason. */
-export type SkipWord = "not done" | "other algorithm" | "no meaning" | "not read";
+export type SkipWord = "not done" | "composition" | "other algorithm" | "no meaning" | "not read";
 
 /** One entry of the bench with no measured record in a run, with each reason and its count of records */
 export interface CoverageOtherEntry {

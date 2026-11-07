@@ -43,8 +43,10 @@ export const isBudgetReason = (reason: string): boolean => BUDGET_REASONS.has(re
 
 /** The skipped records of a snapshot of a corpus, by the word of their reason. A wall budget stays out of this count. */
 export interface SkipCounts {
-  /** The records with the word `not done`. They are coverage still owed, apart from a measured row. */
+  /** The records with the word `not done`. They are coverage still owed by the entry itself, apart from a measured row. */
   readonly owed: number;
+  /** The records with the word `composition`. A named composition of the entry lifts them, so the entry does not owe them (roadmap item k198). */
+  readonly composition: number;
   readonly otherAlgorithm: number;
   readonly noMeaning: number;
   /** The records with no read: the word `not read`, a reason with no word, and a snapshot with no reasons. */
@@ -59,7 +61,7 @@ export interface SkipSummary {
 
 /** This function counts the skipped records of some strategies by word. Records with no word count as `notRead`, so no record gets a word by default. */
 export function skipCounts(strategies: readonly SkipSummary[]): SkipCounts {
-  const count = { owed: 0, otherAlgorithm: 0, noMeaning: 0, notRead: 0 };
+  const count = { owed: 0, composition: 0, otherAlgorithm: 0, noMeaning: 0, notRead: 0 };
   for (const s of strategies) {
     const reasons = s.reasons ?? [];
     const listed = reasons.reduce((sum, r) => sum + r.count, 0);
@@ -67,6 +69,7 @@ export function skipCounts(strategies: readonly SkipSummary[]): SkipCounts {
     for (const r of reasons) {
       if (isBudgetReason(r.reason)) continue;
       if (r.word === "not done") count.owed += r.count;
+      else if (r.word === "composition") count.composition += r.count;
       else if (r.word === "other algorithm") count.otherAlgorithm += r.count;
       else if (r.word === "no meaning") count.noMeaning += r.count;
       else count.notRead += r.count;
@@ -242,7 +245,8 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
     ...(facts.skips === undefined
       ? []
       : [
-          { id: "skips-owed", value: facts.skips.owed, unit: "skipped records that the code can lift", at: facts.skipsAt ?? facts.commitAt },
+          { id: "skips-owed", value: facts.skips.owed, unit: "skipped records that the entry itself can lift", at: facts.skipsAt ?? facts.commitAt },
+          { id: "skips-composition", value: facts.skips.composition, unit: "skipped records that a named composition of the entry lifts", at: facts.skipsAt ?? facts.commitAt },
           { id: "skips-not-read", value: facts.skips.notRead, unit: "skipped records with no read", at: facts.skipsAt ?? facts.commitAt },
         ]),
     { id: "explorer-live", value: facts.explorer ? 1 : 0, at: facts.commitAt },

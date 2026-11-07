@@ -302,7 +302,8 @@ A strategy that refuses a cell leaves a skip record. A reader of the results nee
 
 | Word | Meaning |
 |---|---|
-| `not done` | A limit of the code. A composition or small work lifts it, and the row names the item. |
+| `not done` | A limit of the code of the entry. Small work on the entry lifts it, and the row names the item. |
+| `composition` | A named composition of the entry lifts it, for example `aspectFit` over the entry. The entry keeps its refusal, and the row names the item. |
 | `other algorithm` | This form needs another algorithm. A person reads each row before it gets this word. |
 | `no meaning` | The input has no meaning for the strategy, for example an offline input for `push`. |
 | `not read` | Nobody has read the pair. A pair outside the table reads this word, and no pair gets another word by default. |
@@ -310,10 +311,10 @@ A strategy that refuses a cell leaves a skip record. A reader of the results nee
 - A snapshot writes the word and its reason beside each skip reason, and the results page reads that field.
 - A wall budget has no word, because the strategy did not refuse the input. The section below tells about it.
 - A snapshot from before the table has no words, so the page reads each of its skips as `not read`.
-- The file `kpi.json` gives `skips-owed` and `skips-not-read`. A skip does not count as a measured entry.
+- The file `kpi.json` gives `skips-owed` (the word `not done`), `skips-composition` and `skips-not-read`. A skip does not count as a measured entry.
 - A test fails on a row whose strategy takes the cell of the row. So a lift removes its row in the same change.
 
-The table holds each skip of `pack-free-v1` in run 41975155011: 95 pairs, with 68 `not done`, 25 `other algorithm` and 2 `no meaning`. The same refusal has the same word on another corpus. A new pair on another corpus reads `not read` until a person reads it.
+The table holds each skip of `pack-free-v1` in run 41975155011: 99 pairs, with 38 `not done`, 34 `composition`, 25 `other algorithm` and 2 `no meaning`. The same refusal has the same word on another corpus. A new pair on another corpus reads `not read` until a person reads it.
 
 ## The budget of a pair
 

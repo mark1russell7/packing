@@ -1,11 +1,15 @@
-// The word of each skip (`docs/BENCH.md`, "The word of a skip"). A strategy refuses a cell for one of three reasons, and a
-// reader of the results needs that reason: a limit of the code is coverage still owed, and the other two are not.
+// The word of each skip (`docs/BENCH.md`, "The word of a skip"). A strategy refuses a cell for one of four reasons, and a
+// reader of the results needs that reason. A limit of the entry itself is coverage still owed. A named composition, another algorithm
+// and no meaning are not owed by the entry (roadmap item k198).
 // A person reads each row from the source of the strategy. So a pair outside this table reads `not read`, and no pair gets a word by default.
 
 import { unsupportedOf, type Dimension, type Supports } from "@mark1russell7/packing";
 
-/** The word of a skip. The word `not read` tells that nobody has read the pair of entry and reason. */
-export type SkipWord = "not done" | "other algorithm" | "no meaning" | "not read";
+/**
+ * The word of a skip. The word `not done` is a limit that the entry itself can lift. The word `composition` is a limit that a named
+ * composition of the entry lifts, so the entry keeps its refusal. The word `not read` tells that nobody has read the pair of entry and reason.
+ */
+export type SkipWord = "not done" | "composition" | "other algorithm" | "no meaning" | "not read";
 
 /** The read of one pair of entry and reason. */
 export interface SkipRead {
@@ -48,7 +52,7 @@ export const SKIP_ROWS: readonly SkipRow[] = [
       "sleator",
     ],
     reasons: FREE_FORMS,
-    word: "not done",
+    word: "composition",
     why: "A width search over the strategy gives each free form. The function `aspectFit` is that composition, and item k166 adds it as a named entry.",
   },
   {
