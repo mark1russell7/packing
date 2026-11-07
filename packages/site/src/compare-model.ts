@@ -8,6 +8,7 @@ import { generateInput, MAX_SITE_COUNT, SITE_FAMILIES, type DimensionValues } fr
 import { COMPARE_LABELS } from "./data.ts";
 import { errorText, inputOf, makeItems } from "./model.ts";
 import { regionBounds, regionSvg } from "./region.ts";
+import { partnerOrder } from "./results-model.ts";
 
 export { regionBounds, regionSvg } from "./region.ts";
 
@@ -72,7 +73,7 @@ export interface CompareMeasure {
 
 /** The measures of the compare page: the measures of the results page, the ragged edge, the boxes not placed and the side skew. */
 export const COMPARE_MEASURES: readonly CompareMeasure[] = (
-  ["pack.fill", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.raggedness", "pack.overflow", "pack.balance.sideRange"] as const
+  ["pack.fill", "pack.balance.side.right", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.raggedness", "pack.overflow", "pack.balance.sideRange"] as const
 ).map((id) => ({ id, label: COMPARE_LABELS[id]!.label, note: COMPARE_LABELS[id]!.note, share: COMPARE_LABELS[id]!.share, direction: MEASURE_SPECS[id].direction }));
 
 /** This function gives the text of the value of a measure. */
@@ -123,6 +124,38 @@ export function runAll(input: PackInput, seed = 0, now?: () => number): EntryRes
   return entriesFor(input).map((e) => runEntry(e, input, seed, now));
 }
 
+/**
+ * The partner of the fill on the compare page: the empty share of the right strip.
+ * A packer that packs narrower than a given width leaves this strip empty, and its fill rises.
+ */
+export const FILL_PARTNER = "pack.balance.side.right" satisfies MeasureId;
+
+/** The entry that each right strip is compared with. It is the baseline of the results page, and a test pins it to the snapshots. */
+export const PARTNER_BASELINE = "rows";
+
+/**
+ * This function gives the right strip of the baseline on an input with a given width. The other results are compared with it.
+ * It is `undefined` when the width is free or when the baseline has no value. Then the fill has no partner.
+ */
+export function partnerReference(input: PackInput, results: readonly EntryResult[]): number | undefined {
+  if (input.container.fixed !== "width" && input.container.fixed !== "size") return undefined;
+  const v = results.find((r) => r.entry.id === PARTNER_BASELINE)?.measures?.[FILL_PARTNER];
+  return v !== undefined && Number.isFinite(v) ? v : undefined;
+}
+
+/**
+ * This function tells if a result keeps the partner of the fill: its right strip is not more empty than the strip of the baseline.
+ * The tolerance is the minimum effect of the spec of the partner. The spec of `pack.balance.side.right` has none at this time,
+ * so only a difference above the noise of a float counts, as in `bestIds`. With no reference, each result keeps the partner.
+ */
+export function keepsPartner(r: EntryResult, reference: number | undefined): boolean {
+  if (reference === undefined) return true;
+  const v = r.measures?.[FILL_PARTNER];
+  if (v === undefined || !Number.isFinite(v)) return false;
+  const effect = MEASURE_SPECS[FILL_PARTNER].minEffect;
+  return v <= reference + (typeof effect === "number" && effect > 0 ? effect : 1e-9 * Math.max(1, Math.abs(reference)));
+}
+
 /** A key of the sort: the order of the entries, the time, or a measure of `COMPARE_MEASURES`. */
 export type SortKey = "entry" | "ms" | MeasureId;
 
@@ -139,8 +172,16 @@ function scoreOf(r: EntryResult, key: SortKey): number | undefined {
 /**
  * This function sorts the results by a key, best first. A tie keeps the order of the entries. A result without a value
  * comes last, in the order of the entries.
+ * With a reference of the partner, the sort by the fill is `partnerOrder`: a result that gives up the right strip comes after the others.
  */
-export function sortResults(results: readonly EntryResult[], key: SortKey): EntryResult[] {
+export function sortResults(results: readonly EntryResult[], key: SortKey, reference?: number): EntryResult[] {
+  if (key === "pack.fill" && reference !== undefined) {
+    const fill = (r: EntryResult): number | undefined => {
+      const v = scoreOf(r, key);
+      return v === undefined ? undefined : -v;
+    };
+    return partnerOrder(results, fill, (r) => keepsPartner(r, reference), (a, b) => a.index - b.index);
+  }
   return results.toSorted((a, b) => {
     const x = scoreOf(a, key);
     const y = scoreOf(b, key);
@@ -149,13 +190,17 @@ export function sortResults(results: readonly EntryResult[], key: SortKey): Entr
   });
 }
 
-/** This function gives the ids of the entries with the best value of a key. Values within 1e-9 of the best tie. */
-export function bestIds(results: readonly EntryResult[], key: Exclude<SortKey, "entry">): Set<string> {
-  const scored = results.flatMap((r) => {
+/**
+ * This function gives the ids of the entries with the best value of a key. Values within 1e-9 of the best tie.
+ * Only the results that `keep` accepts can be best. The page reads the fill with `keepsPartner` here.
+ */
+export function bestIds(results: readonly EntryResult[], key: Exclude<SortKey, "entry">, keep: (r: EntryResult) => boolean = () => true): Set<string> {
+  const all = results.flatMap((r) => {
     const s = scoreOf(r, key);
-    return s === undefined ? [] : [{ id: r.entry.id, s }];
+    return s === undefined ? [] : [{ id: r.entry.id, s, keep: keep(r) }];
   });
-  if (scored.length < 2) return new Set();
+  const scored = all.filter((x) => x.keep);
+  if (all.length < 2 || scored.length === 0) return new Set();
   const best = Math.min(...scored.map((x) => x.s));
   return new Set(scored.filter((x) => Math.abs(x.s - best) <= 1e-9 * Math.max(1, Math.abs(best))).map((x) => x.id));
 }
