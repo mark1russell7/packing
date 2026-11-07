@@ -215,6 +215,7 @@ The job `rows` of `output-rows.yml` starts on each pull request and each push to
 
 ```sh
 node --no-warnings bench/write-catalog.ts                 # After a change to the rows or the version
+pnpm run version                                          # After a change of the version: the two writers in their order
 node --no-warnings bench/whole-positions.ts --write       # After a strategy changes its output on purpose
 node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
