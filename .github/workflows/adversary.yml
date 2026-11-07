@@ -1,7 +1,9 @@
-# The hold of the corpus pack-adversary-v1 (docs/BENCH.md, "The adversarial search"). ci.yml uses this workflow, so the
-# check CI OK of the ruleset needs it. The job changes examines the changed files of a pull request.
+# The hold of the corpora pack-adversary-v1 and pack-adversary-v2 (docs/BENCH.md, "The adversarial search"). ci.yml
+# uses this workflow, so the check CI OK of the ruleset needs it. The job changes examines the changed files of a pull
+# request.
 # A change of the search, of what the search reads, or of the corpus runs --check: a new search of all 6 pairs must give
 # the committed file, byte for byte. A failure blocks the merge, because version 1 of the search is frozen.
+# The job search-v2 does the same for version 2. Each cell of version 2 has its own stream, so a new cell moves no row.
 # A change of a strategy runs --report: it names the moved rows and exits with the code 0, because a better strategy is
 # not a fault of the corpus. A push or a release does not repeat the job: the pull request of the change ran it.
 # A report that exits with the code 0 is read by nobody, so the schedule runs --check on main each week. A red run asks
@@ -43,7 +45,7 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           # The files of the search: its code, its corpus, its draws, its hashes and the values of its loss.
-          SEARCH='packages/packing/bench/adversary\.ts|packages/packing/bench/corpora/pack-adversary-v1\.json|packages/packing/src/(generators|layout-input|strategy|bounds|measures|check)\.ts|\.github/workflows/adversary\.yml'
+          SEARCH='packages/packing/bench/adversary(-v2)?\.ts|packages/packing/bench/corpora/pack-adversary-v[12]\.json|packages/packing/src/(generators|layout-input|strategy|bounds|measures|check)\.ts|\.github/workflows/adversary\.yml'
           # The files of the strategies and the dependencies. They can move a row with no fault of the corpus.
           REPORT='packages/packing/src/.*|packages/packing/bench/entries\.ts|pnpm-lock\.yaml'
           if [ "$EVENT" = schedule ]; then
@@ -97,4 +99,31 @@ jobs:
             node --no-warnings bench/adversary.ts --check | tee -a "$GITHUB_STEP_SUMMARY"
           else
             node --no-warnings bench/adversary.ts --report | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+  search-v2:
+    needs: changes
+    if: ${{ needs.changes.outputs.mode == 'check' || needs.changes.outputs.mode == 'report' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compare a new search of each cell of version 2 with the corpus, or report the moved rows
+        working-directory: packages/packing
+        shell: bash
+        env:
+          MODE: ${{ needs.changes.outputs.mode }}
+        run: |
+          if [ "$MODE" = check ]; then
+            node --no-warnings bench/adversary-v2.ts --check | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            node --no-warnings bench/adversary-v2.ts --report | tee -a "$GITHUB_STEP_SUMMARY"
           fi

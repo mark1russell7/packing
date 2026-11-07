@@ -15,7 +15,7 @@ const KNOWN = "gaps-pack-known-v1.json";
 
 /** The keys that a real file holds and can leave out: optional fields, and keys of a free record. */
 const FREE_KEYS = new Set(
-  "byInput configs kinds means missed ms p pack.fill pack.gap pack.gapToOpt pack.overflow.excessArea placed.free pooled sampled sharesByInput signs strata strategies stratified strip.area uniform".split(" "),
+  "byInput configs finished kinds means missed ms oneRun p pack.fill pack.gap pack.gapToOpt pack.overflow.excessArea placed.free pooled reasons sampled sharesByInput signs strata strategies stratified strip.area uniform why word".split(" "),
 );
 
 /** The fields of `data/law-cover.json` that the page reads. The script of the file reads the other fields. */
@@ -67,7 +67,7 @@ describe("the data gate on a folder", () => {
     expect(lines[0]).toBe(
       `FAULT ${KNOWN}: strategies[0].cells[0].atMargin is missing: a measured cell of a current measure needs its read at the margin (48 fields of this form)`,
     );
-    expect(lines[1]).toBe("Data gate: 14 files read, 48 faults.");
+    expect(lines[1]).toBe("Data gate: 15 files read, 48 faults.");
   });
 
   it("stays green on a clean copy of that file", () => {
