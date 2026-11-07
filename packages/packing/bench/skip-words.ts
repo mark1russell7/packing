@@ -95,6 +95,21 @@ export const SKIP_ROWS: readonly SkipRow[] = [
   },
 ];
 
+/**
+ * The words that leave a refused record out of the measured share of an entry (roadmap item k197). The entry has no defined result there:
+ * another algorithm gives it, or the form has no meaning for the entry. The words `not done` and `not read` stay in the share.
+ */
+export const LEFT_OUT_WORDS = ["other algorithm", "no meaning"] as const;
+
+/** A word of `LEFT_OUT_WORDS`. */
+export type LeftOutWord = (typeof LEFT_OUT_WORDS)[number];
+
+/** This function gives the word of a pair of entry and reason when the word leaves the record out of the share, or `undefined`. */
+export function leftOutWord(entry: string, reason: string, rows: readonly SkipRow[] = SKIP_ROWS): LeftOutWord | undefined {
+  const word = skipRead(entry, reason, rows).word;
+  return (LEFT_OUT_WORDS as readonly string[]).includes(word) ? (word as LeftOutWord) : undefined;
+}
+
 /** This function gives the word of a pair of entry and reason. A pair outside `rows` reads `not read`. */
 export function skipRead(entry: string, reason: string, rows: readonly SkipRow[] = SKIP_ROWS): SkipRead {
   const row = rows.find((r) => r.entries.includes(entry) && r.reasons.includes(reason));

@@ -4,7 +4,7 @@ import { parseResponseRecord } from "@mark1russell7/rigor-statistics";
 import { describe, expect, it } from "vitest";
 import { buildLine, navLinks } from "./chrome.ts";
 import { coverageLine, explorerFacts, NO_COVERAGE_LINE, RECORD_ORIGIN } from "./explorer-model.ts";
-import { byDate, COVERAGE_LABELS, FILL_CLAIMS, fillClaimOf, NEWS, newsByDate, parseSnapshot, SNAPSHOT_SCHEMA, stopsEarly, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type MeasuredRow, type MeasuredSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
+import { byDate, COVERAGE_LABELS, entryShares, FILL_CLAIMS, fillClaimOf, NEWS, newsByDate, parseSnapshot, SNAPSHOT_SCHEMA, stopsEarly, type GapCell, type GapSnapshot, type GapStrategy, type CoverageSnapshot, type MeasuredRow, type MeasuredSnapshot, type Release, type Snapshot, type StrategySummary, type StrategySnapshot } from "./data.ts";
 import { diffText, esc, inline } from "./format.ts";
 import {
   COVERAGE_SCOPES,
@@ -826,6 +826,54 @@ describe("the space coverage of k105", () => {
         expect(measuredNote({ ...snap, rows: [plain], notMeasured: [] })).not.toContain("stop early");
         expect(stopsEarly(plain.entries[0]!, plain)).toBe(false);
       });
+
+      // Roadmap item k197: the share of an entry over its own records, with the left-out words beside it.
+      describe("the measured share of each entry", () => {
+        const second: MeasuredRow = {
+          corpus: "d",
+          run: 8,
+          date: "2026-11-05",
+          largestItems: 100,
+          entries: [
+            { ...entry("push", 3, 10, 0, 100), leftOut: { "no meaning": 4 } },
+            { ...entry("strip", 0, 5, 0, null), leftOut: { "other algorithm": 5 } },
+            { ...entry("slow", 0, 8, 8, null), leftOut: {} },
+          ],
+          notPlanned: [],
+        };
+        const first: MeasuredRow = { ...second, corpus: "c", run: 7, entries: [{ ...entry("push", 3, 6, 0, 100), leftOut: {} }, { ...entry("full", 9, 9, 0, 100), leftOut: {} }] };
+        const both: MeasuredSnapshot = { ...snap, planned: 5, measured: 2, notMeasured: [], rows: [first, second] };
+
+        it("pools the rows of an entry, and leaves only the left-out records out of the denominator", () => {
+          expect(entryShares(both).map((e) => [e.entry, e.measured, e.records, e.leftOut, e.share])).toEqual([
+            ["full", 9, 9, {}, 1],
+            ["push", 6, 16, { "no meaning": 4 }, 0.5],
+            ["slow", 0, 8, {}, 0],
+            ["strip", 0, 5, { "other algorithm": 5 }, null],
+          ]);
+        });
+
+        it("reads no share for an entry with a row of an earlier bench", () => {
+          const old: MeasuredRow = { ...first, entries: [entry("push", 3, 6, 0, 100)] };
+          expect(entryShares({ ...both, rows: [old, second] }).find((e) => e.entry === "push")?.share).toBeNull();
+        });
+
+        it("states the entries under half with each left-out word and its count, and does not count a 0 measured entry as measured", () => {
+          const note = measuredNote(both);
+          expect(note).toContain("<b>1 of 3 entries</b> measure under half of their own records.");
+          expect(note).toContain("0 with the word <i>other algorithm</i>");
+          expect(note).toContain("4 with the word <i>no meaning</i>");
+          expect(note).toContain("1 entries have no read share");
+          expect(note).toContain("<li><code>push</code>: 50 %, 6 of 16 records measured, left out: no meaning 4</li>");
+          expect(note).toContain("<li><code>slow</code>: 0 %, 0 of 8 records measured</li>");
+          expect(note).toContain("<code>d</code>, run 8, 2026-11-05: 1 entries. <code>push</code>.");
+          expect(note).not.toContain("<code>slow</code> on");
+        });
+
+        it("has no share text when no row has the left-out words", () => {
+          expect(measuredNote(snap)).not.toContain("under half");
+        });
+      });
     });
   });
 
@@ -837,19 +885,24 @@ describe("the space coverage of k105", () => {
     });
 
     it("counts each entry of its rows once, and each planned entry is in a row or in the list of no run", () => {
-      const found = new Set(snap.rows.flatMap((row) => row.entries.map((e) => e.entry)));
+      const found = new Set(snap.rows.flatMap((row) => row.entries.filter((e) => e.measured > 0).map((e) => e.entry)));
       expect(found.size).toBe(snap.measured);
       expect(snap.measured + snap.notMeasured.length).toBe(snap.planned);
       for (const name of snap.notMeasured) expect(found.has(name)).toBe(false);
     });
 
-    it("has only measured entries in a row", () => {
-      for (const row of snap.rows) for (const e of row.entries) expect(e.measured).toBeGreaterThan(0);
+    // Roadmap item k197: a row keeps a planned entry with 0 measured records, so its records count in its share.
+    it("gives each entry of a row a record, and each entry with 0 measured records its left-out words", () => {
+      for (const row of snap.rows)
+        for (const e of row.entries) {
+          expect(e.records, `${row.corpus} ${e.entry}`).toBeGreaterThan(0);
+          if (e.measured === 0) expect(e.leftOut, `${row.corpus} ${e.entry}`).toBeDefined();
+        }
     });
 
     it("states the row that stops early on the page, for each row of the file", () => {
       const note = measuredNote(snap);
-      for (const row of snap.rows) for (const e of row.entries) if (stopsEarly(e, row)) expect(note).toContain(`<code>${e.entry}</code> on <code>${row.corpus}</code>: ${e.measured} of ${e.records}`);
+      for (const row of snap.rows) for (const e of row.entries) if (e.measured > 0 && stopsEarly(e, row)) expect(note).toContain(`<code>${e.entry}</code> on <code>${row.corpus}</code>: ${e.measured} of ${e.records}`);
     });
   });
 });

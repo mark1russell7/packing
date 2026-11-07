@@ -1671,6 +1671,12 @@ The file `measured-entries.json` gives the count of the entries over the corpora
 - A row stops early when a budget stopped some of its records, or when its measured records stop at a smaller item count. The page names each such row, and `kpi.json` counts them.
 - A run of a corpus replaces only the row of that corpus. Each row keeps its date, because a corpus can be older than the others.
 - The count uses the planned list of the last write. A new entry changes the count at the next run of `Site data`.
+- A row keeps each planned entry with a record, also with 0 measured records. Such an entry does not count as measured (k197).
+- Each entry of a row has `leftOut`: its refused records with the word `other algorithm` or `no meaning` of `bench/skip-words.ts`, by word.
+- The share of an entry is its measured records over its records less `leftOut`, pooled over the rows. Each other refusal stays in the share.
+- `kpi.json` gives `entries-under-half`, the entries with a share under 50 %. The page and the KPI show each left-out word with its count.
+- A row of an earlier bench has no `leftOut`. Then the entry has no read share until the next run of `Site data`.
+- A new pair of entry and reason with a left-out word needs a test that the entry has no defined result on that form. `bench/skip-words.test.ts` pins the pairs.
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
 A completed run of `coverage-nightly.yml` on `main` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch.

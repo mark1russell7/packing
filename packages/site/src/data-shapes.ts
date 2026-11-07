@@ -358,7 +358,7 @@ const latest = fields<Latest>({
 
 const coverage = fields<CoverageSnapshot>({ schema, kind: oneOf("coverage"), origin: list(origin), latest, trend: list(point) });
 
-const measuredEntry = fields<MeasuredEntry>({ entry: text, measured: num, records: num, stopped: num, largestItems: nullNum });
+const measuredEntry = fields<MeasuredEntry>({ entry: text, measured: num, records: num, stopped: num, largestItems: nullNum, leftOut: optional(numbers) });
 
 const measuredRow = fields<MeasuredRow>({ corpus: text, run: num, date: text, largestItems: nullNum, entries: list(measuredEntry), notPlanned: texts });
 
