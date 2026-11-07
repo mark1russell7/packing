@@ -26,11 +26,12 @@ jobs:
     permissions:
       contents: read
 
+  # The job verify of release.yml uses this workflow with only `contents: read`. A job that asks for more stops each release
+  # before it starts (bench/release-permissions.test.ts).
   site-check:
     uses: ./.github/workflows/site-check.yml
     permissions:
       contents: read
-      pull-requests: read
 
   # The size gate of the published exports (k132): the gzip bytes of a small consumer of each, against a budget.
   size-gate:
