@@ -381,6 +381,7 @@ Each corpus is a `layout-corpus/1` manifest with its `specs` and no `inputs`. Th
 | `pack-adversary-v1` | 6 | The worst input of each pair of the adversarial search of roadmap item k47. The file holds the inputs, not specs. Free forms not searched by version 1. |
 | `pack-adversary-v2` | 102 | The worst input of each cell of each pair of version 2 of the search, roadmap item k164. The file holds the inputs, not specs. |
 | `pack-strip-v1` | 528 | The published sets of strip packing of roadmap item k46, by their rules. Write its prediction first. |
+| `pack-laws-v1` | 396 | The inputs of one area law, one aspect law and one assortment of roadmap item k190. Write its prediction first. |
 | `pack-anchor-v1` | 51 | The inputs with locked items on the walls of roadmap item k111. Use it with the option `--anchor`. |
 | `pack-change-v1` | 480 | The chains of one edit of roadmap item k48. They give the stability measures. |
 
@@ -2781,11 +2782,24 @@ The test `bench/law-cover.test.ts` holds each of the 14 levels at 90 of 100 or m
 
 ### The first reading
 
-The corpus covers 31 of the 87 pairs. The read gives laws for 544 specs and refuses 321. Of the refused specs, 156 are `rect-grid` specs with 150 or 170 items. `packages/site/data/law-cover.json` holds the cells and the missing pairs, and a test compares it with the read. The manifest `pack-adversary-v1` holds its inputs with no specs, so the read leaves it out.
+The corpus covers 81 of the 87 pairs. The read gives laws for 678 specs and refuses 361. Of the refused specs, 156 are `rect-grid` specs with 150 or 170 items. Before `pack-laws-v1` (roadmap item k190), the corpus covered 31 pairs with 624 specs. `packages/site/data/law-cover.json` holds the cells and the missing pairs, and a test compares it with the read. The manifest `pack-adversary-v1` holds its inputs with no specs, so the read leaves it out.
 
-Two gaps are real. No spec over the floor gives a narrow area law or an extreme mixed aspect law. The generator `rect-grid` has `nearIdentical` and `extremeAspect` sizes, and no committed spec uses them. A spec with those sizes adds pairs.
+The 6 missing pairs all have the assortment `cut-from-box`. A cut of a box fixes the laws of its pieces, so `item-law` does not make a cut. The cuts of the corpus give no narrow, exponential, log-normal or pareto area law, and no narrow or extreme mixed aspect law.
 
 A refused spec adds no pair, and a misread spec can add a false pair, so the number is not a bound in either direction.
+
+### The corpus of the item laws
+
+The corpus `pack-laws-v1` (roadmap item k190) holds a spec for each cell of the law pairs. The generator `item-law` gives one area law, one aspect law and one assortment for each input.
+
+- It has 54 specs and 396 inputs of 80 items each, in a strip. The width of the strip is not a divisor of the item area, so no input claims a cut of a box.
+- 45 specs have the assortment `all-differ`, one for each area law and each aspect law, with the seeds 1 to 4.
+- 9 specs have the assortment `few-types`, one for each area law with the aspect laws in turn, with the seeds 1 to 24. An input has 16 types, one in each stratum of the area law.
+- Identical areas with the aspect law `fixed` or `discrete` give at most 5 types. The read gives them the assortment `few-types`.
+- The builder `bench/laws.ts` writes the file. `node bench/laws.ts --check` and a test compare the file with the builder.
+- The test `bench/laws.test.ts` reads the laws of each spec back with `lawOf`. A spec that gives another cell fails the test.
+
+The specs were read again over other sets of seeds. With 4 seeds, the `all-differ` cells gave 0 misses of 360. With 24 seeds, the `few-types` cells gave 0 misses of 270. With 8 seeds, the 90 cells gave 10 misses of 450, all in `few-types` cells, because a pool has too few distinct areas.
 
 ### The second reading
 
