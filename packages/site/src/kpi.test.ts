@@ -168,6 +168,20 @@ describe("the segments of the trend", () => {
     expect(file.measures.find((m) => m.id === "unmeasured-entries")).toEqual({ id: "unmeasured-entries", value: 10, unit: "of 64 entries with no measured record", at: "2026-11-03T00:00:00Z" });
     expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "measured-entries" || m.id === "unmeasured-entries")).toBe(false);
   });
+
+  // Roadmap item k197.
+  it("gives the entries under half with each left-out word and its count, and no measure with no read share", () => {
+    const shares = { read: 66, underHalf: 21, leftOut: { "other algorithm": 25 } };
+    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-11-05"] }], shares, entriesAt: "2026-11-03T00:00:00Z" }, at("2026-11-06"));
+    expect(file.measures.find((m) => m.id === "entries-under-half")).toEqual({
+      id: "entries-under-half",
+      value: 21,
+      unit: "of 66 entries with a read share measure under half of their records; left out: other algorithm 25, no meaning 0",
+      at: "2026-11-03T00:00:00Z",
+    });
+    expect(kpiInput({ ...FACTS, shares: { ...shares, read: 0 } }, at("2026-11-06")).measures.some((m) => m.id === "entries-under-half")).toBe(false);
+    expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "entries-under-half")).toBe(false);
+  });
 });
 
 describe("the input families", () => {

@@ -2,6 +2,7 @@
 // so no reader copies a number from a page. The build writes the file with `siteKpi` of `@mark1russell7/site-pages`.
 
 import { releaseReading } from "@mark1russell7/site-pages";
+import { LEFT_OUT_WORDS, type LeftOutWord } from "./data.ts";
 
 /** The name of the project in the file. */
 export const KPI_PROJECT = "packing";
@@ -100,6 +101,11 @@ export interface KpiFacts {
   readonly trend: readonly TrendLine[];
   /** The entries of the bench with a measured record in any run of `data/measured-entries.json`, the corpora of these runs and the rows that stop early. */
   readonly entries?: { readonly measured: number; readonly planned: number; readonly notMeasured: number; readonly corpora: readonly string[]; readonly stopEarly: number };
+  /**
+   * The measured shares of the entries (roadmap item k197): the entries with a read share, the entries under `UNDER_HALF`,
+   * and the left-out records by word. An entry has no read share when a row of it comes from an earlier bench.
+   */
+  readonly shares?: { readonly read: number; readonly underHalf: number; readonly leftOut: Partial<Record<LeftOutWord, number>> };
   /** The date of the last run of `data/measured-entries.json`, in UTC. */
   readonly entriesAt?: string;
   /** The skipped records of the stored snapshots of the corpora, by word. */
@@ -219,6 +225,18 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
       : [
           { id: "measured-entries", value: facts.entries.measured, unit: `of ${facts.entries.planned} entries, over ${facts.entries.corpora.join(", ")}; rows that stop early: ${facts.entries.stopEarly}`, at: facts.entriesAt ?? coverageAt },
           { id: "unmeasured-entries", value: facts.entries.notMeasured, unit: `of ${facts.entries.planned} entries with no measured record`, at: facts.entriesAt ?? coverageAt },
+        ]),
+    // An entry counts in `measured-entries` with one measured record. This measure reads how far each entry reaches on its own records.
+    // The text names each left-out word with its count, because the count of the denominator is part of the claim.
+    ...(facts.shares === undefined || facts.shares.read === 0
+      ? []
+      : [
+          {
+            id: "entries-under-half",
+            value: facts.shares.underHalf,
+            unit: `of ${facts.shares.read} entries with a read share measure under half of their records; left out: ${LEFT_OUT_WORDS.map((word) => `${word} ${facts.shares!.leftOut[word] ?? 0}`).join(", ")}`,
+            at: facts.entriesAt ?? coverageAt,
+          },
         ]),
     // A skip that the code can lift is coverage still owed. It counts apart, so it does not raise `measured-entries`.
     ...(facts.skips === undefined

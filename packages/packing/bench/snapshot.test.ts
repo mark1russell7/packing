@@ -798,9 +798,9 @@ describe("the count of the entries over the corpora", () => {
     }
   });
 
-  it("does not count an entry with only skipped records, in any row", () => {
+  it("keeps a planned entry with only skipped records at 0 measured records, and does not count it", () => {
     const row = measuredRow([skipped("a", "refused: over item limit 16"), skipped("b", OVER_BUDGET), measured("c")], at("first", 1), planned);
-    expect(row.entries.map((e) => e.entry)).toEqual(["c"]);
+    expect(row.entries.map((e) => [e.entry, e.measured, e.records])).toEqual([["a", 0, 1], ["b", 0, 1], ["c", 1, 1]]);
     expect(measuredSnapshot([{ row, origin: origin(1) }], planned).measured).toBe(1);
   });
 
@@ -823,7 +823,23 @@ describe("the count of the entries over the corpora", () => {
       planned,
     );
     expect(row.largestItems).toBe(100);
-    expect(row.entries).toEqual([{ entry: "a", measured: 2, records: 5, stopped: 2, largestItems: 20 }]);
+    expect(row.entries).toEqual([{ entry: "a", measured: 2, records: 5, stopped: 2, largestItems: 20, leftOut: {} }]);
+  });
+
+  // Roadmap item k197: the records that the share of an entry leaves out, by word.
+  it("counts the refused records with the words other algorithm and no meaning, and no other refusal", () => {
+    const free = "unsupported containerSize: freeArea";
+    const circle = "unsupported containerShape: circle";
+    const row = measuredRow(
+      [skipped("push", free), skipped("push", free), measured("push"), skipped("treemap-strip", circle), skipped("beam", free), skipped("beam", OVER_BUDGET), skipped("beam", "refused: made up")],
+      at("first", 1),
+      ["push", "treemap-strip", "beam"],
+    );
+    expect(row.entries.map((e) => [e.entry, e.measured, e.records, e.leftOut])).toEqual([
+      ["beam", 0, 3, {}],
+      ["push", 1, 3, { "no meaning": 2 }],
+      ["treemap-strip", 0, 1, { "other algorithm": 1 }],
+    ]);
   });
 
   it("reads the item count of an input id, and null for an id with no count", () => {

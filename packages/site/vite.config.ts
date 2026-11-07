@@ -5,7 +5,7 @@ import { allStrategies } from "@mark1russell7/packing";
 import { changelogVersions } from "@mark1russell7/site-pages";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { parseSnapshot, stopsEarly } from "./src/data.ts";
+import { entryShares, LEFT_OUT_WORDS, parseSnapshot, stopsEarly, UNDER_HALF } from "./src/data.ts";
 import { emittedCells, kpiInput, skipCounts, trendLines, type LawCell, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
 
@@ -75,8 +75,13 @@ const kpiData = () => {
       planned: measured.planned,
       notMeasured: measured.notMeasured.length,
       corpora: measured.rows.map((row) => row.corpus),
-      stopEarly: measured.rows.flatMap((row) => row.entries.filter((entry) => stopsEarly(entry, row))).length,
+      stopEarly: measured.rows.flatMap((row) => row.entries.filter((entry) => entry.measured > 0 && stopsEarly(entry, row))).length,
     },
+    shares: (() => {
+      const read = entryShares(measured).filter((e) => e.share !== null);
+      const leftOut = Object.fromEntries(LEFT_OUT_WORDS.map((word) => [word, read.reduce((sum, e) => sum + (e.leftOut[word] ?? 0), 0)]));
+      return { read: read.length, underHalf: read.filter((e) => e.share! < UNDER_HALF).length, leftOut };
+    })(),
     entriesAt: `${measured.rows.map((row) => row.date).sort().at(-1)!}T00:00:00Z`,
     skips: skipCounts(summaries),
     skipsAt: commitTime(...snapshots.map((name) => page(`./data/${name}`))),

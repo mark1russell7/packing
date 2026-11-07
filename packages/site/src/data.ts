@@ -472,7 +472,15 @@ export interface MeasuredEntry {
   stopped: number;
   /** The largest item count of a measured record, or null when no input id gives a count */
   largestItems: number | null;
+  /** The refused records with a word of `LEFT_OUT_WORDS`, by word (roadmap item k197). A row of an earlier bench has no value, and then the share is not read. */
+  leftOut?: Partial<Record<LeftOutWord, number>>;
 }
+
+/** The words of a skip that leave a refused record out of the measured share of an entry: the entry has no defined result there. */
+export const LEFT_OUT_WORDS = ["other algorithm", "no meaning"] as const;
+
+/** A word of `LEFT_OUT_WORDS` */
+export type LeftOutWord = (typeof LEFT_OUT_WORDS)[number];
 
 /** One run of one corpus in the count of the entries */
 export interface MeasuredRow {
@@ -496,6 +504,45 @@ export interface MeasuredSnapshot {
   notMeasured: string[];
   rows: MeasuredRow[];
 }
+
+/** The measured share of one planned entry, over each row that has a record of it. */
+export interface EntryShare {
+  entry: string;
+  measured: number;
+  records: number;
+  /** The left-out records, by word, over the rows. */
+  leftOut: Partial<Record<LeftOutWord, number>>;
+  /** The measured records over the records less the left-out records. The value is null when a row has no `leftOut`, or when no record is left. */
+  share: number | null;
+}
+
+/**
+ * This function gives the measured share of each entry of the rows, sorted by the entry (roadmap item k197). The share pools the rows of the entry.
+ * A record with a word of `LEFT_OUT_WORDS` is not in the denominator, because the entry has no defined result there. Each other refusal stays in.
+ */
+export function entryShares(snap: MeasuredSnapshot): EntryShare[] {
+  const all = new Map<string, EntryShare & { read: boolean }>();
+  for (const row of snap.rows) {
+    for (const e of row.entries) {
+      const was = all.get(e.entry) ?? { entry: e.entry, measured: 0, records: 0, leftOut: {}, share: null, read: true };
+      const leftOut: Partial<Record<LeftOutWord, number>> = { ...was.leftOut };
+      for (const word of LEFT_OUT_WORDS) {
+        const n = e.leftOut?.[word] ?? 0;
+        if (n > 0) leftOut[word] = (leftOut[word] ?? 0) + n;
+      }
+      all.set(e.entry, { ...was, measured: was.measured + e.measured, records: was.records + e.records, leftOut, read: was.read && e.leftOut !== undefined });
+    }
+  }
+  return [...all.values()]
+    .sort((a, b) => a.entry.localeCompare(b.entry))
+    .map(({ read, ...e }) => {
+      const kept = e.records - LEFT_OUT_WORDS.reduce((sum, word) => sum + (e.leftOut[word] ?? 0), 0);
+      return { ...e, share: read && kept > 0 ? e.measured / kept : null };
+    });
+}
+
+/** The share under which the KPI `entries-under-half` counts an entry. */
+export const UNDER_HALF = 0.5;
 
 /** This function tells if the measured records of an entry stop early. A budget stopped some of them, or they stop at a smaller item count. */
 export const stopsEarly = (entry: MeasuredEntry, row: MeasuredRow): boolean =>
