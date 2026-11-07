@@ -30,6 +30,7 @@ jobs:
     uses: ./.github/workflows/site-check.yml
     permissions:
       contents: read
+      pull-requests: read
 
   # The size gate of the published exports (k132): the gzip bytes of a small consumer of each, against a budget.
   size-gate:

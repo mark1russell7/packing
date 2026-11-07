@@ -181,6 +181,9 @@ jobs:
       # Only the check of the form and the size of each file: the other tests of the file pin the data of main.
       - name: Check the form and the size of the files
         run: pnpm --filter @packing/site exec vitest run src/pages.test.ts -t "is a small snapshot"
+      # The reader of the page, deep: a file with a fault does not reach the branch.
+      - name: Read each file through the reader of the page
+        run: pnpm --filter @packing/site run check:data
       - name: Build the site with the files
         env:
           SITE_BASE: /${{ github.event.repository.name }}

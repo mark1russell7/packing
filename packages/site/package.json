@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:data": "node --no-warnings scripts/data-gate.ts",
     "preview": "vite preview",
     "render-check": "node scripts/render-check.ts",
     "test": "vitest run",

@@ -414,6 +414,34 @@ function flipOutput(argv: readonly string[]): FlipRow[] {
   ];
 }
 
+/**
+ * This function gives the rows of the flip test of the data gate of the site. A clean copy of the files passes. The old
+ * file of the data branch fails with its file and its field, and a file with no reader fails with its name.
+ */
+function flipData(argv: readonly string[]): FlipRow[] {
+  const out = optionOf(argv, "--out");
+  const site = optionOf(argv, "--site");
+  mkdirSync(out, { recursive: true });
+  const copy = (name: string): string => {
+    const dir = join(out, name);
+    cpSync(join(site, "data"), dir, { recursive: true });
+    return dir;
+  };
+  const gate = (dir: string): string[] => [process.execPath, "--no-warnings", join(site, "scripts", "data-gate.ts"), dir];
+  const clean = copy("clean");
+  const old = copy("old-file");
+  cpSync(join(site, "src", "fixtures", "gaps-pack-known-no-margin.json"), join(old, "gaps-pack-known-v1.json"));
+  const extra = copy("no-reader");
+  writeFileSync(join(extra, "new.json"), "{}");
+  return [
+    runCase("clean", 0, gate(clean), out, " 0 faults"),
+    runCase("the old file of the data branch", 1, gate(old), out, "gaps-pack-known-v1.json: strategies[0].cells[0].atMargin is missing"),
+    runCase("the order of a new field", 1, gate(old), out, "start the workflow `Site data`"),
+    runCase("the command that replaces the file", 1, gate(old), out, "gh workflow run site-data.yml -R mark1russell7/packing --ref main -f runs=\"pack-known-v1="),
+    runCase("a file with no reader", 1, gate(extra), out, "new.json: the file has no reader"),
+  ];
+}
+
 /** This function gives the rows of the flip test of the tie moves. The fault is on the function that packs, and the table stays the same. */
 function flipTie(argv: readonly string[]): FlipRow[] {
   const out = optionOf(argv, "--out");
@@ -430,8 +458,8 @@ export function flipMain(argv: readonly string[]): number {
   const gate = argv[0];
   const rest = argv.slice(1);
   const rows =
-    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : gate === "promotion" ? flipPromotion(rest) : gate === "output" ? flipOutput(rest) : gate === "tie" ? flipTie(rest) : undefined;
-  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio, smoke, promotion, output or tie.");
+    gate === "size" ? flipSize(rest) : gate === "time" ? flipTime(rest) : gate === "portfolio" ? flipPortfolio(rest) : gate === "smoke" ? flipSmoke(rest) : gate === "promotion" ? flipPromotion(rest) : gate === "output" ? flipOutput(rest) : gate === "data" ? flipData(rest) : gate === "tie" ? flipTie(rest) : undefined;
+  if (rows === undefined) throw new Error("A flip test needs the gate size, time, portfolio, smoke, promotion, output, data or tie.");
   const text = flipMarkdown(gate!, rows);
   process.stdout.write(text);
   const summary = process.env["GITHUB_STEP_SUMMARY"];

@@ -264,6 +264,7 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
 | `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. The records of that pair have 2 CPU models, so `maxrects-bl` over `rows` gives `no-read` at each floor, and `rows` over `maxrects-bl` gives a fail on its gain. |
 | Output rows | Half a position in each output of a strategy with whole rows, and half a size. The output must name the property. The table does not change. |
+| Data files of the site | The old `gaps-pack-known-v1.json` of the branch `site-data` must fail, name that file and `atMargin`, and print the order of a new field. A file with no reader must fail with its name. A clean copy must pass. |
 | Tie moves | A move of 100 on each change of a strategy. The output must name the arm. The table does not change. |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
@@ -1691,6 +1692,18 @@ The workflow `site-rerun.yml` reruns the other six corpora of the site each Wedn
 - An entry that loses its row breaks the line of a list that has it. The earlier run has no share without that entry in the file.
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
+- The script `check:data` of the site reads each data file through the reader of the page. A fault stops it, with the file and the field. The shape of each file comes from its TypeScript type.
+- Three workflows start that script. `site-data.yml` starts it before a push to the branch. `pages.yml` starts it before each build, each day and after each run of `Site data`.
+- `site-check.yml` starts it over the files of the branch on each push to `main`, and on a pull request that changes the reader. Other pull requests cannot change the result, so they do not wait for a queued run.
+- `site-check.yml` lays the branch over the files of `main` with `scripts/overlay.ts`, as the Pages build does. A file of the branch replaces a file of `main` only if its record is later. A test holds the list of files equal to the imports of the gate and of the overlay.
+- A new field has an order, because only a run of `Site data` writes the branch, and that run reads the code of `main`:
+  1. A pull request adds the writer, and the reader accepts a missing field as `not read`. Merge it.
+  2. Start `Site data`.
+  3. A second pull request makes the field necessary for the reader.
+- The gate prints this order with each fault. A changed field takes the same order, with `either` in its shape.
+- A measured cell of `pack.gapToOpt`, or of `pack.gap` from a new run, needs its read at the margin. An old run of `pack.gap` goes without it.
+- A red Pages build does not deploy, so the last good page stays up.
+- Each build prints the count of the fields that hold a value while their state is `not read`. A row in that state states nothing false, so only this count shows a whole class of such rows.
 - A run writes only the files that it changes. The job `snapshot` compares each file with the copy that it made after the overlay, with `snapshot.ts written`. The job `publish` removes nothing from the branch.
 - A file on the branch stays until a run for its corpus writes it.
 - The build in `pages.yml` compares the time in the `origin` of each file. It takes a file of the branch only if that time is later than on `main`. The time is the date of the latest run, then the run id for two runs of one day. A tie goes to `main`.
