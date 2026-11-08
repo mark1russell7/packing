@@ -217,7 +217,7 @@ Status: done, done, waiting, next, done.
 | k212 | A local-search stage: SA, tabu, GA, GRASP, VNS, ILS, ruin-recreate and beam, with separate moves and acceptance rules | strategies | later |  |
 | k213 | The new stages refine and compact, after each placement | strategies | later |  |
 | k214 | A screen by successive halving in a CI matrix: 1,000 configurations | bench | later | k207 |
-| k215 | The pilot measures in `kpi.json`: operators, distinct variants, screened and measured strategies, each with a target and a date | site | later |  |
+| k215 | The pilot measures in `kpi.json`: operators, distinct variants, screened and measured strategies, each with a target and a date. The first slice declares the 38 operators of `packSpace` as `packOperators` and adds the measure `operators` | site | in progress |  |
 | k216 | Each view generated: each measure against each dimension, for all strategies | site | later | k215 |
 | k217 | The physical family as refine and compact operators: springs, stress, PRISM, VPSC, force-scan and compaction | strategies | later | k213 |
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+The constant `packOperators` declares the operators of `packSpace` in the format `strategy-operators/1` of `@mark1russell7/strategy-space`.
+
+### Added
+
+- The constant `packOperators`: 38 operators, each with its stage, its source, its cite, its test files and a summary. A param value is not an operator.
+- The options `order.input`, `size-search.none` and `local-search.none` have `identity: true`. The meta options `portfolio`, `cell-portfolio` and `select` have `chooses: true`.
+- The field `carried` of the bench record, from the contract. The runner measures each of its records, so it writes no carry.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.0. The types of the strategy space come from `@mark1russell7/strategy-space` 0.0.2 through it.
+- The new dependency `@mark1russell7/strategy-space` gives `checkOperators` and `countOperators`.
+
+### Not changed
+
+- The ids of the configs, the counts of the space and the fingerprints of the catalog. The fields `identity` and `chooses` are not part of a config.
+
 ## 0.12.1
 
 A pack with a fixed height reads the links of its input.

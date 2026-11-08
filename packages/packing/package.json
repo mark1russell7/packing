@@ -110,8 +110,9 @@
   },
   "dependencies": {
     "@mark1russell7/collections": "^0.9.8",
-    "@mark1russell7/layout-contract": "^0.6.0",
-    "@mark1russell7/rigor-generators": "^0.1.6"
+    "@mark1russell7/layout-contract": "github:mark1russell7/layout-contract#c7a6d9c1acee954a041a60691475bf6c301a7e56&path:packages/layout-contract",
+    "@mark1russell7/rigor-generators": "^0.1.6",
+    "@mark1russell7/strategy-space": "^0.0.2"
   },
   "scripts": {
     "bench": "node bench/main.ts",

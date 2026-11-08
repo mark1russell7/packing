@@ -209,11 +209,14 @@ importers:
         specifier: ^0.9.8
         version: 0.9.10
       '@mark1russell7/layout-contract':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: github:mark1russell7/layout-contract#c7a6d9c1acee954a041a60691475bf6c301a7e56&path:packages/layout-contract
+        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.6
         version: 0.1.6
+      '@mark1russell7/strategy-space':
+        specifier: ^0.0.2
+        version: 0.0.2
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
@@ -246,8 +249,8 @@ importers:
   packages/site:
     dependencies:
       '@mark1russell7/layout-contract':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: github:mark1russell7/layout-contract#c7a6d9c1acee954a041a60691475bf6c301a7e56&path:packages/layout-contract
+        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing
@@ -490,10 +493,6 @@ packages:
     resolution: {integrity: sha512-OXr3aDXRILylhKMBbXTrknMb83TJI7ITmD1AaDuUap9bXsPm8kTRYhRU821V2MN/71YzhLrALcQi4xky1cvP6A==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/collections@0.9.8':
-    resolution: {integrity: sha512-OK0TYjuOnTUyAJjbhnFq86u/Y3M/xE3zsabGB6/dvwxnse2L8KXJ/fwPf2G+AJIGOabQQ8YMZN5nzuq+006yYQ==}
-    engines: {node: '>=22.12'}
-
   '@mark1russell7/conventions@0.38.1':
     resolution: {integrity: sha512-dwx/vii02hjaGvB96IrgvXZjM/Ri46FAhNZQoCgoOSbeXYHVD1A1YPG/eXvZJ5geehJwf0WM05aUPAzggntnOA==}
     engines: {node: '>=22'}
@@ -504,8 +503,9 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@0.6.0':
-    resolution: {integrity: sha512-oUrO0Aofjwi9qsxdq/4lzxJxBYhq43IYFqfTqQzQBfww7fu+lyagWHic4FwxLmSJX2Tbv07z6iD7g7XIWxugxA==}
+  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract':
+    resolution: {gitHosted: true, integrity: sha512-H6ORA0XiBVb19lXJZcOxatXPkrZs7SJk0c8f1lnCJMvVGVIJr6EwdY3CAhvmpe3QifQqBdnPDwfzn7UrodfNcg==, path: packages/layout-contract, tarball: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56}
+    version: 0.9.0
     engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
@@ -526,6 +526,10 @@ packages:
     resolution: {integrity: sha512-eSuVS6nNd2H63dMrfleop+ffBtNd8Ua0/JrcUWUMxf2jHWw432fSwJ+aSa4ecAYq1Pa2ReCfwpqFUP4MII5+GA==}
     engines: {node: '>=22'}
 
+  '@mark1russell7/rigor-generators@0.1.8':
+    resolution: {integrity: sha512-6AC/YQdSrMKs/1NcHesjmmxVjKrqTDXjzKaElE8N8TgsqgiApCbsnk5xRoGJfvIJZUX7vJHFB9F+w48OSdRtHQ==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/rigor-statistics@0.1.20':
     resolution: {integrity: sha512-os4nsGfn6rbXq3zR38H0AikY+eOk1CQBzN32RdrgIPYJg6vha0f8e0gnCwo4bJExakoLI2/1+KFArKV9sTMCsA==}
     engines: {node: '>=22'}
@@ -540,13 +544,17 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
+  '@mark1russell7/strategy-space@0.0.2':
+    resolution: {integrity: sha512-P8BFem+8y1E2zJ1OJj675N3KL7bq9bN8eTUk7qeG9e4LfEkyQqasCCpp2jEFUD3cr0GkjbXBixcBXWVRj1EboA==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/template-cli@0.1.5':
     resolution: {integrity: sha512-OenwEgVEkrt6HjUtIsTgplkJJTBIZLwb0mxiPow533++mbrrJ8BvHK+MsMLFm6X5A8EJZlLgd6IXJspZy3L2og==}
     engines: {node: '>=22.12'}
     hasBin: true
 
-  '@mark1russell7/typeset@0.1.8':
-    resolution: {integrity: sha512-UZxpqPkcVeU8Ws9r6QaAbd6s9F/zxy3qXMMh9RMJm4YZhwDRaI/VLkJj3lD3zYu8xLa9wwhHGfjwDbbRMv4CSg==}
+  '@mark1russell7/typeset@0.2.0':
+    resolution: {integrity: sha512-69ujkMjUaW6rPc4ul5IvkB1CTjFGJS0QPPT6jXnz6i9fjuqTe33yLBdYPjz59Y4RyuL8nu87lxX+xXBOM90U/Q==}
     engines: {node: '>=22.12'}
 
   '@oxc-project/types@0.155.0':
@@ -1718,20 +1726,17 @@ snapshots:
     dependencies:
       '@mark1russell7/optional': 1.2.0
 
-  '@mark1russell7/collections@0.9.8':
-    dependencies:
-      '@mark1russell7/optional': 1.2.0
-
   '@mark1russell7/conventions@0.38.1':
     dependencies:
       yaml: 2.9.1
 
   '@mark1russell7/cue@2.1.1': {}
 
-  '@mark1russell7/layout-contract@0.6.0':
+  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
-      '@mark1russell7/typeset': 0.1.8
+      '@mark1russell7/strategy-space': 0.0.2
+      '@mark1russell7/typeset': 0.2.0
 
   '@mark1russell7/optional@1.2.0': {}
 
@@ -1743,6 +1748,8 @@ snapshots:
       esbuild: 0.28.2
 
   '@mark1russell7/rigor-generators@0.1.6': {}
+
+  '@mark1russell7/rigor-generators@0.1.8': {}
 
   '@mark1russell7/rigor-statistics@0.1.20':
     dependencies:
@@ -1756,13 +1763,17 @@ snapshots:
     dependencies:
       typescript: 6.0.3
 
+  '@mark1russell7/strategy-space@0.0.2':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.8
+
   '@mark1russell7/template-cli@0.1.5':
     dependencies:
       '@clack/prompts': 1.8.1
 
-  '@mark1russell7/typeset@0.1.8':
+  '@mark1russell7/typeset@0.2.0':
     dependencies:
-      '@mark1russell7/collections': 0.9.8
+      '@mark1russell7/collections': 0.9.10
       '@mark1russell7/rigor-generators': 0.1.6
 
   '@oxc-project/types@0.155.0': {}
