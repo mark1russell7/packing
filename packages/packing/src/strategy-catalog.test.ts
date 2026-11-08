@@ -331,7 +331,7 @@ describe("the file strategy-catalog.json (k144)", () => {
   });
 
   // A tool that sets a new version starts the script `version`. Without it, this file keeps the old version, and the test above fails.
-  it("is written again by the script version of the package, after the output rows", () => {
-    expect(pkg.scripts.version).toBe("node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/write-catalog.ts");
+  it("is written again by the script version of the package, after the output rows and the output fingerprints", () => {
+    expect(pkg.scripts.version).toBe("node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/fingerprints.ts --write && node --no-warnings bench/write-catalog.ts");
   });
 });

@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { allStrategies } from "@mark1russell7/packing";
+import { allStrategies, packOperators } from "@mark1russell7/packing";
 import { changelogVersions } from "@mark1russell7/site-pages";
 import { siteKpi, siteStamps } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
@@ -62,6 +62,7 @@ const kpiData = () => {
   const facts = {
     picker: DEMO_IDS.length,
     strategies: allStrategies.length,
+    operators: packOperators.operators.length,
     families: emittedCells(lawCover.cells),
     lawPairs: lawCover.covered,
     pages: [text("./index.html"), text("./content/about.md")],

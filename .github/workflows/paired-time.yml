@@ -140,6 +140,10 @@ jobs:
             [ -f "$out/gate.md" ] && cat "$out/gate.md" >> "$GITHUB_STEP_SUMMARY"
           fi
           exit "$status"
+      # A report-only time verdict of the gate that cannot decide shows on the check as a warning (k203).
+      - name: Show a no read of the gate as a warning
+        if: ${{ always() && inputs.gate != '' }}
+        run: node --no-warnings packages/packing/bench/no-read.ts gate "$RUNNER_TEMP/paired-time/gate.json"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -149,7 +153,7 @@ jobs:
 
   budget:
     needs: paired-time
-    if: ${{ always() && inputs.budget != '' }}
+    if: ${{ !cancelled() && inputs.budget != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -173,6 +177,10 @@ jobs:
           [[ "$BUDGET" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "budget must be an id of a-z, 0-9 and hyphen, not '$BUDGET'"; exit 1; }
           node packages/packing/bench/main.ts paired-budget --dir "$RUNNER_TEMP/budget" --arm "$BUDGET"
           cat "$RUNNER_TEMP/budget/budget.md" >> "$GITHUB_STEP_SUMMARY"
+      # The budget exits 0 on each verdict. A verdict of cannot decide and jobs on more than one CPU model show as a warning (k203).
+      - name: Show a no read of the budget as a warning
+        if: ${{ always() }}
+        run: node --no-warnings packages/packing/bench/no-read.ts budget "$RUNNER_TEMP/budget/budget.json"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: time-budget-${{ inputs.corpus }}-${{ inputs.budget }}
