@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.2
+
+Two new pivot treemaps of Shneiderman 2001: `treemapPivotMiddle` and `treemapPivotSize`.
+
+This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
+
+### Added
+
+- `treemapPivotMiddle` uses the steps of `treemapPivotSplit`, with the item in the middle of the order as the pivot. For an even count, the pivot is the second of the two middle items.
+- `treemapPivotSize` uses the same steps, with the largest item as the pivot. A tie goes to the first of the largest items.
+
+### Not changed
+
+- The type `TreemapMethod` and the strategy `treemap` do not change. The two pivots become methods of the strategy with the next break.
+- The output of `treemapPivotSplit` stays the same.
 ## 0.11.1
 
 The package has a table of the output fingerprint of each strategy, from `fingerprintOf` of `@mark1russell7/layout-contract`. A joint bench reads it and starts again only the strategies with a changed output.

@@ -498,6 +498,8 @@ tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
 treemapPack: build/index.d.ts#treemapPack
+treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
+treemapPivotSize: build/index.d.ts#treemapPivotSize
 treemapPivotSplit: build/index.d.ts#treemapPivotSplit
 treemapSliceDice: build/index.d.ts#treemapSliceDice
 treemapSquarified: build/index.d.ts#treemapSquarified
@@ -2397,6 +2399,12 @@ export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: 
 
 ### build/index.d.ts#treemapPack
 export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
+
+### build/index.d.ts#treemapPivotMiddle
+export declare function treemapPivotMiddle(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapPivotSize
+export declare function treemapPivotSize(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapPivotSplit
 export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
