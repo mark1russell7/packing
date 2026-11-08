@@ -1,5 +1,5 @@
 {
-  "schema": "strategy-catalog/2",
+  "schema": "strategy-catalog/3",
   "engine": "packing",
   "version": "0.10.5",
   "strategies": [
@@ -125,6 +125,7 @@
           }
         }
       ],
+      "fingerprint": "e2426be58863d6b9",
       "options": {
         "member": {
           "type": "strategy",
@@ -308,6 +309,7 @@
           }
         }
       ],
+      "fingerprint": "b4d7aff778222128",
       "options": {
         "strategy": {
           "type": "strategy",
@@ -470,6 +472,7 @@
           }
         }
       ],
+      "fingerprint": "46ecb32a35d70882",
       "options": {
         "member": {
           "type": "strategy",
@@ -555,6 +558,7 @@
           }
         }
       ],
+      "fingerprint": "f3cfb4d27e4f8781",
       "options": {
         "width": {
           "type": "integer",
@@ -677,6 +681,7 @@
           }
         }
       ],
+      "fingerprint": "75133bac634347db",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -777,6 +782,7 @@
           }
         }
       ],
+      "fingerprint": "03f7666e83b58e4e",
       "options": {
         "trials": {
           "type": "integer",
@@ -896,6 +902,7 @@
           }
         }
       ],
+      "fingerprint": "e194bd93ad940775",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -992,6 +999,7 @@
           }
         }
       ],
+      "fingerprint": "2163e7d2ca4322a2",
       "options": {
         "iterations": {
           "type": "integer",
@@ -1072,6 +1080,7 @@
           }
         }
       ],
+      "fingerprint": "f5988d3a12761692",
       "options": {
         "nodeLimit": {
           "type": "integer",
@@ -1225,6 +1234,7 @@
           }
         }
       ],
+      "fingerprint": "69918b7393168cba",
       "options": {
         "member": {
           "type": "strategy",
@@ -1357,6 +1367,7 @@
           }
         }
       ],
+      "fingerprint": "e24eda3bfb5265a5",
       "options": {
         "member": {
           "type": "strategy",
@@ -1536,6 +1547,7 @@
           }
         }
       ],
+      "fingerprint": "1e162f6c3183c5a4",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -1658,6 +1670,7 @@
           }
         }
       ],
+      "fingerprint": "aff3a1855df9dc85",
       "options": {
         "steps": {
           "type": "integer",
@@ -1802,6 +1815,7 @@
           }
         }
       ],
+      "fingerprint": "1f4f587cda130637",
       "options": {
         "method": {
           "type": "enum",
@@ -2025,6 +2039,7 @@
           }
         }
       ],
+      "fingerprint": "19b7996e9638bc13",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -2148,6 +2163,7 @@
           }
         }
       ],
+      "fingerprint": "4187c13a8f526ecf",
       "options": {
         "cell": {
           "type": "number",
@@ -2296,6 +2312,7 @@
           }
         }
       ],
+      "fingerprint": "7690fb7708489999",
       "options": {
         "member": {
           "type": "strategy",
@@ -2501,6 +2518,7 @@
           }
         }
       ],
+      "fingerprint": "4f06b981ddc2ea2b",
       "options": {
         "k": {
           "type": "integer",
@@ -2646,6 +2664,7 @@
           }
         }
       ],
+      "fingerprint": "5c0341ee88866405",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -2741,6 +2760,7 @@
           }
         }
       ],
+      "fingerprint": "cd6d3c26b631fa32",
       "options": {
         "cell": {
           "type": "number",
@@ -2910,6 +2930,7 @@
           }
         }
       ],
+      "fingerprint": "f95bf395752afee1",
       "options": {
         "member": {
           "type": "strategy",
@@ -3091,6 +3112,7 @@
           }
         }
       ],
+      "fingerprint": "33fd4302ab3e1409",
       "options": {
         "member": {
           "type": "strategy",
@@ -3254,6 +3276,7 @@
           }
         }
       ],
+      "fingerprint": "f02a62581099daa1",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -3398,6 +3421,7 @@
           }
         }
       ],
+      "fingerprint": "e412bb2553a3ca88",
       "options": {
         "member": {
           "type": "strategy",
@@ -3527,6 +3551,7 @@
           }
         }
       ],
+      "fingerprint": "e7a8751c3a9a3ff8",
       "options": {
         "members": {
           "type": "list",
@@ -3732,6 +3757,7 @@
           }
         }
       ],
+      "fingerprint": "1585143ff6af5586",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -3830,6 +3856,7 @@
           }
         }
       ],
+      "fingerprint": "ff358866c819ad71",
       "options": {}
     },
     {
@@ -3893,6 +3920,7 @@
           }
         }
       ],
+      "fingerprint": "dbd9f5ccd212584e",
       "options": {
         "r": {
           "type": "number",
@@ -3999,6 +4027,7 @@
           }
         }
       ],
+      "fingerprint": "b2054ba6cb47114a",
       "options": {
         "first": {
           "type": "object",
@@ -4187,6 +4216,7 @@
           }
         }
       ],
+      "fingerprint": "40714c888a69f0ec",
       "options": {
         "sortOrder": {
           "type": "enum",
@@ -4291,6 +4321,7 @@
           }
         }
       ],
+      "fingerprint": "ead53b36f9af6fa9",
       "options": {}
     },
     {
@@ -4391,6 +4422,7 @@
           }
         }
       ],
+      "fingerprint": "033d1135cbec688b",
       "options": {
         "member": {
           "type": "strategy",
@@ -4608,6 +4640,7 @@
           }
         }
       ],
+      "fingerprint": "8561763e901d5d10",
       "options": {
         "method": {
           "type": "enum",
