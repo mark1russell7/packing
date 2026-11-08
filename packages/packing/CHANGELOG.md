@@ -12,7 +12,7 @@ This release raises the MINOR version. Before 1.0.0, a break raises MINOR. The t
 - The method `spiral` of the strategy `treemap`, and the option value `spiral` of the param `method` of `packSpace`. The named config and the bench entry `treemap-spiral`, with its tie-move row.
 - The arm `spiral` of `bench/treemap-literature.ts`, with a section that compares it with `strip` on the same trials.
 
-### Changed
+### Breaking
 
 - The type `TreemapMethod` has the member `"spiral"`, and `TREEMAP_METHOD_IDS` has the id `spiral`.
 
