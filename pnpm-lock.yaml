@@ -219,8 +219,8 @@ importers:
         specifier: ^1.0.2
         version: 1.1.0
       '@mark1russell7/rigor-bench':
-        specifier: ^0.2.20
-        version: 0.2.20
+        specifier: ^0.2.29
+        version: 0.2.29(esbuild@0.28.2)
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.11
         version: 0.1.11
@@ -504,9 +504,14 @@ packages:
     resolution: {integrity: sha512-bQa9FsW628WY0BJN0qxaFpb8lI2WR36REqkox8Fg7AkDNoOGGCYOd89fPXZpvXxglIbyw6G03YlM1RQn8UdYRA==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/rigor-bench@0.2.20':
-    resolution: {integrity: sha512-IgorUG2rLJxfqpX5CSg39ZK/Fbsr0xeE99ZSw328FjqUCU0PKxOIMbPftgkWAYp7BaXShuu/HnGZCJKZiqcRbA==}
+  '@mark1russell7/rigor-bench@0.2.29':
+    resolution: {integrity: sha512-lWsyf5bLz3u1jJWCgF2xiAShPu9pcLSK7zBmKKvj89rtfFCgsg7B9HLX3TBzOnirmpslWdeOCGD947PzRq/Skg==}
     engines: {node: '>=22'}
+    peerDependencies:
+      esbuild: ^0.28.2
+    peerDependenciesMeta:
+      esbuild:
+        optional: true
 
   '@mark1russell7/rigor-generators@0.1.5':
     resolution: {integrity: sha512-YkABrG6+AV4oZKWoSIayDGxKTqcTMbp/eGa+3u00X09Jv9TfpHFDeqHlEQARMBzJ/kvy/EMNIXQZMGa3Nobuzw==}
@@ -522,6 +527,10 @@ packages:
 
   '@mark1russell7/rigor-statistics@0.1.13':
     resolution: {integrity: sha512-3QBuJnQ+GyYW+SboDNPeSCZW793Jh+46/u/NXV+7345nzCvW28uDG7iiAUwTSksXdqsGkXcfxTo5JMG7Wzekdg==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.17':
+    resolution: {integrity: sha512-euqZuWFcX8ufU7/+pOPbTPWHqwzKDwuINf1I06FaFyqtD+Tn30TFUHUUmWkgQCVoJ86sZdjV/UnN1nBuWEcRWQ==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-statistics@0.1.9':
@@ -1721,10 +1730,12 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.6
       '@mark1russell7/typeset': 0.1.0
 
-  '@mark1russell7/rigor-bench@0.2.20':
+  '@mark1russell7/rigor-bench@0.2.29(esbuild@0.28.2)':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
-      '@mark1russell7/rigor-statistics': 0.1.13
+      '@mark1russell7/rigor-statistics': 0.1.17
+    optionalDependencies:
+      esbuild: 0.28.2
 
   '@mark1russell7/rigor-generators@0.1.5': {}
 
@@ -1735,6 +1746,10 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.6
 
   '@mark1russell7/rigor-statistics@0.1.13':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.6
+
+  '@mark1russell7/rigor-statistics@0.1.17':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
 

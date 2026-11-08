@@ -273,14 +273,14 @@ The verdict of a real candidate reports and does not fail. The records of the fi
 
 ## A no read on the check
 
-A gate that cannot read a case does not show a green check alone. `bench/no-read.ts` reads the verdict file of the gate after its step. It writes a warning annotation on the check for each case with no read.
+A gate that cannot read a case does not show a green check alone. `bench/no-read.ts` reads the verdict file of the gate after its step. For a read with a no-read case, it writes a warning annotation on the check and a line in the step summary. The line comes from `gateLine` and `writeGateLine` of rigor-bench, so each gate of each repository writes it in one form. The line names each case with no read, the reason and the jobs on each CPU model.
 
 | Gate | The cases with no read |
 |---|---|
 | Win test (`promotion.yml`) | The status `no read`. The line has the input count and the reason, with the CPU models. |
 | Time gate (`time-gate.yml`) | A first pass of the gate above the noise cap, and a time verdict of `cannot decide` in the report. The line has the noise, the cap, the case count and the CPU. |
 | Gate of a paired run (`paired-time.yml`) | A time verdict of `cannot decide` in the report, with the case count and the CPU. |
-| Time budget (`paired-time.yml`) | The verdict `cannot decide`, with the job count, the reasons and the CPU models. Jobs on more than one CPU model also give a line. |
+| Time budget (`paired-time.yml`) | The verdict `cannot decide`, with the reasons and the jobs on each CPU model. The budget does not test the models, so jobs on more than one model are a no-read of the case `the CPU models`, also on a decided verdict. |
 
 A missing verdict file also gives a warning. The step of the gate failed then, so the check is red.
 
