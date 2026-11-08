@@ -58,7 +58,8 @@ describe("the types of packing and of the contract", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.5.0");
+    // probeHash, packOutputForm and fingerprintOf of the output fingerprints (bench/fingerprints.ts) are new in 0.5.5.
+    expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toBe("^0.5.5");
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
     // mulberry32, fnv1a32 and stablePick of the package come from their home at run time. stablePick is new in 0.1.6.
     expect(pkg.dependencies?.["@mark1russell7/rigor-generators"]).toBe("^0.1.6");
