@@ -1,11 +1,13 @@
-// The no-read lines of the gates (k203). A gate that cannot read a case does not show it as a pass.
-// The check of the gate gets a warning annotation with the count, the cases and the CPU models, also on a report-only read.
+// The no-read lines of the gates (k203, k205). A gate that cannot read a case does not show it as a pass.
+// The check of the gate gets a warning annotation and a line of the step summary, also on a report-only read.
+// The lines come from `gateLine` and `writeGateLine` of rigor-bench. This module only reads the verdict files of packing.
 //
 //   node bench/no-read.ts promotion <promotion.json>
 //   node bench/no-read.ts gate <gate.json>        (it also reads paired-time.json in the same folder)
 //   node bench/no-read.ts budget <budget.json>
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { gateLine, isNoRead, writeGateLine, type CaseRead, type GateLine, type GateLineOutputs, type JobModel } from "@mark1russell7/rigor-bench";
 import type { PromotionVerdict } from "./promote.ts";
 import type { GateResult } from "./time-gate.ts";
 import type { BudgetResult } from "./time-budget.ts";
@@ -22,88 +24,79 @@ export interface ReportHead {
   inputs: readonly unknown[];
 }
 
-/** This function gives the no-read lines of a win test. A win test with the status `no read` gives one line. */
-export function promotionNoRead(v: Pick<PromotionVerdict, "candidate" | "current" | "inputs" | "status" | "reason">): string[] {
-  if (v.status !== "no read") return [];
-  return [`The win test of ${v.candidate} against ${v.current} gives no read over ${v.inputs} inputs (${v.reason ?? "no reason"}). It is not a pass.`];
+/** The case of the CPU models of a time budget. The budget does not test the models, so jobs on more than one model are a no-read of this case. */
+export const MODELS_CASE = "the CPU models";
+
+/** This function gives the line of a win test. Only the status `no read` gives a line. A fail decides the check of the job. */
+export function promotionNoRead(v: Pick<PromotionVerdict, "candidate" | "current" | "inputs" | "status" | "reason">): GateLine | undefined {
+  const reads: CaseRead[] = [{ case: `${v.candidate} against ${v.current}`, outcome: v.status === "no read" ? "no read" : "pass" }];
+  return gateLine(reads, { title: `The win test over ${v.inputs} inputs`, reason: v.reason ?? "no reason" });
 }
 
 /**
- * This function gives the no-read lines of a time gate.
+ * This function gives the lines of a time gate. The job of the gate is on one runner, so the models are one job on its CPU.
  *
- * - A run above the noise cap gives the verdict `cannot-decide`. Its line has the noise, the cap, the cases and the CPU.
- * - The time verdict of rigor-bench is a report. When it is `cannot decide`, it also gives a line.
+ * - A run above the noise cap gives the verdict `cannot-decide`. Its line has the noise, the cap and the count of the cases.
+ * - The time verdict of rigor-bench is a report. Only its no-read gives a line: its `slower` does not decide the gate.
  */
-export function gateNoRead(result: Pick<GateResult, "gate" | "verdict" | "time" | "lines">, report: ReportHead | null): string[] {
-  const cases = report === null ? "an unknown count of" : String(report.inputs.length);
-  const cpu = report === null ? "an unknown CPU" : `the CPU ${report.env.cpu}`;
-  const out: string[] = [];
+export function gateNoRead(result: Pick<GateResult, "gate" | "verdict" | "time" | "lines">, report: ReportHead | null): GateLine[] {
+  const cases = report === null ? "an unknown count of cases" : `${report.inputs.length} cases`;
+  const models: readonly JobModel[] | undefined = report === null ? undefined : [{ model: report.env.cpu, jobs: 1 }];
+  const out: GateLine[] = [];
   if (result.verdict === "cannot-decide") {
     const noise = result.lines.find((l) => l.measure === "aa.noise");
-    const level = noise === undefined ? "" : `: the A/A noise ${noise.value.toFixed(4)} is above the cap ${noise.max === null ? "of the gate" : noise.max.toFixed(4)}`;
-    out.push(`The time gate ${result.gate} gives no read${level}, over ${cases} cases on ${cpu}. The job retry decides. It is not a pass.`);
+    const cap = noise?.max == null ? "the cap of the gate" : `the cap ${noise.max.toFixed(4)}`;
+    const level = noise === undefined ? "The gate cannot decide" : `The A/A noise ${noise.value.toFixed(4)} is above ${cap}`;
+    const line = gateLine([{ case: result.gate, outcome: "cannot decide" }], { title: `The time gate ${result.gate}`, reason: `${level}, over ${cases}. The job retry decides`, ...(models === undefined ? {} : { models }) });
+    if (line !== undefined) out.push(line);
   }
-  if (result.time === "cannot decide") out.push(`The time verdict of the gate ${result.gate} gives no read over ${cases} cases on ${cpu}. It is a report, and it is not a pass.`);
+  if (result.time !== null && isNoRead(result.time)) {
+    const line = gateLine([{ case: result.gate, outcome: result.time }], { title: `The time verdict of the gate ${result.gate}`, reason: `A report over ${cases}`, ...(models === undefined ? {} : { models }) });
+    if (line !== undefined) out.push(line);
+  }
   return out;
 }
 
 /**
- * This function gives the no-read lines of a time budget.
+ * This function gives the line of a time budget, with the jobs on each CPU model.
  *
- * - The verdict `cannot decide` gives a line with the job count, the reasons and the CPU models. The count comes from the models, because the result has no jobs then.
- * - Jobs on more than one CPU model give a line, because the budget does not test the models.
+ * - The verdict `cannot decide` is a no-read of the arm, with the reasons of the budget.
+ * - Jobs on more than one CPU model are a no-read of the case `MODELS_CASE`, also on a decided verdict. The budget does not test the models.
  */
-export function budgetNoRead(b: Pick<BudgetResult, "arm" | "verdict" | "reasons" | "models">): string[] {
-  const jobs = (n: number): string => `${n} ${n === 1 ? "job" : "jobs"}`;
-  const models = b.models.models.length === 0 ? "no CPU model" : b.models.models.map((m) => `${m.model} (${jobs(m.jobs)})`).join(", ");
-  const count = b.models.models.reduce((sum, m) => sum + m.jobs, 0);
-  const out: string[] = [];
-  if (b.verdict === "cannot decide") {
-    const reasons = b.reasons.length === 0 ? "none" : b.reasons.join(", ");
-    out.push(`The time budget of ${b.arm} gives no read over ${jobs(count)}. The reasons: ${reasons}. The CPU models: ${models}. It is not a pass.`);
+export function budgetNoRead(b: Pick<BudgetResult, "arm" | "verdict" | "reasons" | "models">): GateLine | undefined {
+  const reads: CaseRead[] = [{ case: b.arm, outcome: b.verdict }];
+  if (b.models.line !== null) reads.push({ case: MODELS_CASE, outcome: "cannot decide" });
+  const reasons = [...b.reasons, ...(b.models.line === null ? [] : [b.models.line])];
+  return gateLine(reads, { title: `The time budget of ${b.arm}`, ...(reasons.length === 0 ? {} : { reason: reasons.join(", ") }), models: b.models.models });
+}
+
+/** This function gives the lines of a verdict file of one kind. A missing file gives a no-read with no cases: the step of the gate failed. */
+export function noReadLines(kind: NoReadKind, file: string): GateLine[] {
+  if (!existsSync(file)) {
+    const line = gateLine([], { title: `The ${kind} verdict`, reason: `The verdict file ${file} is missing` });
+    return line === undefined ? [] : [line];
   }
-  if (b.models.line !== null) out.push(`The time budget of ${b.arm} has jobs on ${b.models.models.length} CPU models: ${models}. ${b.models.line}.`);
-  return out;
-}
-
-/** This function encodes a text for a workflow command of GitHub Actions. With `property`, it also encodes the colon and the comma. */
-export function commandText(text: string, property = false): string {
-  const data = text.replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A");
-  return property ? data.replaceAll(":", "%3A").replaceAll(",", "%2C") : data;
-}
-
-/** This function gives the warning annotation of one no-read line. */
-export function warningLine(title: string, line: string): string {
-  return `::warning title=${commandText(title, true)}::${commandText(line)}`;
-}
-
-/** This function gives the no-read lines of a verdict file of one kind. */
-export function noReadLines(kind: NoReadKind, file: string): string[] {
   const json = (path: string): unknown => JSON.parse(readFileSync(path, "utf8"));
+  const one = (line: GateLine | undefined): GateLine[] => (line === undefined ? [] : [line]);
   switch (kind) {
     case "promotion":
-      return promotionNoRead(json(file) as PromotionVerdict);
+      return one(promotionNoRead(json(file) as PromotionVerdict));
     case "gate": {
       const beside = join(dirname(file), "paired-time.json");
       return gateNoRead(json(file) as GateResult, existsSync(beside) ? (json(beside) as ReportHead) : null);
     }
     case "budget":
-      return budgetNoRead(json(file) as BudgetResult);
+      return one(budgetNoRead(json(file) as BudgetResult));
   }
 }
 
-/** This function starts the script and gives its exit code. A missing verdict file gives a warning: the step of the gate failed. */
-export function main(argv: readonly string[]): number {
+/** This function starts the script and gives its exit code. Each line goes to the log as a warning and to the step summary. */
+export function main(argv: readonly string[], outputs?: GateLineOutputs): number {
   const [kind, file] = argv;
   if (!NO_READ_KINDS.includes(kind as NoReadKind) || file === undefined) throw new RangeError(`Use: no-read.ts ${NO_READ_KINDS.join("|")} <verdict file>`);
-  const title = `no read (${kind})`;
-  if (!existsSync(file)) {
-    console.log(warningLine(title, `The verdict file ${file} is missing, so the gate has no read.`));
-    return 0;
-  }
   const lines = noReadLines(kind as NoReadKind, file);
-  for (const line of lines) console.log(warningLine(title, line));
-  if (lines.length === 0) console.log(`The ${kind} verdict has no no-read line.`);
+  for (const line of lines) writeGateLine(line, outputs);
+  if (lines.length === 0) (outputs?.log ?? console.log)(`The ${kind} verdict has no no-read line.`);
   return 0;
 }
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/layout-contract` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/layout-contract, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.1.0` of `@mark1russell7/collections` in `dependencies` does not hold `0.9.8`, so it changes.
+- The range `^0.5.0` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.6.0`, so it changes.
+
 ## 0.10.5
 
 `packConfig` packs the inputs of `near-rects` and `raster-nofit` with circle and polygon items, as `packWith` does.
