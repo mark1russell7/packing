@@ -62,7 +62,7 @@ defaults:
     shell: bash
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -232,7 +232,7 @@ jobs:
   # The check of the ruleset. It fails when a job of needs failed or was cancelled. A skipped job does not fail it.
   promotion-ok:
     name: Promotion OK
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [changes, time, promotion]
     runs-on: ubuntu-latest
     timeout-minutes: 2

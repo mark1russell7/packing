@@ -83,7 +83,7 @@ jobs:
 
   portfolio-sets-ok:
     name: Portfolio sets OK
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [changes, sets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
