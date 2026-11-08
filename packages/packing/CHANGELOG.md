@@ -1,5 +1,103 @@
 # Changelog
 
+## Unreleased
+
+The function `columnsCssBalance` fills the columns in the input order, as `column-fill: balance` of CSS does.
+
+### Added
+
+- The function `columnsCssBalance`. The height of the columns is the least height with which the fill puts each card in a column.
+- Each column takes the cards of the order while they fit. Thus the first columns are full, and the last columns can be short or empty.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
+## 0.12.2
+
+The function `masonryDifferencing` lays cards in `c` columns with the differencing method of Karmarkar 1982.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `masonryDifferencing`. Each card starts as a partial wall. The two walls with the largest spreads become one wall, with the tallest column of one wall on the shortest column of the other wall.
+- Equal spreads take the older wall first, and equal sums put the column with the first card first. Thus a second pack gives the same bytes.
+- The columns go from the left in the order of their first card. Each column reads from the top in the input order.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
+## 0.12.1
+
+A pack with a fixed height reads the links of its input.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- `transposeInput` keeps `links`. Before the fix, it dropped them. So each strategy that packs a fixed height through `viaAxes` read no graph.
+- A pack with a fixed height and links gives the transposed output of its fixed-width twin. A test lists each key of `PackInput`. A new key of the input fails the typecheck until the list names it.
+
+### Not changed
+
+- The fingerprints of the catalog stay the same. No probe input packs a fixed height with links.
+
+## 0.12.0
+
+The strategy `treemap` has the method `spiral`, the spiral treemap of Tu and Shen 2007. Each two boxes in a row of the input order share an edge.
+
+This release raises the MINOR version. Before 1.0.0, a break raises MINOR. The type `TreemapMethod` has a new member, so a `switch` over all of its members does not compile until it has the case `spiral`.
+
+### Added
+
+- The function `treemapSpiral`. Each level lays its items in strips along the top, the right, the bottom and the left side of the free frame in turn. An item joins a strip while the mean aspect of the strip does not get higher.
+- The method `spiral` of the strategy `treemap`, and the option value `spiral` of the param `method` of `packSpace`. The named config and the bench entry `treemap-spiral`, with its tie-move row.
+- The arm `spiral` of `bench/treemap-literature.ts`, with a section that compares it with `strip` on the same trials.
+
+### Breaking
+
+- The type `TreemapMethod` has the member `"spiral"`, and `TREEMAP_METHOD_IDS` has the id `spiral`.
+
+### Not changed
+
+- `pivot-middle` and `pivot-size` are not methods of the strategy `treemap` yet. They become methods with a later break.
+
+## 0.11.2
+
+Two new pivot treemaps of Shneiderman 2001: `treemapPivotMiddle` and `treemapPivotSize`.
+
+This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
+
+### Added
+
+- `treemapPivotMiddle` uses the steps of `treemapPivotSplit`, with the item in the middle of the order as the pivot. For an even count, the pivot is the second of the two middle items.
+- `treemapPivotSize` uses the same steps, with the largest item as the pivot. A tie goes to the first of the largest items.
+
+### Not changed
+
+- The type `TreemapMethod` and the strategy `treemap` do not change. The two pivots become methods of the strategy with the next break.
+- The output of `treemapPivotSplit` stays the same.
+## 0.11.1
+
+The package has a table of the output fingerprint of each strategy, from `fingerprintOf` of `@mark1russell7/layout-contract`. A joint bench reads it and starts again only the strategies with a changed output.
+
+This release raises the PATCH version. The package root does not export the table, so the public API does not change.
+
+### Added
+
+- `src/strategy-fingerprint.ts` has one fingerprint for each of the 33 strategies, over 114 probe inputs. The `version` script writes it, and the job `rows` of CI compares it.
+
+## 0.11.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/layout-contract` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/layout-contract, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.1.0` of `@mark1russell7/collections` in `dependencies` does not hold `0.9.8`, so it changes.
+- The range `^0.5.0` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.6.0`, so it changes.
+
 ## 0.10.5
 
 `packConfig` packs the inputs of `near-rects` and `raster-nofit` with circle and polygon items, as `packWith` does.
