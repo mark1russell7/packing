@@ -222,6 +222,7 @@ export {
   columnBalance,
   columnReading,
   columnsLinearPartition,
+  masonryDifferencing,
   masonryLpt,
   masonryShortest,
   type ColumnBalance,
