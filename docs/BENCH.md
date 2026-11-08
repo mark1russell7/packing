@@ -517,9 +517,9 @@ The corpus `pack-classes-v1` has 100 specs, each with the seeds 1 to 5. It has n
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 250 and `shaped` 0.
 - The builder `bench/classes.ts` writes the file. `node bench/classes.ts --check` and a test compare the file with the builder.
 
-The corpus `pack-classes-free-v1` has 120 specs of the same classes, each with the seeds 1 to 5. It holds the 8 entries that refuse each input of `pack-classes-v1`.
+The corpus `pack-classes-free-v1` has 120 specs of the same classes, each with the seeds 1 to 5. It holds the 9 entries that refuse each input of `pack-classes-v1`.
 
-- 500 inputs have `freeAspect` or `freeArea` at the counts 20, 40, 60, 80 and 100. The 7 entries of masonry, treemap and columns accept only these forms.
+- 500 inputs have `freeAspect` or `freeArea` at the counts 20, 40, 60, 80 and 100. The 8 entries of masonry, treemap and columns accept only these forms.
 - 100 inputs have `freeHeight` at the counts 8 and 16. The entry `exact-strip` takes at most 16 items.
 - The container takes no random numbers, so each form of a class, a count and a seed has the same items. A test pins the bytes of each input of `pack-classes-v1`.
 
@@ -1735,6 +1735,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 - The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
 - The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
 - Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
+- Tu and Shen 2007 give no table in the form of Bederson 2002. Thus the arm `spiral` has no published row. The section "Spiral against strip" divides the aspect and the change of `spiral` by those of `strip` on the same trials. It also gives the readability of `spiral` minus that of `strip`.
 
 ## The snapshots of the site
 

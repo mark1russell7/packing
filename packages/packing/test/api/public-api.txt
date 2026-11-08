@@ -502,6 +502,7 @@ treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
 treemapPivotSize: build/index.d.ts#treemapPivotSize
 treemapPivotSplit: build/index.d.ts#treemapPivotSplit
 treemapSliceDice: build/index.d.ts#treemapSliceDice
+treemapSpiral: build/index.d.ts#treemapSpiral
 treemapSquarified: build/index.d.ts#treemapSquarified
 treemapStrip: build/index.d.ts#treemapStrip
 turnItem: build/strategy.d.ts#turnItem
@@ -1814,7 +1815,7 @@ interface TreemapFrame {
 type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
 
 ### build/index.d.ts#TreemapMethod
-type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split";
+type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split" | "spiral";
 
 ### build/index.d.ts#TreemapNode
 type TreemapNode = {
@@ -2411,6 +2412,9 @@ export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: 
 
 ### build/index.d.ts#treemapSliceDice
 export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapSpiral
+export declare function treemapSpiral(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapSquarified
 export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];

@@ -216,6 +216,84 @@ export function treemapStrip(nodes: readonly TreemapNode[], frame: TreemapFrame,
   return layoutTree(nodes, frame, (weights, area) => strips(weights, area, lookahead));
 }
 
+/**
+ * This function mirrors the cells of a strip, so that the first cell is at the other end. With `alongX` it mirrors along x,
+ * and without it along y.
+ */
+function mirrored(cells: readonly TreemapFrame[], strip: TreemapFrame, alongX: boolean): TreemapFrame[] {
+  return cells.map((cell) =>
+    alongX ? { ...cell, x: 2 * strip.x + strip.w - cell.x - cell.w } : { ...cell, y: 2 * strip.y + strip.h - cell.y - cell.h },
+  );
+}
+
+/**
+ * This function gives the spiral cells of one level. The strips go along the top, the right, the bottom and the left side of
+ * the free frame in turn. Each strip goes in the direction of the spiral. An item joins a strip while the mean aspect of
+ * the strip does not get higher. The last strip takes the free frame.
+ */
+function spirals(weights: readonly number[], frame: TreemapFrame): TreemapFrame[] {
+  const prefix = prefixOf(weights);
+  const scale = (frame.w * frame.h) / prefix[weights.length]!;
+  const areaOf = (from: number, to: number): number => scale * (prefix[to]! - prefix[from]!);
+  const rects: TreemapFrame[] = [];
+  let free: TreemapFrame = { ...frame };
+  let side = 0;
+  let start = 0;
+  while (start < weights.length) {
+    const alongX = side % 2 === 0;
+    const length = alongX ? free.w : free.h;
+    const depth = alongX ? free.h : free.w;
+    /** The sum of the aspects of the items `from` up to `to` in one strip along the side. */
+    const aspects = (from: number, to: number): number => {
+      const thickness = areaOf(from, to) / length;
+      let sum = 0;
+      for (let i = from; i < to; i += 1) sum += aspectOf((scale * weights[i]!) / thickness, thickness);
+      return sum;
+    };
+    let end = start + 1;
+    let mean = aspects(start, end);
+    while (end < weights.length) {
+      const next = aspects(start, end + 1) / (end + 1 - start);
+      if (next > mean) break;
+      mean = next;
+      end += 1;
+    }
+    const thickness = end === weights.length ? depth : Math.min(depth, areaOf(start, end) / length);
+    let strip: TreemapFrame;
+    if (side === 0) {
+      strip = { x: free.x, y: free.y, w: free.w, h: thickness };
+      free = { x: free.x, y: free.y + thickness, w: free.w, h: free.h - thickness };
+    } else if (side === 1) {
+      strip = { x: free.x + free.w - thickness, y: free.y, w: thickness, h: free.h };
+      free = { x: free.x, y: free.y, w: free.w - thickness, h: free.h };
+    } else if (side === 2) {
+      strip = { x: free.x, y: free.y + free.h - thickness, w: free.w, h: thickness };
+      free = { x: free.x, y: free.y, w: free.w, h: free.h - thickness };
+    } else {
+      strip = { x: free.x, y: free.y, w: thickness, h: free.h };
+      free = { x: free.x + thickness, y: free.y, w: free.w - thickness, h: free.h };
+    }
+    const cells = slice(weights.slice(start, end), strip, alongX);
+    rects.push(...(side < 2 ? cells : mirrored(cells, strip, alongX)));
+    start = end;
+    side = (side + 1) % 4;
+  }
+  return rects;
+}
+
+/**
+ * This function gives the spiral treemap of Tu and Shen 2007. Each level lays its items in strips along the top, the
+ * right, the bottom and the left side of the free frame in turn. Thus the order of the input goes around a spiral to the
+ * center. Each two items in a row of the input share an edge.
+ *
+ * An item joins a strip while the mean aspect of the strip does
+ * not get higher, as in `treemapStrip`. The method has no lookahead. The cost is `O(n sqrt n)` on average and `O(n^2)` at
+ * most.
+ */
+export function treemapSpiral(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => spirals(weights, area));
+}
+
 /** This function gives the mean aspect of a list of rectangles. */
 function meanAspect(rects: readonly TreemapFrame[]): number {
   return sumOf(rects.map((rect) => aspectOf(rect.w, rect.h))) / rects.length;
