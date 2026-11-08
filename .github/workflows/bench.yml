@@ -216,7 +216,7 @@ jobs:
 
   merge:
     needs: [plan, run]
-    if: always() && needs.plan.result == 'success'
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-latest
     # The sample of the whole space (k112) stops after 25 minutes. With the draw active (k116), the sample and the rounds
     # stop after 12 minutes each, and the fits of the rounds take some minutes. The merge and the coverage take some seconds.

@@ -99,7 +99,7 @@ jobs:
   # The one check that the ruleset names (template CI.md, "The check of the ruleset"). It needs each job of this file.
   ci-ok:
     name: CI OK
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [ci, bench-smoke, site-check, size-gate, skyline-equal, output-rows, time-gate, adversary, presets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
