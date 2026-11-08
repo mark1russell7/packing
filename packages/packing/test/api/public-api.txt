@@ -401,6 +401,7 @@ lowestWindow: build/layout-strategy.d.ts#lowestWindow
 marginOf: build/strategy.d.ts#marginOf
 martelloVigo: build/index.d.ts#martelloVigo
 martelloVigoFamily: build/index.d.ts#martelloVigoFamily
+masonryDifferencing: build/index.d.ts#masonryDifferencing
 masonryLpt: build/index.d.ts#masonryLpt
 masonryShortest: build/index.d.ts#masonryShortest
 matchPlaces: build/index.d.ts#matchPlaces
@@ -2141,6 +2142,9 @@ export declare const martelloVigo: CorpusGenerator<MartelloVigoParams>;
 
 ### build/index.d.ts#martelloVigoFamily
 export declare const martelloVigoFamily: CorpusFamily<GeneratedInput>;
+
+### build/index.d.ts#masonryDifferencing
+export declare function masonryDifferencing(input: PackInput, options: MasonryOptions): PackOutput;
 
 ### build/index.d.ts#masonryLpt
 export declare function masonryLpt(input: PackInput, options: MasonryOptions): PackOutput;

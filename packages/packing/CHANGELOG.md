@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.2
+
+The function `masonryDifferencing` lays cards in `c` columns with the differencing method of Karmarkar 1982.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `masonryDifferencing`. Each card starts as a partial wall. The two walls with the largest spreads become one wall, with the tallest column of one wall on the shortest column of the other wall.
+- Equal spreads take the older wall first, and equal sums put the column with the first card first. Thus a second pack gives the same bytes.
+- The columns go from the left in the order of their first card. Each column reads from the top in the input order.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
 ## 0.12.1
 
 A pack with a fixed height reads the links of its input.

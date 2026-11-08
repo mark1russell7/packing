@@ -1,7 +1,8 @@
-// The first masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first and ordered columns.
+// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing and ordered columns.
 // A card wall has columns of one width, and each box goes to one column. The functions of this file are standalone.
 // The strategy `masonry` of `src/standalone-strategies.ts` wraps them. They are not in a default. `columnBalance` and `columnReading` read their outputs.
 
+import { priorityQueue } from "@mark1russell7/collections";
 import { marginOf, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 
 /** The options of a masonry layout. */
@@ -142,6 +143,51 @@ function leastTallest(sums: Float64Array, parts: number): number {
   return tallest[count]!;
 }
 
+/** A partial wall of the differencing method: one sum and one set of cards for each column, with the tallest sum first. */
+interface Partial {
+  readonly sums: readonly number[];
+  readonly sets: readonly (readonly number[])[];
+  /** The tallest sum minus the shortest sum. */
+  readonly spread: number;
+  /** The count of the partial walls made before this one. Of equal spreads, the older wall comes first. */
+  readonly made: number;
+}
+
+/**
+ * This function gives the columns of the differencing method of Karmarkar 1982, for `columns` columns. Each card starts as
+ * a partial wall with the card in one column. Two walls with the largest spreads join: the tallest column of one wall goes
+ * with the shortest column of the other wall. At the end, one wall is left.
+ *
+ * - The columns go from the left in the order of their first card. Each column reads from the top in the input order.
+ * - Equal sums keep the column with the first card in the input order first. Thus the result does not change between calls.
+ */
+function differencingStacks(heights: readonly number[], order: readonly number[], columns: number): number[][] {
+  if (order.length === 0) return emptyStacks(columns);
+  const position = new Map(order.map((index, place) => [index, place]));
+  const firstOf = (set: readonly number[]): number => (set.length === 0 ? Infinity : position.get(set[0]!)!);
+  let made = 0;
+  const partial = (sums: readonly number[], sets: readonly (readonly number[])[]): Partial => {
+    const slots = sums.map((sum, slot) => ({ sum, set: sets[slot]! })).sort((a, b) => b.sum - a.sum || firstOf(a.set) - firstOf(b.set));
+    const sorted = slots.map((slot) => slot.sum);
+    return { sums: sorted, sets: slots.map((slot) => slot.set), spread: sorted[0]! - sorted[columns - 1]!, made: made++ };
+  };
+  const queue = priorityQueue<Partial>((a, b) => b.spread - a.spread || a.made - b.made);
+  for (const index of order) {
+    const sums = new Array<number>(columns).fill(0);
+    sums[0] = heights[index]!;
+    queue.offer(partial(sums, Array.from({ length: columns }, (_, slot) => (slot === 0 ? [index] : []))));
+  }
+  while (queue.size > 1) {
+    const a = queue.poll();
+    const b = queue.poll();
+    const sums = a.sums.map((sum, slot) => sum + b.sums[columns - 1 - slot]!);
+    const sets = a.sets.map((set, slot) => [...set, ...b.sets[columns - 1 - slot]!].sort((x, y) => position.get(x)! - position.get(y)!));
+    queue.offer(partial(sums, sets));
+  }
+  const last = queue.poll();
+  return last.sets.map((set) => [...set]).sort((a, b) => firstOf(a) - firstOf(b));
+}
+
 /**
  * This function cuts the sequence into columns that keep the order. The tallest column is the least possible. Of the cuts
  * with that tallest column, it takes the least sum of the squared heights. That rule fills each column, because many
@@ -211,6 +257,18 @@ export function masonryLpt(input: PackInput, options: MasonryOptions): PackOutpu
     const sorted = order.toSorted((a, b) => heights[b]! - heights[a]!);
     return shortestStacks(heights, sorted, columns);
   });
+}
+
+/**
+ * This function gives the balanced columns of the catalog (`masonry-differencing`): the differencing method of Karmarkar
+ * 1982 for `c` columns. It joins partial walls with the largest spreads first, so the large cards balance each other.
+ *
+ * - The cost is `O(n log n + n c log c)` for the queue and the sorts of the columns, and `O(n^2)` at most for the joins of the sets of cards.
+ * - The columns go from the left in the order of their first card, and each column reads from the top in the input order.
+ * - The refusals are those of `masonryShortest`.
+ */
+export function masonryDifferencing(input: PackInput, options: MasonryOptions): PackOutput {
+  return layWall(input, options, differencingStacks);
 }
 
 /**
