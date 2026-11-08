@@ -153,7 +153,7 @@ jobs:
 
   budget:
     needs: paired-time
-    if: ${{ always() && inputs.budget != '' }}
+    if: ${{ !cancelled() && inputs.budget != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
