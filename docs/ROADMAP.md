@@ -220,6 +220,9 @@ Status: done, done, waiting, next, done.
 | k215 | The pilot measures in `kpi.json`: operators, distinct variants, screened and measured strategies, each with a target and a date. The first slice declares the 38 operators of `packSpace` as `packOperators` and adds the measure `operators` | site | in progress |  |
 | k216 | Each view generated: each measure against each dimension, for all strategies | site | later | k215 |
 | k217 | The physical family as refine and compact operators: springs, stress, PRISM, VPSC, force-scan and compaction | strategies | later | k213 |
+| k218 | Check the 18 home moves of the atlas, one test each | move | later |  |
+| k219 | Move `quantileOf` and `mulberry32` to rigor, and the corpus manifest writer to layout-contract | move | later |  |
+| k220 | A start frame and the frames of a run: `packWith` takes a run with a start and a callback of the frames, and `force` settles from the start. The gate: a start that is a fixed point moves nothing, and a start does not make `pack.stability.moved` or `pack.stability.mean` of the change corpus worse for `push` and `force` | core | in progress |  |
 
 ## The queue
 

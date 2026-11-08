@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.14.0
+
+A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
+
+This release raises the MINOR version. The output of `force` with a previous output changes, and `force` gets the mode `incremental`. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The parameter `run` of `packWith`: a start frame or a previous output, and a callback of the frames. The run is not part of the options, so the config ids do not change.
+- The function `packFrames`: the output and each frame of a run, from the start frame to the frame of the output.
+- The functions `frameOfOutput` and `startOutputOf`, and the types `PackRun` and `FrameCallback`.
+- The field `onFrame` of `PackContext`. A strategy that moves the boxes step by step gives it the output after each step.
+
+### Changed
+
+- The strategy `force` has the mode `incremental`. With `context.previous`, only the boxes that overlap move, and the steps stop at the first step with no overlap. A start with no overlap gives the same placements. The trace stage has `force.start` and `force.steps`.
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.1.
+- The fingerprint of `force` changes, because its probe of the mode `incremental` packs from a previous output.
+
+### Breaking
+
+- The strategy `force` reads `context.previous`. A caller that gives a previous output gets another output than before.
+
 ## 0.13.0
 
 The constant `packOperators` declares the operators of `packSpace` in the format `strategy-operators/1` of `@mark1russell7/strategy-space`.
@@ -21,6 +44,7 @@ This release raises the MINOR version. The types of the public API come from `@m
 ### Not changed
 
 - The ids of the configs, the counts of the space and the fingerprints of the catalog. The fields `identity` and `chooses` are not part of a config.
+
 ## 0.12.3
 
 The function `columnsCssBalance` fills the columns in the input order, as `column-fill: balance` of CSS does. The function `masonryMultiSpan` lays wide cards that cover more than one column.

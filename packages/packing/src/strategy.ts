@@ -49,6 +49,11 @@ export interface PackContext {
   budget?: { ms?: number; steps?: number };
   /** The previous output, for the mode `incremental`. */
   previous?: PackOutput;
+  /**
+   * The callback of the frames of a run (roadmap item k220). A strategy that moves the boxes step by step gives it the
+   * output after each step. With `"stop"`, the strategy ends its steps and gives a legal output.
+   */
+  onFrame?: (output: PackOutput) => void | "stop";
 }
 
 /** A packing strategy behind the Packer interface. */
