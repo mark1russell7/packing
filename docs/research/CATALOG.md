@@ -981,5 +981,6 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Packomania, data.** Eckard Specht. The best known packings of circles in many containers, with the coordinates. The site states no license. <http://www.packomania.com/>
 - **W3C flexbox.** "CSS Flexible Box Layout Module Level 1". <https://www.w3.org/TR/css-flexbox-1/>
 - **W3C grid.** "CSS Grid Layout Module Level 1". <https://www.w3.org/TR/css-grid-1/>
-- **W3C grid level 3 draft.** "CSS Grid Layout Module Level 3", a working draft of 2026. <https://www.w3.org/TR/css-grid-3/> The code of `cssGridLanes` follows section 4.4 of the editor's draft of 21 October 2026. <https://drafts.csswg.org/css-grid-3/>
+- **W3C grid level 3 draft.** "CSS Grid Layout Module Level 3", a working draft of 2026. <https://www.w3.org/TR/css-grid-3/>
+- **CSS grid level 3 editor's draft.** The editor's draft of 21 October 2026. The code of `cssGridLanes` follows its section 4.4. <https://drafts.csswg.org/css-grid-3/>
 - **W3C multi-column.** "CSS Multi-column Layout Module Level 1". <https://www.w3.org/TR/css-multicol-1/>
