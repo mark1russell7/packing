@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 510 names
+## . (build/index.d.ts): 513 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -109,6 +109,7 @@ type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GraphOrder: build/order.d.ts#GraphOrder
+type GridFlowOptions: build/index.d.ts#GridFlowOptions
 type GuillotineChoice: build/layout-strategy.d.ts#GuillotineChoice
 type GuillotineOptions: build/layout-strategy.d.ts#GuillotineOptions
 type GuillotineSplit: build/layout-strategy.d.ts#GuillotineSplit
@@ -361,6 +362,8 @@ corpus: build/index.d.ts#corpus
 corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
 createContext: build/strategy.d.ts#createContext
+cssGridDense: build/index.d.ts#cssGridDense
+cssGridSparse: build/index.d.ts#cssGridSparse
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
 defaultLayoutOf: build/index.d.ts#defaultLayoutOf
@@ -1153,6 +1156,11 @@ interface GeneticStrategyOptions {
   budgetWork?: number;
   population?: number;
   mutation?: number;
+}
+
+### build/index.d.ts#GridFlowOptions
+interface GridFlowOptions extends MasonryOptions {
+  readonly rowHeight?: number;
 }
 
 ### build/index.d.ts#HALF_WIDE_WIDTH
@@ -2034,6 +2042,12 @@ export declare const corpusFamilies: readonly CorpusFamily<GeneratedInput>[];
 
 ### build/index.d.ts#countCell
 export declare function countCell(count: number): CountScale;
+
+### build/index.d.ts#cssGridDense
+export declare function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput;
+
+### build/index.d.ts#cssGridSparse
+export declare function cssGridSparse(input: PackInput, options: GridFlowOptions): PackOutput;
 
 ### build/index.d.ts#dashboard
 export declare const dashboard: CorpusGenerator<UiParams>;
