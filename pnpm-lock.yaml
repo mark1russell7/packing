@@ -209,8 +209,8 @@ importers:
         specifier: ^0.9.8
         version: 0.9.10
       '@mark1russell7/layout-contract':
-        specifier: github:mark1russell7/layout-contract#c7a6d9c1acee954a041a60691475bf6c301a7e56&path:packages/layout-contract
-        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract
+        specifier: ^0.9.0
+        version: 0.9.0
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.6
         version: 0.1.6
@@ -249,8 +249,8 @@ importers:
   packages/site:
     dependencies:
       '@mark1russell7/layout-contract':
-        specifier: github:mark1russell7/layout-contract#c7a6d9c1acee954a041a60691475bf6c301a7e56&path:packages/layout-contract
-        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract
+        specifier: ^0.9.0
+        version: 0.9.0
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing
@@ -503,9 +503,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract':
-    resolution: {gitHosted: true, integrity: sha512-H6ORA0XiBVb19lXJZcOxatXPkrZs7SJk0c8f1lnCJMvVGVIJr6EwdY3CAhvmpe3QifQqBdnPDwfzn7UrodfNcg==, path: packages/layout-contract, tarball: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56}
-    version: 0.9.0
+  '@mark1russell7/layout-contract@0.9.0':
+    resolution: {integrity: sha512-vmextv6Q+YwUK3jDhIYgC2Xh+dhx40i60xlieBHp1+YsvsY+BnVXpBUAm3ShYTajzOgnmc3fHeWmFZJsTr2yKA==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
@@ -532,6 +531,10 @@ packages:
 
   '@mark1russell7/rigor-statistics@0.1.20':
     resolution: {integrity: sha512-os4nsGfn6rbXq3zR38H0AikY+eOk1CQBzN32RdrgIPYJg6vha0f8e0gnCwo4bJExakoLI2/1+KFArKV9sTMCsA==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.25':
+    resolution: {integrity: sha512-bdDOlHTDAz02QM40XG9fA//8J/FcfUhfXyUnlW6Dwwlnxd3fGQjAkIy6kn1iPRbKtk29mf4XdDN1VSKzMvc7RQ==}
     engines: {node: '>=22'}
 
   '@mark1russell7/site-pages@0.4.1':
@@ -1732,9 +1735,10 @@ snapshots:
 
   '@mark1russell7/cue@2.1.1': {}
 
-  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/c7a6d9c1acee954a041a60691475bf6c301a7e56#path:packages/layout-contract':
+  '@mark1russell7/layout-contract@0.9.0':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.8
+      '@mark1russell7/rigor-statistics': 0.1.25
       '@mark1russell7/strategy-space': 0.0.2
       '@mark1russell7/typeset': 0.2.0
 
@@ -1754,6 +1758,10 @@ snapshots:
   '@mark1russell7/rigor-statistics@0.1.20':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
+
+  '@mark1russell7/rigor-statistics@0.1.25':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.8
 
   '@mark1russell7/site-pages@0.4.1':
     dependencies:
