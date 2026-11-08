@@ -207,7 +207,7 @@ importers:
     dependencies:
       '@mark1russell7/collections':
         specifier: ^0.9.8
-        version: 0.9.8
+        version: 0.9.10
       '@mark1russell7/layout-contract':
         specifier: ^0.6.0
         version: 0.6.0
@@ -485,6 +485,10 @@ packages:
         optional: true
       dependency-cruiser:
         optional: true
+
+  '@mark1russell7/collections@0.9.10':
+    resolution: {integrity: sha512-OXr3aDXRILylhKMBbXTrknMb83TJI7ITmD1AaDuUap9bXsPm8kTRYhRU821V2MN/71YzhLrALcQi4xky1cvP6A==}
+    engines: {node: '>=22.12'}
 
   '@mark1russell7/collections@0.9.8':
     resolution: {integrity: sha512-OK0TYjuOnTUyAJjbhnFq86u/Y3M/xE3zsabGB6/dvwxnse2L8KXJ/fwPf2G+AJIGOabQQ8YMZN5nzuq+006yYQ==}
@@ -1709,6 +1713,10 @@ snapshots:
     optionalDependencies:
       '@swc/core': 1.16.20
       dependency-cruiser: 18.7.0
+
+  '@mark1russell7/collections@0.9.10':
+    dependencies:
+      '@mark1russell7/optional': 1.2.0
 
   '@mark1russell7/collections@0.9.8':
     dependencies:
