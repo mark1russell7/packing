@@ -428,6 +428,7 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "treemap-slice-dice": baseConfig("treemap", { method: "slice-dice" }),
   "treemap-strip": baseConfig("treemap", { method: "strip" }),
   "treemap-pivot-split": baseConfig("treemap", { method: "pivot-split" }),
+  "treemap-spiral": baseConfig("treemap", { method: "spiral" }),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;

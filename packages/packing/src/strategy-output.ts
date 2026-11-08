@@ -23,7 +23,7 @@ export type OutputTable = Readonly<Record<string, readonly OutputRead[]>>;
 export const OUTPUT_SOURCE = "whole-positions/1";
 
 /** The version of the package at the read that wrote this file. A version change alone does not change a row. */
-export const OUTPUT_READ_VERSION = "0.10.5";
+export const OUTPUT_READ_VERSION = "0.12.3";
 
 /** The rows of `strategyCatalog`, by strategy. */
 export const STRATEGY_OUTPUT: OutputTable = {
@@ -173,6 +173,7 @@ export const STRATEGY_OUTPUT: OutputTable = {
     {"optionSet":"default","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
     {"optionSet":"treemap-pivot-split","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
     {"optionSet":"treemap-slice-dice","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":72,"nearWhole":4}},
+    {"optionSet":"treemap-spiral","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":92,"nearWhole":0}},
     {"optionSet":"treemap-squarified","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
     {"optionSet":"treemap-strip","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":76,"nearWhole":0}},
   ],
