@@ -1,7 +1,7 @@
 {
   "schema": "strategy-catalog/2",
   "engine": "packing",
-  "version": "0.10.5",
+  "version": "0.11.0",
   "strategies": [
     {
       "key": "anneal",
@@ -61,7 +61,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "anneal-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -73,7 +73,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "anneal-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -85,7 +85,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "anneal-skyline-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -97,7 +97,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "anneal-skyline-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -109,7 +109,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -121,7 +121,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -244,7 +244,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "aspect-fit-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -256,7 +256,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "aspect-fit-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -268,7 +268,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "aspect-fit-maxrects-bssf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -280,7 +280,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "aspect-fit-maxrects-bssf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -292,7 +292,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "aspect-fit-portfolio-k2",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -304,7 +304,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "aspect-fit-portfolio-k2",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -406,7 +406,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "bbox-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -418,7 +418,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "bbox-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -430,7 +430,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "bbox-skyline",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -442,7 +442,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "bbox-skyline",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -454,7 +454,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -466,7 +466,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -539,7 +539,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -551,7 +551,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -613,7 +613,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "best-fit-short",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -625,7 +625,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "best-fit-short",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -637,7 +637,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "best-fit-tall",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -649,7 +649,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "best-fit-tall",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -661,7 +661,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -673,7 +673,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -761,7 +761,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -773,7 +773,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -856,7 +856,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "bottom-left-liu-teng",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -868,7 +868,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "bottom-left-liu-teng",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -880,7 +880,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -892,7 +892,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -976,7 +976,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -988,7 +988,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -1056,7 +1056,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1068,7 +1068,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -1137,7 +1137,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1149,7 +1149,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1161,7 +1161,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "force-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1173,7 +1173,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "force-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1185,7 +1185,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "force-rows",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1197,7 +1197,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "force-rows",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1209,7 +1209,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "force-skyline-bl-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1221,7 +1221,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "force-skyline-bl-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -1317,7 +1317,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1329,7 +1329,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1341,7 +1341,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "genetic-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1353,7 +1353,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "genetic-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -1472,7 +1472,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1484,7 +1484,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1496,7 +1496,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "guillotine-baf-sas",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1508,7 +1508,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "guillotine-baf-sas",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1520,7 +1520,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "guillotine-bssf-sas-merge",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1532,7 +1532,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "guillotine-bssf-sas-merge",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -1642,7 +1642,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1654,7 +1654,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -1714,7 +1714,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "columns-linear-partition",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1726,7 +1726,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "columns-linear-partition",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1738,7 +1738,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1750,7 +1750,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1762,7 +1762,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "masonry-lpt",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1774,7 +1774,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "masonry-lpt",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1786,7 +1786,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "masonry-shortest",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1798,7 +1798,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "masonry-shortest",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -1889,7 +1889,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1901,7 +1901,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1913,7 +1913,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-baf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1925,7 +1925,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-baf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1937,7 +1937,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1949,7 +1949,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1961,7 +1961,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-blsf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1973,7 +1973,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-blsf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1985,7 +1985,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-bssf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -1997,7 +1997,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-bssf",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2009,7 +2009,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-cp",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2021,7 +2021,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "maxrects-cp",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -2132,7 +2132,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2144,7 +2144,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -2232,7 +2232,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2244,7 +2244,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2256,7 +2256,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "overlap-min-maxrects-bl-k8192",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2268,7 +2268,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "overlap-min-maxrects-bl-k8192",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2280,7 +2280,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "overlap-min-skyline-k8192",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2292,7 +2292,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "overlap-min-skyline-k8192",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -2389,7 +2389,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2401,7 +2401,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2413,7 +2413,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-area-rows-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2425,7 +2425,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-area-rows-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2437,7 +2437,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-fill-rows-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2449,7 +2449,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-fill-rows-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2461,7 +2461,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-k2",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2473,7 +2473,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-k2",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2485,7 +2485,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-k3",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2497,7 +2497,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "portfolio-k3",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -2630,7 +2630,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2642,7 +2642,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -2725,7 +2725,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2737,7 +2737,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -2822,7 +2822,7 @@
             "nearWholeInputs": 34,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2834,7 +2834,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2846,7 +2846,7 @@
             "nearWholeInputs": 34,
             "source": "whole-positions/1",
             "optionSet": "relax-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2858,7 +2858,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "relax-maxrects-bl",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2870,7 +2870,7 @@
             "nearWholeInputs": 28,
             "source": "whole-positions/1",
             "optionSet": "relax-rows",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2882,7 +2882,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "relax-rows",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2894,7 +2894,7 @@
             "nearWholeInputs": 22,
             "source": "whole-positions/1",
             "optionSet": "relax-skyline-bl-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -2906,7 +2906,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "relax-skyline-bl-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3003,7 +3003,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3015,7 +3015,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3027,7 +3027,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "restarts-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3039,7 +3039,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "restarts-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3051,7 +3051,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "restarts-maxrects-bl-shuffle-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3063,7 +3063,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "restarts-maxrects-bl-shuffle-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3075,7 +3075,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "restarts-rows-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3087,7 +3087,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "restarts-rows-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3238,7 +3238,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3250,7 +3250,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3334,7 +3334,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3346,7 +3346,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3358,7 +3358,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "ruin-recreate-maxrects-bl-k64",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3370,7 +3370,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "ruin-recreate-maxrects-bl-k64",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3382,7 +3382,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "ruin-recreate-skyline-k64",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3394,7 +3394,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "ruin-recreate-skyline-k64",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3511,7 +3511,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3523,7 +3523,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3620,7 +3620,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3632,7 +3632,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3644,7 +3644,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-best",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3656,7 +3656,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-best",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3668,7 +3668,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-first",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3680,7 +3680,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-first",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3692,7 +3692,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-first-input",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3704,7 +3704,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-first-input",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3716,7 +3716,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-next",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3728,7 +3728,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "shelf-next",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3814,7 +3814,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3826,7 +3826,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3877,7 +3877,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3889,7 +3889,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -3959,7 +3959,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3971,7 +3971,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3983,7 +3983,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "side-anchors-first-left",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -3995,7 +3995,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "side-anchors-first-left",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -4099,7 +4099,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4111,7 +4111,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4123,7 +4123,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "skyline-bl-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4135,7 +4135,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "skyline-bl-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4147,7 +4147,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "skyline-mw",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4159,7 +4159,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "skyline-mw",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4171,7 +4171,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "skyline-mw-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4183,7 +4183,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "skyline-mw-waste",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -4275,7 +4275,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4287,7 +4287,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -4351,7 +4351,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4363,7 +4363,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4375,7 +4375,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "tabu-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4387,7 +4387,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "tabu-maxrects-bl-k16",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
@@ -4496,7 +4496,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4508,7 +4508,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "default",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4520,7 +4520,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "treemap-pivot-split",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4532,7 +4532,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "treemap-pivot-split",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4544,7 +4544,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "treemap-slice-dice",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4556,7 +4556,7 @@
             "nearWholeInputs": 4,
             "source": "whole-positions/1",
             "optionSet": "treemap-slice-dice",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4568,7 +4568,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "treemap-squarified",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4580,7 +4580,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "treemap-squarified",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4592,7 +4592,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "treemap-strip",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         },
         {
@@ -4604,7 +4604,7 @@
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
             "optionSet": "treemap-strip",
-            "catalogVersion": "0.10.5"
+            "catalogVersion": "0.11.0"
           }
         }
       ],
