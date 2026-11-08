@@ -62,7 +62,7 @@ export const SKIP_ROWS: readonly SkipRow[] = [
     why: "The strategy `push` changes an earlier layout. An offline input has no earlier layout. Item k159 reads it on a chain of changes.",
   },
   {
-    entries: ["treemap-pivot-split", "treemap-slice-dice", "treemap-spiral", "treemap-squarified", "treemap-strip"],
+    entries: ["treemap-pivot-middle", "treemap-pivot-size", "treemap-pivot-split", "treemap-slice-dice", "treemap-spiral", "treemap-squarified", "treemap-strip"],
     reasons: SHAPES,
     word: "other algorithm",
     why: "A treemap cuts a rectangle into cells. This shape needs another partition, for example a Voronoi treemap or a circle treemap.",

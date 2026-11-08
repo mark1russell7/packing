@@ -4519,6 +4519,54 @@
             "fractionalInputs": 96,
             "nearWholeInputs": 0,
             "source": "whole-positions/1",
+            "optionSet": "treemap-pivot-middle",
+            "catalogVersion": "0.12.0"
+          }
+        },
+        {
+          "property": "size-grid",
+          "class": "fractional",
+          "evidence": {
+            "inputs": 96,
+            "fractionalInputs": 96,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "treemap-pivot-middle",
+            "catalogVersion": "0.12.0"
+          }
+        },
+        {
+          "property": "position-grid",
+          "class": "fractional",
+          "evidence": {
+            "inputs": 96,
+            "fractionalInputs": 96,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "treemap-pivot-size",
+            "catalogVersion": "0.12.0"
+          }
+        },
+        {
+          "property": "size-grid",
+          "class": "fractional",
+          "evidence": {
+            "inputs": 96,
+            "fractionalInputs": 88,
+            "nearWholeInputs": 8,
+            "source": "whole-positions/1",
+            "optionSet": "treemap-pivot-size",
+            "catalogVersion": "0.12.0"
+          }
+        },
+        {
+          "property": "position-grid",
+          "class": "fractional",
+          "evidence": {
+            "inputs": 96,
+            "fractionalInputs": 96,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
             "optionSet": "treemap-pivot-split",
             "catalogVersion": "0.12.0"
           }
@@ -4644,6 +4692,22 @@
             "spiral"
           ],
           "default": "squarified"
+        },
+        "pivot": {
+          "type": "enum",
+          "describe": "The pivot rule of the method pivot-split: the most equal split, the middle item or the largest item.",
+          "values": [
+            "split",
+            "middle",
+            "size"
+          ],
+          "default": "split",
+          "when": {
+            "param": "method",
+            "in": [
+              "pivot-split"
+            ]
+          }
         }
       }
     }

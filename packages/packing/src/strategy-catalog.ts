@@ -48,6 +48,7 @@ import {
   MASONRY_METHOD_IDS,
   STANDALONE_MAX_ITEMS,
   TREEMAP_METHOD_IDS,
+  TREEMAP_PIVOT_IDS,
   type MasonryStrategyOptions,
   type SideAnchorStrategyOptions,
   type TreemapStrategyOptions,
@@ -328,6 +329,13 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
   } satisfies OptionSchema<MasonryStrategyOptions>,
   treemap: {
     method: { type: "enum", describe: "The layout of the cells.", values: TREEMAP_METHOD_IDS },
+    pivot: {
+      type: "enum",
+      describe: "The pivot rule of the method pivot-split: the most equal split, the middle item or the largest item.",
+      values: TREEMAP_PIVOT_IDS,
+      default: "split",
+      when: { param: "method", in: ["pivot-split"] },
+    },
   } satisfies OptionSchema<TreemapStrategyOptions>,
   "side-anchors": {
     first: { type: "object", describe: "One anchor for the first item of the input.", ...none("unset", "Without it, only the option anchors holds anchors.") },

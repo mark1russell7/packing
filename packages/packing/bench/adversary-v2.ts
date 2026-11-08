@@ -70,6 +70,8 @@ export const POOL_OUT: Readonly<Record<string, string>> = Object.freeze({
   "shelf-breaks": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
   "shelf-online": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
   "treemap-spiral": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "treemap-pivot-middle": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "treemap-pivot-size": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
 });
 
 /**

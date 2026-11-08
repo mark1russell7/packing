@@ -171,6 +171,8 @@ export const STRATEGY_OUTPUT: OutputTable = {
   ],
   "treemap": [
     {"optionSet":"default","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
+    {"optionSet":"treemap-pivot-middle","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
+    {"optionSet":"treemap-pivot-size","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":88,"nearWhole":8}},
     {"optionSet":"treemap-pivot-split","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
     {"optionSet":"treemap-slice-dice","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":72,"nearWhole":4}},
     {"optionSet":"treemap-spiral","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":92,"nearWhole":0}},

@@ -13,7 +13,17 @@ import { shelfBreaks, shelfBreaksRefusal } from "./shelf-breaks.ts";
 import { shelfOnline, shelfOnlineRefusal, type ShelfOnlineOptions } from "./shelf-online.ts";
 import { sleatorRefusal, sleatorStrip } from "./sleator.ts";
 import { assertSupported, UnsupportedCell, type PackContext, type Strategy, type Supports } from "./strategy.ts";
-import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapLayout } from "./treemap.ts";
+import {
+  treemapPack,
+  treemapPivotMiddle,
+  treemapPivotSize,
+  treemapPivotSplit,
+  treemapSliceDice,
+  treemapSpiral,
+  treemapSquarified,
+  treemapStrip,
+  type TreemapLayout,
+} from "./treemap.ts";
 
 /** The largest count of items that `binary-height`, `near-rects` and `raster-nofit` take. Their search time grows fast with the count. */
 export const STANDALONE_MAX_ITEMS = 256;
@@ -240,11 +250,28 @@ export const masonryStrategy: Strategy<MasonryStrategyOptions> = {
 /** The methods of the strategy `treemap`. */
 export type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split" | "spiral";
 
+/**
+ * The pivot rule of the method `pivot-split`. `split` picks the item with the most equal weights before it and after it.
+ * `middle` picks the item in the middle of the order, and `size` picks the largest item.
+ */
+export type TreemapPivot = "split" | "middle" | "size";
+
+/** The ids of the pivot rules of the method `pivot-split`. */
+export const TREEMAP_PIVOT_IDS: readonly TreemapPivot[] = ["split", "middle", "size"];
+
 /** The options of the strategy `treemap`. */
 export interface TreemapStrategyOptions {
   /** The layout of the cells. */
   readonly method: TreemapMethod;
+  /** The pivot rule of the method `pivot-split`. The default is `split`. The other methods do not read it. */
+  readonly pivot?: TreemapPivot;
 }
+
+const TREEMAP_PIVOTS: Readonly<Record<TreemapPivot, TreemapLayout>> = {
+  split: treemapPivotSplit,
+  middle: treemapPivotMiddle,
+  size: treemapPivotSize,
+};
 
 const TREEMAP_METHODS: Readonly<Record<TreemapMethod, TreemapLayout>> = {
   squarified: treemapSquarified,
@@ -261,13 +288,14 @@ export const TREEMAP_METHOD_IDS: readonly TreemapMethod[] = ["squarified", "slic
 export const treemapStrategy: Strategy<TreemapStrategyOptions> = {
   id: "treemap",
   family: "treemap",
-  catalog: ["treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "treemap-spiral"],
+  catalog: ["treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "treemap-pivot-middle", "treemap-pivot-size", "treemap-spiral"],
   supports: FREE_SUPPORTS,
   defaults: { method: "squarified" },
   deterministic: true,
   pack(input: PackInput, options: TreemapStrategyOptions): PackOutput {
     assertSupported(treemapStrategy.supports, input);
-    return refusing(() => treemapPack(input, TREEMAP_METHODS[options.method]));
+    const layout = options.method === "pivot-split" ? TREEMAP_PIVOTS[options.pivot ?? "split"] : TREEMAP_METHODS[options.method];
+    return refusing(() => treemapPack(input, layout));
   },
 };
 

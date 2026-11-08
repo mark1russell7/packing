@@ -71,9 +71,10 @@ describe("the word of a skip", () => {
     );
     const shapes = ["circle", "convex", "ellipse", "holes", "polygon"].map((shape) => `unsupported containerShape: ${shape}`);
     // Roadmap item k29 adds treemap-spiral, a treemap that has no defined result in a container that is not a rectangle.
+    // Roadmap item k27 adds treemap-pivot-middle and treemap-pivot-size, with the same skips.
     const pinned = [
       ...["unsupported containerSize: freeArea", "unsupported containerSize: freeAspect"].map((reason) => `no meaning|push|${reason}`),
-      ...["treemap-pivot-split", "treemap-slice-dice", "treemap-spiral", "treemap-squarified", "treemap-strip", "columns-linear-partition"].flatMap((entry) =>
+      ...["treemap-pivot-split", "treemap-pivot-middle", "treemap-pivot-size", "treemap-slice-dice", "treemap-spiral", "treemap-squarified", "treemap-strip", "columns-linear-partition"].flatMap((entry) =>
         shapes.map((reason) => `other algorithm|${entry}|${reason}`),
       ),
     ];
@@ -99,6 +100,7 @@ describe("the word of a skip", () => {
     const count = (word: string): number => pairs.filter((p) => skipRead(p.entry, p.reason).word === word).length;
     const counts = { pairs: pairs.length, done: count("not done"), composition: count("composition"), other: count("other algorithm"), meaning: count("no meaning") };
     // Roadmap item k29 adds the entry treemap-spiral. It has 5 skips, each with the word "other algorithm", so 99 pairs become 104.
-    expect(counts).toEqual({ pairs: 104, done: 38, composition: 34, other: 30, meaning: 2 });
+    // Roadmap item k27 adds the entries treemap-pivot-middle and treemap-pivot-size: 10 skips with the word "other algorithm", so 104 pairs become 114.
+    expect(counts).toEqual({ pairs: 114, done: 38, composition: 34, other: 40, meaning: 2 });
   });
 });
