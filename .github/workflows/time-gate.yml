@@ -54,7 +54,7 @@ jobs:
           # The files of the portfolio around its members, the time tools, the time gate records and the lock file.
           # The record bench/gates/size.json of the size gate is not a time gate, so it does not start this job.
           files="$(git diff --name-only "$BASE" "$GITHUB_SHA")"
-          if grep -qxE 'packages/packing/src/(portfolio|layout-input|measures|registry|select-key|work|contract)\.ts|packages/packing/bench/(paired-time|time-gate|time-gate-run|gate-flip|run|entries|main)\.ts|packages/packing/bench/time-gate\.sh|packages/packing/bench/gates/[a-z0-9-]+-time\.json|pnpm-lock\.yaml|\.github/workflows/time-gate\.yml' <<<"$files"; then
+          if grep -qxE 'packages/packing/src/(portfolio|layout-input|measures|registry|select-key|work|contract)\.ts|packages/packing/bench/(paired-time|time-gate|time-gate-run|gate-flip|no-read|run|entries|main)\.ts|packages/packing/bench/time-gate\.sh|packages/packing/bench/gates/[a-z0-9-]+-time\.json|pnpm-lock\.yaml|\.github/workflows/time-gate\.yml' <<<"$files"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -102,6 +102,12 @@ jobs:
             exit 0
           fi
           exit "$status"
+      # A noisy run and a report-only time verdict that cannot decide show on the check as a warning (k203).
+      - name: Show a no read of the gate as a warning
+        if: ${{ always() }}
+        env:
+          OUT: ${{ runner.temp }}/paired-time
+        run: node --no-warnings packages/packing/bench/no-read.ts gate "$OUT/gate.json"
       # The flip test reads a copy of the files of a run with a pass, so a noisy run reads it in the job retry
       - name: Flip test of the time gate
         if: ${{ steps.gate.outputs.status == '0' }}
@@ -165,6 +171,11 @@ jobs:
           OUT: ${{ runner.temp }}/paired-time
           RETRY: "1"
         run: node packages/packing/bench/time-gate-run.ts
+      - name: Show a no read of the second run as a warning
+        if: ${{ always() && steps.first.outputs.verdict == 'cannot-decide' }}
+        env:
+          OUT: ${{ runner.temp }}/paired-time
+        run: node --no-warnings packages/packing/bench/no-read.ts gate "$OUT/gate.json"
       - name: Flip test of the time gate
         if: ${{ steps.first.outputs.verdict == 'cannot-decide' }}
         env:

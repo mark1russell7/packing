@@ -132,7 +132,7 @@ jobs:
 
   skyline-width-ok:
     name: Skyline width OK
-    if: ${{ !cancelled() }}
+    if: always()
     needs: [changes, read, base]
     runs-on: ubuntu-latest
     timeout-minutes: 2

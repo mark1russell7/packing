@@ -29,7 +29,7 @@ jobs:
   # The one check of this file that the ruleset names (template #81). The scans stay here, not in ci.yml.
   security-ok:
     name: Security OK
-    if: ${{ !cancelled() }}
+    if: always()
     needs: [security]
     runs-on: ubuntu-latest
     timeout-minutes: 2

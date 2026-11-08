@@ -88,7 +88,7 @@ jobs:
             exit 0
           fi
           files="$(git diff --name-only "$BASE" "$GITHUB_SHA")"
-          if grep -qxE 'packages/packing/bench/(promote|run|main)\.ts|\.github/workflows/promotion\.yml' <<<"$files"; then
+          if grep -qxE 'packages/packing/bench/(promote|no-read|run|main)\.ts|\.github/workflows/promotion\.yml' <<<"$files"; then
             echo "win=true" >> "$GITHUB_OUTPUT"
           else
             echo "win=false" >> "$GITHUB_OUTPUT"
@@ -192,6 +192,11 @@ jobs:
         run: |
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate "$CANDIDATE" --default "$CURRENT" --win "$WIN" \
             --times "$RUNNER_TEMP/time" --guards "$GUARDS" --compare-guards --out "$RUNNER_TEMP/promotion"
+      # A verdict of no read exits 0. This step shows it on the check as a warning, with the count and the CPU models (k203).
+      - name: Show a no read of the win test as a warning
+        if: ${{ !cancelled() }}
+        working-directory: packages/packing
+        run: node --no-warnings bench/no-read.ts promotion "$RUNNER_TEMP/promotion/promotion.json"
       # The verdicts are functions of the fixed records of the default run. The pair maxrects-bl and rows has 2 CPU models, so its time ratio is not a speed.
       # The win reads no-read: each other test passes, and the time test gives no pass and no fail. The loss stands at fail on its gain.
       # The third read keeps the usual floor on that pair: its time tail is over the limit, and the read stays no-read.
@@ -227,7 +232,7 @@ jobs:
   # The check of the ruleset. It fails when a job of needs failed or was cancelled. A skipped job does not fail it.
   promotion-ok:
     name: Promotion OK
-    if: ${{ !cancelled() }}
+    if: always()
     needs: [changes, time, promotion]
     runs-on: ubuntu-latest
     timeout-minutes: 2

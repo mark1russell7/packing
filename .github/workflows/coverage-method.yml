@@ -89,7 +89,7 @@ jobs:
 
   coverage-method-ok:
     name: Coverage method OK
-    if: ${{ !cancelled() }}
+    if: always()
     needs: [changes, repeat]
     runs-on: ubuntu-latest
     timeout-minutes: 2
