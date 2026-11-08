@@ -271,6 +271,19 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
 
+## A no read on the check
+
+A gate that cannot read a case does not show a green check alone. `bench/no-read.ts` reads the verdict file of the gate after its step. It writes a warning annotation on the check for each case with no read.
+
+| Gate | The cases with no read |
+|---|---|
+| Win test (`promotion.yml`) | The status `no read`. The line has the input count and the reason, with the CPU models. |
+| Time gate (`time-gate.yml`) | A first pass of the gate above the noise cap, and a time verdict of `cannot decide` in the report. The line has the noise, the cap, the case count and the CPU. |
+| Gate of a paired run (`paired-time.yml`) | A time verdict of `cannot decide` in the report, with the case count and the CPU. |
+| Time budget (`paired-time.yml`) | The verdict `cannot decide`, with the job count, the reasons and the CPU models. Jobs on more than one CPU model also give a line. |
+
+A missing verdict file also gives a warning. The step of the gate failed then, so the check is red.
+
 ## The width of `skyline`
 
 The time of `skyline` must not change with the unit of the numbers. A read on one CI job (run 42023828592) showed that it did. On `freeArea` at 1000 items, the time goes from 1.1 s at scale 1 to 57.9 s at scale 64. `bench/skyline-width.ts` makes this read.
