@@ -60,6 +60,7 @@ describe("the types of packing and of the contract", () => {
     };
     // The range is a caret range of an npm release. A link, a file, a workspace or a git source fails this test.
     // A literal version is not pinned here, so a new contract range from the release train keeps this test green.
+    // probeHash, packOutputForm and fingerprintOf of the output fingerprints (bench/fingerprints.ts) are new in 0.5.5, and ^0.6.0 holds them.
     expect(pkg.dependencies?.["@mark1russell7/layout-contract"]).toMatch(/^\^\d+\.\d+\.\d+$/);
     expect(pkg.devDependencies?.["@mark1russell7/layout-contract"]).toBeUndefined();
     // mulberry32, fnv1a32 and stablePick of the package come from their home at run time. stablePick is new in 0.1.6.

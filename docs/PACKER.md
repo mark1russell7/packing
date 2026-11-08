@@ -1981,7 +1981,7 @@ import { checkCatalog, writeStrategyCatalog } from "@mark1russell7/layout-contra
 A test compares the file with the writer output and with the version of `package.json`. Thus a version pull request starts the script `version` of `packages/packing`:
 
 ```sh
-pnpm run version    # bench/whole-positions.ts --write, then bench/write-catalog.ts
+pnpm run version    # bench/whole-positions.ts --write, bench/fingerprints.ts --write, then bench/write-catalog.ts
 ```
 
 The commands `npm version` and `pnpm version` start this script after they set the version. A tool that changes the version of the package also starts it.
