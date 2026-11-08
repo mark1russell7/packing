@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 509 names
+## . (build/index.d.ts): names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -516,7 +516,7 @@ wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
 
-## ./circle-quasi-physical (build/entry/circle-quasi-physical.d.ts): 10 names
+## ./circle-quasi-physical (build/entry/circle-quasi-physical.d.ts): names
 
 CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
 CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
@@ -529,7 +529,7 @@ circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
 circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 createContext: build/strategy.d.ts#createContext
 
-## ./default (build/entry/default.d.ts): 7 names
+## ./default (build/entry/default.d.ts): names
 
 DEFAULT_STRATEGY: build/default.d.ts#DEFAULT_STRATEGY
 type PackContext: build/strategy.d.ts#PackContext
@@ -539,7 +539,7 @@ type Strategy: build/strategy.d.ts#Strategy
 createContext: build/strategy.d.ts#createContext
 packDefault: build/default.d.ts#packDefault
 
-## ./guillotine (build/entry/guillotine.d.ts): 14 names
+## ./guillotine (build/entry/guillotine.d.ts): names
 
 GUILLOTINE_CHOICES: build/layout-strategy.d.ts#GUILLOTINE_CHOICES
 GUILLOTINE_SPLITS: build/layout-strategy.d.ts#GUILLOTINE_SPLITS
@@ -556,7 +556,7 @@ createContext: build/strategy.d.ts#createContext
 guillotine: build/guillotine-strategy.d.ts#guillotine
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 
-## ./hole-degree (build/entry/hole-degree.d.ts): 10 names
+## ./hole-degree (build/entry/hole-degree.d.ts): names
 
 HOLE_DEGREE_MAX_STEPS: build/hole-degree.d.ts#HOLE_DEGREE_MAX_STEPS
 HOLE_DEGREE_STAGE: build/hole-degree.d.ts#HOLE_DEGREE_STAGE
@@ -569,7 +569,7 @@ circleOverlaps: build/hole-degree.d.ts#circleOverlaps
 createContext: build/strategy.d.ts#createContext
 holeDegree: build/hole-degree.d.ts#holeDegree
 
-## ./maxrects (build/entry/maxrects.d.ts): 13 names
+## ./maxrects (build/entry/maxrects.d.ts): names
 
 MAXRECTS_BANDS: build/layout-strategy.d.ts#MAXRECTS_BANDS
 MAXRECTS_RULES: build/layout-strategy.d.ts#MAXRECTS_RULES
@@ -585,7 +585,7 @@ createContext: build/strategy.d.ts#createContext
 maxrects: build/maxrects-strategy.d.ts#maxrects
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
 
-## ./push (build/entry/push.d.ts): 10 names
+## ./push (build/entry/push.d.ts): names
 
 type PackContext: build/strategy.d.ts#PackContext
 type PackInput: @mark1russell7/layout-contract#PackInput (external)
@@ -598,7 +598,7 @@ createContext: build/strategy.d.ts#createContext
 push: build/push-strategy.d.ts#push
 pushCascade: build/push-strategy.d.ts#pushCascade
 
-## ./rows (build/entry/rows.d.ts): 10 names
+## ./rows (build/entry/rows.d.ts): names
 
 type LayoutStrategyOptions: build/layout-strategy.d.ts#LayoutStrategyOptions
 type PackContext: build/strategy.d.ts#PackContext
@@ -611,7 +611,7 @@ createContext: build/strategy.d.ts#createContext
 packRows: build/layout-strategy.d.ts#packRows
 rows: build/rows-strategy.d.ts#rows
 
-## ./shelf (build/entry/shelf.d.ts): 12 names
+## ./shelf (build/entry/shelf.d.ts): names
 
 type LayoutStrategyOptions: build/layout-strategy.d.ts#LayoutStrategyOptions
 type PackContext: build/strategy.d.ts#PackContext
@@ -626,7 +626,7 @@ createContext: build/strategy.d.ts#createContext
 packShelf: build/layout-strategy.d.ts#packShelf
 shelf: build/shelf-strategy.d.ts#shelf
 
-## ./skyline (build/entry/skyline.d.ts): 13 names
+## ./skyline (build/entry/skyline.d.ts): names
 
 type PackContext: build/strategy.d.ts#PackContext
 type PackInput: @mark1russell7/layout-contract#PackInput (external)
@@ -642,7 +642,7 @@ lowestWindow: build/layout-strategy.d.ts#lowestWindow
 packSkyline: build/layout-strategy.d.ts#packSkyline
 skyline: build/skyline-strategy.d.ts#skyline
 
-## ./strategy-catalog (build/entry/strategy-catalog.d.ts): 2 names
+## ./strategy-catalog (build/entry/strategy-catalog.d.ts): names
 
 STRATEGY_CATALOG_ENGINE: build/entry/strategy-catalog.d.ts#STRATEGY_CATALOG_ENGINE
 strategyCatalog: build/entry/strategy-catalog.d.ts#strategyCatalog

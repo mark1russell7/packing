@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.6
+## 0.11.2
 
 Two new pivot treemaps of Shneiderman 2001: `treemapPivotMiddle` and `treemapPivotSize`.
 
@@ -15,6 +15,24 @@ This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
 
 - The type `TreemapMethod` and the strategy `treemap` do not change. The two pivots become methods of the strategy with the next break.
 - The output of `treemapPivotSplit` stays the same.
+## 0.11.1
+
+The package has a table of the output fingerprint of each strategy, from `fingerprintOf` of `@mark1russell7/layout-contract`. A joint bench reads it and starts again only the strategies with a changed output.
+
+This release raises the PATCH version. The package root does not export the table, so the public API does not change.
+
+### Added
+
+- `src/strategy-fingerprint.ts` has one fingerprint for each of the 33 strategies, over 114 probe inputs. The `version` script writes it, and the job `rows` of CI compares it.
+
+## 0.11.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/layout-contract` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/layout-contract, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.1.0` of `@mark1russell7/collections` in `dependencies` does not hold `0.9.8`, so it changes.
+- The range `^0.5.0` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.6.0`, so it changes.
 
 ## 0.10.5
 

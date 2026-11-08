@@ -215,12 +215,33 @@ The job `rows` of `output-rows.yml` starts on each pull request and each push to
 
 ```sh
 node --no-warnings bench/write-catalog.ts                 # After a change to the rows or the version
-pnpm run version                                          # After a change of the version: the two writers in their order
+pnpm run version                                          # After a change of the version: the three writers in their order
 node --no-warnings bench/whole-positions.ts --write       # After a strategy changes its output on purpose
 node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
+## The output fingerprints
+
+A joint bench starts again only the strategies whose output changed (roadmap item k201). The fingerprint of a strategy tells it.
+
+- Each corpus family and `rect-scattered` give a probe at the counts 5, 20 and 50, in the range of the family. Each other dimension keeps its default.
+- A family also gives a probe at each other container mode that it supports, with 20 items. Thus `masonry` and `treemap` get `freeAspect` and `freeArea` inputs.
+- The made-up inputs of `bench/shape-inputs.ts` give circles, polygons and both, at 5 and 20 items. Equal circles in a circle come from `bench/circles.ts`.
+- The seed of each input and of each pack is 1. The 114 probes come from 21 families and the 2 made-up sources.
+- Each strategy packs each probe with its defaults. `aspect-fit` has no default member, so it takes the options of the entry `aspect-fit-maxrects-bl`.
+- A strategy of the mode `incremental` packs the probe, then packs it again with the first item 1 unit wider. The second pack gets the first output as `previous`, as in `pack-change-v1`.
+- A strategy that refuses each probe fails the check and the write, because its fingerprint does not show a change. At this time each strategy packs 2 probes or more.
+- The hash of a probe is `probeHash` of `layout-contract` over `packOutputForm` of the output, with exact numbers. A refusal gives the token `refused`, with no reason text.
+- The fingerprint is `fingerprintOf` of the hashes of the probes. Another error than a refusal stops the read, with the name of the probe.
+
+The file `src/strategy-fingerprint.ts` holds the table. The script `bench/fingerprints.ts` writes it. Do not edit it. The job `rows` of `output-rows.yml` compares the table with a new read. Its artifact has the read table and the hash of each probe.
+
+```sh
+node --no-warnings bench/fingerprints.ts --write          # After a strategy changes its output on purpose
+node --no-warnings bench/fingerprints.ts --check          # The check of the job
+```
 
 ## The tie moves
 
@@ -270,6 +291,19 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
+
+## A no read on the check
+
+A gate that cannot read a case does not show a green check alone. `bench/no-read.ts` reads the verdict file of the gate after its step. For a read with a no-read case, it writes a warning annotation on the check and a line in the step summary. The line comes from `gateLine` and `writeGateLine` of rigor-bench, so each gate of each repository writes it in one form. The line names each case with no read, the reason and the jobs on each CPU model.
+
+| Gate | The cases with no read |
+|---|---|
+| Win test (`promotion.yml`) | The status `no read`. The line has the input count and the reason, with the CPU models. |
+| Time gate (`time-gate.yml`) | A first pass of the gate above the noise cap, and a time verdict of `cannot decide` in the report. The line has the noise, the cap, the case count and the CPU. |
+| Gate of a paired run (`paired-time.yml`) | A time verdict of `cannot decide` in the report, with the case count and the CPU. |
+| Time budget (`paired-time.yml`) | The verdict `cannot decide`, with the reasons and the jobs on each CPU model. The budget does not test the models, so jobs on more than one model are a no-read of the case `the CPU models`, also on a decided verdict. |
+
+A missing verdict file also gives a warning. The step of the gate failed then, so the check is red.
 
 ## The width of `skyline`
 
