@@ -404,6 +404,7 @@ martelloVigo: build/index.d.ts#martelloVigo
 martelloVigoFamily: build/index.d.ts#martelloVigoFamily
 masonryDifferencing: build/index.d.ts#masonryDifferencing
 masonryLpt: build/index.d.ts#masonryLpt
+masonryMultiSpan: build/index.d.ts#masonryMultiSpan
 masonryShortest: build/index.d.ts#masonryShortest
 matchPlaces: build/index.d.ts#matchPlaces
 maxrects: build/maxrects-strategy.d.ts#maxrects
@@ -2152,6 +2153,9 @@ export declare function masonryDifferencing(input: PackInput, options: MasonryOp
 
 ### build/index.d.ts#masonryLpt
 export declare function masonryLpt(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#masonryMultiSpan
+export declare function masonryMultiSpan(input: PackInput, options: MasonryOptions): PackOutput;
 
 ### build/index.d.ts#masonryShortest
 export declare function masonryShortest(input: PackInput, options: MasonryOptions): PackOutput;

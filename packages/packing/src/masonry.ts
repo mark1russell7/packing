@@ -1,5 +1,5 @@
-// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing, ordered columns and the balance of CSS columns.
-// A card wall has columns of one width, and each box goes to one column. The functions of this file are standalone.
+// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing, ordered columns, the balance of CSS columns and wide cards.
+// A card wall has columns of one width. Each box goes to one column, and a wide box of `masonryMultiSpan` goes to the columns next to each other that it covers. The functions of this file are standalone.
 // The strategy `masonry` of `src/standalone-strategies.ts` wraps them. They are not in a default. `columnBalance` and `columnReading` read their outputs.
 
 import { priorityQueue } from "@mark1russell7/collections";
@@ -44,6 +44,8 @@ interface Card {
   readonly height: number;
   readonly left: number;
   readonly top: number;
+  /** The count of the columns that the card covers: 1, or more for a wide card of `masonryMultiSpan`. */
+  readonly span: number;
 }
 
 /** The cards of an input, with the measures of its columns. */
@@ -59,8 +61,11 @@ interface Wall {
 /** A method of one wall: it gives the indexes of the cards of each column, from the top. */
 type Stacker = (heights: readonly number[], order: readonly number[], columns: number) => number[][];
 
-/** This function gives the cards of an input. It refuses an input that a column layout cannot keep with a `RangeError`. */
-function wallOf(input: PackInput, options: MasonryOptions): Wall {
+/**
+ * This function gives the cards of an input. It refuses an input that a column layout cannot keep with a `RangeError`.
+ * With `wide`, a box can be wider than a column. It covers the least count of columns that holds it, and it must fit in the wall.
+ */
+function wallOf(input: PackInput, options: MasonryOptions, wide = false): Wall {
   const { columns, columnWidth } = options;
   if (!Number.isInteger(columns) || columns < 1) throw new RangeError("The count of the columns must be a whole number of 1 or more.");
   if (input.container.fixed !== "none") throw new RangeError('A masonry layout needs a container with fixed "none", because the columns set the size.');
@@ -68,18 +73,31 @@ function wallOf(input: PackInput, options: MasonryOptions): Wall {
   if ((input.pairGaps?.length ?? 0) > 0) throw new RangeError("A masonry layout does not take pairGaps.");
   const gap = input.gap ?? 0;
   let widest = 0;
-  const cards = input.items.map((item): Card => {
+  const outers: number[] = [];
+  const cards = input.items.map((item): Omit<Card, "span"> => {
     if (item.locked === true) throw new RangeError(`A masonry layout does not take the locked item "${item.id}".`);
     if (!(item.w > 0 && item.h > 0) || !Number.isFinite(item.w) || !Number.isFinite(item.h)) throw new RangeError(`The size of "${item.id}" must be positive and finite.`);
     const margin = marginOf(item);
-    widest = Math.max(widest, item.w + margin.left + margin.right);
+    const outer = item.w + margin.left + margin.right;
+    outers.push(outer);
+    widest = Math.max(widest, outer);
     return { id: item.id, height: item.h + margin.top + margin.bottom + gap, left: margin.left, top: margin.top };
   });
   const width = columnWidth ?? widest;
-  if (!Number.isFinite(width) || !(width >= widest)) throw new RangeError("The column width must be finite, and each box with its margins must fit in it.");
+  if (!wide && (!Number.isFinite(width) || !(width >= widest))) throw new RangeError("The column width must be finite, and each box with its margins must fit in it.");
+  if (wide && (!Number.isFinite(width) || (columnWidth !== undefined && !(width > 0)) || !(widest <= columns * width + (columns - 1) * gap))) {
+    throw new RangeError("The column width must be positive and finite, and each box with its margins must fit in the width of the wall.");
+  }
   const ranks = input.items.map((item, index) => item.rank ?? index);
   const order = cards.map((_, index) => index).sort((a, b) => ranks[a]! - ranks[b]! || a - b);
-  return { cards, order, columns, width, gap };
+  return { cards: cards.map((card, index) => ({ ...card, span: spanOf(outers[index]!, width, gap) })), order, columns, width, gap };
+}
+
+/** This function gives the least count `k` of columns with `k` widths and `k - 1` gaps that hold a box of the width `outer`. */
+function spanOf(outer: number, width: number, gap: number): number {
+  let span = 1;
+  while (span * width + (span - 1) * gap < outer) span += 1;
+  return span;
 }
 
 /** This function places the cards of a wall with a stacker. Each card goes under the card before it, at the left of its column. */
@@ -318,12 +336,46 @@ export function columnsCssBalance(input: PackInput, options: MasonryOptions): Pa
 }
 
 /**
+ * This function gives the masonry with wide cards of the catalog (`masonry-multi-span`). A box covers the least count `k`
+ * of columns that holds it. In the input order, each box goes to the `k` columns next to each other where the tallest of
+ * them is the lowest. Of equal places, the left place wins. Then the `k` columns get the bottom of the box.
+ *
+ * - Without `columnWidth`, each box covers one column, and the layout is that of `masonryShortest`.
+ * - A box that is wider than the wall is a `RangeError`. The other refusals are those of `masonryShortest`.
+ * - The cost is `O(n c s)` for the largest count `s` of the columns of one box.
+ */
+export function masonryMultiSpan(input: PackInput, options: MasonryOptions): PackOutput {
+  const { cards, order, columns, width, gap } = wallOf(input, options, true);
+  const tops = new Array<number>(columns).fill(0);
+  const placements = new Array<Placement>(cards.length);
+  for (const index of order) {
+    const card = cards[index]!;
+    let start = 0;
+    let lowest = Infinity;
+    for (let first = 0; first + card.span <= columns; first++) {
+      let top = 0;
+      for (let column = first; column < first + card.span; column++) top = Math.max(top, tops[column]!);
+      if (top < lowest) {
+        lowest = top;
+        start = first;
+      }
+    }
+    placements[index] = { id: card.id, x: start * (width + gap) + card.left, y: lowest + card.top };
+    for (let column = start; column < start + card.span; column++) tops[column] = lowest + card.height;
+  }
+  const size = { w: columns * width + (columns - 1) * gap, h: Math.max(0, Math.max(0, ...tops) - gap) };
+  return { placements, overflow: [], size, moved: [] };
+}
+
+/**
  * This function gives the heights of the columns of a masonry layout and the measure `pack.columnBalance` of the catalog. Give
  * it the options of the layout. The height of a column is the lowest bottom of its boxes with their margins. The measure
- * reads the columns from the left edges of the boxes. An item that is not on a column is a `RangeError`.
+ * reads the columns from the left edges of the boxes. A wide box of `masonryMultiSpan` counts on each column that it covers.
+ * An item that is not on a column is a `RangeError`.
  */
 export function columnBalance(input: PackInput, output: PackOutput, options: MasonryOptions): ColumnBalance {
-  const { columns, width, gap } = wallOf(input, options);
+  const { cards, columns, width, gap } = wallOf(input, options, true);
+  const spans = new Map(cards.map((card) => [card.id, card.span]));
   const items = new Map(input.items.map((item) => [item.id, item]));
   const heights = new Array<number>(columns).fill(0);
   for (const placement of output.placements) {
@@ -331,8 +383,9 @@ export function columnBalance(input: PackInput, output: PackOutput, options: Mas
     if (item === undefined) continue;
     const margin = marginOf(item);
     const column = Math.round((placement.x - margin.left) / (width + gap));
-    if (!(column >= 0 && column < columns)) throw new RangeError(`The item "${item.id}" is not on a column.`);
-    heights[column] = Math.max(heights[column]!, placement.y + item.h + margin.bottom);
+    const span = spans.get(item.id) ?? 1;
+    if (!(column >= 0 && column + span <= columns)) throw new RangeError(`The item "${item.id}" is not on a column.`);
+    for (let covered = column; covered < column + span; covered++) heights[covered] = Math.max(heights[covered]!, placement.y + item.h + margin.bottom);
   }
   const tallest = Math.max(...heights);
   return { heights, balance: tallest > 0 ? (tallest - Math.min(...heights)) / tallest : 0 };
