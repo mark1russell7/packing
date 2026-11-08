@@ -32,6 +32,14 @@ jobs:
         env:
           OUT: ${{ runner.temp }}/output-rows
         run: node --no-warnings bench/whole-positions.ts --check --out "$OUT"
+      # The output fingerprints (k201, docs/BENCH.md "The output fingerprints"): the hash of each strategy on the probe inputs.
+      # The artifact holds the table of the read and the hash of each probe, so a changed fingerprint names its probes.
+      - name: Compare the fingerprints with the table
+        if: ${{ !cancelled() }}
+        working-directory: packages/packing
+        env:
+          OUT: ${{ runner.temp }}/output-rows/fingerprints
+        run: node --no-warnings bench/fingerprints.ts --check --out "$OUT"
       # A clean read of a strategy with whole rows, then the same read with half a position and with half a size. Each fault fails the check.
       - name: Flip test of the check
         working-directory: packages/packing

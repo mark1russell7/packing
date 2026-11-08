@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { checkHard } from "./check.ts";
 import type { PackInput } from "./contract.ts";
 import { measure } from "./measures.ts";
-import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
+import { treemapPack, treemapPivotMiddle, treemapPivotSize, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
 
 const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["slice-dice", treemapSliceDice],
@@ -12,6 +12,9 @@ const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["strip", treemapStrip],
   ["strip without lookahead", (nodes, frame) => treemapStrip(nodes, frame, { lookahead: false })],
   ["pivot-split", treemapPivotSplit],
+  ["spiral", treemapSpiral],
+  ["pivot-middle", treemapPivotMiddle],
+  ["pivot-size", treemapPivotSize],
 ];
 
 const leaves = (weights: readonly number[]): TreemapNode[] => weights.map((weight, index) => ({ id: `n${index}`, weight }));
@@ -220,6 +223,104 @@ describe("pivot by split size", () => {
   it("gives a mean aspect far below slice and dice", () => {
     const nodes = leaves(weightsOf("pivot", 100));
     expect(meanAspect(treemapPivotSplit(nodes, frame))).toBeLessThan(meanAspect(treemapSliceDice(nodes, frame)) / 5);
+  });
+});
+
+/** This function tells if two cells share an edge with a positive length. */
+function shareEdge(a: Rect, b: Rect, noise: number): boolean {
+  const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return (Math.abs(overlapX) <= noise && overlapY > noise) || (Math.abs(overlapY) <= noise && overlapX > noise);
+}
+
+/** This function gives the made-up case `index` of 200. An even index gives a flat list, and an odd index gives a tree of two levels. */
+function adjacencyCase(index: number): { readonly nodes: TreemapNode[]; readonly groups: readonly (readonly string[])[]; readonly frame: Rect } {
+  const stream = random(`spiral-adjacent:${index}`);
+  const frame = { x: stream.int(-50, 50), y: stream.int(-50, 50), w: stream.int(10, 400), h: stream.int(10, 400) };
+  const weight = (): number => Math.exp(stream.normal(0, 1.5));
+  if (index % 2 === 0) {
+    const nodes = Array.from({ length: stream.int(1, 80) }, (_, i) => ({ id: `n${i}`, weight: weight() }));
+    return { nodes, groups: [nodes.map((node) => node.id)], frame };
+  }
+  const nodes = Array.from({ length: stream.int(1, 9) }, (_, a) => ({
+    id: `a${a}`,
+    children: Array.from({ length: stream.int(1, 12) }, (_, b) => ({ id: `a${a}b${b}`, weight: weight() })),
+  }));
+  return { nodes, groups: nodes.map((node) => node.children.map((child) => child.id)), frame };
+}
+
+/** This function counts the pairs of cells in a row of the input, inside one group, that share no edge. */
+function apartPairs(layout: TreemapLayout, index: number): number {
+  const { nodes, groups, frame } = adjacencyCase(index);
+  const cells = new Map(layout(nodes, frame).map((cell) => [cell.id, cell]));
+  const noise = 1e-9 * Math.max(frame.w, frame.h);
+  let apart = 0;
+  for (const group of groups) {
+    for (let i = 1; i < group.length; i += 1) if (!shareEdge(cells.get(group[i - 1]!)!, cells.get(group[i]!)!, noise)) apart += 1;
+  }
+  return apart;
+}
+
+describe("spiral", () => {
+  it("lays four equal items around the frame in the direction of the clock", () => {
+    const cells = treemapSpiral(leaves([1, 1, 1, 1]), { x: 0, y: 0, w: 4, h: 4 });
+    expect(cells).toEqual([
+      { id: "n0", x: 0, y: 0, w: 2, h: 2 },
+      { id: "n1", x: 2, y: 0, w: 2, h: 2 },
+      { id: "n2", x: 2, y: 2, w: 2, h: 2 },
+      { id: "n3", x: 0, y: 2, w: 2, h: 2 },
+    ]);
+  });
+
+  it("lays the strip of the bottom from the right and the strip of the left from the bottom", () => {
+    const cells = treemapSpiral(leaves([4, 4, 1, 1, 1, 1, 2, 2]), { x: 0, y: 0, w: 4, h: 4 });
+    const bottom = cells.filter((cell) => Math.abs(cell.y + cell.h - 4) < 1e-9 && cell.x < 2);
+    expect(bottom.length).toBeGreaterThan(0);
+    for (let i = 1; i < cells.length; i += 1) expect(shareEdge(cells[i - 1]!, cells[i]!, 1e-9), `${cells[i - 1]!.id} and ${cells[i]!.id}`).toBe(true);
+  });
+
+  it("gives an edge to each two items in a row of the input, on 200 made-up lists and trees", () => {
+    const apart = Array.from({ length: 200 }, (_, index) => apartPairs(treemapSpiral, index));
+    expect(apart.filter((count) => count > 0)).toEqual([]);
+  });
+
+  it("is a test that fails for strip, which starts each strip at the left", () => {
+    const apart = Array.from({ length: 200 }, (_, index) => apartPairs(treemapStrip, index));
+    expect(apart.reduce((sum, count) => sum + count, 0)).toBeGreaterThan(100);
+  });
+});
+
+describe("pivot by middle and pivot by size", () => {
+  const frame = { x: 0, y: 0, w: 100, h: 100 };
+  // The pivot of these weights is item 1 by size, item 2 by split size and item 4 by middle.
+  const weights = [1, 5, 1, 1, 1, 1, 1, 1, 1];
+
+  /** This function examines that the cell `pivot` is at the top, with each cell before it at its left. */
+  const expectPivot = (cells: readonly TreemapCell[], pivot: number): void => {
+    expect(cells[pivot]!.y).toBeCloseTo(0, 9);
+    for (const cell of cells.slice(0, pivot)) expect(cell.x + cell.w).toBeLessThanOrEqual(cells[pivot]!.x + 1e-9);
+    expect(cells[pivot]!.x).toBeGreaterThan(0);
+  };
+
+  it("puts the pivot of each rule at the top, next to the items before it", () => {
+    expectPivot(treemapPivotSize(leaves(weights), frame), 1);
+    expectPivot(treemapPivotSplit(leaves(weights), frame), 2);
+    expectPivot(treemapPivotMiddle(leaves(weights), frame), 4);
+  });
+
+  it("gives the first of the largest items as the pivot by size", () => {
+    expectPivot(treemapPivotSize(leaves([1, 1, 5, 1, 5, 1, 1, 1, 1]), frame), 2);
+  });
+
+  it("picks the second of the two middle items for an even count", () => {
+    expectPivot(treemapPivotMiddle(leaves([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), frame), 5);
+  });
+
+  it("gives a mean aspect far below slice and dice", () => {
+    const nodes = leaves(weightsOf("pivot", 100));
+    const sliceDice = meanAspect(treemapSliceDice(nodes, frame));
+    expect(meanAspect(treemapPivotMiddle(nodes, frame))).toBeLessThan(sliceDice / 5);
+    expect(meanAspect(treemapPivotSize(nodes, frame))).toBeLessThan(sliceDice / 5);
   });
 });
 

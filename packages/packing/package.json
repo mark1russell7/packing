@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/packing",
-  "version": "0.10.5",
+  "version": "0.12.2",
   "description": "Rectangle packing: shelf, guillotine and skyline strategies, push cascades and measures of a layout.",
   "keywords": [
     "rectangle-packing",
@@ -109,8 +109,8 @@
     "node": ">=22.12"
   },
   "dependencies": {
-    "@mark1russell7/collections": "^0.1.0",
-    "@mark1russell7/layout-contract": "^0.5.0",
+    "@mark1russell7/collections": "^0.9.8",
+    "@mark1russell7/layout-contract": "^0.6.0",
     "@mark1russell7/rigor-generators": "^0.1.6"
   },
   "scripts": {
@@ -118,14 +118,14 @@
     "build": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
-    "version": "node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/write-catalog.ts",
+    "version": "node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/fingerprints.ts --write && node --no-warnings bench/write-catalog.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "devDependencies": {
-    "@mark1russell7/cue": "^1.0.2",
-    "@mark1russell7/rigor-bench": "^0.2.20",
+    "@mark1russell7/cue": "^2.1.1",
+    "@mark1russell7/rigor-bench": "^0.2.29",
     "@mark1russell7/rigor-statistics": "^0.1.11",
-    "@mark1russell7/site-pages": "^0.2.20",
+    "@mark1russell7/site-pages": "^0.4.1",
     "@types/node": "^26.6.4",
     "esbuild": "^0.28.2",
     "tsdown": "^0.23.1",
