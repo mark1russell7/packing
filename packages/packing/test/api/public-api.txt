@@ -349,6 +349,7 @@ circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 classGenerators: build/index.d.ts#classGenerators
 columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
+columnsCssBalance: build/index.d.ts#columnsCssBalance
 columnsLinearPartition: build/index.d.ts#columnsLinearPartition
 compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
@@ -2005,6 +2006,9 @@ export declare function columnBalance(input: PackInput, output: PackOutput, opti
 
 ### build/index.d.ts#columnReading
 export declare function columnReading(input: PackInput, output: PackOutput): ColumnReading;
+
+### build/index.d.ts#columnsCssBalance
+export declare function columnsCssBalance(input: PackInput, options: MasonryOptions): PackOutput;
 
 ### build/index.d.ts#columnsLinearPartition
 export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;
