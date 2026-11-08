@@ -10,6 +10,9 @@ export const KPI_PROJECT = "packing";
 /** What the measure `stale-text` leaves out. */
 const STALE_TEXT_NOT_COUNTED = "The count reads index.html and content/about.md, and the versions of the news against the changelog and the package. It leaves out the other pages and the text that a script draws.";
 
+/** The text of what the count of the operators leaves out. */
+const OPERATORS_NOT_COUNTED = "The count reads the operators of packSpace. It leaves out the param values and the options that change nothing or only choose a member. A param value is a variant, not an operator.";
+
 /** The most days from the last point of the coverage trend to the build, for a weekly trend. */
 const TREND_MAX_DAYS = 7;
 
@@ -84,6 +87,8 @@ export interface KpiFacts {
   readonly picker: number;
   /** The count of the strategies of the registry. */
   readonly strategies: number;
+  /** The count of the operators of `packSpace`: one for each mechanism of a stage, from `packOperators` (roadmap item k215). */
+  readonly operators: number;
   /** The count of the cells of an area law and an aspect law that the corpus emits, from the cells of `data/law-cover.json`. */
   readonly families: number;
   /** The count of the pairs of two item laws that the corpus emits, from `data/law-cover.json`. */
@@ -211,6 +216,7 @@ export function kpiInput(facts: KpiFacts, now: number): SiteKpi {
   const releases = releaseReading(facts.shownReleases, { changelog: facts.changelogReleases, current: facts.release, tags: facts.tags, versionAt: facts.versionAt }, now);
   const measures: SiteMeasure[] = [
     { id: "picker-strategies", value: facts.picker, unit: "strategies", at: facts.commitAt },
+    { id: "operators", value: facts.operators, unit: "operators", at: facts.commitAt, notCounted: OPERATORS_NOT_COUNTED },
     { id: "stale-text", value: staleText(facts.pages, facts.strategies) + releases.gaps.length, unit: "places", at: facts.commitAt, notCounted: STALE_TEXT_NOT_COUNTED },
     { id: "release-in-flight", value: releases.inFlight === undefined ? 0 : 1, unit: releases.inFlight === undefined ? "versions" : `version ${releases.inFlight}`, at: facts.commitAt },
     // The measure counts the cells of the area and aspect laws, not the generators. The cells come from the law-cover file, so they have its time.

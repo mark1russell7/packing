@@ -430,6 +430,7 @@ packFree: build/index.d.ts#packFree
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
 packNearRects: build/index.d.ts#packNearRects
+packOperators: build/index.d.ts#packOperators
 packParts: build/index.d.ts#packParts
 packPortfolio: build/index.d.ts#packPortfolio
 packRasterNofit: build/index.d.ts#packRasterNofit
@@ -2218,6 +2219,9 @@ export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?:
 
 ### build/index.d.ts#packNearRects
 export declare function packNearRects(input: PackInput, options?: NearRectsOptions): PackOutput;
+
+### build/index.d.ts#packOperators
+export declare const packOperators: OperatorSet;
 
 ### build/index.d.ts#packParts
 export declare function packParts(input: PackInput, split: Split, place: Strategy, options: unknown, context: PackContext): PackOutput;
