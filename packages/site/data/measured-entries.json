@@ -1,0 +1,475 @@
+{
+ "schema": "packing-site-snapshot/1",
+ "kind": "measured",
+ "origin": [
+  {
+   "release": "0.9.1",
+   "commit": "e507bd6",
+   "date": "2026-11-05",
+   "run": 42050010460,
+   "source": "bench.yml, the artifact bench-pack-change-v1"
+  },
+  {
+   "release": "0.8.0",
+   "commit": "441bb21",
+   "date": "2026-11-05",
+   "run": 41993720877,
+   "source": "bench.yml, the artifact bench-pack-classes-v1"
+  }
+ ],
+ "planned": 64,
+ "measured": 56,
+ "notMeasured": [
+  "columns-linear-partition",
+  "exact-strip",
+  "masonry-lpt",
+  "masonry-shortest",
+  "treemap-pivot-split",
+  "treemap-slice-dice",
+  "treemap-squarified",
+  "treemap-strip"
+ ],
+ "rows": [
+  {
+   "corpus": "pack-change-v1",
+   "run": 42050010460,
+   "date": "2026-11-05",
+   "largestItems": 60,
+   "entries": [
+    {
+     "entry": "maxrects-bl",
+     "measured": 480,
+     "records": 480,
+     "stopped": 0,
+     "largestItems": 60
+    },
+    {
+     "entry": "push",
+     "measured": 480,
+     "records": 480,
+     "stopped": 0,
+     "largestItems": 60
+    },
+    {
+     "entry": "rows",
+     "measured": 480,
+     "records": 480,
+     "stopped": 0,
+     "largestItems": 60
+    },
+    {
+     "entry": "shelf",
+     "measured": 480,
+     "records": 480,
+     "stopped": 0,
+     "largestItems": 60
+    },
+    {
+     "entry": "skyline",
+     "measured": 480,
+     "records": 480,
+     "stopped": 0,
+     "largestItems": 60
+    }
+   ],
+   "notPlanned": [
+    "fill-trick",
+    "keep-shelf"
+   ]
+  },
+  {
+   "corpus": "pack-classes-v1",
+   "run": 41993720877,
+   "date": "2026-11-05",
+   "largestItems": 100,
+   "entries": [
+    {
+     "entry": "anneal-maxrects-bl-k16",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "anneal-skyline-k16",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "aspect-fit-maxrects-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "aspect-fit-maxrects-bssf",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "aspect-fit-portfolio-k2",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "bbox-maxrects-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "bbox-skyline",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "beam",
+     "measured": 250,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "best-fit",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "best-fit-short",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "best-fit-tall",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "binary-height",
+     "measured": 250,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "bottom-left",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "bottom-left-liu-teng",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "force-maxrects-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "force-rows",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "force-skyline-bl-waste",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "genetic-maxrects-bl-k16",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "guillotine-baf-sas",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "guillotine-bssf-sas-merge",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "maxrects-baf",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "maxrects-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "maxrects-blsf",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "maxrects-bssf",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "maxrects-cp",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "near-rects",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "overlap-min-maxrects-bl-k8192",
+     "measured": 250,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "overlap-min-skyline-k8192",
+     "measured": 250,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "portfolio-area-rows-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "portfolio-fill-rows-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "portfolio-k2",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "portfolio-k3",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "raster-nofit",
+     "measured": 50,
+     "records": 500,
+     "stopped": 450,
+     "largestItems": 20
+    },
+    {
+     "entry": "relax-maxrects-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "relax-rows",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "relax-skyline-bl-waste",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "restarts-maxrects-bl-k16",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "restarts-maxrects-bl-shuffle-k16",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "restarts-rows-k16",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "rows",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "ruin-recreate-maxrects-bl-k64",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "ruin-recreate-skyline-k64",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "select-rows-bl",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "shelf",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "shelf-best",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "shelf-first",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "shelf-first-input",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "shelf-next",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "side-anchors-first-left",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "skyline",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "skyline-bl-waste",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "skyline-mw",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "skyline-mw-waste",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "sleator",
+     "measured": 250,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    },
+    {
+     "entry": "tabu-maxrects-bl-k16",
+     "measured": 500,
+     "records": 500,
+     "stopped": 0,
+     "largestItems": 100
+    }
+   ],
+   "notPlanned": []
+  }
+ ]
+}

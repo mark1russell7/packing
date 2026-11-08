@@ -1,12 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { allStrategies, corpusFamilies } from "@mark1russell7/packing";
+import { allStrategies } from "@mark1russell7/packing";
 import { changelogVersions } from "@mark1russell7/site-pages";
-import { siteKpi } from "@mark1russell7/site-pages/vite";
+import { siteKpi, siteStamps } from "@mark1russell7/site-pages/vite";
 import { defineConfig } from "vite";
-import { kpiInput, skipCounts, trendLines, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
+import { entryShares, LEFT_OUT_WORDS, parseSnapshot, stopsEarly, UNDER_HALF } from "./src/data.ts";
+import { emittedCells, kpiInput, skipCounts, trendLines, type LawCell, type SegmentedPoint, type SkipSummary } from "./src/kpi.ts";
 import { DEMO_IDS } from "./src/options.ts";
+import { siteDataStamps } from "./src/stamps.ts";
 
 // The Pages workflow sets SITE_BASE to "/packing". A local build uses the root.
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
@@ -52,14 +54,16 @@ const versionTime = (): string => {
 /** This function gives the data of `kpi.json`. The time of the build is only the clock of the test of a weekly trend. */
 const kpiData = () => {
   const text = (name: string): string => readFileSync(page(name), "utf8");
-  const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly SegmentedPoint[]; latest: { entries?: { measured: number; planned: number } } };
+  const coverage = JSON.parse(text("./data/coverage.json")) as { trend: readonly SegmentedPoint[] };
+  const measured = parseSnapshot(text("./data/measured-entries.json"), "measured");
+  const lawCover = JSON.parse(text("./data/law-cover.json")) as { covered: number; cells: readonly LawCell[] };
   const snapshots = readdirSync(page("./data")).filter((name) => /^strategies-.*\.json$/.test(name));
   const summaries = snapshots.flatMap((name) => (JSON.parse(text(`./data/${name}`)) as { strategies: readonly SkipSummary[] }).strategies);
   const facts = {
     picker: DEMO_IDS.length,
     strategies: allStrategies.length,
-    families: corpusFamilies.length,
-    lawPairs: (JSON.parse(text("./data/law-cover.json")) as { covered: number }).covered,
+    families: emittedCells(lawCover.cells),
+    lawPairs: lawCover.covered,
     pages: [text("./index.html"), text("./content/about.md")],
     release: packageVersion,
     tags: git("tag", "--list", "v*").split("\n").map((tag) => tag.slice(1)),
@@ -67,7 +71,19 @@ const kpiData = () => {
     shownReleases,
     changelogReleases: changelogVersions(text("../packing/CHANGELOG.md")),
     trend: trendLines(coverage.trend),
-    ...(coverage.latest.entries === undefined ? {} : { entries: { measured: coverage.latest.entries.measured, planned: coverage.latest.entries.planned } }),
+    entries: {
+      measured: measured.measured,
+      planned: measured.planned,
+      notMeasured: measured.notMeasured.length,
+      corpora: measured.rows.map((row) => row.corpus),
+      stopEarly: measured.rows.flatMap((row) => row.entries.filter((entry) => entry.measured > 0 && stopsEarly(entry, row))).length,
+    },
+    shares: (() => {
+      const read = entryShares(measured).filter((e) => e.share !== null);
+      const leftOut = Object.fromEntries(LEFT_OUT_WORDS.map((word) => [word, read.reduce((sum, e) => sum + (e.leftOut[word] ?? 0), 0)]));
+      return { read: read.length, underHalf: read.filter((e) => e.share! < UNDER_HALF).length, leftOut };
+    })(),
+    entriesAt: `${measured.rows.map((row) => row.date).sort().at(-1)!}T00:00:00Z`,
     skips: skipCounts(summaries),
     skipsAt: commitTime(...snapshots.map((name) => page(`./data/${name}`))),
     explorer: existsSync(page("./explorer/index.html")),
@@ -78,11 +94,17 @@ const kpiData = () => {
   return kpiInput(facts, Date.now());
 };
 
-// The site has six pages: the live demo, the compare page, the strategy cards, the measured results, the response explorer and the news. The deploy adds `status/` and `releases/`.
+/** This function gives the full commit of a short commit, or "unknown" when the history of the build has no such commit. */
+const fullCommit = (commit: string): string => git("rev-parse", "--verify", "--quiet", `${commit}^{commit}`);
+
+/** The data stamps of the measured pages, from the files of `data/` at the time of the build (`src/stamps.ts`). */
+const dataStamps = () => siteDataStamps((file) => readFileSync(page(`./data/${file}`), "utf8"), fullCommit);
+
+// The site has seven pages: the live demo, the compare page, the strategy cards, the measured results, the fixed studies, the response explorer and the news. The deploy adds `status/` and `releases/`.
 export default defineConfig({
   base,
   define: { __SITE_BUILD__: JSON.stringify(build) },
-  plugins: [siteKpi(kpiData, env)],
+  plugins: [siteKpi(kpiData, env), siteStamps(dataStamps)],
   build: {
     target: "es2022",
     rollupOptions: {
@@ -91,6 +113,7 @@ export default defineConfig({
         compare: page("./compare/index.html"),
         strategies: page("./strategies/index.html"),
         results: page("./results/index.html"),
+        "results-studies": page("./results/studies/index.html"),
         explorer: page("./explorer/index.html"),
         "whats-new": page("./whats-new/index.html"),
       },

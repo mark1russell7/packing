@@ -1,15 +1,12 @@
-// The results page: each strategy against `rows`, the distance to the best (k51, k45), the paired speed test of k67 and the select table.
+// The results page: each strategy against `rows`, the distance to the best (k51, k45), the solved regions and the coverage.
+// The page `results/studies/` has the paired speed test of k67 and the select table (`results-studies.ts`).
 // The page reads only the snapshot files of `packages/site/data/`.
 
-import { atlasFilter, atlasTable, atlasTiles, branchRunLines, regionsOf, ruleLine, type RegionState, type SolvedRule } from "./atlas-model.ts";
+import { atlasFilter, atlasTable, atlasTiles, branchRunLines, regionsOf, ruleLine, type RegionState } from "./atlas-model.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { marked } from "marked";
-import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover, type LawCoverCount } from "./corpus-cover-model.ts";
+import { coverEmptyLine, coverGrid, coverPairTable, coverTiles, lawLine, parseCorpusCover } from "./corpus-cover-model.ts";
 import strategiesText from "../content/results-strategies.md?raw";
-import speedText from "../content/results-speed.md?raw";
-import selectText from "../content/results-select.md?raw";
-import pairedJson from "../data/paired-k67.json?raw";
-import selectJson from "../data/select-table.json?raw";
 import gapsText from "../content/results-gaps.md?raw";
 import gapsKnownJson from "../data/gaps-pack-known-v1.json?raw";
 import gapsSelectJson from "../data/gaps-pack-select-v2.json?raw";
@@ -20,8 +17,9 @@ import corpusCoverText from "../content/results-corpus-cover.md?raw";
 import corpusCoverJson from "../data/corpus-cover.json?raw";
 import lawCoverJson from "../data/law-cover.json?raw";
 import coverageJson from "../data/coverage.json?raw";
+import measuredJson from "../data/measured-entries.json?raw";
 import { mountChrome } from "./chrome.ts";
-import { CORPUS_LABELS, COVERAGE_LABELS, fillClaimOf, GAP_LABELS, MEASURE_LABELS, parseSnapshot, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
+import { CORPUS_LABELS, COVERAGE_LABELS, fillClaimOf, GAP_LABELS, MEASURE_LABELS, parseLawCover, parseSnapshot, parseSolvedRule, type MeasureVerdict, type Origin, type StrategySnapshot, type StrategySummary } from "./data.ts";
 import { strategySnapshots } from "./strategy-snapshots.ts";
 import { diffText, esc, inline, LABEL_LOOK, msText, originHtml } from "./format.ts";
 import {
@@ -45,16 +43,13 @@ import {
   fillClaimOfStrategy,
   parseVerdictHash,
   percentText,
-  pickHolds,
   budgetText,
   rankSections,
   sectionReasons,
   skipLine,
   skipsHtml,
   sectionText,
-  ratioAt,
   scaleOf,
-  stepText,
   spaceOf,
   strataRows,
   strataText,
@@ -64,6 +59,7 @@ import {
   trendChart,
   trendNote,
   entriesNote,
+  measuredNote,
   verdictHash,
   verdictOf,
 } from "./results-model.ts";
@@ -78,10 +74,9 @@ const $ = <T extends HTMLElement>(id: string): T => {
 };
 
 const snapshots = strategySnapshots;
-const paired = parseSnapshot(pairedJson, "paired");
-const select = parseSnapshot(selectJson, "select");
 const gapSnaps = [gapsKnownJson, gapsSelectJson].map((t) => parseSnapshot(t, "gaps"));
 const cover = parseSnapshot(coverageJson, "coverage");
+const measuredEntries = parseSnapshot(measuredJson, "measured");
 const corpusCover = parseCorpusCover(corpusCoverJson);
 
 mountChrome($("links"), "results");
@@ -188,7 +183,7 @@ function drawStrategies(): void {
   $("fill-claim").innerHTML = esc(claim.note);
   const max = scaleOf(snap, WIN);
   const head = snap.measures.map((m) => `<span class="mhead" title="${esc(MEASURE_LABELS[m.id]?.note ?? m.id)}">${esc(MEASURE_LABELS[m.id]?.label ?? m.id)}</span>`).join("");
-  const sections = rankSections(snap, WIN);
+  const sections = rankSections(snap, WIN, claim.partner);
   const row = (s: StrategySummary): string => {
     const fill = verdictOf(s, WIN);
     const share = fillClaimOfStrategy(s, WIN, claim.partner);
@@ -252,61 +247,6 @@ function openVerdict(): void {
   row.querySelector("details")?.setAttribute("open", "");
   row.classList.add("target");
   row.scrollIntoView({ block: "start" });
-}
-
-// ---- The paired speed test of k67 ----
-
-function mountSpeed(): void {
-  $("speed-text").innerHTML = marked.parse(speedText, { async: false });
-  $("speed-origin").innerHTML = originHtml(paired.origin);
-  const s = paired.slow;
-  $("speed-tiles").innerHTML = `
-    <div class="tile hero"><span>The slow set, ${s.inputs} inputs</span><b>${msText(s.medianMsA)} → ${msText(s.medianMsB)}</b><small>median time for each input, ratio ${s.medianRatio}</small></div>
-    <div class="tile"><span>The slowest input</span><b>${msText(s.maxMsA)} → ${msText(s.maxMsB)}</b><small>largest time of each arm</small></div>
-    <div class="tile"><span>The other ${paired.other.inputs} inputs</span><b>${paired.other.medianRatio}</b><small>median ratio B / A</small></div>
-    <div class="tile ${paired.hashesEqual === paired.inputs ? "better" : "worse"}"><span>Same outputs</span><b>${paired.hashesEqual} of ${paired.inputs}</b><small>equal placement hashes</small></div>`;
-  const rows = [{ name: "The slow set", ...s, slow: true }, ...paired.classes.map((c) => ({ ...c, slow: false }))].sort((x, y) => x.medianRatio - y.medianRatio);
-  const one = ratioAt(1);
-  $("speed-chart").innerHTML =
-    rows
-      .map((r) => {
-        const at = ratioAt(r.medianRatio);
-        const left = Math.min(one, at);
-        const cls = r.medianRatio < 0.97 ? "faster" : r.medianRatio > 1.03 ? "slower" : "same";
-        return `<li class="rrow${r.slow ? " slow" : ""}" title="${esc(r.name)}: ${r.inputs} inputs, ${msText(r.medianMsA)} to ${msText(r.medianMsB)}">
-          <span class="rname">${esc(r.name)} <small>${r.inputs}</small></span>
-          <span class="rbar" aria-hidden="true"><span class="one" style="left:${one}%"></span><span class="rfill ${cls}" style="left:${left}%;width:${Math.max(0.6, Math.abs(at - one))}%"></span></span>
-          <span class="rval">${r.medianRatio}×</span>
-        </li>`;
-      })
-      .join("") +
-    `<li class="raxis" aria-hidden="true"><span></span><span class="ticks">${[0.05, 0.1, 0.3, 1, 2].map((t) => `<i style="left:${ratioAt(t)}%">${t}</i>`).join("")}</span><span></span></li>`;
-  $("speed-arms").innerHTML = `Arm A is <code>${esc(paired.arms.a)}</code>, arm B is <code>${esc(paired.arms.b)}</code>. The strategy is <code>${esc(paired.strategy)}</code> on <code>${esc(paired.corpus)}</code>, ${paired.repeats} timed passes for each arm.`;
-}
-
-// ---- The select table ----
-
-function mountSelect(): void {
-  $("select-text").innerHTML = marked.parse(selectText, { async: false });
-  $("select-origin").innerHTML = originHtml(select.origin);
-  const label = (corpus: string): string => CORPUS_LABELS[corpus]?.label ?? corpus;
-  $("leaves").innerHTML = select.leaves
-    .map((leaf) => {
-      const sets = [{ name: "Training", ...leaf.train }, ...leaf.test.map((t) => ({ name: label(t.corpus), wins: t.wins, of: t.of }))];
-      const holds = sets.every((c) => pickHolds(leaf, c));
-      const bars = sets
-        .map((c) => {
-          const share = c.of === 0 ? 0 : c.wins / c.of;
-          return `<li><span class="lname">${esc(c.name)}</span><span class="lbar" aria-hidden="true"><span class="half"></span><span class="lfill" style="width:${share * 100}%"></span></span><span class="lval">${c.wins} of ${c.of}</span></li>`;
-        })
-        .join("");
-      return `<li class="leaf ${leaf.member === "rows" ? "pick-rows" : "pick-max"}">
-        <div class="lhead"><span class="lid">Leaf ${leaf.leaf}</span><span class="pick">picks <code>${esc(leaf.member)}</code></span><span class="chip ${holds ? "better" : "worse"}"><span aria-hidden="true">${holds ? "✓" : "✗"}</span> ${holds ? "Holds on the tests" : "Does not hold"}</span></div>
-        <p class="path">${leaf.path.map((p) => `<span>${esc(stepText(p))}</span>`).join('<span class="arrow" aria-hidden="true">›</span>')}</p>
-        <ul class="lbars" aria-label="Wins of maxrects-bl against rows">${bars}</ul>
-      </li>`;
-    })
-    .join("");
 }
 
 // ---- The distance to the best ----
@@ -387,7 +327,7 @@ function mountGaps(): void {
 // ---- The solved regions of k109 ----
 
 function mountAtlas(): void {
-  const rule = JSON.parse(solvedRuleJson) as SolvedRule;
+  const rule = parseSolvedRule(solvedRuleJson);
   const regions = gapSnaps.flatMap((snap) => regionsOf(snap, rule));
   let current: RegionState | "all" = "all";
   const draw = (): void => {
@@ -505,7 +445,7 @@ function drawCorpusCover(): void {
   $("corpus-cover-grid").innerHTML = coverGrid(corpusCover, view, coverPair);
   $("corpus-cover-pair").innerHTML = coverPairTable(corpusCover, view, coverPair);
   $("corpus-cover-empty").innerHTML = coverEmptyLine(view);
-  $("law-cover-line").textContent = lawLine(JSON.parse(lawCoverJson) as LawCoverCount);
+  $("law-cover-line").textContent = lawLine(parseLawCover(lawCoverJson));
 }
 
 function mountCorpusCover(): void {
@@ -578,7 +518,7 @@ function mountCoverage(): void {
   drawIndices();
   $("coverage-trend").innerHTML = trendSvg();
   $("coverage-segments").innerHTML = trendNote(cover.trend);
-  $("coverage-entries").innerHTML = entriesNote(l.entries);
+  $("coverage-entries").innerHTML = entriesNote(l.entries) + measuredNote(measuredEntries);
   const last = cover.trend.at(-1)!;
   $("coverage-legend").innerHTML = l.measures
     .map((m, i) => {
@@ -597,7 +537,5 @@ function mountCoverage(): void {
 mountStrategies();
 mountGaps();
 mountAtlas();
-mountSpeed();
-mountSelect();
 mountCoverage();
 mountCorpusCover();

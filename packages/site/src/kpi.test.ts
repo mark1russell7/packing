@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { changelogFaults, changelogVersions } from "@mark1russell7/site-pages";
-import { kpiInput, segmentOf, staleText, trendLines, trendSegments, weeklyTrend, type KpiFacts, type SegmentedPoint } from "./kpi.ts";
+import { emittedCells, kpiInput, segmentOf, staleText, trendLines, trendSegments, weeklyTrend, type KpiFacts, type SegmentedPoint } from "./kpi.ts";
 
 const at = (date: string): number => Date.parse(`${date}T12:00:00Z`);
 
@@ -161,10 +161,43 @@ describe("the segments of the trend", () => {
     expect(shown([point("2026-10-29", 1, ["a"]), point("2026-11-05", 2, ["a"]), point("2026-11-05", 2, ["a", "b"])], "2026-11-13")).toBe(0);
   });
 
-  it("gives the count of the entries with a measured record, with the date of the coverage", () => {
-    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-11-05"] }], entries: { measured: 54, planned: 64 } }, at("2026-11-06"));
-    expect(file.measures.find((m) => m.id === "measured-entries")).toEqual({ id: "measured-entries", value: 54, unit: "of 64 entries", at: "2026-11-05T00:00:00Z" });
-    expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "measured-entries")).toBe(false);
+  it("gives the count of the entries over the corpora, with the corpora, the early rows and the date of the last run", () => {
+    const entries = { measured: 54, planned: 64, notMeasured: 10, corpora: ["pack-a-v1", "pack-b-v1"], stopEarly: 3 };
+    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-11-05"] }], entries, entriesAt: "2026-11-03T00:00:00Z" }, at("2026-11-06"));
+    expect(file.measures.find((m) => m.id === "measured-entries")).toEqual({ id: "measured-entries", value: 54, unit: "of 64 entries, over pack-a-v1, pack-b-v1; rows that stop early: 3", at: "2026-11-03T00:00:00Z" });
+    expect(file.measures.find((m) => m.id === "unmeasured-entries")).toEqual({ id: "unmeasured-entries", value: 10, unit: "of 64 entries with no measured record", at: "2026-11-03T00:00:00Z" });
+    expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "measured-entries" || m.id === "unmeasured-entries")).toBe(false);
+  });
+
+  // Roadmap item k197.
+  it("gives the entries under half with each left-out word and its count, and no measure with no read share", () => {
+    const shares = { read: 66, underHalf: 21, leftOut: { "other algorithm": 25 } };
+    const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-11-05"] }], shares, entriesAt: "2026-11-03T00:00:00Z" }, at("2026-11-06"));
+    expect(file.measures.find((m) => m.id === "entries-under-half")).toEqual({
+      id: "entries-under-half",
+      value: 21,
+      unit: "of 66 entries with a read share measure under half of their records; left out: other algorithm 25, no meaning 0",
+      at: "2026-11-03T00:00:00Z",
+    });
+    expect(kpiInput({ ...FACTS, shares: { ...shares, read: 0 } }, at("2026-11-06")).measures.some((m) => m.id === "entries-under-half")).toBe(false);
+    expect(kpiInput(FACTS, at("2026-11-06")).measures.some((m) => m.id === "entries-under-half")).toBe(false);
+  });
+});
+
+describe("the input families", () => {
+  it("counts each pair of an area law and an aspect law one time", () => {
+    const cells = [
+      { area: "uniform", aspect: "wide", assortment: "a" },
+      { area: "uniform", aspect: "wide", assortment: "b" },
+      { area: "uniform", aspect: "fixed", assortment: "a" },
+      { area: "pareto", aspect: "wide", assortment: "a" },
+    ];
+    expect(emittedCells(cells)).toBe(3);
+    expect(emittedCells([])).toBe(0);
+  });
+
+  it("does not join two laws whose names join to the same text", () => {
+    expect(emittedCells([{ area: "a|b", aspect: "c" }, { area: "a", aspect: "b|c" }])).toBe(2);
   });
 });
 
@@ -181,6 +214,7 @@ describe("the file", () => {
     expect(times["picker-strategies"]).toBe(FACTS.commitAt);
     expect(times["stale-text"]).toBe(FACTS.commitAt);
     expect(times["law-pairs-covered"]).toBe(FACTS.lawPairsAt);
+    expect(times["input-families"]).toBe(FACTS.lawPairsAt);
     expect(times["coverage-shown"]).toBe("2026-10-28T00:00:00Z");
     expect(file.at).toBe("2026-10-28T00:00:00Z");
   });

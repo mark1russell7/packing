@@ -138,7 +138,7 @@ export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions }
 export { compactUp } from "./compact.ts";
 export { matchPlaces } from "./match.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
-export { keepPrefix, pinUnchanged, type PinnedInput } from "./pin.ts";
+export { keepPrefix, pinUnchanged, repackPinned, type PinnedInput, type Repacked, type RepackMethod } from "./pin.ts";
 export { NEAR_RECTS_STAGE, packNearRects, type NearRectsOptions } from "./near-rects.ts";
 export { packRasterNofit, RASTER_NOFIT_MAX_CELLS, RASTER_NOFIT_STAGE, rasterCell, rasterCover, type RasterCover, type RasterNofitOptions } from "./raster-nofit.ts";
 export {
@@ -366,6 +366,8 @@ export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type Corpus
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
   treemapPack,
+  treemapPivotMiddle,
+  treemapPivotSize,
   treemapPivotSplit,
   treemapSliceDice,
   treemapSpiral,

@@ -200,7 +200,7 @@ These methods put each box in a corner of the boxes before it. Bottom-left moves
 | `best-fit-bkw` | Best fit, lowest gap | Find the lowest gap on the skyline. Put in it the box left that fills the most of its width. If no box fits, raise the gap to its lower neighbor. | Burke 2004 | density | `O(n^2)` | — | implemented: `best-fit`, without the turn and the tower step | k25 |
 | `best-fit-fast` | Best fit, fast form | Do `best-fit-bkw` with balanced trees. | Imahori 2010 | speed | `O(n log n)` | — | not built: the output of `best-fit`, only faster | k25 |
 | `lowest-gap-fill` | Lowest Gap Fill (LGF) | Fill the lowest gap with the box that gives the best score of fit, then the next lowest gap. | unverified: we found no source with this name | density | `O(n^2)` | — | not built: no source | k25 |
-| `touching-perimeter` | Touching Perimeter (TP) | Put each box in the corner place where the part of its edge that touches walls and boxes is the largest. | Lodi 1999 | density | `O(n^3)` | — | planned | k25 |
+| `touching-perimeter` | Touching Perimeter (TP) | Put each box in the corner place where the part of its edge that touches walls and boxes is the largest. | Lodi 1999 | density | `O(n^3)` | — | implemented: same output as `maxrects` with the rule `cp` and the order `area-desc` | k25 |
 | `corner-degree` | Corner-occupying action with a degree | Put each box only in a corner of two edges. Choose the corner with the highest degree, a measure of how close the box is to the other boxes. | Wu 2002 | density | `O(n^4)` | — | planned | k25 |
 | `caving-degree` | Caving degree | Do `corner-degree` with the caving degree: the box that fits closest into a corner wins. | Huang 2007 | density | `O(n^4)` | — | planned | k25 |
 | `two-level-search` | Two-level search | Do `caving-degree`, and look ahead one step to choose between the best few corners. | Chen 2007 | density | `O(n^5)` | — | planned | k25 |
@@ -219,6 +219,8 @@ Notes:
 - The cost of `bl-baker` and `bl-liu-teng` is the cost of this code, with a linear scan of the walls for each leg. A test of `src/bottom-left.test.ts` shows growth over `O(n^2)` on a stair of pegs.
 - `bl-chazelle` and `blf-hopper` give the rule "lowest, then leftmost, holes included". The lowest and leftmost place is a corner of a maximal free rectangle, so `maxrects` with the rule `bl` gives the same places. A brute-force test of `src/bottom-left.test.ts` shows it on seeded inputs.
 - Thus `bl-chazelle` differs from `blf-hopper` only in its data structure. The package has no strategy for each, and it does not claim the `O(n^2)` of `bl-chazelle`.
+- `touching-perimeter` puts each box, in the order `area-desc`, at the normal place with the most contact. Each normal place is the top-left corner of a maximal free rectangle. So `maxrects` with the rule `cp` examines each normal place, with the same score. A brute-force test of `src/bottom-left.test.ts` shows the same places on 48 seeded inputs with whole sizes.
+- On sizes that are not whole, two sums of the same contact can differ in the last bit. A scan of 24 such grids gave 4 inputs where a tie went another way, and no other difference.
 - Aşık 2009 tells `bl-jakobs` as a slide that repeats until the box stops, and that is `bl-baker`. We did not find the one-pass rule of this table in a source, so the package has no strategy for it.
 - `best-fit` puts the widest box that fits. The default order `height-desc` breaks a tie by height. It does not turn a box, and it has no tower step. The corpora have no turnable items.
 - The gap rules (`best-fit-bkw`, `lowest-gap-fill`) do not use a fixed order of the boxes. Thus they make many inversions of the rank.
@@ -380,8 +382,8 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | — | implemented | k27 |
 | `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | — | implemented | k27 |
 | `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips, with the mean aspect of the strip in place of the worst aspect. | Bederson 2002 | order, aspect | `O(n sqrt n)` on average, `O(n^2)` at most | — | implemented | k27 |
-| `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | — | planned | k27 |
-| `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | — | implemented: the function `treemapPivotMiddle`, not a method of the strategy `treemap` | k27 |
+| `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | — | implemented: the function `treemapPivotSize`, not a method of the strategy `treemap` | k27 |
 | `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | implemented | k27 |
 | `treemap-split` | Split | Split the ordered list into two parts of near equal weight. Cut the rectangle along its longer side. Recurse. | Engdahl 2005 (unverified) | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | — | implemented | k29 |
@@ -668,6 +670,7 @@ These ideas are new for this project. Some of them join two published methods. E
 
 Results:
 
+- `new-pin-repack` (k31): `repackPinned`. In a container of slack 1.1, it moves 0.47 and 0.50 of the boxes that a fresh pack moves, on `maxrects-bl` and `skyline`. It places each item when a fresh pack does. On a strip, the pin always fits: it moves 0.010 of the boxes, and costs 21 to 32 % of height at step 10 (`bench/pin.ts`). Thus the row claim of a small cost fails on strips. `docs/BENCH.md`, "The pin and repack", has the table.
 - `new-rank-window` (k31): the prediction of its row failed. On made-up strips of 100 items, window 6 gives 9 % of the height gain, and half of the gain needs window 32. `docs/BENCH.md`, "The rank window", has the curve.
 
 ## Measures to add

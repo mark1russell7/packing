@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -22,9 +26,11 @@ jobs:
       # The same base as the Pages build (pages.yml)
       SITE_BASE: /${{ github.event.repository.name }}
     steps:
+      # The depth 2 gives the parents of the merge commit of a pull request, for the step reader.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 2
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -32,10 +38,70 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The same template commit as pages.yml and ci.yml
-      - uses: mark1russell7/template/.github/actions/setup-playwright@e077054e0f2ebb8441e4bc525b56cf2acc2afb6f # main
+      - uses: mark1russell7/template/.github/actions/setup-playwright@8f6358bbecd380c61abfd0faf53a6baca812db0d # main
         with:
           browsers: chromium
           command: pnpm --filter @packing/site exec playwright
+      # The code of this commit reads the files of the data branch, as the Pages build does. So a change of a shape and an old
+      # file of the branch cannot pass together, and the check CI OK goes red before the merge. A pull request does this read
+      # only if it changes the reader: other pull requests cannot change the result, and they do not wait for a queued run.
+      # The Pages build reads the branch each day and after each run of Site data, so a stale branch does not go unseen.
+      # src/data-gate.test.ts holds this list equal to the imports of the gate and of the overlay.
+      # The step reads the files with git, not with the API of pull requests. release.yml uses this workflow with only
+      # `contents: read`, and the permission `pull-requests: read` stopped each release before it started.
+      # The checkout of a pull request is its merge commit, and its first parent is the base, so the diff gives the files of the pull request.
+      # A pattern has the meaning of `case` in bash: `*` matches each character, `/` too. Each event other than a pull request is a match.
+      - id: reader
+        env:
+          EVENT: ${{ github.event_name }}
+          PATHS: |
+            packages/site/scripts/data-gate.ts
+            packages/site/scripts/overlay.ts
+            packages/site/src/atlas-model.ts
+            packages/site/src/corpus-cover-model.ts
+            packages/site/src/data-gate.ts
+            packages/site/src/data-shape.ts
+            packages/site/src/data-shapes.ts
+            packages/site/src/data.ts
+            packages/site/src/format.ts
+            packages/site/src/gap-definition.ts
+            packages/site/src/kpi.ts
+            packages/site/src/overlay.ts
+            packages/site/data/**
+            pnpm-lock.yaml
+            .github/workflows/site-check.yml
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo "The event is $EVENT, not a pull request, so the read starts."
+            echo "match=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/files"
+          match=false
+          while IFS= read -r pattern; do
+            [ -z "$pattern" ] && continue
+            while IFS= read -r file; do
+              # shellcheck disable=SC2254
+              case "$file" in $pattern) match=true ;; esac
+            done < "$RUNNER_TEMP/files"
+          done <<< "$PATHS"
+          echo "$(wc -l < "$RUNNER_TEMP/files") files. Match: $match."
+          echo "match=$match" >> "$GITHUB_OUTPUT"
+      - name: Read the data files over the data branch
+        if: steps.reader.outputs.match == 'true'
+        run: |
+          data="$RUNNER_TEMP/site-data"
+          mkdir -p "$data"
+          cp packages/site/data/* "$data/"
+          # A file of the branch replaces the file of main only if its own record is later, as in the Pages build.
+          if git fetch -q origin site-data; then
+            branch="$(mktemp -d)"
+            git archive FETCH_HEAD | tar -x -C "$branch"
+            node --no-warnings packages/site/scripts/overlay.ts "$branch" "$data"
+          fi
+          node --no-warnings packages/site/scripts/data-gate.ts "$data"
+      - name: The flip test of the data gate
+        run: node --no-warnings packages/packing/bench/gate-flip.ts data --site packages/site --out "$RUNNER_TEMP/data-flip"
       - name: Build the site
         run: pnpm --filter @packing/site run build
       - name: Check each page at the phone width and the desktop width, in light and in dark

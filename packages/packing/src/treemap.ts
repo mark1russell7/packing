@@ -1,4 +1,4 @@
-// The first treemaps of `docs/research/CATALOG.md` (roadmap item k27): slice and dice, squarified, strip and pivot by split size.
+// The first treemaps of `docs/research/CATALOG.md` (roadmap item k27): slice and dice, squarified, strip, and the pivots by split size, by middle and by size.
 // A treemap cuts a rectangle into cells. The area of each cell is in proportion to the weight of its item. The functions
 // of this file are standalone. They are not in the registry or in a default. `treemapPack` is the
 // comparison of the catalog: each box goes to the center of its cell, and the cells scale up until each box fits.
@@ -299,14 +299,27 @@ function meanAspect(rects: readonly TreemapFrame[]): number {
   return sumOf(rects.map((rect) => aspectOf(rect.w, rect.h))) / rects.length;
 }
 
-/** This function gives the cells of one level of the pivot treemap. */
-function pivots(weights: readonly number[], frame: TreemapFrame): TreemapFrame[] {
+/**
+ * The rule that picks the pivot of a pivot treemap. `split` picks the item with the most equal weights before it and
+ * after it (Bederson 2002). `middle` picks the item in the middle of the order, and `size` picks the largest item
+ * (Shneiderman 2001).
+ */
+type PivotRule = "split" | "middle" | "size";
+
+/** This function gives the cells of one level of the pivot treemap, with the pivot of `rule`. */
+function pivots(weights: readonly number[], frame: TreemapFrame, rule: PivotRule): TreemapFrame[] {
   const prefix = prefixOf(weights);
   const between = (from: number, to: number): number => prefix[to]! - prefix[from]!;
 
-  /** The pivot by split size: the item with the most equal weights before it and after it. */
+  /** The pivot of the items `from` up to `to`. For an even count, `middle` picks the second of the two middle items. */
   const pivotOf = (from: number, to: number): number => {
+    if (rule === "middle") return from + Math.floor((to - from) / 2);
     let pivot = from;
+    if (rule === "size") {
+      // A tie goes to the first of the largest items.
+      for (let i = from + 1; i < to; i += 1) if (weights[i]! > weights[pivot]!) pivot = i;
+      return pivot;
+    }
     let best = Infinity;
     for (let i = from; i < to; i += 1) {
       const gap = Math.abs(between(from, i) - between(i + 1, to));
@@ -388,7 +401,25 @@ function pivots(weights: readonly number[], frame: TreemapFrame): TreemapFrame[]
  * order of the input is near in the layout, but not exact. The cost is `O(n log n)` on average and `O(n^2)` at most.
  */
 export function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
-  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area));
+  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "split"));
+}
+
+/**
+ * This function gives the pivot treemap of Shneiderman 2001 with the pivot by middle. The pivot is the item in the middle
+ * of the order. The other steps are the steps of `treemapPivotSplit`. The cost is `O(n log n)`, because each step halves
+ * the count.
+ */
+export function treemapPivotMiddle(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "middle"));
+}
+
+/**
+ * This function gives the pivot treemap of Shneiderman 2001 with the pivot by size. The pivot is the largest item, so
+ * the largest cell has the aspect nearest to 1. The other steps are the steps of `treemapPivotSplit`. The cost is
+ * `O(n log n)` on average and `O(n^2)` at most.
+ */
+export function treemapPivotSize(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "size"));
 }
 
 /**

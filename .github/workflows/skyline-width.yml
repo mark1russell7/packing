@@ -1,0 +1,143 @@
+# The read of roadmap items k167 and k170: the time of skyline against the width of the input in units, on one job.
+# A pull request that changes the engine or the read starts it. It reports, and it is not a check of the ruleset.
+# The job read gives the slope, the control and the time over the base commit. The job base compares the outputs of the entries
+# that reach the engine with the base commit, so a pull request that moves an output goes red here and states the reason.
+# A gate on the slope waits for 5 CI runs of this read (docs/BENCH.md "The width of skyline").
+name: Skyline width
+
+on:
+  # Each pull request starts this workflow, so its summary check is always there. The job changes skips the
+  # work when the pull request changes no file of the engine (CI.md of the template, "A gate with paths").
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      entries:
+        description: "Entries to read as well, with commas, so that each entry has its own slope read"
+        required: false
+        default: ""
+      counts:
+        description: "Item counts, with commas"
+        required: false
+        default: "10,100,1000"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# The shell bash has pipefail, so a failure before a tee fails the step.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      match: ${{ steps.changes.outputs.match }}
+    steps:
+      - id: changes
+        uses: mark1russell7/template/.github/actions/changes@8f6358bbecd380c61abfd0faf53a6baca812db0d # main
+        with:
+          paths: |
+            packages/packing/src/skyline.ts
+            packages/packing/src/skyline-runs.ts
+            packages/packing/src/free-width.ts
+            packages/packing/bench/skyline-width.ts
+            packages/packing/bench/skyline-equal.ts
+            .github/workflows/skyline-width.yml
+
+  read:
+    needs: changes
+    if: needs.changes.outputs.match == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .base
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install the base commit
+        if: github.event_name == 'pull_request'
+        run: pnpm install --frozen-lockfile --dir .base
+      - name: Read the time against the width
+        env:
+          BASE_ARGS: ${{ github.event_name == 'pull_request' && format('--base {0}/.base', github.workspace) || '' }}
+          ENTRIES: ${{ inputs.entries }}
+          COUNTS: ${{ inputs.counts || '10,100,1000' }}
+        # BASE_ARGS has no space in its folder on a runner, so the shell splits it into 2 words.
+        run: node --no-warnings packages/packing/bench/skyline-width.ts --out "$RUNNER_TEMP/width/skyline-width.json" --summary "$GITHUB_STEP_SUMMARY" --deadline-minutes 45 --entries "$ENTRIES" --counts "$COUNTS" $BASE_ARGS
+      - name: Test the read
+        if: always()
+        working-directory: packages/packing
+        run: pnpm -s exec vitest run bench/skyline-width.test.ts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: skyline-width
+          path: ${{ runner.temp }}/width
+          if-no-files-found: error
+
+  base:
+    needs: changes
+    if: needs.changes.outputs.match == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .base
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --dir .base
+      - name: Compare the outputs with the base commit
+        working-directory: packages/packing
+        run: node --no-warnings bench/skyline-equal.ts --base "$GITHUB_WORKSPACE/.base" --out "$RUNNER_TEMP/base/skyline-base.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: skyline-base
+          path: ${{ runner.temp }}/base
+          retention-days: 90
+          if-no-files-found: error
+
+  skyline-width-ok:
+    name: Skyline width OK
+    if: ${{ !cancelled() }}
+    needs: [changes, read, base]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: mark1russell7/template/.github/actions/gate-summary@8f6358bbecd380c61abfd0faf53a6baca812db0d # main
+        with:
+          needs: ${{ toJSON(needs) }}

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { checkHard } from "./check.ts";
 import type { PackInput } from "./contract.ts";
 import { measure } from "./measures.ts";
-import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
+import { treemapPack, treemapPivotMiddle, treemapPivotSize, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
 
 const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["slice-dice", treemapSliceDice],
@@ -13,6 +13,8 @@ const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["strip without lookahead", (nodes, frame) => treemapStrip(nodes, frame, { lookahead: false })],
   ["pivot-split", treemapPivotSplit],
   ["spiral", treemapSpiral],
+  ["pivot-middle", treemapPivotMiddle],
+  ["pivot-size", treemapPivotSize],
 ];
 
 const leaves = (weights: readonly number[]): TreemapNode[] => weights.map((weight, index) => ({ id: `n${index}`, weight }));
@@ -285,6 +287,40 @@ describe("spiral", () => {
   it("is a test that fails for strip, which starts each strip at the left", () => {
     const apart = Array.from({ length: 200 }, (_, index) => apartPairs(treemapStrip, index));
     expect(apart.reduce((sum, count) => sum + count, 0)).toBeGreaterThan(100);
+  });
+});
+
+describe("pivot by middle and pivot by size", () => {
+  const frame = { x: 0, y: 0, w: 100, h: 100 };
+  // The pivot of these weights is item 1 by size, item 2 by split size and item 4 by middle.
+  const weights = [1, 5, 1, 1, 1, 1, 1, 1, 1];
+
+  /** This function examines that the cell `pivot` is at the top, with each cell before it at its left. */
+  const expectPivot = (cells: readonly TreemapCell[], pivot: number): void => {
+    expect(cells[pivot]!.y).toBeCloseTo(0, 9);
+    for (const cell of cells.slice(0, pivot)) expect(cell.x + cell.w).toBeLessThanOrEqual(cells[pivot]!.x + 1e-9);
+    expect(cells[pivot]!.x).toBeGreaterThan(0);
+  };
+
+  it("puts the pivot of each rule at the top, next to the items before it", () => {
+    expectPivot(treemapPivotSize(leaves(weights), frame), 1);
+    expectPivot(treemapPivotSplit(leaves(weights), frame), 2);
+    expectPivot(treemapPivotMiddle(leaves(weights), frame), 4);
+  });
+
+  it("gives the first of the largest items as the pivot by size", () => {
+    expectPivot(treemapPivotSize(leaves([1, 1, 5, 1, 5, 1, 1, 1, 1]), frame), 2);
+  });
+
+  it("picks the second of the two middle items for an even count", () => {
+    expectPivot(treemapPivotMiddle(leaves([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), frame), 5);
+  });
+
+  it("gives a mean aspect far below slice and dice", () => {
+    const nodes = leaves(weightsOf("pivot", 100));
+    const sliceDice = meanAspect(treemapSliceDice(nodes, frame));
+    expect(meanAspect(treemapPivotMiddle(nodes, frame))).toBeLessThan(sliceDice / 5);
+    expect(meanAspect(treemapPivotSize(nodes, frame))).toBeLessThan(sliceDice / 5);
   });
 });
 

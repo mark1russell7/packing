@@ -1,6 +1,12 @@
 // The snapshot files of the site, in `packages/site/data/`. The script `packages/packing/bench/snapshot.ts` writes them
 // from the records of CI runs. The pages read only these files, at build time.
 
+import type { SolvedRule } from "./atlas-model.ts";
+import type { LawCoverCount } from "./corpus-cover-model.ts";
+import { DataFileError, faultsOf, readShape, type Shape } from "./data-shape.ts";
+import { LAW_COVER_SHAPE, SNAPSHOT_SHAPES, SOLVED_RULE_SHAPE } from "./data-shapes.ts";
+import { marginFaults } from "./gap-definition.ts";
+
 /** The schema of each snapshot file */
 export const SNAPSHOT_SCHEMA = "packing-site-snapshot/1";
 
@@ -399,7 +405,7 @@ export interface CoveragePoint {
 }
 
 /** The word of a skip. The word `not read` tells that nobody has read the pair of entry and reason. */
-export type SkipWord = "not done" | "other algorithm" | "no meaning" | "not read";
+export type SkipWord = "not done" | "composition" | "other algorithm" | "no meaning" | "not read";
 
 /** One entry of the bench with no measured record in a run, with each reason and its count of records */
 export interface CoverageOtherEntry {
@@ -457,8 +463,93 @@ export interface CoverageUniform {
   measures: Record<string, CoverageSampled>;
 }
 
+/** How far the records of one entry reach in one run */
+export interface MeasuredEntry {
+  entry: string;
+  measured: number;
+  records: number;
+  /** The records that a budget stopped. A refusal does not count here. */
+  stopped: number;
+  /** The largest item count of a measured record, or null when no input id gives a count */
+  largestItems: number | null;
+  /** The refused records with a word of `LEFT_OUT_WORDS`, by word (roadmap item k197). A row of an earlier bench has no value, and then the share is not read. */
+  leftOut?: Partial<Record<LeftOutWord, number>>;
+}
+
+/** The words of a skip that leave a refused record out of the measured share of an entry: the entry has no defined result there. */
+export const LEFT_OUT_WORDS = ["other algorithm", "no meaning"] as const;
+
+/** A word of `LEFT_OUT_WORDS` */
+export type LeftOutWord = (typeof LEFT_OUT_WORDS)[number];
+
+/** One run of one corpus in the count of the entries */
+export interface MeasuredRow {
+  corpus: string;
+  run: number;
+  date: string;
+  /** The largest item count of any record of the run, or null when no input id gives a count */
+  largestItems: number | null;
+  entries: MeasuredEntry[];
+  /** The other names with a measured record in the run. A control is one of these. They do not count. */
+  notPlanned: string[];
+}
+
+/** The snapshot of the planned entries with a measured record in any run of its rows */
+export interface MeasuredSnapshot {
+  schema: typeof SNAPSHOT_SCHEMA;
+  kind: "measured";
+  origin: Origin[];
+  planned: number;
+  measured: number;
+  notMeasured: string[];
+  rows: MeasuredRow[];
+}
+
+/** The measured share of one planned entry, over each row that has a record of it. */
+export interface EntryShare {
+  entry: string;
+  measured: number;
+  records: number;
+  /** The left-out records, by word, over the rows. */
+  leftOut: Partial<Record<LeftOutWord, number>>;
+  /** The measured records over the records less the left-out records. The value is null when a row has no `leftOut`, or when no record is left. */
+  share: number | null;
+}
+
+/**
+ * This function gives the measured share of each entry of the rows, sorted by the entry (roadmap item k197). The share pools the rows of the entry.
+ * A record with a word of `LEFT_OUT_WORDS` is not in the denominator, because the entry has no defined result there. Each other refusal stays in.
+ */
+export function entryShares(snap: MeasuredSnapshot): EntryShare[] {
+  const all = new Map<string, EntryShare & { read: boolean }>();
+  for (const row of snap.rows) {
+    for (const e of row.entries) {
+      const was = all.get(e.entry) ?? { entry: e.entry, measured: 0, records: 0, leftOut: {}, share: null, read: true };
+      const leftOut: Partial<Record<LeftOutWord, number>> = { ...was.leftOut };
+      for (const word of LEFT_OUT_WORDS) {
+        const n = e.leftOut?.[word] ?? 0;
+        if (n > 0) leftOut[word] = (leftOut[word] ?? 0) + n;
+      }
+      all.set(e.entry, { ...was, measured: was.measured + e.measured, records: was.records + e.records, leftOut, read: was.read && e.leftOut !== undefined });
+    }
+  }
+  return [...all.values()]
+    .sort((a, b) => a.entry.localeCompare(b.entry))
+    .map(({ read, ...e }) => {
+      const kept = e.records - LEFT_OUT_WORDS.reduce((sum, word) => sum + (e.leftOut[word] ?? 0), 0);
+      return { ...e, share: read && kept > 0 ? e.measured / kept : null };
+    });
+}
+
+/** The share under which the KPI `entries-under-half` counts an entry. */
+export const UNDER_HALF = 0.5;
+
+/** This function tells if the measured records of an entry stop early. A budget stopped some of them, or they stop at a smaller item count. */
+export const stopsEarly = (entry: MeasuredEntry, row: MeasuredRow): boolean =>
+  entry.stopped > 0 || (entry.largestItems !== null && row.largestItems !== null && entry.largestItems < row.largestItems);
+
 /** Each kind of snapshot */
-export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot | GapSnapshot | CoverageSnapshot;
+export type Snapshot = StrategySnapshot | PairedSnapshot | SelectSnapshot | ReleasesSnapshot | GapSnapshot | CoverageSnapshot | MeasuredSnapshot;
 
 /** This function tells if a value is a plain object. */
 const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -480,7 +571,7 @@ function isOrigin(v: unknown): v is Origin {
 
 /**
  * This function parses the text of a snapshot file of one kind. It throws an `Error` for a text of another kind.
- * It also throws when an origin has no release, commit, date, run or source.
+ * It also throws when an origin has no release, commit, date, run or source, and a `DataFileError` for each other fault of a field.
  */
 export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K): Extract<Snapshot, { kind: K }> {
   const value: unknown = JSON.parse(text);
@@ -488,11 +579,20 @@ export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K)
   if (value["kind"] !== kind) throw new Error(`The snapshot has the kind ${String(value["kind"])}, not ${kind}.`);
   const origin = value["origin"];
   if (!Array.isArray(origin) || origin.length === 0 || !origin.every(isOrigin)) throw new Error("Each origin of a snapshot has a release, a commit, a date, a run and a source.");
-  const lists: Record<Snapshot["kind"], unknown> = { strategies: value["strategies"], gaps: value["strategies"], paired: value["classes"], select: value["leaves"], releases: value["releases"], coverage: value["trend"] };
+  const lists: Record<Snapshot["kind"], unknown> = { strategies: value["strategies"], gaps: value["strategies"], paired: value["classes"], select: value["leaves"], releases: value["releases"], coverage: value["trend"], measured: value["rows"] };
   const list = lists[kind];
   if (!Array.isArray(list) || list.length === 0) throw new Error(`The snapshot of the kind ${kind} has no entries.`);
+  const faults = faultsOf(SNAPSHOT_SHAPES[kind] as Shape<unknown>, value);
+  if (kind === "gaps" && faults.length === 0) faults.push(...marginFaults(value as unknown as GapSnapshot));
+  if (faults.length > 0) throw new DataFileError(faults);
   return value as unknown as Extract<Snapshot, { kind: K }>;
 }
+
+/** This function reads the text of `data/law-cover.json`. It throws a `DataFileError` for a file with a fault. */
+export const parseLawCover = (text: string): LawCoverCount => readShape(text, LAW_COVER_SHAPE);
+
+/** This function reads the text of `data/solved-rule.json`. It throws a `DataFileError` for a file with a fault. */
+export const parseSolvedRule = (text: string): SolvedRule => readShape(text, SOLVED_RULE_SHAPE);
 
 /** This function groups the releases by date, with the newest date first. The order in a date stays. */
 export function byDate(releases: readonly Release[]): [string, Release[]][] {

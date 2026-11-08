@@ -1,6 +1,8 @@
 // The corpus coverage of roadmap item k50 on the results page: the tiles, the grid of the dimension pairs and the table of one pair.
 // The file `data/corpus-cover.json` comes from `packages/packing/bench/corpus-cover.ts`. This module holds no state.
 
+import { readShape } from "./data-shape.ts";
+import { CORPUS_COVER_SHAPE } from "./data-shapes.ts";
 import { esc } from "./format.ts";
 
 /** The schema of the coverage file */
@@ -69,12 +71,12 @@ export interface CoverSquare {
   total: number;
 }
 
-/** This function reads the coverage file. It throws an `Error` for another schema, or for a file with no view. */
+/** This function reads the coverage file. It throws an `Error` for another schema or for no view, and a `DataFileError` for another fault of a field. */
 export function parseCorpusCover(text: string): CorpusCoverDoc {
   const doc = JSON.parse(text) as CorpusCoverDoc;
   if (doc.schema !== CORPUS_COVER_SCHEMA) throw new Error(`The coverage file has the schema "${doc.schema}".`);
   if (doc.views.length === 0) throw new Error("The coverage file has no view.");
-  return doc;
+  return readShape(text, CORPUS_COVER_SHAPE);
 }
 
 /** This function gives a share as a percent, with more places for a small share. */

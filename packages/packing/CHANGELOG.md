@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.0
+## 0.12.0
 
 The strategy `treemap` has the method `spiral`, the spiral treemap of Tu and Shen 2007. Each two boxes in a row of the input order share an edge.
 
@@ -15,6 +15,93 @@ This release raises the MINOR version. Before 1.0.0, a break raises MINOR. The t
 ### Breaking
 
 - The type `TreemapMethod` has the member `"spiral"`, and `TREEMAP_METHOD_IDS` has the id `spiral`.
+
+### Not changed
+
+- `pivot-middle` and `pivot-size` are not methods of the strategy `treemap` yet. They become methods with a later break.
+
+## 0.11.2
+
+Two new pivot treemaps of Shneiderman 2001: `treemapPivotMiddle` and `treemapPivotSize`.
+
+This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
+
+### Added
+
+- `treemapPivotMiddle` uses the steps of `treemapPivotSplit`, with the item in the middle of the order as the pivot. For an even count, the pivot is the second of the two middle items.
+- `treemapPivotSize` uses the same steps, with the largest item as the pivot. A tie goes to the first of the largest items.
+
+### Not changed
+
+- The type `TreemapMethod` and the strategy `treemap` do not change. The two pivots become methods of the strategy with the next break.
+- The output of `treemapPivotSplit` stays the same.
+## 0.11.1
+
+The package has a table of the output fingerprint of each strategy, from `fingerprintOf` of `@mark1russell7/layout-contract`. A joint bench reads it and starts again only the strategies with a changed output.
+
+This release raises the PATCH version. The package root does not export the table, so the public API does not change.
+
+### Added
+
+- `src/strategy-fingerprint.ts` has one fingerprint for each of the 33 strategies, over 114 probe inputs. The `version` script writes it, and the job `rows` of CI compares it.
+
+## 0.11.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/layout-contract` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/layout-contract, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.1.0` of `@mark1russell7/collections` in `dependencies` does not hold `0.9.8`, so it changes.
+- The range `^0.5.0` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.6.0`, so it changes.
+
+## 0.10.5
+
+`packConfig` packs the inputs of `near-rects` and `raster-nofit` with circle and polygon items, as `packWith` does.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- The points of `near-rects` and `raster-nofit` in `packSpace` supported only `rect` items, so `packConfig` gave `UnsupportedShape` on a circle or a polygon input. These points support `rect`, `polygon` and `circle`, as the registry entries of the 2 strategies do.
+- `packConfig` checks a config of these 2 points with the hard rules at the level `safe`, as it checks a config of `hole-degree`.
+
+### Not changed
+
+- Each rect input gets the same check result and the same output as before.
+- An ellipse, of the kind `free`, stays refused by `packWith` and by `packConfig`.
+
+## 0.10.4
+
+The time of `skyline` does not grow with the width of the input in units. Each output of `skyline` stays the same. The point of `side-anchors` with no anchor packs as `side-anchors`.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- The rule `bl` of `packSkyline` keeps its skyline as runs of equal height. It does not keep a cell for each unit of the width. At 1000 items on `freeArea`, one read gave 1.1 s at scale 1 and 57.9 s at scale 64.
+- A width too large for an array gave a `RangeError`. These widths pack at this time.
+- The point of `side-anchors` with no anchor packed as its member, so `packConfig` packed inputs that `side-anchors` refuses. The param `side` gets the value `none`, and this point packs as `side-anchors` with no `first`.
+
+### Not changed
+
+- The rule `mw` and a space that is not plain keep their cells, so their time still grows with the width.
+- Each output and each move count stay the same. A test pins 6,000 generated inputs on all paths.
+
+## 0.10.3
+
+The function `repackPinned` packs a changed input again, and moves as few boxes as it can (roadmap item k31).
+
+This release raises the PATCH version. Before 1.0.0, a new feature raises PATCH.
+
+### Added
+
+- `repackPinned` pins each unchanged box. If an item overflows, it keeps only the prefix, and then it packs fresh.
+- The types `Repacked` and `RepackMethod`.
+- The read `bench/repack.ts` and its section in `docs/BENCH.md`.
+
+### Not changed
+
+- The outputs of each strategy do not change.
 
 ## 0.10.2
 

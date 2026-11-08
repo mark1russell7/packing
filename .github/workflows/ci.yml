@@ -5,20 +5,27 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   # release.yml starts these gates before a release
   workflow_call:
+  # A person starts a run on a branch with no pull request: gh workflow run ci.yml --ref <branch>
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@e077054e0f2ebb8441e4bc525b56cf2acc2afb6f # main
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@8f6358bbecd380c61abfd0faf53a6baca812db0d # main
 
   # The gate jobs of this repository: the smoke run of the benchmark, the render of the site and the time gates
   bench-smoke:
@@ -26,6 +33,8 @@ jobs:
     permissions:
       contents: read
 
+  # The job verify of release.yml uses this workflow with only `contents: read`. A job that asks for more stops each release
+  # before it starts (bench/release-permissions.test.ts).
   site-check:
     uses: ./.github/workflows/site-check.yml
     permissions:
@@ -44,6 +53,11 @@ jobs:
       contents: read
 
   # The time gates of bench/gates (k130). A pull request runs them only when a file of the gates changed.
+  skyline-equal:
+    uses: ./.github/workflows/skyline-equal.yml
+    permissions:
+      contents: read
+
   time-gate:
     uses: ./.github/workflows/time-gate.yml
     permissions:
@@ -92,8 +106,8 @@ jobs:
   # The one check that the ruleset names (template CI.md, "The check of the ruleset"). It needs each job of this file.
   ci-ok:
     name: CI OK
-    if: always()
-    needs: [ci, bench-smoke, site-check, size-gate, output-rows, time-gate, adversary, presets]
+    if: ${{ !cancelled() }}
+    needs: [ci, bench-smoke, site-check, size-gate, skyline-equal, output-rows, time-gate, adversary, presets]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}

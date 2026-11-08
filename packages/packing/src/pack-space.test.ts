@@ -2,6 +2,7 @@ import { checkConfig, checkShapes, checkSpace, configId, PACK_HARD_RULES, ruleLe
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  allStrategies,
   checkSelectTable,
   composites,
   configOfStrategy,
@@ -19,10 +20,12 @@ import {
   shapeStrategies,
   sideAnchorsStrategy,
   standaloneStrategies,
+  strategy,
   strategies,
   toPackInput,
   UnsupportedCell,
   UnsupportedShape,
+  type PackOutput,
   type StrategyConfig,
   type StrategyPoint,
 } from "./index.ts";
@@ -85,11 +88,15 @@ describe("packSpace", () => {
     // Roadmap item k94 adds base configs to the members of the meta configs. Before k94 the counts were 946077247154414479086 and 317504231368154898.
     // Roadmap item k29 adds a base config to the members. Before k29 the counts were 986629892909639107990 and 340836128598216010.
     // Roadmap item k30 adds base configs to the members. Before k30 the counts were 987919200607642297485 and 342338667185079123.
-    // Roadmap item k29 adds treemap-spiral to the members. Before treemap-spiral the counts were 995683381705634112939 and 345359641400039281.
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(996982144242458310462n);
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(346878105010925526n);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3832n, meta: 989209855826161113384n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1140n, meta: 343846500125986200n });
+    // Roadmap item k29 adds treemap-spiral to the members: one base config for each count of levels.
+    // Before k29 the counts were 995683381705634116776, 345359641400040422, 987919200607642301316 and 342338667185080262.
+    // Roadmap item k193 adds the side none to side-anchors: one config for each member. Before k193 the count was 995683381705634112939.
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(996982144242458314300n);
+    // Roadmap item k193 adds the side none to side-anchors. Before k193 the count with 1 level was 345359641400039281.
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(346878105010926668n);
+    // Roadmap item k193 adds the side none to side-anchors. Before k193 the rect counts were 987919200607642297485 and 342338667185079123.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3832n, meta: 989209855826161117216n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1140n, meta: 343846500125987340n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -141,14 +148,15 @@ describe("packSpace and the shape kinds", () => {
   const circle: PackInput = { container: { fixed: "none" }, items: [...items, { id: "c", w: 10, h: 10, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } }] };
   const polygon: PackInput = { container: { fixed: "none" }, items: [...items, { id: "p", w: 10, h: 10, shape: { kind: "polygon", points: [[0, 0], [10, 0], [5, 10]] } }] };
 
-  it("declares the shape kind rect on each option of each stage, but bbox and the options of hole-degree", () => {
-    // Roadmap items k90 and k94: hole-degree and circle-quasi-physical support only circle. The order input and the options none also support circle.
-    const circleToo = ["order.input", "size-search.none", "local-search.none"];
+  it("declares the shape kind rect on each option of each stage, but bbox and the options of the shaped placements", () => {
+    // Roadmap items k90 and k94: hole-degree and circle-quasi-physical support only circle.
+    // Roadmap item k200: near-rects and raster-nofit support rect, polygon and circle. The order input and the options none support these 3 kinds.
+    const outlines = ["placement.near-rects", "placement.raster-nofit", "order.input", "size-search.none", "local-search.none"];
     for (const s of packSpace.stages)
       for (const o of s.options) {
         const at = `${s.name}.${o.id}`;
         if (o.id === "bbox") continue;
-        const want = at === "placement.hole-degree" || at === "placement.circle-quasi-physical" ? ["circle"] : circleToo.includes(at) ? ["rect", "circle"] : ["rect"];
+        const want = at === "placement.hole-degree" || at === "placement.circle-quasi-physical" ? ["circle"] : outlines.includes(at) ? ["rect", "polygon", "circle"] : ["rect"];
         expect(o.supports, at).toEqual({ shape: want });
       }
     // Roadmap item k91: the option bbox supports each kind, and its members get the bounding boxes (view bounds of contract 0.2.16)
@@ -161,19 +169,23 @@ describe("packSpace and the shape kinds", () => {
     // A bbox config has 1 base member and the param turn: 2 times the base configs of the rect space. Before L34 the meta counts were 5940 and 1780, and the rect counts 2970 and 890.
     const base3 = spaceSize(packSpace, { levels: 3, shapes: ["rect"] }).base;
     const base1 = spaceSize(packSpace, { levels: 1, shapes: ["rect"] }).base;
-    for (const kind of ["polygon", "free"] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 7664n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: 0n, meta: 2280n });
+    // Roadmap item k200: a polygon input gets the base configs of near-rects and raster-nofit, 3 for each with 3 levels and 1 for each with 1 level.
+    // Before k200 the polygon counts were 0 and 0.
+    for (const [kind, three, one] of [["polygon", 6n, 2n], ["free", 0n, 0n]] as const) {
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: three, meta: 7664n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: one, meta: 2280n });
     }
     // Roadmap item k25 adds 75 rect configs with 3 levels and 25 with 1 level. Before k25 the rect counts were 2970 and 890, and the bbox counts were 5940 and 1780.
     // Roadmap item k29 adds 1 rect config with each count of levels. Before k29 the rect counts were 3824 and 1136, and the shape counts 7648 and 2272.
     // Roadmap item k30 adds 6 rect configs with 3 levels and 2 with 1 level. Before k30 the rect counts were 3825 and 1137, and the shape counts 7650 and 2274.
     // Roadmap item k29 adds treemap-spiral: 1 rect config with each count of levels. Before treemap-spiral the rect counts were 3831 and 1139, and the shape counts 7662 and 2278.
     // Roadmap items k90 and k94: a circle input also gets the base configs of hole-degree and circle-quasi-physical, 1 for each level. Before k94 the counts were 3 and 1.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 6n, meta: 7664n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 2n, meta: 2280n });
+    // Roadmap item k200 adds the 6 and 2 base configs of near-rects and raster-nofit. Before k200 the circle counts were 6 and 2.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 12n, meta: 7664n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 4n, meta: 2280n });
     expect([base3, base1]).toEqual([3832n, 1140n]);
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 0n, meta: 2n * base3 });
+    // A mix of rect and circle items gets only the configs that support both kinds: near-rects and raster-nofit. Before k200 the base count was 0.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 6n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 6n);
   });
 
@@ -213,6 +225,35 @@ describe("packSpace and the shape kinds", () => {
   it("gives a RangeError for a bad config before the shape check", () => {
     expect(() => packConfig(circle, { space: "packing", stages: {} })).toThrow(RangeError);
     expect(() => packConfig(circle, { space: "packing", stages: {} })).not.toThrow(UnsupportedShape);
+  });
+
+  // Roadmap item k200: packConfig refused a circle item for near-rects and raster-nofit, but packWith packed it.
+  it("packs each shape kind of the registry entries of near-rects and raster-nofit as packWith does", () => {
+    const strip = (items: PackInput["items"]): PackInput => ({ container: { w: 24, fixed: "width" }, items });
+    const disc = (id: string, r: number) => ({ id, w: 2 * r, h: 2 * r, shape: { kind: "circle" as const, cx: r, cy: r, r } });
+    const wedge = (id: string) => ({ id, w: 8, h: 6, shape: { kind: "polygon" as const, points: [[0, 0], [8, 0], [0, 6]] as [number, number][] } });
+    const inputs: Record<string, PackInput> = {
+      rect: strip(items),
+      circle: strip([disc("a", 3), disc("b", 2), disc("c", 4)]),
+      polygon: strip([wedge("a"), wedge("b"), wedge("c")]),
+      mixed: strip([wedge("a"), disc("b", 2), { id: "c", w: 6, h: 4 }]),
+    };
+    for (const id of ["near-rects", "raster-nofit"]) {
+      // The option of packSpace takes the item shapes of the registry entry. The cell mixed is a mix of these kinds.
+      const placement = packSpace.stages.find((s) => s.name === "placement")!.options.find((o) => o.id === id)!;
+      const kinds = [...placement.supports!.shape!, "mixed"];
+      expect([...strategy(id).supports.itemShape!].sort(), id).toEqual([...kinds].sort());
+      const point = configOfStrategy(id);
+      if (!point.ok) throw new Error(point.reason);
+      for (const [kind, input] of Object.entries(inputs)) {
+        expect(kinds, `${id} ${kind}`).toContain(kind);
+        expect(outputHash(packConfig(input, point.config, 5)), `${id} ${kind}`).toBe(outputHash(packWith(id, input, {}, 5)));
+      }
+      // An ellipse has the shape kind free, and free is not a kind of the entry: packConfig refuses it, and packWith too.
+      const free = strip([{ id: "f", w: 4, h: 2, shape: { kind: "ellipse", cx: 2, cy: 1, rx: 2, ry: 1 } }]);
+      expect(() => packConfig(free, point.config), id).toThrow(UnsupportedShape);
+      expect(() => packWith(id, free, {}, 5), id).toThrow();
+    }
   });
 
   it("packs a rect input as packWith does", () => {
@@ -512,5 +553,92 @@ describe("configOfStrategy (k135)", () => {
     const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", ...standaloneNames];
     const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
+  });
+});
+
+describe("the point of side-anchors (k193)", () => {
+  // Made-up inputs: each container size, with no obstacle, with rectangle obstacles and with a holed container.
+  const CASES = (["fixed", "freeHeight", "freeWidth", "freeAspect", "freeArea"] as const).flatMap((containerSize) =>
+    (
+      [
+        ["rect", "none"],
+        ["rect", "scattered"],
+        ["rect", "corridors"],
+        ["holes", "corridors"],
+      ] as const
+    ).map(([containerShape, obstacles]) => ({ containerSize, containerShape, obstacles, sizes: "uniform" as const, count: 10 })),
+  );
+
+  /** This function gives the hash of an output, or the name of the error class of a refusal. */
+  const result = (pack: () => PackOutput): string => {
+    try {
+      return outputHash(pack());
+    } catch (error) {
+      return `refused ${(error as Error).constructor.name}`;
+    }
+  };
+
+  it.each([{}, { first: { side: "left", at: 0.5 } }, { first: { side: "top", at: 0.25 } }])("packs as packWith with the same options: %j", (options) => {
+    const point = configOfStrategy("side-anchors", options);
+    expect(point.ok).toBe(true);
+    if (!point.ok) return;
+    const results = CASES.map((params) => {
+      const input = toPackInput(rectGrid.generate(1, params));
+      const viaWith = result(() => packWith("side-anchors", input, options, 3));
+      const viaConfig = result(() => packConfig(input, point.config, 3));
+      expect(viaConfig, JSON.stringify(params)).toBe(viaWith);
+      return viaWith;
+    });
+    // Each case packs or refuses in both paths. Some cases of each kind exist.
+    expect(results.some((r) => r.startsWith("refused"))).toBe(true);
+    expect(results.some((r) => !r.startsWith("refused"))).toBe(true);
+  });
+
+  /**
+   * The strategies whose point is not the strategy with no options, with the reason.
+   * `aspect-fit` needs an inner strategy, so `packWith` refuses it, and its point wraps `maxrects`.
+   */
+  const POINT_DIFFERS: Readonly<Record<string, string>> = { "aspect-fit": "wraps maxrects" };
+
+  // The limit of each case. A search strategy (`anneal`, `genetic`, `tabu`) packs the 20 inputs two times. On a runner, `anneal` took
+  // 3539 ms and 3743 ms on two green runs, and 5322 ms on a red run, over the 5000 ms default. 30 s is approximately 5 times the slowest.
+  it.each(allStrategies.map((s) => s.id).filter((id) => !(id in POINT_DIFFERS)))("packs the point of %s as packWith packs it with no options", (id) => {
+    const point = configOfStrategy(id, {});
+    expect(point.ok, id).toBe(true);
+    if (!point.ok) return;
+    // A refusal matches a refusal. The two paths can throw different error classes.
+    const kind = (r: string): string => (r.startsWith("refused") ? "refused" : r);
+    const differ: string[] = [];
+    for (const params of CASES) {
+      const input = toPackInput(rectGrid.generate(1, params));
+      const viaWith = kind(result(() => packWith(id, input, {}, 3)));
+      const viaConfig = kind(result(() => packConfig(input, point.config, 3)));
+      if (viaWith !== viaConfig) differ.push(`${JSON.stringify(params)}: ${viaWith} against ${viaConfig}`);
+    }
+    expect(differ).toEqual([]);
+  }, 30_000);
+
+  it("names only strategies of the list in POINT_DIFFERS, and each of them differs", () => {
+    const params = CASES[0];
+    expect(params).toBeDefined();
+    if (params === undefined) return;
+    const input = toPackInput(rectGrid.generate(1, params));
+    for (const id of Object.keys(POINT_DIFFERS)) {
+      expect(allStrategies.some((s) => s.id === id), id).toBe(true);
+      const point = configOfStrategy(id, {});
+      expect(point.ok, id).toBe(true);
+      if (!point.ok) continue;
+      expect(result(() => packWith(id, input, {}, 3)), id).not.toBe(result(() => packConfig(input, point.config, 3)));
+    }
+  });
+
+  it("gives the side none with no anchor, and not the config of the member", () => {
+    const point = configOfStrategy("side-anchors", {});
+    const member = configOfStrategy("maxrects", { rule: "bl" });
+    expect(point.ok && member.ok).toBe(true);
+    if (!point.ok || !member.ok) return;
+    expect(point.config.stages["combine"]?.option).toBe("side-anchors");
+    expect(point.config.stages["combine"]?.params).toEqual({ side: "none" });
+    expect(configId(packSpace, point.config)).not.toBe(configId(packSpace, member.config));
   });
 });

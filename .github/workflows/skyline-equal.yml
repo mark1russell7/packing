@@ -1,0 +1,43 @@
+# The equality check of the runs of skyline (k170, docs/BENCH.md "The width of skyline"). ci.yml uses this workflow, so the
+# check CI OK of the ruleset needs it. The job reads the runs against the cell scan on generated skylines, and it reads the break
+# rule on limits that have their own breaks. The job reads no changed files, so no path list can miss a change to the search.
+name: Skyline equal
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  equal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compare the runs with the cell scan
+        working-directory: packages/packing
+        run: node --no-warnings bench/skyline-equal.ts --cases 20000
+      # A clean read, then one read for each fault: a break rule with no breaks of the limit, one with no falling breaks, and a search that takes the last of equal windows.
+      - name: Flip test of the check
+        working-directory: packages/packing
+        env:
+          OUT: ${{ runner.temp }}/skyline-equal/flip
+        run: node --no-warnings bench/gate-flip.ts skyline --out "$OUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: skyline-equal
+          path: ${{ runner.temp }}/skyline-equal
+          retention-days: 90
+          if-no-files-found: error

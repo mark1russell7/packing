@@ -14,7 +14,7 @@ const FACTS: KpiFacts = {
   shownReleases: ["1.0.0"],
   changelogReleases: ["1.0.0"],
   trend: [],
-  entries: { measured: 2, planned: 4 },
+  entries: { measured: 2, planned: 4, notMeasured: 2, corpora: ["pack-a-v1"], stopEarly: 0 },
   explorer: true,
   commitAt: "2026-01-03T00:00:00Z",
   lawPairsAt: "2026-01-03T00:00:00Z",
@@ -38,9 +38,10 @@ describe("the word of a skip on the page", () => {
   it("counts by word, with a budget out and each record with no word as not read", () => {
     const counts = skipCounts([
       {
-        skipped: 18,
+        skipped: 22,
         reasons: [
           { reason: "unsupported containerSize: freeArea", count: 7, word: "not done" },
+          { reason: "unsupported containerSize: freeAspect", count: 4, word: "composition" },
           { reason: "unsupported containerShape: circle", count: 5, word: "other algorithm" },
           { reason: "unsupported mode: offline", count: 3, word: "no meaning" },
           { reason: "unsupported order: soft", count: 2 },
@@ -50,7 +51,7 @@ describe("the word of a skip on the page", () => {
       { skipped: 4 },
       { skipped: 0, reasons: [] },
     ]);
-    expect(counts).toEqual({ owed: 7, otherAlgorithm: 5, noMeaning: 3, notRead: 6 });
+    expect(counts).toEqual({ owed: 7, composition: 4, otherAlgorithm: 5, noMeaning: 3, notRead: 6 });
   });
 
   it("shows the counts and each group of a corpus", () => {
@@ -59,8 +60,11 @@ describe("the word of a skip on the page", () => {
       { strategy: "b", skipped: 2, reasons: [{ reason: "unsupported containerSize: freeArea", count: 2, word: "not done", why: "A composition lifts it." }] },
       { strategy: "c", skipped: 1, reasons: [{ reason: "unsupported order: soft", count: 1 }] },
       { strategy: "d", skipped: 1, reasons: [{ reason: "over budget", count: 1 }] },
+      { strategy: "e", skipped: 3, reasons: [{ reason: "unsupported containerSize: freeArea", count: 3, word: "composition", why: "A named composition lifts it." }] },
     ]);
-    expect(html).toContain("<b>7 skipped records</b>");
+    expect(html).toContain("<b>10 skipped records</b>");
+    expect(html).toContain("3 <code>composition</code>");
+    expect(html).toContain("<li><code>composition</code> <b>3</b> records: A named composition lifts it. <code>e</code></li>");
     expect(html).toContain("6 <code>not done</code>");
     expect(html).toContain("1 <code>not read</code>");
     expect(html).toContain("<li><code>not done</code> <b>6</b> records: A composition lifts it. <code>a&lt;</code>, <code>b</code></li>");
@@ -87,14 +91,16 @@ describe("the skips of the KPI file", () => {
   const of = (facts: KpiFacts, id: string) => kpiInput(facts, 0).measures.find((m) => m.id === id);
 
   it("counts a skip that the code can lift apart from a measured entry", () => {
-    const facts: KpiFacts = { ...FACTS, skips: { owed: 7, otherAlgorithm: 5, noMeaning: 3, notRead: 6 }, skipsAt: "2026-01-02T00:00:00Z" };
+    const facts: KpiFacts = { ...FACTS, skips: { owed: 7, composition: 4, otherAlgorithm: 5, noMeaning: 3, notRead: 6 }, skipsAt: "2026-01-02T00:00:00Z" };
     expect(of(facts, "skips-owed")).toMatchObject({ value: 7, at: "2026-01-02T00:00:00Z" });
+    expect(of(facts, "skips-composition")).toMatchObject({ value: 4, at: "2026-01-02T00:00:00Z" });
     expect(of(facts, "skips-not-read")).toMatchObject({ value: 6, at: "2026-01-02T00:00:00Z" });
     expect(of(facts, "measured-entries")?.value).toBe(of(FACTS, "measured-entries")?.value);
   });
 
   it("gives no such measures with no snapshots", () => {
     expect(of(FACTS, "skips-owed")).toBeUndefined();
+    expect(of(FACTS, "skips-composition")).toBeUndefined();
     expect(of(FACTS, "skips-not-read")).toBeUndefined();
   });
 });

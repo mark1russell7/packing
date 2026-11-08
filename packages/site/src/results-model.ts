@@ -1,6 +1,7 @@
 // The calculations of the results page. They read only the snapshot files.
 
-import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasureVerdict, SelectLeaf, SkipWord, StrategySnapshot, StrategySummary } from "./data.ts";
+import type { SnapshotBudget, StrategyFinished, CoverageEntries, CoverageEval, CoverageMeasure, CoveragePart, CoveragePoint, CoveragePriorBasis, CoveragePriorCount, CoverageSampled, CoverageSnapshot, CoverageStratum, CoverageStratumPairs, GapCell, GapSnapshot, GapStrategy, Label, MeasuredEntry, MeasuredRow, MeasuredSnapshot, MeasureVerdict, SelectLeaf, SkipWord, StrategySnapshot, StrategySummary } from "./data.ts";
+import { entryShares, LEFT_OUT_WORDS, stopsEarly, UNDER_HALF, type EntryShare } from "./data.ts";
 import { esc, REPO } from "./format.ts";
 import { oldGapNote } from "./gap-definition.ts";
 import { isBudgetReason, segmentOf, skipCounts, trendSegments, type SkipSummary } from "./kpi.ts";
@@ -9,12 +10,30 @@ import { isBudgetReason, segmentOf, skipCounts, trendSegments, type SkipSummary 
 export const verdictOf = (s: StrategySummary, measure: string): MeasureVerdict | undefined => s.verdicts.find((v) => v.measure === measure);
 
 /**
+ * This function orders items by a fill, best first. The results page and the compare page rank with it, so they rank in one way.
+ *
+ * - An item that keeps the partner of the fill comes before each item that gives up the partner. Thus a fill that a packer buys with its partner does not lead a list.
+ * - An item with no fill comes last.
+ * - A tie keeps the order of `tie`.
+ */
+export function partnerOrder<T>(items: readonly T[], fill: (item: T) => number | undefined, keeps: (item: T) => boolean, tie: (a: T, b: T) => number): T[] {
+  const tier = (item: T): number => (fill(item) === undefined ? 2 : keeps(item) ? 0 : 1);
+  return items.toSorted((a, b) => tier(a) - tier(b) || (fill(b) ?? 0) - (fill(a) ?? 0) || tie(a, b));
+}
+
+/**
  * This function gives the strategies other than the baseline, by the stratified mean of a measure, best first.
  * A strategy that is not measured comes last.
+ * With a partner, a strategy whose verdict on the partner is worse comes after the others, as `fillClaimOfStrategy` counts a fill claim.
  */
-export function rankStrategies(snap: StrategySnapshot, measure: string): StrategySummary[] {
-  const key = (s: StrategySummary): number => verdictOf(s, measure)?.stratified?.mean ?? -Infinity;
-  return snap.strategies.filter((s) => s.strategy !== snap.baseline).sort((x, y) => key(y) - key(x) || x.strategy.localeCompare(y.strategy));
+export function rankStrategies(snap: StrategySnapshot, measure: string, partner: string | null = null): StrategySummary[] {
+  const keeps = (s: StrategySummary): boolean => partner === null || verdictOf(s, partner)?.label !== "worse";
+  return partnerOrder(
+    snap.strategies.filter((s) => s.strategy !== snap.baseline),
+    (s) => verdictOf(s, measure)?.stratified?.mean,
+    keeps,
+    (x, y) => x.strategy.localeCompare(y.strategy),
+  );
 }
 
 /** The count of the items above which a standalone strategy refuses an input. `sync.test.ts` pins it to `STANDALONE_MAX_ITEMS`. */
@@ -31,9 +50,9 @@ export interface RankSection {
  * This function gives the sections of the ranking: one for each set of finished inputs, the most inputs first.
  * Each section is in the order of `rankStrategies`. A page compares strategies only inside one section.
  */
-export function rankSections(snap: StrategySnapshot, measure: string): RankSection[] {
+export function rankSections(snap: StrategySnapshot, measure: string, partner: string | null = null): RankSection[] {
   const sections = new Map<string, RankSection>();
-  for (const s of rankStrategies(snap, measure)) {
+  for (const s of rankStrategies(snap, measure, partner)) {
     const key = s.finished?.set ?? "";
     const section = sections.get(key);
     if (section !== undefined) section.strategies.push(s);
@@ -63,6 +82,7 @@ export function reasonMeaning(reason: string): string | undefined {
 /** The meaning of each word of a skip on the page */
 export const SKIP_WORD_TEXT: Readonly<Record<SkipWord, string>> = {
   "not done": "a limit of the code that small work lifts, so coverage is still owed",
+  composition: "a named composition of the strategy lifts this limit, so the strategy keeps its refusal",
   "other algorithm": "this form needs another algorithm",
   "no meaning": "this input has no meaning for the strategy",
   "not read": "nobody has read this reason",
@@ -87,7 +107,7 @@ interface SkipEntry extends SkipSummary {
 /** This function gives the HTML of the skips of a corpus by word. It is empty for a corpus with no refusal. A record with no word counts as `not read`. */
 export function skipsHtml(strategies: readonly SkipEntry[]): string {
   const c = skipCounts(strategies);
-  const total = c.owed + c.otherAlgorithm + c.noMeaning + c.notRead;
+  const total = c.owed + c.composition + c.otherAlgorithm + c.noMeaning + c.notRead;
   if (total === 0) return "";
   const groups = new Map<string, { word: SkipWord; why: string; entries: Set<string>; records: number }>();
   for (const s of strategies) {
@@ -105,7 +125,7 @@ export function skipsHtml(strategies: readonly SkipEntry[]): string {
     .sort((a, b) => a.word.localeCompare(b.word) || b.records - a.records)
     .map((g) => `<li><code>${esc(g.word)}</code> <b>${g.records}</b> records: ${esc(g.why)} ${[...g.entries].map((id) => `<code>${esc(id)}</code>`).join(", ")}</li>`)
     .join("");
-  const line = `<p class="hint"><b>${total} skipped records</b> by word: ${c.owed} <code>not done</code> (${SKIP_WORD_TEXT["not done"]}), ${c.otherAlgorithm} <code>other algorithm</code>, ${c.noMeaning} <code>no meaning</code> and ${c.notRead} <code>not read</code>. A wall budget stays out of this count.</p>`;
+  const line = `<p class="hint"><b>${total} skipped records</b> by word: ${c.owed} <code>not done</code> (${SKIP_WORD_TEXT["not done"]}), ${c.composition} <code>composition</code> (${SKIP_WORD_TEXT.composition}), ${c.otherAlgorithm} <code>other algorithm</code>, ${c.noMeaning} <code>no meaning</code> and ${c.notRead} <code>not read</code>. A wall budget stays out of this count.</p>`;
   return rows === "" ? line : `${line}<details><summary>Each skip, by word</summary><ul class="reasons">${rows}</ul></details>`;
 }
 
@@ -702,4 +722,60 @@ export function entriesNote(entries: CoverageEntries | undefined): string {
   }
   const rows = [...groups].map(([text, ids]) => `<li>${ids.map((id) => `<code>${esc(id)}</code>`).join(", ")}: ${esc(text)}</li>`).join("");
   return `<p class="hint"><b>${entries.measured} of ${entries.planned} entries</b> of the bench have measured records in this run. The shares read only these entries.</p>${rows === "" ? "" : `<ul class="hint">${rows}</ul>`}`;
+}
+
+/** This function gives the words of a row that stops early, with its records, its largest item count and the records that a budget stopped. */
+const earlyText = (entry: MeasuredEntry, row: MeasuredRow): string => {
+  const items = entry.largestItems === null || row.largestItems === null ? "" : `, up to ${entry.largestItems} of ${row.largestItems} items`;
+  const stopped = entry.stopped === 0 ? "" : `, and a budget stopped ${entry.stopped}`;
+  return `<li><code>${esc(entry.entry)}</code> on <code>${esc(row.corpus)}</code>: ${entry.measured} of ${entry.records} records measured${items}${stopped}</li>`;
+};
+
+/** This function gives the words of the left-out records of a share, for example `other algorithm 25`. A word with no record is not in the text. */
+const leftOutText = (e: EntryShare): string =>
+  LEFT_OUT_WORDS.filter((word) => (e.leftOut[word] ?? 0) > 0)
+    .map((word) => `${word} ${e.leftOut[word]}`)
+    .join(", ");
+
+/** This function gives the line of the measured share of one entry, with each left-out word and its count. */
+const entryShareText = (e: EntryShare): string => {
+  const share = e.share === null ? "share not read" : `${Math.round(e.share * 100)} %`;
+  const out = leftOutText(e);
+  return `<li><code>${esc(e.entry)}</code>: ${share}, ${e.measured} of ${e.records} records measured${out === "" ? "" : `, left out: ${esc(out)}`}</li>`;
+};
+
+/**
+ * This function gives the HTML of the measured shares (roadmap item k197). A share is the measured records over the records less the left-out ones.
+ * The text names each left-out word with its count beside the shares, so a reader sees what the denominator leaves out.
+ */
+export function shareNote(snap: MeasuredSnapshot): string {
+  const shares = entryShares(snap);
+  const read = shares.filter((e) => e.share !== null);
+  if (read.length === 0) return "";
+  const under = read.filter((e) => e.share! < UNDER_HALF);
+  const words = LEFT_OUT_WORDS.map((word) => `${read.reduce((sum, e) => sum + (e.leftOut[word] ?? 0), 0)} with the word <i>${word}</i>`).join(" and ");
+  const unread = shares.length - read.length;
+  const lines = [...shares].sort((a, b) => (a.share ?? 2) - (b.share ?? 2) || a.entry.localeCompare(b.entry)).map(entryShareText);
+  return [
+    `<p class="hint"><b>${under.length} of ${read.length} entries</b> measure under half of their own records. The share of an entry is its measured records over its records in these runs. The share leaves out the refused records of a form with no defined result for the entry: ${words}. Each other refusal stays in the share.${unread === 0 ? "" : ` ${unread} entries have no read share, because a run of an earlier bench has no words.`}</p>`,
+    `<details class="notes"><summary>The share of each entry, lowest first</summary><ul class="hint">${lines.join("")}</ul></details>`,
+  ].join("");
+}
+
+/** This function gives the HTML of the count of the entries over the corpora. Each entry stands with its corpus and its run, and the note names each row that stops early. */
+export function measuredNote(snap: MeasuredSnapshot): string {
+  const runs = snap.rows.map((row) => {
+    const found = row.entries.filter((e) => e.measured > 0);
+    const names = found.map((e) => `<code>${esc(e.entry)}</code>`).join(", ");
+    const others = row.notPlanned.length === 0 ? "" : ` The run also has ${row.notPlanned.map((name) => `<code>${esc(name)}</code>`).join(", ")}, which are not planned entries and do not count.`;
+    return `<li><code>${esc(row.corpus)}</code>, run ${row.run}, ${esc(row.date)}: ${found.length} entries. ${names}.${others}</li>`;
+  });
+  const early = snap.rows.flatMap((row) => row.entries.filter((e) => e.measured > 0 && stopsEarly(e, row)).map((e) => earlyText(e, row)));
+  const none = snap.notMeasured.map((id) => `<code>${esc(id)}</code>`).join(", ");
+  return [
+    `<p class="hint"><b>${snap.measured} of ${snap.planned} entries</b> have measured records in one or more of these runs: ${snap.rows.map((row) => `<code>${esc(row.corpus)}</code>`).join(", ")}. An entry counts when one run measures it. That run tells nothing about the other corpora, and the entry can refuse some forms of its own corpus.${none === "" ? "" : ` No run measures ${none}.`}</p>`,
+    early.length === 0 ? "" : `<p class="hint">These rows count as measured, but they stop early:</p><ul class="hint">${early.join("")}</ul>`,
+    shareNote(snap),
+    `<details class="notes"><summary>Each entry, with its corpus and its run</summary><ul class="hint">${runs.join("")}</ul></details>`,
+  ].join("");
 }

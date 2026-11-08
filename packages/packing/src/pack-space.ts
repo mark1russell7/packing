@@ -179,10 +179,13 @@ const STANDALONE_PLACEMENTS: readonly string[] = ["sleator", "shelf-breaks", "sh
 /** The values of the param `nodeLimit` of `exact-strip`. The largest value is the default of the strategy, so a draw costs no more than the named config. */
 const EXACT_NODE_LIMITS: readonly number[] = [1000, 10000, EXACT_STRATEGY_NODE_LIMIT];
 
-/** The param of `side-anchors` of roadmap item k142: the side and the place of one anchor for the first item. */
+/**
+ * The param of `side-anchors` of roadmap item k142: the side and the place of one anchor for the first item.
+ * The side `none` is the strategy with no anchor (roadmap item k193). It refuses the inputs that `side-anchors` refuses.
+ */
 const SIDE_ANCHOR_PARAMS: readonly SpaceParam[] = [
-  { name: "side", kind: "enum", values: ["left", "right", "top", "bottom"], default: "left" },
-  { name: "at", kind: "real", min: 0, max: 1, default: 0.5 },
+  { name: "side", kind: "enum", values: ["left", "right", "top", "bottom", "none"], default: "left" },
+  { name: "at", kind: "real", min: 0, max: 1, default: 0.5, when: { param: "side", in: ["left", "right", "top", "bottom"] } },
 ];
 
 /** The inputs of each option of `packSpace`: only the shape kind `rect` (`docs/SHAPES.md` of the contract). */
@@ -200,8 +203,14 @@ const CIRCLE_SPACE_MAX_ITERATIONS = 1024;
 /** The inputs of the options `hole-degree` of roadmap item k90 and `circle-quasi-physical` of roadmap item k94: only the shape kind `circle`. */
 const CIRCLE_ONLY: OptionSupports = Object.freeze({ shape: Object.freeze(["circle"] as const) });
 
-/** The inputs of the options that a `hole-degree` config shares with the rect configs: `rect` and `circle`. */
-const RECT_OR_CIRCLE: OptionSupports = Object.freeze({ shape: Object.freeze(["rect", "circle"] as const) });
+/**
+ * The inputs of the options `near-rects` of roadmap item k97 and `raster-nofit` of roadmap item k92: `rect`, `polygon` and `circle`.
+ * These are the item shapes of their entries in the registry (roadmap item k200). A `mixed` input is a mix of these kinds.
+ */
+const OUTLINES: OptionSupports = Object.freeze({ shape: Object.freeze(["rect", "polygon", "circle"] as const) });
+
+/** The inputs of the options that the configs of a shaped placement share with the rect configs: the kinds of `OUTLINES`. */
+const PASS_THROUGH: OptionSupports = OUTLINES;
 
 /** This function gives the stage choice of a param list, without an empty list of params. */
 const choice = (option: string, params: Record<string, string | number | boolean> = {}): StageChoice =>
@@ -269,12 +278,12 @@ const pool: readonly StrategyConfig[] = Object.values(POOL);
 
 /** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
 const STAGES: readonly SpaceStage[] = [
-  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => ({ id, params: [], supports: id === "input" ? RECT_OR_CIRCLE : RECT_ONLY })) },
+  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => ({ id, params: [], supports: id === "input" ? PASS_THROUGH : RECT_ONLY })) },
   {
     name: "size-search",
     options: [
       { id: "log-sweep", params: [{ name: "samples", kind: "int", min: 12, max: 192, scale: "log", default: 48 }], supports: RECT_ONLY },
-      { id: "none", params: [], supports: RECT_OR_CIRCLE },
+      { id: "none", params: [], supports: PASS_THROUGH },
     ],
   },
   {
@@ -329,8 +338,8 @@ const STAGES: readonly SpaceStage[] = [
       { id: "beam", params: [{ name: "width", kind: "int", min: 1, max: 64, scale: "log", default: BEAM_WIDTH }], supports: RECT_ONLY },
       { id: "exact-strip", params: [{ name: "nodeLimit", kind: "enum", values: [...EXACT_NODE_LIMITS], default: EXACT_STRATEGY_NODE_LIMIT }], supports: RECT_ONLY },
       { id: "binary-height", params: [{ name: "trials", kind: "int", min: 1, max: 1024, scale: "log", default: BINARY_HEIGHT_TRIALS }], supports: RECT_ONLY },
-      { id: "near-rects", params: [{ name: "rounds", kind: "int", min: 0, max: 4, default: 2 }], supports: RECT_ONLY },
-      { id: "raster-nofit", params: [{ name: "trials", kind: "int", min: 1, max: 256, scale: "log", default: 64 }], supports: RECT_ONLY },
+      { id: "near-rects", params: [{ name: "rounds", kind: "int", min: 0, max: 4, default: 2 }], supports: OUTLINES },
+      { id: "raster-nofit", params: [{ name: "trials", kind: "int", min: 1, max: 256, scale: "log", default: 64 }], supports: OUTLINES },
       {
         id: "masonry",
         params: [
@@ -342,7 +351,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "treemap", params: [{ name: "method", kind: "enum", values: [...TREEMAP_METHOD_IDS], default: "squarified" }], supports: RECT_ONLY },
     ],
   },
-  { name: "local-search", options: [{ id: "none", params: [], supports: RECT_OR_CIRCLE }] },
+  { name: "local-search", options: [{ id: "none", params: [], supports: PASS_THROUGH }] },
   {
     name: "combine",
     optional: true,
@@ -728,7 +737,7 @@ const notMember = (member: string): string => `The strategy ${member} is not in 
 
 /**
  * This function gives the point of `side-anchors`. The option `first` gives the params, and `strategy` with `strategyOptions` gives the member.
- * With no `first`, the strategy gives the layout of its member. Thus the point is the config of the member.
+ * With no `first`, the point has the side `none`. The point is not the config of the member, because `side-anchors` has its own supports (roadmap item k193).
  */
 function sideAnchorsPoint(options: Readonly<Record<string, unknown>>): StrategyPoint {
   const inner = options["strategy"] === undefined ? "maxrects" : String(options["strategy"]);
@@ -737,7 +746,7 @@ function sideAnchorsPoint(options: Readonly<Record<string, unknown>>): StrategyP
   const member = rawConfig(inner, innerOptions);
   if (!member.ok) return { ok: false, reason: `The member ${inner} of the option side-anchors.strategy has no point. ${member.reason}` };
   const first = options["first"];
-  if (first === undefined) return member;
+  if (first === undefined) return { ok: true, config: metaConfig("side-anchors", [member.config], { side: "none" }) };
   if (!isRecord(first) || typeof first["side"] !== "string" || typeof first["at"] !== "number") return { ok: false, reason: "packSpace holds the option side-anchors.first only with side and at." };
   return { ok: true, config: metaConfig("side-anchors", [member.config], { side: first["side"], at: first["at"] }) };
 }
@@ -849,8 +858,12 @@ const BBOX_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
  */
 const CIRCLE_CHECK: ShapeCheck = Object.freeze({ level: "safe" });
 
-/** The placements that take the level `CIRCLE_CHECK`. */
-const CIRCLE_PLACEMENTS: readonly string[] = ["hole-degree", "circle-quasi-physical"];
+/**
+ * The placements that take the level `CIRCLE_CHECK`. `near-rects` and `raster-nofit` place the outline of each item (roadmap item k200).
+ * Two outlines that nest have bounding boxes that overlap, and the measures of `MEASURE_SPECS` read only `rect` items.
+ * Thus these placements get only the hard rules, at the level `safe`.
+ */
+const CIRCLE_PLACEMENTS: readonly string[] = ["hole-degree", "circle-quasi-physical", "near-rects", "raster-nofit"];
 
 /** The id of the input in the breaks of `checkShapes`. A `PackInput` has no id. */
 const SHAPE_INPUT_ID = "pack-input";
@@ -1013,7 +1026,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return packWith("force", input, { member: entryOf(members[0]!), iterations: params["iterations"], rounds: params["rounds"] }, seed);
     case "side-anchors": {
       const run = runOf(members[0]!);
-      return packWith("side-anchors", input, { strategy: run.strategy, strategyOptions: run.options, first: { side: params["side"], at: params["at"] } }, seed);
+      const first = params["side"] === "none" ? {} : { first: { side: params["side"], at: params["at"] } };
+      return packWith("side-anchors", input, { strategy: run.strategy, strategyOptions: run.options, ...first }, seed);
     }
     default: {
       const run = runOf(members[0]!);

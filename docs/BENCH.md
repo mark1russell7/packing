@@ -5,7 +5,7 @@ This document tells how to start a benchmark of the packer, and how to read its 
 ## The rules
 
 1. Write the prediction before the run. A commit adds it to `packages/packing/bench/predictions.jsonl` first.
-2. Also write the prediction in the prediction log of the fleet.
+2. Also write the prediction in the prediction log.
 3. Start the run only after the commit of the prediction is on GitHub.
 4. Do not start a benchmark on a local computer. Only the times of CI count.
 
@@ -215,11 +215,33 @@ The job `rows` of `output-rows.yml` starts on each pull request and each push to
 
 ```sh
 node --no-warnings bench/write-catalog.ts                 # After a change to the rows or the version
+pnpm run version                                          # After a change of the version: the three writers in their order
 node --no-warnings bench/whole-positions.ts --write       # After a strategy changes its output on purpose
 node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
+## The output fingerprints
+
+A joint bench starts again only the strategies whose output changed (roadmap item k201). The fingerprint of a strategy tells it.
+
+- Each corpus family and `rect-scattered` give a probe at the counts 5, 20 and 50, in the range of the family. Each other dimension keeps its default.
+- A family also gives a probe at each other container mode that it supports, with 20 items. Thus `masonry` and `treemap` get `freeAspect` and `freeArea` inputs.
+- The made-up inputs of `bench/shape-inputs.ts` give circles, polygons and both, at 5 and 20 items. Equal circles in a circle come from `bench/circles.ts`.
+- The seed of each input and of each pack is 1. The 114 probes come from 21 families and the 2 made-up sources.
+- Each strategy packs each probe with its defaults. `aspect-fit` has no default member, so it takes the options of the entry `aspect-fit-maxrects-bl`.
+- A strategy of the mode `incremental` packs the probe, then packs it again with the first item 1 unit wider. The second pack gets the first output as `previous`, as in `pack-change-v1`.
+- A strategy that refuses each probe fails the check and the write, because its fingerprint does not show a change. At this time each strategy packs 2 probes or more.
+- The hash of a probe is `probeHash` of `layout-contract` over `packOutputForm` of the output, with exact numbers. A refusal gives the token `refused`, with no reason text.
+- The fingerprint is `fingerprintOf` of the hashes of the probes. Another error than a refusal stops the read, with the name of the probe.
+
+The file `src/strategy-fingerprint.ts` holds the table. The script `bench/fingerprints.ts` writes it. Do not edit it. The job `rows` of `output-rows.yml` compares the table with a new read. Its artifact has the read table and the hash of each probe.
+
+```sh
+node --no-warnings bench/fingerprints.ts --write          # After a strategy changes its output on purpose
+node --no-warnings bench/fingerprints.ts --check          # The check of the job
+```
 
 ## The tie moves
 
@@ -262,12 +284,84 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Portfolio sets | A copy of the records has no records of a chosen strategy, so the generated table differs from the committed table. |
 | Smoke check | One copy for each kind of failure of `smokeCheck`. The output must name that kind. |
 | `Promotion OK` | Fixed pairs on fixed records give their stated verdicts, by `--expect`. The records of that pair have 2 CPU models, so `maxrects-bl` over `rows` gives `no-read` at each floor, and `rows` over `maxrects-bl` gives a fail on its gain. |
+| Equality of the runs of `skyline` | A break rule with no breaks of the limit, a break rule with no falling breaks, and a search that takes the last of equal windows. See "The width of `skyline`". |
 | Output rows | Half a position in each output of a strategy with whole rows, and half a size. The output must name the property. The table does not change. |
+| Data files of the site | The old `gaps-pack-known-v1.json` of the branch `site-data` must fail, name that file and `atMargin`, and print the order of a new field. A file with no reader must fail with its name. A clean copy must pass. |
 | Tie moves | A move of 100 on each change of a strategy. The output must name the arm. The table does not change. |
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
 
+## A no read on the check
+
+A gate that cannot read a case does not show a green check alone. `bench/no-read.ts` reads the verdict file of the gate after its step. For a read with a no-read case, it writes a warning annotation on the check and a line in the step summary. The line comes from `gateLine` and `writeGateLine` of rigor-bench, so each gate of each repository writes it in one form. The line names each case with no read, the reason and the jobs on each CPU model.
+
+| Gate | The cases with no read |
+|---|---|
+| Win test (`promotion.yml`) | The status `no read`. The line has the input count and the reason, with the CPU models. |
+| Time gate (`time-gate.yml`) | A first pass of the gate above the noise cap, and a time verdict of `cannot decide` in the report. The line has the noise, the cap, the case count and the CPU. |
+| Gate of a paired run (`paired-time.yml`) | A time verdict of `cannot decide` in the report, with the case count and the CPU. |
+| Time budget (`paired-time.yml`) | The verdict `cannot decide`, with the reasons and the jobs on each CPU model. The budget does not test the models, so jobs on more than one model are a no-read of the case `the CPU models`, also on a decided verdict. |
+
+A missing verdict file also gives a warning. The step of the gate failed then, so the check is red.
+
+## The width of `skyline`
+
+The time of `skyline` must not change with the unit of the numbers. A read on one CI job (run 42023828592) showed that it did. On `freeArea` at 1000 items, the time goes from 1.1 s at scale 1 to 57.9 s at scale 64. `bench/skyline-width.ts` makes this read.
+
+`src/skyline-runs.ts` keeps the skyline as runs of equal height. One search for the rule `bl` costs O(runs). A run count is at most 2 for each box, so a pack costs O(n squared) in the items and nothing in the width. Each output and each move count stays the same.
+
+### The rule of the breaks
+
+The search of the rule `bl` starts a window only at the cell 0 or at a break of the skyline or the limit. If a window starts at `x` with no break at `x`, then the cell `x - 1` has the height and the limit of the cell `x`. So the window at `x - 1` is valid and no higher. Thus the leftmost best window starts at the cell 0 or at a break. The leftmost valid window has the same property.
+
+This is a paper argument, so the check `bench/skyline-equal.ts` reads it. `ci.yml` starts this check, so `CI OK` needs it.
+
+| Read | The reference | Cases |
+|---|---|---:|
+| The search over the runs, with and without a limit on the height | `scanWindows` and `lowestWindow` | 8,000 for each family of heights |
+| The gaps, the rectangles under the skyline and the cells | The cell forms | 4,000 for each family |
+| The break rule, on limits that have their own breaks | `scanWindows` | 4,000 for each family |
+
+The families are whole heights, few heights, fractional heights, thirds and scaled heights with a fraction. The code has no limit in its search at this time, so the read of the limit examines the rule by itself.
+
+The flip test `gate-flip.ts skyline` gives 3 faults. The first is a rule with no breaks of the limit, and the second is a rule with no falling breaks. The third is a search that takes the last of equal windows. Each fault goes red, and a clean copy stays green.
+
+### The rule `mw` keeps its cells
+
+The rule `mw` compares the waste of 2 windows with a tolerance of `1e-9` of the waste. On a near tie under that tolerance, it can take a window away from each break. The read `rule mw at breaks` finds 442 of 1,000 such cases, and 0 of 1,000 on whole heights. So `skyline-mw` and each entry on it keep one cell for each unit of the width. Their time still grows with the width, and the rows of the width read state it.
+
+A space that is not plain also keeps its cells, because a curve can have a break at each cell.
+
+### The entries on the engine
+
+14 of the 64 entries reach this engine. Only the entries on the rule `bl` gain from the runs.
+
+| Rule on the engine | Entries | Count | Pages at this time |
+|---|---|---|---|
+| `bl`, plain | `skyline`, `bbox-skyline`, `ruin-recreate-skyline-k64`, `overlap-min-skyline-k8192`, `anneal-skyline-k16`, `push` | 6 | `skyline` has rows. `push` shows a skip. |
+| `bl`, with the waste map | `skyline-bl-waste`, `relax-skyline-bl-waste`, `force-skyline-bl-waste` | 3 | none |
+| `bl`, only in some cells | `portfolio-k2` (5 of 39 cells), `portfolio-k3` (6 of 39), `aspect-fit-portfolio-k2` (5 of 39) | 3 | all 3 have rows |
+| `mw` | `skyline-mw`, `skyline-mw-waste` | 2 | none |
+| `bl` and `mw` | | 0 | |
+
+The members of the portfolio sets hold only the plain `skyline`, so the rule of those cells is `bl`. A page line on the time of an entry stays until the slope read of that entry changes it. The input `entries` of `skyline-width.yml` adds an entry to the read. `push` has no row in that read, because it refuses an offline input.
+
+### Inputs that are not whole numbers
+
+The cells stay whole. The code takes the floor of the width and the ceiling of each box width. The left edge of a locked box takes the floor, and its right edge takes the ceiling. So each run starts at a whole number, and one cell is one unit of the input. A width below 1 returns the container with no change, as before.
+
+The memory of a pack on the rule `bl` grows with the items and not with the width. A width too large for an array gave a `RangeError` before this change. At this time, 100 items in a width of `1e12` pack, and a test pins it.
+
+### The measure, its partner and its control
+
+Time is the measure. The partner is the output. It is `outputHash` of each of the 14 entries that reach the engine, on a sample of 3 corpora, against the base commit. The job `base` of `.github/workflows/skyline-width.yml` reads it. One sample is not a proof, and the 6,000 generated inputs of `src/skyline-runs.test.ts` pin the same result on all paths of `packSkyline`.
+
+The control is the arm `coarse-cells`. It packs in a fixed count of cells, with each box width rounded up to a whole cell. So it gets a flat time from a worse pack, and its row sits in the same table with its fill. A claim on the slope must also hold the fill.
+
+The sweep of `packFreeWith` (`src/free-width.ts`) has its own read: the column of the tried widths, at each scale. The sweep costs up to approximately 73 packs, and a change of scale can change the count of distinct widths. The time of the sweep is not part of the claim on the engine.
+
+The workflow reports. A gate on the slope waits for 5 CI runs of the read, with a flip test that restores the O(width) path.
 
 ## The runner
 
@@ -300,7 +394,8 @@ A strategy that refuses a cell leaves a skip record. A reader of the results nee
 
 | Word | Meaning |
 |---|---|
-| `not done` | A limit of the code. A composition or small work lifts it, and the row names the item. |
+| `not done` | A limit of the code of the entry. Small work on the entry lifts it, and the row names the item. |
+| `composition` | A named composition of the entry lifts it, for example `aspectFit` over the entry. The entry keeps its refusal, and the row names the item. |
 | `other algorithm` | This form needs another algorithm. A person reads each row before it gets this word. |
 | `no meaning` | The input has no meaning for the strategy, for example an offline input for `push`. |
 | `not read` | Nobody has read the pair. A pair outside the table reads this word, and no pair gets another word by default. |
@@ -308,10 +403,10 @@ A strategy that refuses a cell leaves a skip record. A reader of the results nee
 - A snapshot writes the word and its reason beside each skip reason, and the results page reads that field.
 - A wall budget has no word, because the strategy did not refuse the input. The section below tells about it.
 - A snapshot from before the table has no words, so the page reads each of its skips as `not read`.
-- The file `kpi.json` gives `skips-owed` and `skips-not-read`. A skip does not count as a measured entry.
+- The file `kpi.json` gives `skips-owed` (the word `not done`), `skips-composition` and `skips-not-read`. A skip does not count as a measured entry.
 - A test fails on a row whose strategy takes the cell of the row. So a lift removes its row in the same change.
 
-The table holds each skip of `pack-free-v1` in run 41975155011: 95 pairs, with 68 `not done`, 25 `other algorithm` and 2 `no meaning`. The same refusal has the same word on another corpus. A new pair on another corpus reads `not read` until a person reads it.
+The table holds each skip of `pack-free-v1` in run 41975155011: 99 pairs, with 38 `not done`, 34 `composition`, 25 `other algorithm` and 2 `no meaning`. The same refusal has the same word on another corpus. A new pair on another corpus reads `not read` until a person reads it.
 
 ## The budget of a pair
 
@@ -1346,7 +1441,7 @@ An absolute time of this repository is an in-order time, if no paired test is na
 
 A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in `bench/gates/`. It gives a limit on the paired ratio of one arm against its base, on one corpus and in one mode.
 
-- Schema 3 (strategist, 2026-11-03) takes its measures from `@mark1russell7/rigor-bench`. Each round of an input is one record of the pair (base, arm), with the arm that ran first.
+- Schema 3 (2026-11-03) takes its measures from `@mark1russell7/rigor-bench`. Each round of an input is one record of the pair (base, arm), with the arm that ran first.
 - The ratio of an input is the `caseRatios` ratio: the median of the log ratios of its rounds. Each round cancels the drift of the runner. Schema 2 divided the median times.
 - `sum-median` is the median over the inputs of the ratio of the arm to the sum of the times of the `members` in each round.
 - A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A facts of each job.
@@ -1360,7 +1455,7 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in 
 - The gate refuses a report of another corpus, mode or base, and a report without the A/A arm. It also refuses records that break a rule of rigor-bench.
 - The result has the time verdict of rigor-bench for the first check: `faster`, `slower`, `same` or `cannot decide`. It is a report.
 
-The noise cap (strategist, 2026-11-03) stops a pass on a noisy run.
+The noise cap (2026-11-03) stops a pass on a noisy run.
 
 - The A/A noise of a run is the half width on a log scale of its A/A band of kind `case` at the level 0.8. The level 0.8 holds 80 % of the A/A inputs, as the band p10 to p90 of schema 2.
 - The field `noise` of the gate has the median A/A noise of the derivation runs, the quiet noise. The cap is 3 times the quiet noise, rounded up.
@@ -1661,6 +1756,21 @@ The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A r
 | `gaps-pack-select-v2.json` | `node bench/snapshot.ts gaps <folder of 40766464710> --run 40766464710 --measure pack.gap --release 0.2.17` | `pack.gap` of 6 strategies on `pack-select-v2`, by cell, with the kinds of the bounds (k51). |
 | `gaps-pack-known-v1.json` | `node bench/snapshot.ts gaps <folder of 40768140939> --run 40768140939 --measure pack.gapToOpt --release 0.2.17` | `pack.gapToOpt` of 6 strategies on `pack-known-v1`, by cell (k45). |
 | `coverage.json` | `node bench/snapshot.ts coverage <folder of 40783923164> --run 40783923164 --date 2026-10-28 --release 0.2.17` | The space coverage of 5 strategies on `pack-select-v2` (k105). Each new run adds a point to the trend. The folder `sample` of a run adds the whole space (k112). |
+| `measured-entries.json` | `node bench/snapshot.ts measured <folder of 42050010460> --run 42050010460 --date 2026-11-05 --release 0.9.1` | One row for each corpus: its run, its date, and how far the records of each entry reach (k159). |
+
+The file `measured-entries.json` gives the count of the entries over the corpora:
+
+- An entry counts when it is planned and one row measures it. A refusal does not count, and a control does not count.
+- Each entry stands with its corpus and its run. A row says nothing about the other corpora, and it does not cover each form of its own corpus.
+- A row stops early when a budget stopped some of its records, or when its measured records stop at a smaller item count. The page names each such row, and `kpi.json` counts them.
+- A run of a corpus replaces only the row of that corpus. Each row keeps its date, because a corpus can be older than the others.
+- The count uses the planned list of the last write. A new entry changes the count at the next run of `Site data`.
+- A row keeps each planned entry with a record, also with 0 measured records. Such an entry does not count as measured (k197).
+- Each entry of a row has `leftOut`: its refused records with the word `other algorithm` or `no meaning` of `bench/skip-words.ts`, by word.
+- The share of an entry is its measured records over its records less `leftOut`, pooled over the rows. Each other refusal stays in the share.
+- `kpi.json` gives `entries-under-half`, the entries with a share under 50 %. The page and the KPI show each left-out word with its count.
+- A row of an earlier bench has no `leftOut`. Then the entry has no read share until the next run of `Site data`.
+- A new pair of entry and reason with a left-out word needs a test that the entry has no defined result on that form. `bench/skip-words.test.ts` pins the pairs.
 
 The workflow `site-data.yml` starts these commands in CI from finished runs on `main`. Its input `runs` has the form `pack-free-v1=<id> pack-classes-v1=<id>`.
 A completed run of `coverage-nightly.yml` on `main` also starts this workflow, with its grid as the run of `pack-classes-v1`. So each Monday gives a point of the coverage trend with no dispatch.
@@ -1682,7 +1792,20 @@ The workflow `site-rerun.yml` reruns the other six corpora of the site each Wedn
 - An entry that loses its row breaks the line of a list that has it. The earlier run has no share without that entry in the file.
 - The job `snapshot` writes the files, starts the tests of the site on them and builds the site. It has no write permission.
 - The job `publish` pushes the files to the branch `site-data`, and it starts `pages.yml`. It does not push to `main`.
+- The script `check:data` of the site reads each data file through the reader of the page. A fault stops it, with the file and the field. The shape of each file comes from its TypeScript type.
+- Three workflows start that script. `site-data.yml` starts it before a push to the branch. `pages.yml` starts it before each build, each day and after each run of `Site data`.
+- `site-check.yml` starts it over the files of the branch on each push to `main`, and on a pull request that changes the reader. Other pull requests cannot change the result, so they do not wait for a queued run.
+- `site-check.yml` lays the branch over the files of `main` with `scripts/overlay.ts`, as the Pages build does. A file of the branch replaces a file of `main` only if its record is later. A test holds the list of files equal to the imports of the gate and of the overlay.
+- A new field has an order, because only a run of `Site data` writes the branch, and that run reads the code of `main`:
+  1. A pull request adds the writer, and the reader accepts a missing field as `not read`. Merge it.
+  2. Start `Site data`.
+  3. A second pull request makes the field necessary for the reader.
+- The gate prints this order with each fault. A changed field takes the same order, with `either` in its shape.
+- A measured cell of `pack.gapToOpt`, or of `pack.gap` from a new run, needs its read at the margin. An old run of `pack.gap` goes without it.
+- A red Pages build does not deploy, so the last good page stays up.
+- Each build prints the count of the fields that hold a value while their state is `not read`. A row in that state states nothing false, so only this count shows a whole class of such rows.
 - A run writes only the files that it changes. The job `snapshot` compares each file with the copy that it made after the overlay, with `snapshot.ts written`. The job `publish` removes nothing from the branch.
+- `snapshot.ts written` keeps each file that a command of `site-data.yml` writes, `measured-entries.json` too. A test reads the commands of the workflow and holds this rule.
 - A file on the branch stays until a run for its corpus writes it.
 - The build in `pages.yml` compares the time in the `origin` of each file. It takes a file of the branch only if that time is later than on `main`. The time is the date of the latest run, then the run id for two runs of one day. A tie goes to `main`.
 - A file with no readable time stops the build with the file name, on either side. Each build prints the source of each file of the branch. A build without the branch uses the files of `main`.
@@ -2631,6 +2754,33 @@ The family `cards` rounds each size up to steps of 20 and 25, so it has 12 sizes
 - On `free`, the match gives no gain. Almost each size has one box.
 - Pin and compaction moves far fewer boxes, and it costs 12 to 21 % of height at step 10. The match is the choice when the height cannot rise.
 - The 100 items share 12 sizes, so a class has approximately 8 boxes. This run does not measure other class sizes.
+
+## The pin and repack
+
+`bench/repack.ts` compares `repackPinned` of roadmap item k31 with a fresh pack, on the chains of `bench/pin.ts` in a container of fixed size. A movement is not a time, so any computer can start it. The prediction is `packing-k31-pin-repack`.
+
+```bash
+node bench/repack.ts --out <file.json> [--seeds 30] [--count 100] [--share 0.05] [--steps 10] [--slack 1.1]
+```
+
+The container has the width 200 and `slack` times the height of the first fresh pack of the strip. The columns Pin, Prefix and Fresh are the shares of the steps where `repackPinned` keeps that pack. The hard rules have 0 breaks.
+
+| Slack | Entry | Moved, fresh | Moved, repack | Ratio | Pin | Prefix | Fresh | Fresh overflows |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1.1 | `maxrects-bl` | 0.757 | 0.352 | 0.465 | 0.537 | 0.330 | 0.133 | 2 |
+| 1.1 | `skyline` | 0.807 | 0.403 | 0.499 | 0.553 | 0.013 | 0.433 | 16 |
+| 1.05 | `maxrects-bl` | 0.754 | 0.549 | 0.727 | 0.277 | 0.303 | 0.420 | 40 |
+| 1.05 | `skyline` | 0.804 | 0.637 | 0.792 | 0.240 | 0.027 | 0.733 | 55 |
+| 1.2 | `maxrects-bl` | 0.757 | 0.089 | 0.118 | 0.893 | 0.100 | 0.007 | 0 |
+| 1.2 | `skyline` | 0.808 | 0.156 | 0.194 | 0.847 | 0.010 | 0.143 | 0 |
+| 1.3 | `maxrects-bl` | 0.757 | 0.026 | 0.034 | 0.980 | 0.020 | 0 | 0 |
+| 1.3 | `skyline` | 0.808 | 0.069 | 0.085 | 0.940 | 0.003 | 0.057 | 0 |
+
+- The prediction is on the slack 1.1. It asked for 0 steps where the fresh pack places each item and the repack does not, and the read has 0. It also asked for a ratio of at most 0.5 on each entry. Both entries hold the claim, `skyline` with 0.4988, only 0.0012 under the limit.
+- The rows of the other slacks were read after the first read, and they are not a prediction.
+- The free room decides the gain. With more room, the pin fits on more steps, and the repack moves fewer boxes.
+- `skyline` rarely keeps the prefix. A low box of the prefix pushes the suffix below it, and the suffix overflows. Refer to "The kept prefix".
+- The moved column counts each step, also a step where the fresh pack overflows.
 
 ## The kept prefix
 
