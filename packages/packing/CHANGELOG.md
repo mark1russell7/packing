@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.13.0
 
 The constant `packOperators` declares the operators of `packSpace` in the format `strategy-operators/1` of `@mark1russell7/strategy-space`.
+
+This release raises the MINOR version. The types of the public API come from `@mark1russell7/layout-contract` 0.9.0, and its shape kinds change from a union to `string`. Before 1.0.0, a break raises MINOR.
 
 ### Added
 
@@ -14,6 +16,7 @@ The constant `packOperators` declares the operators of `packSpace` in the format
 
 - The dependency `@mark1russell7/layout-contract` moves to 0.9.0. The types of the strategy space come from `@mark1russell7/strategy-space` 0.0.2 through it.
 - The new dependency `@mark1russell7/strategy-space` gives `checkOperators` and `countOperators`.
+- The dev dependency `@vitest/coverage-v8` 5.0.5, at the version of Vitest, so CI measures the coverage.
 
 ### Not changed
 
