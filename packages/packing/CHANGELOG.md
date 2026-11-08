@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.1
+
+The package has a table of the output fingerprint of each strategy, from `fingerprintOf` of `@mark1russell7/layout-contract`. A joint bench reads it and starts again only the strategies with a changed output.
+
+This release raises the PATCH version. The package root does not export the table, so the public API does not change.
+
+### Added
+
+- `src/strategy-fingerprint.ts` has one fingerprint for each of the 33 strategies, over 114 probe inputs. The `version` script writes it, and the job `rows` of CI compares it.
+
 ## 0.11.0
 
 The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/layout-contract` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/layout-contract, so its new version outside the old range can change them.
