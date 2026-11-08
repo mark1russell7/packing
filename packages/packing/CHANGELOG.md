@@ -41,6 +41,10 @@ This release raises the MINOR version. The types of the public API come from `@m
 - The new dependency `@mark1russell7/strategy-space` gives `checkOperators` and `countOperators`.
 - The dev dependency `@vitest/coverage-v8` 5.0.5, at the version of Vitest, so CI measures the coverage.
 
+### Breaking
+
+- The shape kinds of the types of the contract change from a union of names to `string`. A `switch` over the old union has no check of all its cases.
+
 ### Not changed
 
 - The ids of the configs, the counts of the space and the fingerprints of the catalog. The fields `identity` and `chooses` are not part of a config.
