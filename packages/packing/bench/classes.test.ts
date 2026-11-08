@@ -8,7 +8,7 @@ import { checkDeclared, parseCorpus, runBench, type BenchEnv } from "./run.ts";
 // The corpora of the classes I to X of the literature: pack-classes-v1 of roadmap item k106, and pack-classes-free-v1 of k158 and k160. The test reads no time.
 
 /** The entries that accept only `freeAspect` and `freeArea` (roadmap item k158). */
-const FREE_ENTRIES = ["masonry-shortest", "masonry-lpt", "columns-linear-partition", "treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split"];
+const FREE_ENTRIES = ["masonry-shortest", "masonry-lpt", "columns-linear-partition", "treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "treemap-spiral"];
 
 const ENV: BenchEnv = { node: "v0.0.0", os: "test", arch: "test", runner: "test", cpu: "test", cpus: 1 };
 

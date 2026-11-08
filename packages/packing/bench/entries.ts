@@ -219,6 +219,7 @@ export const STANDALONE_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "treemap-slice-dice", strategy: "treemap", options: { method: "slice-dice" } },
   { id: "treemap-strip", strategy: "treemap", options: { method: "strip" } },
   { id: "treemap-pivot-split", strategy: "treemap", options: { method: "pivot-split" } },
+  { id: "treemap-spiral", strategy: "treemap", options: { method: "spiral" } },
   { id: "side-anchors-first-left", strategy: "side-anchors", options: { first: { side: "left", at: 0.5 } } },
 ]);
 

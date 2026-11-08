@@ -69,6 +69,7 @@ export const POOL_OUT: Readonly<Record<string, string>> = Object.freeze({
   "exact-strip": "It is an exact search that refuses 60 items.",
   "shelf-breaks": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
   "shelf-online": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "treemap-spiral": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
 });
 
 /**
