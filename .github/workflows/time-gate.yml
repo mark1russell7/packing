@@ -124,7 +124,7 @@ jobs:
 
   retry:
     needs: [changes, gate]
-    if: ${{ always() && needs.changes.outputs.run == 'true' && needs.gate.result == 'success' }}
+    if: ${{ !cancelled() && needs.changes.outputs.run == 'true' && needs.gate.result == 'success' }}
     name: retry (${{ matrix.gate }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
