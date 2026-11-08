@@ -5,9 +5,11 @@ import {
   checkHard,
   columnBalance,
   columnReading,
+  columnsCssBalance,
   columnsLinearPartition,
   masonryDifferencing,
   masonryLpt,
+  masonryMultiSpan,
   masonryShortest,
   mulberry32,
   type Item,
@@ -21,6 +23,7 @@ const METHODS: readonly (readonly [string, MasonryLayout])[] = [
   ["masonryLpt", masonryLpt],
   ["masonryDifferencing", masonryDifferencing],
   ["columnsLinearPartition", columnsLinearPartition],
+  ["columnsCssBalance", columnsCssBalance],
 ];
 
 /** This function gives a free input of boxes of width 1 with the heights. */
@@ -243,6 +246,68 @@ describe("masonryDifferencing", () => {
   });
 });
 
+describe("columnsCssBalance", () => {
+  const cases = Array.from({ length: 300 }, (_, seed) => ({ columns: 1 + (seed % 5), heights: heightsOf(seed + 4000, 1 + (seed % 12), 1, false, 30) }));
+
+  /** This function gives the indexes of the cards of each column of a layout, from the left and from the top. */
+  const stacksOf = (output: PackOutput): number[][] => {
+    const byX = new Map<number, number[]>();
+    for (const [index, placement] of output.placements.entries()) byX.set(placement.x, [...(byX.get(placement.x) ?? []), index]);
+    return [...byX.entries()].sort((a, b) => a[0] - b[0]).map(([, stack]) => stack);
+  };
+
+  it("gives the tallest column of a brute force over the cuts, on whole and fractional heights", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      if (tallestOf(input, columnsCssBalance(input, { columns }), columns) !== bruteCuts(heights, columns).tallest) breaks += 1;
+    }
+    expect(breaks).toBe(0);
+    let worst = 0;
+    for (let seed = 0; seed < 300; seed++) {
+      const random = mulberry32(seed + 5000);
+      const columns = 1 + (seed % 5);
+      const heights = Array.from({ length: 1 + (seed % 12) }, () => 0.1 + random() * 30);
+      const input = wall(heights);
+      worst = Math.max(worst, Math.abs(tallestOf(input, columnsCssBalance(input, { columns }), columns) - bruteCuts(heights, columns).tallest));
+    }
+    expect(worst).toBeLessThanOrEqual(1e-9);
+  });
+
+  it("fills each column while the cards fit: the first card of a column does not fit in the column to its left", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      const output = columnsCssBalance(input, { columns });
+      const tallest = tallestOf(input, output, columns);
+      const stacks = stacksOf(output);
+      for (let column = 0; column + 1 < stacks.length; column++) {
+        const height = stacks[column]!.reduce((sum, index) => sum + heights[index]!, 0);
+        if (height + heights[stacks[column + 1]![0]!]! <= tallest) breaks += 1;
+      }
+    }
+    expect(breaks).toBe(0);
+  });
+
+  it("fills the first columns, where columnsLinearPartition balances the last columns", () => {
+    const heights = [10, ...new Array<number>(10).fill(1)];
+    const input = wall(heights);
+    expect(columnBalance(input, columnsCssBalance(input, { columns: 3 }), { columns: 3 }).heights).toEqual([10, 10, 0]);
+    expect(columnBalance(input, columnsLinearPartition(input, { columns: 3 }), { columns: 3 }).heights).toEqual([10, 5, 5]);
+  });
+
+  it("keeps the input order: each column follows the column to its left", () => {
+    const random = mulberry32(6);
+    const input = wall(Array.from({ length: 40 }, () => 1 + Math.floor(random() * 20)));
+    const placements = columnsCssBalance(input, { columns: 5 }).placements;
+    for (let index = 1; index < placements.length; index++) {
+      const before = placements[index - 1]!;
+      const after = placements[index]!;
+      expect(after.x > before.x || (after.x === before.x && after.y > before.y)).toBe(true);
+    }
+  });
+});
+
 describe("the rules of a layout", () => {
   const inputs = mixedInputs();
 
@@ -339,6 +404,68 @@ describe("the rules of a layout", () => {
   });
 });
 
+describe("masonryMultiSpan", () => {
+  /** This function gives a free input of boxes with the widths and the heights. */
+  const cards = (sizes: readonly (readonly [number, number])[], gap = 0): PackInput => ({
+    container: { fixed: "none" },
+    gap,
+    items: sizes.map(([w, h], index) => ({ id: `c${index}`, w, h })),
+  });
+
+  it("puts each wide card where the tallest of its columns is the lowest, and the left place wins a tie", () => {
+    // 3 columns of 100: a covers 1 column, b covers 2, c covers 1, d covers 3.
+    const input = cards([[100, 50], [200, 30], [100, 10], [300, 20]]);
+    const output = masonryMultiSpan(input, { columns: 3, columnWidth: 100 });
+    expect(output.placements).toEqual([
+      { id: "c0", x: 0, y: 0 },
+      { id: "c1", x: 100, y: 0 },
+      { id: "c2", x: 100, y: 30 },
+      { id: "c3", x: 0, y: 50 },
+    ]);
+    expect(output.size).toEqual({ w: 300, h: 70 });
+    expect(checkHard(input, output)["no-overlap"]).toBe(0);
+  });
+
+  it("counts the gaps between the columns that a card covers", () => {
+    const input = cards([[210, 5]], 10);
+    expect(masonryMultiSpan(input, { columns: 2, columnWidth: 100 }).size).toEqual({ w: 210, h: 5 });
+    expect(() => masonryMultiSpan(cards([[211, 5]], 10), { columns: 2, columnWidth: 100 })).toThrow(RangeError);
+    // A card of 101 covers 2 columns, so the next card goes under it, not next to it.
+    const two = masonryMultiSpan(cards([[101, 5], [100, 5]], 10), { columns: 2, columnWidth: 100 });
+    expect(two.placements[1]).toEqual({ id: "c1", x: 0, y: 15 });
+  });
+
+  it("gives the layout of masonryShortest without columnWidth", () => {
+    for (const { input, columns } of mixedInputs()) {
+      expect(masonryMultiSpan(input, { columns })).toEqual(masonryShortest(input, { columns }));
+    }
+  });
+
+  it("places each item once in the wall with no overlap, and columnBalance reads the height of the wall", () => {
+    for (const [seed, { input, columns }] of mixedInputs().entries()) {
+      const widest = Math.max(0, ...input.items.map((item) => item.w + marginWidth(item)));
+      const columnWidth = widest > 0 ? widest / (1 + (seed % columns)) : 1;
+      const output = masonryMultiSpan(input, { columns, columnWidth });
+      expect(output.placements.map((p) => p.id)).toEqual(input.items.map((item) => item.id));
+      expect(checkHard(input, output)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+      expect(output.size.w).toBeCloseTo(columns * columnWidth + (columns - 1) * (input.gap ?? 0), 9);
+      if (input.items.length > 0) expect(Math.max(...columnBalance(input, output, { columns, columnWidth }).heights)).toBeCloseTo(output.size.h, 9);
+      expect(JSON.stringify(masonryMultiSpan(input, { columns, columnWidth }))).toBe(JSON.stringify(output));
+    }
+  });
+
+  it("refuses a column width that is not positive and finite, and the refusals of masonryShortest", () => {
+    const good = cards([[2, 1]]);
+    expect(() => masonryMultiSpan(good, { columns: 2, columnWidth: 0 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan(good, { columns: 2, columnWidth: Infinity })).toThrow(RangeError);
+    expect(() => masonryMultiSpan(good, { columns: 1, columnWidth: 1 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan(good, { columns: 0 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan({ ...good, container: { fixed: "width", w: 9 } }, { columns: 2 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan({ ...good, items: [{ id: "l", w: 1, h: 1, x: 0, y: 0, locked: true }] }, { columns: 2 })).toThrow(RangeError);
+    expect(masonryMultiSpan(cards([]), { columns: 3 })).toEqual({ placements: [], overflow: [], size: { w: 0, h: 0 }, moved: [] });
+  });
+});
+
 describe("columnBalance", () => {
   it("gives 0 for level columns, 1 with an empty column, and the share between", () => {
     const level = wall([2, 2]);
@@ -352,6 +479,12 @@ describe("columnBalance", () => {
   it("does not count the gap under the last box, and it counts the bottom margin", () => {
     const input: PackInput = { container: { fixed: "none" }, gap: 5, items: [{ id: "a", w: 1, h: 2, margin: 1 }, { id: "b", w: 1, h: 2, margin: 1 }] };
     expect(columnBalance(input, masonryShortest(input, { columns: 1 }), { columns: 1 }).heights).toEqual([13]);
+  });
+
+  it("counts a wide card on each column that it covers", () => {
+    const input: PackInput = { container: { fixed: "none" }, items: [{ id: "a", w: 100, h: 50 }, { id: "b", w: 200, h: 30 }, { id: "c", w: 100, h: 10 }] };
+    const options = { columns: 3, columnWidth: 100 };
+    expect(columnBalance(input, masonryMultiSpan(input, options), options)).toEqual({ heights: [50, 40, 30], balance: 0.4 });
   });
 
   it("refuses an item that is not on a column", () => {

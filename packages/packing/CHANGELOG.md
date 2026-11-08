@@ -18,6 +18,22 @@ The constant `packOperators` declares the operators of `packSpace` in the format
 ### Not changed
 
 - The ids of the configs, the counts of the space and the fingerprints of the catalog. The fields `identity` and `chooses` are not part of a config.
+## 0.12.3
+
+The function `columnsCssBalance` fills the columns in the input order, as `column-fill: balance` of CSS does. The function `masonryMultiSpan` lays wide cards that cover more than one column.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `columnsCssBalance`. The height of the columns is the least height with which the fill puts each card in a column.
+- Each column takes the cards of the order while they fit. Thus the first columns are full, and the last columns can be short or empty.
+- The function `masonryMultiSpan`. A box covers the least count of columns that holds it, and it goes where the tallest of these columns is the lowest. Without `columnWidth`, the layout is that of `masonryShortest`.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
 ## 0.12.2
 
 The function `masonryDifferencing` lays cards in `c` columns with the differencing method of Karmarkar 1982.
