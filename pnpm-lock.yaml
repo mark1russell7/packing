@@ -209,8 +209,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@mark1russell7/layout-contract':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.5.5
+        version: 0.5.5
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.6
         version: 0.1.6
@@ -502,6 +502,10 @@ packages:
 
   '@mark1russell7/layout-contract@0.5.0':
     resolution: {integrity: sha512-bQa9FsW628WY0BJN0qxaFpb8lI2WR36REqkox8Fg7AkDNoOGGCYOd89fPXZpvXxglIbyw6G03YlM1RQn8UdYRA==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/layout-contract@0.5.5':
+    resolution: {integrity: sha512-tHD+v4NgXKQIsITvaA53aZ1EBrmwj4BqSn1zQbIlR9FmVuODZOVPXXwLm7pLHlov2E6vkwgkncRQjBkwwHbGSg==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/rigor-bench@0.2.20':
@@ -1717,6 +1721,11 @@ snapshots:
   '@mark1russell7/cue@1.1.0': {}
 
   '@mark1russell7/layout-contract@0.5.0':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/typeset': 0.1.0
+
+  '@mark1russell7/layout-contract@0.5.5':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
       '@mark1russell7/typeset': 0.1.0

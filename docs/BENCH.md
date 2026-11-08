@@ -215,12 +215,33 @@ The job `rows` of `output-rows.yml` starts on each pull request and each push to
 
 ```sh
 node --no-warnings bench/write-catalog.ts                 # After a change to the rows or the version
-pnpm run version                                          # After a change of the version: the two writers in their order
+pnpm run version                                          # After a change of the version: the three writers in their order
 node --no-warnings bench/whole-positions.ts --write       # After a strategy changes its output on purpose
 node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
+## The output fingerprints
+
+A joint bench starts again only the strategies whose output changed (roadmap item k201). The fingerprint of a strategy tells it.
+
+- Each corpus family and `rect-scattered` give a probe at the counts 5, 20 and 50, in the range of the family. Each other dimension keeps its default.
+- A family also gives a probe at each other container mode that it supports, with 20 items. Thus `masonry` and `treemap` get `freeAspect` and `freeArea` inputs.
+- The made-up inputs of `bench/shape-inputs.ts` give circles, polygons and both, at 5 and 20 items. Equal circles in a circle come from `bench/circles.ts`.
+- The seed of each input and of each pack is 1. The 114 probes come from 21 families and the 2 made-up sources.
+- Each strategy packs each probe with its defaults. `aspect-fit` has no default member, so it takes the options of the entry `aspect-fit-maxrects-bl`.
+- A strategy of the mode `incremental` packs the probe, then packs it again with the first item 1 unit wider. The second pack gets the first output as `previous`, as in `pack-change-v1`.
+- A strategy that refuses each probe fails the check and the write, because its fingerprint does not show a change. At this time each strategy packs 2 probes or more.
+- The hash of a probe is `probeHash` of `layout-contract` over `packOutputForm` of the output, with exact numbers. A refusal gives the token `refused`, with no reason text.
+- The fingerprint is `fingerprintOf` of the hashes of the probes. Another error than a refusal stops the read, with the name of the probe.
+
+The file `src/strategy-fingerprint.ts` holds the table. The script `bench/fingerprints.ts` writes it. Do not edit it. The job `rows` of `output-rows.yml` compares the table with a new read. Its artifact has the read table and the hash of each probe.
+
+```sh
+node --no-warnings bench/fingerprints.ts --write          # After a strategy changes its output on purpose
+node --no-warnings bench/fingerprints.ts --check          # The check of the job
+```
 
 ## The tie moves
 
