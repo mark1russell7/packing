@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.12.1
+
+A pack with a fixed height reads the links of its input.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- `transposeInput` keeps `links`. Before the fix, it dropped them. So each strategy that packs a fixed height through `viaAxes` read no graph.
+- A pack with a fixed height and links gives the transposed output of its fixed-width twin. A test lists each key of `PackInput`. A new key of the input fails the typecheck until the list names it.
+
+### Not changed
+
+- The fingerprints of the catalog stay the same. No probe input packs a fixed height with links.
+
 ## 0.12.0
 
 The strategy `treemap` has the method `spiral`, the spiral treemap of Tu and Shen 2007. Each two boxes in a row of the input order share an edge.
