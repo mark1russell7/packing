@@ -220,6 +220,7 @@ export { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE, EXACT_STRIP_NODE_LIMIT, ex
 export {
   columnBalance,
   columnReading,
+  columnsCssBalance,
   columnsLinearPartition,
   masonryDifferencing,
   masonryLpt,

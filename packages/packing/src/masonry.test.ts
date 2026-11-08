@@ -5,6 +5,7 @@ import {
   checkHard,
   columnBalance,
   columnReading,
+  columnsCssBalance,
   columnsLinearPartition,
   masonryDifferencing,
   masonryLpt,
@@ -21,6 +22,7 @@ const METHODS: readonly (readonly [string, MasonryLayout])[] = [
   ["masonryLpt", masonryLpt],
   ["masonryDifferencing", masonryDifferencing],
   ["columnsLinearPartition", columnsLinearPartition],
+  ["columnsCssBalance", columnsCssBalance],
 ];
 
 /** This function gives a free input of boxes of width 1 with the heights. */
@@ -239,6 +241,68 @@ describe("masonryDifferencing", () => {
       }
       const lefts = [...firstAt.keys()];
       expect(lefts).toEqual(lefts.toSorted((a, b) => a - b));
+    }
+  });
+});
+
+describe("columnsCssBalance", () => {
+  const cases = Array.from({ length: 300 }, (_, seed) => ({ columns: 1 + (seed % 5), heights: heightsOf(seed + 4000, 1 + (seed % 12), 1, false, 30) }));
+
+  /** This function gives the indexes of the cards of each column of a layout, from the left and from the top. */
+  const stacksOf = (output: PackOutput): number[][] => {
+    const byX = new Map<number, number[]>();
+    for (const [index, placement] of output.placements.entries()) byX.set(placement.x, [...(byX.get(placement.x) ?? []), index]);
+    return [...byX.entries()].sort((a, b) => a[0] - b[0]).map(([, stack]) => stack);
+  };
+
+  it("gives the tallest column of a brute force over the cuts, on whole and fractional heights", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      if (tallestOf(input, columnsCssBalance(input, { columns }), columns) !== bruteCuts(heights, columns).tallest) breaks += 1;
+    }
+    expect(breaks).toBe(0);
+    let worst = 0;
+    for (let seed = 0; seed < 300; seed++) {
+      const random = mulberry32(seed + 5000);
+      const columns = 1 + (seed % 5);
+      const heights = Array.from({ length: 1 + (seed % 12) }, () => 0.1 + random() * 30);
+      const input = wall(heights);
+      worst = Math.max(worst, Math.abs(tallestOf(input, columnsCssBalance(input, { columns }), columns) - bruteCuts(heights, columns).tallest));
+    }
+    expect(worst).toBeLessThanOrEqual(1e-9);
+  });
+
+  it("fills each column while the cards fit: the first card of a column does not fit in the column to its left", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      const output = columnsCssBalance(input, { columns });
+      const tallest = tallestOf(input, output, columns);
+      const stacks = stacksOf(output);
+      for (let column = 0; column + 1 < stacks.length; column++) {
+        const height = stacks[column]!.reduce((sum, index) => sum + heights[index]!, 0);
+        if (height + heights[stacks[column + 1]![0]!]! <= tallest) breaks += 1;
+      }
+    }
+    expect(breaks).toBe(0);
+  });
+
+  it("fills the first columns, where columnsLinearPartition balances the last columns", () => {
+    const heights = [10, ...new Array<number>(10).fill(1)];
+    const input = wall(heights);
+    expect(columnBalance(input, columnsCssBalance(input, { columns: 3 }), { columns: 3 }).heights).toEqual([10, 10, 0]);
+    expect(columnBalance(input, columnsLinearPartition(input, { columns: 3 }), { columns: 3 }).heights).toEqual([10, 5, 5]);
+  });
+
+  it("keeps the input order: each column follows the column to its left", () => {
+    const random = mulberry32(6);
+    const input = wall(Array.from({ length: 40 }, () => 1 + Math.floor(random() * 20)));
+    const placements = columnsCssBalance(input, { columns: 5 }).placements;
+    for (let index = 1; index < placements.length; index++) {
+      const before = placements[index - 1]!;
+      const after = placements[index]!;
+      expect(after.x > before.x || (after.x === before.x && after.y > before.y)).toBe(true);
     }
   });
 });

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 508 names
+## . (build/index.d.ts): 509 names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -349,6 +349,7 @@ circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 classGenerators: build/index.d.ts#classGenerators
 columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
+columnsCssBalance: build/index.d.ts#columnsCssBalance
 columnsLinearPartition: build/index.d.ts#columnsLinearPartition
 compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
@@ -2002,6 +2003,9 @@ export declare function columnBalance(input: PackInput, output: PackOutput, opti
 
 ### build/index.d.ts#columnReading
 export declare function columnReading(input: PackInput, output: PackOutput): ColumnReading;
+
+### build/index.d.ts#columnsCssBalance
+export declare function columnsCssBalance(input: PackInput, options: MasonryOptions): PackOutput;
 
 ### build/index.d.ts#columnsLinearPartition
 export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;

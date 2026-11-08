@@ -1,4 +1,4 @@
-// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing and ordered columns.
+// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing, ordered columns and the balance of CSS columns.
 // A card wall has columns of one width, and each box goes to one column. The functions of this file are standalone.
 // The strategy `masonry` of `src/standalone-strategies.ts` wraps them. They are not in a default. `columnBalance` and `columnReading` read their outputs.
 
@@ -189,6 +189,28 @@ function differencingStacks(heights: readonly number[], order: readonly number[]
 }
 
 /**
+ * This function fills the columns in the input order, as `column-fill: balance` of CSS does. The height of the columns is
+ * the least height with which the fill puts each card in a column. Each column takes the cards of the order while they fit.
+ * Thus the first columns are full, and the last columns can be short or empty.
+ */
+function cssBalanceStacks(heights: readonly number[], order: readonly number[], columns: number): number[][] {
+  const stacks = emptyStacks(columns);
+  const count = order.length;
+  if (count === 0) return stacks;
+  const sums = new Float64Array(count + 1);
+  for (let index = 0; index < count; index++) sums[index + 1] = sums[index]! + heights[order[index]!]!;
+  const limit = leastTallest(sums, Math.min(columns, count));
+  let start = 0;
+  for (let column = 0; column < columns && start < count; column++) {
+    let end = start + 1;
+    while (end < count && sums[end + 1]! - sums[start]! <= limit) end += 1;
+    stacks[column] = order.slice(start, end);
+    start = end;
+  }
+  return stacks;
+}
+
+/**
  * This function cuts the sequence into columns that keep the order. The tallest column is the least possible. Of the cuts
  * with that tallest column, it takes the least sum of the squared heights. That rule fills each column, because many
  * cuts have the least tallest column when one card is much taller than the others.
@@ -281,6 +303,18 @@ export function masonryDifferencing(input: PackInput, options: MasonryOptions): 
  */
 export function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput {
   return layWall(input, options, orderedStacks);
+}
+
+/**
+ * This function gives the balance of CSS columns of the catalog (`columns-css-balance`), as `column-fill: balance` does.
+ * The tallest column is the least possible for a cut of the input order, as in `columnsLinearPartition`. The cut is not the
+ * same: each column takes the cards of the order while they fit under that height.
+ *
+ * - Each column reads from the top in the input order, and each column follows the column to its left.
+ * - The cost is `O(n^2 c)` at most, and the memory is `O(n)`. The refusals are those of `masonryShortest`.
+ */
+export function columnsCssBalance(input: PackInput, options: MasonryOptions): PackOutput {
+  return layWall(input, options, cssBalanceStacks);
 }
 
 /**
