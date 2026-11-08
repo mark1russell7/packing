@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: time-gate-${{ github.ref }}
+  group: time-gate-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # ci.yml calls this workflow on a push to main too, so only a pull request cancels a run in progress.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
