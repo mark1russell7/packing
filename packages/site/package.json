@@ -25,7 +25,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "@mark1russell7/layout-contract": "github:mark1russell7/layout-contract#01bc9b451c6b9a47a80706932b54d460eb0def16&path:packages/layout-contract",
+    "@mark1russell7/layout-contract": "^0.9.1",
     "@mark1russell7/packing": "workspace:*",
     "@mark1russell7/rigor-statistics": "^0.1.9",
     "@mark1russell7/site-pages": "^0.4.1",

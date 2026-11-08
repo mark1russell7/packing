@@ -110,7 +110,7 @@
   },
   "dependencies": {
     "@mark1russell7/collections": "^0.9.8",
-    "@mark1russell7/layout-contract": "github:mark1russell7/layout-contract#01bc9b451c6b9a47a80706932b54d460eb0def16&path:packages/layout-contract",
+    "@mark1russell7/layout-contract": "^0.9.1",
     "@mark1russell7/rigor-generators": "^0.1.6",
     "@mark1russell7/strategy-space": "^0.0.2"
   },

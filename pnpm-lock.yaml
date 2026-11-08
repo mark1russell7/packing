@@ -209,8 +209,8 @@ importers:
         specifier: ^0.9.8
         version: 0.9.10
       '@mark1russell7/layout-contract':
-        specifier: github:mark1russell7/layout-contract#01bc9b451c6b9a47a80706932b54d460eb0def16&path:packages/layout-contract
-        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/01bc9b451c6b9a47a80706932b54d460eb0def16#path:packages/layout-contract
+        specifier: ^0.9.1
+        version: 0.9.1
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.6
         version: 0.1.6
@@ -252,8 +252,8 @@ importers:
   packages/site:
     dependencies:
       '@mark1russell7/layout-contract':
-        specifier: github:mark1russell7/layout-contract#01bc9b451c6b9a47a80706932b54d460eb0def16&path:packages/layout-contract
-        version: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/01bc9b451c6b9a47a80706932b54d460eb0def16#path:packages/layout-contract
+        specifier: ^0.9.1
+        version: 0.9.1
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing
@@ -530,9 +530,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/01bc9b451c6b9a47a80706932b54d460eb0def16#path:packages/layout-contract':
-    resolution: {gitHosted: true, integrity: sha512-y8dxnPGXI0vpIUe881y7aVjY7TeyAZJYDkKUtQciIfhruzYrzZlaXuiHSqjMYlIGGkrReF9yoSrQ7qoBJkO4YQ==, path: packages/layout-contract, tarball: https://codeload.github.com/mark1russell7/layout-contract/tar.gz/01bc9b451c6b9a47a80706932b54d460eb0def16}
-    version: 0.9.1
+  '@mark1russell7/layout-contract@0.9.1':
+    resolution: {integrity: sha512-PwxoHo1opnh7pN0BetWinG9y+kSV91ohCg/tk9TvOtLzKLyS4hvolmhhnSD+HzrewhcNnA95lybgPvqi8pXJjw==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
@@ -1808,7 +1807,7 @@ snapshots:
 
   '@mark1russell7/cue@2.1.1': {}
 
-  '@mark1russell7/layout-contract@https://codeload.github.com/mark1russell7/layout-contract/tar.gz/01bc9b451c6b9a47a80706932b54d460eb0def16#path:packages/layout-contract':
+  '@mark1russell7/layout-contract@0.9.1':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
       '@mark1russell7/rigor-statistics': 0.1.25
