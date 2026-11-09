@@ -66,6 +66,9 @@ describe("the types of packing and of the contract", () => {
     // mulberry32, fnv1a32 and stablePick of the package come from their home at run time. stablePick is new in 0.1.6.
     expect(pkg.dependencies?.["@mark1russell7/rigor-generators"]).toBe("^0.1.6");
     expect(pkg.devDependencies?.["@mark1russell7/rigor-generators"]).toBeUndefined();
+    // The median of justifiedRows comes from its home at run time, so the package is a dependency, not a dev dependency.
+    expect(pkg.dependencies?.["@mark1russell7/rigor-statistics"]).toMatch(/^\^\d+\.\d+\.\d+$/);
+    expect(pkg.devDependencies?.["@mark1russell7/rigor-statistics"]).toBeUndefined();
   });
 
   it("gap 1 is closed: the arrays and the fields of packing are readonly, as in the contract", () => {

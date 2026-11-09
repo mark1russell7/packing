@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.1
+
+The justified rows of the catalog (roadmap item k28). Each row is scaled to the width of the strip, and each box keeps its ratio. A box scales only in the bounds of its `resize`, so the release takes `@mark1russell7/layout-contract` `^0.9.6`.
+
+This release raises the PATCH version, because it adds exports and changes no export. Before 1.0.0, a new feature raises PATCH.
+
+### Added
+
+- The function `justifiedRows` with the methods `greedy`, `linear-partition` and `line-break`, and the option `targetHeight`. A placement has `w` and `h` when its box has a new size.
+- The function `justifiedRowsRefusal`, the list `JUSTIFIED_METHODS`, and the types `JustifiedMethod`, `JustifiedRowsOptions` and `JustifiedRowsResult`.
+
+### Changed
+
+- `@mark1russell7/layout-contract` goes from `^0.9.1` to `^0.9.6`. The types `Item` and `Placement` get the optional fields `resize`, `w` and `h`. The other strategies give the same layouts.
+
 ## 0.16.0
 
 The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.
