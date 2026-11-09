@@ -5,7 +5,7 @@ import { circleQuasiPhysical } from "./circle-quasi-physical.ts";
 import { holeDegree } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { packRun, type PackRun } from "./pack-run.ts";
-import { annealStrategy, geneticStrategy, tabuStrategy } from "./order-search.ts";
+import { annealStrategy, geneticStrategy, tabuStrategy, walkStrategy } from "./order-search.ts";
 import { portfolioStrategy } from "./portfolio-strategy.ts";
 import { overlapMinStrategy } from "./overlap-min.ts";
 import { forceStrategy } from "./force.ts";
@@ -75,9 +75,9 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
  * Roadmap item k78 adds `restarts`, roadmap item k91 adds `bbox`, and roadmap item k79 adds `ruin-recreate`.
  * Roadmap item k80 adds `overlap-min`, and roadmap item k26 adds `anneal`, `genetic` and `tabu`.
  *
- * Roadmap item k124 adds `relax`, and roadmap item k125 adds `force`.
+ * Roadmap item k124 adds `relax`, and roadmap item k125 adds `force`. Roadmap item k212 adds `walk`.
  */
-export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, relaxStrategy, forceStrategy] as Strategy[]);
+export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, walkStrategy, relaxStrategy, forceStrategy] as Strategy[]);
 
 /** The kind of a strategy: `single` packs alone, `shape` packs one shape kind that is not `rect`, and `composite` packs with other strategies. */
 export type StrategyKind = "single" | "shape" | "composite";

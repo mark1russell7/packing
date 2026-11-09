@@ -23,7 +23,7 @@ export type OutputTable = Readonly<Record<string, readonly OutputRead[]>>;
 export const OUTPUT_SOURCE = "whole-positions/1";
 
 /** The version of the package at the read that wrote this file. A version change alone does not change a row. */
-export const OUTPUT_READ_VERSION = "0.15.1";
+export const OUTPUT_READ_VERSION = "0.16.4";
 
 /** The rows of `strategyCatalog`, by strategy. */
 export const STRATEGY_OUTPUT: OutputTable = {
@@ -176,5 +176,12 @@ export const STRATEGY_OUTPUT: OutputTable = {
     {"optionSet":"treemap-spiral","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":92,"nearWhole":0}},
     {"optionSet":"treemap-squarified","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
     {"optionSet":"treemap-strip","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":76,"nearWhole":0}},
+  ],
+  "walk": [
+    {"optionSet":"climb-maxrects-bl-k16","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+    {"optionSet":"default","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+    {"optionSet":"late-maxrects-bl-k16","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+    {"optionSet":"record-maxrects-bl-k16","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+    {"optionSet":"threshold-maxrects-bl-k16","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
   ],
 };

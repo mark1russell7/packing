@@ -1,7 +1,7 @@
 // The strategies of the demo and the controls of their options. The lists come from the registry and from the entries of
 // the benchmark. The sync test `sync.test.ts` fails when a list on a page differs from them.
 
-import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MASONRY_METHOD_IDS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, sideAnchorsStrategy, SKYLINE_RULES, SORT_ORDERS, standaloneStrategies, strategies, strategy, TREEMAP_METHOD_IDS, type AnchorSide, type Strategy } from "@mark1russell7/packing";
+import { BEST_FIT_SIDES, BOTTOM_LEFT_RULES, composites, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, MASONRY_METHOD_IDS, MAXRECTS_RULES, RESTART_PERTURBS, RUIN_KINDS, shapeStrategies, SHELF_FITS, sideAnchorsStrategy, SKYLINE_RULES, SORT_ORDERS, standaloneStrategies, strategies, strategy, TREEMAP_METHOD_IDS, WALK_ACCEPTS, WALK_MOVES, type AnchorSide, type Strategy } from "@mark1russell7/packing";
 import { ENTRIES, isComposite, STANDALONE_IDS, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 
 /** This constant lists each strategy of `allStrategies`: the single strategies, the strategies of one shape kind, the standalone strategies, then the composite strategies. */
@@ -26,6 +26,8 @@ export const KNOWN_SETS: Readonly<Record<string, readonly string[]>> = {
   choice: GUILLOTINE_CHOICES,
   split: GUILLOTINE_SPLITS,
   side: BEST_FIT_SIDES,
+  accept: WALK_ACCEPTS,
+  move: WALK_MOVES,
 };
 
 /** The known values of an option of one strategy, when they are not the values of `KNOWN_SETS`, by strategy id. */
@@ -53,6 +55,8 @@ export const NUMBER_LIMITS: Readonly<Record<string, { min: number; max: number; 
   mutation: { min: 0, max: 1, step: 0.01 },
   tenure: { min: 0, max: 1024, step: 1 },
   neighbors: { min: 1, max: 1024, step: 1 },
+  band: { min: 0.0001, max: 1, step: 0.0001 },
+  history: { min: 1, max: 1024, step: 1 },
   columns: { min: 1, max: 16, step: 1 },
   nodeLimit: { min: 1000, max: 1_000_000, step: 1000 },
   trials: { min: 1, max: 1024, step: 1 },
@@ -136,6 +140,7 @@ function extraControls(id: string): OptionControl[] {
     case "anneal":
     case "genetic":
     case "tabu":
+    case "walk":
       return [
         { key: "member", kind: "entry", values: members, value: "maxrects-bl", fromDefaults: false },
         { key: "budgetWork", kind: "number", value: undefined, ...NUMBER_LIMITS["budgetWork"]!, fromDefaults: false },
@@ -175,7 +180,7 @@ const memberOf = (id: string): { id: string; strategy: string; options: Readonly
 /**
  * This function gives the options of `packWith` from the values of the controls. An empty value gives no option. A
  * portfolio with members takes no `k`. The strategy of `aspect-fit` is a named entry with its options.
- * The member of `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax` and `force` is a named entry.
+ * The member of `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `walk`, `relax` and `force` is a named entry.
  */
 export function packOptions(id: string, values: OptionValues): Record<string, unknown> {
   const out: Record<string, unknown> = {};

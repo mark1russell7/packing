@@ -91,12 +91,14 @@ describe("packSpace", () => {
     // Roadmap item k29 adds treemap-spiral to the members: one base config for each count of levels.
     // Before k29 the counts were 995683381705634116776, 345359641400040422, 987919200607642301316 and 342338667185080262.
     // Roadmap item k193 adds the side none to side-anchors: one config for each member. Before k193 the count was 995683381705634112939.
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(996982144242458314300n);
+    // The walks of k212 give 600 param points for each base config with 3 levels, and 80 with 1 level: 60 for climb and 180 for each other walk.
+    // Before k212 the counts were 996982144242458314300, 346878105010926668, 989209855826161117216 and 343846500125987340.
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(996982144242460617100n);
     // Roadmap item k193 adds the side none to side-anchors. Before k193 the count with 1 level was 345359641400039281.
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(346878105010926668n);
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(346878105011018028n);
     // Roadmap item k193 adds the side none to side-anchors. Before k193 the rect counts were 987919200607642297485 and 342338667185079123.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3832n, meta: 989209855826161117216n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1140n, meta: 343846500125987340n });
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3832n, meta: 989209855826163416416n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1140n, meta: 343846500126078540n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -548,9 +550,10 @@ describe("configOfStrategy (k135)", () => {
   });
 
   it("keeps the configId of each named config of main", () => {
-    // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137, of k25, of k94 or of k142. A change of a config or of canonicalConfig changes the hash.
+    // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137, of k25, of k94, of k142 or of k212. A change of a config or of canonicalConfig changes the hash.
+    const walkNames = ["walk", "climb-maxrects-bl-k16", "threshold-maxrects-bl-k16", "record-maxrects-bl-k16", "late-maxrects-bl-k16"];
     const standaloneNames = ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "masonry-shortest", "masonry-lpt", "columns-linear-partition", "treemap", "treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "treemap-spiral", "side-anchors-first-left"];
-    const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", ...standaloneNames];
+    const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", ...walkNames, ...standaloneNames];
     const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });

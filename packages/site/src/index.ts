@@ -91,6 +91,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   anneal: "Annealing",
   genetic: "Genetic",
   tabu: "Tabu search",
+  walk: "Walk over orders",
   relax: "Relax",
   force: "Force",
   sleator: "Sleator",

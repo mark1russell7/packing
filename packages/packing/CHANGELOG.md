@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.4
+
+The composite strategy `walk` is one walk over the orders of the items, with a move and an acceptance rule (roadmap item k212).
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The strategy `walk` of the family `order-search`, with the options `accept`, `move`, `band` and `history`. Its output is not worse than the member output by the key of `restarts`.
+- The acceptance rules `climb` (Hopper 2001), `threshold` (Dueck 1990), `record` (Dueck 1993) and `late` (Burke 2017). The moves `swap`, `insert`, `reverse` and `mixed`.
+- The exports `walkStrategy`, `WALK_STAGE`, `WALK_ACCEPTS`, `WALK_MOVES` and the types `WalkAccept`, `WalkMove` and `WalkStrategyOptions`.
+- The options `climb`, `threshold`, `record` and `late` of the stage `combine` of `packSpace`, each one an operator of `packOperators`. The named configs `walk` and the 4 entries `climb-maxrects-bl-k16`, `threshold-maxrects-bl-k16`, `record-maxrects-bl-k16` and `late-maxrects-bl-k16`.
+- The catalog rows `search-threshold-order`, `search-record-order` and `search-late-order`. The row `search-naive-evolution` is implemented.
+
 ## 0.15.1
 
 The functions `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013 lay the items of a treemap along a curve.

@@ -214,7 +214,7 @@ Status: done, done, waiting, next, done.
 | k209 | The plan of the rectangle pilot: operators for each stage, a screen, measures with targets, and generated views | strategies | done |  |
 | k210 | Order operators: each sort key with its own mechanism. A direction or a tie-break counts as a variant | strategies | later |  |
 | k211 | Placement operators: each published rectangle rule of the survey that is not in `packSpace` | strategies | later |  |
-| k212 | A local-search stage: SA, tabu, GA, GRASP, VNS, ILS, ruin-recreate and beam, with separate moves and acceptance rules | strategies | later |  |
+| k212 | A local-search stage: SA, tabu, GA, GRASP, VNS, ILS, ruin-recreate and beam, with separate moves and acceptance rules. The first slice adds the strategy `walk` with 4 moves and 4 acceptance rules (`climb`, `threshold`, `record`, `late`), as 4 options of `combine`. A stage of all the searches waits for a weight design of the sampler | strategies | in progress | k214 |
 | k213 | The new stages refine and compact, after each placement | strategies | later |  |
 | k214 | A screen by successive halving in a CI matrix: 1,000 configurations | bench | later | k207 |
 | k215 | The pilot measures in `kpi.json`: operators, distinct variants, screened and measured strategies, each with a target and a date. The first slice declares the 38 operators of `packSpace` as `packOperators` and adds the measure `operators` | site | in progress |  |
