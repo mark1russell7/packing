@@ -900,6 +900,10 @@ select {
   min-width: 0;
 }
 
+.opt[hidden] {
+  display: none;
+}
+
 .opt input[type="number"] {
   width: 7em;
 }
