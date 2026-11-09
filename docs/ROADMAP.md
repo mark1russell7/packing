@@ -212,7 +212,7 @@ Status: done, done, waiting, next, done.
 | k207 | A run-cost model in `rigor-bench`, for each supported cell and CPU model | measure | active | k206 |
 | k208 | Raise `@mark1russell7/layout-contract` to `^0.6.0` | core | done | k204 |
 | k209 | The plan of the rectangle pilot: operators for each stage, a screen, measures with targets, and generated views | strategies | done |  |
-| k210 | Order operators: each sort key with its own mechanism. A direction or a tie-break counts as a variant | strategies | later |  |
+| k210 | Order operators: each sort key with its own mechanism. A direction or a tie-break counts as a variant. The first slice adds 6 sort keys: perimeter, longer side, shorter side, side difference, ratio and diagonal | strategies | in progress |  |
 | k211 | Placement operators: each published rectangle rule of the survey that is not in `packSpace` | strategies | later |  |
 | k212 | A local-search stage: SA, tabu, GA, GRASP, VNS, ILS, ruin-recreate and beam, with separate moves and acceptance rules | strategies | later |  |
 | k213 | The new stages refine and compact, after each placement | strategies | later |  |

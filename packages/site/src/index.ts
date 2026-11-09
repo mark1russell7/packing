@@ -71,6 +71,12 @@ const ORDER_LABELS: Record<SortOrder, string> = {
   "height-asc": "Shortest first",
   "width-desc": "Widest first",
   "area-desc": "Largest first",
+  "perimeter-desc": "Largest perimeter first",
+  "long-side-desc": "Longest side first",
+  "short-side-desc": "Longest short side first",
+  "side-diff-desc": "Most uneven sides first",
+  "ratio-desc": "Most elongated first",
+  "diagonal-desc": "Longest diagonal first",
   input: "List order",
 };
 /** The names of the strategies on the page. An id without a name shows the id. */
