@@ -46,6 +46,8 @@ pack(rects, outer, { strategy: "shelf", fit: "best" });
 - `fit: "next"`: each rectangle uses only the open shelf. A short rectangle can also stack above a shorter rectangle.
 - `fit: "first"`: each rectangle goes on the first shelf from the top where it fits.
 - `fit: "best"`: each rectangle goes on the shelf with the least height left over above it.
+- `fit: "best-width"` and `fit: "worst-width"`: each rectangle goes to the place with the least or the most free width after it.
+- `fit: "best-area"` and `fit: "worst-area"`: each rectangle goes to the place with the least or the most free area after it.
 - With a `fit`, the shelves open only in the free spans of each container shape. `docs/PACKER.md` tells the rules.
 
 Since 0.2.5, `packMaxRects` and the strategy `maxrects` pack with a list of maximal free rectangles. `MAXRECTS_RULES` lists the rules of the option `rule`.

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.17.0
+
+Four shelf fits of the literature (roadmap item k211). The option `fit` of `packShelf` and of the strategy `shelf` gets the values `best-width`, `worst-width`, `best-area` and `worst-area`.
+
+This release raises the MINOR version. The exported type `ShelfFit` gets 4 values, and the draws of `packSpace` change. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The fit `best-width` of Berkey 1987, and the fits `worst-width`, `best-area` and `worst-area` of Jylänki 2010.
+- Each of the 4 fits compares each place on each shelf: the floor after the last box, and the strip above a shorter box. A tie goes to the first place, from the top shelf.
+- The free width of a floor place is the width from the box to the right edge. The free area is the area of the place less the area of the box.
+- The catalog rows `shelf-bfdh`, `shelf-wfdh`, `shelf-baf` and `shelf-waf` are implemented.
+
+### Breaking
+
+- The type `ShelfFit` and the constant `SHELF_FITS` have 7 values, not 3. A `switch` over `ShelfFit` with no default case does not compile.
+- `packSpace` has 72 more base configs with 3 levels, and 24 more with 1 level. The meta count with 3 levels goes above `10n ** 21n`.
+- The uniform draws of `packSpace` give other configs.
+
+### Not changed
+
+- The default `shelf` has no `fit`, and its output does not change. The fits `next`, `first` and `best` do not change.
+
 ## 0.15.2
 
 The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.

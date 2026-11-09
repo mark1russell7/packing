@@ -22,9 +22,7 @@ const CLEAN = { "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 
 
 /** The variants of the benchmark: each fit with `height-desc`, and the fit `first` with the input order. */
 const VARIANTS: readonly { fit: ShelfFit; sortOrder: SortOrder }[] = [
-  { fit: "next", sortOrder: "height-desc" },
-  { fit: "first", sortOrder: "height-desc" },
-  { fit: "best", sortOrder: "height-desc" },
+  ...SHELF_FITS.map((fit) => ({ fit, sortOrder: "height-desc" as const })),
   { fit: "first", sortOrder: "input" },
 ];
 
@@ -147,6 +145,49 @@ describe("the moves of the shelf fits", () => {
     expect(r.moves).toEqual([2, 1, 1]);
   });
 
+  // Roadmap item k211: the fits by width and by area compare each place on each shelf.
+  it("puts c on the floor at the right edge and g in the strip above c with the fit best-width", () => {
+    const r = run("best-width");
+    expect(r.at).toEqual({ a: [0, 0], e: [60, 0], f: [60, 10], b: [0, 30], c: [90, 0], g: [90, 5] });
+    expect(r.moves).toEqual([2, 2, 0]);
+  });
+
+  it("puts c and g on the floor of the second shelf with the fit worst-width", () => {
+    const r = run("worst-width");
+    expect(r.at).toEqual({ a: [0, 0], e: [60, 0], f: [60, 10], b: [0, 30], c: [50, 30], g: [60, 30] });
+    expect(r.moves).toEqual([1, 0, 2]);
+  });
+
+  it("puts c in the strip above f with the fit best-area, because its free area is 100", () => {
+    // The free areas of c are 100 in the strip above f, 250 on the floor of shelf 1 and 950 on the floor of shelf 2.
+    const r = run("best-area");
+    expect(r.at).toEqual({ a: [0, 0], e: [60, 0], f: [60, 10], b: [0, 30], c: [60, 25], g: [90, 0] });
+    expect(r.moves).toEqual([2, 2, 0]);
+  });
+
+  it("puts c and g on the floor of the second shelf with the fit worst-area", () => {
+    const r = run("worst-area");
+    expect(r.at).toEqual({ a: [0, 0], e: [60, 0], f: [60, 10], b: [0, 30], c: [50, 30], g: [60, 30] });
+    expect(r.moves).toEqual([1, 0, 2]);
+  });
+
+  it("gives a tie of the fits by width and by area to the place on the top shelf", () => {
+    // The box c has the free width 30 and the free area 600 on both shelves.
+    const tie: PackInput = {
+      container: { w: 100, fixed: "width" },
+      items: [
+        { id: "a", w: 60, h: 20 },
+        { id: "b", w: 60, h: 20 },
+        { id: "c", w: 10, h: 20 },
+      ],
+    };
+    for (const fit of ["best-width", "worst-width", "best-area", "worst-area"] as const) {
+      const output = packWith("shelf", tie, { sortOrder: "input", fit });
+      expect(checkHard(tie, output), fit).toEqual(CLEAN);
+      expect(output.placements.find((p) => p.id === "c"), fit).toMatchObject({ x: 60, y: 0 });
+    }
+  });
+
   it("writes no move of a fit in the trace of the default shelf", () => {
     const output = packWith("shelf", input, { sortOrder: "input" });
     const ids = Object.keys(output.trace![0]!.measures!);
@@ -170,7 +211,7 @@ describe("packShelf with a fit", () => {
   };
 
   it("lists the fits, and throws a RangeError for a fit that is not one of them", () => {
-    expect(SHELF_FITS).toEqual(["next", "first", "best"]);
+    expect(SHELF_FITS).toEqual(["next", "first", "best", "best-width", "worst-width", "best-area", "worst-area"]);
     expect(() => packShelf([rect(1, 1)], outerOf(10), { fit: "worst" as ShelfFit })).toThrow(RangeError);
   });
 
