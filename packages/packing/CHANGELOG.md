@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.17.0
+
+Each entry of the strategy catalog gets the output fingerprint of its strategy (roadmap item k201). A chooser can find 2 strategies with the same output and not start them.
+
+This release raises the MINOR version, because the catalog goes to the schema `strategy-catalog/3`. A reader that accepts only `strategy-catalog/2` refuses the new file. Before 1.0.0, a break raises MINOR.
+
+### Breaking
+
+- The file `strategy-catalog.json` and the constant `strategyCatalog` use the schema `strategy-catalog/3` of `@mark1russell7/layout-contract`, not `strategy-catalog/2`.
+
+### Added
+
+- Each entry of the catalog has the field `fingerprint`, from the table `STRATEGY_FINGERPRINT`. All 33 entries have one.
+
 ## 0.16.1
 
 The function `cssGridLanes` of roadmap item k28 places the boxes of a wall as the CSS grid lanes do. The code follows section 4.4 of the editor's draft of 21 October 2026.
