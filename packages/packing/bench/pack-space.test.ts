@@ -54,9 +54,9 @@ const SPACE_ENTRIES = ENTRIES;
 
 describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
-    // Roadmap item k25 adds 5 entries. Before k25 the count was 45.
+    // Roadmap item k25 adds 5 entries. Before k25 the count was 45. Roadmap item k212 adds the 4 entries of the walks.
     expect(STANDALONE_IDS.size).toBe(STANDALONE_ENTRIES.length);
-    expect(ENTRIES).toHaveLength(50 + STANDALONE_ENTRIES.length);
+    expect(ENTRIES).toHaveLength(54 + STANDALONE_ENTRIES.length);
     // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
     // The named config `pack` of k135 is the choice of `pack` without a strategy. It is not an entry and not an id of the registry.
     // The named config `maxrects-wire` of k136 is the rule wire of `maxrects`. It is not an entry, because the screen has no links.
