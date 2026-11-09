@@ -229,7 +229,7 @@ importers:
         version: 0.1.26
       '@mark1russell7/site-pages':
         specifier: ^0.4.1
-        version: 0.4.2
+        version: 0.4.3
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
@@ -262,7 +262,7 @@ importers:
         version: 0.1.26
       '@mark1russell7/site-pages':
         specifier: ^0.4.1
-        version: 0.4.2
+        version: 0.4.3
       marked:
         specifier: ^18.1.2
         version: 18.1.2
@@ -586,8 +586,8 @@ packages:
     resolution: {integrity: sha512-JhwMAsYFg9FLFGVHRt6U7TWYmRblA/f+zS08H+DVzRlP4ypAqwmX6+QXNY+jNbwkyFPJqaLQJq/1PSC8QoKIWQ==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/site-pages@0.4.2':
-    resolution: {integrity: sha512-J/t24QyQBgS4tCd+toMf9T8d9QOxYpwREWpjc0uv6/Lfw46eCe6dfH1ip2fZyBLfYEVFdVkVL04AVSxRotTG6A==}
+  '@mark1russell7/site-pages@0.4.3':
+    resolution: {integrity: sha512-6RVlKnaXyVAwcZwrKugTcm32strh0D5Dz+ZSSz6zlLXtWtX31C23ue88bPh7PujLw6r90PywY00uSkNafOCKfg==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -1877,9 +1877,9 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
 
-  '@mark1russell7/site-pages@0.4.2':
+  '@mark1russell7/site-pages@0.4.3':
     dependencies:
-      '@mark1russell7/rigor-statistics': 0.1.25
+      '@mark1russell7/rigor-statistics': 0.1.26
 
   '@mark1russell7/ste-lint@0.3.0':
     dependencies:
