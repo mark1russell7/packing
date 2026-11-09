@@ -25,11 +25,16 @@ defaults:
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@93668034510218d1ab35f1071d943f96d3fa7c38 # main
-    # On a push to main, the shared CI starts the tests again with coverage (coverage-on-main). The scripts take 4 minutes,
-    # and the coverage run takes more than 10. The default limit of 15 minutes stopped 3 runs of main on 11-09.
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@d20d75b11120af71eaf6d2f59385c9cd053fff8b # main
+    # The limits come from runs (roadmap item k223): the worst time of the runs, plus the spread of the times.
+    # The job checks runs the scripts. 20 runs of pull requests took 201 to 367 s (42602918887 to 42689039900):
+    # 367 + 166 = 533 s, so 9 minutes. On a push to main the coverage run is the job coverage, with its own limit.
+    # Before, the coverage run was in the job checks, and the limit of 15 minutes stopped 6 runs of main on 11-09.
+    # The coverage run of 6 runs of main took 537 to 968 s (42650654731 to 42685360437): 968 + 431 = 1399 s,
+    # plus 1 minute for the install, so 25 minutes. Read the times again after 5 runs of the job coverage.
     with:
-      timeout-minutes: 40
+      timeout-minutes: 9
+      coverage-timeout-minutes: 25
 
   # The gate jobs of this repository: the smoke run of the benchmark, the render of the site and the time gates
   bench-smoke:

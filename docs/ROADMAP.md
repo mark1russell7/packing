@@ -224,6 +224,7 @@ Status: done, done, waiting, next, done.
 | k219 | Move `quantileOf` and `mulberry32` to rigor, and the corpus manifest writer to layout-contract. The 8 corpus files of the bench come from `corpusManifestText` and `manifestText` of `@mark1russell7/layout-contract` 0.9.2, with the same bytes. `quantileOf`, the mean and the SD of the paired time test use `@mark1russell7/rigor-statistics`, with the same bits. `mulberry32` wraps `@mark1russell7/rigor-generators` | move | done |  |
 | k220 | A start frame and the frames of a run: `packWith` takes a run with a start and a callback of the frames, and `force` settles from the start. The gate: a start that is a fixed point moves nothing, and a start does not make `pack.stability.moved` or `pack.stability.mean` of the change corpus worse for `push` and `force` | core | in progress |  |
 | k222 | The names of the front chart of compare: each name in the chart, with no name on another name or on a dot. A name with no room stays only in the caption list | site | in progress | k123 |
+| k223 | Each CI job ends with a result before its time limit: a faster case, a split, or a measured limit with a record of each case that did not finish. The first slice sets the limits of the shared CI from measured times | ci | in progress |  |
 
 ## The queue
 
