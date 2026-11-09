@@ -1,6 +1,6 @@
 // The compare page: one input, packed with each entry of `ENTRIES` of the benchmark, side by side. A circle input also
 // packs with the strategies for circles. The entries pack one at a time, so the page stays responsive. The hash of the URL
-// keeps the input and the sort.
+// keeps the input, the sort, the objective and the axes of the front.
 
 import type { BenchEntry } from "@mark1russell7/packing/bench/entries";
 import { mountChrome } from "./chrome.ts";
@@ -17,6 +17,7 @@ import {
   frontPoints,
   frontSvg,
   entriesFor,
+  measureAxis,
   presetInput,
   runEntry,
   sortResults,
@@ -25,6 +26,8 @@ import {
   type EntryResult,
   type SortKey,
 } from "./compare-model.ts";
+import type { MeasureId } from "@mark1russell7/packing";
+import { DEFAULT_SPACING, isObjectiveId, objectiveOf, OBJECTIVE_IDS, rankByObjective, type ObjectiveId } from "./objective-model.ts";
 import {
   controlsHtml,
   controlValue,
@@ -70,8 +73,19 @@ interface State {
   count: number;
   width: number;
   packSeed: number;
-  sort: SortKey;
+  sort: PageSort;
+  objective: ObjectiveId;
+  spacing: number;
+  frontX: MeasureId;
+  frontY: MeasureId;
 }
+
+/** A sort of the page: a key of `sortResults`, or the rank by the objective (roadmap item k216). */
+type PageSort = SortKey | "objective";
+
+const FRONT_X: MeasureId = "pack.balance.sideRange";
+const FRONT_Y: MeasureId = "pack.fill";
+const isFrontMeasure = (k: string | null): k is MeasureId => COMPARE_MEASURES.some((m) => m.id === k);
 
 const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
 
@@ -85,14 +99,19 @@ const state: State = {
   width: 640,
   packSeed: 0,
   sort: "pack.fill",
+  objective: "densest",
+  spacing: DEFAULT_SPACING,
+  frontX: FRONT_X,
+  frontY: FRONT_Y,
 };
 
-const SORT_KEYS: { key: SortKey; label: string }[] = [
-  ...COMPARE_MEASURES.map((m) => ({ key: m.id as SortKey, label: m.label })),
+const SORT_KEYS: { key: PageSort; label: string }[] = [
+  ...COMPARE_MEASURES.map((m) => ({ key: m.id as PageSort, label: m.label })),
+  { key: "objective", label: "Objective rank" },
   { key: "ms", label: "Time" },
   { key: "entry", label: "Entry order" },
 ];
-const isSortKey = (k: string | null): k is SortKey => SORT_KEYS.some((s) => s.key === k);
+const isSortKey = (k: string | null): k is PageSort => SORT_KEYS.some((s) => s.key === k);
 
 // ---- The hash ----
 
@@ -112,6 +131,13 @@ function readHash(): void {
   state.packSeed = int("ps", 0, 0, 999999);
   const sort = p.get("sort");
   state.sort = isSortKey(sort) ? sort : "pack.fill";
+  const objective = p.get("obj");
+  state.objective = isObjectiveId(objective) ? objective : "densest";
+  state.spacing = int("t", DEFAULT_SPACING, 0, 64);
+  const fx = p.get("fx");
+  const fy = p.get("fy");
+  state.frontX = isFrontMeasure(fx) ? fx : FRONT_X;
+  state.frontY = isFrontMeasure(fy) ? fy : FRONT_Y;
 }
 
 function writeHash(): void {
@@ -128,6 +154,10 @@ function writeHash(): void {
   }
   if (state.packSeed !== 0) p.set("ps", String(state.packSeed));
   p.set("sort", state.sort);
+  if (state.objective !== "densest") p.set("obj", state.objective);
+  if (state.objective === "spacing") p.set("t", String(state.spacing));
+  if (state.frontX !== FRONT_X) p.set("fx", state.frontX);
+  if (state.frontY !== FRONT_Y) p.set("fy", state.frontY);
   history.replaceState(null, "", `#${p.toString()}`);
 }
 
@@ -207,8 +237,49 @@ sortEl.addEventListener("change", () => {
   drawCards();
 });
 
+const objectiveEl = $<HTMLSelectElement>("objective");
+objectiveEl.innerHTML = OBJECTIVE_IDS.map((id) => `<option value="${esc(id)}">${esc(objectiveOf(id).label.replace(/ \d+ px$/, ""))}</option>`).join("");
+objectiveEl.addEventListener("change", () => {
+  if (isObjectiveId(objectiveEl.value)) state.objective = objectiveEl.value;
+  drawObjective();
+  writeHash();
+  drawCards();
+});
+
+const spacingEl = $<HTMLInputElement>("spacing");
+spacingEl.addEventListener("input", () => {
+  const v = Number.parseInt(spacingEl.value, 10);
+  state.spacing = Number.isFinite(v) ? clamp(v, 0, 64) : DEFAULT_SPACING;
+  drawObjective();
+  writeHash();
+  drawCards();
+});
+
+/** This function sets the controls of the objective from the state. The spacing slider shows only for the objective `spacing`. */
+function drawObjective(): void {
+  objectiveEl.value = state.objective;
+  spacingEl.value = String(state.spacing);
+  $("spacing-out").textContent = `${state.spacing} px`;
+  $("spacing-opt").hidden = state.objective !== "spacing";
+  $("objective-note").textContent = objectiveOf(state.objective, state.spacing).note;
+}
+
+const frontOptions = COMPARE_MEASURES.map((m) => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join("");
+const frontXEl = $<HTMLSelectElement>("front-x");
+const frontYEl = $<HTMLSelectElement>("front-y");
+frontXEl.innerHTML = frontOptions;
+frontYEl.innerHTML = frontOptions;
+for (const [el, key] of [[frontXEl, "frontX"], [frontYEl, "frontY"]] as const) {
+  el.addEventListener("change", () => {
+    if (isFrontMeasure(el.value)) state[key] = el.value;
+    writeHash();
+    drawFront();
+  });
+}
+
 $("measure-notes").innerHTML = [
   ...COMPARE_MEASURES.map((m) => `<li><b>${esc(m.label)}</b> <code>${esc(m.id)}</code>: ${esc(m.note)}</li>`),
+  `<li><b>Spacing</b>: the mean gap of each box to its nearest box, in px. The objective <i>Spacing</i> ranks by the distance to its target.</li>`,
   `<li><b>Time</b>: the time of one call of <code>packWith</code> in this browser. Less is better.</li>`,
 ].join("");
 
@@ -237,6 +308,7 @@ function start(): void {
   writeHash();
   packSeedEl.value = String(state.packSeed);
   sortEl.value = state.sort;
+  drawObjective();
   makeInput();
   drawInputNote();
   entries = input === undefined ? COMPARE_ENTRIES : entriesFor(input.input);
@@ -300,31 +372,45 @@ function drawCards(): void {
     reference === undefined
       ? "best fill, with no partner (the width is free)"
       : `best fill, right strip kept${bestRight === undefined ? "" : ` (${valueText(rightM, bestRight)} empty, <code>${PARTNER_BASELINE}</code> ${valueText(rightM, reference)})`}`;
+  const objective = objectiveOf(state.objective, state.spacing);
+  const ranked = rankByObjective(results, objective, reference);
+  const ranks = new Map(ranked.flatMap((x) => (x.rank === undefined ? [] : [[x.result.entry.id, x.rank] as const])));
+  const top = ranked[0]?.rank === undefined ? undefined : ranked[0].result.entry.id;
   $("summary").innerHTML = `
     <div class="tile"><b>${done} of ${total}</b><span>strategies packed</span></div>
+    <div class="tile better"><b class="tid">${top === undefined ? "–" : esc(top)}</b><span>first by the objective ${esc(objective.label.toLowerCase())}</span></div>
     <div class="tile unmeasured"><b>${unsupported}</b><span>not supported for this input</span></div>
     ${failed > 0 ? `<div class="tile worse"><b>${failed}</b><span>stop with an error</span></div>` : ""}
     <div class="tile better"><b>${best?.measures?.["pack.fill"] === undefined ? "–" : valueText(fillM, best.measures["pack.fill"])}</b><span>${fillName}${fillBest.size > 0 ? `: ${[...fillBest].map((x) => `<code>${esc(x)}</code>`).join(", ")}` : ""}</span></div>`;
 
   const bests = new Map<string, Set<string>>([...COMPARE_MEASURES.map((m) => [m.id, m.id === "pack.fill" ? fillBest : bestIds(results, m.id)] as const), ["ms", bestIds(results, "ms")]]);
   const pending = entries.slice(done).map((e) => `<li class="ccard pending"><header><code>${esc(e.id)}</code></header><p class="hint">Waiting to pack.</p></li>`);
-  const cards = sortResults(results, state.sort, reference).map((r) => card(r, bests, !keeps(r)));
+  const order = state.sort === "objective" ? ranked.map((x) => x.result) : sortResults(results, state.sort, reference);
+  const cards = order.map((r) => card(r, bests, !keeps(r), ranks.get(r.entry.id)));
   $("cards").innerHTML = [...cards, ...pending].join("");
   drawFront();
 }
 
-/** This function draws the front of compact against spread (roadmap item k123), when two or more strategies have both values. */
+/**
+ * This function draws the front of two measures, when two or more strategies have both values. The default is the front
+ * of compact against spread of roadmap item k123: the side skew across, the fill up. Roadmap item k216 adds the choice of the axes.
+ */
 function drawFront(): void {
-  const points = frontPoints(results);
+  frontXEl.value = state.frontX;
+  frontYEl.value = state.frontY;
+  const x = measureAxis(state.frontX);
+  const y = measureAxis(state.frontY);
+  const points = frontPoints(results, x, y);
   const el = $("front");
   el.hidden = points.length < 2;
   if (el.hidden) return;
-  const on = points.filter((p) => p.front).toSorted((a, b) => b.fill - a.fill);
-  $("front-chart").innerHTML = frontSvg(points.map((p) => ({ ...p, id: esc(p.id) })));
-  $("front-note").innerHTML = `<b>Compact or spread.</b> A strategy on the line has no other strategy with more fill and less skew. On the line: ${on.map((p) => `<code>${esc(p.id)}</code>`).join(", ")}.`;
+  const on = points.filter((p) => p.front).toSorted((a, b) => (y.direction === "higher" ? b.y - a.y : a.y - b.y));
+  $("front-chart").innerHTML = frontSvg(points.map((p) => ({ ...p, id: esc(p.id) })), x, y);
+  const name = state.frontX === FRONT_X && state.frontY === FRONT_Y ? "Compact or spread." : `${esc(y.label)} against ${esc(x.label.toLowerCase())}.`;
+  $("front-note").innerHTML = `<b>${name}</b> A strategy on the line has no other strategy that is better on one axis and not worse on the other. On the line: ${on.map((p) => `<code>${esc(p.id)}</code>`).join(", ")}.`;
 }
 
-function card(r: EntryResult, bests: Map<string, Set<string>>, givesUp: boolean): string {
+function card(r: EntryResult, bests: Map<string, Set<string>>, givesUp: boolean, rank: number | undefined): string {
   const id = r.entry.id;
   const head = `<header><code class="cname">${esc(id)}</code><small>${esc(r.entry.strategy)}</small></header>`;
   if (r.output === undefined) {
@@ -332,7 +418,11 @@ function card(r: EntryResult, bests: Map<string, Set<string>>, givesUp: boolean)
     return `<li class="ccard ${r.unsupported ? "unsupported" : "failed"}">${head}<p class="cstate">${text}</p><p class="hint">${esc(r.error ?? "")}</p>${verdictLink(id)}</li>`;
   }
   const wins = [...bests].filter(([, set]) => set.has(id)).map(([key]) => (key === "ms" ? "Time" : (COMPARE_MEASURES.find((m) => m.id === key)?.label ?? key)));
-  const badges = [...wins.map((w) => `<span class="cbest">Best ${esc(w.toLowerCase())}</span>`), ...(givesUp ? [`<small class="gives">gives up right strip</small>`] : [])].join("");
+  const badges = [
+    ...(rank === undefined ? [] : [`<span class="crank" title="The rank by the objective">Rank ${rank}</span>`]),
+    ...wins.map((w) => `<span class="cbest">Best ${esc(w.toLowerCase())}</span>`),
+    ...(givesUp ? [`<small class="gives">gives up right strip</small>`] : []),
+  ].join("");
   const fillM = COMPARE_MEASURES.find((m) => m.id === "pack.fill")!;
   const fill = r.measures?.["pack.fill"];
   const rows = COMPARE_MEASURES.map((m) => {
@@ -340,12 +430,13 @@ function card(r: EntryResult, bests: Map<string, Set<string>>, givesUp: boolean)
     const isBest = bests.get(m.id)?.has(id) === true;
     return `<div class="${isBest ? "best" : ""}"><dt title="${esc(m.note)}">${esc(m.label)}</dt><dd>${v === undefined || !Number.isFinite(v) ? "–" : valueText(m, v)}${isBest ? ` <span aria-label="best">★</span>` : ""}</dd></div>`;
   }).join("");
+  const spacing = `<div><dt title="The mean gap of each box to its nearest box">Spacing</dt><dd>${r.spacing === undefined ? "–" : `${r.spacing.toFixed(1)} px`}</dd></div>`;
   const label = `The layout of ${id}`;
   return `<li class="ccard">${head}
     <div class="cdraw">${input === undefined ? "" : drawingSvg(input.input, r.output, esc(label))}</div>
     <p class="cfill"><b>${fill === undefined ? "–" : valueText(fillM, fill)}</b> fill <span class="${bests.get("ms")?.has(id) ? "best" : ""}">${msText(r.ms)}</span></p>
     ${badges === "" ? "" : `<p class="cbadges">${badges}</p>`}
-    <dl class="cmeasures">${rows}</dl>
+    <dl class="cmeasures">${rows}${spacing}</dl>
     ${verdictLink(id)}
   </li>`;
 }

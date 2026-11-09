@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.17.2
+
+The function `boxesOf` is a public export. It gives the placed boxes of an output, in the order of the items. The compare page of roadmap item k216 uses it for the spacing of a layout.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The export `boxesOf` of the measures. The function and its output do not change.
+
+### Not changed
+
+- The strategies, their fingerprints and `packSpace` do not change.
+
 ## 0.15.2
 
 The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.
