@@ -10,6 +10,7 @@ This release raises the PATCH version: a dependency bump with no change of the p
 
 - The dependency `@mark1russell7/layout-contract` moves to 0.9.2.
 - The 8 corpus writers of the bench use `corpusManifestText` and `manifestText`. The 7 local copies of the function `inline` go.
+- The paired time test of the bench uses `quantile`, `mean` and `sd` of `@mark1russell7/rigor-statistics`. Its local copies go. An empty list keeps the value NaN.
 
 ## 0.15.0
 
