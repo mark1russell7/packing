@@ -66,13 +66,14 @@ const DEFAULT_UNIFORM_IDS = ["43a83b0a6231aa99", "d3f7ab76483b81d6", "864f0e0790
 // Roadmap item k29 adds treemap-spiral. Before k29 the count was 97230737123976843015729948306.
 // The 6 sort orders of k210 add base configs and members. Before k210 the count was 97233111173976344072011118730.
 // Roadmap item k27 adds the pivots middle and size of pivot-split. Before them the count was 3021312812918614681107660197010.
-const CLOCK_FREE_META = 3021387017987634467838198973470n;
+// Roadmap item k211 adds the base configs of shelf-split-fit, shelf-floor-ceiling and shelf-knapsack to the members. Before k211 the counts were 3021387017987634467838198973470 and 3021387017987634465274686504810.
+const CLOCK_FREE_META = 3021498328324932091789369582890n;
 // Roadmap item k29 adds the base config of shelf-breaks to the members. Before k29 the counts were 97223615252208789169500820039 and 97223615252208787963100427090.
 // Roadmap item k30 adds the base configs of shelf-online to the members. Before k30 the counts were 97225989163093744903710893550 and 97225989163093743697304199810.
 // The base config of treemap-spiral (k29) adds to the members. Before treemap-spiral the counts were 97230737123976843015729743524 and 97230737123976841809310448190.
 // The 6 sort orders of k210 add base configs and members. Before k210 the count was 97233111173976342865585317810.
 // The base configs of the pivots middle and size (k27) add to the members. Before them the count was 3021312812918614678544161949010.
-const CLOCK_CONFIGS = 3021387017987634465274686504810n;
+const CLOCK_CONFIGS = 3021498328324932089225835783210n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -152,8 +153,9 @@ describe("the counts of the configs", () => {
     // Roadmap item k30 adds the standalone placement shelf-online with 2 configs: the 2 fits, with r at its default. Before k30 the base count was 204780.
     // Roadmap item k29 adds the standalone placement treemap-spiral with 1 config. Before treemap-spiral the base count was 204782.
     // Roadmap item k27 adds the pivots middle and size of the standalone placement treemap: 2 configs. Before them the base count was 204783.
+    // Roadmap item k211 adds the standalone placements shelf-split-fit, shelf-floor-ceiling and shelf-knapsack with 1 config each. Before k211 the count was 1411.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
-    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1411));
+    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1414));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force", "side-anchors"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
@@ -432,7 +434,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 40 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 43 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -449,6 +451,9 @@ describe("the strata of k115", () => {
       "sleator:1",
       "shelf-breaks:1",
       "shelf-online:1",
+      "shelf-split-fit:1",
+      "shelf-floor-ceiling:1",
+      "shelf-knapsack:1",
       "beam:1",
       "exact-strip:1",
       "binary-height:1",
@@ -552,13 +557,14 @@ describe("the strata of k115", () => {
     expect(a.summary.draw).toBe("stratified");
     expect(Object.keys(a.summary.strata!)).toEqual(strata);
     // No sampled input has circles, so the strata hole-degree:1 and circle-quasi-physical:1 get no pairs. Each other stratum gets 1 pair.
-    // The strata masonry:1 and treemap:1 of k142 accept few inputs, and a miss tries only 10 inputs here, so they get no pair too.
+    // The stratum treemap:1 of k142 accepts few inputs, and a miss tries only 10 inputs here, so it gets no pair too.
     // The stratum shelf-online:1 of k30 moves the draws of the seed. Before k30, exact-strip:1 got no pair and masonry:1 got 1 pair.
+    // The 3 strata of k211 and the pivots of k27 move the draws of the seed again: exact-strip:1 gets no pair, and masonry:1 and treemap:1 get 1 pair each.
     // The sample is small, and a miss tries only 10 inputs: the full test is slow on the CI runner.
-    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(["hole-degree:1", "circle-quasi-physical:1", "masonry:1", "treemap:1"].includes(id) ? [id, 0, 1] : [id, 1, 0]);
+    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(["hole-degree:1", "circle-quasi-physical:1", "exact-strip:1"].includes(id) ? [id, 0, 1] : [id, 1, 0]);
     // Before L34 the count of rows:1 was 905. The 6 sort orders of k210 double it. Before k210 the count was 1086.
     expect(a.summary.strata!["rows:1"]!.configs).toBe("2172");
-    expect(a.records).toHaveLength(strata.length - 4);
+    expect(a.records).toHaveLength(strata.length - 3);
     // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
     const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
     expect(moves).toEqual([256]);
@@ -576,7 +582,7 @@ describe("the strata of k115", () => {
     const at = strata.indexOf("hole-degree:1");
     const tries = 60;
     // Roadmap item k142: a standalone stratum accepts few inputs, so it draws many. This test counts only the draws of hole-degree:1.
-    const outside = new Set<string | null>(["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"]);
+    const outside = new Set<string | null>(["sleator", "shelf-breaks", "shelf-online", "shelf-split-fit", "shelf-floor-ceiling", "shelf-knapsack", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"]);
     const space = {
       ...packSpace,
       stages: packSpace.stages.filter((s) => s.name !== "combine").map((s) => ({ ...s, options: s.options.filter((o) => !(s.name === "placement" && outside.has(o.id))) })),

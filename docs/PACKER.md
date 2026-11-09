@@ -1689,6 +1689,24 @@ Two shelves of one class that follow each other hold items of more than the widt
 
 The defaults are `r: 0.5` and `fit: "first"`. The read `bench/online.ts` compares the height with the bound and with the greedy shelf. Refer to "The online shelf" in `docs/BENCH.md`.
 
+## The level packers
+
+The functions `shelfSplitFit`, `shelfFloorCeiling` and `shelfKnapsack` pack a strip on levels (roadmap item k211). The strategies `shelf-split-fit`, `shelf-floor-ceiling` and `shelf-knapsack` wrap them. No default uses them. Each function accepts the same inputs as `sleatorStrip`. The items come in the order of decreasing height, and a tie keeps the order of `byRank`.
+
+- `shelfSplitFit` is the split-fit algorithm of Coffman 1980. The value `m` is the largest integer with `m` times the largest width at most the width of the strip.
+  - An item is wide when `m + 1` copies of its width are more than the width of the strip. The wide items go on levels by first fit.
+  - The levels with more than `(m + 1) / (m + 2)` of the width go first. The other wide levels go above them.
+  - The narrow items fill a region at the right side of the other wide levels, by first fit. The narrow items that do not fit go on new levels above.
+- `shelfFloorCeiling` is the floor-ceiling algorithm of Lodi 1999. Each level has a floor, filled from the left, and a ceiling, filled from the right under the top of the level.
+  - An item goes under a ceiling first, at the least `x`. A ceiling opens only for an item that does not fit on the floor of its level.
+  - Else the item goes on the floor with the least free width after it. Else it opens a new level. A tie goes to the lowest level.
+  - An item under a ceiling does not overlap an item on the floor.
+- `shelfKnapsack` is the knapsack algorithm of Lodi 1999. The tallest item left opens a level, and a 0-1 knapsack on the area fills the rest of its width.
+  - The program keeps each state that no other state beats on both the width and the area.
+  - Above 1,024 states (`SHELF_KNAPSACK_STATES`), it keeps the last state of each of 1,024 buckets of the width. Thus the cost is `O(n^2 S)` for at most `S` states.
+
+The test `src/shelf-levels.test.ts` has hand cases for each function and three oracles. On equal heights, `shelfFloorCeiling` gives the height of the best fit by decreasing height. The first level of `shelfKnapsack` holds the area of the best subset that a search of all subsets finds. The wide levels of `shelfSplitFit` are the levels of a first-fit oracle. Each output also has the height bounds of the area and of the tallest item.
+
 ## Side anchors
 
 `packSideAnchors` is the first slice of roadmap item `k110`. An anchor fixes an item to one side of the container, at a fraction of the side or at an offset from its start.
@@ -1926,6 +1944,9 @@ The registry does not hold these strategies. `strategy`, `packWith` and `allStra
 | `sleator` | `sleatorStrip` | `sleator` | `single` | `freeHeight` | `rect` |
 | `shelf-breaks` | `shelfBreaks` | `shelf` | `single` | `freeHeight` | `rect` |
 | `shelf-online` | `shelfOnline` | `shelf` | `single` | `freeHeight` | `rect` |
+| `shelf-split-fit` | `shelfSplitFit` | `shelf` | `single` | `freeHeight` | `rect` |
+| `shelf-floor-ceiling` | `shelfFloorCeiling` | `shelf` | `single` | `freeHeight` | `rect` |
+| `shelf-knapsack` | `shelfKnapsack` | `shelf` | `single` | `freeHeight` | `rect` |
 | `exact-strip` | `exactStrip` | `exact` | `single` | `freeHeight` | `rect` |
 | `binary-height` | `packBinaryHeight` | `binary-height` | `single` | `freeHeight` | `rect` |
 | `beam` | `beamStrip` | `beam` | `single` | `freeHeight` | `rect` |
@@ -1965,6 +1986,9 @@ Roadmap item k142 gives each strategy of this section a point in `packSpace`. Th
 | `sleator` | `placement` | none | | |
 | `shelf-breaks` | `placement` | none | | |
 | `shelf-online` | `placement` | `r`, `fit` | 0.1 to 0.9, and `next` or `first` | 0.5 and `first` |
+| `shelf-split-fit` | `placement` | none | | |
+| `shelf-floor-ceiling` | `placement` | none | | |
+| `shelf-knapsack` | `placement` | none | | |
 | `beam` | `placement` | `width` | 1 to 64, log scale | 16 |
 | `exact-strip` | `placement` | `nodeLimit` | 1,000, 10,000, 100,000 | 100,000 |
 | `binary-height` | `placement` | `trials` | 1 to 1,024, log scale | 32 |
