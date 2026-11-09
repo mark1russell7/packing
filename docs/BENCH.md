@@ -1735,6 +1735,8 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 - The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
 - The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
 - Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
+- The section "Voronoi in the setting of Figure 7 of Nocaj 2012" gives the area error of `treemapVoronoi`. Each instance has 50 weights from a Pareto law with the shape 1.5, in a rectangle of 2 by 1. The paper does not give the exponent, and the figure has only box plots. Thus the section has no published value. The flag `--voronoi-instances` sets the count of instances (100 by default).
+- On 100 instances, the median error was 0.0213 after 100 iterations and 0.0150 after 300 iterations. The maximum was 0.0658 after 300 iterations, and 500 iterations did not make it smaller. The radius of a site stops at the distance to its nearest site, as in Figure 3b of the paper. Thus a large weight next to small weights keeps a part of its error.
 - Tu and Shen 2007 give no table in the form of Bederson 2002. Thus the arm `spiral` has no published row. The section "Spiral against strip" divides the aspect and the change of `spiral` by those of `strip` on the same trials. It also gives the readability of `spiral` minus that of `strip`.
 
 ## The snapshots of the site

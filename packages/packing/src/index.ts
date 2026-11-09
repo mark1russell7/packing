@@ -394,3 +394,10 @@ export {
   type TreemapNode,
   type TreemapStripOptions,
 } from "./treemap.ts";
+export {
+  treemapVoronoi,
+  treemapVoronoiPack,
+  TREEMAP_VORONOI_DEFAULTS,
+  type TreemapVoronoiOptions,
+  type VoronoiCell,
+} from "./treemap-voronoi.ts";

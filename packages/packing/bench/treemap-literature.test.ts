@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 import type { TreemapNode } from "../src/treemap.ts";
-import { ARMS, BANDS, layoutChange, literatureRows, meanAspectOf, PUBLISHED, readabilityOf, reportOf, SPIRAL_LIMITS, spiralRows, treeOf, WALKS, type Compared } from "./treemap-literature.ts";
+import {
+  ARMS,
+  BANDS,
+  layoutChange,
+  literatureRows,
+  meanAspectOf,
+  PUBLISHED,
+  readabilityOf,
+  reportOf,
+  SPIRAL_LIMITS,
+  spiralRows,
+  treeOf,
+  VORONOI_SETTING,
+  voronoiError,
+  voronoiReportOf,
+  voronoiRows,
+  WALKS,
+  type Compared,
+} from "./treemap-literature.ts";
 
 describe("the measures of Bederson 2002", () => {
   it("gives the unweighted mean of the aspects", () => {
@@ -99,5 +117,24 @@ describe("spiral against strip", () => {
 
   it("gives no spiral row without a strip row of the same walk and table", () => {
     expect(spiralRows([row("spiral", 1, 1, 1)])).toEqual([]);
+  });
+});
+
+describe("the Voronoi treemap in the setting of Figure 7 of Nocaj 2012 (k27)", () => {
+  it("gives the error 0 to cells with the areas of their targets, and 0.25 to a half of the area on the wrong cell", () => {
+    const left = [[0, 0], [1, 0], [1, 1], [0, 1]] as const;
+    const right = [[1, 0], [2, 0], [2, 1], [1, 1]] as const;
+    const region = [[0, 0], [2, 0], [2, 1], [0, 1]] as const;
+    const cells = [{ id: "a", ring: left }, { id: "b", ring: right }];
+    expect(voronoiError(cells, [{ weight: 1 }, { weight: 1 }], region)).toBe(0);
+    expect(voronoiError(cells, [{ weight: 3 }, { weight: 1 }], region)).toBeCloseTo(0.25, 12);
+  });
+
+  it("gives a row for each count of iterations, with the same bytes for the same count of instances", () => {
+    const rows = voronoiRows(2);
+    expect(rows.map((row) => row.iterations)).toEqual([...VORONOI_SETTING.iterations]);
+    expect(JSON.stringify(voronoiRows(2))).toBe(JSON.stringify(rows));
+    for (const row of rows) expect(row.median <= row.p90 && row.p90 <= row.max && row.max < 0.2, `${row.iterations}`).toBe(true);
+    expect(voronoiReportOf(rows, 2)).toContain("| Iterations | Median | 90th percentile | Maximum |");
   });
 });

@@ -119,6 +119,8 @@ The order `input` keeps the order of your array. Use it for a ranked list. `pack
 
 `treemapSliceDice`, `treemapSquarified`, `treemapStrip`, `treemapPivotSplit`, `treemapPivotMiddle`, `treemapPivotSize` and `treemapSpiral` cut a rectangle into cells, one cell for each leaf of a list or a tree. The area of each cell is in proportion to the weight of its leaf. `treemapPack` puts each box at the center of its cell, and scales the cells until each box fits. These functions are standalone. They are not strategies of `pack` or of the registry.
 
+`treemapVoronoi` cuts a convex polygon into convex cells: the Voronoi treemap of Nocaj and Brandes 2012. The area of each cell is near the share of the weight of its leaf. `treemapVoronoiPack` puts each box at the centroid of its cell, and scales the cells until each box fits.
+
 ```ts
 import { treemapSquarified } from "@mark1russell7/packing";
 

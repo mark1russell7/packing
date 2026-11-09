@@ -37,8 +37,8 @@ export interface TreemapStripOptions {
   readonly lookahead?: boolean;
 }
 
-/** A node with its weight, as the methods read it. */
-interface Sized {
+/** A node with its weight, as the methods read it. The module of the Voronoi treemap uses it too. */
+export interface Sized {
   readonly id: string;
   readonly weight: number;
   readonly kids?: readonly Sized[];
@@ -48,7 +48,7 @@ interface Sized {
 type LevelLayout = (weights: readonly number[], frame: TreemapFrame, depth: number) => TreemapFrame[];
 
 /** This function gives a node with the weights of its subtree. A weight that is not positive and finite is a `RangeError`. */
-function sizedOf(node: TreemapNode): Sized {
+export function sizedOf(node: TreemapNode): Sized {
   if (node.children === undefined) {
     if (!(node.weight > 0) || !Number.isFinite(node.weight)) throw new RangeError(`The weight of "${node.id}" must be positive and finite.`);
     return { id: node.id, weight: node.weight };
@@ -59,7 +59,7 @@ function sizedOf(node: TreemapNode): Sized {
 }
 
 /** This function gives the sum of a list. */
-function sumOf(values: readonly number[]): number {
+export function sumOf(values: readonly number[]): number {
   let sum = 0;
   for (const value of values) sum += value;
   return sum;
@@ -547,6 +547,35 @@ export function treemapPivotSize(nodes: readonly TreemapNode[], frame: TreemapFr
   return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "size"));
 }
 
+/** The box of an item in a treemap packer, and the offset of the item in its box. */
+export interface TreemapBox {
+  readonly id: string;
+  readonly w: number;
+  readonly h: number;
+  readonly left: number;
+  readonly top: number;
+}
+
+/**
+ * This function gives the box of each item for a treemap packer. A box is the item with its margin and the gap. It has the
+ * offset of the item in the box. A container that is not free and an obstacle are a `RangeError` with the name of the packer.
+ */
+export function treemapBoxes(input: PackInput, name: string): TreemapBox[] {
+  if (input.container.fixed !== "none") throw new RangeError(`${name} needs a container with fixed "none", because the scale sets the size.`);
+  if ((input.obstacles?.length ?? 0) > 0) throw new RangeError(`${name} does not take obstacles.`);
+  const gap = input.gap ?? 0;
+  return input.items.map((item) => {
+    const margin = marginOf(item);
+    return {
+      id: item.id,
+      w: item.w + margin.left + margin.right + gap,
+      h: item.h + margin.top + margin.bottom + gap,
+      left: margin.left + gap / 2,
+      top: margin.top + gap / 2,
+    };
+  });
+}
+
 /**
  * This function packs boxes with a treemap method, as the catalog compares a treemap with a packer. The weight of each
  * box is its area with its margin and the gap. Each box goes to the center of its cell and keeps its size. The cells
@@ -557,19 +586,7 @@ export function treemapPivotSize(nodes: readonly TreemapNode[], frame: TreemapFr
  * - The result has no turns, no overflow and no moved obstacles. Read it with `measure`.
  */
 export function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput {
-  if (input.container.fixed !== "none") throw new RangeError('treemapPack needs a container with fixed "none", because the scale sets the size.');
-  if ((input.obstacles?.length ?? 0) > 0) throw new RangeError("treemapPack does not take obstacles.");
-  const gap = input.gap ?? 0;
-  const boxes = input.items.map((item) => {
-    const margin = marginOf(item);
-    return {
-      id: item.id,
-      w: item.w + margin.left + margin.right + gap,
-      h: item.h + margin.top + margin.bottom + gap,
-      left: margin.left + gap / 2,
-      top: margin.top + gap / 2,
-    };
-  });
+  const boxes = treemapBoxes(input, "treemapPack");
   if (boxes.length === 0) return { placements: [], overflow: [], size: { w: 0, h: 0 }, moved: [] };
   const area = sumOf(boxes.map((box) => box.w * box.h));
   const aspect = input.container.aspect ?? 1;

@@ -288,6 +288,7 @@ TABU_STAGE: build/index.d.ts#TABU_STAGE
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 TREEMAP_METHOD_IDS: build/index.d.ts#TREEMAP_METHOD_IDS
 TREEMAP_PIVOT_IDS: build/index.d.ts#TREEMAP_PIVOT_IDS
+TREEMAP_VORONOI_DEFAULTS: build/index.d.ts#TREEMAP_VORONOI_DEFAULTS
 type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
@@ -299,10 +300,12 @@ type TreemapNode: build/index.d.ts#TreemapNode
 type TreemapPivot: build/index.d.ts#TreemapPivot
 type TreemapStrategyOptions: build/index.d.ts#TreemapStrategyOptions
 type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
+type TreemapVoronoiOptions: build/index.d.ts#TreemapVoronoiOptions
 type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/strategy.d.ts#UnsupportedCell
 UnsupportedShape: build/strategy.d.ts#UnsupportedShape
 Vector: build/order.d.ts#Vector
+type VoronoiCell: build/index.d.ts#VoronoiCell
 WALL_LOCKS_MAX: build/index.d.ts#WALL_LOCKS_MAX
 WALL_LOCK_WALLS: build/index.d.ts#WALL_LOCK_WALLS
 WORK_BUDGET: build/index.d.ts#WORK_BUDGET
@@ -531,6 +534,8 @@ treemapSliceDice: build/index.d.ts#treemapSliceDice
 treemapSpiral: build/index.d.ts#treemapSpiral
 treemapSquarified: build/index.d.ts#treemapSquarified
 treemapStrip: build/index.d.ts#treemapStrip
+treemapVoronoi: build/index.d.ts#treemapVoronoi
+treemapVoronoiPack: build/index.d.ts#treemapVoronoiPack
 turnItem: build/strategy.d.ts#turnItem
 turnPoint: @mark1russell7/layout-contract#turnPoint (external)
 turnPort: @mark1russell7/layout-contract#turnPort (external)
@@ -1840,6 +1845,9 @@ export declare const TREEMAP_METHOD_IDS: readonly TreemapMethod[];
 ### build/index.d.ts#TREEMAP_PIVOT_IDS
 export declare const TREEMAP_PIVOT_IDS: readonly TreemapPivot[];
 
+### build/index.d.ts#TREEMAP_VORONOI_DEFAULTS
+export declare const TREEMAP_VORONOI_DEFAULTS: Readonly<Required<TreemapVoronoiOptions>>;
+
 ### build/index.d.ts#TabuStrategyOptions
 interface TabuStrategyOptions {
   member?: string | PortfolioEntry;
@@ -1900,11 +1908,24 @@ interface TreemapStripOptions {
   readonly lookahead?: boolean;
 }
 
+### build/index.d.ts#TreemapVoronoiOptions
+interface TreemapVoronoiOptions {
+  readonly seed?: number;
+  readonly maxIterations?: number;
+  readonly threshold?: number;
+}
+
 ### build/index.d.ts#UiParams
 type UiParams = {
   containerSize: DimensionValue<"containerSize">;
   count: number;
 };
+
+### build/index.d.ts#VoronoiCell
+interface VoronoiCell {
+  readonly id: string;
+  readonly ring: Ring;
+}
 
 ### build/index.d.ts#WALL_LOCKS_MAX
 export declare const WALL_LOCKS_MAX = 4;
@@ -2537,6 +2558,12 @@ export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: 
 
 ### build/index.d.ts#treemapStrip
 export declare function treemapStrip(nodes: readonly TreemapNode[], frame: TreemapFrame, options?: TreemapStripOptions): TreemapCell[];
+
+### build/index.d.ts#treemapVoronoi
+export declare function treemapVoronoi(nodes: readonly TreemapNode[], region: Ring, options?: TreemapVoronoiOptions): VoronoiCell[];
+
+### build/index.d.ts#treemapVoronoiPack
+export declare function treemapVoronoiPack(input: PackInput, options?: TreemapVoronoiOptions): PackOutput;
 
 ### build/index.d.ts#wallLocks
 export declare const wallLocks: CorpusGenerator<WallLocksParams>;

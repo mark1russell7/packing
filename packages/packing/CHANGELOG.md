@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.17.3
+
+The Voronoi treemap of Nocaj and Brandes 2012 (roadmap item k27). The functions are standalone. No strategy and no default uses them.
+
+This release raises the PATCH version: new functions. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapVoronoi`: Algorithms 1 and 2 of Nocaj 2012. It cuts a convex region into one convex cell for each leaf of a list or a tree. Each level of the tree moves its sites and changes their weights until the area error goes below the threshold.
+- The function `treemapVoronoiPack`. It puts each box at the centroid of its cell, and scales the cells until each box fits in its cell.
+- The type `TreemapVoronoiOptions` (`seed`, `maxIterations`, `threshold`), the defaults `TREEMAP_VORONOI_DEFAULTS` and the type `VoronoiCell`.
+- The bench `bench/treemap-literature.ts` gives the area error in the setting of Figure 7 of the paper.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.9, for `clipRing` and `ringCentroid`.
+
 ## 0.17.2
 
 Three level packers of the literature (roadmap item k211). Each one is a strategy and a placement of `packSpace`. No default uses them.

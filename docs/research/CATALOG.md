@@ -392,7 +392,7 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | — | planned | k27 |
 | `treemap-quantum` | Quantum | Do an ordered treemap with cells that are whole multiples of a unit size, for grids of pictures. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi` | Voronoi | Move weighted sites until the area of each Voronoi cell is its weight. The cells are polygons. | Balzer 2005 | aspect | iterations x `O(n log n)` | — | planned | k27 |
-| `treemap-voronoi-fast` | Fast Voronoi | Do `treemap-voronoi` with power diagrams and no raster. | Nocaj 2012 | aspect, speed | iterations x `O(n log n)` | — | planned | k27 |
+| `treemap-voronoi-fast` | Fast Voronoi | Do `treemap-voronoi` with power diagrams and no raster. | Nocaj 2012 | aspect, speed | iterations x `O(n log n)` in the paper, iterations x `O(n^2)` in `treemapVoronoi` | — | implemented: `treemapVoronoi`, with no Algorithm 4 | k27 |
 | `circle-pack-front-chain` | Circle packing | Put each circle against the front chain of the circles before it. | Wang 2006 | aspect | `O(n^2)` | — | planned | k27 |
 | `treemap-spatial` | Spatially ordered | Put each item near a given point, with a split that keeps the order of the two axes. | Wood 2008 | order | `O(n log n)` | — | planned | k27 |
 | `treemap-nmap` | Nmap | Split the items by their given points, and keep the neighbors near. | Duarte 2014 | order, neighbors | `O(n log n)` | — | planned | k27 |
@@ -408,7 +408,8 @@ Notes:
 
 - Shneiderman 2001 measures the stability as the mean change of distance of the corners of the cells. Bederson 2002 adds a measure of how easy the order is to read. Tu 2007 adds a measure of continuity.
 - Vernier 2020 compares many time-dependent treemaps on the same data. It measures the change with corner travel and relative position change, and it removes the change that the data needs. These measures go into [Measures to add](#measures-to-add).
-- The cells of the Voronoi and bounded-aspect treemaps are polygons. A box in such a cell needs the largest rectangle in the polygon.
+- The cells of the Voronoi and bounded-aspect treemaps are polygons. A box that changes its size needs the largest rectangle in the polygon. `treemapVoronoiPack` keeps the size of each box. The box goes to the centroid of its convex cell, and the cells scale up until each box fits.
+- `treemapVoronoi` gets each power diagram from the part of the region in the half-plane of each other site. The paper uses a lower convex hull in 3D. The cells are the same. Algorithm 4 of the paper, the heuristic for fewer iterations, is not in the package: the paper does not give the size of its displacement.
 - `treemapSliceDice`, `treemapSquarified`, `treemapStrip` and `treemapPivotSplit` are standalone functions. They are not strategies of the registry. `treemapPack` is the comparison with a packer of the section [The measures and the families](#the-measures-and-the-families).
 - Tables I to III of Bederson 2002 measure the three pivots of this section. The package has the pivot by split size. The comparison with those tables is in [`docs/BENCH.md`](../BENCH.md#treemaps-against-the-literature).
 
