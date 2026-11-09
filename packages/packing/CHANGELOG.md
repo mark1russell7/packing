@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.1
+
+The function `cssGridLanes` of roadmap item k28 places the boxes of a wall as the CSS grid lanes do. The code follows section 4.4 of the editor's draft of 21 October 2026.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `cssGridLanes` and its options `GridLanesOptions`. Each box goes to the first possible line after the cursor. A possible line has a top at most `fitTolerance` below the lowest top.
+- With no possible line after the cursor, the box goes to the first possible line. With `fitTolerance` set to `Infinity`, the boxes go to the columns in strict order.
+
 ## 0.16.0
 
 The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.
