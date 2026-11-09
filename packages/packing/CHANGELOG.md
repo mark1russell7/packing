@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/strategy-space, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.9.8` of `@mark1russell7/collections` in `dependencies` does not hold `0.10.0`, so it changes.
+- The range `^0.0.2` of `@mark1russell7/strategy-space` in `dependencies` does not hold `0.0.3`, so it changes.
+
 ## 0.13.1
 
 The functions `cssGridSparse` and `cssGridDense` place cards in the CSS grid flow, as `grid-auto-flow: row` and `grid-auto-flow: row dense` do.
