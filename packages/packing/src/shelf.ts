@@ -9,11 +9,18 @@ import { firstFit, type FreeSpace, type FreeSpan } from "./space.ts";
  * - `next`: only the open shelf, the last shelf that the packing opened.
  * - `first`: the first shelf from the top where the rectangle fits.
  * - `best`: the shelf with the least height left over above the rectangle.
+ * - `best-width`: the place with the least free width after the rectangle (Berkey 1987).
+ * - `worst-width`: the place with the most free width after the rectangle (Jylänki 2010).
+ * - `best-area`: the place with the least free area after the rectangle (Jylänki 2010).
+ * - `worst-area`: the place with the most free area after the rectangle (Jylänki 2010).
  */
-export type ShelfFit = "next" | "first" | "best";
+export type ShelfFit = "next" | "first" | "best" | "best-width" | "worst-width" | "best-area" | "worst-area";
 
 /** This constant lists each shelf fit. */
-export const SHELF_FITS: readonly ShelfFit[] = ["next", "first", "best"];
+export const SHELF_FITS: readonly ShelfFit[] = ["next", "first", "best", "best-width", "worst-width", "best-area", "worst-area"];
+
+/** The fits that compare a score of each place. The score is a free width or a free area. */
+type ScoreFit = "best-width" | "worst-width" | "best-area" | "worst-area";
 
 /** The options of `packShelf` */
 export interface ShelfOptions {
@@ -283,8 +290,8 @@ interface Spot {
 }
 
 /**
- * This function packs rectangles into shelves with a fit: `next`, `first` or `best`. `packShelf` uses it when its
- * options have a `fit`. It sets the position of each rectangle and gives the outer rectangle.
+ * This function packs rectangles into shelves with a fit of `SHELF_FITS`. `packShelf` uses it when its options have
+ * a `fit`. It sets the position of each rectangle and gives the outer rectangle.
  *
  * - A shelf opens at the bottom edge of the last shelf, at the first x where the rectangle fits in the free space.
  *   When no x fits, the shelf steps down to `nextY` of the space, as an empty row of `packRowsInSpace` does.
@@ -292,6 +299,10 @@ interface Spot {
  *   the strip above a shorter rectangle of the shelf. The strip is the move `move.stack`.
  * - The fit `next` uses only the open shelf: the last shelf that the packing opened. The fit `first` uses the first
  *   shelf from the top where the rectangle fits. The fit `best` uses the place with the least height left over.
+ * - The fits by width and by area compare each place on each shelf, after the place is in the free space. The free
+ *   width of a place on the floor is the width from the rectangle to the right edge. In a strip, it is the width of
+ *   the strip less the width of the rectangle. The free area is the area of the place less the area of the rectangle.
+ *   A tie goes to the first place, from the top shelf.
  * - In a shelf, the rectangle takes the place with the least height left over. A tie goes to a strip, from left to right.
  * - When no shelf has a place, the last shelf grows for a taller rectangle, if it fits. Else a new shelf opens.
  * - A rectangle wider than the outer rectangle overflows. Without `fixedSize`, it goes on a closed shelf of its own at the left edge.
@@ -343,6 +354,34 @@ function packShelvesInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: ItemOrde
     if (spot.strip !== undefined) return x === spot.x ? spot : undefined;
     return x + w <= width ? { ...spot, x } : undefined;
   };
+  // The score of a place for a fit by width or by area. A floor place spans the shelf from its x to the right edge.
+  const scoreOf = (spot: Spot, w: number, h: number, by: ScoreFit): number => {
+    const byWidth = by === "best-width" || by === "worst-width";
+    if (spot.strip !== undefined) {
+      const ceiling = spot.shelf.top + spot.shelf.height;
+      return byWidth ? spot.strip.w - w : (ceiling - spot.strip.bottom) * spot.strip.w - w * h;
+    }
+    const after = width - spot.x - w;
+    return byWidth ? after : spot.shelf.height * (after + w) - w * h;
+  };
+  // The place with the best score for a fit by width or by area, or undefined. A tie keeps the first place.
+  const scoredOn = (w: number, h: number, by: ScoreFit): Spot | undefined => {
+    const least = by === "best-width" || by === "best-area";
+    let chosen: Spot | undefined;
+    let chosenScore = 0;
+    for (const shelf of shelves) {
+      for (const s of spotsOn(shelf, w, h, false)) {
+        const found = verify(s, w, h);
+        if (found === undefined) continue;
+        const score = scoreOf(found, w, h, by);
+        if (chosen === undefined || (least ? score < chosenScore : score > chosenScore)) {
+          chosen = found;
+          chosenScore = score;
+        }
+      }
+    }
+    return chosen;
+  };
   const firstOn = (shelf: Shelf, w: number, h: number): Spot | undefined => {
     for (const spot of spotsOn(shelf, w, h, false)) {
       const found = verify(spot, w, h);
@@ -384,6 +423,9 @@ function packShelvesInSpace<T>(rects: Rect<T>[], outer: Rect<T>, order: ItemOrde
         spot = verify(s, w, h);
         if (spot !== undefined) break;
       }
+      if (spot !== undefined) firstShelf = shelves.find((shelf) => shelf === spot!.shelf || firstOn(shelf, w, h) !== undefined);
+    } else if (fit !== "next" && fit !== "first") {
+      spot = scoredOn(w, h, fit);
       if (spot !== undefined) firstShelf = shelves.find((shelf) => shelf === spot!.shelf || firstOn(shelf, w, h) !== undefined);
     } else {
       for (const shelf of fit === "next" ? shelves.slice(-1) : shelves) {

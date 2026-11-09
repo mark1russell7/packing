@@ -13,7 +13,7 @@ const place: Placer = (rects, outer, options) => {
 /**
  * The strategy `shelf` uses `packShelf`: rows filled left to right, around the locked items and the fixed obstacles.
  * With the sort order `input`, the rows keep the rank order. Turnable items, groups and item shapes throw `UnsupportedCell`.
- * The option `fit` selects a shelf rule of roadmap item k21: `next`, `first` or `best`. The default has no `fit`.
+ * The option `fit` selects a shelf rule of roadmap items k21 and k211: a value of `SHELF_FITS`. The default has no `fit`.
  */
 export const shelf: Strategy<LayoutStrategyOptions> = /* @__PURE__ */ layoutStrategy("shelf", "shelf", ["shelf-nf", "shelf-nfdh"], {
   obstacleMove: ["fixed"],

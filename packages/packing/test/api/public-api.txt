@@ -2622,7 +2622,7 @@ declare const SHELF_FITS: readonly ShelfFit[];
 declare const SKYLINE_RULES: readonly ["bl", "mw"];
 
 ### build/layout-strategy.d.ts#ShelfFit
-type ShelfFit = "next" | "first" | "best";
+type ShelfFit = "next" | "first" | "best" | "best-width" | "worst-width" | "best-area" | "worst-area";
 
 ### build/layout-strategy.d.ts#ShelfOptions
 interface ShelfOptions {

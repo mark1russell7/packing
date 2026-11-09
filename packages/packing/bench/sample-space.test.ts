@@ -56,18 +56,21 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The rule wire of k136 adds configs too. Before k136 the pins were ce6d8bf386fbb8a6, 5ff46c2513f1c859, e0392ab28b85d0d0, 90e85a9b3b203375, 71506084854820641670444082160 and 71506084854820640540641605810.
 // The 2 placement options of k25 changed the draws and the counts. Before k25 the pins were 99f077f73ba82661, 8a4c62b086079de4, e764f2c6cdd482e6, c7a8ed52072f03a8, 79943291102292057106200512423 and 79943291102292055949201549490.
 // The 8 placement options of k142 changed one draw. Before k142 the second pin was e824ad73e7edf6a5.
-const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "20963f4950107879", "3f8e28feceedef44", "c7a8ed52072f03a8"];
+// The 4 shelf fits of k211 changed the draws. Before k211 the pins were 66db355601b45ab6, 20963f4950107879, 3f8e28feceedef44 and c7a8ed52072f03a8.
+const DEFAULT_UNIFORM_IDS = ["87321cf11c60c7de", "dbd15af47bd523fe", "9aba695f8f1dd1b3", "b4e70837efd4f5a8"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
 // The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
 // Roadmap item k94 adds the base configs of circle-quasi-physical to the members of the meta configs. Before k94 the counts were 91590358728953040752342089373 and 91590358728953039561241613290.
 // Roadmap item k142 adds the base configs of the standalone placements to the members, and the option side-anchors. Before k142 the counts were 93933758014846374732506608748 and 93933758014846373534955689790.
 // Roadmap item k193 adds the side none to side-anchors. Before k193 the count was 97230737123976843015729743524.
 // Roadmap item k29 adds treemap-spiral. Before k29 the count was 97230737123976843015729948306.
-const CLOCK_FREE_META = 97233111173976344072011118730n;
+// Roadmap item k211 adds 4 shelf fits to the members. Before k211 the count was 97233111173976344072011118730.
+const CLOCK_FREE_META = 107993001206046202999099414746n;
 // Roadmap item k29 adds the base config of shelf-breaks to the members. Before k29 the counts were 97223615252208789169500820039 and 97223615252208787963100427090.
 // Roadmap item k30 adds the base configs of shelf-online to the members. Before k30 the counts were 97225989163093744903710893550 and 97225989163093743697304199810.
 // The base config of treemap-spiral (k29) adds to the members. Before treemap-spiral the counts were 97230737123976843015729743524 and 97230737123976841809310448190.
-const CLOCK_CONFIGS = 97233111173976342865585317810n;
+// Roadmap item k211 adds 4 shelf fits to the members. Before k211 the count was 97233111173976342865585317810.
+const CLOCK_CONFIGS = 107993001206046201765265171890n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -369,7 +372,8 @@ describe("the sample of pairs", () => {
     // The rule wire of k136 changed the first 3. Before k136 they were 3c8559a1a81bd1e1, 9a23adfaf96ff747 and 50c99f6adf729198.
     const a = sampleSpace({ ...options, timing: "mixed", clock: fakeClock() });
     // The 2 placement options of k25 changed the pins. Before k25 they were c284c6797a97ed1e, d4f479379be03745, 7ae4bf3d188259b2 and d991ad41c88721cf.
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["eee8418b2d64c90d", "2ac8900a2f37bcb8", "835bcfc36a31e5f3", "d991ad41c88721cf"]);
+    // The 4 shelf fits of k211 changed the pins. Before k211 they were eee8418b2d64c90d, 2ac8900a2f37bcb8, 835bcfc36a31e5f3 and d991ad41c88721cf.
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["ccd08d11695a7564", "c1162d1161a4b656", "a37e94410fda31ab", "8035c46b81286422"]);
     expect(a.summary.draw).toBe("uniform");
     expect(a.summary.timing).toBe("mixed");
     expect("strata" in a.summary).toBe(false);

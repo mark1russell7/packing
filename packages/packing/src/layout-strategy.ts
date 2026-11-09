@@ -25,7 +25,7 @@ export interface LayoutStrategyOptions {
   /** The number of widths that the first pass of the size search `log-sweep` tries. */
   samples: number;
   /**
-   * The rule of `shelf` to choose a shelf: `next`, `first` or `best`. Only `shelf` reads it. Without it, `shelf` packs
+   * The rule of `shelf` to choose a shelf: a value of `SHELF_FITS`. Only `shelf` reads it. Without it, `shelf` packs
    * as in 0.2.3. With it, the trace also counts `move.firstFit` and `move.bestFit`.
    */
   fit?: ShelfFit;

@@ -213,7 +213,7 @@ Status: done, done, waiting, next, done.
 | k208 | Raise `@mark1russell7/layout-contract` to `^0.6.0` | core | done | k204 |
 | k209 | The plan of the rectangle pilot: operators for each stage, a screen, measures with targets, and generated views | strategies | done |  |
 | k210 | Order operators: each sort key with its own mechanism. A direction or a tie-break counts as a variant | strategies | later |  |
-| k211 | Placement operators: each published rectangle rule of the survey that is not in `packSpace` | strategies | later |  |
+| k211 | Placement operators: each published rectangle rule of the survey that is not in `packSpace`. A slice adds the fits `best-width`, `worst-width`, `best-area` and `worst-area` of `shelf` | strategies | in progress |  |
 | k212 | A local-search stage: SA, tabu, GA, GRASP, VNS, ILS, ruin-recreate and beam, with separate moves and acceptance rules | strategies | later |  |
 | k213 | The new stages refine and compact, after each placement. The first slice adds `compactLeft`, the compaction of a constraint graph along `x` | strategies | in progress |  |
 | k214 | A screen by successive halving in a CI matrix: 1,000 configurations | bench | later | k207 |
