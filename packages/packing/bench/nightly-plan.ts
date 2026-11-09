@@ -3,14 +3,15 @@
 // - `plan` checks the inputs, and writes the lines `seeds=` and `shards=` for `GITHUB_OUTPUT`.
 // - `cells` reads the folder of each arm. A cell is one fold seed with its two arms. A cell is void when an arm has no
 //   summary, or when the timeout stopped the arm before its work budget. The command writes the record `cells.json` and
-//   gives the seeds of the cells that are not void.
+//   gives the seeds of the cells that are not void. Each cell keeps the count of the slow candidates of each arm, and the
+//   step summary tells when the slow shares of the two arms differ.
 //
 //   node bench/nightly-plan.ts plan --seeds <json list> --shards <n>
 //   node bench/nightly-plan.ts cells --arms <dir> --seeds <json list> --out <file> [--commit <sha>] [--event <name>]
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { optionOf } from "./sample-space.ts";
+import { optionOf, SLOW_PAIR } from "./sample-space.ts";
 
 /** The fewest fold seeds of a run. `foldVerdict` needs 5 or more. */
 export const MIN_SEEDS = 5;
@@ -41,6 +42,14 @@ export function shardsOf(text: string): number[] {
 /** The part of the summary `sample.json` of an arm that a cell reads. */
 interface ArmSummary {
   readonly stopped?: string;
+  readonly pairs?: number;
+  readonly configs?: { readonly reasons?: Readonly<Record<string, number>> };
+}
+
+/** The slow candidates of one arm: the candidates that went back with the reason `slow`, and the pairs that the arm measured. */
+export interface ArmSlow {
+  readonly slow: number;
+  readonly pairs: number;
 }
 
 /** One fold seed with its two arms. */
@@ -50,15 +59,46 @@ export interface Cell {
   readonly void: boolean;
   /** The reason of a void cell. */
   readonly reason?: string;
+  /** The slow candidates of each arm, when both arms have a summary. A slow candidate stays in this count, also in a cell that is not void. */
+  readonly slow?: { readonly active: ArmSlow; readonly control: ArmSlow };
+}
+
+/** This function gives the slow candidates of an arm from its summary. */
+function armSlow(summary: ArmSummary): ArmSlow {
+  return { slow: summary.configs?.reasons?.[SLOW_PAIR] ?? 0, pairs: summary.pairs ?? 0 };
+}
+
+/** This function gives the share of the slow candidates of an arm: the slow candidates over the slow candidates and the pairs. */
+export function slowShare(arm: ArmSlow): number {
+  const all = arm.slow + arm.pairs;
+  return all === 0 ? 0 : arm.slow / all;
+}
+
+/**
+ * This function gives the lines of the slow candidates of the cells. A cell with slow candidates gets a line with the count and the share of each arm.
+ * The line tells when the shares of the two arms differ. Without slow candidates, one line says so.
+ */
+export function slowLines(cells: readonly Cell[]): string[] {
+  const pct = (arm: ArmSlow): string => `${arm.slow} (${(100 * slowShare(arm)).toFixed(1)} %)`;
+  const lines = cells
+    .filter((c) => c.slow !== undefined && c.slow.active.slow + c.slow.control.slow > 0)
+    .map((c) => {
+      const { active, control } = c.slow!;
+      const differ = active.slow !== control.slow || active.pairs !== control.pairs;
+      return `The cell of the seed ${c.seed} has slow candidates: active ${pct(active)}, control ${pct(control)}.${differ ? " The slow shares of the arms differ, so the arms measured different sets of candidates." : ""}`;
+    });
+  return lines.length > 0 ? lines : ["No arm has a slow candidate."];
 }
 
 /** This function gives the cell of a fold seed from the summaries of its arms. A missing summary is `undefined`. */
 export function cellOf(seed: number, active: ArmSummary | undefined, control: ArmSummary | undefined): Cell {
+  if (active === undefined) return { seed, void: true, reason: "the arm active has no summary" };
+  if (control === undefined) return { seed, void: true, reason: "the arm control has no summary" };
+  const slow = { active: armSlow(active), control: armSlow(control) };
   for (const [arm, summary] of [["active", active], ["control", control]] as const) {
-    if (summary === undefined) return { seed, void: true, reason: `the arm ${arm} has no summary` };
-    if (summary.stopped !== undefined) return { seed, void: true, reason: `the timeout stopped the arm ${arm} before its work budget` };
+    if (summary.stopped !== undefined) return { seed, void: true, reason: `the timeout stopped the arm ${arm} before its work budget`, slow };
   }
-  return { seed, void: false };
+  return { seed, void: false, slow };
 }
 
 /** This function reads the summary of an arm folder, or gives `undefined` when the folder has no summary. */
@@ -101,6 +141,11 @@ export function cellsMain(argv: readonly string[]): CellsRecord {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(record, null, 1)}\n`);
   for (const c of cells) if (c.void) console.error(`The cell of the seed ${c.seed} is void: ${c.reason}.`);
+  const slow = slowLines(cells);
+  for (const line of slow) console.error(line);
+  // The standard output holds only the live seeds, so the lines of the slow candidates go to the step summary.
+  const summary = process.env["GITHUB_STEP_SUMMARY"];
+  if (summary !== undefined && summary !== "") appendFileSync(summary, `### The slow candidates of the arms\n\n${slow.map((l) => `- ${l}`).join("\n")}\n\n`);
   if (record.live.length < MIN_SEEDS) throw new Error(`Only ${record.live.length} of ${seeds.length} cells are not void. The fold verdict needs ${MIN_SEEDS} or more.`);
   return record;
 }

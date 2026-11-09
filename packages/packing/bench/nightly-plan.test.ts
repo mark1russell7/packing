@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { cellOf, cellsMain, planMain, seedsOf, shardsOf } from "./nightly-plan.ts";
+import { cellOf, cellsMain, planMain, seedsOf, shardsOf, slowLines, slowShare } from "./nightly-plan.ts";
 
 // The plan and the cells of the control run of the active draw (k120).
 
@@ -30,9 +30,27 @@ describe("the plan of the control run", () => {
 
 describe("the cells of the control run", () => {
   it("voids a cell when an arm has no summary or the timeout stopped it", () => {
-    expect(cellOf(1, {}, {})).toEqual({ seed: 1, void: false });
+    const none = { slow: 0, pairs: 0 };
+    expect(cellOf(1, {}, {})).toEqual({ seed: 1, void: false, slow: { active: none, control: none } });
     expect(cellOf(2, { stopped: "time" }, {})).toMatchObject({ void: true, reason: expect.stringMatching(/timeout stopped the arm active/) });
     expect(cellOf(3, {}, undefined)).toMatchObject({ void: true, reason: "the arm control has no summary" });
+  });
+
+  it("keeps the slow candidates of each arm in the cell, also in a void cell, and tells when the shares differ", () => {
+    const arm = (slow: number, pairs: number, stopped?: string) => ({ pairs, configs: { reasons: { slow, "check:shape": 7 } }, ...(stopped === undefined ? {} : { stopped }) });
+    const even = cellOf(1, arm(2, 398), arm(2, 398));
+    expect(even.slow).toEqual({ active: { slow: 2, pairs: 398 }, control: { slow: 2, pairs: 398 } });
+    expect(slowShare(even.slow!.active)).toBe(0.005);
+    const uneven = cellOf(2, arm(5, 400), arm(0, 400));
+    const stopped = cellOf(3, arm(1, 400), arm(0, 390, "time"));
+    expect(stopped).toMatchObject({ void: true, slow: { active: { slow: 1 }, control: { slow: 0, pairs: 390 } } });
+    expect(cellOf(4, {}, { pairs: 400 }).slow).toEqual({ active: { slow: 0, pairs: 0 }, control: { slow: 0, pairs: 400 } });
+    const lines = slowLines([even, uneven, stopped, cellOf(5, arm(0, 400), arm(0, 400)), cellOf(6, undefined, arm(3, 400))]);
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toBe("The cell of the seed 1 has slow candidates: active 2 (0.5 %), control 2 (0.5 %).");
+    expect(lines[1]).toMatch(/^The cell of the seed 2 has slow candidates: active 5 \(1\.2 %\), control 0 \(0\.0 %\)\. The slow shares of the arms differ/);
+    expect(lines[2]).toMatch(/seed 3 .* differ/);
+    expect(slowLines([cellOf(1, arm(0, 400), arm(0, 400))])).toEqual(["No arm has a slow candidate."]);
   });
 
   it("writes the record and gives the seeds of the cells that are not void", () => {

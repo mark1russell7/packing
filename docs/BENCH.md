@@ -2339,7 +2339,9 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - In run [42553495678](https://github.com/mark1russell7/packing/actions/runs/42553495678), the job limit of 60 minutes stopped 4 arms, and the arm `control` of seed 4 stopped at 390 of 400 pairs. Only 1 of 5 cells stayed.
 - The 2 finished arms that show the cause are `control` of seeds 2 and 4. In each, one `raster-nofit` config with 163 trials on 179 boxes had a first pack of 600 and 751 seconds. All the arms read the same pool, so each arm can meet that candidate. The stopped arms wrote no records.
 - Thus the active draw sends a candidate back as `slow` when its first pack takes more than 60 seconds (`--max-pair-seconds`). The next slowest first pack of that run was 22 seconds. A slow candidate costs 1 pack, and the reason count `slow` of `sample.json` shows it.
-- The limit reads the clock. The rule is the same for both arms, so the pairs of a cell stay comparable.
+- The limit reads the clock. The rule is the same for both arms, but a slow candidate does not leave the record.
+- Each cell of `cells.json` keeps the slow candidates and the pairs of each arm, also a void cell. The step summary of the verdict gives the count and the share of each arm.
+- When the slow shares of the two arms differ, the line of the cell says so. Then the arms measured different sets of candidates, and the cap can favor fast strategies.
 - `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
 - The grid has the wall budget of each pair and a job limit of 130 minutes, so the pairs stop at 120 minutes. A slow entry keeps the rows that it finished. In run [41949891960](https://github.com/mark1russell7/packing/actions/runs/41949891960), the limit of 120 minutes cut `raster-nofit` with no row, and `near-rects` took 42 minutes. Both are over the earlier limit of 30 minutes, and a cut job fails the grid, so the arms do not start.
