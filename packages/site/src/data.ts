@@ -885,6 +885,8 @@ export const MEASURE_LABELS: Record<string, { label: string; note: string; share
   "pack.raggedness": { label: "Ragged edge", note: "The longest row less the shortest row, as a share of the hull width. Less is better.", share: true },
   "pack.overflow": { label: "Not placed", note: "The count of boxes that the packer did not place. Less is better.", share: false },
   "pack.balance.side.right": { label: "Right strip", note: "The empty share of the strip at the right side of the container. Less is better.", share: true },
+  "pack.balance.sideRange": { label: "Side skew", note: "The largest empty share of a side strip less the smallest. Less is better.", share: true },
+  "pack.balance.gapCv": { label: "Gap spread", note: "The spread of the gaps between near boxes, over their mean gap. Less is better.", share: false },
 };
 
 /** The partner of the fill claim of a corpus (roadmap item k154). */
