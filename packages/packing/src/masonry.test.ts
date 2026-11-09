@@ -7,6 +7,8 @@ import {
   columnReading,
   columnsCssBalance,
   columnsLinearPartition,
+  cssGridDense,
+  cssGridSparse,
   masonryDifferencing,
   masonryLpt,
   masonryMultiSpan,
@@ -466,6 +468,116 @@ describe("masonryMultiSpan", () => {
   });
 });
 
+describe("the CSS grid flow", () => {
+  /** This function gives a free input of boxes with the widths and the heights. */
+  const cards = (sizes: readonly (readonly [number, number])[], gap = 0): PackInput => ({
+    container: { fixed: "none" },
+    gap,
+    items: sizes.map(([w, h], index) => ({ id: `c${index}`, w, h })),
+  });
+
+  /**
+   * This function is the oracle: the steps of `grid-auto-flow` in the CSS grid text, over a list of areas, not over cells.
+   * It gives the column and the row of each box in the input order.
+   */
+  const oracle = (spans: readonly (readonly [number, number])[], columns: number, dense: boolean): [number, number][] => {
+    const areas: [number, number, number, number][] = [];
+    let cursor: [number, number] = [0, 0];
+    return spans.map(([s, r]) => {
+      let [column, row] = dense ? [0, 0] : cursor;
+      const hits = (): boolean => areas.some(([c, w, q, h]) => column < c + w && c < column + s && row < q + h && q < row + r);
+      while (column + s > columns || hits()) [column, row] = column + 1 + s > columns ? [0, row + 1] : [column + 1, row];
+      areas.push([column, s, row, r]);
+      cursor = [column, row];
+      return [column, row];
+    });
+  };
+
+  it("leaves a hole after a wide box in the sparse flow, and the dense flow fills it", () => {
+    // 3 columns and rows of 10: b covers the 3 columns, so it goes to the second row.
+    const input = cards([[10, 10], [30, 10], [10, 10]]);
+    const options = { columns: 3, columnWidth: 10, rowHeight: 10 };
+    expect(cssGridSparse(input, options).placements).toEqual([
+      { id: "c0", x: 0, y: 0 },
+      { id: "c1", x: 0, y: 10 },
+      { id: "c2", x: 0, y: 20 },
+    ]);
+    expect(cssGridSparse(input, options).size).toEqual({ w: 30, h: 30 });
+    expect(cssGridDense(input, options).placements[2]).toEqual({ id: "c2", x: 10, y: 0 });
+    expect(cssGridDense(input, options).size).toEqual({ w: 30, h: 20 });
+  });
+
+  it("gives a box the rows that hold it, with the gaps between the rows", () => {
+    // Rows of 10 and a gap of 2: a box of height 22 covers 2 rows, and a box of height 23 covers 3.
+    const input = cards([[10, 22], [10, 10], [10, 10], [10, 23], [10, 10]], 2);
+    const output = cssGridSparse(input, { columns: 2, columnWidth: 10, rowHeight: 10 });
+    expect(output.placements).toEqual([
+      { id: "c0", x: 0, y: 0 },
+      { id: "c1", x: 12, y: 0 },
+      { id: "c2", x: 12, y: 12 },
+      { id: "c3", x: 0, y: 24 },
+      { id: "c4", x: 12, y: 24 },
+    ]);
+    expect(output.size).toEqual({ w: 22, h: 58 });
+    expect(checkHard(input, output)["no-overlap"]).toBe(0);
+  });
+
+  it("gives a plain grid in the input order with the default sizes, the same in the two flows", () => {
+    const input: PackInput = { ...cards([[4, 3], [2, 5], [3, 1], [1, 1], [4, 2]], 1), items: cards([[4, 3], [2, 5], [3, 1], [1, 1], [4, 2]]).items.map((item, index) => ({ ...item, rank: 4 - index })) };
+    const output = cssGridSparse(input, { columns: 2 });
+    expect(output).toEqual(cssGridDense(input, { columns: 2 }));
+    expect(output.placements.map((p) => [p.id, p.x, p.y])).toEqual([
+      ["c0", 0, 12],
+      ["c1", 5, 6],
+      ["c2", 0, 6],
+      ["c3", 5, 0],
+      ["c4", 0, 0],
+    ]);
+    expect(output.size).toEqual({ w: 9, h: 17 });
+  });
+
+  it("agrees with the steps of the CSS grid text, with no overlap, on made-up inputs", () => {
+    for (const [seed, { input, columns }] of mixedInputs().entries()) {
+      const gap = input.gap ?? 0;
+      const widest = Math.max(0, ...input.items.map((item) => item.w + marginWidth(item)));
+      const tallest = Math.max(0, ...input.items.map((item) => item.h + marginHeight(item)));
+      const columnWidth = widest > 0 ? widest / (1 + (seed % columns)) : 1;
+      const rowHeight = tallest > 0 ? tallest / (1 + (seed % 3)) : 1;
+      const order = input.items.map((item, index) => [item.rank ?? index, index] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, index]) => index);
+      const span = (outer: number, size: number): number => {
+        let k = 1;
+        while (k * size + (k - 1) * gap < outer) k += 1;
+        return k;
+      };
+      const spans = order.map((index) => {
+        const item = input.items[index]!;
+        return [span(item.w + marginWidth(item), columnWidth), span(item.h + marginHeight(item), rowHeight)] as const;
+      });
+      for (const [layout, dense] of [[cssGridSparse, false], [cssGridDense, true]] as const) {
+        const output = layout(input, { columns, columnWidth, rowHeight });
+        const cells = oracle(spans, columns, dense);
+        const got = order.map((index) => {
+          const p = output.placements[index]!;
+          const item = input.items[index]!;
+          return [Math.round((p.x - marginLeft(item)) / (columnWidth + gap)), Math.round((p.y - marginTop(item)) / (rowHeight + gap))];
+        });
+        expect(got).toEqual(cells);
+        expect(checkHard(input, output)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+        expect(output.size.w).toBeCloseTo(columns * columnWidth + (columns - 1) * gap, 9);
+      }
+    }
+  });
+
+  it("refuses a row height that is not positive and finite, and the refusals of masonryMultiSpan", () => {
+    const good = cards([[2, 1]]);
+    expect(() => cssGridSparse(good, { columns: 2, rowHeight: 0 })).toThrow(RangeError);
+    expect(() => cssGridDense(good, { columns: 2, rowHeight: Number.NaN })).toThrow(RangeError);
+    expect(() => cssGridSparse(good, { columns: 1, columnWidth: 1 })).toThrow(RangeError);
+    expect(() => cssGridDense({ ...good, container: { fixed: "width", w: 9 } }, { columns: 2 })).toThrow(RangeError);
+    expect(cssGridSparse(cards([]), { columns: 3 })).toEqual({ placements: [], overflow: [], size: { w: 0, h: 0 }, moved: [] });
+  });
+});
+
 describe("columnBalance", () => {
   it("gives 0 for level columns, 1 with an empty column, and the share between", () => {
     const level = wall([2, 2]);
@@ -567,6 +679,16 @@ describe("the trade of order and balance on one family", () => {
 /** This function gives the left margin of an item of `mixedInputs`. */
 function marginLeft(item: Item): number {
   return typeof item.margin === "number" ? item.margin : (item.margin?.left ?? 0);
+}
+
+/** This function gives the top margin of an item of `mixedInputs`. */
+function marginTop(item: Item): number {
+  return typeof item.margin === "number" ? item.margin : (item.margin?.top ?? 0);
+}
+
+/** This function gives the height of the margins of an item of `mixedInputs`. */
+function marginHeight(item: Item): number {
+  return typeof item.margin === "number" ? 2 * item.margin : (item.margin?.top ?? 0) + (item.margin?.bottom ?? 0);
 }
 
 /** This function gives the width of the margins of an item of `mixedInputs`. */
