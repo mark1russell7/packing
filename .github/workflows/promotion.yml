@@ -62,7 +62,7 @@ defaults:
     shell: bash
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -88,7 +88,7 @@ jobs:
             exit 0
           fi
           files="$(git diff --name-only "$BASE" "$GITHUB_SHA")"
-          if grep -qxE 'packages/packing/bench/(promote|run|main)\.ts|\.github/workflows/promotion\.yml' <<<"$files"; then
+          if grep -qxE 'packages/packing/bench/(promote|no-read|run|main)\.ts|\.github/workflows/promotion\.yml' <<<"$files"; then
             echo "win=true" >> "$GITHUB_OUTPUT"
           else
             echo "win=false" >> "$GITHUB_OUTPUT"
@@ -110,7 +110,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
@@ -163,7 +163,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
@@ -192,6 +192,11 @@ jobs:
         run: |
           node bench/promote.ts "$RUNNER_TEMP/records" --candidate "$CANDIDATE" --default "$CURRENT" --win "$WIN" \
             --times "$RUNNER_TEMP/time" --guards "$GUARDS" --compare-guards --out "$RUNNER_TEMP/promotion"
+      # A verdict of no read exits 0. This step shows it on the check as a warning, with the count and the CPU models (k203).
+      - name: Show a no read of the win test as a warning
+        if: ${{ !cancelled() }}
+        working-directory: packages/packing
+        run: node --no-warnings bench/no-read.ts promotion "$RUNNER_TEMP/promotion/promotion.json"
       # The verdicts are functions of the fixed records of the default run. The pair maxrects-bl and rows has 2 CPU models, so its time ratio is not a speed.
       # The win reads no-read: each other test passes, and the time test gives no pass and no fail. The loss stands at fail on its gain.
       # The third read keeps the usual floor on that pair: its time tail is over the limit, and the read stays no-read.
@@ -227,7 +232,7 @@ jobs:
   # The check of the ruleset. It fails when a job of needs failed or was cancelled. A skipped job does not fail it.
   promotion-ok:
     name: Promotion OK
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [changes, time, promotion]
     runs-on: ubuntu-latest
     timeout-minutes: 2

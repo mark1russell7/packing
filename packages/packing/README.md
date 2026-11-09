@@ -111,13 +111,13 @@ Both functions also work alone, in an outer rectangle with a width that you set.
 
 A `locked` rectangle keeps its position. `packSkyline` and `packShelf` put the other rectangles around it. `packRows` only keeps its position.
 
-The sort orders are `height-desc` (the default), `height-asc`, `width-desc`, `area-desc` and `input`. `SORT_ORDERS` lists them, and `compareRects` gives the comparator of one.
+The sort orders are `height-desc` (the default), `height-asc`, `width-desc`, `area-desc`, `perimeter-desc`, `long-side-desc`, `short-side-desc`, `side-diff-desc`, `ratio-desc`, `diagonal-desc` and `input`. `SORT_ORDERS` lists them. `compareRects` gives the comparator of one, and `sortKey` gives the key of a box.
 
 The order `input` keeps the order of your array. Use it for a ranked list. `packRows` then fills no gaps, so the rows read in your order: left to right, and top to bottom. `packSkyline` places the rectangles in your order, but a later rectangle can go higher than an earlier one. For a ranked list with `locked` rectangles, use `packShelf`.
 
 ## Treemaps
 
-`treemapSliceDice`, `treemapSquarified`, `treemapStrip` and `treemapPivotSplit` cut a rectangle into cells, one cell for each leaf of a list or a tree. The area of each cell is in proportion to the weight of its leaf. `treemapPack` puts each box at the center of its cell, and scales the cells until each box fits. These functions are standalone. They are not strategies of `pack` or of the registry.
+`treemapSliceDice`, `treemapSquarified`, `treemapStrip`, `treemapPivotSplit`, `treemapPivotMiddle`, `treemapPivotSize` and `treemapSpiral` cut a rectangle into cells, one cell for each leaf of a list or a tree. The area of each cell is in proportion to the weight of its leaf. `treemapPack` puts each box at the center of its cell, and scales the cells until each box fits. These functions are standalone. They are not strategies of `pack` or of the registry.
 
 ```ts
 import { treemapSquarified } from "@mark1russell7/packing";

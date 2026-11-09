@@ -278,12 +278,12 @@ const pool: readonly StrategyConfig[] = Object.values(POOL);
 
 /** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
 const STAGES: readonly SpaceStage[] = [
-  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => ({ id, params: [], supports: id === "input" ? PASS_THROUGH : RECT_ONLY })) },
+  { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => (id === "input" ? { id, params: [], supports: PASS_THROUGH, identity: true } : { id, params: [], supports: RECT_ONLY })) },
   {
     name: "size-search",
     options: [
       { id: "log-sweep", params: [{ name: "samples", kind: "int", min: 12, max: 192, scale: "log", default: 48 }], supports: RECT_ONLY },
-      { id: "none", params: [], supports: PASS_THROUGH },
+      { id: "none", params: [], supports: PASS_THROUGH, identity: true },
     ],
   },
   {
@@ -351,19 +351,19 @@ const STAGES: readonly SpaceStage[] = [
       { id: "treemap", params: [{ name: "method", kind: "enum", values: [...TREEMAP_METHOD_IDS], default: "squarified" }], supports: RECT_ONLY },
     ],
   },
-  { name: "local-search", options: [{ id: "none", params: [], supports: PASS_THROUGH }] },
+  { name: "local-search", options: [{ id: "none", params: [], supports: PASS_THROUGH, identity: true }] },
   {
     name: "combine",
     optional: true,
     options: [
-      { id: "portfolio", params: PORTFOLIO_PARAMS, members: { min: 2, max: 5, ordered: true }, supports: RECT_ONLY },
+      { id: "portfolio", params: PORTFOLIO_PARAMS, members: { min: 2, max: 5, ordered: true, chooses: true }, supports: RECT_ONLY },
       {
         id: "cell-portfolio",
         params: [{ name: "k", kind: "enum", values: ["cell", 2, 3], default: "cell" }, ...PORTFOLIO_PARAMS],
-        members: { min: pool.length, max: pool.length, ordered: false, pool: [pool] },
+        members: { min: pool.length, max: pool.length, ordered: false, pool: [pool], chooses: true },
         supports: RECT_ONLY,
       },
-      { id: "select", params: [{ name: "table", kind: "enum", values: ["k66", "pack"], default: "k66" }], members: { min: 2, max: 2, ordered: true }, supports: RECT_ONLY },
+      { id: "select", params: [{ name: "table", kind: "enum", values: ["k66", "pack"], default: "k66" }], members: { min: 2, max: 2, ordered: true, chooses: true }, supports: RECT_ONLY },
       { id: "aspect-fit", params: TARGET_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "restarts", params: RESTARTS_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "bbox", params: [{ name: "turn", kind: "bool", default: false }], members: { min: 1, max: 1, ordered: true, view: "bounds" }, supports: BBOX_ONLY },
@@ -428,6 +428,7 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "treemap-slice-dice": baseConfig("treemap", { method: "slice-dice" }),
   "treemap-strip": baseConfig("treemap", { method: "strip" }),
   "treemap-pivot-split": baseConfig("treemap", { method: "pivot-split" }),
+  "treemap-spiral": baseConfig("treemap", { method: "spiral" }),
 };
 
 const single = (id: string): StrategyConfig => SINGLE[id]!;

@@ -3,7 +3,7 @@
 //
 //   node bench/active.ts --out <dir> --records <records.jsonl> --corpus <corpus.json> [--n 400] [--seed 1] [--rounds 4] [--pool 20] [--arm active|control] [--fold-seed <r>]
 //                        [--features family|input] [--by input|spec] [--score spread-iqr|fold-spread] [--max-count 1000] [--no-knobs] [--knobs relative|absolute]
-//                        [--repeats 1] [--warmup 0] [--max-minutes <m>]
+//                        [--repeats 1] [--warmup 0] [--max-minutes <m>] [--max-pair-seconds <s>]
 //
 // `node bench/sample-space.ts --draw active` starts this file. `docs/BENCH.md` ("The active draw") tells how the draw works.
 
@@ -36,7 +36,8 @@ import {
   determinismLines,
   envOf,
   capMoves,
-  firstPack,
+  firstPackWithin,
+  SLOW_PAIR,
   generateInput,
   MAX_CONFIG_TRIES,
   MAX_INPUT_TRIES,
@@ -61,6 +62,13 @@ export const DEFAULT_ROUNDS = 4;
 
 /** The default count of the candidate pairs for each pair of the sample. */
 export const DEFAULT_POOL_FACTOR = 20;
+
+/**
+ * The default longest first pack of a pair of the active draw from the command line, in seconds (k122).
+ * The nightly draw of 11-09 met one raster config with first packs of 600 and 751 seconds. Its 4 passes took each arm past the job timeout.
+ * The next slowest first pack was 22 seconds.
+ */
+export const DEFAULT_MAX_PAIR_SECONDS = 60;
 
 /** One candidate pair of the pool: its index, its stratum, the draw of its input, its canonical config and its row features. */
 export interface Candidate {
@@ -293,6 +301,7 @@ export function nextPick<T extends { readonly c: Candidate }>(order: readonly T[
  * 5. A round takes at most `ceil(quota / strata)` pairs of a stratum, and one pair of each stratum and generator. `nextPick` tells the rules.
  *
  * The score reads no time, so the same seed and the same grid give the same pairs. Only `maxMinutes` can cut a sample short.
+ * Only `maxPairSeconds` reads the time of a pack: a first pack longer than it sends its candidate back with the reason `slow`.
  */
 export function activeSample(options: ActiveOptions): { records: ActiveRecord[]; summary: ActiveSummary } {
   const n = options.n ?? DEFAULT_PAIRS;
@@ -370,7 +379,7 @@ export function activeSample(options: ActiveOptions): { records: ActiveRecord[];
       const pair = records.length;
       let first;
       try {
-        first = firstPack(input, c.config, file.seed);
+        first = firstPackWithin(input, c.config, file.seed, clock, options.maxPairSeconds);
       } catch (error) {
         errors.push({ pair, input: file.id, config: c.id, message: error instanceof Error ? error.message : String(error) });
         continue;
@@ -481,6 +490,7 @@ export function activeOptions(argv: readonly string[], env: ReturnType<typeof en
   const { draw: _draw, timing: _timing, pairs: _pairs, shard: _shard, ...kept } = base;
   return {
     ...kept,
+    maxPairSeconds: kept.maxPairSeconds ?? DEFAULT_MAX_PAIR_SECONDS,
     rounds: wholeOf(argv, "--rounds", DEFAULT_ROUNDS),
     poolFactor: wholeOf(argv, "--pool", DEFAULT_POOL_FACTOR),
     coverage: { features: features as FeatureSet, by },
@@ -514,6 +524,8 @@ export function activeMain(argv: readonly string[]): number {
   for (const r of summary.active.perRound) {
     console.log(`Round ${r.round}: ${r.pairs} of ${r.quota} pairs, ${r.rejected} went back. Score of the pairs ${r.scoreMean} (largest ${r.scoreMax}), of the pool ${r.poolMean}.`);
   }
+  const slow = summary.configs.reasons[SLOW_PAIR] ?? 0;
+  if (slow > 0) console.log(`${slow} candidates went back as slow: a first pack took more than ${options.maxPairSeconds} seconds.`);
   for (const line of determinismLines(summary)) console.log(line);
   return summary.errors.length > 0 || summary.nondeterministicPairs.length > 0 ? 1 : 0;
 }

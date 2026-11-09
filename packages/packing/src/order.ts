@@ -5,26 +5,68 @@ import type { Rect } from "./rect.ts";
 /**
  * An order of the rectangles before the packing. The order changes the layout much. `input` keeps the order of
  * the array of the caller: the row packing then fills no gaps, so its rows read in that order.
+ *
+ * - The keys `perimeter-desc`, `long-side-desc`, `short-side-desc`, `side-diff-desc` and `ratio-desc` come from
+ *   Jylänki 2010 (roadmap item k210). `diagonal-desc` sorts by the length of the diagonal.
+ * - Each key of a sort order gives the item with the larger key first. Equal keys keep the input order.
  */
-export type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
+export type SortOrder =
+  | "height-desc"
+  | "height-asc"
+  | "width-desc"
+  | "area-desc"
+  | "perimeter-desc"
+  | "long-side-desc"
+  | "short-side-desc"
+  | "side-diff-desc"
+  | "ratio-desc"
+  | "diagonal-desc"
+  | "input";
 
 /** This constant lists each sort order. The first one is the default. */
-export const SORT_ORDERS: readonly SortOrder[] = ["height-desc", "height-asc", "width-desc", "area-desc", "input"];
+export const SORT_ORDERS: readonly SortOrder[] = [
+  "height-desc",
+  "height-asc",
+  "width-desc",
+  "area-desc",
+  "perimeter-desc",
+  "long-side-desc",
+  "short-side-desc",
+  "side-diff-desc",
+  "ratio-desc",
+  "diagonal-desc",
+  "input",
+];
 
-/** This function gives the comparator of a sort order. The sort is stable, so `input` keeps the order. */
+/** The key of each sort order from the width `w` and the height `h`. The item with the larger key comes first. */
+const KEYS: Readonly<Record<SortOrder, (w: number, h: number) => number>> = {
+  "height-desc": (_w, h) => h,
+  "height-asc": (_w, h) => -h,
+  "width-desc": (w) => w,
+  "area-desc": (w, h) => w * h,
+  "perimeter-desc": (w, h) => w + h,
+  "long-side-desc": (w, h) => Math.max(w, h),
+  "short-side-desc": (w, h) => Math.min(w, h),
+  "side-diff-desc": (w, h) => Math.abs(w - h),
+  "ratio-desc": (w, h) => (Math.min(w, h) > 0 ? Math.max(w, h) / Math.min(w, h) : Number.MAX_VALUE),
+  "diagonal-desc": (w, h) => w * w + h * h,
+  input: () => 0,
+};
+
+/**
+ * This function gives the key of a sort order for a box of the width `w` and the height `h`. The item with the larger key
+ * comes first. The key of `input` is 0 for each box. The key of `ratio-desc` is the longer side over the shorter side, and
+ * `Number.MAX_VALUE` for a side of 0. The keys of `perimeter-desc` and `diagonal-desc` keep the order of the perimeter
+ * and of the diagonal: they are `w + h` and `w * w + h * h`.
+ */
+export function sortKey(order: SortOrder, w: number, h: number): number {
+  return KEYS[order](w, h);
+}
+
+/** This function gives the comparator of a sort order. The sort is stable, so `input` and equal keys keep the order. */
 export function compareRects(order: SortOrder): <T>(a: Rect<T>, b: Rect<T>) => number {
-  switch (order) {
-    case "height-desc":
-      return (a, b) => b.size.y - a.size.y;
-    case "height-asc":
-      return (a, b) => a.size.y - b.size.y;
-    case "width-desc":
-      return (a, b) => b.size.x - a.size.x;
-    case "area-desc":
-      return (a, b) => b.area() - a.area();
-    case "input":
-      return () => 0;
-  }
+  const key = KEYS[order];
+  return (a, b) => key(b.size.x, b.size.y) - key(a.size.x, a.size.y);
 }
 
 /**

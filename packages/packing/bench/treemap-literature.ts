@@ -1,6 +1,7 @@
 // The check of the treemaps of roadmap item k27 against Tables I to III of Bederson, Shneiderman, Wattenberg 2002.
 // It repeats the Monte Carlo trials of section 2.3.2 of that paper on made-up data: a log-normal start and a log-normal
-// random walk, in a square of side 100. The output is a report, not a gate. The workflow `treemap-literature.yml` starts
+// random walk, in a square of side 100. The spiral of Tu and Shen 2007 (roadmap item k29) has no row in that paper, so the
+// report compares it with strip on the same trials. The output is a report, not a gate. The workflow `treemap-literature.yml` starts
 // this file. The file reads no clock, so the same arguments give the same bytes.
 
 import fs from "node:fs";
@@ -8,7 +9,7 @@ import path from "node:path";
 import type { Rect } from "@mark1russell7/layout-contract";
 import { random } from "@mark1russell7/rigor-generators";
 import { bootstrap, mean } from "@mark1russell7/rigor-statistics";
-import { treemapPivotSplit, treemapSliceDice, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "../src/treemap.ts";
+import { treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "../src/treemap.ts";
 
 /** The three measures of the paper. */
 export interface TreemapMeasures {
@@ -61,17 +62,27 @@ export const PUBLISHED: readonly PublishedTable[] = [
   },
 ];
 
-/** The arms of the bench. The paper does not tell if its strip row has the lookahead, so both arms read that row. */
-export const ARMS: readonly { readonly id: string; readonly row: PublishedMethod; readonly layout: TreemapLayout }[] = [
+/**
+ * The arms of the bench. The paper does not tell if its strip row has the lookahead, so both arms read that row. The arm
+ * `spiral` has no published row.
+ */
+export const ARMS: readonly { readonly id: string; readonly row?: PublishedMethod; readonly layout: TreemapLayout }[] = [
   { id: "slice-dice", row: "slice-dice", layout: treemapSliceDice },
   { id: "squarified", row: "squarified", layout: treemapSquarified },
   { id: "strip", row: "strip", layout: (nodes, frame) => treemapStrip(nodes, frame) },
   { id: "strip-no-lookahead", row: "strip", layout: (nodes, frame) => treemapStrip(nodes, frame, { lookahead: false }) },
   { id: "pivot-split", row: "pivot-split", layout: treemapPivotSplit },
+  { id: "spiral", layout: treemapSpiral },
 ];
 
 /** The bands of the prediction `packing-k27-treemaps-first`: a share of the published value, or an absolute value for readability. */
 export const BANDS = { aspect: 0.15, change: 0.25, readability: 0.1 } as const;
+
+/**
+ * The limit of the prediction `packing-k29-spiral-treemap` on the mean aspect of spiral against strip. The other two limits
+ * are a change at most that of strip, and a readability at least that of strip.
+ */
+export const SPIRAL_LIMITS = { aspect: 1.25 } as const;
 
 /**
  * The two readings of the walk of section 2.3.2. The text of the paper tells a variance of 0.05 for the log of each step.
@@ -141,13 +152,13 @@ export function treeOf(weights: readonly number[], levels: readonly number[]): T
   return level(0, "");
 }
 
-/** One measured value against its published value. */
+/** One measured value against its published value. An arm with no published row has `null` in `published` and `inBand`. */
 export interface Compared {
-  readonly published: number;
+  readonly published: number | null;
   readonly measured: number;
   readonly low: number;
   readonly high: number;
-  readonly inBand: boolean;
+  readonly inBand: boolean | null;
 }
 
 /** One row of the report. */
@@ -161,9 +172,10 @@ export interface LiteratureRow {
 }
 
 /** This function gives the mean of the trials, with a 95 % bootstrap interval over the trials. */
-function compared(trials: readonly number[], published: number, name: string, inBand: (measured: number) => boolean): Compared {
+function compared(trials: readonly number[], published: number | undefined, name: string, inBand: (measured: number, published: number) => boolean): Compared {
   const interval = bootstrap(trials, mean, { runs: 2000, seed: name });
-  return { published, measured: interval.estimate, low: interval.low, high: interval.high, inBand: inBand(interval.estimate) };
+  const verdict = published === undefined ? null : inBand(interval.estimate, published);
+  return { published: published ?? null, measured: interval.estimate, low: interval.low, high: interval.high, inBand: verdict };
 }
 
 /** This function gives the rows of one table and one walk. Each arm reads the same trials, so the arms are paired. */
@@ -197,16 +209,16 @@ function tableRows(table: PublishedTable, walk: (typeof WALKS)[number], trials: 
     }
   }
   return ARMS.map((arm, index) => {
-    const row = table.rows[arm.row];
+    const row = arm.row === undefined ? undefined : table.rows[arm.row];
     const score = scores[index]!;
     const key = `${walk.id}:${table.table}:${arm.id}`;
     return {
       walk: walk.id,
       table: table.table,
       arm: arm.id,
-      aspect: compared(score.aspect, row.aspect, `${key}:aspect`, (value) => Math.abs(value - row.aspect) <= BANDS.aspect * row.aspect),
-      change: compared(score.change, row.change, `${key}:change`, (value) => Math.abs(value - row.change) <= BANDS.change * row.change),
-      readability: compared(score.readability, row.readability, `${key}:readability`, (value) => Math.abs(value - row.readability) <= BANDS.readability),
+      aspect: compared(score.aspect, row?.aspect, `${key}:aspect`, (value, published) => Math.abs(value - published) <= BANDS.aspect * published),
+      change: compared(score.change, row?.change, `${key}:change`, (value, published) => Math.abs(value - published) <= BANDS.change * published),
+      readability: compared(score.readability, row?.readability, `${key}:readability`, (value, published) => Math.abs(value - published) <= BANDS.readability),
     };
   });
 }
@@ -219,7 +231,43 @@ export function literatureRows(trials: number, steps: number): LiteratureRow[] {
 /** This function gives one cell of the Markdown table: the measured value, its interval, the published value and the verdict. */
 function cellOf(value: Compared): string {
   const f = (n: number): string => n.toFixed(2);
-  return `${f(value.measured)} [${f(value.low)}, ${f(value.high)}] / ${f(value.published)} ${value.inBand ? "in" : "OUT"}`;
+  const against = value.published === null ? "no row" : `${f(value.published)} ${value.inBand === true ? "in" : "OUT"}`;
+  return `${f(value.measured)} [${f(value.low)}, ${f(value.high)}] / ${against}`;
+}
+
+/** One table and one walk of spiral against strip, with the verdict of each limit of `SPIRAL_LIMITS`. */
+export interface SpiralRow {
+  readonly walk: string;
+  readonly table: string;
+  readonly aspectRatio: number;
+  readonly changeRatio: number;
+  readonly readabilityGain: number;
+  readonly aspectOk: boolean;
+  readonly changeOk: boolean;
+  readonly readabilityOk: boolean;
+}
+
+/** This function gives spiral against strip for each walk and table of the rows. The two arms read the same trials. */
+export function spiralRows(rows: readonly LiteratureRow[]): SpiralRow[] {
+  const out: SpiralRow[] = [];
+  for (const spiral of rows.filter((row) => row.arm === "spiral")) {
+    const strip = rows.find((row) => row.arm === "strip" && row.walk === spiral.walk && row.table === spiral.table);
+    if (strip === undefined) continue;
+    const aspectRatio = spiral.aspect.measured / strip.aspect.measured;
+    const changeRatio = spiral.change.measured / strip.change.measured;
+    const readabilityGain = spiral.readability.measured - strip.readability.measured;
+    out.push({
+      walk: spiral.walk,
+      table: spiral.table,
+      aspectRatio,
+      changeRatio,
+      readabilityGain,
+      aspectOk: aspectRatio <= SPIRAL_LIMITS.aspect,
+      changeOk: changeRatio <= 1,
+      readabilityOk: readabilityGain >= 0,
+    });
+  }
+  return out;
 }
 
 /** This function gives the Markdown report of the rows. */
@@ -233,6 +281,20 @@ export function reportOf(rows: readonly LiteratureRow[], trials: number, steps: 
     "|---|---|---|---|---|---|",
     ...rows.map((row) => `| ${row.walk} | ${row.table} | ${row.arm} | ${cellOf(row.aspect)} | ${cellOf(row.change)} | ${cellOf(row.readability)} |`),
   ];
+  const spiral = spiralRows(rows);
+  if (spiral.length > 0) {
+    const verdict = (ok: boolean): string => (ok ? "ok" : "OVER");
+    lines.push(
+      "",
+      "## Spiral against strip",
+      "",
+      `Limits: aspect at most ${SPIRAL_LIMITS.aspect} times strip, change at most strip, readability at least strip.`,
+      "",
+      "| Walk | Table | Aspect / strip | Change / strip | Readability - strip |",
+      "|---|---|---|---|---|",
+      ...spiral.map((row) => `| ${row.walk} | ${row.table} | ${row.aspectRatio.toFixed(3)} ${verdict(row.aspectOk)} | ${row.changeRatio.toFixed(3)} ${verdict(row.changeOk)} | ${row.readabilityGain.toFixed(3)} ${verdict(row.readabilityOk)} |`),
+    );
+  }
   return `${lines.join("\n")}\n`;
 }
 
@@ -255,7 +317,7 @@ if (process.argv[1]?.endsWith("treemap-literature.ts") === true) {
   if (at !== -1) {
     const out = args[at + 1]!;
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows }, null, 2)}\n`);
+    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows, spiral: spiralRows(rows) }, null, 2)}\n`);
     fs.writeFileSync(path.join(out, "treemap-literature.md"), report);
   }
   process.stdout.write(report);

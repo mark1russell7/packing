@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { graphOrder, isGraphOrder, orderRects, type ItemLink, type ItemOrder } from "./order.ts";
+import { compareRects, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, sortKey, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
+import { mulberry32 } from "./index.ts";
 import { pack } from "./pack.ts";
 import { Rect } from "./rect.ts";
+import { memberOrder } from "./restarts.ts";
 
 /** This function makes rectangles of the sizes `[w, h]`, with the index as the id. */
 function rects(sizes: readonly (readonly [number, number])[]): Rect<number>[] {
@@ -103,4 +105,96 @@ describe("pack with a graph order", () => {
       expect(() => run("graph-bfs", links)).not.toThrow();
     });
   }
+});
+
+/** The sizes `[w, h]` of the direct tests of the sort keys. */
+const SHAPES = [
+  [2, 9],
+  [6, 6],
+  [10, 1],
+  [3, 4],
+  [8, 2],
+] as const;
+
+/** This function gives the ids of the shapes `SHAPES` in a sort order. */
+const idsOf = (order: SortOrder): readonly number[] => orderRects(rects(SHAPES), order).map((r) => r.id!);
+
+/** This function gives made-up sizes from a seed, with many equal sides. */
+function drawnSizes(seed: number, count: number): [number, number][] {
+  const random = mulberry32(seed);
+  return Array.from({ length: count }, () => [1 + Math.floor(random() * 12), 1 + Math.floor(random() * 12)] as [number, number]);
+}
+
+describe("the sort keys of roadmap item k210", () => {
+  it("gives the order of each new key on hand-made shapes", () => {
+    // Perimeters (w + h): 11, 12, 11, 7, 10. Longer sides: 9, 6, 10, 4, 8. Shorter sides: 2, 6, 1, 3, 2.
+    expect(idsOf("perimeter-desc")).toEqual([1, 0, 2, 4, 3]);
+    expect(idsOf("long-side-desc")).toEqual([2, 0, 4, 1, 3]);
+    expect(idsOf("short-side-desc")).toEqual([1, 3, 0, 4, 2]);
+    // Side differences: 7, 0, 9, 1, 6. Ratios: 4.5, 1, 10, 1.33, 4. Squared diagonals: 85, 72, 101, 25, 68.
+    expect(idsOf("side-diff-desc")).toEqual([2, 0, 4, 3, 1]);
+    expect(idsOf("ratio-desc")).toEqual([2, 0, 4, 3, 1]);
+    expect(idsOf("diagonal-desc")).toEqual([2, 0, 1, 4, 3]);
+  });
+
+  it("keeps the input order on equal keys, and puts a box with a side of 0 first in ratio-desc", () => {
+    expect(orderRects(rects([[3, 4], [4, 3], [2, 5]]), "perimeter-desc").map((r) => r.id)).toEqual([0, 1, 2]);
+    expect(orderRects(rects([[3, 4], [4, 3], [2, 5]]), "diagonal-desc").map((r) => r.id)).toEqual([2, 0, 1]);
+    expect(orderRects(rects([[4, 2], [5, 0], [9, 1]]), "ratio-desc").map((r) => r.id)).toEqual([1, 2, 0]);
+    expect(sortKey("ratio-desc", 0, 3)).toBe(Number.MAX_VALUE);
+    expect(sortKey("input", 7, 9)).toBe(0);
+  });
+
+  it("gives each key of the old orders the old comparator", () => {
+    const old: Record<string, (a: Rect<number>, b: Rect<number>) => number> = {
+      "height-desc": (a, b) => b.size.y - a.size.y,
+      "height-asc": (a, b) => a.size.y - b.size.y,
+      "width-desc": (a, b) => b.size.x - a.size.x,
+      "area-desc": (a, b) => b.area() - a.area(),
+      input: () => 0,
+    };
+    for (let seed = 1; seed <= 200; seed++) {
+      const r = rects(drawnSizes(seed, 30));
+      for (const [order, compare] of Object.entries(old)) expect(r.toSorted(compareRects(order as SortOrder)).map((x) => x.id), `${order} ${seed}`).toEqual(r.toSorted(compare).map((x) => x.id));
+    }
+  });
+
+  it("gives one order for a box and its turned copy under each key with no axis, on 200 made-up sets", () => {
+    const symmetric: readonly SortOrder[] = ["area-desc", "perimeter-desc", "long-side-desc", "short-side-desc", "side-diff-desc", "ratio-desc", "diagonal-desc"];
+    let unequal = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const sizes = drawnSizes(seed, 30);
+      for (const order of symmetric) {
+        const plain = orderRects(rects(sizes), order).map((r) => r.id);
+        const turned = orderRects(rects(sizes.map(([w, h]) => [h, w] as const)), order).map((r) => r.id);
+        if (JSON.stringify(plain) !== JSON.stringify(turned)) unequal++;
+      }
+    }
+    expect(unequal).toBe(0);
+  });
+
+  it("gives the order of orderRects to memberOrder of restarts, for each sort order on 200 made-up inputs", () => {
+    let unequal = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const sizes = drawnSizes(seed, 25);
+      const items = sizes.map(([w, h], i) => ({ id: `i${i}`, w, h }));
+      for (const order of SORT_ORDERS) {
+        const want = orderRects(rects(sizes), order).map((r) => `i${r.id}`);
+        const got = memberOrder({ container: { fixed: "width", w: 100 }, items }, order).map((k) => k.item.id);
+        if (JSON.stringify(want) !== JSON.stringify(got)) unequal++;
+      }
+    }
+    expect(unequal).toBe(0);
+  });
+
+  it("places each rectangle with each sort order", () => {
+    for (const order of SORT_ORDERS) {
+      const r = rects(drawnSizes(3, 40));
+      const outer = new Rect<number>();
+      outer.size.set(40, 0);
+      outer.fixedWidth = true;
+      pack(r, outer, { strategy: "skyline", sortOrder: order });
+      expect(r.every((x) => x.wasPacked), order).toBe(true);
+    }
+  });
 });

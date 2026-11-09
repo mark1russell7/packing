@@ -5,7 +5,7 @@ import { pickMoves, portfolio, stepRandom, type Member } from "@mark1russell7/la
 import { maxrects, push, rows, shelf, skyline } from "./adapters.ts";
 import { marginOf, type Item, type PackInput, type PackOutput } from "./contract.ts";
 import { byRank } from "./frame.ts";
-import { graphOrderOf, isGraphOrder, type ItemLink, type ItemOrder } from "./order.ts";
+import { graphOrderOf, isGraphOrder, sortKey, type ItemLink, type ItemOrder } from "./order.ts";
 import { PORTFOLIO_LEVELS, type PortfolioEntry } from "./portfolio.ts";
 import { packWith, strategy } from "./registry.ts";
 import { measureKey, measureLevel } from "./select-key.ts";
@@ -87,12 +87,11 @@ export function memberOrder(input: PackInput, order: ItemOrder): Keyed[] {
     const w = item.w + m.left + m.right + 2 * half;
     const h = item.h + m.top + m.bottom + 2 * half;
     const [x, y] = turned ? [h, w] : [w, h];
-    const key = order === "height-desc" || order === "height-asc" ? y : order === "width-desc" ? x : order === "area-desc" || isGraphOrder(order) ? x * y : 0;
+    const key = isGraphOrder(order) ? x * y : sortKey(order, x, y);
     return { item, key };
   });
   if (isGraphOrder(order)) return graphOrderOf(keyed.map((k) => k.key), rankLinks(input, keyed)).map((i) => keyed[i]!);
-  const down = order === "height-asc" ? 1 : -1;
-  return order === "input" ? keyed : keyed.toSorted((a, b) => down * (a.key - b.key));
+  return order === "input" ? keyed : keyed.toSorted((a, b) => b.key - a.key);
 }
 
 /** This function puts the items from `from` to `to` (not included) in a random order: the Fisher-Yates shuffle. */

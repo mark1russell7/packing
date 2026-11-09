@@ -2,7 +2,7 @@
 // family. It packs each pair and measures it as the bench runner does. `bench/coverage.ts --sample` scores the pairs.
 //
 //   node bench/sample-space.ts --out <dir> [--n 400] [--seed 1] [--draw uniform|option|stratified|active] [--stratify] [--max-count 1000] [--no-knobs]
-//                              [--knobs relative|absolute] [--repeats 1] [--warmup 0] [--max-minutes <m>] [--prediction <id>] [--commit sha]
+//                              [--knobs relative|absolute] [--repeats 1] [--warmup 0] [--max-minutes <m>] [--max-pair-seconds <s>] [--prediction <id>] [--commit sha]
 //                              [--timing off|stratum|mixed] [--pairs 16,20]
 //
 // `docs/BENCH.md` ("The whole space, sampled") tells how the draw works. The times of a local run do not count.
@@ -736,6 +736,11 @@ export interface SampleOptions {
   readonly warmup?: number;
   /** The time after which the sampler starts no new pair, in minutes. The pairs before it stay the same. */
   readonly maxMinutes?: number;
+  /**
+   * The longest first pack of a pair, in seconds. A pair with a longer first pack goes back with the reason `slow`, before its other passes.
+   * Without it, each pair gets all its passes.
+   */
+  readonly maxPairSeconds?: number;
   readonly prediction?: string;
   readonly env: BenchEnv;
   readonly commit?: string;
@@ -856,6 +861,20 @@ export function firstPack(input: PackInput, config: StrategyConfig, seed: number
     if (error instanceof UnsupportedShape) return "unsupported:shape";
     throw error;
   }
+}
+
+/** The reason of a pair whose first pack took more than `maxPairSeconds`. */
+export const SLOW_PAIR = "slow";
+
+/**
+ * This function packs a pair one time, as `firstPack` does, and reads the clock around the pack.
+ * A first pack longer than `maxPairSeconds` gives the reason `SLOW_PAIR`. Thus one slow config costs one pack, not each pass of the pair.
+ */
+export function firstPackWithin(input: PackInput, config: StrategyConfig, seed: number, clock: () => number, maxPairSeconds: number | undefined): PackOutput | string {
+  const start = clock();
+  const first = firstPack(input, config, seed);
+  if (typeof first !== "string" && maxPairSeconds !== undefined && clock() - start > maxPairSeconds * 1000) return SLOW_PAIR;
+  return first;
 }
 
 /** A pair for `measurePair`: the input, its file and draw, the canonical config, its id, the first pack and the index of the pair. */
@@ -1035,7 +1054,7 @@ export function sampleSpace(options: SampleOptions): { records: SampleRecord[]; 
         const id = configId(space, canonical);
         let first: PackOutput | string;
         try {
-          first = firstPack(input, canonical, file.seed);
+          first = firstPackWithin(input, canonical, file.seed, clock, options.maxPairSeconds);
         } catch (error) {
           errors.push({ pair, input: file.id, config: id, message: error instanceof Error ? error.message : String(error) });
           done = true;
@@ -1260,6 +1279,8 @@ export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOpt
   if (stratify && draw !== "stratified") throw new Error(`The option --stratify does not go with --draw ${draw}.`);
   const minutes = optionOf(argv, "--max-minutes");
   if (minutes !== undefined && !(Number(minutes) > 0)) throw new Error(`The option --max-minutes is a number above 0, not ${minutes}.`);
+  const pairSeconds = optionOf(argv, "--max-pair-seconds");
+  if (pairSeconds !== undefined && !(Number(pairSeconds) > 0)) throw new Error(`The option --max-pair-seconds is a number above 0, not ${pairSeconds}.`);
   const prediction = optionOf(argv, "--prediction");
   const knobScale = optionOf(argv, "--knobs") ?? "relative";
   if (!(KNOB_SCALES as readonly string[]).includes(knobScale)) throw new Error(`The option --knobs is relative or absolute, not ${knobScale}.`);
@@ -1283,6 +1304,7 @@ export function sampleOptions(argv: readonly string[], env: BenchEnv): SampleOpt
     ...(pairsText === undefined ? {} : { pairs: pairsText.split(",").map(Number) }),
     ...(shardText === undefined ? {} : { shard: parseShard(shardText) }),
     ...(minutes === undefined ? {} : { maxMinutes: Number(minutes) }),
+    ...(pairSeconds === undefined ? {} : { maxPairSeconds: Number(pairSeconds) }),
     ...(prediction === undefined ? {} : { prediction }),
   };
 }

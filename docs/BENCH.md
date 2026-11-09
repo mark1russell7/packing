@@ -215,12 +215,33 @@ The job `rows` of `output-rows.yml` starts on each pull request and each push to
 
 ```sh
 node --no-warnings bench/write-catalog.ts                 # After a change to the rows or the version
-pnpm run version                                          # After a change of the version: the two writers in their order
+pnpm run version                                          # After a change of the version: the three writers in their order
 node --no-warnings bench/whole-positions.ts --write       # After a strategy changes its output on purpose
 node --no-warnings bench/whole-positions.ts --check       # The check of the job
 ```
 
 The job also uploads the table that it read as the artifact `output-rows`, so a pull request can take it.
+
+## The output fingerprints
+
+A joint bench starts again only the strategies whose output changed (roadmap item k201). The fingerprint of a strategy tells it.
+
+- Each corpus family and `rect-scattered` give a probe at the counts 5, 20 and 50, in the range of the family. Each other dimension keeps its default.
+- A family also gives a probe at each other container mode that it supports, with 20 items. Thus `masonry` and `treemap` get `freeAspect` and `freeArea` inputs.
+- The made-up inputs of `bench/shape-inputs.ts` give circles, polygons and both, at 5 and 20 items. Equal circles in a circle come from `bench/circles.ts`.
+- The seed of each input and of each pack is 1. The 114 probes come from 21 families and the 2 made-up sources.
+- Each strategy packs each probe with its defaults. `aspect-fit` has no default member, so it takes the options of the entry `aspect-fit-maxrects-bl`.
+- A strategy of the mode `incremental` packs the probe, then packs it again with the first item 1 unit wider. The second pack gets the first output as `previous`, as in `pack-change-v1`.
+- A strategy that refuses each probe fails the check and the write, because its fingerprint does not show a change. At this time each strategy packs 2 probes or more.
+- The hash of a probe is `probeHash` of `layout-contract` over `packOutputForm` of the output, with exact numbers. A refusal gives the token `refused`, with no reason text.
+- The fingerprint is `fingerprintOf` of the hashes of the probes. Another error than a refusal stops the read, with the name of the probe.
+
+The file `src/strategy-fingerprint.ts` holds the table. The script `bench/fingerprints.ts` writes it. Do not edit it. The job `rows` of `output-rows.yml` compares the table with a new read. Its artifact has the read table and the hash of each probe.
+
+```sh
+node --no-warnings bench/fingerprints.ts --write          # After a strategy changes its output on purpose
+node --no-warnings bench/fingerprints.ts --check          # The check of the job
+```
 
 ## The tie moves
 
@@ -270,6 +291,19 @@ A gate that has not gone red on a known fault is not known to work. `packages/pa
 | Time test of the win test | The records have one CPU model and the floor is the usual one. `maxrects-bl` over `maxrects-cp` gives a pass. A copy with a candidate 10 times slower gives a fail, and the only failed part is the time test. |
 
 The verdict of a real candidate reports and does not fail. The records of the fixed pairs and of the portfolio sets are artifacts of a run, and they expire on 2027-01-26. Then the check fails closed, and a new run must give them.
+
+## A no read on the check
+
+A gate that cannot read a case does not show a green check alone. `bench/no-read.ts` reads the verdict file of the gate after its step. For a read with a no-read case, it writes a warning annotation on the check and a line in the step summary. The line comes from `gateLine` and `writeGateLine` of rigor-bench, so each gate of each repository writes it in one form. The line names each case with no read, the reason and the jobs on each CPU model.
+
+| Gate | The cases with no read |
+|---|---|
+| Win test (`promotion.yml`) | The status `no read`. The line has the input count and the reason, with the CPU models. |
+| Time gate (`time-gate.yml`) | A first pass of the gate above the noise cap, and a time verdict of `cannot decide` in the report. The line has the noise, the cap, the case count and the CPU. |
+| Gate of a paired run (`paired-time.yml`) | A time verdict of `cannot decide` in the report, with the case count and the CPU. |
+| Time budget (`paired-time.yml`) | The verdict `cannot decide`, with the reasons and the jobs on each CPU model. The budget does not test the models, so jobs on more than one model are a no-read of the case `the CPU models`, also on a decided verdict. |
+
+A missing verdict file also gives a warning. The step of the gate failed then, so the check is red.
 
 ## The width of `skyline`
 
@@ -483,9 +517,9 @@ The corpus `pack-classes-v1` has 100 specs, each with the seeds 1 to 5. It has n
 - It has `heldOut: "all"`. Its `claims.declared` counts are `order` 0, `aspect` 0, `free-size` 250 and `shaped` 0.
 - The builder `bench/classes.ts` writes the file. `node bench/classes.ts --check` and a test compare the file with the builder.
 
-The corpus `pack-classes-free-v1` has 120 specs of the same classes, each with the seeds 1 to 5. It holds the 8 entries that refuse each input of `pack-classes-v1`.
+The corpus `pack-classes-free-v1` has 120 specs of the same classes, each with the seeds 1 to 5. It holds the 9 entries that refuse each input of `pack-classes-v1`.
 
-- 500 inputs have `freeAspect` or `freeArea` at the counts 20, 40, 60, 80 and 100. The 7 entries of masonry, treemap and columns accept only these forms.
+- 500 inputs have `freeAspect` or `freeArea` at the counts 20, 40, 60, 80 and 100. The 8 entries of masonry, treemap and columns accept only these forms.
 - 100 inputs have `freeHeight` at the counts 8 and 16. The entry `exact-strip` takes at most 16 items.
 - The container takes no random numbers, so each form of a class, a count and a seed has the same items. A test pins the bytes of each input of `pack-classes-v1`.
 
@@ -1701,6 +1735,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 - The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
 - The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
 - Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
+- Tu and Shen 2007 give no table in the form of Bederson 2002. Thus the arm `spiral` has no published row. The section "Spiral against strip" divides the aspect and the change of `spiral` by those of `strip` on the same trials. It also gives the readability of `spiral` minus that of `strip`.
 
 ## The snapshots of the site
 
@@ -2300,6 +2335,13 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - The 40 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
 - The first timeout was 12 minutes. In run [41735018676](https://github.com/mark1russell7/packing/actions/runs/41735018676), it stopped 4 of the 5 control arms, at 382, 219, 195 and 196 of 400 pairs. Only 1 of 5 cells stayed, so the run has no verdict.
 - The new timeout comes from that run. The slowest arm gives 12 x 400 / 195 = 24.6 minutes, and the arm that finished took approximately 10 minutes. The limit is 24.6 + 14.6 = 39.2, so 40. This is an estimate from arms that the timeout stopped, because the run has no finished slow arm. A later run replaces it.
+- Each pair packs 4 times: the first pack, the determinism pack, the timed pack and the pack of the next seed.
+- In run [42553495678](https://github.com/mark1russell7/packing/actions/runs/42553495678), the job limit of 60 minutes stopped 4 arms, and the arm `control` of seed 4 stopped at 390 of 400 pairs. Only 1 of 5 cells stayed.
+- The 2 finished arms that show the cause are `control` of seeds 2 and 4. In each, one `raster-nofit` config with 163 trials on 179 boxes had a first pack of 600 and 751 seconds. All the arms read the same pool, so each arm can meet that candidate. The stopped arms wrote no records.
+- Thus the active draw sends a candidate back as `slow` when its first pack takes more than 60 seconds (`--max-pair-seconds`). The next slowest first pack of that run was 22 seconds. A slow candidate costs 1 pack, and the reason count `slow` of `sample.json` shows it.
+- The limit reads the clock. The rule is the same for both arms, but a slow candidate does not leave the record.
+- Each cell of `cells.json` keeps the slow candidates and the pairs of each arm, also a void cell. The step summary of the verdict gives the count and the share of each arm.
+- When the slow shares of the two arms differ, the line of the cell says so. Then the arms measured different sets of candidates, and the cap can favor fast strategies.
 - `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
 - The grid has the wall budget of each pair and a job limit of 130 minutes, so the pairs stop at 120 minutes. A slow entry keeps the rows that it finished. In run [41949891960](https://github.com/mark1russell7/packing/actions/runs/41949891960), the limit of 120 minutes cut `raster-nofit` with no row, and `near-rects` took 42 minutes. Both are over the earlier limit of 30 minutes, and a cut job fails the grid, so the arms do not start.

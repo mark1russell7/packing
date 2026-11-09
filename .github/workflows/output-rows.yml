@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
@@ -32,6 +32,14 @@ jobs:
         env:
           OUT: ${{ runner.temp }}/output-rows
         run: node --no-warnings bench/whole-positions.ts --check --out "$OUT"
+      # The output fingerprints (k201, docs/BENCH.md "The output fingerprints"): the hash of each strategy on the probe inputs.
+      # The artifact holds the table of the read and the hash of each probe, so a changed fingerprint names its probes.
+      - name: Compare the fingerprints with the table
+        if: ${{ !cancelled() }}
+        working-directory: packages/packing
+        env:
+          OUT: ${{ runner.temp }}/output-rows/fingerprints
+        run: node --no-warnings bench/fingerprints.ts --check --out "$OUT"
       # A clean read of a strategy with whole rows, then the same read with half a position and with half a size. Each fault fails the check.
       - name: Flip test of the check
         working-directory: packages/packing
@@ -55,7 +63,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26

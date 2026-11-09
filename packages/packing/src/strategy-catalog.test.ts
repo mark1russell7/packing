@@ -248,10 +248,16 @@ const SPACE_ONLY_REASONS: Readonly<Record<string, string>> = {
   "combine/tabu.limitWork": WORK_FLAG,
   "local-search/none": STAGE_OFF,
   "order/area-desc": ORDER_VALUE,
+  "order/diagonal-desc": ORDER_VALUE,
   "order/graph-bfs": ORDER_VALUE,
   "order/height-asc": ORDER_VALUE,
   "order/height-desc": ORDER_VALUE,
   "order/input": ORDER_VALUE,
+  "order/long-side-desc": ORDER_VALUE,
+  "order/perimeter-desc": ORDER_VALUE,
+  "order/ratio-desc": ORDER_VALUE,
+  "order/short-side-desc": ORDER_VALUE,
+  "order/side-diff-desc": ORDER_VALUE,
   "order/width-desc": ORDER_VALUE,
   "placement/maxrects.fixedBands": "This flag of the space turns on the param `bandHeight`.",
   "size-search/log-sweep": "This stage of the space gives the option `samples` of the placement.",
@@ -331,7 +337,7 @@ describe("the file strategy-catalog.json (k144)", () => {
   });
 
   // A tool that sets a new version starts the script `version`. Without it, this file keeps the old version, and the test above fails.
-  it("is written again by the script version of the package, after the output rows", () => {
-    expect(pkg.scripts.version).toBe("node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/write-catalog.ts");
+  it("is written again by the script version of the package, after the output rows and the output fingerprints", () => {
+    expect(pkg.scripts.version).toBe("node --no-warnings bench/whole-positions.ts --write && node --no-warnings bench/fingerprints.ts --write && node --no-warnings bench/write-catalog.ts");
   });
 });

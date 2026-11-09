@@ -8,7 +8,7 @@ export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf
 export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule, type MaxRectsScore } from "./maxrects.ts";
 export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
-export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, windowOrder, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
+export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, sortKey, windowOrder, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
 export { pushCascade, type PushOptions } from "./push.ts";
 export { packingMetrics, type MetricsOptions, type PackingMetrics } from "./metrics.ts";
 export {
@@ -111,7 +111,8 @@ export {
   type TreemapMethod,
   type TreemapStrategyOptions,
 } from "./standalone-strategies.ts";
-export { allStrategies, packWith, strategy } from "./strategy-list.ts";
+export { allStrategies, packFrames, packWith, strategy } from "./strategy-list.ts";
+export { frameOfOutput, startOutputOf, type FrameCallback, type PackRun } from "./pack-run.ts";
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
 export {
   ANCHOR_GAIN_LIMIT,
@@ -135,7 +136,7 @@ export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb
 export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
-export { compactUp } from "./compact.ts";
+export { compactLeft, compactUp } from "./compact.ts";
 export { matchPlaces } from "./match.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
 export { keepPrefix, pinUnchanged, repackPinned, type PinnedInput, type Repacked, type RepackMethod } from "./pin.ts";
@@ -194,6 +195,7 @@ export {
 } from "./select.ts";
 export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
 export { configOfStrategy, PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type OptionPlace, type StrategyPoint } from "./pack-space.ts";
+export { packOperators } from "./pack-operators.ts";
 export type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";
 export { checkSideAnchors, packSideAnchors, type AnchorSide, type SideAnchor, type SideAnchorOptions, type SideAnchorResult } from "./side-anchors.ts";
@@ -373,9 +375,14 @@ export {
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
+  treemapHilbert,
+  treemapMoore,
   treemapPack,
+  treemapPivotMiddle,
+  treemapPivotSize,
   treemapPivotSplit,
   treemapSliceDice,
+  treemapSpiral,
   treemapSquarified,
   treemapStrip,
   type TreemapCell,

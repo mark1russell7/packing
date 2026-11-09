@@ -309,7 +309,10 @@ function transposeItem(item: Item): Item {
   };
 }
 
-/** This function gives an input with the axes changed. A fixed height becomes a fixed width. */
+/**
+ * This function gives an input with the axes changed. A fixed height becomes a fixed width.
+ * The links stay the same, because they are indexes into the items, and the order of the items does not change.
+ */
 export function transposeInput(input: PackInput): PackInput {
   const c = input.container;
   const container: PackInput["container"] = {
@@ -327,6 +330,7 @@ export function transposeInput(input: PackInput): PackInput {
     ...(input.obstacles === undefined ? {} : { obstacles: input.obstacles.map((o) => ({ ...o, region: transposeRegion(o.region) })) }),
     ...(input.gap === undefined ? {} : { gap: input.gap }),
     ...(input.pairGaps === undefined ? {} : { pairGaps: input.pairGaps }),
+    ...(input.links === undefined ? {} : { links: input.links }),
   };
 }
 

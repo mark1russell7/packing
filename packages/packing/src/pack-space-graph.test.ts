@@ -53,7 +53,7 @@ function pointOf(strategy: string, options: Readonly<Record<string, unknown>>): 
 describe("the order graph-bfs of packSpace", () => {
   it("is the last option of the stage order, for rect items", () => {
     const order = packSpace.stages.find((s) => s.name === "order")!;
-    expect(order.options.map((o) => o.id)).toEqual(["height-desc", "height-asc", "width-desc", "area-desc", "input", "graph-bfs"]);
+    expect(order.options.map((o) => o.id)).toEqual(["height-desc", "height-asc", "width-desc", "area-desc", "perimeter-desc", "long-side-desc", "short-side-desc", "side-diff-desc", "ratio-desc", "diagonal-desc", "input", "graph-bfs"]);
     expect(order.options.at(-1)!.supports).toEqual({ shape: ["rect"] });
   });
 
