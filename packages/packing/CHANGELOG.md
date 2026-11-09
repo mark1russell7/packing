@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.2
+
+The bench writes each corpus file with the one manifest writer of `@mark1russell7/layout-contract` 0.9.2 (roadmap item k219). Each corpus file keeps the same bytes.
+
+This release raises the PATCH version: a dependency bump with no change of the public API.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.2.
+- The 8 corpus writers of the bench use `corpusManifestText` and `manifestText`. The 7 local copies of the function `inline` go.
+
 ## 0.15.0
 
 A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
