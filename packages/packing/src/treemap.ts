@@ -44,8 +44,8 @@ interface Sized {
   readonly kids?: readonly Sized[];
 }
 
-/** The method of one level: it gives one rectangle for each weight, in the order of the weights. */
-type LevelLayout = (weights: readonly number[], frame: TreemapFrame, depth: number) => TreemapFrame[];
+/** The method of one level: it gives one rectangle for each weight, in the order of the weights. The index does not export it. */
+export type LevelLayout = (weights: readonly number[], frame: TreemapFrame, depth: number) => TreemapFrame[];
 
 /** This function gives a node with the weights of its subtree. A weight that is not positive and finite is a `RangeError`. */
 function sizedOf(node: TreemapNode): Sized {
@@ -58,8 +58,8 @@ function sizedOf(node: TreemapNode): Sized {
   return { id: node.id, weight: sumOf(kids.map((kid) => kid.weight)), kids };
 }
 
-/** This function gives the sum of a list. */
-function sumOf(values: readonly number[]): number {
+/** This function gives the sum of a list. The index does not export it. */
+export function sumOf(values: readonly number[]): number {
   let sum = 0;
   for (const value of values) sum += value;
   return sum;
@@ -70,9 +70,17 @@ function aspectOf(w: number, h: number): number {
   return w > h ? w / h : h / w;
 }
 
-/** This function gives the leaf cells of a tree. It applies `level` to the children of each node, from the root down. */
-function layoutTree(nodes: readonly TreemapNode[], frame: TreemapFrame, level: LevelLayout): TreemapCell[] {
+/** This function gives a `RangeError` for a frame with no positive, finite width and height. The index does not export it. */
+export function checkFrame(frame: TreemapFrame): void {
   if (!(frame.w > 0) || !(frame.h > 0) || !Number.isFinite(frame.w) || !Number.isFinite(frame.h)) throw new RangeError("A treemap frame needs a positive, finite width and height.");
+}
+
+/**
+ * This function gives the leaf cells of a tree. It applies `level` to the children of each node, from the root down. The
+ * index does not export it.
+ */
+export function layoutTree(nodes: readonly TreemapNode[], frame: TreemapFrame, level: LevelLayout): TreemapCell[] {
+  checkFrame(frame);
   const cells: TreemapCell[] = [];
   const visit = (group: readonly Sized[], area: TreemapFrame, depth: number): void => {
     const rects = level(group.map((node) => node.weight), area, depth);
@@ -86,8 +94,11 @@ function layoutTree(nodes: readonly TreemapNode[], frame: TreemapFrame, level: L
   return cells;
 }
 
-/** This function cuts a frame into parallel strips in the order of the weights. With `alongX` the strips stand side by side. */
-function slice(weights: readonly number[], frame: TreemapFrame, alongX: boolean): TreemapFrame[] {
+/**
+ * This function cuts a frame into parallel strips in the order of the weights. With `alongX` the strips stand side by
+ * side. The index does not export it.
+ */
+export function slice(weights: readonly number[], frame: TreemapFrame, alongX: boolean): TreemapFrame[] {
   const total = sumOf(weights);
   let before = 0;
   return weights.map((weight) => {
@@ -110,9 +121,9 @@ export function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFr
 
 /**
  * This function gives the highest aspect of a row along a side, the function `worst` of Bruls 2000. The values are the
- * sum, the largest and the smallest area of the row.
+ * sum, the largest and the smallest area of the row. The index does not export it.
  */
-function worstAspect(sum: number, largest: number, smallest: number, side: number): number {
+export function worstAspect(sum: number, largest: number, smallest: number, side: number): number {
   const square = side * side;
   const total = sum * sum;
   return Math.max((square * largest) / total, total / (square * smallest));

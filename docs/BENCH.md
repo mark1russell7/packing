@@ -1735,6 +1735,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 - The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
 - The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
 - Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
+- Wood and Dykes 2008 give Tables 1 to 3 for the ordered squarified treemap and the spatial treemap. The file `bench/treemap-spatial.ts` repeats them, and the report of `treemap-literature.ts` includes its section. The option `--spatial-trials` sets the count of its trials, with the default 1,000 of the paper. With 1,000 trials in a square of side 100, the 27 published values are in the bands.
 - Tu and Shen 2007 give no table in the form of Bederson 2002. Thus the arm `spiral` has no published row. The section "Spiral against strip" divides the aspect and the change of `spiral` by those of `strip` on the same trials. It also gives the readability of `spiral` minus that of `strip`.
 
 ## The snapshots of the site

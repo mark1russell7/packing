@@ -119,6 +119,8 @@ The order `input` keeps the order of your array. Use it for a ranked list. `pack
 
 `treemapSliceDice`, `treemapSquarified`, `treemapStrip`, `treemapPivotSplit`, `treemapPivotMiddle`, `treemapPivotSize` and `treemapSpiral` cut a rectangle into cells, one cell for each leaf of a list or a tree. The area of each cell is in proportion to the weight of its leaf. `treemapPack` puts each box at the center of its cell, and scales the cells until each box fits. These functions are standalone. They are not strategies of `pack` or of the registry.
 
+`treemapOrdered` and `treemapSpatial` put each cell near a place. With `treemapOrdered`, the distance of a cell from the corner of the frame grows with its place in the list. With `treemapSpatial`, each cell is near the point of its node, for example a city on a map. The y axis of the points goes down, as in the frame.
+
 ```ts
 import { treemapSquarified } from "@mark1russell7/packing";
 
