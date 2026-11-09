@@ -270,7 +270,7 @@ const check = checkCatalog(strategyCatalog, live, { spaces: [packSpace], paramRo
 describe("the strategy catalog (k144)", () => {
   it("has each strategy of the engine, with a line and the live fields", () => {
     expect(strategyCatalog.strategies.map((e) => e.id).sort()).toEqual(allStrategies.map((s) => s.id).sort());
-    expect(strategyCatalog.strategies).toHaveLength(33);
+    expect(strategyCatalog.strategies).toHaveLength(36);
     for (const s of allStrategies) {
       const entry = entries.get(s.id)!;
       expect({ family: entry.family, kind: entry.kind, supports: entry.supports, deterministic: entry.deterministic }, s.id).toEqual({ family: s.family, kind: s.kind, supports: s.supports, deterministic: s.deterministic });

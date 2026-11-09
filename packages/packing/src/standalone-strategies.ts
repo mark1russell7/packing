@@ -11,6 +11,7 @@ import { packRasterNofit, type RasterNofitOptions } from "./raster-nofit.ts";
 import { packSideAnchors, type SideAnchor, type SideAnchorOptions } from "./side-anchors.ts";
 import { shelfBreaks, shelfBreaksRefusal } from "./shelf-breaks.ts";
 import { shelfOnline, shelfOnlineRefusal, type ShelfOnlineOptions } from "./shelf-online.ts";
+import { shelfFloorCeiling, shelfKnapsack, shelfLevelsRefusal, shelfSplitFit, type ShelfLevelsResult } from "./shelf-levels.ts";
 import { sleatorRefusal, sleatorStrip } from "./sleator.ts";
 import { assertSupported, UnsupportedCell, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapLayout } from "./treemap.ts";
@@ -127,6 +128,34 @@ export const shelfOnlineStrategy: Strategy<ShelfOnlineOptions> = {
     return refusing(() => shelfOnline(input, options).output);
   },
 };
+
+/** This function gives a strategy of the family `shelf` for a level packer of roadmap item k211. Each one takes the cells of `sleator`. */
+function levelStrategy(id: string, pack: (input: PackInput) => ShelfLevelsResult): Strategy<Record<string, never>> {
+  const strategy: Strategy<Record<string, never>> = {
+    id,
+    family: "shelf",
+    catalog: [],
+    supports: STRIP_SUPPORTS,
+    defaults: {},
+    deterministic: true,
+    pack(input: PackInput): PackOutput {
+      assertSupported(strategy.supports, input);
+      const reason = shelfLevelsRefusal(input);
+      if (reason !== null) throw refusal(reason);
+      return refusing(() => pack(input).output);
+    },
+  };
+  return strategy;
+}
+
+/** The strategy `shelf-split-fit`: `shelfSplitFit` of roadmap item k211. The narrow boxes go into a region at the side of the wide levels. */
+export const shelfSplitFitStrategy: Strategy<Record<string, never>> = /* @__PURE__ */ levelStrategy("shelf-split-fit", shelfSplitFit);
+
+/** The strategy `shelf-floor-ceiling`: `shelfFloorCeiling` of roadmap item k211. Each level takes boxes on its floor and under its ceiling. */
+export const shelfFloorCeilingStrategy: Strategy<Record<string, never>> = /* @__PURE__ */ levelStrategy("shelf-floor-ceiling", shelfFloorCeiling);
+
+/** The strategy `shelf-knapsack`: `shelfKnapsack` of roadmap item k211. A 0-1 knapsack on the area fills each level. */
+export const shelfKnapsackStrategy: Strategy<Record<string, never>> = /* @__PURE__ */ levelStrategy("shelf-knapsack", shelfKnapsack);
 
 /** The strategy `beam`: `beamStrip` of roadmap item k85. It has no catalog row, because this first slice is not the method of either beam row. */
 export const beamStrategy: Strategy<BeamOptions> = {
@@ -299,4 +328,4 @@ export const sideAnchorsStrategy: Strategy<SideAnchorStrategyOptions> = {
 /**
  * The single strategies that a bench entry reaches by id. Each corpus run skips the cells that a strategy does not support.
  */
-export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, shelfBreaksStrategy, shelfOnlineStrategy, beamStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);
+export const standaloneStrategies: readonly Strategy[] = /* @__PURE__ */ Object.freeze([sleatorStrategy, shelfBreaksStrategy, shelfOnlineStrategy, shelfSplitFitStrategy, shelfFloorCeilingStrategy, shelfKnapsackStrategy, beamStrategy, exactStripStrategy, binaryHeightStrategy, nearRectsStrategy, rasterNofitStrategy, masonryStrategy, treemapStrategy] as Strategy[]);

@@ -99,6 +99,7 @@ describe("the word of a skip", () => {
     const count = (word: string): number => pairs.filter((p) => skipRead(p.entry, p.reason).word === word).length;
     const counts = { pairs: pairs.length, done: count("not done"), composition: count("composition"), other: count("other algorithm"), meaning: count("no meaning") };
     // Roadmap item k29 adds the entry treemap-spiral. It has 5 skips, each with the word "other algorithm", so 99 pairs become 104.
-    expect(counts).toEqual({ pairs: 104, done: 38, composition: 34, other: 30, meaning: 2 });
+    // Roadmap item k211 adds 3 level packers. Each one has 2 skips of the free forms, each with the word "composition", so 104 pairs become 110.
+    expect(counts).toEqual({ pairs: 110, done: 38, composition: 40, other: 30, meaning: 2 });
   });
 });

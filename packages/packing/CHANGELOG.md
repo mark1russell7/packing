@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.16.1
+
+Three level packers of the literature (roadmap item k211). Each one is a strategy and a placement of `packSpace`. No default uses them.
+
+This release raises the PATCH version: new functions and strategies. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `shelfSplitFit`: the split-fit algorithm of Coffman 1980. The narrow boxes go into a region at the side of the wide levels.
+- The function `shelfFloorCeiling`: the floor-ceiling algorithm of Lodi 1999. Each level takes boxes on its floor and under its ceiling.
+- The function `shelfKnapsack`: the knapsack algorithm of Lodi 1999. A 0-1 knapsack on the area fills each level.
+- The function `shelfLevelsRefusal`, the constant `SHELF_KNAPSACK_STATES` and the type `ShelfLevelsResult`.
+- The strategies `shelf-split-fit`, `shelf-floor-ceiling` and `shelf-knapsack`, and their placements in `packSpace`. `packOperators` has 41 operators.
+
+### Changed
+
+- `packSpace` has 3 more base configs with each count of levels. Each old config keeps its `configId`.
+
 ## 0.15.0
 
 A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
