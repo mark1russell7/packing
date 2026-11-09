@@ -8,7 +8,7 @@ export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf
 export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule, type MaxRectsScore } from "./maxrects.ts";
 export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
-export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, windowOrder, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
+export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, sortKey, windowOrder, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
 export { pushCascade, type PushOptions } from "./push.ts";
 export { packingMetrics, type MetricsOptions, type PackingMetrics } from "./metrics.ts";
 export {
@@ -225,6 +225,7 @@ export {
   columnsCssBalance,
   columnsLinearPartition,
   cssGridDense,
+  cssGridLanes,
   cssGridSparse,
   masonryDifferencing,
   masonryLpt,
@@ -233,6 +234,7 @@ export {
   type ColumnBalance,
   type ColumnReading,
   type GridFlowOptions,
+  type GridLanesOptions,
   type MasonryLayout,
   type MasonryOptions,
 } from "./masonry.ts";

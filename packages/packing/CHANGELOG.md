@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.17.0
+
+Each entry of the strategy catalog gets the output fingerprint of its strategy (roadmap item k201). A chooser can find 2 strategies with the same output and not start them.
+
+This release raises the MINOR version, because the catalog goes to the schema `strategy-catalog/3`. A reader that accepts only `strategy-catalog/2` refuses the new file. Before 1.0.0, a break raises MINOR.
+
+### Breaking
+
+- The file `strategy-catalog.json` and the constant `strategyCatalog` use the schema `strategy-catalog/3` of `@mark1russell7/layout-contract`, not `strategy-catalog/2`.
+
+### Added
+
+- Each entry of the catalog has the field `fingerprint`, from the table `STRATEGY_FINGERPRINT`. All 33 entries have one.
+
+## 0.16.1
+
+The function `cssGridLanes` of roadmap item k28 places the boxes of a wall as the CSS grid lanes do. The code follows section 4.4 of the editor's draft of 21 October 2026.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `cssGridLanes` and its options `GridLanesOptions`. Each box goes to the first possible line after the cursor. A possible line has a top at most `fitTolerance` below the lowest top.
+- With no possible line after the cursor, the box goes to the first possible line. With `fitTolerance` set to `Infinity`, the boxes go to the columns in strict order.
+
+## 0.16.0
+
+The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.
+
+This release raises the MINOR version, because the union `SortOrder` gets new members. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The sort orders `perimeter-desc`, `long-side-desc`, `short-side-desc`, `side-diff-desc`, `ratio-desc` and `diagonal-desc`. Each one puts the box with the larger key first, and equal keys keep the input order.
+- The function `sortKey`: the key of a sort order for a box of a width and a height.
+- 6 operators in `packOperators`. The count of the operators goes from 38 to 44.
+- The 6 orders are options of the stage `order` of `packSpace`, and values of the option `sortOrder` in the catalog.
+
+### Changed
+
+- `compareRects` and the member order of `restarts` read one table of keys. The orders of before give the same layouts.
+- The base configs of `packSpace` go from 3,838 to 7,636 with 3 levels. The uniform draw of the bench sample changes.
+
+### Breaking
+
+- The union `SortOrder` has 6 new members. A `switch` or a `Record` over `SortOrder` in a caller does not compile until it has the new members.
+
 ## 0.15.2
 
 The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.

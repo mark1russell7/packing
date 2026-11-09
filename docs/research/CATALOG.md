@@ -102,7 +102,7 @@ A shelf packer puts the boxes into rows. Each row is as high as its highest box.
 Notes:
 
 - NFDH uses at most `2 OPT + h_max` of height, and FFDH uses at most `1.7 OPT + h_max`. Coffman 1980 proves these bounds.
-- The sort orders of `SORT_ORDERS` (`height-desc`, `height-asc`, `width-desc`, `area-desc` and `input`) apply to each shelf rule. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
+- The 11 sort orders of `SORT_ORDERS` apply to each shelf rule. The orders by perimeter, longer side, shorter side, side difference and ratio come from Jylänki 2010. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
 - Split-Fit sorts by width, not by height. Its bound of 1.5 needs boxes with a height of 1 or less.
 - `shelf-knapsack` uses a knapsack for each row. The `new-shelf-lookahead` idea adds the order to it.
 
@@ -426,7 +426,7 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 | `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | implemented: `masonryMultiSpan`, in `O(n c s)` for the largest count `s` of the columns of one box | k28 |
 | `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | implemented: `cssGridSparse`, in `O((n + m) r s)` for the `m` cells of the grid and the largest spans `r` and `s` of one box | k28 |
 | `css-grid-dense` | CSS grid dense flow | Put each item in the first free area of the grid from the start, as `grid-auto-flow: dense` does. | W3C grid | density | `O(n^2 c)` | — | implemented: `cssGridDense`, in `O(n m r s)` for the `m` cells of the grid and the largest spans `r` and `s` of one box | k28 |
-| `css-grid-lanes` | CSS grid lanes | Do `masonry-shortest` in a grid, with `display: grid-lanes` of the 2026 draft. The earlier drafts called it `masonry`. | W3C grid level 3 draft | order | `O(n log c)` | — | planned | k28 |
+| `css-grid-lanes` | CSS grid lanes | Do `masonry-shortest` in a grid, with `display: grid-lanes` of the 2026 draft. The earlier drafts called it `masonry`. | W3C grid level 3 draft | order | `O(n log c)` | — | implemented: `cssGridLanes`, in `O(n c s)` for the largest count `s` of the columns of one box, with the tie threshold `fitTolerance` | k28 |
 | `justified-greedy` | Justified rows, greedy | Add pictures to a row at a target height. When a picture makes the row too wide, keep it only if the row gets nearer to the target. Scale the row to the width. | Flickr, software | order, raggedness | `O(n)` | — | planned | k28 |
 | `justified-linear-partition` | Justified rows, linear partition | Cut the order into `k` rows of near equal width with dynamic programming. | Treitz 2013 (unverified), Skiena 2008 | order, raggedness | `O(n^2 k)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
 | `justified-line-break` | Justified rows, line breaking | Choose all the row breaks at once with the method of Knuth and Plass. The cost of a row is the change of its scale from the target. | Knuth 1981, Harasymiv 2016 (unverified) | order, raggedness | `O(n w)` for `w` items in a row | the best breaks for its cost (Knuth 1981) | planned | k28 |
@@ -982,4 +982,5 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **W3C flexbox.** "CSS Flexible Box Layout Module Level 1". <https://www.w3.org/TR/css-flexbox-1/>
 - **W3C grid.** "CSS Grid Layout Module Level 1". <https://www.w3.org/TR/css-grid-1/>
 - **W3C grid level 3 draft.** "CSS Grid Layout Module Level 3", a working draft of 2026. <https://www.w3.org/TR/css-grid-3/>
+- **CSS grid level 3 editor's draft.** The editor's draft of 21 October 2026. The code of `cssGridLanes` follows its section 4.4. <https://drafts.csswg.org/css-grid-3/>
 - **W3C multi-column.** "CSS Multi-column Layout Module Level 1". <https://www.w3.org/TR/css-multicol-1/>
