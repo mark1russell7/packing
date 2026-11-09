@@ -13,6 +13,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { CORPUS_MANIFEST_SCHEMA, lineJson, manifestText } from "@mark1russell7/layout-contract";
 import {
   boundGap,
   checkHard,
@@ -517,19 +518,15 @@ export const round6 = (x: number): number => Math.round(x * 1e6) / 1e6 + 0;
 /** This function gives the options of the search of a pair of the corpus. */
 export const pairOptions = ([a, b]: readonly [string, string]): AdversaryOptions => ({ a, b, seed: ADVERSARY_SEED, budget: ADVERSARY_BUDGET, maxCount: ADVERSARY_MAX_COUNT });
 
-/** This function gives a JSON value on one line, with a space after each colon and each comma. */
-export function inline(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(inline).join(", ")}]`;
-  if (value !== null && typeof value === "object") return `{${Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${inline(v)}`).join(", ")}}`;
-  return JSON.stringify(value);
-}
-
 /** This function gives the line of a result in the field `found` of the file: the pair, the loss, the origin and the path. */
-export function foundLine(result: AdversaryResult): string {
+export const foundLine = (result: AdversaryResult): string => lineJson(foundRow(result));
+
+/** This function gives the row of a result in the field `found` of the file. */
+function foundRow(result: AdversaryResult): Record<string, unknown> {
   const { a, b, seed, budget, maxCount } = result.options;
   const w = result.worst;
-  if (w === null) return inline({ a, b, seed, budget, maxCount, input: null, evaluations: result.evaluations, valid: result.valid, starts: result.starts });
-  return inline({
+  if (w === null) return { a, b, seed, budget, maxCount, input: null, evaluations: result.evaluations, valid: result.valid, starts: result.starts };
+  return {
     a,
     b,
     seed,
@@ -550,7 +547,7 @@ export function foundLine(result: AdversaryResult): string {
     valid: result.valid,
     starts: result.starts,
     path: result.path.map((s) => [s.evaluation, s.move, round6(s.loss)]),
-  });
+  };
 }
 
 /** This function gives the line of the worst input of a result in the field `inputs` of the file, or `undefined` with no input. */
@@ -558,25 +555,18 @@ export const inputLine = (result: AdversaryResult): string | undefined => (resul
 
 /** This function gives the text of the corpus file from the results of the pairs, in their order. */
 export function adversaryCorpusText(results: readonly AdversaryResult[]): string {
-  const inputs = results.flatMap((res) => {
-    const line = inputLine(res);
-    return line === undefined ? [] : [line];
-  });
-  const lines = [
-    "{",
-    `  "schema": "layout-corpus/1",`,
-    `  "corpus": ${JSON.stringify(ADVERSARY_CORPUS)},`,
-    `  "heldOut": "all",`,
-    `  "search": ${inline({ name: ADVERSARY_NAME, version: ADVERSARY_VERSION, seed: ADVERSARY_SEED, budget: ADVERSARY_BUDGET, maxCount: ADVERSARY_MAX_COUNT, origins: ORIGINS })},`,
-    `  "found": [`,
-    results.map((res) => `    ${foundLine(res)}`).join(",\n"),
-    "  ],",
-    `  "inputs": [`,
-    inputs.map((line) => `    ${line}`).join(",\n"),
-    "  ]",
-    "}",
-  ];
-  return `${lines.join("\n")}\n`;
+  const inputs = results.flatMap((res) => (res.worst === null ? [] : [res.worst.input]));
+  return manifestText(
+    [
+      { key: "schema", value: CORPUS_MANIFEST_SCHEMA },
+      { key: "corpus", value: ADVERSARY_CORPUS },
+      { key: "heldOut", value: "all" },
+      { key: "search", value: { name: ADVERSARY_NAME, version: ADVERSARY_VERSION, seed: ADVERSARY_SEED, budget: ADVERSARY_BUDGET, maxCount: ADVERSARY_MAX_COUNT, origins: ORIGINS } },
+      { key: "found", value: results.map(foundRow), rows: true },
+      { key: "inputs", value: inputs, rows: true, style: "compact" },
+    ],
+    { emptyRows: "line" },
+  );
 }
 
 /** The parts of the corpus file that a test reads. */
