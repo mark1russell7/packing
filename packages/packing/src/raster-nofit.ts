@@ -402,17 +402,35 @@ function rowRange(stamp: Stamp, board: Board): [number, number] {
   return [lo, hi];
 }
 
-/** This function tells if each filled cell of a stamp is free at the place `col`, `row`. */
-function fits(stamp: Stamp, col: number, row: number, rows: readonly (Int32Array | undefined)[], board: Board): boolean {
+/**
+ * This function gives `col` if each filled cell of a stamp is free at the place `col`, `row`. Else it gives the next column
+ * that can fit (roadmap item k223). A span that is not free has a last blocked cell. The columns before the first column
+ * that starts the span after that cell put the span on that cell. Thus none of them fits.
+ */
+function nextFit(stamp: Stamp, col: number, row: number, rows: readonly (Int32Array | undefined)[], board: Board): number {
   const { cover } = stamp;
   const left = col + cover.col - board.gridCol;
   const top = row + cover.row - board.gridRow;
   for (let j = 0; j < cover.rows; j++) {
     const sums = rows[top + j];
     if (sums === undefined) continue;
-    for (const [a, b] of cover.spans[j]!) if (sums[left + b] !== sums[left + a]) return false;
+    for (const [a, b] of cover.spans[j]!) {
+      const lo = left + a;
+      const hi = left + b;
+      const total = sums[hi]!;
+      if (total === sums[lo]) continue;
+      // The sums do not go down, so the first index with the sum of the end is one after the last blocked cell.
+      let low = lo + 1;
+      let high = hi;
+      while (low < high) {
+        const mid = (low + high) >> 1;
+        if (sums[mid] === total) high = mid;
+        else low = mid + 1;
+      }
+      return col + low - lo;
+    }
   }
-  return true;
+  return col;
 }
 
 /** This function gives the first free place of a stamp, by row, then by column. It starts at the place of the last item with the same stamp. */
@@ -423,7 +441,11 @@ function firstPlace(stamp: Stamp, rows: readonly (Int32Array | undefined)[], boa
   const startRow = from === undefined ? rowLo : Math.max(rowLo, from[0]);
   for (let row = startRow; row <= rowHi; row++) {
     const startCol = from !== undefined && row === from[0] ? Math.max(colLo, from[1]) : colLo;
-    for (let col = startCol; col <= colHi; col++) if (fits(stamp, col, row, rows, board)) return [row, col];
+    for (let col = startCol; col <= colHi; ) {
+      const next = nextFit(stamp, col, row, rows, board);
+      if (next === col) return [row, col];
+      col = next;
+    }
   }
   return undefined;
 }

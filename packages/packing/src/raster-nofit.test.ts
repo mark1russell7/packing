@@ -1,6 +1,7 @@
 import { mulberry32, turnPoint } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import type { Item, PackInput, PackOutput, Placement, Region } from "./contract.ts";
+import { outputHash } from "./layout-input.ts";
 import { packRasterNofit, RASTER_NOFIT_MAX_CELLS, RASTER_NOFIT_STAGE, rasterCell, rasterCover, type RasterCover } from "./raster-nofit.ts";
 
 // The exact geometry of the tests. Each float is a whole number times a power of 2, so `big` loses nothing. The checks compare `bigint` values only.
@@ -465,5 +466,30 @@ describe("packRasterNofit", () => {
     const input: PackInput = { container: { w: 1000, h: 1000, fixed: "size" }, items: [{ id: "a", w: 1, h: 1 }] };
     expect(RASTER_NOFIT_MAX_CELLS).toBe(2 ** 24);
     expect(() => packRasterNofit(input, { cell: 0.01 })).toThrow(/too many cells/);
+  });
+});
+
+describe("the skip of the blocked columns (k223)", () => {
+  /** This function gives a made-up strip or sheet with many thin obstacles, so the search skips many columns. */
+  function made(seed: number): PackInput {
+    const random = mulberry32(seed);
+    const n = (lo: number, hi: number): number => lo + Math.floor(random() * (hi - lo + 1));
+    const w = n(60, 160);
+    const obstacles = Array.from({ length: n(4, 14) }, (_, i) => ({ id: `o${i}`, region: { kind: "rect", x: n(0, w - 8), y: n(0, 90), w: n(2, 24), h: n(1, 6) } as Region }));
+    const items: Item[] = Array.from({ length: n(12, 30) }, (_, i) => ({ id: `i${i}`, w: n(2, 30), h: n(2, 20), ...(random() < 0.4 ? { turnable: true } : {}) }));
+    const container: PackInput["container"] = seed % 2 === 0 ? { fixed: "width", w } : { fixed: "size", w, h: n(60, 140) };
+    return { container, items, obstacles };
+  }
+
+  it("gives the same layouts as the search that tries each column", () => {
+    // The hashes come from the code before k223, which tried each column of each row.
+    const want = [
+      "57da31dd44b11a0c", "3cc04ce1a8244b6b", "e33aea6bc5f87d89", "bde2b39eca7b0249", "450fe61bee8c0c7b", "e7402e3ca19075e9",
+      "8bd8f91e96f61156", "6b2e027e9e273515", "0ff1ee7db2a670a5", "4051c0d3633b2026", "3aa55f1e6394f867", "307f4d8c9453ccba",
+      "7db4a048375b0e95", "332cdcaeee66b70d", "8f9561568c094c73", "0cddf2b0f9b4a63f", "f8d92208f20dc5ba", "f69b793b96a66a10",
+      "854b7335aec736cc", "cbcc53a179ab80d5", "b388c28ef5a433d7", "9e7e0ced2a62f903", "e07810e11605d317", "15aea35c3e9736de",
+    ];
+    const got = want.map((_, i) => outputHash(packRasterNofit(made(i + 1), { trials: 6, cell: 1 })));
+    expect(got).toEqual(want);
   });
 });
