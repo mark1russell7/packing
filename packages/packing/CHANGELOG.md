@@ -1,5 +1,81 @@
 # Changelog
 
+## 0.17.3
+
+The bench writes each corpus file with the one manifest writer of `@mark1russell7/layout-contract` 0.9.2 (roadmap item k219). Each corpus file keeps the same bytes.
+
+This release raises the PATCH version: a dependency bump with no change of the public API.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.2.
+- The 8 corpus writers of the bench use `corpusManifestText` and `manifestText`. The 7 local copies of the function `inline` go.
+- The paired time test of the bench uses `quantile`, `mean` and `sd` of `@mark1russell7/rigor-statistics`. Its local copies go. An empty list keeps the value NaN.
+
+## 0.17.2
+
+Three level packers of the literature (roadmap item k211). Each one is a strategy and a placement of `packSpace`. No default uses them.
+
+This release raises the PATCH version: new functions and strategies. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `shelfSplitFit`: the split-fit algorithm of Coffman 1980. The narrow boxes go into a region at the side of the wide levels.
+- The function `shelfFloorCeiling`: the floor-ceiling algorithm of Lodi 1999. Each level takes boxes on its floor and under its ceiling.
+- The function `shelfKnapsack`: the knapsack algorithm of Lodi 1999. A 0-1 knapsack on the area fills each level.
+- The function `shelfLevelsRefusal`, the constant `SHELF_KNAPSACK_STATES` and the type `ShelfLevelsResult`.
+- The strategies `shelf-split-fit`, `shelf-floor-ceiling` and `shelf-knapsack`, and their placements in `packSpace`. `packOperators` has 41 operators.
+
+### Changed
+
+- `packSpace` has 3 more base configs with each count of levels. Each old config keeps its `configId`.
+
+## 0.17.1
+
+The method `pivot-split` of the strategy `treemap` has the param `pivot`. The pivots by middle and by size of Shneiderman 2001 are values of this param.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The param `pivot` of the strategy `treemap`, with the values `split`, `middle` and `size`. The default is `split`, so a config with no pivot gives the output of 0.12.0.
+- The type `TreemapPivot` and the list `TREEMAP_PIVOT_IDS`.
+- The param `pivot` of the option `treemap` of `packSpace`. It is active only with the method `pivot-split`.
+- The named configs and the bench entries `treemap-pivot-middle` and `treemap-pivot-size`, with their tie-move rows and whole-position rows.
+
+### Fixed
+
+- `baseConfig` of a standalone strategy leaves out a param that is not active. Before, it set each param to its default.
+
+### Changed
+
+- 0.12.0 told that `pivot-middle` and `pivot-size` become methods with a later break. They are values of a param, because they differ from `pivot-split` only in the pivot. The type `TreemapMethod` does not change.
+
+## 0.17.0
+
+Each entry of the strategy catalog gets the output fingerprint of its strategy (roadmap item k201). A chooser can find 2 strategies with the same output and not start them.
+
+This release raises the MINOR version, because the catalog goes to the schema `strategy-catalog/3`. A reader that accepts only `strategy-catalog/2` refuses the new file. Before 1.0.0, a break raises MINOR.
+
+### Breaking
+
+- The file `strategy-catalog.json` and the constant `strategyCatalog` use the schema `strategy-catalog/3` of `@mark1russell7/layout-contract`, not `strategy-catalog/2`.
+
+### Added
+
+- Each entry of the catalog has the field `fingerprint`, from the table `STRATEGY_FINGERPRINT`. All 33 entries have one.
+
+## 0.16.1
+
+The function `cssGridLanes` of roadmap item k28 places the boxes of a wall as the CSS grid lanes do. The code follows section 4.4 of the editor's draft of 21 October 2026.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `cssGridLanes` and its options `GridLanesOptions`. Each box goes to the first possible line after the cursor. A possible line has a top at most `fitTolerance` below the lowest top.
+- With no possible line after the cursor, the box goes to the first possible line. With `fitTolerance` set to `Infinity`, the boxes go to the columns in strict order.
+
 ## 0.16.0
 
 The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.

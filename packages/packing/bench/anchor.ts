@@ -10,7 +10,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { corpus, toPackInput, WALL_LOCKS_MAX, type CorpusSpec } from "@mark1russell7/packing";
-import type { DeclaredClaim } from "@mark1russell7/layout-contract";
+import { CORPUS_MANIFEST_SCHEMA, corpusManifestText, type DeclaredClaim } from "@mark1russell7/layout-contract";
 import { declaredCounts } from "./claims.ts";
 import { isMeasured, median, parseCorpus, runBench, type BenchEnv, type BenchRecord } from "./run.ts";
 
@@ -51,28 +51,10 @@ export function anchorClaim(specs: readonly CorpusSpec[] = anchorSpecs()): Decla
   return { minCount, thin: Object.keys(counts).filter((id) => counts[id]! < minCount), counts };
 }
 
-/** This function gives a JSON value on one line, with a space after each colon and each comma. */
-export function inline(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(inline).join(", ")}]`;
-  if (value !== null && typeof value === "object") return `{${Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${inline(v)}`).join(", ")}}`;
-  return JSON.stringify(value);
-}
-
 /** This function gives the text of the corpus file, in the form of the other files of `bench/corpora`: one spec on each line. */
 export function anchorCorpusText(): string {
   const specs = anchorSpecs();
-  const lines = [
-    "{",
-    `  "schema": "layout-corpus/1",`,
-    `  "corpus": ${JSON.stringify(ANCHOR_CORPUS)},`,
-    `  "heldOut": "all",`,
-    `  "claims": ${inline({ declared: anchorClaim(specs) })},`,
-    `  "specs": [`,
-    specs.map((s) => `    ${inline(s)}`).join(",\n"),
-    "  ]",
-    "}",
-  ];
-  return `${lines.join("\n")}\n`;
+  return corpusManifestText({ schema: CORPUS_MANIFEST_SCHEMA, corpus: ANCHOR_CORPUS, heldOut: "all", claims: { declared: anchorClaim(specs) }, specs });
 }
 
 /** One row of the report: the medians of the measures `pack.anchor.*` of one strategy, and the share of the inputs that settle. */

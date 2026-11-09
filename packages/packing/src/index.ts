@@ -105,10 +105,12 @@ export {
   STANDALONE_MAX_ITEMS,
   standaloneStrategies,
   TREEMAP_METHOD_IDS,
+  TREEMAP_PIVOT_IDS,
   type MasonryMethod,
   type MasonryStrategyOptions,
   type SideAnchorStrategyOptions,
   type TreemapMethod,
+  type TreemapPivot,
   type TreemapStrategyOptions,
 } from "./standalone-strategies.ts";
 export { allStrategies, packFrames, packWith, strategy } from "./strategy-list.ts";
@@ -215,6 +217,7 @@ export {
 } from "./bounds.ts";
 export { shelfBreaks, shelfBreaksRefusal, type ShelfBreaksResult } from "./shelf-breaks.ts";
 export { shelfOnline, shelfOnlineRefusal, type ShelfOnlineFit, type ShelfOnlineOptions, type ShelfOnlineResult } from "./shelf-online.ts";
+export { SHELF_KNAPSACK_STATES, shelfFloorCeiling, shelfKnapsack, shelfLevelsRefusal, shelfSplitFit, type ShelfLevelsResult } from "./shelf-levels.ts";
 export { sleatorRefusal, sleatorStrip, type SleatorResult } from "./sleator.ts";
 export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
 export { BEAM_WIDTH, beamStrip, type BeamOptions, type BeamResult } from "./beam.ts";
@@ -225,6 +228,7 @@ export {
   columnsCssBalance,
   columnsLinearPartition,
   cssGridDense,
+  cssGridLanes,
   cssGridSparse,
   masonryDifferencing,
   masonryLpt,
@@ -233,6 +237,7 @@ export {
   type ColumnBalance,
   type ColumnReading,
   type GridFlowOptions,
+  type GridLanesOptions,
   type MasonryLayout,
   type MasonryOptions,
 } from "./masonry.ts";

@@ -11,8 +11,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mean, median } from "@mark1russell7/rigor-statistics";
 import { CHANGE_WALK_KINDS, CHANGE_WALK_STEPS, corpus, toPackInput, type CorpusSpec } from "@mark1russell7/packing";
-import type { DeclaredClaim } from "@mark1russell7/layout-contract";
-import { inline } from "./anchor.ts";
+import { CORPUS_MANIFEST_SCHEMA, corpusManifestText, type DeclaredClaim } from "@mark1russell7/layout-contract";
 import { declaredCounts } from "./claims.ts";
 import { STOPPED } from "./control-read.ts";
 import { benchEntry, benchStrategy } from "./controls.ts";
@@ -55,18 +54,7 @@ export function changeClaim(specs: readonly CorpusSpec[] = changeSpecs()): Decla
 /** This function gives the text of the corpus file, in the form of the other files of `bench/corpora`: one spec on each line. */
 export function changeCorpusText(): string {
   const specs = changeSpecs();
-  const lines = [
-    "{",
-    `  "schema": "layout-corpus/1",`,
-    `  "corpus": ${JSON.stringify(CHANGE_CORPUS)},`,
-    `  "heldOut": "all",`,
-    `  "claims": ${inline({ declared: changeClaim(specs) })},`,
-    `  "specs": [`,
-    specs.map((s) => `    ${inline(s)}`).join(",\n"),
-    "  ]",
-    "}",
-  ];
-  return `${lines.join("\n")}\n`;
+  return corpusManifestText({ schema: CORPUS_MANIFEST_SCHEMA, corpus: CHANGE_CORPUS, heldOut: "all", claims: { declared: changeClaim(specs) }, specs });
 }
 
 /** One row of the report: the mean of `pack.stability.moved` of one strategy for each kind of edit. */
