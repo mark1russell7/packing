@@ -513,7 +513,7 @@ These methods come from the layout of text and of user interfaces. They are pack
 
 | `id` | Name | Rule | Source | Goal | Cost | Guarantee | Status | Item |
 |---|---|---|---|---|---|---|---|---|
-| `flex-wrap` | Flexbox wrap | `shelf-nf` in the input order, with a rule for the space that is left in each row (start, center, end or between). | W3C flexbox | order | `O(n)` | — | planned | k28 |
+| `flex-wrap` | Flexbox wrap | `shelf-nf` in the input order, with a rule for the space that is left in each row (start, center, end, between, around or evenly). A rule puts each box at the top, the middle or the bottom of its row. | W3C flexbox, W3C box alignment | order | `O(n)` | — | implemented: `flexWrap`, in `O(n log n)` for the reading order | k28 |
 | `flex-wrap-grow` | Flexbox wrap with grow | Do `flex-wrap`, then give the space left in each row to the boxes that can grow. | W3C flexbox | order, raggedness | `O(n)` | — | planned | k28 |
 | `line-break-knuth-plass` | Line breaking of boxes | Choose all the row breaks of the input order at once. The cost of a row is the square of its free width. The last row has no cost. | Knuth 1981 | order, raggedness | `O(n w)` | the best breaks for its cost (Knuth 1981) | planned | k29 |
 | `line-break-height` | Row breaks of the least height | Choose all the row breaks of the input order at once. The cost of a row is the height of its tallest box. | Knuth 1981, with the height as the cost | order, density | `O(n k)` for rows of at most `k` boxes | the least height of all rows in the input order, and at most the height of `shelf-nf` in the same order | done | `shelfBreaks`, k29 |
@@ -979,6 +979,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **OR-Datasets, data.** Óscar Oliveira. Converted copies of many sets, with generators. The repository has the MIT label, and its folders state no other license. <https://github.com/Oscar-Oliveira/OR-Datasets>
 - **Nottingham strip packing page, data.** A list of strip packing sets with their best heights. It has no download and states no license. <https://people.cs.nott.ac.uk/pszeo/research/SPP/>
 - **Packomania, data.** Eckard Specht. The best known packings of circles in many containers, with the coordinates. The site states no license. <http://www.packomania.com/>
+- **W3C box alignment.** "CSS Box Alignment Module Level 3". It gives `space-evenly`. <https://www.w3.org/TR/css-align-3/>
 - **W3C flexbox.** "CSS Flexible Box Layout Module Level 1". <https://www.w3.org/TR/css-flexbox-1/>
 - **W3C grid.** "CSS Grid Layout Module Level 1". <https://www.w3.org/TR/css-grid-1/>
 - **W3C grid level 3 draft.** "CSS Grid Layout Module Level 3", a working draft of 2026. <https://www.w3.org/TR/css-grid-3/>

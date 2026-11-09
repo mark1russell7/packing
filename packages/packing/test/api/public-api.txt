@@ -91,9 +91,15 @@ type EdgeCase: build/index.d.ts#EdgeCase
 type EdgeCaseParams: build/index.d.ts#EdgeCaseParams
 type ExactStripOptions: build/index.d.ts#ExactStripOptions
 type ExactStripResult: build/index.d.ts#ExactStripResult
+FLEX_ALIGN: build/index.d.ts#FLEX_ALIGN
+FLEX_JUSTIFY: build/index.d.ts#FLEX_JUSTIFY
 FORCE_MAX_BOXES: build/index.d.ts#FORCE_MAX_BOXES
 FORCE_MAX_FIXED: build/index.d.ts#FORCE_MAX_FIXED
 FORCE_STAGE: build/index.d.ts#FORCE_STAGE
+type FlexAlign: build/index.d.ts#FlexAlign
+type FlexJustify: build/index.d.ts#FlexJustify
+type FlexWrapOptions: build/index.d.ts#FlexWrapOptions
+type FlexWrapResult: build/index.d.ts#FlexWrapResult
 type ForceStrategyOptions: build/index.d.ts#ForceStrategyOptions
 type FrameCallback: build/index.d.ts#FrameCallback
 type FreeSpace: build/layout-strategy.d.ts#FreeSpace
@@ -373,6 +379,8 @@ edgeCases: build/index.d.ts#edgeCases
 edgeCasesFamily: build/index.d.ts#edgeCasesFamily
 exactStrip: build/index.d.ts#exactStrip
 exactStripRefusal: build/index.d.ts#exactStripRefusal
+flexWrap: build/index.d.ts#flexWrap
+flexWrapRefusal: build/index.d.ts#flexWrapRefusal
 fnv1a32: build/index.d.ts#fnv1a32
 forceStrategy: build/index.d.ts#forceStrategy
 frameOfOutput: build/index.d.ts#frameOfOutput
@@ -1092,6 +1100,12 @@ interface ExactStripResult {
   readonly nodes: number;
 }
 
+### build/index.d.ts#FLEX_ALIGN
+export declare const FLEX_ALIGN: readonly FlexAlign[];
+
+### build/index.d.ts#FLEX_JUSTIFY
+export declare const FLEX_JUSTIFY: readonly FlexJustify[];
+
 ### build/index.d.ts#FORCE_MAX_BOXES
 export declare const FORCE_MAX_BOXES = 1e3;
 
@@ -1100,6 +1114,25 @@ export declare const FORCE_MAX_FIXED = 1e3;
 
 ### build/index.d.ts#FORCE_STAGE
 export declare const FORCE_STAGE = "force";
+
+### build/index.d.ts#FlexAlign
+type FlexAlign = "start" | "center" | "end";
+
+### build/index.d.ts#FlexJustify
+type FlexJustify = "start" | "center" | "end" | "between" | "around" | "evenly";
+
+### build/index.d.ts#FlexWrapOptions
+interface FlexWrapOptions {
+  readonly justify?: FlexJustify;
+  readonly align?: FlexAlign;
+}
+
+### build/index.d.ts#FlexWrapResult
+interface FlexWrapResult {
+  readonly output: PackOutput;
+  readonly rows: number;
+  readonly free: readonly number[];
+}
 
 ### build/index.d.ts#ForceStrategyOptions
 interface ForceStrategyOptions {
@@ -2087,6 +2120,12 @@ export declare function exactStrip(input: PackInput, options?: ExactStripOptions
 
 ### build/index.d.ts#exactStripRefusal
 export declare function exactStripRefusal(input: PackInput): string | null;
+
+### build/index.d.ts#flexWrap
+export declare function flexWrap(input: PackInput, options?: FlexWrapOptions): FlexWrapResult;
+
+### build/index.d.ts#flexWrapRefusal
+export declare function flexWrapRefusal(input: PackInput): string | null;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;

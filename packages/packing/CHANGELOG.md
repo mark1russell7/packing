@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.3
+
+The function `flexWrap` packs a strip into rows, as a flex container with `flex-wrap: wrap` and no grow (roadmap item k28). The rules of `justify` put the space that is left in each row. The rules of `align` put each box in the height of its row.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `flexWrap`, with the options `justify` (`start`, `center`, `end`, `between`, `around`, `evenly`) and `align` (`start`, `center`, `end`).
+- The function `flexWrapRefusal`, the lists `FLEX_JUSTIFY` and `FLEX_ALIGN`, and the types `FlexJustify`, `FlexAlign`, `FlexWrapOptions` and `FlexWrapResult`.
+
 ## 0.15.0
 
 A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
