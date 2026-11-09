@@ -19,6 +19,7 @@ import { NAMED_VALUES, packSpace } from "./pack-space.ts";
 import type { Item, PackInput, PackOutput } from "./contract.ts";
 import { outputHash } from "./layout-input.ts";
 import { STANDALONE_MAX_ITEMS } from "./standalone-strategies.ts";
+import { STRATEGY_FINGERPRINT } from "./strategy-fingerprint.ts";
 import { EXACT_STRIP_MAX_ITEMS, EXACT_STRIP_MAX_SIDE } from "./exact-strip.ts";
 import { allStrategies as registered } from "./registry.ts";
 import { SELECT_MEMBERS } from "./select-core.ts";
@@ -334,6 +335,14 @@ describe("the file strategy-catalog.json (k144)", () => {
     const parsed = parseStrategyCatalog(JSON.parse(text));
     expect(parsed.ok).toBe(true);
     if (parsed.ok) expect(parsed.catalog.version).toBe(pkg.version);
+  });
+
+  // The fingerprints come from the generated table of k201. The check of bench/fingerprints.ts keeps that table equal to the outputs.
+  it("has the schema strategy-catalog/3, with the output fingerprint of each strategy from the table of k201", () => {
+    const file = JSON.parse(text) as { schema: string; strategies: readonly { key: string; fingerprint?: string }[] };
+    expect(file.schema).toBe("strategy-catalog/3");
+    expect(Object.fromEntries(file.strategies.map((entry) => [entry.key, entry.fingerprint]))).toEqual(STRATEGY_FINGERPRINT);
+    for (const entry of file.strategies) expect(entry.fingerprint).toMatch(/^[0-9a-f]{16}$/u);
   });
 
   // A tool that sets a new version starts the script `version`. Without it, this file keeps the old version, and the test above fails.
