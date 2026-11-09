@@ -111,6 +111,7 @@ type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GraphOrder: build/order.d.ts#GraphOrder
 type GridFlowOptions: build/index.d.ts#GridFlowOptions
+type GridLanesOptions: build/index.d.ts#GridLanesOptions
 type GuillotineChoice: build/layout-strategy.d.ts#GuillotineChoice
 type GuillotineOptions: build/layout-strategy.d.ts#GuillotineOptions
 type GuillotineSplit: build/layout-strategy.d.ts#GuillotineSplit
@@ -366,6 +367,7 @@ corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
 createContext: build/strategy.d.ts#createContext
 cssGridDense: build/index.d.ts#cssGridDense
+cssGridLanes: build/index.d.ts#cssGridLanes
 cssGridSparse: build/index.d.ts#cssGridSparse
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
@@ -1177,6 +1179,11 @@ interface GeneticStrategyOptions {
 ### build/index.d.ts#GridFlowOptions
 interface GridFlowOptions extends MasonryOptions {
   readonly rowHeight?: number;
+}
+
+### build/index.d.ts#GridLanesOptions
+interface GridLanesOptions extends MasonryOptions {
+  readonly fitTolerance?: number;
 }
 
 ### build/index.d.ts#HALF_WIDE_WIDTH
@@ -2070,6 +2077,9 @@ export declare function countCell(count: number): CountScale;
 
 ### build/index.d.ts#cssGridDense
 export declare function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput;
+
+### build/index.d.ts#cssGridLanes
+export declare function cssGridLanes(input: PackInput, options: GridLanesOptions): PackOutput;
 
 ### build/index.d.ts#cssGridSparse
 export declare function cssGridSparse(input: PackInput, options: GridFlowOptions): PackOutput;

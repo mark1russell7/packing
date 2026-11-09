@@ -1,5 +1,5 @@
-// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing, ordered columns, the balance of CSS columns, wide cards and the CSS grid flow.
-// A card wall has columns of one width. Each box goes to one column, and a wide box of `masonryMultiSpan` goes to the columns next to each other that it covers. The CSS grid flow also has rows of one height. The functions of this file are standalone.
+// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing, ordered columns, the balance of CSS columns, wide cards, the CSS grid flow and the CSS grid lanes.
+// A card wall has columns of one width. Each box goes to one column, and a wide box of `masonryMultiSpan` goes to the columns next to each other that it covers. The CSS grid flow also has rows of one height. The CSS grid lanes add a tie threshold and a cursor to the wide cards. The functions of this file are standalone.
 // The strategy `masonry` of `src/standalone-strategies.ts` wraps them. They are not in a default. `columnBalance` and `columnReading` read their outputs.
 
 import { priorityQueue } from "@mark1russell7/collections";
@@ -441,6 +441,60 @@ export function cssGridSparse(input: PackInput, options: GridFlowOptions): PackO
  */
 export function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput {
   return gridFlow(input, options, true);
+}
+
+/** The options of a CSS grid lanes layout: a wall of columns, with the tie threshold of the lanes. */
+export interface GridLanesOptions extends MasonryOptions {
+  /**
+   * The tie threshold, as `fit-tolerance` gives it, in the units of the input. Two lines tie when a top is at most this
+   * distance below the lowest top. The default is 0. With `Infinity`, the boxes go to the columns in strict order.
+   */
+  readonly fitTolerance?: number;
+}
+
+/**
+ * This function gives the CSS grid lanes of the catalog entry `css-grid-lanes`, as `display: grid-lanes` of the CSS grid
+ * level 3 draft gives it. Each column keeps a running position, and a cursor starts at the left edge of the wall.
+ *
+ * - In the input order, a box covers the least count of columns that holds it. Each place of the box has the tallest top of its columns.
+ * - The places with a top at most `fitTolerance` below the lowest top tie. Of these, the first place at or after the cursor wins, else the first place.
+ * - The box goes to the top of its place. Its columns get its bottom with the gap, and the cursor goes to its right edge.
+ * - The input has no set column for a box. The refusals are those of `masonryMultiSpan`, plus a negative or `NaN` tolerance.
+ * - The cost is `O(n c s)` for the largest count `s` of the columns of one box.
+ */
+export function cssGridLanes(input: PackInput, options: GridLanesOptions): PackOutput {
+  const { cards, order, columns, width, gap } = wallOf(input, options, true);
+  const tolerance = options.fitTolerance ?? 0;
+  if (!(tolerance >= 0)) throw new RangeError("The fit tolerance must be 0 or more.");
+  const tops = new Array<number>(columns).fill(0);
+  const highest = new Array<number>(columns).fill(0);
+  const placements = new Array<Placement>(cards.length);
+  let cursor = 0;
+  for (const index of order) {
+    const card = cards[index]!;
+    const last = columns - card.span;
+    let lowest = Infinity;
+    for (let first = 0; first <= last; first++) {
+      let top = 0;
+      for (let column = first; column < first + card.span; column++) top = Math.max(top, tops[column]!);
+      highest[first] = top;
+      lowest = Math.min(lowest, top);
+    }
+    let start = -1;
+    let fallback = -1;
+    for (let first = 0; first <= last && start < 0; first++) {
+      if (!(highest[first]! <= lowest + tolerance)) continue;
+      if (fallback < 0) fallback = first;
+      if (first >= cursor) start = first;
+    }
+    if (start < 0) start = fallback;
+    const top = highest[start]!;
+    placements[index] = { id: card.id, x: start * (width + gap) + card.left, y: top + card.top };
+    for (let column = start; column < start + card.span; column++) tops[column] = top + card.height;
+    cursor = start + card.span;
+  }
+  const size = { w: columns * width + (columns - 1) * gap, h: Math.max(0, Math.max(0, ...tops) - gap) };
+  return { placements, overflow: [], size, moved: [] };
 }
 
 /**

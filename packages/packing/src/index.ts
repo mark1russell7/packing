@@ -225,6 +225,7 @@ export {
   columnsCssBalance,
   columnsLinearPartition,
   cssGridDense,
+  cssGridLanes,
   cssGridSparse,
   masonryDifferencing,
   masonryLpt,
@@ -233,6 +234,7 @@ export {
   type ColumnBalance,
   type ColumnReading,
   type GridFlowOptions,
+  type GridLanesOptions,
   type MasonryLayout,
   type MasonryOptions,
 } from "./masonry.ts";
