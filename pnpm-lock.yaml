@@ -214,6 +214,9 @@ importers:
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.6
         version: 0.1.14
+      '@mark1russell7/rigor-statistics':
+        specifier: ^0.1.11
+        version: 0.1.27
       '@mark1russell7/strategy-space':
         specifier: ^0.0.5
         version: 0.0.5
@@ -224,9 +227,6 @@ importers:
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.29
         version: 0.2.34(esbuild@0.28.2)
-      '@mark1russell7/rigor-statistics':
-        specifier: ^0.1.11
-        version: 0.1.27
       '@mark1russell7/site-pages':
         specifier: ^0.4.1
         version: 0.4.5

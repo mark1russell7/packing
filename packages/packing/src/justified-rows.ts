@@ -3,6 +3,7 @@
 // The three methods differ only in the row breaks: greedy, linear partition and line breaking. The function is standalone. It is not in a default.
 
 import { sizeBoundsOf } from "@mark1russell7/layout-contract";
+import { median } from "@mark1russell7/rigor-statistics";
 import { marginOf, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 
 /**
@@ -147,13 +148,6 @@ const feasible = (fit: RowFit): boolean => fit.low <= fit.high && fit.fill >= fi
 
 /** This function gives the height of a row. A row takes its fill height in its bounds. The last row also takes at most the target height. */
 const rowHeight = (fit: RowFit, last: boolean, target: number): number => Math.max(fit.low, Math.min(fit.fill, fit.high, last ? target : Infinity));
-
-/** This function gives the median of a list of numbers. The list is not empty. */
-function median(values: readonly number[]): number {
-  const sorted = values.toSorted((a, b) => a - b);
-  const mid = sorted.length >> 1;
-  return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
-}
 
 /** The greedy breaks. A row takes the next box while its fill height is over the target. Then it keeps the last box only when the box brings the row nearer to the target. */
 function greedyBreaks(fits: RowFits, n: number, target: number): number[] {

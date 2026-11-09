@@ -112,6 +112,7 @@
     "@mark1russell7/collections": "^0.10.0",
     "@mark1russell7/layout-contract": "^0.9.6",
     "@mark1russell7/rigor-generators": "^0.1.6",
+    "@mark1russell7/rigor-statistics": "^0.1.11",
     "@mark1russell7/strategy-space": "^0.0.5"
   },
   "scripts": {
@@ -125,7 +126,6 @@
   "devDependencies": {
     "@mark1russell7/cue": "^2.1.1",
     "@mark1russell7/rigor-bench": "^0.2.29",
-    "@mark1russell7/rigor-statistics": "^0.1.11",
     "@mark1russell7/site-pages": "^0.4.1",
     "@types/node": "^26.6.4",
     "@vitest/coverage-v8": "^5.0.5",
