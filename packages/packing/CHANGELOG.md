@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.5
+
+The function `treemapSplit` of roadmap item k27 is the split treemap. Each step cuts the ordered items into two parts with the most equal weights.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapSplit`. The frame gets a cut across its longer side, and the first part goes to the left or to the top. Thus the cells keep the input order.
+- Each step finds its cut with a binary search over the sums of the weights. The cost is `O(n log n)`, and a stack replaces the recursion.
+- On 200 made-up lists of 50 items, the mean aspect is 2.192. Pivot by split size gives 2.517, strip gives 2.630, and squarified, with no order, gives 1.227.
+- The catalog row `treemap-split` is implemented. Its source stays unverified.
+
+### Not changed
+
+- The strategies, their fingerprints and `packSpace` do not change. `treemapSplit` is not a method of the strategy `treemap`.
+
 ## 0.15.2
 
 The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.

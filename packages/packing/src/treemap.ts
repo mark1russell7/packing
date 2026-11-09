@@ -1,4 +1,4 @@
-// The treemaps of `docs/research/CATALOG.md` (roadmap item k27): slice and dice, squarified, strip, spiral, the pivots by split size, by middle and by size, and the Hilbert and Moore curves.
+// The treemaps of `docs/research/CATALOG.md` (roadmap item k27): slice and dice, squarified, strip, spiral, the pivots by split size, by middle and by size, the Hilbert and Moore curves, and split.
 // A treemap cuts a rectangle into cells. The area of each cell is in proportion to the weight of its item. The functions
 // of this file are standalone. They are not in the registry or in a default. `treemapPack` is the
 // comparison of the catalog: each box goes to the center of its cell, and the cells scale up until each box fits.
@@ -545,6 +545,66 @@ export function treemapPivotMiddle(nodes: readonly TreemapNode[], frame: Treemap
  */
 export function treemapPivotSize(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
   return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "size"));
+}
+
+/**
+ * This function gives the cells of one level of the split treemap. Each step cuts the items `from` up to `to` into two
+ * parts in the order, with the most equal weights. The area gets a cut across its longer side. A tie goes to the first cut.
+ */
+function splits(weights: readonly number[], frame: TreemapFrame): TreemapFrame[] {
+  const prefix = prefixOf(weights);
+  const cells: TreemapFrame[] = [];
+  // A stack in place of recursion: a list of falling weights can make a chain of cuts as long as the list.
+  const stack: { readonly from: number; readonly to: number; readonly area: TreemapFrame }[] = [];
+  if (weights.length > 0) stack.push({ from: 0, to: weights.length, area: frame });
+  while (stack.length > 0) {
+    const { from, to, area } = stack.pop()!;
+    if (to - from === 1) {
+      cells.push(area);
+      continue;
+    }
+    const total = prefix[to]! - prefix[from]!;
+    const gapAt = (cut: number): number => Math.abs(2 * (prefix[cut]! - prefix[from]!) - total);
+    // The binary search finds the first cut with at least half of the weight before it.
+    let low = from + 1;
+    let high = to - 1;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (2 * (prefix[middle]! - prefix[from]!) >= total) high = middle;
+      else low = middle + 1;
+    }
+    const cut = low > from + 1 && gapAt(low - 1) <= gapAt(low) ? low - 1 : low;
+    const share = (prefix[cut]! - prefix[from]!) / total;
+    let first: TreemapFrame;
+    let second: TreemapFrame;
+    if (area.w >= area.h) {
+      const w = area.w * share;
+      first = { x: area.x, y: area.y, w, h: area.h };
+      second = { x: area.x + w, y: area.y, w: area.w - w, h: area.h };
+    } else {
+      const h = area.h * share;
+      first = { x: area.x, y: area.y, w: area.w, h };
+      second = { x: area.x, y: area.y + h, w: area.w, h: area.h - h };
+    }
+    // The second part goes on the stack first, so the cells come in the order of the items.
+    stack.push({ from: cut, to, area: second });
+    stack.push({ from, to: cut, area: first });
+  }
+  return cells;
+}
+
+/**
+ * This function gives the split treemap. Each step cuts the ordered items into two parts with the most equal weights.
+ * The frame gets a cut across its longer side, and each part repeats the step. The first part goes to the left or to
+ * the top.
+ *
+ * - The cells keep the input order: each cut puts the items before it to the left of or above the items after it.
+ * - The catalog row names Engdahl 2005 as the source, but this project did not find that text. The rule of this
+ *   function comes from the catalog row.
+ * - Each step makes one cut with a binary search over the sums of the weights. Thus the cost is `O(n log n)`.
+ */
+export function treemapSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => splits(weights, area));
 }
 
 /**

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { checkHard } from "./check.ts";
 import type { PackInput } from "./contract.ts";
 import { measure } from "./measures.ts";
-import { treemapHilbert, treemapMoore, treemapPack, treemapPivotMiddle, treemapPivotSize, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
+import { treemapHilbert, treemapMoore, treemapPack, treemapPivotMiddle, treemapPivotSize, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSplit, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
 
 const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["slice-dice", treemapSliceDice],
@@ -17,6 +17,7 @@ const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["pivot-size", treemapPivotSize],
   ["hilbert", treemapHilbert],
   ["moore", treemapMoore],
+  ["split", treemapSplit],
 ];
 
 const leaves = (weights: readonly number[]): TreemapNode[] => weights.map((weight, index) => ({ id: `n${index}`, weight }));
@@ -401,6 +402,61 @@ describe("treemapPack", () => {
     const before = JSON.stringify(input);
     treemapPack(input, treemapPivotSplit);
     expect(JSON.stringify(input)).toBe(before);
+  });
+});
+
+describe("split", () => {
+  it("cuts four equal items in a square into two columns of two cells", () => {
+    expect(treemapSplit(leaves([1, 1, 1, 1]), { x: 0, y: 0, w: 4, h: 4 })).toEqual([
+      { id: "n0", x: 0, y: 0, w: 2, h: 2 },
+      { id: "n1", x: 0, y: 2, w: 2, h: 2 },
+      { id: "n2", x: 2, y: 0, w: 2, h: 2 },
+      { id: "n3", x: 2, y: 2, w: 2, h: 2 },
+    ]);
+  });
+
+  it("cuts across the long side of the frame", () => {
+    expect(treemapSplit(leaves([1, 1]), { x: 0, y: 0, w: 400, h: 100 }).map((cell) => cell.x)).toEqual([0, 200]);
+    expect(treemapSplit(leaves([1, 1]), { x: 0, y: 0, w: 100, h: 400 }).map((cell) => cell.y)).toEqual([0, 200]);
+  });
+
+  it("takes the cut with the most equal weights, and the first cut on a tie", () => {
+    const frame = { x: 0, y: 0, w: 400, h: 100 };
+    expect(treemapSplit(leaves([1, 1, 2]), frame).at(-1)).toMatchObject({ x: 200, w: 200 });
+    // The cuts after 1 and after 3 of the weights 1, 2, 1 have the same gap. The first cut wins.
+    expect(treemapSplit(leaves([1, 2, 1]), frame)[0]).toMatchObject({ x: 0, w: 100, h: 100 });
+  });
+
+  it("puts each item to the left of or above each later item, on 20 made-up lists", () => {
+    const frame = { x: 0, y: 0, w: 300, h: 200 };
+    const noise = 1e-9 * 300;
+    for (let i = 0; i < 20; i += 1) {
+      const cells = treemapSplit(leaves(weightsOf(`split-order:${i}`, 60)), frame);
+      for (const [index, a] of cells.entries()) {
+        for (const b of cells.slice(index + 1)) expect(b.x >= a.x + a.w - noise || b.y >= a.y + a.h - noise, `${a.id} before ${b.id}`).toBe(true);
+      }
+    }
+  });
+
+  it("gives a lower mean aspect than strip and pivot-split, on 200 made-up lists", () => {
+    // The measured means are 2.192 (split), 2.517 (pivot-split) and 2.630 (strip). Squarified, with no order, gives 1.227.
+    const frame = { x: 0, y: 0, w: 300, h: 200 };
+    const mean = (layout: TreemapLayout): number => {
+      let sum = 0;
+      for (let i = 0; i < 200; i += 1) sum += meanAspect(layout(leaves(weightsOf(`split-aspect:${i}`, 50)), frame));
+      return sum / 200;
+    };
+    const split = mean(treemapSplit);
+    expect(split).toBeLessThan(mean(treemapPivotSplit));
+    expect(split).toBeLessThan(mean(treemapStrip));
+    expect(split).toBeGreaterThan(mean(treemapSquarified));
+  });
+
+  it("lays 5,000 falling weights with no deep recursion", () => {
+    const frame = { x: 0, y: 0, w: 300, h: 200 };
+    const cells = treemapSplit(leaves(Array.from({ length: 5000 }, (_, i) => 0.995 ** i)), frame);
+    expect(cells).toHaveLength(5000);
+    expect(cells.reduce((sum, cell) => sum + cell.w * cell.h, 0) / (frame.w * frame.h)).toBeCloseTo(1, 9);
   });
 });
 
