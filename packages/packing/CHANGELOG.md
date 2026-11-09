@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.17.3
+
+The function `treemapQuantum` of roadmap item k27 lays out groups of elements of one size, for example pictures. Each cell holds a grid of whole elements, and all the cells share one grid.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapQuantum`, the quantum strip treemap of section 3.1 of Bederson, Shneiderman and Wattenberg 2002. The option `elementAspect` sets the shape of one element.
+- The test of figure 12 of the paper: the groups 3, 20, 20 and 1 in a square give the strips of the steps.
+- On 300 made-up inputs, the cells hold whole elements on one grid. They do not overlap, and they fit in the frame.
+- Wide elements in a wide box give the same grid as square elements in a square box, as section 3.2.1 tells.
+- The bench `bench/treemap-literature.ts` gets the section "Quantum strip against strip" with the trials of figures 13 and 14.
+
+### A difference from the paper
+
+Section 3.3 of the paper tells that the quantum treemaps give a better mean aspect than the treemaps with no quanta. The steps as written give a worse mean aspect. The table has 100 trials of 100 groups in a square, with the 95 % interval over the trials.
+
+| Counts | `treemapQuantum` | `treemapStrip` | Lone groups per trial | Aspect of the other groups |
+|---|---|---|---|---|
+| 1 to 10 | 6.33 [6.14, 6.54] | 2.22 [2.05, 2.45] | 9.45 | 4.49 |
+| 1 to 100 | 6.16 [5.88, 6.42] | 2.95 [2.65, 3.35] | 4.90 | 2.66 |
+| 1 to 1000 | 6.50 [5.94, 7.10] | 3.28 [2.94, 3.79] | 1.83 | 2.42 |
+
+The cause is a lone group. Step 3 rounds up the height of a strip, so a small group that starts a strip gets 1 row. Its aspect is its count, so the next group makes the mean aspect higher and the strip closes. Step 6 then gives the lone group the width of the widest strip. With counts up to 100 or more, the other groups get a better mean aspect than `treemapStrip`. The function keeps the steps of the paper.
+
+### Not changed
+
+- The other treemaps, the strategies, their fingerprints and `packSpace` do not change.
+
 ## 0.15.2
 
 The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.

@@ -1,7 +1,8 @@
 // The check of the treemaps of roadmap item k27 against Tables I to III of Bederson, Shneiderman, Wattenberg 2002.
 // It repeats the Monte Carlo trials of section 2.3.2 of that paper on made-up data: a log-normal start and a log-normal
 // random walk, in a square of side 100. The spiral of Tu and Shen 2007 (roadmap item k29) has no row in that paper, so the
-// report compares it with strip on the same trials. The output is a report, not a gate. The workflow `treemap-literature.yml` starts
+// report compares it with strip on the same trials. The quantum strip treemap of section 3 of the paper gets the trials of
+// figures 13 and 14: 100 groups with uniform counts. The output is a report, not a gate. The workflow `treemap-literature.yml` starts
 // this file. The file reads no clock, so the same arguments give the same bytes.
 
 import fs from "node:fs";
@@ -10,6 +11,7 @@ import type { Rect } from "@mark1russell7/layout-contract";
 import { random } from "@mark1russell7/rigor-generators";
 import { bootstrap, mean } from "@mark1russell7/rigor-statistics";
 import { treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "../src/treemap.ts";
+import { treemapQuantum, type QuantumLayout } from "../src/treemap-quantum.ts";
 
 /** The three measures of the paper. */
 export interface TreemapMeasures {
@@ -270,8 +272,77 @@ export function spiralRows(rows: readonly LiteratureRow[]): SpiralRow[] {
   return out;
 }
 
-/** This function gives the Markdown report of the rows. */
-export function reportOf(rows: readonly LiteratureRow[], trials: number, steps: number): string {
+/** The ranges of the counts for the quantum trials. Each count is a whole number from 1 up to the range, with a uniform draw. */
+export const QUANTUM_RANGES: readonly number[] = [10, 25, 100, 400, 1000];
+
+/** The count of the groups in each quantum trial, as in figures 13 and 14 of the paper. */
+export const QUANTUM_GROUPS = 100;
+
+/** One range of counts of the quantum trials. The two arms read the same counts. */
+export interface QuantumRow {
+  readonly range: number;
+  /** The mean aspect of the cells of `treemapQuantum`, in elements. */
+  readonly quantumAspect: Compared;
+  /** The mean aspect of the cells of `treemapStrip` with no lookahead, on the same counts. */
+  readonly stripAspect: Compared;
+  /** The empty elements of the cells of `treemapQuantum`, as a part of all the elements of the cells. */
+  readonly wasted: Compared;
+  /** The mean count in each trial of the groups that are alone in a strip of one row. */
+  readonly lone: number;
+  /** The mean aspect of the cells of the other groups. */
+  readonly otherAspect: number;
+}
+
+/** This function gives the aspect of a quantum cell, the count of the lone groups of one row, and the aspect of the other cells. */
+export function quantumAspects(layout: QuantumLayout): { readonly aspect: number; readonly lone: number; readonly otherAspect: number } {
+  const inRow = new Map<number, number>();
+  for (const cell of layout.cells) inRow.set(cell.y, (inRow.get(cell.y) ?? 0) + 1);
+  const all: number[] = [];
+  const others: number[] = [];
+  for (const cell of layout.cells) {
+    const aspect = Math.max(cell.cols / cell.rows, cell.rows / cell.cols);
+    all.push(aspect);
+    if (!(cell.rows === 1 && inRow.get(cell.y) === 1)) others.push(aspect);
+  }
+  return { aspect: mean(all), lone: all.length - others.length, otherAspect: others.length === 0 ? Number.NaN : mean(others) };
+}
+
+/** This function gives one row of the quantum trials for each range of `QUANTUM_RANGES`. */
+export function quantumRows(trials: number): QuantumRow[] {
+  return QUANTUM_RANGES.map((range) => {
+    const quantum: number[] = [];
+    const strip: number[] = [];
+    const wasted: number[] = [];
+    const lone: number[] = [];
+    const others: number[] = [];
+    for (let trial = 0; trial < trials; trial += 1) {
+      const stream = random(`treemap-literature:quantum:${range}:${trial}`);
+      const items = Array.from({ length: QUANTUM_GROUPS }, (_, i) => ({ id: `g${i}`, count: 1 + Math.floor(stream.next() * range) }));
+      const layout = treemapQuantum(items, FRAME);
+      const read = quantumAspects(layout);
+      quantum.push(read.aspect);
+      lone.push(read.lone);
+      if (!Number.isNaN(read.otherAspect)) others.push(read.otherAspect);
+      const total = items.reduce((sum, item) => sum + item.count, 0);
+      const elements = layout.cells.reduce((sum, cell) => sum + cell.cols * cell.rows, 0);
+      wasted.push((elements - total) / elements);
+      strip.push(meanAspectOf(treemapStrip(items.map((item) => ({ id: item.id, weight: item.count })), FRAME, { lookahead: false })));
+    }
+    const key = `quantum:${range}`;
+    const none = (): boolean => false;
+    return {
+      range,
+      quantumAspect: compared(quantum, undefined, `${key}:aspect`, none),
+      stripAspect: compared(strip, undefined, `${key}:strip`, none),
+      wasted: compared(wasted, undefined, `${key}:wasted`, none),
+      lone: mean(lone),
+      otherAspect: others.length === 0 ? Number.NaN : mean(others),
+    };
+  });
+}
+
+/** This function gives the Markdown report of the rows, and of the quantum rows when there are some. */
+export function reportOf(rows: readonly LiteratureRow[], trials: number, steps: number, quantum: readonly QuantumRow[] = []): string {
   const lines = [
     `# Treemaps against Bederson 2002, Tables I to III (${trials} trials of ${steps} steps)`,
     "",
@@ -295,6 +366,20 @@ export function reportOf(rows: readonly LiteratureRow[], trials: number, steps: 
       ...spiral.map((row) => `| ${row.walk} | ${row.table} | ${row.aspectRatio.toFixed(3)} ${verdict(row.aspectOk)} | ${row.changeRatio.toFixed(3)} ${verdict(row.changeOk)} | ${row.readabilityGain.toFixed(3)} ${verdict(row.readabilityOk)} |`),
     );
   }
+  if (quantum.length > 0) {
+    const f = (value: Compared): string => `${value.measured.toFixed(2)} [${value.low.toFixed(2)}, ${value.high.toFixed(2)}]`;
+    lines.push(
+      "",
+      "## Quantum strip against strip (figures 13 and 14)",
+      "",
+      `Each trial has ${QUANTUM_GROUPS} groups, with uniform counts from 1 up to the range. The strip arm has no lookahead. The empty elements are a part of all the elements of the cells.`,
+      "A lone group is alone in a strip of one row. Step 6 of the paper gives it the width of the widest strip.",
+      "",
+      "| Counts | Quantum aspect | Strip aspect | Empty elements | Lone groups per trial | Aspect of the other groups |",
+      "|---|---|---|---|---|---|",
+      ...quantum.map((row) => `| 1 to ${row.range} | ${f(row.quantumAspect)} | ${f(row.stripAspect)} | ${f(row.wasted)} | ${row.lone.toFixed(2)} | ${row.otherAspect.toFixed(2)} |`),
+    );
+  }
   return `${lines.join("\n")}\n`;
 }
 
@@ -312,12 +397,13 @@ if (process.argv[1]?.endsWith("treemap-literature.ts") === true) {
   const trials = countOf(args, "--trials", 100);
   const steps = countOf(args, "--steps", 100);
   const rows = literatureRows(trials, steps);
-  const report = reportOf(rows, trials, steps);
+  const quantum = quantumRows(trials);
+  const report = reportOf(rows, trials, steps, quantum);
   const at = args.indexOf("--out");
   if (at !== -1) {
     const out = args[at + 1]!;
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows, spiral: spiralRows(rows) }, null, 2)}\n`);
+    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows, spiral: spiralRows(rows), quantum }, null, 2)}\n`);
     fs.writeFileSync(path.join(out, "treemap-literature.md"), report);
   }
   process.stdout.write(report);
