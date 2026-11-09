@@ -103,6 +103,7 @@ type FreeWidthResult: build/index.d.ts#FreeWidthResult
 type FreeWidthTry: build/index.d.ts#FreeWidthTry
 GENETIC_STAGE: build/index.d.ts#GENETIC_STAGE
 GRAPH_ORDERS: build/order.d.ts#GRAPH_ORDERS
+GRID_TEMPLATES: build/index.d.ts#GRID_TEMPLATES
 GUILLOTINE_CHOICES: build/layout-strategy.d.ts#GUILLOTINE_CHOICES
 GUILLOTINE_SPLITS: build/layout-strategy.d.ts#GUILLOTINE_SPLITS
 type GeneratedInput: build/index.d.ts#GeneratedInput
@@ -110,8 +111,13 @@ type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GraphOrder: build/order.d.ts#GraphOrder
+type GridCell: build/index.d.ts#GridCell
 type GridFlowOptions: build/index.d.ts#GridFlowOptions
 type GridLanesOptions: build/index.d.ts#GridLanesOptions
+type GridPage: build/index.d.ts#GridPage
+type GridTemplate: build/index.d.ts#GridTemplate
+type GridTemplateOptions: build/index.d.ts#GridTemplateOptions
+type GridTemplateResult: build/index.d.ts#GridTemplateResult
 type GuillotineChoice: build/layout-strategy.d.ts#GuillotineChoice
 type GuillotineOptions: build/layout-strategy.d.ts#GuillotineOptions
 type GuillotineSplit: build/layout-strategy.d.ts#GuillotineSplit
@@ -392,6 +398,8 @@ generator: build/index.d.ts#generator
 generators: build/index.d.ts#generators
 geneticStrategy: build/index.d.ts#geneticStrategy
 graphOrder: build/order.d.ts#graphOrder
+gridTemplateLayout: build/index.d.ts#gridTemplateLayout
+gridTemplateRefusal: build/index.d.ts#gridTemplateRefusal
 guillotine: build/guillotine-strategy.d.ts#guillotine
 halfWide: build/index.d.ts#halfWide
 halfWideFamily: build/index.d.ts#halfWideFamily
@@ -1154,6 +1162,9 @@ interface FreeWidthTry {
 ### build/index.d.ts#GENETIC_STAGE
 export declare const GENETIC_STAGE = "genetic";
 
+### build/index.d.ts#GRID_TEMPLATES
+export declare const GRID_TEMPLATES: readonly GridTemplate[];
+
 ### build/index.d.ts#GeneratedInput
 interface GeneratedInput extends LayoutInput$1 {
   readonly set: string;
@@ -1184,6 +1195,14 @@ interface GeneticStrategyOptions {
   mutation?: number;
 }
 
+### build/index.d.ts#GridCell
+interface GridCell {
+  readonly column: number;
+  readonly row: number;
+  readonly columns: number;
+  readonly rows: number;
+}
+
 ### build/index.d.ts#GridFlowOptions
 interface GridFlowOptions extends MasonryOptions {
   readonly rowHeight?: number;
@@ -1192,6 +1211,35 @@ interface GridFlowOptions extends MasonryOptions {
 ### build/index.d.ts#GridLanesOptions
 interface GridLanesOptions extends MasonryOptions {
   readonly fitTolerance?: number;
+}
+
+### build/index.d.ts#GridPage
+interface GridPage {
+  readonly template: string;
+  readonly items: readonly string[];
+}
+
+### build/index.d.ts#GridTemplate
+interface GridTemplate {
+  readonly id: string;
+  readonly columns: number;
+  readonly rows: number;
+  readonly cells: readonly GridCell[];
+  readonly cost?: number;
+}
+
+### build/index.d.ts#GridTemplateOptions
+interface GridTemplateOptions {
+  readonly pageHeight: number;
+  readonly templates?: readonly GridTemplate[];
+  readonly pageCost?: number;
+}
+
+### build/index.d.ts#GridTemplateResult
+interface GridTemplateResult {
+  readonly output: PackOutput;
+  readonly pages: readonly GridPage[];
+  readonly cost: number;
 }
 
 ### build/index.d.ts#HALF_WIDE_WIDTH
@@ -2159,6 +2207,12 @@ export declare const generators: readonly CorpusGenerator[];
 
 ### build/index.d.ts#geneticStrategy
 export declare const geneticStrategy: Strategy<GeneticStrategyOptions>;
+
+### build/index.d.ts#gridTemplateLayout
+export declare function gridTemplateLayout(input: PackInput, options: GridTemplateOptions): GridTemplateResult;
+
+### build/index.d.ts#gridTemplateRefusal
+export declare function gridTemplateRefusal(input: PackInput, options: GridTemplateOptions): string | null;
 
 ### build/index.d.ts#halfWide
 export declare const halfWide: CorpusGenerator<HalfWideParams>;

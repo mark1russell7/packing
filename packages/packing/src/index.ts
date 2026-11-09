@@ -242,6 +242,16 @@ export {
   type MasonryOptions,
 } from "./masonry.ts";
 export {
+  GRID_TEMPLATES,
+  gridTemplateLayout,
+  gridTemplateRefusal,
+  type GridCell,
+  type GridPage,
+  type GridTemplate,
+  type GridTemplateOptions,
+  type GridTemplateResult,
+} from "./grid-template.ts";
+export {
   canonicalJson,
   countCell,
   fnv1a32,

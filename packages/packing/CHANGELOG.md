@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.17.3
+
+The adaptive grid layout of Jacobs 2003 (roadmap item k28). The function is standalone. No strategy and no default uses it.
+
+This release raises the PATCH version: a new function. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `gridTemplateLayout`. It cuts a strip into pages, and gives each page a template of grid cells. A dynamic program chooses the templates, with the least sum of the costs of the pages.
+- The function `gridTemplateRefusal` gives the reason that `gridTemplateLayout` refuses an input.
+- The default style `GRID_TEMPLATES`: 10 templates on a grid of 6 by 6 tracks.
+- The types `GridCell`, `GridTemplate`, `GridTemplateOptions`, `GridPage` and `GridTemplateResult`.
+
 ## 0.17.2
 
 Three level packers of the literature (roadmap item k211). Each one is a strategy and a placement of `packSpace`. No default uses them.

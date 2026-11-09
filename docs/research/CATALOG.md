@@ -430,13 +430,14 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 | `justified-greedy` | Justified rows, greedy | Add pictures to a row at a target height. When a picture makes the row too wide, keep it only if the row gets nearer to the target. Scale the row to the width. | Flickr, software | order, raggedness | `O(n)` | — | planned | k28 |
 | `justified-linear-partition` | Justified rows, linear partition | Cut the order into `k` rows of near equal width with dynamic programming. | Treitz 2013 (unverified), Skiena 2008 | order, raggedness | `O(n^2 k)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
 | `justified-line-break` | Justified rows, line breaking | Choose all the row breaks at once with the method of Knuth and Plass. The cost of a row is the change of its scale from the target. | Knuth 1981, Harasymiv 2016 (unverified) | order, raggedness | `O(n w)` for `w` items in a row | the best breaks for its cost (Knuth 1981) | planned | k28 |
-| `grid-template-layout` | Adaptive grid layout | Choose a template of grid cells for each page with a search over a cost. Fit the items to the cells. | Jacobs 2003 | aspect | template count x `n` | — | planned | k28 |
+| `grid-template-layout` | Adaptive grid layout | Choose a template of grid cells for each page with a search over a cost. Fit the items to the cells. | Jacobs 2003 | aspect | template count x `n` | — | implemented: `gridTemplateLayout`, in `O(n c)` for the sum `c` of the counts of the cells of the templates | k28 |
 
 Notes:
 
 - A box of this project does not scale. Thus `justified-*` gives the row breaks, and the boxes keep their size. Then the result has raggedness, and `pack.raggedness` measures it.
 - `masonry-shortest` is the list scheduling of Graham 1966 on parallel machines. `masonry-lpt` uses at most `4/3` of the best height of the highest column.
 - `columnReading` gives 0 for `masonry-shortest` with equal top margins, because the top of the shortest column does not go down. `pack.order.inversions` puts overlapped boxes on one line, so it gives a higher value for the same layout.
+- `gridTemplateLayout` follows Jacobs 2004: a style is a set of page templates, and a dynamic program over the pages chooses the template of each page. The article does not give the terms of its cost or a set of templates. Thus the cost and the templates of `GRID_TEMPLATES` come from this package. A page costs the page cost, plus the cost of its template, plus the empty area of its cells as a share of the page. The article also counts widows and orphans of text, which a box does not have.
 
 ## Order and stability
 
@@ -829,6 +830,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Iori 2021.** Manuel Iori, Vinícius L. de Lima, Silvano Martello, Flávio K. Miyazawa, Michele Monaci. "Exact solution techniques for two-dimensional cutting and packing". European Journal of Operational Research 289(2):399-415. <https://doi.org/10.1016/j.ejor.2020.06.050>
 - **Iori 2022.** Manuel Iori, Vinícius Loti de Lima, Silvano Martello, Michele Monaci. "2DPackLib: a two-dimensional cutting and packing library". Optimization Letters 16(2):471-480. <https://doi.org/10.1007/s11590-021-01808-y>
 - **Jacobs 2003.** Charles Jacobs, Wilmot Li, Evan Schrier, David Bargeron, David Salesin. "Adaptive grid-based document layout". ACM Transactions on Graphics 22(3):838-847. <https://research.adobe.com/publication/adaptive-grid-based-document-layout>
+- **Jacobs 2004.** The same authors. "Adaptive document layout". Communications of the ACM 47(8), August 2004. The code of `gridTemplateLayout` follows the method of this article. <https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ADL-CACM.pdf>
 - **Jakobs 1996.** Stefan Jakobs. "On genetic algorithms for the packing of polygons". European Journal of Operational Research 88(1):165-181. <https://doi.org/10.1016/0377-2217(94)00166-9>
 - **Johnson 1991.** Brian Johnson, Ben Shneiderman. "Tree-maps: a space-filling approach to the visualization of hierarchical information structures". IEEE Visualization 1991. <https://www.cs.umd.edu/~ben/papers/Johnson1991Tree.pdf>
 - **Jylänki 2010.** Jukka Jylänki. "A thousand ways to pack the bin: a practical approach to two-dimensional rectangle bin packing". A report with code, and the year is unverified. The code has each rule of this catalog with the key Jylänki 2010. <https://github.com/juj/RectangleBinPack>
