@@ -223,6 +223,7 @@ Status: done, done, waiting, next, done.
 | k218 | Check the 18 home moves of the atlas, one test each | move | later |  |
 | k219 | Move `quantileOf` and `mulberry32` to rigor, and the corpus manifest writer to layout-contract | move | later |  |
 | k220 | A start frame and the frames of a run: `packWith` takes a run with a start and a callback of the frames, and `force` settles from the start. The gate: a start that is a fixed point moves nothing, and a start does not make `pack.stability.moved` or `pack.stability.mean` of the change corpus worse for `push` and `force` | core | in progress |  |
+| k221 | One unit word for each measure spec: `share` for each value from 0 to 1, and `W` for the stability distances. The registry check of the contract refuses the other words | core | in progress |  |
 
 ## The queue
 

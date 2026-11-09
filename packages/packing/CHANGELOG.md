@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.18.0
+
+Three specs of `MEASURE_SPECS` get the unit words of the contract (roadmap item k221). The registry check of the contract refuses the old words.
+
+This release raises the MINOR version, because a caller can read the unit text of a spec. Before 1.0.0, a break raises MINOR.
+
+### Changed
+
+- The unit of `pack.stability.mean` and `pack.stability.q95` is `W`. It was `container widths`. One `W` is the larger width of the two outputs, as before.
+- The unit of `pack.deterministic` is `share`. It was `boolean`. Its range stays 0 to 1.
+- The values of the measures do not change. The direction, the range, the minimum effect and the guard of each spec stay the same.
+
+### Breaking
+
+- A caller that reads the old unit texts `container widths` or `boolean` from `MEASURE_SPECS` gets `W` or `share`.
+
 ## 0.16.0
 
 The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.

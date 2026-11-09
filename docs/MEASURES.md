@@ -319,15 +319,15 @@ The adversarial search of roadmap item k47 (`bench/adversary.ts`) finds the inpu
 | Id | Unit | Direction | Range |
 |---|---|---|---|
 | `pack.stability.moved` | share | lower | 0 to 1 |
-| `pack.stability.mean` | container widths | lower | 0 or more |
-| `pack.stability.q95` | container widths | lower | 0 or more |
+| `pack.stability.mean` | W | lower | 0 or more |
+| `pack.stability.q95` | W | lower | 0 or more |
 
 A change pair is the run on a base input and the run on its variant. The variant names the base in `base`, and its change in `change` (FORMAT). The items match by id.
 
 - **An item stays** when both inputs have it and both outputs place it. The added and the removed items do not count.
 - **An item moved** when its `x` or its `y` changed by more than `RECORD_EPS`, or when its turn changed.
 - **The distance** of an item is the length of the move of its top-left corner: `d = sqrt(dx^2 + dy^2)`.
-- **The unit** `U` is the larger width of the two output sizes. A `U` of 0 becomes 1.
+- **The unit** `U` is the larger width of the two output sizes. A `U` of 0 becomes 1. The unit text `W` of the spec is one `U`.
 
 **`pack.stability.moved`** is the share of the staying items that moved.
 
@@ -454,7 +454,7 @@ The rules:
 
 | Id | Unit | Direction | Range |
 |---|---|---|---|
-| `pack.deterministic` | boolean | `true` is better | `true` or `false` |
+| `pack.deterministic` | share | `true` is better | `true` or `false` |
 
 **`pack.deterministic`** is `true` when two runs with the same input, the same options and the same seed give the same layout.
 
@@ -462,6 +462,7 @@ The rules:
 - The placements match by id. Their order in the list does not count. The numbers must be equal, with no tolerance.
 - The trace is not part of the rule, because its times change from run to run.
 - The field `deterministic` of a record holds this value. The promotion rule needs `true` (its hard rule test).
+- `MEASURE_SPECS` gives it as 0 or 1, with the unit text `share`. The contract has one unit word for each value from 0 to 1.
 
 ## Speed and search
 
@@ -575,8 +576,8 @@ The floor rule of PROMOTION ([the floor rule](https://github.com/mark1russell7/h
 | `pack.order.inversions` | 0 | 0 | Each new inversion is a loss. |
 | `pack.overflow` | 0 | 0 | A count. Each new unplaced item in a fixed container is a loss. |
 | `pack.aspectError` | 0 | 0.01 (natural log) | An exact tiling gives the default an error of 0. The tolerance is approximately 1% of the aspect. |
-| `pack.stability.mean` | 0 | 0.005 container widths | The default often moves no item. |
-| `pack.stability.q95` | 0 | 0.01 container widths | The default often moves no item. |
+| `pack.stability.mean` | 0 | 0.005 W | The default often moves no item. |
+| `pack.stability.q95` | 0 | 0.01 W | The default often moves no item. |
 | `pack.stability.moved` | 0 | 0.02 | On a small change, the default often moves no item. The tolerance is 2% of the items that stay. |
 
 - The other measures have no `floor` and no `tol`.
@@ -613,7 +614,7 @@ Since 0.2.2, each measure of `MEASURE_SPECS` has the field `minEffect` of `Measu
 | `pack.stability.moved` | 0.02 | The tolerance of the guard. |
 | `pack.stability.mean` | 0.005 | The tolerance of the guard. |
 | `pack.stability.q95` | 0.01 | The tolerance of the guard. |
-| `pack.deterministic` | 0 | A boolean as 0 or 1. |
+| `pack.deterministic` | 0 | A boolean as 0 or 1. Its unit text is `share`, the one unit of a value from 0 to 1. |
 | `pack.search.widths` | 0 | A count. |
 | `pack.search.ms` | none | A time. The times of CI change from run to run, and the time test of PROMOTION has its own rule. |
 | `pack.gap` | 0.005 | A share of a bound. A change of 0.005 counts. |
