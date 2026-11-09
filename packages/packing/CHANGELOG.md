@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.17.1
+
+The method `pivot-split` of the strategy `treemap` has the param `pivot`. The pivots by middle and by size of Shneiderman 2001 are values of this param.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The param `pivot` of the strategy `treemap`, with the values `split`, `middle` and `size`. The default is `split`, so a config with no pivot gives the output of 0.12.0.
+- The type `TreemapPivot` and the list `TREEMAP_PIVOT_IDS`.
+- The param `pivot` of the option `treemap` of `packSpace`. It is active only with the method `pivot-split`.
+- The named configs and the bench entries `treemap-pivot-middle` and `treemap-pivot-size`, with their tie-move rows and whole-position rows.
+
+### Fixed
+
+- `baseConfig` of a standalone strategy leaves out a param that is not active. Before, it set each param to its default.
+
+### Changed
+
+- 0.12.0 told that `pivot-middle` and `pivot-size` become methods with a later break. They are values of a param, because they differ from `pivot-split` only in the pivot. The type `TreemapMethod` does not change.
+
 ## 0.17.0
 
 Each entry of the strategy catalog gets the output fingerprint of its strategy (roadmap item k201). A chooser can find 2 strategies with the same output and not start them.

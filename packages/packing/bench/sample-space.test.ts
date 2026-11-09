@@ -65,12 +65,14 @@ const DEFAULT_UNIFORM_IDS = ["43a83b0a6231aa99", "d3f7ab76483b81d6", "864f0e0790
 // Roadmap item k193 adds the side none to side-anchors. Before k193 the count was 97230737123976843015729743524.
 // Roadmap item k29 adds treemap-spiral. Before k29 the count was 97230737123976843015729948306.
 // The 6 sort orders of k210 add base configs and members. Before k210 the count was 97233111173976344072011118730.
-const CLOCK_FREE_META = 3021312812918614681107660197010n;
+// Roadmap item k27 adds the pivots middle and size of pivot-split. Before them the count was 3021312812918614681107660197010.
+const CLOCK_FREE_META = 3021387017987634467838198973470n;
 // Roadmap item k29 adds the base config of shelf-breaks to the members. Before k29 the counts were 97223615252208789169500820039 and 97223615252208787963100427090.
 // Roadmap item k30 adds the base configs of shelf-online to the members. Before k30 the counts were 97225989163093744903710893550 and 97225989163093743697304199810.
 // The base config of treemap-spiral (k29) adds to the members. Before treemap-spiral the counts were 97230737123976843015729743524 and 97230737123976841809310448190.
 // The 6 sort orders of k210 add base configs and members. Before k210 the count was 97233111173976342865585317810.
-const CLOCK_CONFIGS = 3021312812918614678544161949010n;
+// The base configs of the pivots middle and size (k27) add to the members. Before them the count was 3021312812918614678544161949010.
+const CLOCK_CONFIGS = 3021387017987634465274686504810n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -149,8 +151,9 @@ describe("the counts of the configs", () => {
     // Roadmap item k29 adds the standalone placement shelf-breaks with 1 config. Before k29 the base count was 204779.
     // Roadmap item k30 adds the standalone placement shelf-online with 2 configs: the 2 fits, with r at its default. Before k30 the base count was 204780.
     // Roadmap item k29 adds the standalone placement treemap-spiral with 1 config. Before treemap-spiral the base count was 204782.
+    // Roadmap item k27 adds the pivots middle and size of the standalone placement treemap: 2 configs. Before them the base count was 204783.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
-    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1409));
+    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1411));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force", "side-anchors"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });

@@ -285,6 +285,7 @@ type Supports: build/strategy.d.ts#Supports
 TABU_STAGE: build/index.d.ts#TABU_STAGE
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 TREEMAP_METHOD_IDS: build/index.d.ts#TREEMAP_METHOD_IDS
+TREEMAP_PIVOT_IDS: build/index.d.ts#TREEMAP_PIVOT_IDS
 type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
@@ -293,6 +294,7 @@ type TreemapFrame: build/index.d.ts#TreemapFrame
 type TreemapLayout: build/index.d.ts#TreemapLayout
 type TreemapMethod: build/index.d.ts#TreemapMethod
 type TreemapNode: build/index.d.ts#TreemapNode
+type TreemapPivot: build/index.d.ts#TreemapPivot
 type TreemapStrategyOptions: build/index.d.ts#TreemapStrategyOptions
 type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
 type UiParams: build/index.d.ts#UiParams
@@ -1819,6 +1821,9 @@ export declare const THIN_INPUTS = 12;
 ### build/index.d.ts#TREEMAP_METHOD_IDS
 export declare const TREEMAP_METHOD_IDS: readonly TreemapMethod[];
 
+### build/index.d.ts#TREEMAP_PIVOT_IDS
+export declare const TREEMAP_PIVOT_IDS: readonly TreemapPivot[];
+
 ### build/index.d.ts#TabuStrategyOptions
 interface TabuStrategyOptions {
   member?: string | PortfolioEntry;
@@ -1865,9 +1870,13 @@ type TreemapNode = {
   readonly weight?: undefined;
 };
 
+### build/index.d.ts#TreemapPivot
+type TreemapPivot = "split" | "middle" | "size";
+
 ### build/index.d.ts#TreemapStrategyOptions
 interface TreemapStrategyOptions {
   readonly method: TreemapMethod;
+  readonly pivot?: TreemapPivot;
 }
 
 ### build/index.d.ts#TreemapStripOptions

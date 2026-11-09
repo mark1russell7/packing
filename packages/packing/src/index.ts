@@ -105,10 +105,12 @@ export {
   STANDALONE_MAX_ITEMS,
   standaloneStrategies,
   TREEMAP_METHOD_IDS,
+  TREEMAP_PIVOT_IDS,
   type MasonryMethod,
   type MasonryStrategyOptions,
   type SideAnchorStrategyOptions,
   type TreemapMethod,
+  type TreemapPivot,
   type TreemapStrategyOptions,
 } from "./standalone-strategies.ts";
 export { allStrategies, packFrames, packWith, strategy } from "./strategy-list.ts";
