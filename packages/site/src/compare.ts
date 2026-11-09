@@ -321,7 +321,7 @@ function drawFront(): void {
   if (el.hidden) return;
   const on = points.filter((p) => p.front).toSorted((a, b) => b.fill - a.fill);
   $("front-chart").innerHTML = frontSvg(points.map((p) => ({ ...p, id: esc(p.id) })));
-  $("front-note").innerHTML = `<b>Compact or spread.</b> A strategy on the line has no other strategy with more fill and less skew. On the line: ${on.map((p) => `<code>${esc(p.id)}</code>`).join(", ")}.`;
+  $("front-note").innerHTML = `<b>Compact or spread.</b> A strategy on the line has no other strategy with more fill and less skew. The chart names a dot only where the name has room. On the line: ${on.map((p) => `<code>${esc(p.id)}</code>`).join(", ")}.`;
 }
 
 function card(r: EntryResult, bests: Map<string, Set<string>>, givesUp: boolean): string {

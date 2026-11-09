@@ -12,6 +12,7 @@ import {
   entriesFor,
   frontPoints,
   frontSvg,
+  placeFrontLabels,
   keepsPartner,
   MAX_COMPARE_COUNT,
   PARTNER_BASELINE,
@@ -210,6 +211,45 @@ describe("the front of compact against spread (k123)", () => {
     const svg = frontSvg(points);
     expect(svg).toContain('class="fline"');
     expect(svg.match(/class="fpoint on"/g)).toHaveLength(2);
+  });
+
+  it("puts each name inside the area, with no name on another name or on a dot", () => {
+    const dots = Array.from({ length: 40 }, (_, i) => ({ cx: 60 + ((i * 37) % 250), cy: 20 + ((i * 53) % 140), r: 4.5, name: `strategy-${i}` }));
+    const area = { l: 42, t: 0, r: 320, b: 167 };
+    const labels = placeFrontLabels(dots, area);
+    const boxes = labels.flatMap((l) => (l === null ? [] : [l.box]));
+    expect(boxes.length).toBeGreaterThan(0);
+    for (const [i, a] of boxes.entries()) {
+      expect(a[0] >= area.l && a[1] >= area.t && a[2] <= area.r && a[3] <= area.b).toBe(true);
+      for (const b of boxes.slice(i + 1)) expect(a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]).toBe(false);
+      for (const d of dots) {
+        const nx = Math.max(a[0], Math.min(d.cx, a[2]));
+        const ny = Math.max(a[1], Math.min(d.cy, a[3]));
+        expect((nx - d.cx) ** 2 + (ny - d.cy) ** 2).toBeGreaterThanOrEqual(d.r * d.r);
+      }
+    }
+  });
+
+  it("puts the name of a dot at the right edge at its left, and gives no name to a dot of a full cluster", () => {
+    const area = { l: 42, t: 0, r: 320, b: 167 };
+    const [edge] = placeFrontLabels([{ cx: 308, cy: 80, r: 4.5, name: "anneal-maxrects-bl-k16" }], area);
+    expect(edge).toMatchObject({ anchor: "end" });
+    // Eight dots on one spot: the first dots take the four places, and the other dots get no name.
+    const cluster = placeFrontLabels(
+      Array.from({ length: 8 }, (_, i) => ({ cx: 180, cy: 80, r: 4.5, name: `s${i}` })),
+      area,
+    );
+    expect(cluster[0]).not.toBeNull();
+    expect(cluster.filter((l) => l === null).length).toBeGreaterThan(0);
+  });
+
+  it("draws one name for each dot of the front that has room, and keeps the other dots without a name", () => {
+    const close = Array.from({ length: 12 }, (_, i) => result(`near-${i}`, 0.95 - i * 0.0001, 0.9 - i * 0.0001));
+    const svg = frontSvg(frontPoints([...close, result("left", 0.5, 0.01)]));
+    const names = svg.match(/class="fname"/g) ?? [];
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.length).toBeLessThan(13);
+    expect(svg).toContain(">left</text>");
   });
 
   it("measures the side skew on each compare run", () => {
