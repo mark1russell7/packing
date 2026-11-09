@@ -6,10 +6,11 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import type { Rect } from "@mark1russell7/layout-contract";
+import { regionArea, type Rect, type Ring } from "@mark1russell7/layout-contract";
 import { random } from "@mark1russell7/rigor-generators";
-import { bootstrap, mean } from "@mark1russell7/rigor-statistics";
+import { bootstrap, mean, quantile } from "@mark1russell7/rigor-statistics";
 import { treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "../src/treemap.ts";
+import { treemapVoronoi, type VoronoiCell } from "../src/treemap-voronoi.ts";
 
 /** The three measures of the paper. */
 export interface TreemapMeasures {
@@ -298,6 +299,69 @@ export function reportOf(rows: readonly LiteratureRow[], trials: number, steps: 
   return `${lines.join("\n")}\n`;
 }
 
+/**
+ * The setting of Figure 7 of Nocaj 2012 for the Voronoi treemap (roadmap item k27). It has 50 weights from a power law in a
+ * rectangle of 2 by 1. The paper does not give the exponent. Thus this bench uses a Pareto law with the shape 1.5. The
+ * figure has only box plots, so the report has no published value.
+ */
+export const VORONOI_SETTING: { readonly sites: number; readonly shape: number; readonly iterations: readonly number[] } = Object.freeze({
+  sites: 50,
+  shape: 1.5,
+  iterations: Object.freeze([100, 200, 300, 500]),
+});
+
+/** The area error of the Voronoi treemap after a count of iterations, over the instances. */
+export interface VoronoiRow {
+  readonly iterations: number;
+  readonly median: number;
+  readonly p90: number;
+  readonly max: number;
+}
+
+/** This function gives the area error of Nocaj 2012: the sum of the differences to the targets, divided by 2 times the area. */
+export function voronoiError(cells: readonly VoronoiCell[], nodes: readonly { readonly weight: number }[], region: Ring): number {
+  const area = regionArea({ kind: "polygon", points: region });
+  const total = nodes.reduce((sum, node) => sum + node.weight, 0);
+  let sum = 0;
+  for (const [index, cell] of cells.entries()) sum += Math.abs(regionArea({ kind: "polygon", points: cell.ring }) - (area * nodes[index]!.weight) / total);
+  return sum / (2 * area);
+}
+
+/** This function gives the area error for each count of iterations of `VORONOI_SETTING`, with the threshold 0. */
+export function voronoiRows(instances: number): VoronoiRow[] {
+  const region: Ring = [
+    [0, 0],
+    [2, 0],
+    [2, 1],
+    [0, 1],
+  ];
+  return VORONOI_SETTING.iterations.map((iterations) => {
+    const errors: number[] = [];
+    for (let instance = 0; instance < instances; instance += 1) {
+      const stream = random(`treemap-literature:voronoi:${instance}`);
+      const nodes = Array.from({ length: VORONOI_SETTING.sites }, (_, i) => ({ id: `s${i}`, weight: (1 - stream.next()) ** (-1 / VORONOI_SETTING.shape) }));
+      const cells = treemapVoronoi(nodes, region, { seed: instance + 1, maxIterations: iterations, threshold: 0 });
+      errors.push(voronoiError(cells, nodes, region));
+    }
+    return { iterations, median: quantile(errors, 0.5), p90: quantile(errors, 0.9), max: Math.max(...errors) };
+  });
+}
+
+/** This function gives the Markdown section of the Voronoi rows. */
+export function voronoiReportOf(rows: readonly VoronoiRow[], instances: number): string {
+  const lines = [
+    "",
+    `## Voronoi in the setting of Figure 7 of Nocaj 2012 (${instances} instances)`,
+    "",
+    `${VORONOI_SETTING.sites} weights from a Pareto law with the shape ${VORONOI_SETTING.shape}, in a rectangle of 2 by 1. Each cell: the area error of the paper over the instances. The figure has only box plots, so no published value.`,
+    "",
+    "| Iterations | Median | 90th percentile | Maximum |",
+    "|---|---|---|---|",
+    ...rows.map((row) => `| ${row.iterations} | ${row.median.toFixed(4)} | ${row.p90.toFixed(4)} | ${row.max.toFixed(4)} |`),
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
 /** This function gives the whole number that follows a flag, or the default. */
 function countOf(args: readonly string[], flag: string, fallback: number): number {
   const at = args.indexOf(flag);
@@ -311,13 +375,15 @@ if (process.argv[1]?.endsWith("treemap-literature.ts") === true) {
   const args = process.argv.slice(2);
   const trials = countOf(args, "--trials", 100);
   const steps = countOf(args, "--steps", 100);
+  const instances = countOf(args, "--voronoi-instances", 100);
   const rows = literatureRows(trials, steps);
-  const report = reportOf(rows, trials, steps);
+  const voronoi = voronoiRows(instances);
+  const report = reportOf(rows, trials, steps) + voronoiReportOf(voronoi, instances);
   const at = args.indexOf("--out");
   if (at !== -1) {
     const out = args[at + 1]!;
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows, spiral: spiralRows(rows) }, null, 2)}\n`);
+    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows, spiral: spiralRows(rows), voronoi: { instances, rows: voronoi } }, null, 2)}\n`);
     fs.writeFileSync(path.join(out, "treemap-literature.md"), report);
   }
   process.stdout.write(report);
