@@ -102,7 +102,7 @@ A shelf packer puts the boxes into rows. Each row is as high as its highest box.
 Notes:
 
 - NFDH uses at most `2 OPT + h_max` of height, and FFDH uses at most `1.7 OPT + h_max`. Coffman 1980 proves these bounds.
-- The sort orders of `SORT_ORDERS` (`height-desc`, `height-asc`, `width-desc`, `area-desc` and `input`) apply to each shelf rule. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
+- The 11 sort orders of `SORT_ORDERS` apply to each shelf rule. The orders by perimeter, longer side, shorter side, side difference and ratio come from Jylänki 2010. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
 - Split-Fit sorts by width, not by height. Its bound of 1.5 needs boxes with a height of 1 or less.
 - `shelf-knapsack` uses a knapsack for each row. The `new-shelf-lookahead` idea adds the order to it.
 
@@ -387,8 +387,8 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | implemented | k27 |
 | `treemap-split` | Split | Split the ordered list into two parts of near equal weight. Cut the rectangle along its longer side. Recurse. | Engdahl 2005 (unverified) | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | — | implemented | k29 |
-| `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
-| `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
+| `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
+| `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
 | `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | — | planned | k27 |
 | `treemap-quantum` | Quantum | Do an ordered treemap with cells that are whole multiples of a unit size, for grids of pictures. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi` | Voronoi | Move weighted sites until the area of each Voronoi cell is its weight. The cells are polygons. | Balzer 2005 | aspect | iterations x `O(n log n)` | — | planned | k27 |
@@ -420,12 +420,12 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 |---|---|---|---|---|---|---|---|---|
 | `masonry-shortest` | Shortest column | Put each box, in the input order, at the bottom of the shortest column. | DeSandro, software (the rule is unverified), Graham 1966 | order, speed | `O(n log c)` for `c` columns, with a heap | `(2 - 1/c)·OPT` for the highest column (Graham 1966) | implemented: `masonryShortest`, in `O(n c)` with a scan | k28 |
 | `masonry-lpt` | Longest processing time first | Sort by height, decreasing. Then do `masonry-shortest`. | Graham 1969 | density | `O(n log n)` | `(4/3 - 1/(3c))·OPT` for the highest column (Graham 1969) | implemented: `masonryLpt`, in `O(n log n + n c)` | k28 |
-| `masonry-differencing` | Balanced columns by differencing | Balance the column heights with the differencing method of Karmarkar and Karp. | Karmarkar 1982 (the report number is unverified) | density | `O(n log n)` | — | planned | k28 |
+| `masonry-differencing` | Balanced columns by differencing | Balance the column heights with the differencing method of Karmarkar and Karp. | Karmarkar 1982 (the report number is unverified) | density | `O(n log n)` | — | implemented: `masonryDifferencing`, in `O(n log n + n c log c)`, and `O(n^2)` at most for the sets of cards | k28 |
 | `columns-linear-partition` | Ordered columns | Cut the input order into `c` parts of near equal height with dynamic programming. Each part is a column. | Skiena 2008, Treitz 2013 (unverified) | order, density | `O(n^2 c)` | the best cuts for its cost (Skiena 2008) | implemented: `columnsLinearPartition`. Equal cuts go to the least sum of squares. | k28 |
-| `columns-css-balance` | CSS multi-column balance | Fill the columns in order and balance their heights, as `column-fill: balance` does. | W3C multi-column | order | `O(n log n)` | — | planned | k28 |
-| `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | planned | k28 |
-| `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | planned | k28 |
-| `css-grid-dense` | CSS grid dense flow | Put each item in the first free area of the grid from the start, as `grid-auto-flow: dense` does. | W3C grid | density | `O(n^2 c)` | — | planned | k28 |
+| `columns-css-balance` | CSS multi-column balance | Fill the columns in order and balance their heights, as `column-fill: balance` does. | W3C multi-column | order | `O(n log n)` | — | implemented: `columnsCssBalance`, in `O(n^2 c)` at most | k28 |
+| `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | implemented: `masonryMultiSpan`, in `O(n c s)` for the largest count `s` of the columns of one box | k28 |
+| `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | implemented: `cssGridSparse`, in `O((n + m) r s)` for the `m` cells of the grid and the largest spans `r` and `s` of one box | k28 |
+| `css-grid-dense` | CSS grid dense flow | Put each item in the first free area of the grid from the start, as `grid-auto-flow: dense` does. | W3C grid | density | `O(n^2 c)` | — | implemented: `cssGridDense`, in `O(n m r s)` for the `m` cells of the grid and the largest spans `r` and `s` of one box | k28 |
 | `css-grid-lanes` | CSS grid lanes | Do `masonry-shortest` in a grid, with `display: grid-lanes` of the 2026 draft. The earlier drafts called it `masonry`. | W3C grid level 3 draft | order | `O(n log c)` | — | planned | k28 |
 | `justified-greedy` | Justified rows, greedy | Add pictures to a row at a target height. When a picture makes the row too wide, keep it only if the row gets nearer to the target. Scale the row to the width. | Flickr, software | order, raggedness | `O(n)` | — | planned | k28 |
 | `justified-linear-partition` | Justified rows, linear partition | Cut the order into `k` rows of near equal width with dynamic programming. | Treitz 2013 (unverified), Skiena 2008 | order, raggedness | `O(n^2 k)` | the best cuts for its cost (Skiena 2008) | planned | k28 |

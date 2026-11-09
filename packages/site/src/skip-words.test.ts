@@ -5,6 +5,7 @@ import { entriesNote, skipLine, skipsHtml, skipWordOf } from "./results-model.ts
 const FACTS: KpiFacts = {
   picker: 31,
   strategies: 31,
+  operators: 38,
   families: 20,
   lawPairs: 40,
   pages: [],

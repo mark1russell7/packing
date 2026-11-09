@@ -1,10 +1,10 @@
 // The text helpers of the pages of results and news.
 
+import { escapeAttribute as esc } from "@mark1russell7/text";
 import type { Label, Origin } from "./data.ts";
 
-/** This function escapes text for HTML. */
-export const esc = (text: string): string =>
-  text.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch]!);
+/** The escape of text for HTML: `escapeAttribute` of `@mark1russell7/text`. */
+export { esc };
 
 /** This function escapes text for HTML and shows each span in backticks as code. */
 export const inline = (text: string): string => esc(text).replace(/`([^`]+)`/g, "<code>$1</code>");

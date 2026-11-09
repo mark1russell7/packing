@@ -229,6 +229,58 @@ export function frontPoints(results: readonly EntryResult[]): FrontPoint[] {
  * This function gives an SVG chart of the front: the side skew on the x axis, the fill on the y axis. The front points
  * have a line and their names. A point that is not on the front is small and gray.
  */
+/** A label of the front chart: the box of its text, and the anchor of the text. */
+export interface FrontLabel {
+  readonly x: number;
+  readonly y: number;
+  readonly anchor: "start" | "end";
+  /** The box of the text: left, top, right and bottom. */
+  readonly box: readonly [number, number, number, number];
+}
+
+/** The size of a name of the front chart, in the units of the drawing. `char` is the width of one character, and `height` is the height of the text. */
+export const FRONT_NAME_SIZE = { char: 5.2, height: 9 } as const;
+
+/**
+ * This function puts the names of the dots of the front chart. A name goes to the first free place of four: right above,
+ * right below, left above and left below its dot. A free place is inside the area and touches no other name and no dot.
+ * A name with no free place gets `null`. The caption of the chart lists each name, so no name goes missing.
+ * The dots take the order of `dots`, so the first dots get the names first.
+ */
+export function placeFrontLabels(
+  dots: readonly { readonly cx: number; readonly cy: number; readonly r: number; readonly name: string }[],
+  area: { readonly l: number; readonly t: number; readonly r: number; readonly b: number },
+): (FrontLabel | null)[] {
+  const placed: (readonly [number, number, number, number])[] = [];
+  const hits = (a: readonly [number, number, number, number], b: readonly [number, number, number, number]): boolean => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+  const hitsDot = (box: readonly [number, number, number, number], d: { cx: number; cy: number; r: number }): boolean => {
+    const nx = Math.max(box[0], Math.min(d.cx, box[2]));
+    const ny = Math.max(box[1], Math.min(d.cy, box[3]));
+    return (nx - d.cx) ** 2 + (ny - d.cy) ** 2 < d.r * d.r;
+  };
+  return dots.map((d) => {
+    const w = d.name.length * FRONT_NAME_SIZE.char;
+    const h = FRONT_NAME_SIZE.height;
+    const gap = d.r + 1.5;
+    for (const [side, up] of [
+      ["right", true],
+      ["right", false],
+      ["left", true],
+      ["left", false],
+    ] as const) {
+      const left = side === "right" ? d.cx + gap : d.cx - gap - w;
+      const top = up ? d.cy - gap - h : d.cy + gap;
+      const box = [left, top, left + w, top + h] as const;
+      if (box[0] < area.l || box[1] < area.t || box[2] > area.r || box[3] > area.b) continue;
+      if (placed.some((p) => hits(p, box)) || dots.some((o) => hitsDot(box, o))) continue;
+      placed.push(box);
+      // The text sits on its base line, at the bottom of its box less a small part of the height for the letters below the line.
+      return { x: side === "right" ? box[0] : box[2], y: box[3] - 2, anchor: side === "right" ? "start" : "end", box };
+    }
+    return null;
+  });
+}
+
 export function frontSvg(points: readonly FrontPoint[]): string {
   const W = 320;
   const H = 200;
@@ -250,11 +302,19 @@ export function frontSvg(points: readonly FrontPoint[]): string {
     `<text class="flabel" x="${(pad.l + W - pad.r) / 2}" y="${H - 4}" text-anchor="middle">Side skew, less is better</text>`,
     `<text class="flabel" x="10" y="${(pad.t + H - pad.b) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(pad.t + H - pad.b) / 2})">Fill</text>`,
   ];
+  // The names of the front go first by fill, so the best strategies get a name when the dots are near each other.
+  const named = front.toSorted((a, b) => b.fill - a.fill || a.skew - b.skew);
+  const labels = placeFrontLabels(
+    named.map((p) => ({ cx: x(p.skew), cy: y(p.fill), r: 4.5, name: p.id })),
+    { l: pad.l + 2, t: 0, r: W, b: H - pad.b - 1 },
+  );
+  const labelOf = new Map(named.map((p, i) => [p, labels[i]!]));
   const dots = points
     .toSorted((a, b) => Number(a.front) - Number(b.front))
     .map((p) => {
       const title = `<title>${p.id}: fill ${(p.fill * 100).toFixed(1)}%, side skew ${(p.skew * 100).toFixed(1)}%</title>`;
-      const name = p.front ? `<text class="fname" x="${(x(p.skew) + 6).toFixed(1)}" y="${(y(p.fill) - 6).toFixed(1)}">${p.id}</text>` : "";
+      const label = labelOf.get(p);
+      const name = label === undefined || label === null ? "" : `<text class="fname" x="${label.x.toFixed(1)}" y="${label.y.toFixed(1)}" text-anchor="${label.anchor}">${p.id}</text>`;
       return `<g class="${p.front ? "fpoint on" : "fpoint"}"><circle cx="${x(p.skew).toFixed(1)}" cy="${y(p.fill).toFixed(1)}" r="${p.front ? 4.5 : 3}">${title}</circle>${name}</g>`;
     });
   const path = front.length > 1 ? `<path class="fline" d="${line}" />` : "";

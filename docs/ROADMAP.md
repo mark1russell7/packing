@@ -33,7 +33,7 @@ Status: done, done, waiting, next, done.
 | k24 | MaxRects: best short side, best long side, best area, bottom-left, contact point | strategies | done | k6, k7 |
 | k25 | Bottom-left fill: Baker, Chazelle and the lowest-gap variants | strategies | done | k6, k7 |
 | k26 | A search over orders: genetic, annealing and tabu search, with a seed | strategies | done | k6, k7 |
-| k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi. A slice adds `treemapPivotMiddle` and `treemapPivotSize`, the pivots by middle and by size of Shneiderman 2001. They are the values `middle` and `size` of the param `pivot` of the method `pivot-split` | strategies | active | k6, k7 |
+| k27 | Treemaps: squarified, slice and dice, strip, pivot, ordered and Voronoi. A slice adds `treemapPivotMiddle` and `treemapPivotSize`, the pivots by middle and by size of Shneiderman 2001. They are the values `middle` and `size` of the param `pivot` of the method `pivot-split`. Another slice adds `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013: the order of the input follows a Hilbert curve or a Moore loop | strategies | active | k6, k7 |
 | k28 | Masonry and columns: shortest column, balanced columns and the CSS grid flow | strategies | active | k6, k7 |
 | k29 | Methods that keep the reading order or the layout under change. The first slice is `shelfBreaks` in 0.10.1: rows in the reading order with the least height, at most the greedy height. On `pack-screen-v1` the mean ratio is 0.979 on 20 inputs, so the prediction of 0.97 is false. The second slice is `treemapSpiral` in 0.12.0, the spiral treemap of Tu and Shen 2007: each two boxes in a row of the input order share an edge. | strategies | active | k6, k7 |
 | k30 | Online and incremental packing. The slice of 0.10.2 is `shelfOnline`, the online shelf of Baker 1983: no box moves later, and the height stays under its bound on `pack-strip-v1` and `pack-screen-v1`. | strategies | later | k6, k7 |
@@ -128,7 +128,7 @@ Status: done, done, waiting, next, done.
 | k119 | A prior over all families: the family weights come from the union of the committed corpora, with the effective count next to each prior share | measure | done | k116 |
 | k120 | A paired control for the active draw: each round also draws a uniform sample of the same size and time, scored on the same held-out pairs, with a paired test of the rise. The held-out sample runs in shards so all its pairs finish. Each share comes from 5 fold seeds as a mean and an SD, and a claim inside 2 SD is not a result | measure | done | k116, k119 |
 | k121 | Determinism as a gate: the bench fails on a pair that is not deterministic and has no clock limit, a repeat test runs each entry in a shuffled order, and the source of the 2 bad pairs is found | measure | done | k116, k118 |
-| k122 | The prior as a parameter: union, family-flat or tempered (union weights to a power in the space). The headline is family-flat, with union beside it and the effective count of each. The adversary family is its own stratum. The trend splits at each change of the strategy list. The first point on the new list comes 11-09 and the second 11-16 | measure | active | k119 |
+| k122 | The prior as a parameter: union, family-flat or tempered (union weights to a power in the space). The headline is family-flat, with union beside it and the effective count of each. The adversary family is its own stratum. The trend splits at each change of the strategy list. The first point on the new list comes 11-09 and the second 11-16. The 11-09 point has no verdict: a slow config stopped 4 arms. The active draw sends a candidate back as slow after a first pack of 60 seconds | measure | active | k119 |
 | k123 | Balance and stability on each record: the gap spread, the offset of the slack centroid, the empty share per side, and the move under an input change and a seed change. Compare shows compact against spread as a front | measure | done | k118 |
 | k124 | A relax pass after any packer: it spreads the slack evenly with no overlap, by constrained stress or by separation constraints. Since #175, the opt-in composite `relax` does it with the satisfy step of VPSC. | strategies | done | k123 |
 | k125 | Packers by forces: boxes push each other and the container walls, with an overlap removal pass at the end | strategies | done | k123, k124 |
@@ -212,14 +212,18 @@ Status: done, done, waiting, next, done.
 | k207 | A run-cost model in `rigor-bench`, for each supported cell and CPU model | measure | active | k206 |
 | k208 | Raise `@mark1russell7/layout-contract` to `^0.6.0` | core | done | k204 |
 | k209 | The plan of the rectangle pilot: operators for each stage, a screen, measures with targets, and generated views | strategies | done |  |
-| k210 | Order operators: each sort key with its own mechanism. A direction or a tie-break counts as a variant | strategies | later |  |
+| k210 | Order operators: each sort key with its own mechanism. A direction or a tie-break counts as a variant. The first slice adds 6 sort keys: perimeter, longer side, shorter side, side difference, ratio and diagonal | strategies | in progress |  |
 | k211 | Placement operators: each published rectangle rule of the survey that is not in `packSpace` | strategies | later |  |
 | k212 | A local-search stage: SA, tabu, GA, GRASP, VNS, ILS, ruin-recreate and beam, with separate moves and acceptance rules | strategies | later |  |
-| k213 | The new stages refine and compact, after each placement | strategies | later |  |
+| k213 | The new stages refine and compact, after each placement. The first slice adds `compactLeft`, the compaction of a constraint graph along `x` | strategies | in progress |  |
 | k214 | A screen by successive halving in a CI matrix: 1,000 configurations | bench | later | k207 |
-| k215 | The pilot measures in `kpi.json`: operators, distinct variants, screened and measured strategies, each with a target and a date | site | later |  |
-| k216 | Each view generated: each measure against each dimension, for all strategies | site | later | k215 |
+| k215 | The pilot measures in `kpi.json`: operators, distinct variants, screened and measured strategies, each with a target and a date. The first slice declares the 38 operators of `packSpace` as `packOperators` and adds the measure `operators` | site | in progress |  |
+| k216 | Each view generated: each measure against each dimension, for all strategies. Milestone M2, due 11-19: the compare page ranks each measured strategy again under a chosen objective. The objective comes from presets (densest, balanced, a spacing of about N px) or a slider for the spacing target. The page shows the Pareto front of two measures. The objective spec comes from `@mark1russell7/layout-contract`. A local adapter of the same shape is removed when that spec releases | site | later | k215 |
 | k217 | The physical family as refine and compact operators: springs, stress, PRISM, VPSC, force-scan and compaction | strategies | later | k213 |
+| k218 | Check the 18 home moves of the atlas, one test each | move | later |  |
+| k219 | Move `quantileOf` and `mulberry32` to rigor, and the corpus manifest writer to layout-contract | move | later |  |
+| k220 | A start frame and the frames of a run: `packWith` takes a run with a start and a callback of the frames, and `force` settles from the start. The gate: a start that is a fixed point moves nothing, and a start does not make `pack.stability.moved` or `pack.stability.mean` of the change corpus worse for `push` and `force` | core | in progress |  |
+| k222 | The names of the front chart of compare: each name in the chart, with no name on another name or on a dot. A name with no room stays only in the caption list | site | in progress | k123 |
 
 ## The queue
 

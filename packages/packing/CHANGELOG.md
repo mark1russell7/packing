@@ -19,6 +19,168 @@ The method `pivot-split` of the strategy `treemap` has the param `pivot`. The pi
 
 - 0.12.0 told that `pivot-middle` and `pivot-size` become methods with a later break. They are values of a param, because they differ from `pivot-split` only in the pivot. The type `TreemapMethod` does not change.
 
+## 0.16.0
+
+The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.
+
+This release raises the MINOR version, because the union `SortOrder` gets new members. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The sort orders `perimeter-desc`, `long-side-desc`, `short-side-desc`, `side-diff-desc`, `ratio-desc` and `diagonal-desc`. Each one puts the box with the larger key first, and equal keys keep the input order.
+- The function `sortKey`: the key of a sort order for a box of a width and a height.
+- 6 operators in `packOperators`. The count of the operators goes from 38 to 44.
+- The 6 orders are options of the stage `order` of `packSpace`, and values of the option `sortOrder` in the catalog.
+
+### Changed
+
+- `compareRects` and the member order of `restarts` read one table of keys. The orders of before give the same layouts.
+- The base configs of `packSpace` go from 3,838 to 7,636 with 3 levels. The uniform draw of the bench sample changes.
+
+### Breaking
+
+- The union `SortOrder` has 6 new members. A `switch` or a `Record` over `SortOrder` in a caller does not compile until it has the new members.
+
+## 0.15.2
+
+The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `compactLeft`. The sweep is the compaction of a constraint graph along `x`. A box stops at the right edge of each box before it that overlaps it across `y`.
+- On 300 made-up packs with gaps and margins, `compactLeft` gives the same places as `compactUp` of the transposed layout.
+- On 1,500 made-up packs of `shelf`, `maxrects` and `skyline`, no hard rule breaks, no box moves right, and a second pass moves no box.
+
+### Not changed
+
+- The output of `compactUp` stays the same. It uses the same sweep along `y`.
+- The strategies, their fingerprints and `packSpace` do not change.
+
+## 0.15.1
+
+The functions `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013 lay the items of a treemap along a curve.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapHilbert`. Each level cuts the items into four groups of near equal weight. The groups go to the four parts of the frame in the order of the Hilbert curve.
+- The function `treemapMoore`. The root of each level uses the Moore curve, a loop of four Hilbert curves. The parts below the root use the Hilbert curve.
+- For `4^k` equal items in a square, the cells are a grid. Each two items in a row of the input share an edge.
+- The test has 200 made-up lists and trees, with 6,984 pairs of items in a row. 86 pairs (Hilbert) and 61 pairs (Moore) share no edge, and 739 pairs for `treemapStrip`.
+
+### Not changed
+
+- The strategy `treemap` and its methods. The fingerprints of the catalog stay the same.
+
+## 0.15.0
+
+A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
+
+This release raises the MINOR version. The output of `force` with a previous output changes, and `force` gets the mode `incremental`. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The parameter `run` of `packWith`: a start frame or a previous output, and a callback of the frames. The run is not part of the options, so the config ids do not change.
+- The function `packFrames`: the output and each frame of a run, from the start frame to the frame of the output.
+- The functions `frameOfOutput` and `startOutputOf`, and the types `PackRun` and `FrameCallback`.
+- The field `onFrame` of `PackContext`. A strategy that moves the boxes step by step gives it the output after each step.
+
+### Changed
+
+- The strategy `force` has the mode `incremental`. With `context.previous`, only the boxes that overlap move, and the steps stop at the first step with no overlap. A start with no overlap gives the same placements. The trace stage has `force.start` and `force.steps`.
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.1.
+- The fingerprint of `force` changes, because its probe of the mode `incremental` packs from a previous output.
+
+### Breaking
+
+- The strategy `force` reads `context.previous`. A caller that gives a previous output gets another output than before.
+
+## 0.14.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/strategy-space, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.9.8` of `@mark1russell7/collections` in `dependencies` does not hold `0.10.0`, so it changes.
+- The range `^0.0.2` of `@mark1russell7/strategy-space` in `dependencies` does not hold `0.0.3`, so it changes.
+
+## 0.13.1
+
+The functions `cssGridSparse` and `cssGridDense` place cards in the CSS grid flow, as `grid-auto-flow: row` and `grid-auto-flow: row dense` do.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `cssGridSparse`. A box covers the least count of columns and of rows that holds it. It goes to the first free place after the place of the box before it.
+- The function `cssGridDense`. The search of each box starts at the first cell, so a small box can fill a hole that a wide box left.
+- The type `GridFlowOptions`: the options of the masonry functions and `rowHeight`. The default row height is the tallest box with its margins.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
+## 0.13.0
+
+The constant `packOperators` declares the operators of `packSpace` in the format `strategy-operators/1` of `@mark1russell7/strategy-space`.
+
+This release raises the MINOR version. The types of the public API come from `@mark1russell7/layout-contract` 0.9.0, and its shape kinds change from a union to `string`. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The constant `packOperators`: 38 operators, each with its stage, its source, its cite, its test files and a summary. A param value is not an operator.
+- The options `order.input`, `size-search.none` and `local-search.none` have `identity: true`. The meta options `portfolio`, `cell-portfolio` and `select` have `chooses: true`.
+- The field `carried` of the bench record, from the contract. The runner measures each of its records, so it writes no carry.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.0. The types of the strategy space come from `@mark1russell7/strategy-space` 0.0.2 through it.
+- The new dependency `@mark1russell7/strategy-space` gives `checkOperators` and `countOperators`.
+- The dev dependency `@vitest/coverage-v8` 5.0.5, at the version of Vitest, so CI measures the coverage.
+
+### Breaking
+
+- The shape kinds of the types of the contract change from a union of names to `string`. A `switch` over the old union has no check of all its cases.
+
+### Not changed
+
+- The ids of the configs, the counts of the space and the fingerprints of the catalog. The fields `identity` and `chooses` are not part of a config.
+
+## 0.12.3
+
+The function `columnsCssBalance` fills the columns in the input order, as `column-fill: balance` of CSS does. The function `masonryMultiSpan` lays wide cards that cover more than one column.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `columnsCssBalance`. The height of the columns is the least height with which the fill puts each card in a column.
+- Each column takes the cards of the order while they fit. Thus the first columns are full, and the last columns can be short or empty.
+- The function `masonryMultiSpan`. A box covers the least count of columns that holds it, and it goes where the tallest of these columns is the lowest. Without `columnWidth`, the layout is that of `masonryShortest`.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
+## 0.12.2
+
+The function `masonryDifferencing` lays cards in `c` columns with the differencing method of Karmarkar 1982.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `masonryDifferencing`. Each card starts as a partial wall. The two walls with the largest spreads become one wall, with the tallest column of one wall on the shortest column of the other wall.
+- Equal spreads take the older wall first, and equal sums put the column with the first card first. Thus a second pack gives the same bytes.
+- The columns go from the left in the order of their first card. Each column reads from the top in the input order.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
 ## 0.12.1
 
 A pack with a fixed height reads the links of its input.
