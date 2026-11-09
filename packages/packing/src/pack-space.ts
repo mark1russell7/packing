@@ -174,7 +174,7 @@ const TABU_PARAMS: readonly SpaceParam[] = [
  * The placements of the standalone strategies of roadmap item k142. Each one goes with the order `input` and the size search `none`, because it does its own search.
  * A composite finds only a member of the registry, so `packConfig` refuses a composite with one of these members.
  */
-const STANDALONE_PLACEMENTS: readonly string[] = ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"];
+const STANDALONE_PLACEMENTS: readonly string[] = ["sleator", "shelf-breaks", "shelf-online", "shelf-split-fit", "shelf-floor-ceiling", "shelf-knapsack", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"];
 
 /** The values of the param `nodeLimit` of `exact-strip`. The largest value is the default of the strategy, so a draw costs no more than the named config. */
 const EXACT_NODE_LIMITS: readonly number[] = [1000, 10000, EXACT_STRATEGY_NODE_LIMIT];
@@ -338,6 +338,9 @@ const STAGES: readonly SpaceStage[] = [
         ],
         supports: RECT_ONLY,
       },
+      { id: "shelf-split-fit", params: [], supports: RECT_ONLY },
+      { id: "shelf-floor-ceiling", params: [], supports: RECT_ONLY },
+      { id: "shelf-knapsack", params: [], supports: RECT_ONLY },
       { id: "beam", params: [{ name: "width", kind: "int", min: 1, max: 64, scale: "log", default: BEAM_WIDTH }], supports: RECT_ONLY },
       { id: "exact-strip", params: [{ name: "nodeLimit", kind: "enum", values: [...EXACT_NODE_LIMITS], default: EXACT_STRATEGY_NODE_LIMIT }], supports: RECT_ONLY },
       { id: "binary-height", params: [{ name: "trials", kind: "int", min: 1, max: 1024, scale: "log", default: BINARY_HEIGHT_TRIALS }], supports: RECT_ONLY },
@@ -424,6 +427,9 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   sleator: baseConfig("sleator"),
   "shelf-breaks": baseConfig("shelf-breaks"),
   "shelf-online": baseConfig("shelf-online"),
+  "shelf-split-fit": baseConfig("shelf-split-fit"),
+  "shelf-floor-ceiling": baseConfig("shelf-floor-ceiling"),
+  "shelf-knapsack": baseConfig("shelf-knapsack"),
   beam: baseConfig("beam"),
   "exact-strip": baseConfig("exact-strip"),
   "binary-height": baseConfig("binary-height"),
@@ -664,6 +670,9 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
   sleator: {},
   "shelf-breaks": {},
   "shelf-online": { r: "placement.shelf-online.r", fit: "placement.shelf-online.fit" } satisfies Places<ShelfOnlineOptions>,
+  "shelf-split-fit": {},
+  "shelf-floor-ceiling": {},
+  "shelf-knapsack": {},
   beam: { width: "placement.beam.width" } satisfies Places<BeamOptions>,
   "exact-strip": { nodeLimit: "placement.exact-strip.nodeLimit" } satisfies Places<ExactStripOptions>,
   "binary-height": { trials: "placement.binary-height.trials", seed: null, precision: null } satisfies Places<BinaryHeightOptions>,

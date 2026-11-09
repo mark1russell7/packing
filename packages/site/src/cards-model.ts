@@ -123,6 +123,21 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     rule: "Put each box when it comes on a shelf of its class of height, a power of `r`. Do not move it later.",
     cost: "`O(n s)` for `s` shelves",
   },
+  "shelf-split-fit": {
+    stage: "placement",
+    rule: "Pack the wide boxes on levels by first fit. Put the levels that are almost full first. Fill the region at the side of the other levels with the narrow boxes.",
+    cost: "`O(n l)` for `l` levels",
+  },
+  "shelf-floor-ceiling": {
+    stage: "placement",
+    rule: "Fill each level on its floor from the left and under its ceiling from the right. A box goes on a ceiling only when it does not fit the floor below.",
+    cost: "`O(n^2)`",
+  },
+  "shelf-knapsack": {
+    stage: "placement",
+    rule: "Open each level with the tallest box left. Fill the rest of the width with the boxes of the largest area, by a 0-1 knapsack.",
+    cost: "`O(n^2 S)` for at most `S` states",
+  },
   beam: {
     stage: "placement",
     rule: "Keep the `width` best partial layouts. Give each state one more box in its lowest valley, and rank the children by a greedy completion.",
