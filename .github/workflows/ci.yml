@@ -26,6 +26,10 @@ defaults:
 jobs:
   ci:
     uses: mark1russell7/template/.github/workflows/reusable-ci.yml@93668034510218d1ab35f1071d943f96d3fa7c38 # main
+    # On a push to main, the shared CI starts the tests again with coverage (coverage-on-main). The scripts take 4 minutes,
+    # and the coverage run takes more than 10. The default limit of 15 minutes stopped 3 runs of main on 11-09.
+    with:
+      timeout-minutes: 40
 
   # The gate jobs of this repository: the smoke run of the benchmark, the render of the site and the time gates
   bench-smoke:
