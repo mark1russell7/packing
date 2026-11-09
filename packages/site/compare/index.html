@@ -42,11 +42,18 @@
         <h2 id="results-h" class="ctitle">Each strategy on this input</h2>
         <div class="controls">
           <label class="opt">Sort by<select id="sort"></select></label>
+          <label class="opt" title="The order of the objective rank and the first tile">Objective<select id="objective"></select></label>
+          <label class="opt" id="spacing-opt" hidden>Spacing <output id="spacing-out" for="spacing"></output><input type="range" id="spacing" min="0" max="64" step="1" /></label>
           <span class="hint" id="progress" role="status"></span>
         </div>
+        <p class="hint" id="objective-note"></p>
         <p class="hint">At a given width, the sort by fill puts a strategy after the others when its right strip is more empty than the strip of <code>rows</code>. Such a strategy packs narrower than the width, so its fill rises.</p>
         <div class="tiles" id="summary"></div>
         <figure class="front" id="front" hidden>
+          <div class="controls">
+            <label class="opt">Across<select id="front-x"></select></label>
+            <label class="opt">Up<select id="front-y"></select></label>
+          </div>
           <div class="fchart" id="front-chart"></div>
           <figcaption id="front-note"></figcaption>
         </figure>

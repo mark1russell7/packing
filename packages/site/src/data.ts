@@ -921,6 +921,7 @@ export const fillClaimOf = (corpus: string): FillClaim =>
 export const COMPARE_LABELS: Record<string, { label: string; note: string; share: boolean }> = {
   ...MEASURE_LABELS,
   "pack.balance.sideRange": { label: "Side skew", note: "The emptiest side strip less the fullest side strip. A pack in one corner has a high skew. Less is better.", share: true },
+  "pack.balance.gapCv": { label: "Gap spread", note: "The spread of the gap of each box to its nearest box, divided by the mean gap. Less is better: the gaps are even.", share: false },
 };
 
 /** The names and the notes of the measures of the coverage snapshot */

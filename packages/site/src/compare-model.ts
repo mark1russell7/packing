@@ -1,8 +1,8 @@
 // The calculations of the compare page: the input, one packing for each named entry, the best value of each measure and
 // the sort. The list of the entries is `ENTRIES` of the benchmark. The sync test fails when the page list differs from it.
 
-import type { CorpusFamily, LayoutInput } from "@mark1russell7/layout-contract";
-import { cellOf, measure, MEASURE_SPECS, packWith, shapeStrategies, type MeasureId, type PackInput, type PackOutput } from "@mark1russell7/packing";
+import { nearestGaps, type CorpusFamily, type LayoutInput } from "@mark1russell7/layout-contract";
+import { boxesOf, cellOf, measure, MEASURE_SPECS, packWith, shapeStrategies, type MeasureId, type PackInput, type PackOutput } from "@mark1russell7/packing";
 import { ENTRIES, type BenchEntry } from "@mark1russell7/packing/bench/entries";
 import { generateInput, MAX_SITE_COUNT, SITE_FAMILIES, type DimensionValues } from "./corpus-input.ts";
 import { COMPARE_LABELS } from "./data.ts";
@@ -73,7 +73,7 @@ export interface CompareMeasure {
 
 /** The measures of the compare page: the measures of the results page, the ragged edge, the boxes not placed and the side skew. */
 export const COMPARE_MEASURES: readonly CompareMeasure[] = (
-  ["pack.fill", "pack.balance.side.right", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.raggedness", "pack.overflow", "pack.balance.sideRange"] as const
+  ["pack.fill", "pack.balance.side.right", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.raggedness", "pack.overflow", "pack.balance.sideRange", "pack.balance.gapCv"] as const
 ).map((id) => ({ id, label: COMPARE_LABELS[id]!.label, note: COMPARE_LABELS[id]!.note, share: COMPARE_LABELS[id]!.share, direction: MEASURE_SPECS[id].direction }));
 
 /** This function gives the text of the value of a measure. */
@@ -91,6 +91,8 @@ export interface EntryResult {
   output?: PackOutput;
   /** The value of each measure of `COMPARE_MEASURES` */
   measures?: Partial<Record<MeasureId, number>>;
+  /** The spacing of the layout: `spacingOf` of the output (roadmap item k216) */
+  spacing?: number;
   /** The time of the call of `packWith`, in milliseconds */
   ms: number;
   error?: string;
@@ -110,7 +112,8 @@ export function runEntry(entry: BenchEntry, input: PackInput, seed = 0, now: () 
     const ms = now() - start;
     const all = measure(input, output);
     const measures = Object.fromEntries(COMPARE_MEASURES.map((m) => [m.id, all[m.id as keyof typeof all]]));
-    return { entry, index, output, measures, ms };
+    const spacing = spacingOf(input, output);
+    return { entry, index, output, measures, ms, ...(spacing === undefined ? {} : { spacing }) };
   } catch (e) {
     return { entry, index, ms: now() - start, ...errorText(e) };
   }
@@ -118,6 +121,15 @@ export function runEntry(entry: BenchEntry, input: PackInput, seed = 0, now: () 
 
 // Later, with roadmap item k68: `packSpace` gives the ranges of the options of each strategy. Then the hybrid pipelines
 // join the list of the compare page here, after the named entries.
+
+/**
+ * This function gives the spacing of a layout (roadmap item k216): the mean gap of each placed box to its nearest other
+ * box. It uses `nearestGaps` of the contract on `boxesOf`. A layout with fewer than 2 boxes has no spacing.
+ */
+export function spacingOf(input: PackInput, output: PackOutput): number | undefined {
+  const gaps = nearestGaps(boxesOf(input, output)).filter((g) => Number.isFinite(g));
+  return gaps.length === 0 ? undefined : gaps.reduce((a, b) => a + b, 0) / gaps.length;
+}
 
 /** This function packs an input with each entry of `entriesFor` of the input. */
 export function runAll(input: PackInput, seed = 0, now?: () => number): EntryResult[] {
@@ -205,60 +217,89 @@ export function bestIds(results: readonly EntryResult[], key: Exclude<SortKey, "
   return new Set(scored.filter((x) => Math.abs(x.s - best) <= 1e-9 * Math.max(1, Math.abs(best))).map((x) => x.id));
 }
 
-/** One point of the front of compact against spread (roadmap item k123): an entry, its fill and its side skew. */
+/** One axis of a front: its name, its direction, the value of a result and the text of a value (roadmap item k216). */
+export interface FrontAxis {
+  label: string;
+  direction: "higher" | "lower";
+  value: (r: EntryResult) => number | undefined;
+  text: (v: number) => string;
+}
+
+/** This function gives the axis of a front for a measure of `COMPARE_MEASURES`. */
+export function measureAxis(id: MeasureId): FrontAxis {
+  const m = COMPARE_MEASURES.find((x) => x.id === id);
+  if (m === undefined) throw new RangeError(`The measure ${id} is not a measure of the compare page.`);
+  return { label: m.label, direction: m.direction, value: (r) => r.measures?.[id], text: (v) => valueText(m, v) };
+}
+
+/** One point of a front: an entry and its two values (roadmap items k123 and k216). */
 export interface FrontPoint {
   id: string;
-  fill: number;
-  skew: number;
-  /** The value `true` when no other point beats this point. To beat it, a point has more fill and no more skew, or less skew and no less fill. */
+  x: number;
+  y: number;
+  /** The value `true` when no other point beats this point. To beat it, a point is not worse on each axis, and better on one axis. */
   front: boolean;
 }
 
-/** This function gives the points of the front of compact against spread. A result without both values has no point. */
-export function frontPoints(results: readonly EntryResult[]): FrontPoint[] {
+/**
+ * This function gives the points of the front of two axes. The default axes are the side skew (`x`) and the fill (`y`):
+ * the front of compact against spread of roadmap item k123. A result without both values has no point.
+ */
+export function frontPoints(results: readonly EntryResult[], xAxis: FrontAxis = measureAxis("pack.balance.sideRange"), yAxis: FrontAxis = measureAxis("pack.fill")): FrontPoint[] {
   const points = results.flatMap((r) => {
-    const fill = r.measures?.["pack.fill"];
-    const skew = r.measures?.["pack.balance.sideRange"];
-    return fill === undefined || skew === undefined || !Number.isFinite(fill) || !Number.isFinite(skew) ? [] : [{ id: r.entry.id, fill, skew }];
+    const x = xAxis.value(r);
+    const y = yAxis.value(r);
+    return x === undefined || y === undefined || !Number.isFinite(x) || !Number.isFinite(y) ? [] : [{ id: r.entry.id, x, y }];
   });
-  const beats = (a: { fill: number; skew: number }, b: { fill: number; skew: number }): boolean => a.fill >= b.fill && a.skew <= b.skew && (a.fill > b.fill || a.skew < b.skew);
+  const sx = xAxis.direction === "higher" ? -1 : 1;
+  const sy = yAxis.direction === "higher" ? -1 : 1;
+  const beats = (a: { x: number; y: number }, b: { x: number; y: number }): boolean => sx * a.x <= sx * b.x && sy * a.y <= sy * b.y && (sx * a.x < sx * b.x || sy * a.y < sy * b.y);
   return points.map((p) => ({ ...p, front: !points.some((q) => beats(q, p)) }));
 }
 
 /**
- * This function gives an SVG chart of the front: the side skew on the x axis, the fill on the y axis. The front points
- * have a line and their names. A point that is not on the front is small and gray.
+ * This function gives an SVG chart of a front. The better end of each axis is at the origin side. For `x`, it is the
+ * left end of a lower-is-better axis. For `y`, it is the top end of a higher-is-better axis. The front points have a line and their names. A point
+ * that is not on the front is small and gray.
  */
-export function frontSvg(points: readonly FrontPoint[]): string {
+export function frontSvg(points: readonly FrontPoint[], xAxis: FrontAxis = measureAxis("pack.balance.sideRange"), yAxis: FrontAxis = measureAxis("pack.fill")): string {
   const W = 320;
   const H = 200;
-  const pad = { l: 40, r: 12, t: 12, b: 32 };
-  const maxSkew = Math.max(0.05, ...points.map((p) => p.skew));
-  const minFill = Math.min(0.5, ...points.map((p) => p.fill));
-  const x = (v: number): number => pad.l + (v / maxSkew) * (W - pad.l - pad.r);
-  const y = (v: number): number => pad.t + ((1 - v) / Math.max(1e-9, 1 - minFill)) * (H - pad.t - pad.b);
-  const front = points.filter((p) => p.front).toSorted((a, b) => a.skew - b.skew || b.fill - a.fill);
-  const line = front.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.skew).toFixed(1)} ${y(p.fill).toFixed(1)}`).join(" ");
-  const pct = (v: number): string => `${Math.round(v * 100)}%`;
+  const pad = { l: 48, r: 12, t: 12, b: 32 };
+  const span = (values: readonly number[]): [number, number] => {
+    const lo = Math.min(...values);
+    const hi = Math.max(...values);
+    return hi > lo ? [lo, hi] : [lo - 0.5 * Math.max(1e-9, Math.abs(lo)), hi + 0.5 * Math.max(1e-9, Math.abs(hi))];
+  };
+  const [x0, x1] = span(points.map((p) => p.x));
+  const [y0, y1] = span(points.map((p) => p.y));
+  // The better end of the x axis is at the left, and the better end of the y axis is at the top.
+  const fx = (v: number): number => pad.l + ((xAxis.direction === "lower" ? v - x0 : x1 - v) / (x1 - x0)) * (W - pad.l - pad.r);
+  const fy = (v: number): number => pad.t + ((yAxis.direction === "higher" ? y1 - v : v - y0) / (y1 - y0)) * (H - pad.t - pad.b);
+  const front = points.filter((p) => p.front).toSorted((a, b) => fx(a.x) - fx(b.x) || fy(a.y) - fy(b.y));
+  const line = front.map((p, i) => `${i === 0 ? "M" : "L"}${fx(p.x).toFixed(1)} ${fy(p.y).toFixed(1)}`).join(" ");
+  const [xl, xr] = xAxis.direction === "lower" ? [x0, x1] : [x1, x0];
+  const [yt, yb] = yAxis.direction === "higher" ? [y1, y0] : [y0, y1];
+  const better = (a: FrontAxis): string => (a.direction === "higher" ? "more is better" : "less is better");
   const axes = [
     `<line class="faxis" x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" />`,
     `<line class="faxis" x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H - pad.b}" />`,
-    `<text class="ftick" x="${pad.l}" y="${H - pad.b + 14}" text-anchor="middle">0%</text>`,
-    `<text class="ftick" x="${W - pad.r}" y="${H - pad.b + 14}" text-anchor="end">${pct(maxSkew)}</text>`,
-    `<text class="ftick" x="${pad.l - 4}" y="${pad.t + 4}" text-anchor="end">100%</text>`,
-    `<text class="ftick" x="${pad.l - 4}" y="${H - pad.b}" text-anchor="end">${pct(minFill)}</text>`,
-    `<text class="flabel" x="${(pad.l + W - pad.r) / 2}" y="${H - 4}" text-anchor="middle">Side skew, less is better</text>`,
-    `<text class="flabel" x="10" y="${(pad.t + H - pad.b) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(pad.t + H - pad.b) / 2})">Fill</text>`,
+    `<text class="ftick" x="${pad.l}" y="${H - pad.b + 14}" text-anchor="middle">${xAxis.text(xl)}</text>`,
+    `<text class="ftick" x="${W - pad.r}" y="${H - pad.b + 14}" text-anchor="end">${xAxis.text(xr)}</text>`,
+    `<text class="ftick" x="${pad.l - 4}" y="${pad.t + 4}" text-anchor="end">${yAxis.text(yt)}</text>`,
+    `<text class="ftick" x="${pad.l - 4}" y="${H - pad.b}" text-anchor="end">${yAxis.text(yb)}</text>`,
+    `<text class="flabel" x="${(pad.l + W - pad.r) / 2}" y="${H - 4}" text-anchor="middle">${xAxis.label}, ${better(xAxis)}</text>`,
+    `<text class="flabel" x="10" y="${(pad.t + H - pad.b) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(pad.t + H - pad.b) / 2})">${yAxis.label}</text>`,
   ];
   const dots = points
     .toSorted((a, b) => Number(a.front) - Number(b.front))
     .map((p) => {
-      const title = `<title>${p.id}: fill ${(p.fill * 100).toFixed(1)}%, side skew ${(p.skew * 100).toFixed(1)}%</title>`;
-      const name = p.front ? `<text class="fname" x="${(x(p.skew) + 6).toFixed(1)}" y="${(y(p.fill) - 6).toFixed(1)}">${p.id}</text>` : "";
-      return `<g class="${p.front ? "fpoint on" : "fpoint"}"><circle cx="${x(p.skew).toFixed(1)}" cy="${y(p.fill).toFixed(1)}" r="${p.front ? 4.5 : 3}">${title}</circle>${name}</g>`;
+      const title = `<title>${p.id}: ${yAxis.label.toLowerCase()} ${yAxis.text(p.y)}, ${xAxis.label.toLowerCase()} ${xAxis.text(p.x)}</title>`;
+      const name = p.front ? `<text class="fname" x="${(fx(p.x) + 6).toFixed(1)}" y="${(fy(p.y) - 6).toFixed(1)}">${p.id}</text>` : "";
+      return `<g class="${p.front ? "fpoint on" : "fpoint"}"><circle cx="${fx(p.x).toFixed(1)}" cy="${fy(p.y).toFixed(1)}" r="${p.front ? 4.5 : 3}">${title}</circle>${name}</g>`;
     });
   const path = front.length > 1 ? `<path class="fline" d="${line}" />` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="The fill against the side skew of each strategy. ${front.length} strategies are on the front.">${axes.join("")}${path}${dots.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="The ${yAxis.label.toLowerCase()} against the ${xAxis.label.toLowerCase()} of each strategy. ${front.length} strategies are on the front.">${axes.join("")}${path}${dots.join("")}</svg>`;
 }
 
 /**

@@ -14,6 +14,7 @@ export { packingMetrics, type MetricsOptions, type PackingMetrics } from "./metr
 export {
   MEASURE_SPECS,
   balanceContainerOf,
+  boxesOf,
   gapToOpt,
   isDeterministic,
   measure,
