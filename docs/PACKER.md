@@ -1246,12 +1246,68 @@ The counts of `packSpace`:
 - `ENTRIES` of the benchmark: 34 before, 38 after. `composites`: 7 before, 10 after. The meta options of `spaceCounts`: 8 before, 11 after.
 - The strata of `strataOf`: 20 before, 23 after. The new strata are `anneal:1`, `genetic:1` and `tabu:1`.
 
+### The walks over orders
+
+Roadmap item k212 adds the composite strategy `walk`. It is one walk over the orders of the items, with a move and an acceptance rule. It is opt-in. No default uses it.
+
+```ts
+const out = packWith("walk", input, { member: "maxrects", accept: "late", move: "insert", history: 8, iterations: 64 }, 1);
+```
+
+| Option | Default | Value |
+|---|---|---|
+| `member`, `iterations`, `budgetWork` | `maxrects-bl`, 64, none | The same as the options of `anneal`, `genetic` and `tabu`. |
+| `accept` | `climb` | The acceptance rule: `climb`, `threshold`, `record` or `late`. |
+| `move` | `mixed` | The change of the order at each step: `swap`, `insert`, `reverse` or `mixed`. `mixed` is a swap or an insert, each with the chance one half. |
+| `band` | 0.01 | `threshold` and `record` only. The largest loss that the rule takes, in the units of the key levels. A number above 0 and to 1. |
+| `history` | 8 | `late` only. The count of the steps back that the rule compares with. A whole number from 1 to 1024. |
+
+The acceptance rules (the catalog rows are in `docs/research/CATALOG.md`):
+
+| Rule | Catalog row | Source | The worse orders that replace the current order |
+|---|---|---|---|
+| `climb` | `search-naive-evolution` | Hopper 2001 | None. A tie replaces it, so the walk can cross a flat part of the key. |
+| `threshold` | `search-threshold-order` | Dueck 1990 | Each order with a loss of at most the band. The band falls linearly from `band` to 0 over the packs. |
+| `record` | `search-record-order` | Dueck 1993 | Each order with a loss to the best order of at most `band`. |
+| `late` | `search-late-order` | Burke 2017 | Each order that is not worse than the current order of `history` steps before. |
+
+- The start is the member output. Each step changes the current order with the move, or turns an item when the member turns items.
+- The compare is the key of `restarts`, with `selectBest`. The loss is the difference on the first level that is worse.
+- No rule takes an order with more breaks of the hard rules.
+- The output is the best order of the walk. Thus the output is not worse than the member output by the key.
+- Step `t` gets the random numbers `stepRandom(seed, "walk:<t>")`. The strategy reads no clock.
+- The trace stage `walk` has `move.walk`, `walk.packs`, `walk.bestAt`, `walk.accepted` and `walk.uphill`. `walk.uphill` counts the worse orders that the rule took.
+- `late` with a history of 1 gives the walk of `climb`. A test holds this identity.
+
+The choices of this project:
+
+- Each rule is its own option of the stage `combine`, with 1 member, as `anneal`, `genetic` and `tabu`. Thus each rule is one operator of `packOperators`.
+- A stage `local-search` with each rule and each move as options multiplies the base configs by approximately 600. Then the sampler draws mostly walks. Thus the walks go in `combine`, and the stage `local-search` keeps the option `none` only.
+- The move of `anneal`, `genetic` and `tabu` into the same stage waits for a weight design of the sampler (roadmap item k214).
+- The space has a smaller range than the engine for `history`: 1 to 64.
+
+The counts of `packSpace`:
+
+- `combine` gets the options `climb`, `threshold`, `record` and `late`, each with 1 member and `RECT_ONLY`. The names of the strata are the same: `climb:1`, `threshold:1`, `record:1` and `late:1`.
+- With 3 levels, each base config gives 600 new meta configs: 60 for `climb` and 180 for each other rule. With 1 level, each base config gives 80.
+- The named configs are `walk` and the 4 entries `climb-maxrects-bl-k16`, `threshold-maxrects-bl-k16`, `record-maxrects-bl-k16` and `late-maxrects-bl-k16`. The benchmark has the 4 entries in `ORDER_SEARCH_ENTRIES`.
+
+| `spaceSize` | Before k212 | Since k212 |
+|---|---|---|
+| 3 levels, `maxMeta: 10n ** 21n` | 996982144242458314300 | 996982144242460617100 |
+| 1 level | 346878105010926668 | 346878105011018028 |
+| 3 levels, `shapes: ["rect"]` | 989209855826161117216 | 989209855826163416416 |
+| 1 level, `shapes: ["rect"]` | 343846500125987340 | 343846500126078540 |
+
+- The base configs stay 3838 and 3832 for `rect`.
+- The strata of `strataOf`: 40 before, 44 after.
+
 ## The registry
 
 ```ts
 const strategies: Strategy[]; // each single strategy of the package
 const shapeStrategies: Strategy[]; // each single strategy of a shape kind that is not rect: "hole-degree" since k90, then "circle-quasi-physical"
-const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic" and "tabu"
+const composites: Strategy[]; // each composite strategy: "portfolio" since 0.2.7, then "aspect-fit", "select", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu" and "walk"
 const standaloneStrategies: readonly Strategy[]; // each single strategy that wraps a standalone function: since k141
 const sideAnchorsStrategy: Strategy; // the composite strategy of packSideAnchors: since k141
 const allStrategies: readonly StrategyListing[]; // each strategy of these lists, with its kind, family, supports and deterministic flag: since k140

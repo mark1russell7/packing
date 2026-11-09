@@ -63,7 +63,8 @@ const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "20963f4950107879", "3f8e28fece
 // Roadmap item k142 adds the base configs of the standalone placements to the members, and the option side-anchors. Before k142 the counts were 93933758014846374732506608748 and 93933758014846373534955689790.
 // Roadmap item k193 adds the side none to side-anchors. Before k193 the count was 97230737123976843015729743524.
 // Roadmap item k29 adds treemap-spiral. Before k29 the count was 97230737123976843015729948306.
-const CLOCK_FREE_META = 97233111173976344072011118730n;
+// The walks of k212 have no clock limit. Before k212 the count was 97233111173976344072011118730.
+const CLOCK_FREE_META = 97233111173976344142259879050n;
 // Roadmap item k29 adds the base config of shelf-breaks to the members. Before k29 the counts were 97223615252208789169500820039 and 97223615252208787963100427090.
 // Roadmap item k30 adds the base configs of shelf-online to the members. Before k30 the counts were 97225989163093744903710893550 and 97225989163093743697304199810.
 // The base config of treemap-spiral (k29) adds to the members. Before treemap-spiral the counts were 97230737123976843015729743524 and 97230737123976841809310448190.
@@ -148,7 +149,7 @@ describe("the counts of the configs", () => {
     // Roadmap item k29 adds the standalone placement treemap-spiral with 1 config. Before treemap-spiral the base count was 204782.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
     expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1409));
-    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force", "side-anchors"]);
+    expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "climb", "threshold", "record", "late", "relax", "relax-pull", "force", "side-anchors"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
 });
@@ -425,7 +426,8 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 40 strata of packSpace, and their counts sum to the count of the space", () => {
+  // Roadmap item k212 adds the 4 strata of the walks.
+  it("gives 44 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -465,6 +467,10 @@ describe("the strata of k115", () => {
       "anneal:1",
       "genetic:1",
       "tabu:1",
+      "climb:1",
+      "threshold:1",
+      "record:1",
+      "late:1",
       "relax:1",
       "relax-pull:1",
       "force:1",

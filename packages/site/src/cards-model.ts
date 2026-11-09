@@ -12,6 +12,8 @@ import {
   MAXRECTS_RULES,
   RESTART_PERTURBS,
   RUIN_KINDS,
+  WALK_ACCEPTS,
+  WALK_MOVES,
   SHELF_FITS,
   SKYLINE_RULES,
   SORT_ORDERS,
@@ -37,6 +39,7 @@ import {
   type SkylineStrategyOptions,
   type Strategy,
   type TabuStrategyOptions,
+  type WalkStrategyOptions,
 } from "@mark1russell7/packing";
 import { CORPUS_LABELS, MEASURE_LABELS, type Label, type StrategySnapshot } from "./data.ts";
 
@@ -160,6 +163,11 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
   tabu: {
     stage: "local-search",
     rule: "Try some swaps of the order, and go to the best one. A swapped pair stays tabu for some steps.",
+    cost: "one pack of the member for each new order: 64 packs by default",
+  },
+  walk: {
+    stage: "local-search",
+    rule: "Change the order with one move at each step. An acceptance rule tells when a worse order replaces the current order.",
     cost: "one pack of the member for each new order: 64 packs by default",
   },
 };
@@ -314,6 +322,7 @@ type AnyOptions = LayoutStrategyOptions &
   AnnealStrategyOptions &
   GeneticStrategyOptions &
   TabuStrategyOptions &
+  WalkStrategyOptions &
   BboxStrategyOptions &
   GuillotineStrategyOptions &
   HoleDegreeStrategyOptions &
@@ -370,6 +379,10 @@ export const OPTION_INFO: Readonly<Record<keyof AnyOptions, OptionInfo>> = {
   mutation: { type: "number", note: "The chance that a child of `genetic` gets one more random change, from 0 to 1." },
   tenure: { type: "number", note: "The count of the steps of `tabu` in which a swapped pair stays tabu." },
   neighbors: { type: "number", note: "The count of the random swaps that one step of `tabu` tries." },
+  accept: { type: oneOf(WALK_ACCEPTS), note: "The acceptance rule of `walk`: no worse order, a falling band, a band from the best order, or a history." },
+  move: { type: oneOf(WALK_MOVES), note: "The change of the order at each step of `walk`: a swap, an insert, a reversed block, or a swap or an insert." },
+  band: { type: "number", note: "The largest loss that the rules `threshold` and `record` of `walk` take, from 0.0001 to 1." },
+  history: { type: "number", note: "The count of the steps back that the rule `late` of `walk` compares with, from 1 to 1024." },
 };
 
 /** The type and the note of an option of one strategy, when they are not the values of `OPTION_INFO`, by strategy id. */
@@ -399,6 +412,10 @@ export const STRATEGY_OPTION_INFO: Readonly<Record<string, Readonly<Record<strin
     member: { type: "string | PortfolioEntry", note: "The member that packs each order. The default is `maxrects-bl`." },
     iterations: { type: "number", note: "The count of the packs of the member, the member order included." },
   },
+  walk: {
+    member: { type: "string | PortfolioEntry", note: "The member that packs each order. The default is `maxrects-bl`." },
+    iterations: { type: "number", note: "The count of the packs of the member, the member order included." },
+  },
   relax: {
     member: { type: "string | PortfolioEntry", note: "The member that packs the first layout. The default is `maxrects-bl`." },
     strength: { type: "number", note: "The share of the move to the even spread, from 0 to 1. With 0, the output is the member output." },
@@ -425,6 +442,7 @@ export const OPTIONAL_OPTIONS: Readonly<Record<string, readonly (keyof AnyOption
   anneal: ["member", "budgetWork"] satisfies (keyof AnnealStrategyOptions)[],
   genetic: ["member", "budgetWork"] satisfies (keyof GeneticStrategyOptions)[],
   tabu: ["member", "budgetWork"] satisfies (keyof TabuStrategyOptions)[],
+  walk: ["member", "budgetWork"] satisfies (keyof WalkStrategyOptions)[],
   relax: ["member", "pull"] satisfies (keyof RelaxStrategyOptions)[],
   force: ["member"] satisfies (keyof ForceStrategyOptions)[],
 };

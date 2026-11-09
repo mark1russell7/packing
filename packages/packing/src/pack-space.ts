@@ -33,7 +33,7 @@ import type { NearRectsOptions } from "./near-rects.ts";
 import type { RasterNofitOptions } from "./raster-nofit.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { GUILLOTINE_CHOICES, GUILLOTINE_SPLITS } from "./guillotine.ts";
-import type { AnnealStrategyOptions, GeneticStrategyOptions, TabuStrategyOptions } from "./order-search.ts";
+import { WALK_ACCEPTS, WALK_MOVES, type AnnealStrategyOptions, type GeneticStrategyOptions, type TabuStrategyOptions, type WalkStrategyOptions } from "./order-search.ts";
 import type { ForceStrategyOptions } from "./force.ts";
 import type { RelaxStrategyOptions } from "./relax.ts";
 import { MAXRECTS_RULES } from "./maxrects.ts";
@@ -169,6 +169,20 @@ const TABU_PARAMS: readonly SpaceParam[] = [
   { name: "neighbors", kind: "int", min: 1, max: 64, scale: "log", default: 8 },
   ...WORK_PARAMS,
 ];
+
+/** The param `move` of the walks of roadmap item k212: the change of the order at each step. */
+const WALK_MOVE: SpaceParam = { name: "move", kind: "enum", values: [...WALK_MOVES], default: "mixed" };
+
+/**
+ * This function gives the params of one walk of roadmap item k212. They are the count of the packs, the move, the param of the
+ * acceptance rule and the work limit. `threshold` and `record` have the band, and `late` has the length of its history.
+ */
+function walkParams(accept: (typeof WALK_ACCEPTS)[number]): readonly SpaceParam[] {
+  const band: SpaceParam = { name: "band", kind: "real", min: 0.0001, max: 1, scale: "log", default: 0.01 };
+  const history: SpaceParam = { name: "history", kind: "int", min: 1, max: 64, scale: "log", default: 8 };
+  const own = accept === "threshold" || accept === "record" ? [band] : accept === "late" ? [history] : [];
+  return [SEARCH_ITERATIONS, WALK_MOVE, ...own, ...WORK_PARAMS];
+}
 
 /**
  * The placements of the standalone strategies of roadmap item k142. Each one goes with the order `input` and the size search `none`, because it does its own search.
@@ -372,6 +386,7 @@ const STAGES: readonly SpaceStage[] = [
       { id: "anneal", params: ANNEAL_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "genetic", params: GENETIC_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "tabu", params: TABU_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
+      ...WALK_ACCEPTS.map((id) => ({ id, params: walkParams(id), members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY })),
       { id: "relax", params: RELAX_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "relax-pull", params: RELAX_PULL_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
       { id: "force", params: FORCE_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
@@ -443,8 +458,9 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * - `circle-quasi-physical` of roadmap item k94 goes with the order `input` and the size search `none`. It does its own radius search, in a circle container only.
  * - The placements of `STANDALONE_PLACEMENTS` of roadmap item k142 go with the order `input` and the size search `none`. Each one does its own search.
  * - A composite finds only a member of the registry. Thus `packConfig` refuses a composite with a member of `STANDALONE_PLACEMENTS`, and a draw goes back.
- * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull`, `force` and `side-anchors`.
- * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, `relax`, `relax-pull`, `force` and `side-anchors` have 1 member.
+ * - `combine` has the meta options `portfolio`, `cell-portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, the walks, `relax`, `relax-pull`, `force` and `side-anchors`.
+ * - `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic`, `tabu`, the walks, `relax`, `relax-pull`, `force` and `side-anchors` have 1 member.
+ * - The walks of roadmap item k212 are `climb`, `threshold`, `record` and `late`: one option for each acceptance rule of the strategy `walk`.
  * - `relax-pull` is the strategy `relax` with the strength 0 and the option `pull`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. The table of the input picks the members that run.
  * - The `pool` of `cell-portfolio` has one entry, the configs of `PORTFOLIO_SETS`. Thus `spaceSize` counts one member list for it.
@@ -508,6 +524,11 @@ export const packSpace: StrategySpace = Object.freeze({
     "genetic-maxrects-bl-k16": metaConfig("genetic", [single("maxrects-bl")], { iterations: 16, population: 4 }),
     "tabu-maxrects-bl-k16": metaConfig("tabu", [single("maxrects-bl")], { iterations: 16, neighbors: 4 }),
     anneal: metaConfig("anneal", [single("maxrects-bl")]),
+    walk: metaConfig("climb", [single("maxrects-bl")]),
+    "climb-maxrects-bl-k16": metaConfig("climb", [single("maxrects-bl")], { iterations: 16 }),
+    "threshold-maxrects-bl-k16": metaConfig("threshold", [single("maxrects-bl")], { iterations: 16 }),
+    "record-maxrects-bl-k16": metaConfig("record", [single("maxrects-bl")], { iterations: 16 }),
+    "late-maxrects-bl-k16": metaConfig("late", [single("maxrects-bl")], { iterations: 16 }),
     genetic: metaConfig("genetic", [single("maxrects-bl")]),
     tabu: metaConfig("tabu", [single("maxrects-bl")]),
     "relax-rows": metaConfig("relax", [single("rows")]),
@@ -631,6 +652,16 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     tenure: "combine.tabu.tenure",
     neighbors: "combine.tabu.neighbors",
   } satisfies Places<TabuStrategyOptions>,
+  // The option accept of walk is the option of the stage combine. Each other option names its place in the option climb, or in the option that reads it.
+  walk: {
+    member: "combine.climb.members",
+    iterations: "combine.climb.iterations",
+    budgetWork: "combine.climb.budgetWork",
+    accept: "combine",
+    move: "combine.climb.move",
+    band: "combine.threshold.band",
+    history: "combine.late.history",
+  } satisfies Places<WalkStrategyOptions>,
   relax: { member: "combine.relax.members", strength: "combine.relax.strength", pull: "combine.relax-pull.pull" } satisfies Places<RelaxStrategyOptions>,
   force: { member: "combine.force.members", iterations: "combine.force.iterations", rounds: "combine.force.rounds" } satisfies Places<ForceStrategyOptions>,
   pack: {
@@ -751,6 +782,37 @@ function sideAnchorsPoint(options: Readonly<Record<string, unknown>>): StrategyP
   return { ok: true, config: metaConfig("side-anchors", [member.config], { side: first["side"], at: first["at"] }) };
 }
 
+/**
+ * This function gives the point of `walk`. The option `accept` gives the option of the stage `combine`, and the other options give its params.
+ * The params that the acceptance rule does not read go out, because they do not change the output.
+ */
+function walkPoint(options: Readonly<Record<string, unknown>>): StrategyPoint {
+  const accept = options["accept"] ?? "climb";
+  if (!(WALK_ACCEPTS as readonly unknown[]).includes(accept)) return { ok: false, reason: `The option walk.accept is one of ${WALK_ACCEPTS.join(", ")}, not ${String(accept)}.` };
+  const option = accept as (typeof WALK_ACCEPTS)[number];
+  const given = memberOf(options["member"] ?? { strategy: "maxrects", options: { rule: "bl" } });
+  if (given === undefined) return { ok: false, reason: "The option walk.member is not a strategy id or an entry with strategy and options." };
+  if (STANDALONE_PLACEMENTS.includes(given.strategy)) return { ok: false, reason: notMember(given.strategy) };
+  const member = rawConfig(given.strategy, given.options);
+  if (!member.ok) return { ok: false, reason: `The member ${given.strategy} of the option walk.member has no point. ${member.reason}` };
+  const reads = new Set(walkParams(option).map((p) => p.name));
+  const params: Record<string, string | number | boolean> = {};
+  for (const name of ["iterations", "move", "band", "history"]) {
+    const value = options[name];
+    if (value === undefined || !reads.has(name)) continue;
+    const v = paramValue(name, value);
+    if (v === undefined) return { ok: false, reason: `The value of the option walk.${name} is not a string, a number or a boolean.` };
+    params[name] = v;
+  }
+  if (options["budgetWork"] !== undefined) {
+    const v = paramValue("budgetWork", options["budgetWork"]);
+    if (v === undefined) return { ok: false, reason: "The value of the option walk.budgetWork is not a number." };
+    params["limitWork"] = true;
+    params["budgetWork"] = v;
+  }
+  return { ok: true, config: metaConfig(option, [member.config], params) };
+}
+
 /** This function gives the config of a strategy with its options before the checks of `checkConfig`. */
 function rawConfig(id: string, given: Readonly<Record<string, unknown>>): StrategyPoint {
   let options = Object.fromEntries(Object.entries(given).filter(([, value]) => value !== undefined));
@@ -780,6 +842,7 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
     }
   }
   if (id === "side-anchors") return sideAnchorsPoint(options);
+  if (id === "walk") return walkPoint(options);
   if (SINGLE_STRATEGIES.includes(id)) {
     try {
       return { ok: true, config: baseConfig(id, options) };
@@ -957,10 +1020,11 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - The params `limitMembers` and `limitTime` of a portfolio give the options `maxMembers` and `budgetMs`.
  * - The param `limitTime` of `restarts` gives the options `limitTime` and `budgetMs` of the strategy `restarts`.
  * - The param `limitWork` of a portfolio and of `restarts` gives the option `budgetWork` (roadmap item k117).
- * - The param `limitWork` of `anneal`, `genetic` and `tabu` gives the option `budgetWork` too (roadmap item k26).
+ * - The param `limitWork` of `anneal`, `genetic`, `tabu` and the walks gives the option `budgetWork` too (roadmap items k26 and k212).
  * - A base config packs with its single strategy.
  * - A composite with a member of `STANDALONE_PLACEMENTS` causes `UnsupportedCell`, because a composite finds only a member of the registry.
  * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` or `tabu`.
+ * - A walk (`climb`, `threshold`, `record` or `late`) packs with `walk`, and the option of the stage is its option `accept`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  */
@@ -1018,6 +1082,13 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
       return packWith("genetic", input, { member: entryOf(members[0]!), iterations: params["iterations"], population: params["population"], mutation: params["mutation"], ...work }, seed);
     case "tabu":
       return packWith("tabu", input, { member: entryOf(members[0]!), iterations: params["iterations"], tenure: params["tenure"], neighbors: params["neighbors"], ...work }, seed);
+    case "climb":
+    case "threshold":
+    case "record":
+    case "late": {
+      const own = { ...(params["band"] === undefined ? {} : { band: params["band"] }), ...(params["history"] === undefined ? {} : { history: params["history"] }) };
+      return packWith("walk", input, { member: entryOf(members[0]!), accept: combine.option, iterations: params["iterations"], move: params["move"], ...own, ...work }, seed);
+    }
     case "relax":
       return packWith("relax", input, { member: entryOf(members[0]!), strength: params["strength"] }, seed);
     case "relax-pull":

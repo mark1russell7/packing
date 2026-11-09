@@ -1,4 +1,4 @@
-// The strategies `anneal`, `genetic` and `tabu` of roadmap item k26 (`docs/PACKER.md`, "The searches over orders").
+// The strategies `anneal`, `genetic` and `tabu` of roadmap item k26 and `walk` of roadmap item k212 (`docs/PACKER.md`, "The searches over orders").
 // Each one searches the order of the items, and the turns when the member turns items. A member decodes each order. Nothing default uses them.
 
 import { selectBest, stepRandom, type SelectCandidate } from "@mark1russell7/layout-contract";
@@ -12,6 +12,7 @@ import type { ItemOrder } from "./order.ts";
 import { measureKey } from "./select-key.ts";
 import { assertSupported, cellOf, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 import { checkBudgetWork, packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
+import { WALK_ACCEPTS, WALK_MOVES, type WalkAccept, type WalkMove } from "./walk-rules.ts";
 
 /** The id of the trace stage of `anneal`. */
 export const ANNEAL_STAGE = "anneal";
@@ -559,5 +560,109 @@ export const tabuStrategy: Strategy<TabuStrategyOptions> = {
       if (search.compare(current, best).verdict === "better") best = current;
     }
     return search.finish(TABU_STAGE, "move.tabu", best, { "tabu.steps": steps, "tabu.aspirations": aspirations });
+  },
+};
+
+/** The id of the trace stage of `walk`. */
+export const WALK_STAGE = "walk";
+
+export { WALK_ACCEPTS, WALK_MOVES, type WalkAccept, type WalkMove } from "./walk-rules.ts";
+
+/** The options of the strategy `walk` */
+export interface WalkStrategyOptions {
+  /** The member: a strategy id, or a `PortfolioEntry` with options. The default is `maxrects` with the rule `bl`. */
+  member?: string | PortfolioEntry;
+  /** The count of the packs of the member, the pack of the member order included. A whole number of 1 or more. The default is 64. */
+  iterations?: number;
+  /** The work limit in work units of `packWork`, a whole number of 0 or more. It has no default. The first pack always starts. */
+  budgetWork?: number;
+  /** The acceptance rule. The default is `climb`. */
+  accept?: WalkAccept;
+  /** The move. The default is `mixed`. */
+  move?: WalkMove;
+  /** The band of `threshold` and `record`, in the units of the key levels: a number above 0 and to 1. The default is 0.01. */
+  band?: number;
+  /** The length of the history of `late`: a whole number from 1 to 1024. The default is 8. */
+  history?: number;
+}
+
+/** This function gives a genome with the items from position `i` to position `j` in the reverse order. */
+function reversed(genome: Genome, i: number, j: number): Genome {
+  const [low, high] = i < j ? [i, j] : [j, i];
+  const order = [...genome.order.slice(0, low), ...genome.order.slice(low, high + 1).reverse(), ...genome.order.slice(high + 1)];
+  return { order, turned: genome.turned };
+}
+
+/** This function gives the genome after one move of `walk`: a turn of a turnable item, else a change of the order by the move. */
+function walkStep(search: OrderSearch, genome: Genome, move: WalkMove, r: () => number): Genome {
+  const n = genome.order.length;
+  if (search.turns && (n < 2 || r() < TURN_CHANCE)) return search.flipped(genome, search.turnable[pick(r, search.turnable.length)]!);
+  const i = pick(r, n);
+  const j = (i + 1 + pick(r, n - 1)) % n;
+  if (move === "swap") return search.swapped(genome, i, j);
+  if (move === "insert") return search.inserted(genome, i, j);
+  if (move === "reverse") return reversed(genome, i, j);
+  return r() < 0.5 ? search.swapped(genome, i, j) : search.inserted(genome, i, j);
+}
+
+/** This function tells if a verdict keeps a candidate within a band. The candidate is not worse, or worse by at most `band` on a level other than `hard`. */
+const within = (v: Verdict, band: number): boolean => v.verdict !== "worse" || (v.level !== "hard" && v.delta <= band);
+
+/**
+ * The strategy `walk`: one walk over the orders of the items, with a move and an acceptance rule (roadmap item k212).
+ * `docs/PACKER.md` tells the method and the choices of this project.
+ *
+ * - The start is the member output. Each step changes the current genome with the move, or turns an item when the member turns items.
+ * - The member packs the new order with the sort order `input`. The compare is the key of `restarts`, with `selectBest`.
+ * - `climb` is the naive evolution of Hopper 2001: a better candidate or a tie replaces the current genome.
+ * - `threshold` is threshold accepting (Dueck 1990). The band falls linearly from `band` to 0 over the packs.
+ * - `record` is the record-to-record travel (Dueck 1993). The band is a distance to the best genome.
+ * - `late` is the late acceptance hill climbing (Burke 2017). The history holds the current genome of each of the last `history` steps.
+ * - The loss of a worse candidate is its loss on its first worse level of the key. No rule takes a candidate with more hard breaks.
+ * - Step `t` gets the random numbers `stepRandom(seed, "walk:<t>")` of the contract. The strategy reads no clock.
+ * - The output gets the trace stage `walk` with `move.walk`, `walk.packs`, `walk.bestAt`, `walk.accepted` and `walk.uphill`.
+ */
+export const walkStrategy: Strategy<WalkStrategyOptions> = {
+  id: "walk",
+  family: "order-search",
+  catalog: ["search-naive-evolution", "search-threshold-order", "search-record-order", "search-late-order"],
+  supports: orderSupports(),
+  defaults: { iterations: DEFAULT_ITERATIONS, accept: "climb", move: "mixed", band: 0.01, history: 8 },
+  deterministic: true,
+  pack(input: PackInput, options: WalkStrategyOptions, context: PackContext): PackOutput {
+    assertSupported(walkStrategy.supports, input);
+    const common = checkedCommon("walk", options);
+    const accept = options.accept ?? "climb";
+    const move = options.move ?? "mixed";
+    if (!WALK_ACCEPTS.includes(accept)) throw new RangeError(`The option accept of walk is one of ${WALK_ACCEPTS.join(", ")}, not ${String(accept)}.`);
+    if (!WALK_MOVES.includes(move)) throw new RangeError(`The option move of walk is one of ${WALK_MOVES.join(", ")}, not ${String(move)}.`);
+    checkRange("walk", "band", options.band, 0, 1, true);
+    checkWhole("walk", "history", options.history, 1, 1024);
+    const band = options.band ?? 0.01;
+    const search = new OrderSearch(input, common, context.seed);
+    let current = search.start;
+    let best = current;
+    const history: Scored[] = Array.from({ length: options.history ?? 8 }, () => current);
+    let accepted = 0;
+    let uphill = 0;
+    const span = Math.max(1, search.iterations - 2);
+    for (let t = 1; search.canMove() && search.canTry(); t++) {
+      const r = stepRandom(context.seed, `walk:${t}`);
+      const cand = search.score(walkStep(search, current.genome, move, r));
+      if (cand === undefined) break;
+      const v = search.compare(cand, current);
+      let take = v.verdict !== "worse";
+      if (accept === "threshold") take = within(v, band * (1 - Math.min(1, (search.packs - 1) / span)));
+      else if (accept === "record") take = take || within(search.compare(cand, best), band);
+      else if (accept === "late") take = take || (v.level !== "hard" && search.compare(cand, history[t % history.length]!).verdict !== "worse");
+      if (take) {
+        if (v.verdict === "worse") uphill++;
+        if (cand !== current) accepted++;
+        current = cand;
+        if (search.compare(current, best).verdict === "better") best = current;
+      }
+      if (accept === "late") history[t % history.length] = current;
+    }
+    return search.finish(WALK_STAGE, "move.walk", best, { "walk.accepted": accepted, "walk.uphill": uphill });
   },
 };

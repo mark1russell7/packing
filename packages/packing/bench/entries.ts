@@ -161,14 +161,18 @@ export const OVERLAP_MIN_ENTRIES: readonly BenchEntry[] = Object.freeze([
 ]);
 
 /**
- * The composite entries of roadmap item k26: the searches over orders. They are not in the pool of the oracle. Each one has 16 packs of its member.
- * The base is that member. The moves are `move.anneal`, `move.genetic` and `move.tabu`.
+ * The composite entries of roadmap items k26 and k212: the searches over orders. They are not in the pool of the oracle. Each one has 16 packs of its member.
+ * The base is that member. The moves are `move.anneal`, `move.genetic`, `move.tabu` and `move.walk`. Each walk entry has one acceptance rule.
  */
 export const ORDER_SEARCH_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "anneal-maxrects-bl-k16", strategy: "anneal", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16 }, base: "maxrects-bl" },
   { id: "anneal-skyline-k16", strategy: "anneal", options: { member: "skyline", iterations: 16 }, base: "skyline" },
   { id: "genetic-maxrects-bl-k16", strategy: "genetic", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, population: 4 }, base: "maxrects-bl" },
   { id: "tabu-maxrects-bl-k16", strategy: "tabu", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, neighbors: 4 }, base: "maxrects-bl" },
+  { id: "climb-maxrects-bl-k16", strategy: "walk", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, accept: "climb" }, base: "maxrects-bl" },
+  { id: "threshold-maxrects-bl-k16", strategy: "walk", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, accept: "threshold" }, base: "maxrects-bl" },
+  { id: "record-maxrects-bl-k16", strategy: "walk", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, accept: "record" }, base: "maxrects-bl" },
+  { id: "late-maxrects-bl-k16", strategy: "walk", options: { member: { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } }, iterations: 16, accept: "late" }, base: "maxrects-bl" },
 ]);
 
 /**

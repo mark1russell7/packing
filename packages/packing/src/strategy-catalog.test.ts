@@ -220,6 +220,8 @@ const WORK_FLAG = "This flag of the space turns on the param `budgetWork`.";
 const TARGET_FLAG = "This flag of the space turns on the param `targetAspect`.";
 const ORDER_VALUE = "This value of the stage is a value of the option `sortOrder` of the placement.";
 const STAGE_OFF = "This value turns the stage off.";
+/** This function gives the reason of one walk of roadmap item k212. The params of the walk tests in `walk.test.ts` hold the routes of its params. */
+const walkOption = (accept: string): string => `This option of the space is \`walk\` with the option \`accept\` ${accept}.`;
 
 /** The params of the space that hold another form of an option value, with the function that gives the value. */
 const VALUE_ROUTES: Readonly<Record<string, ParamRoute>> = {
@@ -236,16 +238,20 @@ const SPACE_ONLY_REASONS: Readonly<Record<string, string>> = {
   "combine/anneal.limitWork": WORK_FLAG,
   "combine/aspect-fit.fixedTarget": TARGET_FLAG,
   "combine/cell-portfolio": "This option of the space is a `portfolio` with the members of one portfolio set.",
+  "combine/climb": walkOption("climb"),
   "combine/genetic.limitWork": WORK_FLAG,
+  "combine/late": walkOption("late"),
   "combine/portfolio.aspectFit": "This flag of the space puts the strategy `aspect-fit` around the portfolio.",
   "combine/portfolio.fixedTarget": TARGET_FLAG,
   "combine/portfolio.limitMembers": "This flag of the space turns on the param `maxMembers`.",
   "combine/portfolio.limitTime": "This flag of the space turns on the param `budgetMs`.",
   "combine/portfolio.limitWork": WORK_FLAG,
   "combine/portfolio.targetAspect": "This param goes to the strategy `aspect-fit` around the portfolio.",
+  "combine/record": walkOption("record"),
   "combine/relax-pull": "This option of the space is `relax` with the strength 0 and the option `pull`.",
   "combine/restarts.limitWork": WORK_FLAG,
   "combine/tabu.limitWork": WORK_FLAG,
+  "combine/threshold": walkOption("threshold"),
   "local-search/none": STAGE_OFF,
   "order/area-desc": ORDER_VALUE,
   "order/graph-bfs": ORDER_VALUE,
@@ -270,7 +276,7 @@ const check = checkCatalog(strategyCatalog, live, { spaces: [packSpace], paramRo
 describe("the strategy catalog (k144)", () => {
   it("has each strategy of the engine, with a line and the live fields", () => {
     expect(strategyCatalog.strategies.map((e) => e.id).sort()).toEqual(allStrategies.map((s) => s.id).sort());
-    expect(strategyCatalog.strategies).toHaveLength(33);
+    expect(strategyCatalog.strategies).toHaveLength(34);
     for (const s of allStrategies) {
       const entry = entries.get(s.id)!;
       expect({ family: entry.family, kind: entry.kind, supports: entry.supports, deterministic: entry.deterministic }, s.id).toEqual({ family: s.family, kind: s.kind, supports: s.supports, deterministic: s.deterministic });

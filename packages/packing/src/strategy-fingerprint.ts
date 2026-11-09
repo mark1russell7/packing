@@ -5,7 +5,7 @@
 export const FINGERPRINT_SOURCE = "21 input families at the counts 5, 20, 50 and at each container mode, 3 made-up shape kinds and circles in a circle, seed 1: 114 probes";
 
 /** The version of the package at the read of the table. */
-export const FINGERPRINT_VERSION = "0.15.1";
+export const FINGERPRINT_VERSION = "0.16.4";
 
 /** The fingerprint of the outputs of each strategy on the probes. */
 export const STRATEGY_FINGERPRINT: Readonly<Record<string, string>> = {
@@ -42,4 +42,5 @@ export const STRATEGY_FINGERPRINT: Readonly<Record<string, string>> = {
   "sleator": "ead53b36f9af6fa9",
   "tabu": "033d1135cbec688b",
   "treemap": "8561763e901d5d10",
+  "walk": "19d57cf0ee30add0",
 };

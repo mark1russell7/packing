@@ -298,6 +298,9 @@ type UiParams: build/index.d.ts#UiParams
 UnsupportedCell: build/strategy.d.ts#UnsupportedCell
 UnsupportedShape: build/strategy.d.ts#UnsupportedShape
 Vector: build/order.d.ts#Vector
+WALK_ACCEPTS: build/index.d.ts#WALK_ACCEPTS
+WALK_MOVES: build/index.d.ts#WALK_MOVES
+WALK_STAGE: build/index.d.ts#WALK_STAGE
 WALL_LOCKS_MAX: build/index.d.ts#WALL_LOCKS_MAX
 WALL_LOCK_WALLS: build/index.d.ts#WALL_LOCK_WALLS
 WORK_BUDGET: build/index.d.ts#WORK_BUDGET
@@ -305,6 +308,9 @@ WORK_SPENT: build/index.d.ts#WORK_SPENT
 WORK_STOPPED: build/index.d.ts#WORK_STOPPED
 WORST_COUNTS: build/index.d.ts#WORST_COUNTS
 WORST_WIDTH: build/index.d.ts#WORST_WIDTH
+type WalkAccept: build/index.d.ts#WalkAccept
+type WalkMove: build/index.d.ts#WalkMove
+type WalkStrategyOptions: build/index.d.ts#WalkStrategyOptions
 type WallLocksParams: build/index.d.ts#WallLocksParams
 type WorstContainer: build/index.d.ts#WorstContainer
 allStrategies: build/index.d.ts#allStrategies
@@ -524,6 +530,7 @@ turnPoint: @mark1russell7/layout-contract#turnPoint (external)
 turnPort: @mark1russell7/layout-contract#turnPort (external)
 turnRegion: @mark1russell7/layout-contract#turnRegion (external)
 unsupportedOf: build/strategy.d.ts#unsupportedOf
+walkStrategy: build/index.d.ts#walkStrategy
 wallLocks: build/index.d.ts#wallLocks
 wallLocksFamily: build/index.d.ts#wallLocksFamily
 windowOrder: build/order.d.ts#windowOrder
@@ -1872,6 +1879,15 @@ type UiParams = {
   count: number;
 };
 
+### build/index.d.ts#WALK_ACCEPTS
+export declare const WALK_ACCEPTS: readonly WalkAccept[];
+
+### build/index.d.ts#WALK_MOVES
+export declare const WALK_MOVES: readonly WalkMove[];
+
+### build/index.d.ts#WALK_STAGE
+export declare const WALK_STAGE = "walk";
+
 ### build/index.d.ts#WALL_LOCKS_MAX
 export declare const WALL_LOCKS_MAX = 4;
 
@@ -1892,6 +1908,23 @@ export declare const WORST_COUNTS: readonly number[];
 
 ### build/index.d.ts#WORST_WIDTH
 export declare const WORST_WIDTH = 100;
+
+### build/index.d.ts#WalkAccept
+type WalkAccept = "climb" | "threshold" | "record" | "late";
+
+### build/index.d.ts#WalkMove
+type WalkMove = "swap" | "insert" | "reverse" | "mixed";
+
+### build/index.d.ts#WalkStrategyOptions
+interface WalkStrategyOptions {
+  member?: string | PortfolioEntry;
+  iterations?: number;
+  budgetWork?: number;
+  accept?: WalkAccept;
+  move?: WalkMove;
+  band?: number;
+  history?: number;
+}
 
 ### build/index.d.ts#WallLocksParams
 type WallLocksParams = {
@@ -2485,6 +2518,9 @@ export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: 
 
 ### build/index.d.ts#treemapStrip
 export declare function treemapStrip(nodes: readonly TreemapNode[], frame: TreemapFrame, options?: TreemapStripOptions): TreemapCell[];
+
+### build/index.d.ts#walkStrategy
+export declare const walkStrategy: Strategy<WalkStrategyOptions>;
 
 ### build/index.d.ts#wallLocks
 export declare const wallLocks: CorpusGenerator<WallLocksParams>;

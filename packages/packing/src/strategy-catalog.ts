@@ -32,7 +32,7 @@ import { MAXRECTS_RULES } from "./maxrects.ts";
 import { OUTPUT_READ_VERSION, OUTPUT_SOURCE, STRATEGY_OUTPUT, type GridCount, type OutputRead } from "./strategy-output.ts";
 import type { NearRectsOptions } from "./near-rects.ts";
 import { GRAPH_ORDERS, SORT_ORDERS } from "./order.ts";
-import type { AnnealStrategyOptions, GeneticStrategyOptions, TabuStrategyOptions } from "./order-search.ts";
+import type { AnnealStrategyOptions, GeneticStrategyOptions, TabuStrategyOptions, WalkStrategyOptions } from "./order-search.ts";
 import type { OverlapMinStrategyOptions } from "./overlap-min.ts";
 import type { PortfolioStrategyOptions } from "./portfolio-strategy.ts";
 import type { PushStrategyOptions } from "./push-strategy.ts";
@@ -44,6 +44,7 @@ import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts
 import { SELECT_MEMBERS, type SelectStrategyOptions } from "./select-core.ts";
 import { SHELF_FITS } from "./shelf.ts";
 import { SKYLINE_RULES } from "./skyline.ts";
+import { WALK_ACCEPTS, WALK_MOVES } from "./walk-rules.ts";
 import {
   MASONRY_METHOD_IDS,
   STANDALONE_MAX_ITEMS,
@@ -284,6 +285,13 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
     tenure: { type: "integer", describe: "The count of the steps in which a swapped pair of items stays tabu.", min: 0, max: 64 },
     neighbors: { type: "integer", describe: "The count of the random moves that one step tries.", min: 1, max: 64, scale: "log" },
   } satisfies OptionSchema<TabuStrategyOptions>,
+  walk: {
+    ...ORDER_SEARCH,
+    accept: { type: "enum", describe: "The rule that tells when a worse order replaces the current order.", values: WALK_ACCEPTS },
+    move: { type: "enum", describe: "The change of the order at each step.", values: WALK_MOVES },
+    band: { type: "number", describe: "The largest loss that the rules threshold and record take, in the units of the key levels.", min: 0.0001, max: 1, scale: "log" },
+    history: { type: "integer", describe: "The count of the steps back that the rule late compares with.", min: 1, max: 64, scale: "log" },
+  } satisfies OptionSchema<WalkStrategyOptions>,
   relax: {
     member: MEMBER,
     strength: { type: "number", describe: "The share of the move from the member layout to the target. With 0, the output is the member output.", min: 0, max: 1 },
@@ -360,6 +368,7 @@ const DESCRIBES: Readonly<Record<string, string>> = {
   anneal: "This strategy searches the orders of the items with simulated annealing.",
   genetic: "This strategy searches the orders of the items with a genetic algorithm.",
   tabu: "This strategy searches the orders of the items with a tabu list.",
+  walk: "This strategy walks over the orders of the items with one move and one acceptance rule.",
   relax: "This strategy moves the boxes of the member layout to equal gaps and to their linked boxes.",
   force: "This strategy moves the boxes of the member layout with forces, then it removes the overlaps.",
   "shelf-breaks": "This strategy packs a strip into rows in the reading order, with the breaks of the least height.",
