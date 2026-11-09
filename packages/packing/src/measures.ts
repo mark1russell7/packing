@@ -47,7 +47,7 @@ export interface MeasureSpec extends ContractMeasureSpec<MeasureId> {
    *
    * - `pack.order.inversions` and `pack.overflow` have the tolerance 0. Thus each new inversion and each new unplaced item is a loss.
    * - `pack.aspectError` has 0.01, approximately 1% of the aspect. An exact tiling gives the default an error of 0.
-   * - `pack.stability.mean` has 0.005 container widths, and `pack.stability.q95` has 0.01. The default often moves no item.
+   * - `pack.stability.mean` has 0.005 W (widths of the container), and `pack.stability.q95` has 0.01 W. The default often moves no item.
    * - `pack.stability.moved` has 0.02: 2% of the items that stay. On a small change, the default often moves no item.
    */
   readonly tol?: number;
@@ -178,9 +178,9 @@ export const MEASURE_SPECS: Readonly<Record<MeasureId, MeasureSpec>> = Object.fr
   "pack.overflow.forcedAreaMin": spec("pack.overflow.forcedAreaMin", "overflow", "share", "lower", 0, 1, 0.005),
   "pack.overflow.excessArea": spec("pack.overflow.excessArea", "overflow", "share", "lower", 0, 1, 0.005),
   "pack.stability.moved": anyShape(spec("pack.stability.moved", "stability", "share", "lower", 0, 1, 0.02, { floor: 0, tol: 0.02 })),
-  "pack.stability.mean": anyShape(spec("pack.stability.mean", "stability", "container widths", "lower", 0, Infinity, 0.005, { floor: 0, tol: 0.005 })),
-  "pack.stability.q95": anyShape(spec("pack.stability.q95", "stability", "container widths", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 })),
-  "pack.deterministic": anyShape(spec("pack.deterministic", "determinism", "boolean", "higher", 0, 1, 0)),
+  "pack.stability.mean": anyShape(spec("pack.stability.mean", "stability", "W", "lower", 0, Infinity, 0.005, { floor: 0, tol: 0.005 })),
+  "pack.stability.q95": anyShape(spec("pack.stability.q95", "stability", "W", "lower", 0, Infinity, 0.01, { floor: 0, tol: 0.01 })),
+  "pack.deterministic": anyShape(spec("pack.deterministic", "determinism", "share", "higher", 0, 1, 0)),
   "pack.search.widths": anyShape(spec("pack.search.widths", "speed", "count", "lower", 0, Infinity, 0)),
   "pack.search.ms": anyShape(spec("pack.search.ms", "speed", "milliseconds", "lower", 0, Infinity, undefined)),
   // The distance to the bound of the cell (roadmap item k51). `boundMeasures` of `src/bounds.ts` gives it, not `measure`.
