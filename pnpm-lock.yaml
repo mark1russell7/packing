@@ -209,8 +209,8 @@ importers:
         specifier: ^0.10.0
         version: 0.10.0
       '@mark1russell7/layout-contract':
-        specifier: ^0.9.0
-        version: 0.9.0
+        specifier: ^0.9.1
+        version: 0.9.1
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.6
         version: 0.1.8
@@ -229,7 +229,7 @@ importers:
         version: 0.1.26
       '@mark1russell7/site-pages':
         specifier: ^0.4.1
-        version: 0.4.2
+        version: 0.4.3
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
@@ -252,8 +252,8 @@ importers:
   packages/site:
     dependencies:
       '@mark1russell7/layout-contract':
-        specifier: ^0.9.0
-        version: 0.9.0
+        specifier: ^0.9.1
+        version: 0.9.1
       '@mark1russell7/packing':
         specifier: workspace:*
         version: link:../packing
@@ -262,7 +262,7 @@ importers:
         version: 0.1.26
       '@mark1russell7/site-pages':
         specifier: ^0.4.1
-        version: 0.4.2
+        version: 0.4.3
       marked:
         specifier: ^18.1.2
         version: 18.1.2
@@ -543,8 +543,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/layout-contract@0.9.0':
-    resolution: {integrity: sha512-vmextv6Q+YwUK3jDhIYgC2Xh+dhx40i60xlieBHp1+YsvsY+BnVXpBUAm3ShYTajzOgnmc3fHeWmFZJsTr2yKA==}
+  '@mark1russell7/layout-contract@0.9.1':
+    resolution: {integrity: sha512-PwxoHo1opnh7pN0BetWinG9y+kSV91ohCg/tk9TvOtLzKLyS4hvolmhhnSD+HzrewhcNnA95lybgPvqi8pXJjw==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
@@ -586,8 +586,8 @@ packages:
     resolution: {integrity: sha512-JhwMAsYFg9FLFGVHRt6U7TWYmRblA/f+zS08H+DVzRlP4ypAqwmX6+QXNY+jNbwkyFPJqaLQJq/1PSC8QoKIWQ==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/site-pages@0.4.2':
-    resolution: {integrity: sha512-J/t24QyQBgS4tCd+toMf9T8d9QOxYpwREWpjc0uv6/Lfw46eCe6dfH1ip2fZyBLfYEVFdVkVL04AVSxRotTG6A==}
+  '@mark1russell7/site-pages@0.4.3':
+    resolution: {integrity: sha512-6RVlKnaXyVAwcZwrKugTcm32strh0D5Dz+ZSSz6zlLXtWtX31C23ue88bPh7PujLw6r90PywY00uSkNafOCKfg==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -1845,7 +1845,7 @@ snapshots:
 
   '@mark1russell7/cue@2.1.2': {}
 
-  '@mark1russell7/layout-contract@0.9.0':
+  '@mark1russell7/layout-contract@0.9.1':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
       '@mark1russell7/rigor-statistics': 0.1.26
@@ -1877,9 +1877,9 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
 
-  '@mark1russell7/site-pages@0.4.2':
+  '@mark1russell7/site-pages@0.4.3':
     dependencies:
-      '@mark1russell7/rigor-statistics': 0.1.25
+      '@mark1russell7/rigor-statistics': 0.1.26
 
   '@mark1russell7/ste-lint@0.3.0':
     dependencies:

@@ -4,6 +4,7 @@ import { bboxStrategy } from "./bbox.ts";
 import { circleQuasiPhysical } from "./circle-quasi-physical.ts";
 import { holeDegree } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
+import { packRun, type PackRun } from "./pack-run.ts";
 import { annealStrategy, geneticStrategy, tabuStrategy } from "./order-search.ts";
 import { portfolioStrategy } from "./portfolio-strategy.ts";
 import { overlapMinStrategy } from "./overlap-min.ts";
@@ -122,12 +123,14 @@ export function strategy(id: string): Strategy {
 
 /**
  * This function packs an input with the strategy of an id. The options go over the defaults of the strategy. The
- * context gets `mulberry32` with the seed. The default seed is 0.
+ * context gets `mulberry32` with the seed. The default seed is 0. The run gives a start frame and a callback of the
+ * frames (roadmap item k220). The run is not part of the options, so the config id does not change.
  */
-export function packWith(id: string, input: PackInput, options?: unknown, seed = 0): PackOutput {
+export function packWith(id: string, input: PackInput, options?: unknown, seed = 0, run?: PackRun): PackOutput {
   const s = strategy(id);
   const merged: unknown = { ...(s.defaults as object), ...(options as object | undefined) };
-  return s.pack(input, merged, createContext(seed));
+  if (run === undefined) return s.pack(input, merged, createContext(seed));
+  return packRun(input, seed, run, (context) => s.pack(input, merged, context));
 }
 
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";

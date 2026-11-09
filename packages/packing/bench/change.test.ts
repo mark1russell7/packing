@@ -1,7 +1,7 @@
 // Roadmap item k48: the chains of the corpus `pack-change-v1`. The data is made up.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CHANGE_WALK_KINDS, CHANGE_WALK_STEPS, changeWalk, corpus, corpusFamilies, generator, type GeneratedInput } from "@mark1russell7/packing";
+import { CHANGE_WALK_KINDS, CHANGE_WALK_STEPS, allStrategies, changeWalk, corpus, corpusFamilies, generator, measureChange, packWith, toPackInput, type GeneratedInput, type PackInput, type PackOutput } from "@mark1russell7/packing";
 import { CHANGE_CORPUS, CHANGE_FILE, CHANGE_STRATEGIES, changeCorpusText, changeMarkdown, changeRecords, changeRows, changeSpecs } from "./change.ts";
 
 /** The hashes of the chains of seed 1, 20 boxes and step 3, in the order of the kinds. */
@@ -110,5 +110,52 @@ describe("the report", () => {
     const rows = changeRows(changeRecords(CHANGE_STRATEGIES.slice(0, 1)), CHANGE_STRATEGIES.slice(0, 1));
     expect(rows[0]!.records).toBe(400);
     expect(changeMarkdown(rows)).toContain("`rows`");
+  });
+});
+
+/** The means of the stability measures of one arm over the steps of the corpus. */
+interface Arm {
+  moved: number;
+  mean: number;
+}
+
+/**
+ * This function packs each chain of the corpus with one strategy, and gives the means of the stability measures of
+ * the steps. With `start`, each step starts from the output of its base, as the bench does. Without it, each step packs from nothing.
+ */
+function arm(id: string, start: boolean): Arm {
+  const done = new Map<string, { input: PackInput; output: PackOutput }>();
+  let moved = 0;
+  let mean = 0;
+  let count = 0;
+  for (const file of inputs) {
+    const input = toPackInput(file);
+    const base = file.base === undefined ? undefined : done.get(file.base);
+    const output = packWith(id, input, undefined, file.seed, start && base !== undefined ? { start: base.output } : undefined);
+    done.set(file.id, { input, output });
+    if (base === undefined) continue;
+    const m = measureChange(base.input, base.output, input, output);
+    moved += m["pack.stability.moved"];
+    mean += m["pack.stability.mean"];
+    count++;
+  }
+  return { moved: moved / count, mean: mean / count };
+}
+
+describe("a start frame (k220)", () => {
+  // The gate of k220: for each engine that reads a start, a start does not make the stability measures worse. A
+  // composite gets the mode `incremental` from the union of the modes of its members, so the gate of the member covers it.
+  const engines = ["push", "force"];
+
+  it("covers each single engine of the mode incremental, and force", () => {
+    const single = allStrategies.filter((s) => s.kind === "single" && s.supports.mode.includes("incremental")).map((s) => s.id);
+    expect(engines).toEqual(expect.arrayContaining([...single, "force"]));
+  });
+
+  it.each(engines)("gives %s no worse moved share and no worse mean move with a start than without", { timeout: 60_000 }, (id) => {
+    const fresh = arm(id, false);
+    const started = arm(id, true);
+    expect(started.moved, `${JSON.stringify(started)} ${JSON.stringify(fresh)}`).toBeLessThanOrEqual(fresh.moved);
+    expect(started.mean).toBeLessThanOrEqual(fresh.mean);
   });
 });

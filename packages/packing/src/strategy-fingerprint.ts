@@ -18,7 +18,7 @@ export const STRATEGY_FINGERPRINT: Readonly<Record<string, string>> = {
   "bottom-left": "e194bd93ad940775",
   "circle-quasi-physical": "2163e7d2ca4322a2",
   "exact-strip": "f5988d3a12761692",
-  "force": "69918b7393168cba",
+  "force": "ed1729b04e384a92",
   "genetic": "e24eda3bfb5265a5",
   "guillotine": "1e162f6c3183c5a4",
   "hole-degree": "aff3a1855df9dc85",

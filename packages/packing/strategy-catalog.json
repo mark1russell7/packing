@@ -1121,7 +1121,8 @@
           "none"
         ],
         "mode": [
-          "offline"
+          "offline",
+          "incremental"
         ]
       },
       "limits": {},
