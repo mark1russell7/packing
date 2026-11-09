@@ -102,7 +102,7 @@ A shelf packer puts the boxes into rows. Each row is as high as its highest box.
 Notes:
 
 - NFDH uses at most `2 OPT + h_max` of height, and FFDH uses at most `1.7 OPT + h_max`. Coffman 1980 proves these bounds.
-- The sort orders of `SORT_ORDERS` (`height-desc`, `height-asc`, `width-desc`, `area-desc` and `input`) apply to each shelf rule. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
+- The 11 sort orders of `SORT_ORDERS` apply to each shelf rule. The orders by perimeter, longer side, shorter side, side difference and ratio come from Jylänki 2010. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
 - Split-Fit sorts by width, not by height. Its bound of 1.5 needs boxes with a height of 1 or less.
 - `shelf-knapsack` uses a knapsack for each row. The `new-shelf-lookahead` idea adds the order to it.
 

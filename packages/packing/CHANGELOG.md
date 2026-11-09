@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.16.0
+
+The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.
+
+This release raises the MINOR version, because the union `SortOrder` gets new members. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The sort orders `perimeter-desc`, `long-side-desc`, `short-side-desc`, `side-diff-desc`, `ratio-desc` and `diagonal-desc`. Each one puts the box with the larger key first, and equal keys keep the input order.
+- The function `sortKey`: the key of a sort order for a box of a width and a height.
+- 6 operators in `packOperators`. The count of the operators goes from 38 to 44.
+- The 6 orders are options of the stage `order` of `packSpace`, and values of the option `sortOrder` in the catalog.
+
+### Changed
+
+- `compareRects` and the member order of `restarts` read one table of keys. The orders of before give the same layouts.
+- The base configs of `packSpace` go from 3,838 to 7,636 with 3 levels. The uniform draw of the bench sample changes.
+
+### Breaking
+
+- The union `SortOrder` has 6 new members. A `switch` or a `Record` over `SortOrder` in a caller does not compile until it has the new members.
+
 ## 0.15.2
 
 The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.
