@@ -127,6 +127,10 @@ type HopperTurtonRule: build/index.d.ts#HopperTurtonRule
 type Item: @mark1russell7/layout-contract#Item (external)
 type ItemLink: build/order.d.ts#ItemLink
 type ItemOrder: build/order.d.ts#ItemOrder
+JUSTIFIED_METHODS: build/index.d.ts#JUSTIFIED_METHODS
+type JustifiedMethod: build/index.d.ts#JustifiedMethod
+type JustifiedRowsOptions: build/index.d.ts#JustifiedRowsOptions
+type JustifiedRowsResult: build/index.d.ts#JustifiedRowsResult
 type KnownBest: build/index.d.ts#KnownBest
 LADDER_RUNGS: build/index.d.ts#LADDER_RUNGS
 LADDER_SIDE: build/index.d.ts#LADDER_SIDE
@@ -398,6 +402,8 @@ hopperTurtonOf: build/index.d.ts#hopperTurtonOf
 isAnchor: build/index.d.ts#isAnchor
 isDeterministic: build/index.d.ts#isDeterministic
 isGraphOrder: build/order.d.ts#isGraphOrder
+justifiedRows: build/index.d.ts#justifiedRows
+justifiedRowsRefusal: build/index.d.ts#justifiedRowsRefusal
 keepOrthogonal: build/index.d.ts#keepOrthogonal
 keepPrefix: build/index.d.ts#keepPrefix
 ladder: build/index.d.ts#ladder
@@ -1208,6 +1214,26 @@ interface HopperTurtonRule {
   readonly w: number;
   readonly h: number;
   readonly counts: readonly [number, number, number];
+}
+
+### build/index.d.ts#JUSTIFIED_METHODS
+export declare const JUSTIFIED_METHODS: readonly JustifiedMethod[];
+
+### build/index.d.ts#JustifiedMethod
+type JustifiedMethod = "greedy" | "linear-partition" | "line-break";
+
+### build/index.d.ts#JustifiedRowsOptions
+interface JustifiedRowsOptions {
+  readonly method?: JustifiedMethod;
+  readonly targetHeight?: number;
+}
+
+### build/index.d.ts#JustifiedRowsResult
+interface JustifiedRowsResult {
+  readonly output: PackOutput;
+  readonly rows: number;
+  readonly heights: readonly number[];
+  readonly free: readonly number[];
 }
 
 ### build/index.d.ts#KnownBest
@@ -2155,6 +2181,12 @@ export declare function isAnchor(input: PackInput, id: string): boolean;
 
 ### build/index.d.ts#isDeterministic
 export declare function isDeterministic(first: PackOutput, second: PackOutput): boolean;
+
+### build/index.d.ts#justifiedRows
+export declare function justifiedRows(input: PackInput, options?: JustifiedRowsOptions): JustifiedRowsResult;
+
+### build/index.d.ts#justifiedRowsRefusal
+export declare function justifiedRowsRefusal(input: PackInput): string | null;
 
 ### build/index.d.ts#keepOrthogonal
 export declare function keepOrthogonal(baseInput: PackInput, baseOutput: PackOutput, changeInput: PackInput): PinnedInput;
