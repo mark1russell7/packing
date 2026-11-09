@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.14.0
+## 0.15.0
 
 A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
 
@@ -22,6 +22,15 @@ This release raises the MINOR version. The output of `force` with a previous out
 ### Breaking
 
 - The strategy `force` reads `context.previous`. A caller that gives a previous output gets another output than before.
+
+## 0.14.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/strategy-space, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.9.8` of `@mark1russell7/collections` in `dependencies` does not hold `0.10.0`, so it changes.
+- The range `^0.0.2` of `@mark1russell7/strategy-space` in `dependencies` does not hold `0.0.3`, so it changes.
 
 ## 0.13.1
 
