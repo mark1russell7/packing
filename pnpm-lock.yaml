@@ -215,8 +215,8 @@ importers:
         specifier: ^0.1.6
         version: 0.1.8
       '@mark1russell7/strategy-space':
-        specifier: ^0.0.3
-        version: 0.0.3
+        specifier: ^0.0.5
+        version: 0.0.5
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
@@ -603,8 +603,8 @@ packages:
     resolution: {integrity: sha512-P8BFem+8y1E2zJ1OJj675N3KL7bq9bN8eTUk7qeG9e4LfEkyQqasCCpp2jEFUD3cr0GkjbXBixcBXWVRj1EboA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/strategy-space@0.0.3':
-    resolution: {integrity: sha512-uEtAZ/Xd5QztyNzFVkU8TJRqKMP5IGpPweXSzuWpepb4dT+TkW22e/KVl9Fiq7NqHH9rTE+Dw5fVz5yWG65WpQ==}
+  '@mark1russell7/strategy-space@0.0.5':
+    resolution: {integrity: sha512-E3zTfOPDRFE/KdvETa4PqXMu5Vm9eG7Ipy+oMAptB1kDMAQX9y2By+sH17sIezHoqODFWldi2+GwPNMaW301Vg==}
     engines: {node: '>=22'}
 
   '@mark1russell7/template-cli@0.1.7':
@@ -1855,10 +1855,10 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
 
-  '@mark1russell7/strategy-space@0.0.3':
+  '@mark1russell7/strategy-space@0.0.5':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
-      '@mark1russell7/rigor-statistics': 0.1.25
+      '@mark1russell7/rigor-statistics': 0.1.26
 
   '@mark1russell7/template-cli@0.1.7':
     dependencies:

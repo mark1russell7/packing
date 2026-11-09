@@ -27,6 +27,7 @@ import type { BinaryHeightOptions } from "./binary-height.ts";
 import type { CircleQuasiPhysicalOptions } from "./circle-quasi-physical.ts";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
 import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
+import { compactLeft, compactUp } from "./compact.ts";
 import type { ExactStripOptions } from "./exact-strip.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 import type { NearRectsOptions } from "./near-rects.ts";
@@ -276,6 +277,18 @@ const POOL: Readonly<Record<string, StrategyConfig>> = Object.fromEntries(
 /** The configs of the entries of `PORTFOLIO_SETS`. They are the one entry of the `pool` of `cell-portfolio` (roadmap item L39 of the contract). */
 const pool: readonly StrategyConfig[] = Object.values(POOL);
 
+/**
+ * The options of the stage `compact` of roadmap item k213: `up` (`compactUp`), `left` (`compactLeft`), and `left-up`
+ * (`compactLeft`, then `compactUp`).
+ */
+export const COMPACT_DIRECTIONS = ["up", "left", "left-up"] as const;
+
+/** The option of the stage `compact`. */
+export type CompactDirection = (typeof COMPACT_DIRECTIONS)[number];
+
+/** The placements that support only circles. The bounding boxes of their circles can overlap, so the stage `compact` does not go with them. */
+const CIRCLE_ONLY_PLACEMENTS: readonly string[] = ["hole-degree", "circle-quasi-physical"];
+
 /** The stages of `packSpace`, in the order of the pipeline. Each option has `supports` with only the shape kind `rect`. */
 const STAGES: readonly SpaceStage[] = [
   { name: "order", options: [...SORT_ORDERS, ...GRAPH_ORDERS].map((id) => (id === "input" ? { id, params: [], supports: PASS_THROUGH, identity: true } : { id, params: [], supports: RECT_ONLY })) },
@@ -378,6 +391,8 @@ const STAGES: readonly SpaceStage[] = [
       { id: "side-anchors", params: SIDE_ANCHOR_PARAMS, members: { min: 1, max: 1, ordered: true }, supports: RECT_ONLY },
     ],
   },
+  // The stage of roadmap item k213. With `omitUnused`, a config that does not use it keeps its `configId`.
+  { name: "compact", optional: true, omitUnused: true, options: COMPACT_DIRECTIONS.map((id) => ({ id, params: [], supports: RECT_ONLY })) },
 ];
 
 /** The placements that do their own size search, or none: only they go with the size search `none`. */
@@ -434,8 +449,8 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
 const single = (id: string): StrategyConfig => SINGLE[id]!;
 
 /**
- * The strategy space of `packing`, schema `strategy-space/1`. It has 5 stages: `order`, `size-search`, `placement`,
- * `local-search` and `combine`. Each entry of the benchmark and each id of the registry is a named config.
+ * The strategy space of `packing`, schema `strategy-space/1`. It has 6 stages: `order`, `size-search`, `placement`,
+ * `local-search`, `combine` and `compact`. Each entry of the benchmark and each id of the registry is a named config.
  *
  * - The order `graph-bfs` reads `input.links`. Without links it gives `area-desc`. The placement `push` does not read links, so it does not go with this order.
  * - `size-search` acts only on a container of free size. The option `none` goes with `push`, `hole-degree` and `circle-quasi-physical` only.
@@ -455,6 +470,9 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * - The members of `bbox` have `view: "bounds"`, so the checks give them the kind `rect`.
  * - Thus `spaceSize` with `polygon` or `free` counts only the configs with `bbox`. With `circle` it also counts the base configs of these two placements.
  * - Each option of each strategy is a param, a stage or the members of a meta option. `PACK_SPACE_OPTIONS` tells the place.
+ * - The optional stage `compact` of roadmap item k213 moves the boxes of the output of the other stages. It does not go with
+ *   `hole-degree` and `circle-quasi-physical`. A config without it keeps its `configId`.
+ * - A composite finds only a member of the registry. Thus `packConfig` refuses a composite with a member that uses `compact`.
  */
 export const packSpace: StrategySpace = Object.freeze({
   schema: STRATEGY_SPACE_SCHEMA,
@@ -475,6 +493,8 @@ export const packSpace: StrategySpace = Object.freeze({
     ...GRAPH_ORDERS.map((option) => ({ if: { stage: "placement", option: "push" }, then: { not: { stage: "order", option } } })),
     // The size search `none` goes only with the placements of `NO_SIZE_SEARCH`. Each other placement (rows to guillotine) needs `log-sweep`.
     ...placementIds.filter((option) => !NO_SIZE_SEARCH.includes(option)).map((option) => ({ if: { stage: "size-search", option: "none" }, then: { not: { stage: "placement", option } } })),
+    // The circles of these placements can touch, so their boxes overlap, and a compaction of the boxes can make the circles overlap.
+    ...COMPACT_DIRECTIONS.flatMap((option) => CIRCLE_ONLY_PLACEMENTS.map((placement) => ({ if: { stage: "compact", option }, then: { not: { stage: "placement", option: placement } } }))),
   ],
   named: {
     ...SINGLE,
@@ -963,6 +983,9 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - A meta config packs with `portfolio`, `select`, `aspect-fit`, `restarts`, `bbox`, `ruin-recreate`, `overlap-min`, `anneal`, `genetic` or `tabu`.
  * - The members of `cell-portfolio` are the entries of `PORTFOLIO_SETS`. Other members break the `pool` and cause a `RangeError`.
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
+ * - The stage `compact` moves the boxes of the output of the other stages, with `compactUp`, `compactLeft` or both.
+ * - A config with `compact` and a container with a shape, pair gaps or an item with a parent causes `UnsupportedCell`.
+ * - A composite with a member that uses `compact` causes `UnsupportedCell`, because a composite finds only a member of the registry.
  */
 export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): PackOutput {
   const boxes = { id: SHAPE_INPUT_ID, boxes: input.items };
@@ -974,6 +997,28 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
   const shapeBreaks = [...shapes, ...found];
   if (shapeBreaks.length > 0) throw new UnsupportedShape(itemShapeOf(boxes), shapeBreaks);
   const c = canonicalConfig(packSpace, config);
+  const output = packStages(input, c, seed);
+  const compact = c.stages["compact"];
+  return compact === null || compact === undefined ? output : compacted(input, output, compact.option as CompactDirection);
+}
+
+/**
+ * This function gives the output of a compaction of roadmap item k213. A `RangeError` of `compactUp` or `compactLeft` for
+ * an input that they do not take becomes `UnsupportedCell`.
+ */
+function compacted(input: PackInput, output: PackOutput, direction: CompactDirection): PackOutput {
+  try {
+    if (direction === "up") return compactUp(input, output);
+    const left = compactLeft(input, output);
+    return direction === "left" ? left : compactUp(input, left);
+  } catch (error) {
+    if (error instanceof RangeError) throw refusal(`The stage compact does not take this input: ${error.message}`);
+    throw error;
+  }
+}
+
+/** This function packs an input with a canonical config of `packSpace`, without the stage `compact`. */
+function packStages(input: PackInput, c: StrategyConfig, seed: number): PackOutput {
   const combine = c.stages["combine"];
   if (combine === null || combine === undefined) {
     const run = runOf(c);
@@ -983,6 +1028,8 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
   const members = combine.members ?? [];
   const outside = members.map(placementOf).find((placement) => STANDALONE_PLACEMENTS.includes(String(placement)));
   if (outside !== undefined) throw refusal(notMember(outside));
+  if (members.some((member) => member.stages["compact"] !== undefined && member.stages["compact"] !== null))
+    throw refusal("A member of a composite does not take the stage compact, because a composite finds only a member of the registry.");
   const key = params["key"] === "area" ? { key: AREA_KEY } : params["key"] === "fill" ? { key: FILL_KEY } : {};
   const limits = {
     ...(params["limitMembers"] === true ? { maxMembers: params["maxMembers"] } : {}),

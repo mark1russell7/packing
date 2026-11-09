@@ -15,6 +15,7 @@ const test = (name: string): string => `${SRC}/${name}.test.ts`;
 const order = (id: string, fields: Omit<Operator, "id" | "stage">): Operator => ({ id, stage: "order", ...fields });
 const placement = (id: string, fields: Omit<Operator, "id" | "stage">): Operator => ({ id, stage: "placement", ...fields });
 const combine = (id: string, fields: Omit<Operator, "id" | "stage">): Operator => ({ id, stage: "combine", ...fields });
+const compact = (id: string, fields: Omit<Operator, "id" | "stage">): Operator => ({ id, stage: "compact", ...fields });
 
 const OPERATORS: readonly Operator[] = [
   order("height-desc", { source: "literature", cite: "Coffman 1980", test: test("order"), summary: "The items go in the order of their heights, the tallest first." }),
@@ -55,6 +56,9 @@ const OPERATORS: readonly Operator[] = [
   combine("relax-pull", { source: "mutation", parent: "relax", test: test("relax-pull"), summary: "The relax pass, then each box moves toward the balance point of its links." }),
   combine("force", { source: "literature", cite: "Gansner 2010", test: test("force"), summary: "Forces move the items to a target gap, and a round of PRISM removes the overlaps." }),
   combine("side-anchors", { source: "ours", test: test("side-anchors"), summary: "Each anchor fixes an item to one side of the container, and a search on the free length packs the rest." }),
+  compact("up", { source: "ours", cite: "near react-grid-layout", test: [test("compact"), test("pack-space-compact")], summary: "Each free box moves up until it touches a box, a wall or the top of the container." }),
+  compact("left", { source: "mutation", parent: "up", test: [test("compact"), test("pack-space-compact")], summary: "Each free box moves left along the constraint graph until it touches a box, a wall or the left side." }),
+  compact("left-up", { source: "mutation", parent: "left", test: test("pack-space-compact"), summary: "Each free box moves left, then each free box moves up." }),
 ];
 
 /**
