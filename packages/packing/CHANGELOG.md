@@ -23,6 +23,22 @@ This release raises the MINOR version. The output of `force` with a previous out
 
 - The strategy `force` reads `context.previous`. A caller that gives a previous output gets another output than before.
 
+## 0.13.1
+
+The functions `cssGridSparse` and `cssGridDense` place cards in the CSS grid flow, as `grid-auto-flow: row` and `grid-auto-flow: row dense` do.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `cssGridSparse`. A box covers the least count of columns and of rows that holds it. It goes to the first free place after the place of the box before it.
+- The function `cssGridDense`. The search of each box starts at the first cell, so a small box can fill a hole that a wide box left.
+- The type `GridFlowOptions`: the options of the masonry functions and `rowHeight`. The default row height is the tallest box with its margins.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
+
 ## 0.13.0
 
 The constant `packOperators` declares the operators of `packSpace` in the format `strategy-operators/1` of `@mark1russell7/strategy-space`.

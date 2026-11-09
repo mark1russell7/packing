@@ -1,5 +1,5 @@
-// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing, ordered columns, the balance of CSS columns and wide cards.
-// A card wall has columns of one width. Each box goes to one column, and a wide box of `masonryMultiSpan` goes to the columns next to each other that it covers. The functions of this file are standalone.
+// The masonry and column layouts of `docs/research/CATALOG.md` (roadmap item k28): shortest column, longest first, differencing, ordered columns, the balance of CSS columns, wide cards and the CSS grid flow.
+// A card wall has columns of one width. Each box goes to one column, and a wide box of `masonryMultiSpan` goes to the columns next to each other that it covers. The CSS grid flow also has rows of one height. The functions of this file are standalone.
 // The strategy `masonry` of `src/standalone-strategies.ts` wraps them. They are not in a default. `columnBalance` and `columnReading` read their outputs.
 
 import { priorityQueue } from "@mark1russell7/collections";
@@ -365,6 +365,82 @@ export function masonryMultiSpan(input: PackInput, options: MasonryOptions): Pac
   }
   const size = { w: columns * width + (columns - 1) * gap, h: Math.max(0, Math.max(0, ...tops) - gap) };
   return { placements, overflow: [], size, moved: [] };
+}
+
+/** The options of a CSS grid flow: a wall of columns, with rows of one height. */
+export interface GridFlowOptions extends MasonryOptions {
+  /** The height of each row, as `grid-auto-rows` gives it. The default is the tallest box with its margins. */
+  readonly rowHeight?: number;
+}
+
+/**
+ * This function places the cards of a grid in the CSS grid flow, with the rule of `grid-auto-flow: row`. A box covers the
+ * least count of columns and of rows that holds it. Each box goes to the first place, row by row, where its cells are free.
+ * The search of the sparse flow starts at the place of the box before it. The search of the dense flow starts at the first cell.
+ */
+function gridFlow(input: PackInput, options: GridFlowOptions, dense: boolean): PackOutput {
+  const { cards, order, columns, width, gap } = wallOf(input, options, true);
+  const { rowHeight } = options;
+  if (rowHeight !== undefined && !(Number.isFinite(rowHeight) && rowHeight > 0)) throw new RangeError("The row height must be positive and finite.");
+  const height = rowHeight ?? cards.reduce((most, card) => Math.max(most, card.height - gap), 0);
+  const filled: Uint8Array[] = [];
+  const free = (row: number, column: number, rows: number, span: number): boolean => {
+    for (let r = row; r < row + rows && r < filled.length; r++) {
+      for (let c = column; c < column + span; c++) if (filled[r]![c] === 1) return false;
+    }
+    return true;
+  };
+  const placements = new Array<Placement>(cards.length);
+  let cursorRow = 0;
+  let cursorColumn = 0;
+  let bottom = 0;
+  for (const index of order) {
+    const card = cards[index]!;
+    const rows = spanOf(card.height - gap, height, gap);
+    let row = dense ? 0 : cursorRow;
+    let column = dense ? 0 : cursorColumn;
+    while (!(column + card.span <= columns && free(row, column, rows, card.span))) {
+      column += 1;
+      if (column + card.span > columns) {
+        row += 1;
+        column = 0;
+      }
+    }
+    while (filled.length < row + rows) filled.push(new Uint8Array(columns));
+    for (let r = row; r < row + rows; r++) filled[r]!.fill(1, column, column + card.span);
+    placements[index] = { id: card.id, x: column * (width + gap) + card.left, y: row * (height + gap) + card.top };
+    bottom = Math.max(bottom, row + rows);
+    cursorRow = row;
+    cursorColumn = column;
+  }
+  const size = { w: columns * width + (columns - 1) * gap, h: bottom === 0 ? 0 : bottom * (height + gap) - gap };
+  return { placements, overflow: [], size, moved: [] };
+}
+
+/**
+ * This function gives the CSS grid flow of the catalog entry `css-grid-sparse`, as `grid-auto-flow: row` gives it. The grid
+ * has `columns` columns of the width `columnWidth` and rows of the height `rowHeight`, with the gap of the input between them.
+ * In the input order, each box goes to the first place where its cells are free. The search starts at the place of the box
+ * before it and goes to the right, then down. Thus the flow does not go back, and it can leave holes.
+ *
+ * - A box covers the least count of columns and of rows that holds it with its margins.
+ * - A box that is wider than the wall is a `RangeError`. The other refusals are those of `masonryShortest`.
+ * - The cost is `O((n + m) r s)` for the count `m` of the cells of the grid and the largest spans `r` and `s` of one box.
+ */
+export function cssGridSparse(input: PackInput, options: GridFlowOptions): PackOutput {
+  return gridFlow(input, options, false);
+}
+
+/**
+ * This function gives the CSS grid flow of the catalog entry `css-grid-dense`, as `grid-auto-flow: row dense` gives it. The
+ * grid is that of `cssGridSparse`. The search of each box starts at the first cell, so a small box can fill a hole that a
+ * wide box left before it. The output order of the boxes can then differ from the input order.
+ *
+ * - The refusals are those of `cssGridSparse`.
+ * - The cost is `O(n m r s)` for the count `m` of the cells of the grid and the largest spans `r` and `s` of one box.
+ */
+export function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput {
+  return gridFlow(input, options, true);
 }
 
 /**

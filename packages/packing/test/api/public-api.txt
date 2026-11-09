@@ -110,6 +110,7 @@ type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GraphOrder: build/order.d.ts#GraphOrder
+type GridFlowOptions: build/index.d.ts#GridFlowOptions
 type GuillotineChoice: build/layout-strategy.d.ts#GuillotineChoice
 type GuillotineOptions: build/layout-strategy.d.ts#GuillotineOptions
 type GuillotineSplit: build/layout-strategy.d.ts#GuillotineSplit
@@ -363,6 +364,8 @@ corpus: build/index.d.ts#corpus
 corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
 createContext: build/strategy.d.ts#createContext
+cssGridDense: build/index.d.ts#cssGridDense
+cssGridSparse: build/index.d.ts#cssGridSparse
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
 defaultLayoutOf: build/index.d.ts#defaultLayoutOf
@@ -1165,6 +1168,11 @@ interface GeneticStrategyOptions {
   budgetWork?: number;
   population?: number;
   mutation?: number;
+}
+
+### build/index.d.ts#GridFlowOptions
+interface GridFlowOptions extends MasonryOptions {
+  readonly rowHeight?: number;
 }
 
 ### build/index.d.ts#HALF_WIDE_WIDTH
@@ -2052,6 +2060,12 @@ export declare const corpusFamilies: readonly CorpusFamily<GeneratedInput>[];
 
 ### build/index.d.ts#countCell
 export declare function countCell(count: number): CountScale;
+
+### build/index.d.ts#cssGridDense
+export declare function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput;
+
+### build/index.d.ts#cssGridSparse
+export declare function cssGridSparse(input: PackInput, options: GridFlowOptions): PackOutput;
 
 ### build/index.d.ts#dashboard
 export declare const dashboard: CorpusGenerator<UiParams>;
