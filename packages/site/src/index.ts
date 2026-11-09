@@ -48,6 +48,7 @@ import {
 import { regionSvg } from "./region.ts";
 import { DEMO_STRATEGIES, isCompositeId, isDemoId, optionControls, startValues, type OptionControl, type OptionValues } from "./options.ts";
 import { mountChrome } from "./chrome.ts";
+import { escapeAttribute as esc } from "@mark1russell7/text";
 import "./style.css";
 import "./pages.css";
 
@@ -57,9 +58,6 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
-/** This function escapes text for HTML. */
-const esc = (text: string): string =>
-  text.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch]!);
 
 const num = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const dec = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });

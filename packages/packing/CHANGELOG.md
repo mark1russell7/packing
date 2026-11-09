@@ -22,6 +22,63 @@ This release raises the MINOR version, because the union `SortOrder` gets new me
 
 - The union `SortOrder` has 6 new members. A `switch` or a `Record` over `SortOrder` in a caller does not compile until it has the new members.
 
+## 0.15.2
+
+The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `compactLeft`. The sweep is the compaction of a constraint graph along `x`. A box stops at the right edge of each box before it that overlaps it across `y`.
+- On 300 made-up packs with gaps and margins, `compactLeft` gives the same places as `compactUp` of the transposed layout.
+- On 1,500 made-up packs of `shelf`, `maxrects` and `skyline`, no hard rule breaks, no box moves right, and a second pass moves no box.
+
+### Not changed
+
+- The output of `compactUp` stays the same. It uses the same sweep along `y`.
+- The strategies, their fingerprints and `packSpace` do not change.
+
+## 0.15.1
+
+The functions `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013 lay the items of a treemap along a curve.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapHilbert`. Each level cuts the items into four groups of near equal weight. The groups go to the four parts of the frame in the order of the Hilbert curve.
+- The function `treemapMoore`. The root of each level uses the Moore curve, a loop of four Hilbert curves. The parts below the root use the Hilbert curve.
+- For `4^k` equal items in a square, the cells are a grid. Each two items in a row of the input share an edge.
+- The test has 200 made-up lists and trees, with 6,984 pairs of items in a row. 86 pairs (Hilbert) and 61 pairs (Moore) share no edge, and 739 pairs for `treemapStrip`.
+
+### Not changed
+
+- The strategy `treemap` and its methods. The fingerprints of the catalog stay the same.
+
+## 0.15.0
+
+A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
+
+This release raises the MINOR version. The output of `force` with a previous output changes, and `force` gets the mode `incremental`. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The parameter `run` of `packWith`: a start frame or a previous output, and a callback of the frames. The run is not part of the options, so the config ids do not change.
+- The function `packFrames`: the output and each frame of a run, from the start frame to the frame of the output.
+- The functions `frameOfOutput` and `startOutputOf`, and the types `PackRun` and `FrameCallback`.
+- The field `onFrame` of `PackContext`. A strategy that moves the boxes step by step gives it the output after each step.
+
+### Changed
+
+- The strategy `force` has the mode `incremental`. With `context.previous`, only the boxes that overlap move, and the steps stop at the first step with no overlap. A start with no overlap gives the same placements. The trace stage has `force.start` and `force.steps`.
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.1.
+- The fingerprint of `force` changes, because its probe of the mode `incremental` packs from a previous output.
+
+### Breaking
+
+- The strategy `force` reads `context.previous`. A caller that gives a previous output gets another output than before.
+
 ## 0.14.0
 
 The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/strategy-space, so its new version outside the old range can change them.

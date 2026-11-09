@@ -25,10 +25,11 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "@mark1russell7/layout-contract": "^0.9.0",
+    "@mark1russell7/layout-contract": "^0.9.1",
     "@mark1russell7/packing": "workspace:*",
     "@mark1russell7/rigor-statistics": "^0.1.9",
     "@mark1russell7/site-pages": "^0.4.1",
+    "@mark1russell7/text": "^0.0.2",
     "marked": "^18.1.2"
   },
   "description": "The GitHub Pages site of packing: a live demo of the strategies, the sort orders and the measures."

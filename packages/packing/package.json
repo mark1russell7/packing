@@ -110,7 +110,7 @@
   },
   "dependencies": {
     "@mark1russell7/collections": "^0.10.0",
-    "@mark1russell7/layout-contract": "^0.9.0",
+    "@mark1russell7/layout-contract": "^0.9.1",
     "@mark1russell7/rigor-generators": "^0.1.6",
     "@mark1russell7/strategy-space": "^0.0.3"
   },

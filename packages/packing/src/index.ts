@@ -111,7 +111,8 @@ export {
   type TreemapMethod,
   type TreemapStrategyOptions,
 } from "./standalone-strategies.ts";
-export { allStrategies, packWith, strategy } from "./strategy-list.ts";
+export { allStrategies, packFrames, packWith, strategy } from "./strategy-list.ts";
+export { frameOfOutput, startOutputOf, type FrameCallback, type PackRun } from "./pack-run.ts";
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
 export {
   ANCHOR_GAIN_LIMIT,
@@ -135,7 +136,7 @@ export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb
 export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
-export { compactUp } from "./compact.ts";
+export { compactLeft, compactUp } from "./compact.ts";
 export { matchPlaces } from "./match.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
 export { keepPrefix, pinUnchanged, repackPinned, type PinnedInput, type Repacked, type RepackMethod } from "./pin.ts";
@@ -372,6 +373,8 @@ export {
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
+  treemapHilbert,
+  treemapMoore,
   treemapPack,
   treemapPivotMiddle,
   treemapPivotSize,
