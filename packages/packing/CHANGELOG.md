@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.15.2
+
+The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `compactLeft`. The sweep is the compaction of a constraint graph along `x`. A box stops at the right edge of each box before it that overlaps it across `y`.
+- On 300 made-up packs with gaps and margins, `compactLeft` gives the same places as `compactUp` of the transposed layout.
+- On 1,500 made-up packs of `shelf`, `maxrects` and `skyline`, no hard rule breaks, no box moves right, and a second pass moves no box.
+
+### Not changed
+
+- The output of `compactUp` stays the same. It uses the same sweep along `y`.
+- The strategies, their fingerprints and `packSpace` do not change.
+
 ## 0.14.0
 
 The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/strategy-space, so its new version outside the old range can change them.

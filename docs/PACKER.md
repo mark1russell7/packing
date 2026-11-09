@@ -1818,6 +1818,13 @@ The function `compactUp` is the first slice of roadmap item k30. It takes a layo
 
 After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
 
+The function `compactLeft` is the first slice of roadmap item k213. It is the same sweep along `x`. Each free box moves left until it touches a box, a wall or the left side of the container. No default uses it.
+
+- The order is the left edge of each box, then its top, then the order of the input.
+- The sweep is the one-dimensional compaction of a constraint graph. A box stops at the right edge of each box before it that overlaps it across `y`.
+- On made-up packs, `compactLeft` gives the same places as `compactUp` of the transposed layout. A second pass moves no box.
+- The stage `compact` of `packSpace` comes in a later slice of k213. It holds `up`, `left` and both.
+
 ## Repack and match
 
 The function `matchPlaces` is a slice of roadmap item k31, the idea `new-move-matching`. It takes a fresh layout and gives each box of one size the place of that size that is nearest to its old place. No default uses it.

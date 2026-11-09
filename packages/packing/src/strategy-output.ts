@@ -23,7 +23,7 @@ export type OutputTable = Readonly<Record<string, readonly OutputRead[]>>;
 export const OUTPUT_SOURCE = "whole-positions/1";
 
 /** The version of the package at the read that wrote this file. A version change alone does not change a row. */
-export const OUTPUT_READ_VERSION = "0.14.0";
+export const OUTPUT_READ_VERSION = "0.15.2";
 
 /** The rows of `strategyCatalog`, by strategy. */
 export const STRATEGY_OUTPUT: OutputTable = {
