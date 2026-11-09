@@ -371,6 +371,7 @@ export {
   type UiParams,
 } from "./generators.ts";
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
+export { NMAP_METHODS, treemapNmap, type NmapItem, type NmapMethod, type NmapOptions } from "./treemap-nmap.ts";
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
   treemapHilbert,

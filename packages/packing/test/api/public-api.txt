@@ -165,7 +165,11 @@ type MeasureSpec: build/index.d.ts#MeasureSpec
 type MemberTrace: @mark1russell7/layout-contract#MemberTrace (external)
 type MetricsOptions: build/index.d.ts#MetricsOptions
 NEAR_RECTS_STAGE: build/index.d.ts#NEAR_RECTS_STAGE
+NMAP_METHODS: build/index.d.ts#NMAP_METHODS
 type NearRectsOptions: build/index.d.ts#NearRectsOptions
+type NmapItem: build/index.d.ts#NmapItem
+type NmapMethod: build/index.d.ts#NmapMethod
+type NmapOptions: build/index.d.ts#NmapOptions
 OVERLAP_MIN_STAGE: build/index.d.ts#OVERLAP_MIN_STAGE
 type ObjectiveBound: build/index.d.ts#ObjectiveBound
 type Obstacle: @mark1russell7/layout-contract#Obstacle (external)
@@ -512,6 +516,7 @@ toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
 treemapHilbert: build/index.d.ts#treemapHilbert
 treemapMoore: build/index.d.ts#treemapMoore
+treemapNmap: build/index.d.ts#treemapNmap
 treemapPack: build/index.d.ts#treemapPack
 treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
 treemapPivotSize: build/index.d.ts#treemapPivotSize
@@ -1345,11 +1350,30 @@ interface MetricsOptions {
 ### build/index.d.ts#NEAR_RECTS_STAGE
 export declare const NEAR_RECTS_STAGE = "near-rects";
 
+### build/index.d.ts#NMAP_METHODS
+export declare const NMAP_METHODS: readonly NmapMethod[];
+
 ### build/index.d.ts#NearRectsOptions
 interface NearRectsOptions {
   cell?: number;
   rounds?: number;
   seed?: number;
+}
+
+### build/index.d.ts#NmapItem
+interface NmapItem {
+  readonly id: string;
+  readonly weight: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+### build/index.d.ts#NmapMethod
+type NmapMethod = "equal-weight" | "alternate-cut";
+
+### build/index.d.ts#NmapOptions
+interface NmapOptions {
+  readonly method?: NmapMethod;
 }
 
 ### build/index.d.ts#OVERLAP_MIN_STAGE
@@ -2465,6 +2489,9 @@ export declare function treemapHilbert(nodes: readonly TreemapNode[], frame: Tre
 
 ### build/index.d.ts#treemapMoore
 export declare function treemapMoore(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapNmap
+export declare function treemapNmap(items: readonly NmapItem[], frame: TreemapFrame, options?: NmapOptions): TreemapCell[];
 
 ### build/index.d.ts#treemapPack
 export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;

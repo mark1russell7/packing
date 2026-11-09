@@ -1,5 +1,6 @@
 import type { Rect } from "@mark1russell7/layout-contract";
 import { random } from "@mark1russell7/rigor-generators";
+import { NMAP_METHODS, treemapNmap, type NmapItem } from "./treemap-nmap.ts";
 import { describe, expect, it } from "vitest";
 import { checkHard } from "./check.ts";
 import type { PackInput } from "./contract.ts";
@@ -466,5 +467,121 @@ describe("Hilbert and Moore", () => {
       expect(meanAspect(treemapHilbert(nodes, frame))).toBeLessThan(plain / 5);
       expect(meanAspect(treemapMoore(nodes, frame))).toBeLessThan(plain / 5);
     }
+  });
+});
+
+describe("Nmap", () => {
+  /** This function gives made-up items: log-normal weights and points in clusters. */
+  const itemsOf = (seed: string, count: number): NmapItem[] => {
+    const stream = random(seed);
+    const centers = Array.from({ length: 4 }, () => [stream.normal(0, 50), stream.normal(0, 50)] as const);
+    return Array.from({ length: count }, (_, i) => {
+      const [cx, cy] = centers[i % 4]!;
+      return { id: `n${i}`, weight: Math.exp(stream.normal(0, 1)), x: cx + stream.normal(0, 10), y: cy + stream.normal(0, 10) };
+    });
+  };
+  /** This function gives the indexes of the `k` nearest points of each point. A tie goes to the lower index. */
+  const nearest = (points: readonly (readonly [number, number])[], k: number): number[][] =>
+    points.map(([x, y], i) =>
+      points
+        .map(([u, v], j) => [j, (u - x) ** 2 + (v - y) ** 2] as const)
+        .filter(([j]) => j !== i)
+        .sort((a, b) => a[1] - b[1] || a[0] - b[0])
+        .slice(0, k)
+        .map(([j]) => j),
+    );
+  /** This function gives the share of the 5 nearest items of each item that stay among the 5 nearest cell centers. */
+  const kept = (items: readonly NmapItem[], cells: readonly TreemapCell[]): number => {
+    const byId = new Map(cells.map((cell) => [cell.id, cell]));
+    const before = nearest(items.map((item) => [item.x, item.y]), 5);
+    const after = nearest(items.map((item) => { const c = byId.get(item.id)!; return [c.x + c.w / 2, c.y + c.h / 2]; }), 5);
+    let same = 0;
+    for (const [i, list] of before.entries()) for (const j of list) if (after[i]!.includes(j)) same += 1;
+    return same / (items.length * 5);
+  };
+  const frame = { x: 0, y: 0, w: 300, h: 200 };
+
+  it.each(NMAP_METHODS)("%s keeps the rules of a treemap and gives the cells in the order of the items", (method) => {
+    for (const box of [frame, { x: 7, y: -3, w: 300, h: 40 }, { x: 0, y: 0, w: 25, h: 400 }]) {
+      for (const count of [1, 2, 3, 4, 5, 9, 20, 60]) {
+        const items = itemsOf(`nmap:${method}:${count}:${box.w}`, count);
+        const cells = treemapNmap(items, box, { method });
+        expect(cells.map((cell) => cell.id)).toEqual(items.map((item) => item.id));
+        expectTreemap(cells, new Map(items.map((item) => [item.id, item.weight])), box);
+        expect(treemapNmap(items, box, { method })).toEqual(cells);
+      }
+    }
+  });
+
+  it("cuts across the long side by weight with equal-weight, and alternates the cuts by count with alternate-cut", () => {
+    const line = [0, 1, 2, 3].map((i) => ({ id: `n${i}`, weight: 1, x: i, y: 0 }));
+    const wide = { x: 0, y: 0, w: 400, h: 100 };
+    expect(treemapNmap(line, wide).map((cell) => [cell.x, cell.y, cell.w, cell.h])).toEqual([[0, 0, 100, 100], [100, 0, 100, 100], [200, 0, 100, 100], [300, 0, 100, 100]]);
+    // The second level of alternate-cut cuts across the height. The points are on one line, so the tie keeps the order of the items.
+    expect(treemapNmap(line, wide, { method: "alternate-cut" }).map((cell) => [cell.x, cell.y, cell.w, cell.h])).toEqual([[0, 0, 200, 50], [0, 50, 200, 50], [200, 0, 200, 50], [200, 50, 200, 50]]);
+    // The weights 1 and 3 give the cut at a quarter of the width.
+    const pair = [{ id: "a", weight: 1, x: 0, y: 0 }, { id: "b", weight: 3, x: 10, y: 0 }];
+    expect(treemapNmap(pair, wide).map((cell) => [cell.x, cell.w])).toEqual([[0, 100], [100, 300]]);
+  });
+
+  it.each(NMAP_METHODS)("%s keeps the order of the points across each cut, on 50 made-up lists", (method) => {
+    const noise = 1e-9 * 300;
+    for (let index = 0; index < 50; index += 1) {
+      const items = itemsOf(`nmap-order:${method}:${index}`, 40);
+      const cells = treemapNmap(items, frame, { method });
+      for (const [i, a] of cells.entries()) {
+        for (const [j, b] of cells.entries()) {
+          const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+          const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+          if (overlapY > noise && a.x + a.w <= b.x + noise) expect(items[i]!.x <= items[j]!.x, `${a.id} left of ${b.id}`).toBe(true);
+          if (overlapX > noise && a.y + a.h <= b.y + noise) expect(items[i]!.y <= items[j]!.y, `${a.id} above ${b.id}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("keeps more near neighbors than squarified and strip, and equal-weight gives a lower mean aspect, on 100 made-up lists", () => {
+    const share = (layout: (items: readonly NmapItem[]) => TreemapCell[]): number => {
+      let sum = 0;
+      for (let index = 0; index < 100; index += 1) {
+        const items = itemsOf(`nmap-near:${index}`, 60);
+        sum += kept(items, layout(items));
+      }
+      return sum / 100;
+    };
+    const asNodes = (items: readonly NmapItem[]): TreemapNode[] => items.map((item) => ({ id: item.id, weight: item.weight }));
+    const byX = (items: readonly NmapItem[]): NmapItem[] => items.toSorted((a, b) => a.x - b.x);
+    const equal = share((items) => treemapNmap(items, frame));
+    const alternate = share((items) => treemapNmap(items, frame, { method: "alternate-cut" }));
+    const squarified = share((items) => treemapSquarified(asNodes(items), frame));
+    const strip = share((items) => treemapStrip(asNodes(byX(items)), frame));
+    // The measured shares are 0.500 (equal-weight), 0.506 (alternate-cut), 0.083 (squarified) and 0.240 (strip in the order of x).
+    // The measured mean aspects are 2.428 (equal-weight) and 4.659 (alternate-cut).
+    let aspects = [0, 0];
+    for (let index = 0; index < 100; index += 1) {
+      const items = itemsOf(`nmap-near:${index}`, 60);
+      aspects = [aspects[0]! + meanAspect(treemapNmap(items, frame)) / 100, aspects[1]! + meanAspect(treemapNmap(items, frame, { method: "alternate-cut" })) / 100];
+    }
+    expect(aspects[0]).toBeLessThan(aspects[1]!);
+    expect(equal).toBeGreaterThan(squarified);
+    expect(alternate).toBeGreaterThan(squarified);
+    expect(equal).toBeGreaterThan(strip);
+  });
+
+  it("lays 5,000 items with falling weights with no deep recursion", () => {
+    const items = Array.from({ length: 5000 }, (_, i) => ({ id: `n${i}`, weight: 0.995 ** i, x: i % 71, y: Math.floor(i / 71) }));
+    for (const method of NMAP_METHODS) {
+      const cells = treemapNmap(items, frame, { method });
+      expect(cells).toHaveLength(5000);
+      expect(cells.reduce((sum, cell) => sum + cell.w * cell.h, 0) / (frame.w * frame.h)).toBeCloseTo(1, 9);
+    }
+  });
+
+  it("gives no cells for no items, and throws a RangeError for a bad weight, point, frame or method", () => {
+    expect(treemapNmap([], frame)).toEqual([]);
+    expect(() => treemapNmap([{ id: "a", weight: 0, x: 0, y: 0 }], frame)).toThrow(RangeError);
+    expect(() => treemapNmap([{ id: "a", weight: 1, x: Number.NaN, y: 0 }], frame)).toThrow(RangeError);
+    expect(() => treemapNmap([{ id: "a", weight: 1, x: 0, y: 0 }], { x: 0, y: 0, w: 0, h: 1 })).toThrow(RangeError);
+    expect(() => treemapNmap([{ id: "a", weight: 1, x: 0, y: 0 }], frame, { method: "grid" as never })).toThrow(RangeError);
   });
 });

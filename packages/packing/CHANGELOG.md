@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.17.1
+
+The function `treemapNmap` of roadmap item k27 is the Nmap treemap of Duarte 2014. Each item has a weight and a given point, and near items get near cells.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapNmap`, the constant `NMAP_METHODS` and the types `NmapItem`, `NmapMethod` and `NmapOptions`.
+- The method `equal-weight` cuts across the longer side, and it splits the items into two parts with the most equal weights.
+- The method `alternate-cut` changes the direction of the cut at each level, and it splits the items by count.
+- Each cut sorts the items by the axis of the cut. A scale of each part moves its points into its rectangle.
+- On 100 made-up lists of 60 items, the share of the 5 nearest items that stay near is 0.500 and 0.506. Squarified gives 0.083, and strip in the order of `x` gives 0.240.
+- The catalog row `treemap-nmap` is implemented. The rules come from the port nmap.js of the paper.
+
+### Not changed
+
+- The strategies, their fingerprints and `packSpace` do not change. `treemapNmap` is not a strategy.
+
 ## 0.15.2
 
 The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.
