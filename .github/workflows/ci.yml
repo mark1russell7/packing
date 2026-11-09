@@ -25,7 +25,7 @@ defaults:
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@e5528b40a615db0f2e0f341c5ec0fa860ca47cc0 # main
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@93668034510218d1ab35f1071d943f96d3fa7c38 # main
 
   # The gate jobs of this repository: the smoke run of the benchmark, the render of the site and the time gates
   bench-smoke:
