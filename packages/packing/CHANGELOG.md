@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.15.1
+
+The functions `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013 lay the items of a treemap along a curve.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapHilbert`. Each level cuts the items into four groups of near equal weight. The groups go to the four parts of the frame in the order of the Hilbert curve.
+- The function `treemapMoore`. The root of each level uses the Moore curve, a loop of four Hilbert curves. The parts below the root use the Hilbert curve.
+- For `4^k` equal items in a square, the cells are a grid. Each two items in a row of the input share an edge.
+- The test has 200 made-up lists and trees, with 6,984 pairs of items in a row. 86 pairs (Hilbert) and 61 pairs (Moore) share no edge, and 739 pairs for `treemapStrip`.
+
+### Not changed
+
+- The strategy `treemap` and its methods. The fingerprints of the catalog stay the same.
+
 ## 0.15.0
 
 A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
