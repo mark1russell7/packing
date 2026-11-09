@@ -1,4 +1,4 @@
-// The first treemaps of `docs/research/CATALOG.md` (roadmap item k27): slice and dice, squarified, strip and pivot by split size.
+// The treemaps of `docs/research/CATALOG.md` (roadmap item k27): slice and dice, squarified, strip, spiral, the pivots by split size, by middle and by size, and the Hilbert and Moore curves.
 // A treemap cuts a rectangle into cells. The area of each cell is in proportion to the weight of its item. The functions
 // of this file are standalone. They are not in the registry or in a default. `treemapPack` is the
 // comparison of the catalog: each box goes to the center of its cell, and the cells scale up until each box fits.
@@ -216,19 +216,235 @@ export function treemapStrip(nodes: readonly TreemapNode[], frame: TreemapFrame,
   return layoutTree(nodes, frame, (weights, area) => strips(weights, area, lookahead));
 }
 
+/**
+ * This function mirrors the cells of a strip, so that the first cell is at the other end. With `alongX` it mirrors along x,
+ * and without it along y.
+ */
+function mirrored(cells: readonly TreemapFrame[], strip: TreemapFrame, alongX: boolean): TreemapFrame[] {
+  return cells.map((cell) =>
+    alongX ? { ...cell, x: 2 * strip.x + strip.w - cell.x - cell.w } : { ...cell, y: 2 * strip.y + strip.h - cell.y - cell.h },
+  );
+}
+
+/**
+ * This function gives the spiral cells of one level. The strips go along the top, the right, the bottom and the left side of
+ * the free frame in turn. Each strip goes in the direction of the spiral. An item joins a strip while the mean aspect of
+ * the strip does not get higher. The last strip takes the free frame.
+ */
+function spirals(weights: readonly number[], frame: TreemapFrame): TreemapFrame[] {
+  const prefix = prefixOf(weights);
+  const scale = (frame.w * frame.h) / prefix[weights.length]!;
+  const areaOf = (from: number, to: number): number => scale * (prefix[to]! - prefix[from]!);
+  const rects: TreemapFrame[] = [];
+  let free: TreemapFrame = { ...frame };
+  let side = 0;
+  let start = 0;
+  while (start < weights.length) {
+    const alongX = side % 2 === 0;
+    const length = alongX ? free.w : free.h;
+    const depth = alongX ? free.h : free.w;
+    /** The sum of the aspects of the items `from` up to `to` in one strip along the side. */
+    const aspects = (from: number, to: number): number => {
+      const thickness = areaOf(from, to) / length;
+      let sum = 0;
+      for (let i = from; i < to; i += 1) sum += aspectOf((scale * weights[i]!) / thickness, thickness);
+      return sum;
+    };
+    let end = start + 1;
+    let mean = aspects(start, end);
+    while (end < weights.length) {
+      const next = aspects(start, end + 1) / (end + 1 - start);
+      if (next > mean) break;
+      mean = next;
+      end += 1;
+    }
+    const thickness = end === weights.length ? depth : Math.min(depth, areaOf(start, end) / length);
+    let strip: TreemapFrame;
+    if (side === 0) {
+      strip = { x: free.x, y: free.y, w: free.w, h: thickness };
+      free = { x: free.x, y: free.y + thickness, w: free.w, h: free.h - thickness };
+    } else if (side === 1) {
+      strip = { x: free.x + free.w - thickness, y: free.y, w: thickness, h: free.h };
+      free = { x: free.x, y: free.y, w: free.w - thickness, h: free.h };
+    } else if (side === 2) {
+      strip = { x: free.x, y: free.y + free.h - thickness, w: free.w, h: thickness };
+      free = { x: free.x, y: free.y, w: free.w, h: free.h - thickness };
+    } else {
+      strip = { x: free.x, y: free.y, w: thickness, h: free.h };
+      free = { x: free.x + thickness, y: free.y, w: free.w - thickness, h: free.h };
+    }
+    const cells = slice(weights.slice(start, end), strip, alongX);
+    rects.push(...(side < 2 ? cells : mirrored(cells, strip, alongX)));
+    start = end;
+    side = (side + 1) % 4;
+  }
+  return rects;
+}
+
+/**
+ * This function gives the spiral treemap of Tu and Shen 2007. Each level lays its items in strips along the top, the
+ * right, the bottom and the left side of the free frame in turn. Thus the order of the input goes around a spiral to the
+ * center. Each two items in a row of the input share an edge.
+ *
+ * An item joins a strip while the mean aspect of the strip does
+ * not get higher, as in `treemapStrip`. The method has no lookahead. The cost is `O(n sqrt n)` on average and `O(n^2)` at
+ * most.
+ */
+export function treemapSpiral(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => spirals(weights, area));
+}
+
+/** A symmetry of the unit square. It maps a point of a part of a curve to a point of the box of the part. */
+type Turn = (s: number, t: number) => readonly [number, number];
+
+/** The four parts of a curve, in the order of the curve: low left, high left, high right and low right. */
+type CurvePattern = readonly [Turn, Turn, Turn, Turn];
+
+/** A map of the unit square onto a rectangle. The point `(u, v)` goes to `(x, y) + u (ux, uy) + v (vx, vy)`. */
+interface CurveMap {
+  readonly x: number;
+  readonly y: number;
+  readonly ux: number;
+  readonly uy: number;
+  readonly vx: number;
+  readonly vy: number;
+}
+
+const same: Turn = (s, t) => [s, t];
+const swap: Turn = (s, t) => [t, s];
+const back: Turn = (s, t) => [1 - t, 1 - s];
+const rise: Turn = (s, t) => [1 - t, s];
+const fall: Turn = (s, t) => [t, 1 - s];
+
+/** The parts of the Hilbert curve. The curve goes in at the corner `(0, 0)` and out at the corner `(1, 0)`. */
+const HILBERT: CurvePattern = [swap, same, same, back];
+
+/** The parts of the Moore curve: four Hilbert curves in a loop. The loop goes in and out at the middle of the side `v = 0`. */
+const MOORE: CurvePattern = [rise, rise, fall, fall];
+
+/**
+ * This function gives the ends of `count` groups of the items `from` up to `to`, with weights that are near equal. Each group
+ * has one item or more. The first end is `from`, and the last end is `to`.
+ */
+function runsOf(prefix: readonly number[], from: number, to: number, count: number): number[] {
+  const ends = [from];
+  const total = prefix[to]! - prefix[from]!;
+  for (let k = 1; k < count; k += 1) {
+    const target = prefix[from]! + (total * k) / count;
+    const last = to - (count - k);
+    let best = ends[k - 1]! + 1;
+    while (best < last && Math.abs(prefix[best + 1]! - target) < Math.abs(prefix[best]! - target)) best += 1;
+    ends.push(best);
+  }
+  ends.push(to);
+  return ends;
+}
+
+/**
+ * This function gives the cells of one level along a curve. The root level uses `root`, and each part below it uses the
+ * Hilbert curve. The first cut is along the long side of the frame.
+ */
+function curves(weights: readonly number[], frame: TreemapFrame, root: CurvePattern): TreemapFrame[] {
+  const prefix = prefixOf(weights);
+  const rects: TreemapFrame[] = [];
+  const point = (map: CurveMap, u: number, v: number): readonly [number, number] => [map.x + u * map.ux + v * map.vx, map.y + u * map.uy + v * map.vy];
+  const cell = (map: CurveMap): TreemapFrame => {
+    const [ax, ay] = point(map, 0, 0);
+    const [bx, by] = point(map, 1, 1);
+    return { x: Math.min(ax, bx), y: Math.min(ay, by), w: Math.abs(bx - ax), h: Math.abs(by - ay) };
+  };
+  /** The map of a part: the box `[u0, u1] x [v0, v1]` of `map`, with the symmetry `turn`. */
+  const part = (map: CurveMap, [u0, v0, u1, v1]: readonly number[], turn: Turn): CurveMap => {
+    const at = (s: number, t: number): readonly [number, number] => {
+      const [p, q] = turn(s, t);
+      return point(map, u0! + p * (u1! - u0!), v0! + q * (v1! - v0!));
+    };
+    const [x, y] = at(0, 0);
+    const [ax, ay] = at(1, 0);
+    const [bx, by] = at(0, 1);
+    return { x, y, ux: ax - x, uy: ay - y, vx: bx - x, vy: by - y };
+  };
+  const visit = (from: number, to: number, map: CurveMap, pattern: CurvePattern): void => {
+    if (to - from === 1) {
+      rects.push(cell(map));
+      return;
+    }
+    const ends = runsOf(prefix, from, to, Math.min(4, to - from));
+    const weightOf = (run: number): number => prefix[ends[run + 1]!]! - prefix[ends[run]!]!;
+    const total = prefix[to]! - prefix[from]!;
+    let boxes: number[][];
+    if (ends.length === 3) {
+      const cut = weightOf(0) / total;
+      boxes = [[0, 0, cut, 1], [cut, 0, 1, 1]];
+    } else {
+      const left = weightOf(0) + weightOf(1);
+      const cut = left / total;
+      const low = weightOf(0) / left;
+      boxes = [[0, 0, cut, low], [0, low, cut, 1]];
+      if (ends.length === 4) boxes.push([cut, 0, 1, 1]);
+      else {
+        const high = weightOf(3) / (total - left);
+        boxes.push([cut, high, 1, 1], [cut, 0, 1, high]);
+      }
+    }
+    for (const [run, box] of boxes.entries()) visit(ends[run]!, ends[run + 1]!, part(map, box, pattern[run]!), HILBERT);
+  };
+  const start: CurveMap =
+    frame.w >= frame.h
+      ? { x: frame.x, y: frame.y, ux: frame.w, uy: 0, vx: 0, vy: frame.h }
+      : { x: frame.x, y: frame.y, ux: 0, uy: frame.h, vx: frame.w, vy: 0 };
+  visit(0, weights.length, start, root);
+  return rects;
+}
+
+/**
+ * This function gives the Hilbert treemap of Tak and Cockburn 2013. Each level cuts the items into four groups of near equal
+ * weight. The groups go to the four parts of the frame in the order of the Hilbert curve, and each part repeats the step.
+ *
+ * - The four equal items of a square give the cells of the curve. So 4^k equal items give a grid, and each two items in a
+ *   row of the input share an edge.
+ * - The rule of the groups is of this package: the paper does not give it in this form.
+ * - The cost is `O(n log n)` for weights that are near equal and `O(n^2)` at most.
+ */
+export function treemapHilbert(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => curves(weights, area, HILBERT));
+}
+
+/**
+ * This function gives the Moore treemap of Tak and Cockburn 2013. The root of each level uses the Moore curve, a loop of
+ * four Hilbert curves. The parts below the root use the Hilbert curve, as in `treemapHilbert`. Thus the first item and
+ * the last item of a level are near each other.
+ */
+export function treemapMoore(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => curves(weights, area, MOORE));
+}
+
 /** This function gives the mean aspect of a list of rectangles. */
 function meanAspect(rects: readonly TreemapFrame[]): number {
   return sumOf(rects.map((rect) => aspectOf(rect.w, rect.h))) / rects.length;
 }
 
-/** This function gives the cells of one level of the pivot treemap. */
-function pivots(weights: readonly number[], frame: TreemapFrame): TreemapFrame[] {
+/**
+ * The rule that picks the pivot of a pivot treemap. `split` picks the item with the most equal weights before it and
+ * after it (Bederson 2002). `middle` picks the item in the middle of the order, and `size` picks the largest item
+ * (Shneiderman 2001).
+ */
+type PivotRule = "split" | "middle" | "size";
+
+/** This function gives the cells of one level of the pivot treemap, with the pivot of `rule`. */
+function pivots(weights: readonly number[], frame: TreemapFrame, rule: PivotRule): TreemapFrame[] {
   const prefix = prefixOf(weights);
   const between = (from: number, to: number): number => prefix[to]! - prefix[from]!;
 
-  /** The pivot by split size: the item with the most equal weights before it and after it. */
+  /** The pivot of the items `from` up to `to`. For an even count, `middle` picks the second of the two middle items. */
   const pivotOf = (from: number, to: number): number => {
+    if (rule === "middle") return from + Math.floor((to - from) / 2);
     let pivot = from;
+    if (rule === "size") {
+      // A tie goes to the first of the largest items.
+      for (let i = from + 1; i < to; i += 1) if (weights[i]! > weights[pivot]!) pivot = i;
+      return pivot;
+    }
     let best = Infinity;
     for (let i = from; i < to; i += 1) {
       const gap = Math.abs(between(from, i) - between(i + 1, to));
@@ -310,7 +526,25 @@ function pivots(weights: readonly number[], frame: TreemapFrame): TreemapFrame[]
  * order of the input is near in the layout, but not exact. The cost is `O(n log n)` on average and `O(n^2)` at most.
  */
 export function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
-  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area));
+  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "split"));
+}
+
+/**
+ * This function gives the pivot treemap of Shneiderman 2001 with the pivot by middle. The pivot is the item in the middle
+ * of the order. The other steps are the steps of `treemapPivotSplit`. The cost is `O(n log n)`, because each step halves
+ * the count.
+ */
+export function treemapPivotMiddle(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "middle"));
+}
+
+/**
+ * This function gives the pivot treemap of Shneiderman 2001 with the pivot by size. The pivot is the largest item, so
+ * the largest cell has the aspect nearest to 1. The other steps are the steps of `treemapPivotSplit`. The cost is
+ * `O(n log n)` on average and `O(n^2)` at most.
+ */
+export function treemapPivotSize(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
+  return layoutTree(nodes, frame, (weights, area) => pivots(weights, area, "size"));
 }
 
 /**

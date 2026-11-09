@@ -5,8 +5,13 @@ import {
   checkHard,
   columnBalance,
   columnReading,
+  columnsCssBalance,
   columnsLinearPartition,
+  cssGridDense,
+  cssGridSparse,
+  masonryDifferencing,
   masonryLpt,
+  masonryMultiSpan,
   masonryShortest,
   mulberry32,
   type Item,
@@ -18,7 +23,9 @@ import {
 const METHODS: readonly (readonly [string, MasonryLayout])[] = [
   ["masonryShortest", masonryShortest],
   ["masonryLpt", masonryLpt],
+  ["masonryDifferencing", masonryDifferencing],
   ["columnsLinearPartition", columnsLinearPartition],
+  ["columnsCssBalance", columnsCssBalance],
 ];
 
 /** This function gives a free input of boxes of width 1 with the heights. */
@@ -198,6 +205,111 @@ describe("columnsLinearPartition", () => {
   });
 });
 
+describe("masonryDifferencing", () => {
+  const cases = Array.from({ length: 300 }, (_, seed) => {
+    const columns = 2 + (seed % 3);
+    const count = columns + 1 + (seed % (9 - columns));
+    return { columns, heights: heightsOf(seed + 3000, count, columns, seed % 2 === 0) };
+  });
+
+  it("balances 8, 7, 6, 5 and 4 in 2 columns better than masonryLpt", () => {
+    const heights = [8, 7, 6, 5, 4];
+    const input = wall(heights);
+    // The joins: 8 with 7, 6 with 5, then 4 with (8, 7) gives (11, 8), and (11, 8) with (6, 5) gives (16, 14).
+    expect(optimum(heights, 2)).toBe(15);
+    expect(tallestOf(input, masonryDifferencing(input, { columns: 2 }), 2)).toBe(16);
+    expect(tallestOf(input, masonryLpt(input, { columns: 2 }), 2)).toBe(17);
+  });
+
+  it("stays at or under 4/3 - 1/(3c) of an enumerated optimum", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      if (tallestOf(input, masonryDifferencing(input, { columns }), columns) > (4 / 3 - 1 / (3 * columns)) * optimum(heights, columns) + 1e-9) breaks += 1;
+    }
+    expect(breaks).toBe(0);
+  });
+
+  it("puts the columns in the order of their first card, and each column reads from the top in the input order", () => {
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      const placements = masonryDifferencing(input, { columns }).placements;
+      expect(placements[0]!.x).toBe(0);
+      const firstAt = new Map<number, number>();
+      const lastY = new Map<number, number>();
+      for (const [index, placement] of placements.entries()) {
+        if (!firstAt.has(placement.x)) firstAt.set(placement.x, index);
+        expect(placement.y).toBeGreaterThanOrEqual(lastY.get(placement.x) ?? 0);
+        lastY.set(placement.x, placement.y + heights[index]!);
+      }
+      const lefts = [...firstAt.keys()];
+      expect(lefts).toEqual(lefts.toSorted((a, b) => a - b));
+    }
+  });
+});
+
+describe("columnsCssBalance", () => {
+  const cases = Array.from({ length: 300 }, (_, seed) => ({ columns: 1 + (seed % 5), heights: heightsOf(seed + 4000, 1 + (seed % 12), 1, false, 30) }));
+
+  /** This function gives the indexes of the cards of each column of a layout, from the left and from the top. */
+  const stacksOf = (output: PackOutput): number[][] => {
+    const byX = new Map<number, number[]>();
+    for (const [index, placement] of output.placements.entries()) byX.set(placement.x, [...(byX.get(placement.x) ?? []), index]);
+    return [...byX.entries()].sort((a, b) => a[0] - b[0]).map(([, stack]) => stack);
+  };
+
+  it("gives the tallest column of a brute force over the cuts, on whole and fractional heights", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      if (tallestOf(input, columnsCssBalance(input, { columns }), columns) !== bruteCuts(heights, columns).tallest) breaks += 1;
+    }
+    expect(breaks).toBe(0);
+    let worst = 0;
+    for (let seed = 0; seed < 300; seed++) {
+      const random = mulberry32(seed + 5000);
+      const columns = 1 + (seed % 5);
+      const heights = Array.from({ length: 1 + (seed % 12) }, () => 0.1 + random() * 30);
+      const input = wall(heights);
+      worst = Math.max(worst, Math.abs(tallestOf(input, columnsCssBalance(input, { columns }), columns) - bruteCuts(heights, columns).tallest));
+    }
+    expect(worst).toBeLessThanOrEqual(1e-9);
+  });
+
+  it("fills each column while the cards fit: the first card of a column does not fit in the column to its left", () => {
+    let breaks = 0;
+    for (const { columns, heights } of cases) {
+      const input = wall(heights);
+      const output = columnsCssBalance(input, { columns });
+      const tallest = tallestOf(input, output, columns);
+      const stacks = stacksOf(output);
+      for (let column = 0; column + 1 < stacks.length; column++) {
+        const height = stacks[column]!.reduce((sum, index) => sum + heights[index]!, 0);
+        if (height + heights[stacks[column + 1]![0]!]! <= tallest) breaks += 1;
+      }
+    }
+    expect(breaks).toBe(0);
+  });
+
+  it("fills the first columns, where columnsLinearPartition balances the last columns", () => {
+    const heights = [10, ...new Array<number>(10).fill(1)];
+    const input = wall(heights);
+    expect(columnBalance(input, columnsCssBalance(input, { columns: 3 }), { columns: 3 }).heights).toEqual([10, 10, 0]);
+    expect(columnBalance(input, columnsLinearPartition(input, { columns: 3 }), { columns: 3 }).heights).toEqual([10, 5, 5]);
+  });
+
+  it("keeps the input order: each column follows the column to its left", () => {
+    const random = mulberry32(6);
+    const input = wall(Array.from({ length: 40 }, () => 1 + Math.floor(random() * 20)));
+    const placements = columnsCssBalance(input, { columns: 5 }).placements;
+    for (let index = 1; index < placements.length; index++) {
+      const before = placements[index - 1]!;
+      const after = placements[index]!;
+      expect(after.x > before.x || (after.x === before.x && after.y > before.y)).toBe(true);
+    }
+  });
+});
+
 describe("the rules of a layout", () => {
   const inputs = mixedInputs();
 
@@ -294,6 +406,178 @@ describe("the rules of a layout", () => {
   });
 });
 
+describe("masonryMultiSpan", () => {
+  /** This function gives a free input of boxes with the widths and the heights. */
+  const cards = (sizes: readonly (readonly [number, number])[], gap = 0): PackInput => ({
+    container: { fixed: "none" },
+    gap,
+    items: sizes.map(([w, h], index) => ({ id: `c${index}`, w, h })),
+  });
+
+  it("puts each wide card where the tallest of its columns is the lowest, and the left place wins a tie", () => {
+    // 3 columns of 100: a covers 1 column, b covers 2, c covers 1, d covers 3.
+    const input = cards([[100, 50], [200, 30], [100, 10], [300, 20]]);
+    const output = masonryMultiSpan(input, { columns: 3, columnWidth: 100 });
+    expect(output.placements).toEqual([
+      { id: "c0", x: 0, y: 0 },
+      { id: "c1", x: 100, y: 0 },
+      { id: "c2", x: 100, y: 30 },
+      { id: "c3", x: 0, y: 50 },
+    ]);
+    expect(output.size).toEqual({ w: 300, h: 70 });
+    expect(checkHard(input, output)["no-overlap"]).toBe(0);
+  });
+
+  it("counts the gaps between the columns that a card covers", () => {
+    const input = cards([[210, 5]], 10);
+    expect(masonryMultiSpan(input, { columns: 2, columnWidth: 100 }).size).toEqual({ w: 210, h: 5 });
+    expect(() => masonryMultiSpan(cards([[211, 5]], 10), { columns: 2, columnWidth: 100 })).toThrow(RangeError);
+    // A card of 101 covers 2 columns, so the next card goes under it, not next to it.
+    const two = masonryMultiSpan(cards([[101, 5], [100, 5]], 10), { columns: 2, columnWidth: 100 });
+    expect(two.placements[1]).toEqual({ id: "c1", x: 0, y: 15 });
+  });
+
+  it("gives the layout of masonryShortest without columnWidth", () => {
+    for (const { input, columns } of mixedInputs()) {
+      expect(masonryMultiSpan(input, { columns })).toEqual(masonryShortest(input, { columns }));
+    }
+  });
+
+  it("places each item once in the wall with no overlap, and columnBalance reads the height of the wall", () => {
+    for (const [seed, { input, columns }] of mixedInputs().entries()) {
+      const widest = Math.max(0, ...input.items.map((item) => item.w + marginWidth(item)));
+      const columnWidth = widest > 0 ? widest / (1 + (seed % columns)) : 1;
+      const output = masonryMultiSpan(input, { columns, columnWidth });
+      expect(output.placements.map((p) => p.id)).toEqual(input.items.map((item) => item.id));
+      expect(checkHard(input, output)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+      expect(output.size.w).toBeCloseTo(columns * columnWidth + (columns - 1) * (input.gap ?? 0), 9);
+      if (input.items.length > 0) expect(Math.max(...columnBalance(input, output, { columns, columnWidth }).heights)).toBeCloseTo(output.size.h, 9);
+      expect(JSON.stringify(masonryMultiSpan(input, { columns, columnWidth }))).toBe(JSON.stringify(output));
+    }
+  });
+
+  it("refuses a column width that is not positive and finite, and the refusals of masonryShortest", () => {
+    const good = cards([[2, 1]]);
+    expect(() => masonryMultiSpan(good, { columns: 2, columnWidth: 0 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan(good, { columns: 2, columnWidth: Infinity })).toThrow(RangeError);
+    expect(() => masonryMultiSpan(good, { columns: 1, columnWidth: 1 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan(good, { columns: 0 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan({ ...good, container: { fixed: "width", w: 9 } }, { columns: 2 })).toThrow(RangeError);
+    expect(() => masonryMultiSpan({ ...good, items: [{ id: "l", w: 1, h: 1, x: 0, y: 0, locked: true }] }, { columns: 2 })).toThrow(RangeError);
+    expect(masonryMultiSpan(cards([]), { columns: 3 })).toEqual({ placements: [], overflow: [], size: { w: 0, h: 0 }, moved: [] });
+  });
+});
+
+describe("the CSS grid flow", () => {
+  /** This function gives a free input of boxes with the widths and the heights. */
+  const cards = (sizes: readonly (readonly [number, number])[], gap = 0): PackInput => ({
+    container: { fixed: "none" },
+    gap,
+    items: sizes.map(([w, h], index) => ({ id: `c${index}`, w, h })),
+  });
+
+  /**
+   * This function is the oracle: the steps of `grid-auto-flow` in the CSS grid text, over a list of areas, not over cells.
+   * It gives the column and the row of each box in the input order.
+   */
+  const oracle = (spans: readonly (readonly [number, number])[], columns: number, dense: boolean): [number, number][] => {
+    const areas: [number, number, number, number][] = [];
+    let cursor: [number, number] = [0, 0];
+    return spans.map(([s, r]) => {
+      let [column, row] = dense ? [0, 0] : cursor;
+      const hits = (): boolean => areas.some(([c, w, q, h]) => column < c + w && c < column + s && row < q + h && q < row + r);
+      while (column + s > columns || hits()) [column, row] = column + 1 + s > columns ? [0, row + 1] : [column + 1, row];
+      areas.push([column, s, row, r]);
+      cursor = [column, row];
+      return [column, row];
+    });
+  };
+
+  it("leaves a hole after a wide box in the sparse flow, and the dense flow fills it", () => {
+    // 3 columns and rows of 10: b covers the 3 columns, so it goes to the second row.
+    const input = cards([[10, 10], [30, 10], [10, 10]]);
+    const options = { columns: 3, columnWidth: 10, rowHeight: 10 };
+    expect(cssGridSparse(input, options).placements).toEqual([
+      { id: "c0", x: 0, y: 0 },
+      { id: "c1", x: 0, y: 10 },
+      { id: "c2", x: 0, y: 20 },
+    ]);
+    expect(cssGridSparse(input, options).size).toEqual({ w: 30, h: 30 });
+    expect(cssGridDense(input, options).placements[2]).toEqual({ id: "c2", x: 10, y: 0 });
+    expect(cssGridDense(input, options).size).toEqual({ w: 30, h: 20 });
+  });
+
+  it("gives a box the rows that hold it, with the gaps between the rows", () => {
+    // Rows of 10 and a gap of 2: a box of height 22 covers 2 rows, and a box of height 23 covers 3.
+    const input = cards([[10, 22], [10, 10], [10, 10], [10, 23], [10, 10]], 2);
+    const output = cssGridSparse(input, { columns: 2, columnWidth: 10, rowHeight: 10 });
+    expect(output.placements).toEqual([
+      { id: "c0", x: 0, y: 0 },
+      { id: "c1", x: 12, y: 0 },
+      { id: "c2", x: 12, y: 12 },
+      { id: "c3", x: 0, y: 24 },
+      { id: "c4", x: 12, y: 24 },
+    ]);
+    expect(output.size).toEqual({ w: 22, h: 58 });
+    expect(checkHard(input, output)["no-overlap"]).toBe(0);
+  });
+
+  it("gives a plain grid in the input order with the default sizes, the same in the two flows", () => {
+    const input: PackInput = { ...cards([[4, 3], [2, 5], [3, 1], [1, 1], [4, 2]], 1), items: cards([[4, 3], [2, 5], [3, 1], [1, 1], [4, 2]]).items.map((item, index) => ({ ...item, rank: 4 - index })) };
+    const output = cssGridSparse(input, { columns: 2 });
+    expect(output).toEqual(cssGridDense(input, { columns: 2 }));
+    expect(output.placements.map((p) => [p.id, p.x, p.y])).toEqual([
+      ["c0", 0, 12],
+      ["c1", 5, 6],
+      ["c2", 0, 6],
+      ["c3", 5, 0],
+      ["c4", 0, 0],
+    ]);
+    expect(output.size).toEqual({ w: 9, h: 17 });
+  });
+
+  it("agrees with the steps of the CSS grid text, with no overlap, on made-up inputs", () => {
+    for (const [seed, { input, columns }] of mixedInputs().entries()) {
+      const gap = input.gap ?? 0;
+      const widest = Math.max(0, ...input.items.map((item) => item.w + marginWidth(item)));
+      const tallest = Math.max(0, ...input.items.map((item) => item.h + marginHeight(item)));
+      const columnWidth = widest > 0 ? widest / (1 + (seed % columns)) : 1;
+      const rowHeight = tallest > 0 ? tallest / (1 + (seed % 3)) : 1;
+      const order = input.items.map((item, index) => [item.rank ?? index, index] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, index]) => index);
+      const span = (outer: number, size: number): number => {
+        let k = 1;
+        while (k * size + (k - 1) * gap < outer) k += 1;
+        return k;
+      };
+      const spans = order.map((index) => {
+        const item = input.items[index]!;
+        return [span(item.w + marginWidth(item), columnWidth), span(item.h + marginHeight(item), rowHeight)] as const;
+      });
+      for (const [layout, dense] of [[cssGridSparse, false], [cssGridDense, true]] as const) {
+        const output = layout(input, { columns, columnWidth, rowHeight });
+        const cells = oracle(spans, columns, dense);
+        const got = order.map((index) => {
+          const p = output.placements[index]!;
+          const item = input.items[index]!;
+          return [Math.round((p.x - marginLeft(item)) / (columnWidth + gap)), Math.round((p.y - marginTop(item)) / (rowHeight + gap))];
+        });
+        expect(got).toEqual(cells);
+        expect(checkHard(input, output)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+        expect(output.size.w).toBeCloseTo(columns * columnWidth + (columns - 1) * gap, 9);
+      }
+    }
+  });
+
+  it("refuses a row height that is not positive and finite, and the refusals of masonryMultiSpan", () => {
+    const good = cards([[2, 1]]);
+    expect(() => cssGridSparse(good, { columns: 2, rowHeight: 0 })).toThrow(RangeError);
+    expect(() => cssGridDense(good, { columns: 2, rowHeight: Number.NaN })).toThrow(RangeError);
+    expect(() => cssGridSparse(good, { columns: 1, columnWidth: 1 })).toThrow(RangeError);
+    expect(() => cssGridDense({ ...good, container: { fixed: "width", w: 9 } }, { columns: 2 })).toThrow(RangeError);
+    expect(cssGridSparse(cards([]), { columns: 3 })).toEqual({ placements: [], overflow: [], size: { w: 0, h: 0 }, moved: [] });
+  });
+});
+
 describe("columnBalance", () => {
   it("gives 0 for level columns, 1 with an empty column, and the share between", () => {
     const level = wall([2, 2]);
@@ -307,6 +591,12 @@ describe("columnBalance", () => {
   it("does not count the gap under the last box, and it counts the bottom margin", () => {
     const input: PackInput = { container: { fixed: "none" }, gap: 5, items: [{ id: "a", w: 1, h: 2, margin: 1 }, { id: "b", w: 1, h: 2, margin: 1 }] };
     expect(columnBalance(input, masonryShortest(input, { columns: 1 }), { columns: 1 }).heights).toEqual([13]);
+  });
+
+  it("counts a wide card on each column that it covers", () => {
+    const input: PackInput = { container: { fixed: "none" }, items: [{ id: "a", w: 100, h: 50 }, { id: "b", w: 200, h: 30 }, { id: "c", w: 100, h: 10 }] };
+    const options = { columns: 3, columnWidth: 100 };
+    expect(columnBalance(input, masonryMultiSpan(input, options), options)).toEqual({ heights: [50, 40, 30], balance: 0.4 });
   });
 
   it("refuses an item that is not on a column", () => {
@@ -389,6 +679,16 @@ describe("the trade of order and balance on one family", () => {
 /** This function gives the left margin of an item of `mixedInputs`. */
 function marginLeft(item: Item): number {
   return typeof item.margin === "number" ? item.margin : (item.margin?.left ?? 0);
+}
+
+/** This function gives the top margin of an item of `mixedInputs`. */
+function marginTop(item: Item): number {
+  return typeof item.margin === "number" ? item.margin : (item.margin?.top ?? 0);
+}
+
+/** This function gives the height of the margins of an item of `mixedInputs`. */
+function marginHeight(item: Item): number {
+  return typeof item.margin === "number" ? 2 * item.margin : (item.margin?.top ?? 0) + (item.margin?.bottom ?? 0);
 }
 
 /** This function gives the width of the margins of an item of `mixedInputs`. */

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 507 names
+## . (build/index.d.ts): names
 
 ANCHOR_GAIN_LIMIT: build/index.d.ts#ANCHOR_GAIN_LIMIT
 ANCHOR_MEASURE_IDS: build/index.d.ts#ANCHOR_MEASURE_IDS
@@ -95,6 +95,7 @@ FORCE_MAX_BOXES: build/index.d.ts#FORCE_MAX_BOXES
 FORCE_MAX_FIXED: build/index.d.ts#FORCE_MAX_FIXED
 FORCE_STAGE: build/index.d.ts#FORCE_STAGE
 type ForceStrategyOptions: build/index.d.ts#ForceStrategyOptions
+type FrameCallback: build/index.d.ts#FrameCallback
 type FreeSpace: build/layout-strategy.d.ts#FreeSpace
 type FreeSpan: build/layout-strategy.d.ts#FreeSpan
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
@@ -109,6 +110,7 @@ type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GraphOrder: build/order.d.ts#GraphOrder
+type GridFlowOptions: build/index.d.ts#GridFlowOptions
 type GuillotineChoice: build/layout-strategy.d.ts#GuillotineChoice
 type GuillotineOptions: build/layout-strategy.d.ts#GuillotineOptions
 type GuillotineSplit: build/layout-strategy.d.ts#GuillotineSplit
@@ -185,6 +187,7 @@ type PackLayoutOptions: build/layout-strategy.d.ts#PackLayoutOptions
 type PackOptions: build/layout-strategy.d.ts#PackOptions
 type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
 type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
+type PackRun: build/index.d.ts#PackRun
 type PackingMetrics: build/index.d.ts#PackingMetrics
 type Part: build/index.d.ts#Part
 type PerfectCutParams: build/index.d.ts#PerfectCutParams
@@ -349,7 +352,9 @@ circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 classGenerators: build/index.d.ts#classGenerators
 columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
+columnsCssBalance: build/index.d.ts#columnsCssBalance
 columnsLinearPartition: build/index.d.ts#columnsLinearPartition
+compactLeft: build/index.d.ts#compactLeft
 compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
@@ -360,6 +365,8 @@ corpus: build/index.d.ts#corpus
 corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
 createContext: build/strategy.d.ts#createContext
+cssGridDense: build/index.d.ts#cssGridDense
+cssGridSparse: build/index.d.ts#cssGridSparse
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
 defaultLayoutOf: build/index.d.ts#defaultLayoutOf
@@ -369,6 +376,7 @@ exactStrip: build/index.d.ts#exactStrip
 exactStripRefusal: build/index.d.ts#exactStripRefusal
 fnv1a32: build/index.d.ts#fnv1a32
 forceStrategy: build/index.d.ts#forceStrategy
+frameOfOutput: build/index.d.ts#frameOfOutput
 freeSpace: build/layout-strategy.d.ts#freeSpace
 fromRects: build/index.d.ts#fromRects
 gallery: build/index.d.ts#gallery
@@ -401,7 +409,9 @@ lowestWindow: build/layout-strategy.d.ts#lowestWindow
 marginOf: build/strategy.d.ts#marginOf
 martelloVigo: build/index.d.ts#martelloVigo
 martelloVigoFamily: build/index.d.ts#martelloVigoFamily
+masonryDifferencing: build/index.d.ts#masonryDifferencing
 masonryLpt: build/index.d.ts#masonryLpt
+masonryMultiSpan: build/index.d.ts#masonryMultiSpan
 masonryShortest: build/index.d.ts#masonryShortest
 matchPlaces: build/index.d.ts#matchPlaces
 maxrects: build/maxrects-strategy.d.ts#maxrects
@@ -423,10 +433,12 @@ pack: build/index.d.ts#pack
 packBinaryHeight: build/index.d.ts#packBinaryHeight
 packConfig: build/index.d.ts#packConfig
 packDefault: build/default.d.ts#packDefault
+packFrames: build/index.d.ts#packFrames
 packFree: build/index.d.ts#packFree
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
 packNearRects: build/index.d.ts#packNearRects
+packOperators: build/index.d.ts#packOperators
 packParts: build/index.d.ts#packParts
 packPortfolio: build/index.d.ts#packPortfolio
 packRasterNofit: build/index.d.ts#packRasterNofit
@@ -483,10 +495,12 @@ skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
 sleatorRefusal: build/index.d.ts#sleatorRefusal
 sleatorStrip: build/index.d.ts#sleatorStrip
+sortKey: build/order.d.ts#sortKey
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
 standaloneStrategies: build/index.d.ts#standaloneStrategies
+startOutputOf: build/index.d.ts#startOutputOf
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 stripGenerators: build/index.d.ts#stripGenerators
@@ -497,9 +511,14 @@ tallRow: build/index.d.ts#tallRow
 tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
+treemapHilbert: build/index.d.ts#treemapHilbert
+treemapMoore: build/index.d.ts#treemapMoore
 treemapPack: build/index.d.ts#treemapPack
+treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
+treemapPivotSize: build/index.d.ts#treemapPivotSize
 treemapPivotSplit: build/index.d.ts#treemapPivotSplit
 treemapSliceDice: build/index.d.ts#treemapSliceDice
+treemapSpiral: build/index.d.ts#treemapSpiral
 treemapSquarified: build/index.d.ts#treemapSquarified
 treemapStrip: build/index.d.ts#treemapStrip
 turnItem: build/strategy.d.ts#turnItem
@@ -514,7 +533,7 @@ wordCloud: build/index.d.ts#wordCloud
 wordCloudFamily: build/index.d.ts#wordCloudFamily
 worstGenerators: build/index.d.ts#worstGenerators
 
-## ./circle-quasi-physical (build/entry/circle-quasi-physical.d.ts): 10 names
+## ./circle-quasi-physical (build/entry/circle-quasi-physical.d.ts): names
 
 CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
 CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
@@ -527,7 +546,7 @@ circleQuasiPhysical: build/circle-quasi-physical.d.ts#circleQuasiPhysical
 circlesOutside: build/circle-quasi-physical.d.ts#circlesOutside
 createContext: build/strategy.d.ts#createContext
 
-## ./default (build/entry/default.d.ts): 7 names
+## ./default (build/entry/default.d.ts): names
 
 DEFAULT_STRATEGY: build/default.d.ts#DEFAULT_STRATEGY
 type PackContext: build/strategy.d.ts#PackContext
@@ -537,7 +556,7 @@ type Strategy: build/strategy.d.ts#Strategy
 createContext: build/strategy.d.ts#createContext
 packDefault: build/default.d.ts#packDefault
 
-## ./guillotine (build/entry/guillotine.d.ts): 14 names
+## ./guillotine (build/entry/guillotine.d.ts): names
 
 GUILLOTINE_CHOICES: build/layout-strategy.d.ts#GUILLOTINE_CHOICES
 GUILLOTINE_SPLITS: build/layout-strategy.d.ts#GUILLOTINE_SPLITS
@@ -554,7 +573,7 @@ createContext: build/strategy.d.ts#createContext
 guillotine: build/guillotine-strategy.d.ts#guillotine
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 
-## ./hole-degree (build/entry/hole-degree.d.ts): 10 names
+## ./hole-degree (build/entry/hole-degree.d.ts): names
 
 HOLE_DEGREE_MAX_STEPS: build/hole-degree.d.ts#HOLE_DEGREE_MAX_STEPS
 HOLE_DEGREE_STAGE: build/hole-degree.d.ts#HOLE_DEGREE_STAGE
@@ -567,7 +586,7 @@ circleOverlaps: build/hole-degree.d.ts#circleOverlaps
 createContext: build/strategy.d.ts#createContext
 holeDegree: build/hole-degree.d.ts#holeDegree
 
-## ./maxrects (build/entry/maxrects.d.ts): 13 names
+## ./maxrects (build/entry/maxrects.d.ts): names
 
 MAXRECTS_BANDS: build/layout-strategy.d.ts#MAXRECTS_BANDS
 MAXRECTS_RULES: build/layout-strategy.d.ts#MAXRECTS_RULES
@@ -583,7 +602,7 @@ createContext: build/strategy.d.ts#createContext
 maxrects: build/maxrects-strategy.d.ts#maxrects
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
 
-## ./push (build/entry/push.d.ts): 10 names
+## ./push (build/entry/push.d.ts): names
 
 type PackContext: build/strategy.d.ts#PackContext
 type PackInput: @mark1russell7/layout-contract#PackInput (external)
@@ -596,7 +615,7 @@ createContext: build/strategy.d.ts#createContext
 push: build/push-strategy.d.ts#push
 pushCascade: build/push-strategy.d.ts#pushCascade
 
-## ./rows (build/entry/rows.d.ts): 10 names
+## ./rows (build/entry/rows.d.ts): names
 
 type LayoutStrategyOptions: build/layout-strategy.d.ts#LayoutStrategyOptions
 type PackContext: build/strategy.d.ts#PackContext
@@ -609,7 +628,7 @@ createContext: build/strategy.d.ts#createContext
 packRows: build/layout-strategy.d.ts#packRows
 rows: build/rows-strategy.d.ts#rows
 
-## ./shelf (build/entry/shelf.d.ts): 12 names
+## ./shelf (build/entry/shelf.d.ts): names
 
 type LayoutStrategyOptions: build/layout-strategy.d.ts#LayoutStrategyOptions
 type PackContext: build/strategy.d.ts#PackContext
@@ -624,7 +643,7 @@ createContext: build/strategy.d.ts#createContext
 packShelf: build/layout-strategy.d.ts#packShelf
 shelf: build/shelf-strategy.d.ts#shelf
 
-## ./skyline (build/entry/skyline.d.ts): 13 names
+## ./skyline (build/entry/skyline.d.ts): names
 
 type PackContext: build/strategy.d.ts#PackContext
 type PackInput: @mark1russell7/layout-contract#PackInput (external)
@@ -640,7 +659,7 @@ lowestWindow: build/layout-strategy.d.ts#lowestWindow
 packSkyline: build/layout-strategy.d.ts#packSkyline
 skyline: build/skyline-strategy.d.ts#skyline
 
-## ./strategy-catalog (build/entry/strategy-catalog.d.ts): 2 names
+## ./strategy-catalog (build/entry/strategy-catalog.d.ts): names
 
 STRATEGY_CATALOG_ENGINE: build/entry/strategy-catalog.d.ts#STRATEGY_CATALOG_ENGINE
 strategyCatalog: build/entry/strategy-catalog.d.ts#strategyCatalog
@@ -1093,6 +1112,9 @@ interface ForceStrategyOptions {
   rounds?: number;
 }
 
+### build/index.d.ts#FrameCallback
+type FrameCallback = (frame: LayoutFrame, step: number) => void | "stop";
+
 ### build/index.d.ts#FreeWidthOptions
 interface FreeWidthOptions extends PackLayoutOptions {
   aspect?: number;
@@ -1150,6 +1172,11 @@ interface GeneticStrategyOptions {
   budgetWork?: number;
   population?: number;
   mutation?: number;
+}
+
+### build/index.d.ts#GridFlowOptions
+interface GridFlowOptions extends MasonryOptions {
+  readonly rowHeight?: number;
 }
 
 ### build/index.d.ts#HALF_WIDE_WIDTH
@@ -1386,6 +1413,12 @@ interface PackPortfolioOptions {
   maxMembers?: number;
   now?: () => number;
   key?: readonly string[];
+}
+
+### build/index.d.ts#PackRun
+interface PackRun {
+  readonly start?: LayoutFrame | PackOutput;
+  readonly onFrame?: FrameCallback;
 }
 
 ### build/index.d.ts#PackingMetrics
@@ -1812,7 +1845,7 @@ interface TreemapFrame {
 type TreemapLayout = (nodes: readonly TreemapNode[], frame: TreemapFrame) => TreemapCell[];
 
 ### build/index.d.ts#TreemapMethod
-type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split";
+type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split" | "spiral";
 
 ### build/index.d.ts#TreemapNode
 type TreemapNode = {
@@ -2002,8 +2035,14 @@ export declare function columnBalance(input: PackInput, output: PackOutput, opti
 ### build/index.d.ts#columnReading
 export declare function columnReading(input: PackInput, output: PackOutput): ColumnReading;
 
+### build/index.d.ts#columnsCssBalance
+export declare function columnsCssBalance(input: PackInput, options: MasonryOptions): PackOutput;
+
 ### build/index.d.ts#columnsLinearPartition
 export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#compactLeft
+export declare function compactLeft(input: PackInput, output: PackOutput): PackOutput;
 
 ### build/index.d.ts#compactUp
 export declare function compactUp(input: PackInput, output: PackOutput): PackOutput;
@@ -2028,6 +2067,12 @@ export declare const corpusFamilies: readonly CorpusFamily<GeneratedInput>[];
 
 ### build/index.d.ts#countCell
 export declare function countCell(count: number): CountScale;
+
+### build/index.d.ts#cssGridDense
+export declare function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput;
+
+### build/index.d.ts#cssGridSparse
+export declare function cssGridSparse(input: PackInput, options: GridFlowOptions): PackOutput;
 
 ### build/index.d.ts#dashboard
 export declare const dashboard: CorpusGenerator<UiParams>;
@@ -2055,6 +2100,9 @@ export declare function fnv1a32(text: string): number;
 
 ### build/index.d.ts#forceStrategy
 export declare const forceStrategy: Strategy<ForceStrategyOptions>;
+
+### build/index.d.ts#frameOfOutput
+export declare function frameOfOutput(input: PackInput, output: PackOutput): LayoutFrame;
 
 ### build/index.d.ts#fromRects
 export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>): PackInput;
@@ -2139,8 +2187,14 @@ export declare const martelloVigo: CorpusGenerator<MartelloVigoParams>;
 ### build/index.d.ts#martelloVigoFamily
 export declare const martelloVigoFamily: CorpusFamily<GeneratedInput>;
 
+### build/index.d.ts#masonryDifferencing
+export declare function masonryDifferencing(input: PackInput, options: MasonryOptions): PackOutput;
+
 ### build/index.d.ts#masonryLpt
 export declare function masonryLpt(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#masonryMultiSpan
+export declare function masonryMultiSpan(input: PackInput, options: MasonryOptions): PackOutput;
 
 ### build/index.d.ts#masonryShortest
 export declare function masonryShortest(input: PackInput, options: MasonryOptions): PackOutput;
@@ -2198,11 +2252,20 @@ export declare function packBinaryHeight(input: PackInput, options?: BinaryHeigh
 ### build/index.d.ts#packConfig
 export declare function packConfig(input: PackInput, config: StrategyConfig$1, seed?: number): PackOutput;
 
+### build/index.d.ts#packFrames
+export declare function packFrames(id: string, input: PackInput, options?: unknown, seed?: number, run?: Omit<PackRun, "onFrame">): {
+  output: PackOutput;
+  frames: LayoutFrame[];
+};
+
 ### build/index.d.ts#packFree
 export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?: FreeWidthOptions): FreeWidthResult<T>;
 
 ### build/index.d.ts#packNearRects
 export declare function packNearRects(input: PackInput, options?: NearRectsOptions): PackOutput;
+
+### build/index.d.ts#packOperators
+export declare const packOperators: OperatorSet;
 
 ### build/index.d.ts#packParts
 export declare function packParts(input: PackInput, split: Split, place: Strategy, options: unknown, context: PackContext): PackOutput;
@@ -2220,7 +2283,7 @@ export declare function packSideAnchors(input: PackInput, anchors: readonly Side
 export declare const packSpace: StrategySpace$1;
 
 ### build/index.d.ts#packWith
-export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
+export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number, run?: PackRun): PackOutput;
 
 ### build/index.d.ts#packWork
 export declare function packWork(input: PackInput, output: PackOutput): number;
@@ -2368,6 +2431,9 @@ export declare function stabilityUnitOf(input: PackInput, output: PackOutput): n
 ### build/index.d.ts#standaloneStrategies
 export declare const standaloneStrategies: readonly Strategy[];
 
+### build/index.d.ts#startOutputOf
+export declare function startOutputOf(start: LayoutFrame | PackOutput): PackOutput;
+
 ### build/index.d.ts#strategies
 export declare const strategies: readonly Strategy[];
 
@@ -2395,14 +2461,29 @@ export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "box
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
 
+### build/index.d.ts#treemapHilbert
+export declare function treemapHilbert(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapMoore
+export declare function treemapMoore(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
 ### build/index.d.ts#treemapPack
 export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
+
+### build/index.d.ts#treemapPivotMiddle
+export declare function treemapPivotMiddle(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapPivotSize
+export declare function treemapPivotSize(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapPivotSplit
 export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapSliceDice
 export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapSpiral
+export declare function treemapSpiral(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapSquarified
 export declare function treemapSquarified(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
@@ -2645,7 +2726,7 @@ declare class Rect<T = unknown> {
 declare const SORT_ORDERS: readonly SortOrder[];
 
 ### build/order.d.ts#SortOrder
-type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
+type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "perimeter-desc" | "long-side-desc" | "short-side-desc" | "side-diff-desc" | "ratio-desc" | "diagonal-desc" | "input";
 
 ### build/order.d.ts#Vector
 declare class Vector {
@@ -2677,6 +2758,9 @@ declare function isGraphOrder(order: ItemOrder): order is GraphOrder;
 
 ### build/order.d.ts#orderRects
 declare function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[];
+
+### build/order.d.ts#sortKey
+declare function sortKey(order: SortOrder, w: number, h: number): number;
 
 ### build/order.d.ts#windowOrder
 declare function windowOrder<T extends {
@@ -2736,6 +2820,7 @@ interface PackContext {
     steps?: number;
   };
   previous?: PackOutput;
+  onFrame?: (output: PackOutput) => void | "stop";
 }
 
 ### build/strategy.d.ts#SizeSearch

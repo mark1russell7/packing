@@ -1025,6 +1025,28 @@ The rules:
 - The step of VPSC is the code of `relax`. It moves into `src/separation.ts`, with no change of the output of `relax`.
 - The trace stage `force` has `move.force` (the moved boxes), `force.gap`, `force.tries` (1 to 3), `force.overlaps` (the overlaps after the forces of the last try), `force.rounds`, `force.capped` (1 when a cap stopped the pass), `force.vpsc` (1 when the last pass ran) and `force.fallback`.
 
+#### A start frame (k220)
+
+Roadmap item k220 gives `force` the mode `incremental`. The run of `packWith` gives the start, and `packFrames` gives the frames of a run. The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract`.
+
+```ts
+const before = packWith("force", input);
+const after = packWith("force", changed, undefined, 0, { start: before });
+const { output, frames } = packFrames("force", changed, undefined, 0, { start: frameOfOutput(input, before) });
+```
+
+1. **The start.** Each box of the start keeps its place and its turn. A new box takes its place in the member output. A free side gets the larger size of the start and the member output.
+2. **The steps.** Only the pairs that overlap push apart, with the target gap 0. The steps stop at the first step with no overlap, or after `iterations` steps. Then PRISM and VPSC remove the overlaps that are left.
+3. **The frames.** The run gives the start frame first. Then it gives the frame after each step and after each round of PRISM, and last the frame of the output. With `"stop"` from the callback, the steps end, and the output is legal.
+4. **The guard.** When the start cannot settle, or the result has more hard breaks than the member output, `force` starts from the member output.
+
+The rules of the start:
+
+- A start with no overlap is a fixed point: the placements do not change, and `force.steps` is 0. Thus `fixedPointMove` of the contract gives 0.
+- The run is not part of the options. The config ids and the records of the bench do not change. The bench gives a step of a chain its own output at the base as the start.
+- The gate is in `bench/change.test.ts`. On `pack-change-v1`, a start does not make `pack.stability.moved` or `pack.stability.mean` worse, for `push` and `force`.
+- The composites get the mode `incremental` from the union of the modes of their members. The gate of the member covers them.
+
 The counts of `packSpace`:
 
 - `combine` gets the option `force` with 1 member, `RECT_ONLY` and the params `iterations` (1 to 256, log) and `rounds` (0 to 32). The named configs are `force` and the 3 entries `FORCE_ENTRIES`.
@@ -1818,6 +1840,13 @@ The function `compactUp` is the first slice of roadmap item k30. It takes a layo
 
 After `pinUnchanged`, give `compactUp` the input without the locks. Then the pinned boxes can move up too.
 
+The function `compactLeft` is the first slice of roadmap item k213. It is the same sweep along `x`. Each free box moves left until it touches a box, a wall or the left side of the container. No default uses it.
+
+- The order is the left edge of each box, then its top, then the order of the input.
+- The sweep is the one-dimensional compaction of a constraint graph. A box stops at the right edge of each box before it that overlaps it across `y`.
+- On made-up packs, `compactLeft` gives the same places as `compactUp` of the transposed layout. A second pass moves no box.
+- The stage `compact` of `packSpace` comes in a later slice of k213. It holds `up`, `left` and both.
+
 ## Repack and match
 
 The function `matchPlaces` is a slice of roadmap item k31, the idea `new-move-matching`. It takes a fresh layout and gives each box of one size the place of that size that is nearest to its old place. No default uses it.
@@ -1906,7 +1935,7 @@ The registry does not hold these strategies. `strategy`, `packWith` and `allStra
 | `treemap` | `treemapPack` | `treemap` | `single` | `freeAspect`, `freeArea` | `rect` |
 | `side-anchors` | `packSideAnchors` | `side-anchors` | `composite` | `fixed`, `freeHeight`, `freeWidth` | `rect` |
 
-- The option `method` of `masonry` picks one of its three functions. The option `method` of `treemap` picks one of its four layouts.
+- The option `method` of `masonry` picks one of its three functions. The option `method` of `treemap` picks one of its five layouts.
 - `beam` has no catalog row. The first slice is neither the filtered search of Chen 2025 nor the parallel search of Wen 2025.
 - `exact-strip` has a limit of 100,000 nodes, and `binary-height` has 32 trials. The functions have higher defaults. These strategies take less time in a bench or on a page.
 - `binary-height`, `near-rects` and `raster-nofit` refuse more than 256 items, because the time of their search grows fast with the count.
@@ -1942,7 +1971,7 @@ Roadmap item k142 gives each strategy of this section a point in `packSpace`. Th
 | `near-rects` | `placement` | `rounds` | 0 to 4 | 2 |
 | `raster-nofit` | `placement` | `trials` | 1 to 256, log scale | 64 |
 | `masonry` | `placement` | `method`, `columns` | 3 methods, 1 to 16 | `shortest`, 4 |
-| `treemap` | `placement` | `method` | 4 methods | `squarified` |
+| `treemap` | `placement` | `method` | 5 methods | `squarified` |
 | `side-anchors` | `combine` | `side`, `at` | 4 sides and `none`, 0 to 1 | `left`, 0.5 |
 
 - Constraints keep the order `input` and the size search `none` with each placement option.

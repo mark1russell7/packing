@@ -49,15 +49,17 @@ describe("packSpace", () => {
   // Roadmap item k94 adds 3 base configs with 3 levels and 1 with 1 level: circle-quasi-physical with its levels of iterations. Before k94 the counts were 3798 and 1122.
   // Roadmap item k29 adds 1 base config with each count of levels: shelf-breaks, with no param. Before k29 the counts were 3830 and 1138.
   // Roadmap item k30 adds shelf-online: 3 levels of r by 2 fits, and 1 level of r by 2 fits. Before k30 the counts were 3831 and 1139.
-  it("has 5 stages and 3801 base configs with 3 levels", () => {
+  // Roadmap item k29 adds treemap-spiral: 1 base config with each count of levels. Before treemap-spiral the counts were 3837 and 1141.
+  it("has 5 stages and 7636 base configs with 3 levels", () => {
     expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(3837n);
-    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(1141n);
+    // Roadmap item k210 adds 6 sort orders, 12 of 6 rect orders before. Before k210 the counts were 3838 and 1142.
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(7636n);
+    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(2264n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
   // Roadmap item k137 adds relax-pull: 3 meta configs for each base config with 3 levels, and 1 with 1 level.
-  it("gives cell-portfolio one pool entry, and counts 9.46e20 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 3.11e22 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
@@ -84,16 +86,23 @@ describe("packSpace", () => {
     // Roadmap item k25 adds 2 placement options, so each count grows again. Before k25 the counts were 839122620777889305516, 277205931006818808, 835731956558436808155 and 275936906614691767.
     expect(spaceSize(packSpace, { levels: 3 }).meta).toBe(null);
     expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 20n }).meta).toBe(null);
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 22n }).meta).toBe(null);
     // Roadmap item k94 adds base configs to the members of the meta configs. Before k94 the counts were 946077247154414479086 and 317504231368154898.
     // Roadmap item k29 adds a base config to the members. Before k29 the counts were 986629892909639107990 and 340836128598216010.
     // Roadmap item k30 adds base configs to the members. Before k30 the counts were 987919200607642297485 and 342338667185079123.
+    // Roadmap item k29 adds treemap-spiral to the members: one base config for each count of levels.
+    // Before k29 the counts were 995683381705634116776, 345359641400040422, 987919200607642301316 and 342338667185080262.
     // Roadmap item k193 adds the side none to side-anchors: one config for each member. Before k193 the count was 995683381705634112939.
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 21n }).meta).toBe(995683381705634116776n);
+    // Roadmap item k210 doubles the base configs, and a list of up to 5 members grows near 32 times. Before k210 the count was 996982144242458314300.
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 23n }).meta).toBe(31117084197503168973256n);
     // Roadmap item k193 adds the side none to side-anchors. Before k193 the count with 1 level was 345359641400039281.
-    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(345359641400040422n);
+    // Roadmap item k210 puts the count with 1 level above the default maxMeta. Before k210 the count was 346878105010926668.
+    expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(null);
+    expect(spaceSize(packSpace, { levels: 1, maxMeta: 10n ** 20n }).meta).toBe(10664175701624102012n);
     // Roadmap item k193 adds the side none to side-anchors. Before k193 the rect counts were 987919200607642297485 and 342338667185079123.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 21n })).toEqual({ base: 3831n, meta: 987919200607642301316n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"] })).toEqual({ base: 1139n, meta: 342338667185080262n });
+    // Before k210 the rect counts were 3832, 989209855826161117216, 1140 and 343846500125987340.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 23n })).toEqual({ base: 7630n, meta: 30994995919746699509020n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"], maxMeta: 10n ** 20n })).toEqual({ base: 2262n, meta: 10617118243992897228n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -169,17 +178,19 @@ describe("packSpace and the shape kinds", () => {
     // Roadmap item k200: a polygon input gets the base configs of near-rects and raster-nofit, 3 for each with 3 levels and 1 for each with 1 level.
     // Before k200 the polygon counts were 0 and 0.
     for (const [kind, three, one] of [["polygon", 6n, 2n], ["free", 0n, 0n]] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: three, meta: 7662n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: one, meta: 2278n });
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: three, meta: 15260n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: one, meta: 4524n });
     }
     // Roadmap item k25 adds 75 rect configs with 3 levels and 25 with 1 level. Before k25 the rect counts were 2970 and 890, and the bbox counts were 5940 and 1780.
     // Roadmap item k29 adds 1 rect config with each count of levels. Before k29 the rect counts were 3824 and 1136, and the shape counts 7648 and 2272.
     // Roadmap item k30 adds 6 rect configs with 3 levels and 2 with 1 level. Before k30 the rect counts were 3825 and 1137, and the shape counts 7650 and 2274.
+    // Roadmap item k29 adds treemap-spiral: 1 rect config with each count of levels. Before treemap-spiral the rect counts were 3831 and 1139, and the shape counts 7662 and 2278.
     // Roadmap items k90 and k94: a circle input also gets the base configs of hole-degree and circle-quasi-physical, 1 for each level. Before k94 the counts were 3 and 1.
     // Roadmap item k200 adds the 6 and 2 base configs of near-rects and raster-nofit. Before k200 the circle counts were 6 and 2.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 12n, meta: 7662n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 4n, meta: 2278n });
-    expect([base3, base1]).toEqual([3831n, 1139n]);
+    // Roadmap item k210 adds 6 sort orders. Before k210 the rect counts were 3832 and 1140, and the shape counts 7664 and 2280.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 12n, meta: 15260n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 4n, meta: 4524n });
+    expect([base3, base1]).toEqual([7630n, 2262n]);
     // A mix of rect and circle items gets only the configs that support both kinds: near-rects and raster-nofit. Before k200 the base count was 0.
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 6n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 6n);
@@ -545,7 +556,7 @@ describe("configOfStrategy (k135)", () => {
 
   it("keeps the configId of each named config of main", () => {
     // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137, of k25, of k94 or of k142. A change of a config or of canonicalConfig changes the hash.
-    const standaloneNames = ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "masonry-shortest", "masonry-lpt", "columns-linear-partition", "treemap", "treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "side-anchors-first-left"];
+    const standaloneNames = ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "masonry-shortest", "masonry-lpt", "columns-linear-partition", "treemap", "treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "treemap-spiral", "side-anchors-first-left"];
     const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", ...standaloneNames];
     const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");

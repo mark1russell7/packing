@@ -13,7 +13,7 @@ import { shelfBreaks, shelfBreaksRefusal } from "./shelf-breaks.ts";
 import { shelfOnline, shelfOnlineRefusal, type ShelfOnlineOptions } from "./shelf-online.ts";
 import { sleatorRefusal, sleatorStrip } from "./sleator.ts";
 import { assertSupported, UnsupportedCell, type PackContext, type Strategy, type Supports } from "./strategy.ts";
-import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSquarified, treemapStrip, type TreemapLayout } from "./treemap.ts";
+import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapLayout } from "./treemap.ts";
 
 /** The largest count of items that `binary-height`, `near-rects` and `raster-nofit` take. Their search time grows fast with the count. */
 export const STANDALONE_MAX_ITEMS = 256;
@@ -238,7 +238,7 @@ export const masonryStrategy: Strategy<MasonryStrategyOptions> = {
 };
 
 /** The methods of the strategy `treemap`. */
-export type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split";
+export type TreemapMethod = "squarified" | "slice-dice" | "strip" | "pivot-split" | "spiral";
 
 /** The options of the strategy `treemap`. */
 export interface TreemapStrategyOptions {
@@ -251,16 +251,17 @@ const TREEMAP_METHODS: Readonly<Record<TreemapMethod, TreemapLayout>> = {
   "slice-dice": treemapSliceDice,
   strip: treemapStrip,
   "pivot-split": treemapPivotSplit,
+  spiral: treemapSpiral,
 };
 
 /** The ids of the methods of the strategy `treemap`. */
-export const TREEMAP_METHOD_IDS: readonly TreemapMethod[] = ["squarified", "slice-dice", "strip", "pivot-split"];
+export const TREEMAP_METHOD_IDS: readonly TreemapMethod[] = ["squarified", "slice-dice", "strip", "pivot-split", "spiral"];
 
 /** The strategy `treemap`: `treemapPack` of roadmap item k27 with the layout of `method`. Each box keeps its size. */
 export const treemapStrategy: Strategy<TreemapStrategyOptions> = {
   id: "treemap",
   family: "treemap",
-  catalog: ["treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split"],
+  catalog: ["treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "treemap-spiral"],
   supports: FREE_SUPPORTS,
   defaults: { method: "squarified" },
   deterministic: true,

@@ -1,6 +1,6 @@
-// The vertical compaction of roadmap item k30. Each test uses made-up inputs.
+// The compaction of roadmap items k30 (up) and k213 (left). Each test uses made-up inputs.
 import { describe, expect, it } from "vitest";
-import { checkHard, compactUp, mulberry32, packWith, pinUnchanged, type Item, type PackInput, type PackOutput, type Placement } from "@mark1russell7/packing";
+import { checkHard, compactLeft, compactUp, mulberry32, packWith, pinUnchanged, type Item, type PackInput, type PackOutput, type Placement } from "@mark1russell7/packing";
 
 /** This function gives a layout with the boxes `[x, y, w, h]` on a strip of width 10. */
 function layout(boxes: readonly (readonly [number, number, number, number])[], more: Partial<PackInput> = {}): { input: PackInput; output: PackOutput } {
@@ -109,5 +109,93 @@ describe("compactUp", () => {
     expect(bad).toBe(0);
     expect(down).toBe(0);
     expect(taller).toBe(0);
+  });
+});
+
+/** This function gives the `x` of each placement. */
+const xsOf = (output: PackOutput): readonly number[] => output.placements.map((p) => p.x);
+
+/** This function swaps `x` and `y` of a layout: the items, the places, the container and the size. */
+function transposed(input: PackInput, output: PackOutput): { input: PackInput; output: PackOutput } {
+  const c = input.container as { fixed: string; w?: number; h?: number };
+  const fixed = c.fixed === "width" ? "height" : c.fixed === "height" ? "width" : c.fixed;
+  const container = { ...input.container, fixed, ...(c.w === undefined ? {} : { h: c.w }), ...(c.h === undefined ? {} : { w: c.h }) } as PackInput["container"];
+  if (c.w !== undefined && c.h === undefined) delete (container as { w?: number }).w;
+  if (c.h !== undefined && c.w === undefined) delete (container as { h?: number }).h;
+  return {
+    input: { ...input, container, items: input.items.map((item) => ({ ...item, w: item.h, h: item.w })) },
+    output: { ...output, placements: output.placements.map((p) => ({ ...p, x: p.y, y: p.x })), size: { w: output.size.h, h: output.size.w } },
+  };
+}
+
+describe("compactLeft", () => {
+  it("moves a box left to the side of the container, and keeps its y", () => {
+    const { input, output } = layout([[6, 3, 2, 2]]);
+    const result = compactLeft(input, output);
+    expect(xsOf(result)).toEqual([0]);
+    expect(ysOf(result)).toEqual([3]);
+    expect(result.size).toEqual({ w: 10, h: 5 });
+  });
+
+  it("stops a box at the box before it that overlaps it across y, in the order of the left edges", () => {
+    const { input, output } = layout([[8, 0, 1, 2], [3, 0, 2, 2], [4, 5, 2, 2]]);
+    expect(xsOf(compactLeft(input, output))).toEqual([2, 0, 0]);
+  });
+
+  it("keeps a locked item and stops a box at it, and it does not change its arguments", () => {
+    const { input, output } = layout([[3, 0, 1, 4], [6, 1, 2, 2]]);
+    const locked: PackInput = { ...input, items: [{ ...input.items[0]!, x: 3, y: 0, locked: true }, input.items[1]!] };
+    const copy = JSON.stringify(output);
+    expect(xsOf(compactLeft(locked, output))).toEqual([3, 4]);
+    expect(JSON.stringify(output)).toBe(copy);
+  });
+
+  it("gives a free width the new right edge", () => {
+    const { input, output } = layout([[0, 0, 2, 2], [6, 0, 2, 2]], { container: { fixed: "height", h: 10 } } as Partial<PackInput>);
+    const result = compactLeft(input, { ...output, size: { w: 8, h: 10 } });
+    expect(xsOf(result)).toEqual([0, 2]);
+    expect(result.size).toEqual({ w: 4, h: 10 });
+  });
+
+  it("refuses a shape, pair gaps and a parent", () => {
+    const { input, output } = layout([[0, 0, 2, 2]]);
+    const shape: PackInput = { ...input, container: { ...input.container, shape: { kind: "circle", cx: 5, cy: 5, r: 5 } } };
+    expect(() => compactLeft(shape, output)).toThrow(/compactLeft/);
+    expect(() => compactLeft({ ...input, pairGaps: [{ a: "i0", b: "i0", gap: 1 }] } as PackInput, output)).toThrow(RangeError);
+    expect(() => compactLeft({ ...input, items: [{ ...input.items[0]!, parent: "p" }] }, output)).toThrow(RangeError);
+  });
+
+  it("is compactUp of the transposed layout on 300 made-up packs, with gaps and margins", () => {
+    let unequal = 0;
+    for (let seed = 1; seed <= 300; seed++) {
+      const base = drawn(seed, 5 + (seed % 30));
+      const input: PackInput = { ...base, gap: seed % 3, items: base.items.map((item, i) => (i % 4 === 0 ? { ...item, margin: 1 } : item)) };
+      const output = packWith("shelf", input, {}, seed);
+      const left = compactLeft(input, output);
+      const t = transposed(input, output);
+      const back = transposed(t.input, compactUp(t.input, t.output));
+      if (JSON.stringify(left.placements) !== JSON.stringify(back.output.placements)) unequal++;
+    }
+    expect(unequal).toBe(0);
+  });
+
+  it.each(["shelf", "maxrects", "skyline"])("has no hard rule break with %s on 500 made-up packs, no box goes right, and a second pass moves nothing", (strategy) => {
+    const options = strategy === "maxrects" ? { rule: "bl" } : {};
+    let bad = 0;
+    let right = 0;
+    let again = 0;
+    for (let seed = 1; seed <= 500; seed++) {
+      const input = drawn(seed, 5 + (seed % 40));
+      const output = packWith(strategy, input, options, seed);
+      const result = compactLeft(input, output);
+      bad += Object.values(checkHard(input, result)).reduce<number>((sum, v) => sum + (typeof v === "number" ? v : 0), 0);
+      result.placements.forEach((p, i) => {
+        if (p.x > output.placements[i]!.x + 1e-9) right++;
+      });
+      if (JSON.stringify(compactLeft(input, result)) !== JSON.stringify(result)) again++;
+    }
+    expect(bad).toBe(0);
+    expect(right).toBe(0);
+    expect(again).toBe(0);
   });
 });

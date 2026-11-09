@@ -30,7 +30,7 @@ import {
   type PackInput,
   type PackOutput,
 } from "@mark1russell7/packing";
-import { declaredClaimOf, HARD_RULE_VERSION, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
+import { declaredClaimOf, HARD_RULE_VERSION, type Carried, type DeclaredClaim, type PortfolioKey, type ShapeKind } from "@mark1russell7/layout-contract";
 import { controlFactor, type GroupFactor } from "@mark1russell7/rigor-bench";
 import { portfolioWith } from "../src/portfolio.ts";
 import { refusalRecord } from "../src/standalone-strategies.ts";
@@ -102,6 +102,8 @@ interface BenchRecordHead {
   /** The first 7 characters of the commit of the code. */
   commit?: string;
   env: BenchEnv;
+  /** The facts of a carry of a record to a later engine version (L147 of the contract). This runner measures each of its records, so it writes no carry. */
+  carried?: Carried;
 }
 
 /** The record of a pair that the runner packed. It has the measures, the hard counts and the times. */

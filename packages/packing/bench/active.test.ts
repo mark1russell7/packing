@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { corpus, packSpace, toPackInput } from "@mark1russell7/packing";
 import { checkConfig, configId, shapeKindsOf } from "@mark1russell7/layout-contract";
-import { activeOptions, activeSample, candidatePool, controlOrder, nextPick, pickKey, type Candidate } from "./active.ts";
+import { activeOptions, activeSample, candidatePool, controlOrder, DEFAULT_MAX_PAIR_SECONDS, nextPick, pickKey, type Candidate } from "./active.ts";
 import { activeCoverage, armHits, pairInput, type CoverageManifest, type CoverageRecord } from "./coverage.ts";
 import { pairedArms } from "./paired-arms.ts";
 import { inputFeatures } from "./input-features.ts";
-import { strataOf } from "./sample-space.ts";
+import { SLOW_PAIR, strataOf } from "./sample-space.ts";
 
 // The active draw of roadmap item k116. The tests use a fake clock and a small grid, so they read no time of a run.
 
@@ -143,7 +143,24 @@ describe("the active draw", () => {
     expect(other.some((o) => o !== a.join())).toBe(true);
   });
 
+  it("sends a candidate back as slow when its first pack takes more than maxPairSeconds, before its other passes", () => {
+    const g = grid();
+    // The fake clock moves 1 ms at each read, so each first pack takes 1 ms.
+    const run = (maxPairSeconds?: number) => activeSample({ ...base, ...g, clock: fakeClock(), coverage: { features: "input" }, ...(maxPairSeconds === undefined ? {} : { maxPairSeconds }) });
+    const free = run();
+    const roomy = run(0.002);
+    expect(roomy.records.map((r) => r.outputHash)).toEqual(free.records.map((r) => r.outputHash));
+    expect(roomy.summary.configs.reasons[SLOW_PAIR]).toBeUndefined();
+    const tight = run(0.0005);
+    expect(tight.records).toEqual([]);
+    expect(tight.summary.errors).toEqual([]);
+    expect(tight.summary.configs.reasons[SLOW_PAIR]).toBeGreaterThan(0);
+  });
+
   it("reads the options of the command line", () => {
+    expect(activeOptions([], ENV).maxPairSeconds).toBe(DEFAULT_MAX_PAIR_SECONDS);
+    expect(activeOptions(["--max-pair-seconds", "5"], ENV).maxPairSeconds).toBe(5);
+    expect(() => activeOptions(["--max-pair-seconds", "0"], ENV)).toThrow(/--max-pair-seconds is a number above 0/);
     expect(activeOptions(["--arm", "control"], ENV).arm).toBe("control");
     expect("arm" in activeOptions([], ENV)).toBe(false);
     expect(() => activeOptions(["--arm", "random"], ENV)).toThrow(/active or control/);

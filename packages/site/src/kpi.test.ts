@@ -5,7 +5,7 @@ import { emittedCells, kpiInput, segmentOf, staleText, trendLines, trendSegments
 
 const at = (date: string): number => Date.parse(`${date}T12:00:00Z`);
 
-const FACTS: KpiFacts = { picker: 31, strategies: 31, families: 20, lawPairs: 40, pages: ["The 31 strategies."], release: "0.8.0", tags: ["0.8.0", "0.7.0"], versionAt: "2026-11-01T00:00:00Z", shownReleases: ["0.8.0", "0.7.0"], changelogReleases: ["0.8.0", "0.7.0"], trend: [], explorer: false, commitAt: "2026-11-04T16:00:00Z", lawPairsAt: "2026-11-04T15:00:00Z", coverageAt: "2026-10-29T02:50:10Z" };
+const FACTS: KpiFacts = { picker: 31, strategies: 31, operators: 38, families: 20, lawPairs: 40, pages: ["The 31 strategies."], release: "0.8.0", tags: ["0.8.0", "0.7.0"], versionAt: "2026-11-01T00:00:00Z", shownReleases: ["0.8.0", "0.7.0"], changelogReleases: ["0.8.0", "0.7.0"], trend: [], explorer: false, commitAt: "2026-11-04T16:00:00Z", lawPairsAt: "2026-11-04T15:00:00Z", coverageAt: "2026-10-29T02:50:10Z" };
 
 describe("the stale text", () => {
   it("counts each place with another count of strategies", () => {
@@ -202,16 +202,17 @@ describe("the input families", () => {
 });
 
 describe("the file", () => {
-  it("has the project and the seven measures", () => {
+  it("has the project and the eight measures", () => {
     const file = kpiInput(FACTS, Date.parse("2026-11-04T17:00:00.500Z"));
     expect(file.project).toBe("packing");
-    expect(Object.fromEntries(file.measures.map((m) => [m.id, m.value]))).toEqual({ "picker-strategies": 31, "stale-text": 0, "release-in-flight": 0, "input-families": 20, "law-pairs-covered": 40, "coverage-shown": 0, "explorer-live": 0 });
+    expect(Object.fromEntries(file.measures.map((m) => [m.id, m.value]))).toEqual({ "picker-strategies": 31, operators: 38, "stale-text": 0, "release-in-flight": 0, "input-families": 20, "law-pairs-covered": 40, "coverage-shown": 0, "explorer-live": 0 });
   });
 
   it("gives each measure the time of its data and not the time of the build", () => {
     const file = kpiInput({ ...FACTS, trend: [{ dates: ["2026-10-28", "2026-10-21"] }] }, Date.parse("2026-11-04T17:00:00Z"));
     const times = Object.fromEntries(file.measures.map((m) => [m.id, m.at]));
     expect(times["picker-strategies"]).toBe(FACTS.commitAt);
+    expect(times["operators"]).toBe(FACTS.commitAt);
     expect(times["stale-text"]).toBe(FACTS.commitAt);
     expect(times["law-pairs-covered"]).toBe(FACTS.lawPairsAt);
     expect(times["input-families"]).toBe(FACTS.lawPairsAt);
