@@ -2,6 +2,7 @@
 // of the benchmark, its rows of `docs/research/CATALOG.md` and its verdicts of the committed snapshots. The page builds
 // the cards at build time, so a new strategy of the registry gets a card with no change to the site.
 
+import { escapeAttribute as escapeHtml } from "@mark1russell7/text";
 import {
   ASPECT_FIT_FACTORS,
   BEST_FIT_SIDES,
@@ -286,10 +287,8 @@ export function catalogHref(href: string, catalogUrl: string): string | undefine
   return docs === null ? undefined : new URL(`../${docs[1]}`, catalogUrl).href;
 }
 
-/** This function escapes text for HTML: it replaces each of the characters `&`, `<`, `>`, `"` and `'`. */
-export function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch]!);
-}
+/** The escape of text for HTML: `escapeAttribute` of `@mark1russell7/text`. It replaces each of the characters `&`, `<`, `>`, `"` and `'`. */
+export { escapeHtml };
 
 /**
  * This function gives the HTML of a cell of the catalog. It escapes all of the text. It makes each code span a `code`

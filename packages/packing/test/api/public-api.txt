@@ -111,6 +111,7 @@ type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GraphOrder: build/order.d.ts#GraphOrder
 type GridFlowOptions: build/index.d.ts#GridFlowOptions
+type GridLanesOptions: build/index.d.ts#GridLanesOptions
 type GuillotineChoice: build/layout-strategy.d.ts#GuillotineChoice
 type GuillotineOptions: build/layout-strategy.d.ts#GuillotineOptions
 type GuillotineSplit: build/layout-strategy.d.ts#GuillotineSplit
@@ -286,6 +287,7 @@ type Supports: build/strategy.d.ts#Supports
 TABU_STAGE: build/index.d.ts#TABU_STAGE
 THIN_INPUTS: build/index.d.ts#THIN_INPUTS
 TREEMAP_METHOD_IDS: build/index.d.ts#TREEMAP_METHOD_IDS
+TREEMAP_PIVOT_IDS: build/index.d.ts#TREEMAP_PIVOT_IDS
 type TabuStrategyOptions: build/index.d.ts#TabuStrategyOptions
 type TallRowParams: build/index.d.ts#TallRowParams
 type Tolerance: @mark1russell7/layout-contract#Tolerance (external)
@@ -294,6 +296,7 @@ type TreemapFrame: build/index.d.ts#TreemapFrame
 type TreemapLayout: build/index.d.ts#TreemapLayout
 type TreemapMethod: build/index.d.ts#TreemapMethod
 type TreemapNode: build/index.d.ts#TreemapNode
+type TreemapPivot: build/index.d.ts#TreemapPivot
 type TreemapStrategyOptions: build/index.d.ts#TreemapStrategyOptions
 type TreemapStripOptions: build/index.d.ts#TreemapStripOptions
 type UiParams: build/index.d.ts#UiParams
@@ -356,6 +359,7 @@ columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
 columnsCssBalance: build/index.d.ts#columnsCssBalance
 columnsLinearPartition: build/index.d.ts#columnsLinearPartition
+compactLeft: build/index.d.ts#compactLeft
 compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
@@ -367,6 +371,7 @@ corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
 createContext: build/strategy.d.ts#createContext
 cssGridDense: build/index.d.ts#cssGridDense
+cssGridLanes: build/index.d.ts#cssGridLanes
 cssGridSparse: build/index.d.ts#cssGridSparse
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
@@ -500,6 +505,7 @@ skylineGap: build/index.d.ts#skylineGap
 skylineGapFamily: build/index.d.ts#skylineGapFamily
 sleatorRefusal: build/index.d.ts#sleatorRefusal
 sleatorStrip: build/index.d.ts#sleatorStrip
+sortKey: build/order.d.ts#sortKey
 spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
@@ -515,6 +521,8 @@ tallRow: build/index.d.ts#tallRow
 tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
+treemapHilbert: build/index.d.ts#treemapHilbert
+treemapMoore: build/index.d.ts#treemapMoore
 treemapPack: build/index.d.ts#treemapPack
 treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
 treemapPivotSize: build/index.d.ts#treemapPivotSize
@@ -1181,6 +1189,11 @@ interface GridFlowOptions extends MasonryOptions {
   readonly rowHeight?: number;
 }
 
+### build/index.d.ts#GridLanesOptions
+interface GridLanesOptions extends MasonryOptions {
+  readonly fitTolerance?: number;
+}
+
 ### build/index.d.ts#HALF_WIDE_WIDTH
 export declare const HALF_WIDE_WIDTH = 200;
 
@@ -1824,6 +1837,9 @@ export declare const THIN_INPUTS = 12;
 ### build/index.d.ts#TREEMAP_METHOD_IDS
 export declare const TREEMAP_METHOD_IDS: readonly TreemapMethod[];
 
+### build/index.d.ts#TREEMAP_PIVOT_IDS
+export declare const TREEMAP_PIVOT_IDS: readonly TreemapPivot[];
+
 ### build/index.d.ts#TabuStrategyOptions
 interface TabuStrategyOptions {
   member?: string | PortfolioEntry;
@@ -1870,9 +1886,13 @@ type TreemapNode = {
   readonly weight?: undefined;
 };
 
+### build/index.d.ts#TreemapPivot
+type TreemapPivot = "split" | "middle" | "size";
+
 ### build/index.d.ts#TreemapStrategyOptions
 interface TreemapStrategyOptions {
   readonly method: TreemapMethod;
+  readonly pivot?: TreemapPivot;
 }
 
 ### build/index.d.ts#TreemapStripOptions
@@ -2053,6 +2073,9 @@ export declare function columnsCssBalance(input: PackInput, options: MasonryOpti
 ### build/index.d.ts#columnsLinearPartition
 export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;
 
+### build/index.d.ts#compactLeft
+export declare function compactLeft(input: PackInput, output: PackOutput): PackOutput;
+
 ### build/index.d.ts#compactUp
 export declare function compactUp(input: PackInput, output: PackOutput): PackOutput;
 
@@ -2079,6 +2102,9 @@ export declare function countCell(count: number): CountScale;
 
 ### build/index.d.ts#cssGridDense
 export declare function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput;
+
+### build/index.d.ts#cssGridLanes
+export declare function cssGridLanes(input: PackInput, options: GridLanesOptions): PackOutput;
 
 ### build/index.d.ts#cssGridSparse
 export declare function cssGridSparse(input: PackInput, options: GridFlowOptions): PackOutput;
@@ -2482,6 +2508,12 @@ export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "box
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
 
+### build/index.d.ts#treemapHilbert
+export declare function treemapHilbert(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapMoore
+export declare function treemapMoore(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
 ### build/index.d.ts#treemapPack
 export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
 
@@ -2741,7 +2773,7 @@ declare class Rect<T = unknown> {
 declare const SORT_ORDERS: readonly SortOrder[];
 
 ### build/order.d.ts#SortOrder
-type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "input";
+type SortOrder = "height-desc" | "height-asc" | "width-desc" | "area-desc" | "perimeter-desc" | "long-side-desc" | "short-side-desc" | "side-diff-desc" | "ratio-desc" | "diagonal-desc" | "input";
 
 ### build/order.d.ts#Vector
 declare class Vector {
@@ -2773,6 +2805,9 @@ declare function isGraphOrder(order: ItemOrder): order is GraphOrder;
 
 ### build/order.d.ts#orderRects
 declare function orderRects<T>(rects: readonly Rect<T>[], order: ItemOrder, links?: readonly ItemLink[]): Rect<T>[];
+
+### build/order.d.ts#sortKey
+declare function sortKey(order: SortOrder, w: number, h: number): number;
 
 ### build/order.d.ts#windowOrder
 declare function windowOrder<T extends {

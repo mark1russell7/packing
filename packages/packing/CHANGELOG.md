@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.1
+## 0.17.2
 
 Three level packers of the literature (roadmap item k211). Each one is a strategy and a placement of `packSpace`. No default uses them.
 
@@ -17,6 +17,108 @@ This release raises the PATCH version: new functions and strategies. Before 1.0.
 ### Changed
 
 - `packSpace` has 3 more base configs with each count of levels. Each old config keeps its `configId`.
+
+## 0.17.1
+
+The method `pivot-split` of the strategy `treemap` has the param `pivot`. The pivots by middle and by size of Shneiderman 2001 are values of this param.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The param `pivot` of the strategy `treemap`, with the values `split`, `middle` and `size`. The default is `split`, so a config with no pivot gives the output of 0.12.0.
+- The type `TreemapPivot` and the list `TREEMAP_PIVOT_IDS`.
+- The param `pivot` of the option `treemap` of `packSpace`. It is active only with the method `pivot-split`.
+- The named configs and the bench entries `treemap-pivot-middle` and `treemap-pivot-size`, with their tie-move rows and whole-position rows.
+
+### Fixed
+
+- `baseConfig` of a standalone strategy leaves out a param that is not active. Before, it set each param to its default.
+
+### Changed
+
+- 0.12.0 told that `pivot-middle` and `pivot-size` become methods with a later break. They are values of a param, because they differ from `pivot-split` only in the pivot. The type `TreemapMethod` does not change.
+
+## 0.17.0
+
+Each entry of the strategy catalog gets the output fingerprint of its strategy (roadmap item k201). A chooser can find 2 strategies with the same output and not start them.
+
+This release raises the MINOR version, because the catalog goes to the schema `strategy-catalog/3`. A reader that accepts only `strategy-catalog/2` refuses the new file. Before 1.0.0, a break raises MINOR.
+
+### Breaking
+
+- The file `strategy-catalog.json` and the constant `strategyCatalog` use the schema `strategy-catalog/3` of `@mark1russell7/layout-contract`, not `strategy-catalog/2`.
+
+### Added
+
+- Each entry of the catalog has the field `fingerprint`, from the table `STRATEGY_FINGERPRINT`. All 33 entries have one.
+
+## 0.16.1
+
+The function `cssGridLanes` of roadmap item k28 places the boxes of a wall as the CSS grid lanes do. The code follows section 4.4 of the editor's draft of 21 October 2026.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `cssGridLanes` and its options `GridLanesOptions`. Each box goes to the first possible line after the cursor. A possible line has a top at most `fitTolerance` below the lowest top.
+- With no possible line after the cursor, the box goes to the first possible line. With `fitTolerance` set to `Infinity`, the boxes go to the columns in strict order.
+
+## 0.16.0
+
+The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.
+
+This release raises the MINOR version, because the union `SortOrder` gets new members. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The sort orders `perimeter-desc`, `long-side-desc`, `short-side-desc`, `side-diff-desc`, `ratio-desc` and `diagonal-desc`. Each one puts the box with the larger key first, and equal keys keep the input order.
+- The function `sortKey`: the key of a sort order for a box of a width and a height.
+- 6 operators in `packOperators`. The count of the operators goes from 38 to 44.
+- The 6 orders are options of the stage `order` of `packSpace`, and values of the option `sortOrder` in the catalog.
+
+### Changed
+
+- `compareRects` and the member order of `restarts` read one table of keys. The orders of before give the same layouts.
+- The base configs of `packSpace` go from 3,838 to 7,636 with 3 levels. The uniform draw of the bench sample changes.
+
+### Breaking
+
+- The union `SortOrder` has 6 new members. A `switch` or a `Record` over `SortOrder` in a caller does not compile until it has the new members.
+
+## 0.15.2
+
+The function `compactLeft` of roadmap item k213 moves each free box of a layout left, up to a box, a wall or the left side.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `compactLeft`. The sweep is the compaction of a constraint graph along `x`. A box stops at the right edge of each box before it that overlaps it across `y`.
+- On 300 made-up packs with gaps and margins, `compactLeft` gives the same places as `compactUp` of the transposed layout.
+- On 1,500 made-up packs of `shelf`, `maxrects` and `skyline`, no hard rule breaks, no box moves right, and a second pass moves no box.
+
+### Not changed
+
+- The output of `compactUp` stays the same. It uses the same sweep along `y`.
+- The strategies, their fingerprints and `packSpace` do not change.
+
+## 0.15.1
+
+The functions `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013 lay the items of a treemap along a curve.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapHilbert`. Each level cuts the items into four groups of near equal weight. The groups go to the four parts of the frame in the order of the Hilbert curve.
+- The function `treemapMoore`. The root of each level uses the Moore curve, a loop of four Hilbert curves. The parts below the root use the Hilbert curve.
+- For `4^k` equal items in a square, the cells are a grid. Each two items in a row of the input share an edge.
+- The test has 200 made-up lists and trees, with 6,984 pairs of items in a row. 86 pairs (Hilbert) and 61 pairs (Moore) share no edge, and 739 pairs for `treemapStrip`.
+
+### Not changed
+
+- The strategy `treemap` and its methods. The fingerprints of the catalog stay the same.
 
 ## 0.15.0
 

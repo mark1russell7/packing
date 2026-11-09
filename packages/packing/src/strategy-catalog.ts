@@ -1,5 +1,5 @@
 // The strategy catalog of the engine `packing` (roadmap item k144). It gives each strategy and each option as data of the schema
-// `strategy-catalog/2` of `@mark1russell7/layout-contract`, so a chooser renders them with no code for each strategy.
+// `strategy-catalog/3` of `@mark1russell7/layout-contract`, so a chooser renders them with no code for each strategy.
 // The ids, the families, the kinds, the supports and the defaults come from the live strategies. This module holds only the text and the ranges.
 // The subpath `./strategy-catalog` exports the constant, so the root bundle does not pay for the declarations.
 // The range of a number option is the range of a control. A strategy can take a value outside it, as the option comments of each strategy tell.
@@ -16,6 +16,7 @@ import {
   type StrategyCatalogSource,
 } from "@mark1russell7/layout-contract";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
+import { STRATEGY_FINGERPRINT } from "./strategy-fingerprint.ts";
 import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
 import type { BboxStrategyOptions } from "./bbox.ts";
 import type { BeamOptions } from "./beam.ts";
@@ -48,6 +49,7 @@ import {
   MASONRY_METHOD_IDS,
   STANDALONE_MAX_ITEMS,
   TREEMAP_METHOD_IDS,
+  TREEMAP_PIVOT_IDS,
   type MasonryStrategyOptions,
   type SideAnchorStrategyOptions,
   type TreemapStrategyOptions,
@@ -331,6 +333,13 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
   } satisfies OptionSchema<MasonryStrategyOptions>,
   treemap: {
     method: { type: "enum", describe: "The layout of the cells.", values: TREEMAP_METHOD_IDS },
+    pivot: {
+      type: "enum",
+      describe: "The pivot rule of the method pivot-split: the most equal split, the middle item or the largest item.",
+      values: TREEMAP_PIVOT_IDS,
+      default: "split",
+      when: { param: "method", in: ["pivot-split"] },
+    },
   } satisfies OptionSchema<TreemapStrategyOptions>,
   "side-anchors": {
     first: { type: "object", describe: "One anchor for the first item of the input.", ...none("unset", "Without it, only the option anchors holds anchors.") },
@@ -439,6 +448,7 @@ function entryOf(listing: StrategyListing): CatalogEntry {
     optIn: !registered.some((s) => s.id === id),
     options: catalogOptions(strategy(id).defaults as Readonly<Record<string, unknown>>, schema),
     output: outputRows(id),
+    ...(STRATEGY_FINGERPRINT[id] === undefined ? {} : { fingerprint: STRATEGY_FINGERPRINT[id] }),
   };
 }
 
@@ -447,5 +457,5 @@ function catalog(): StrategyCatalogSource {
   return { engine: STRATEGY_CATALOG_ENGINE, strategies: allStrategies.map(entryOf).sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)) };
 }
 
-/** Each strategy and each option of the engine, as the source of `strategy-catalog/2`. The file `strategy-catalog.json` holds the same data with the version. */
+/** Each strategy and each option of the engine, with the output fingerprint of each strategy, as the source of `strategy-catalog/3`. The file `strategy-catalog.json` holds the same data with the version. */
 export const strategyCatalog: StrategyCatalogSource = /* @__PURE__ */ catalog();

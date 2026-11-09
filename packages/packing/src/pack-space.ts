@@ -52,7 +52,7 @@ import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts
 import type { SelectStrategyOptions } from "./select.ts";
 import { PACK_DEFAULT_TABLE, SELECT_TABLE, type SelectNode } from "./select-table.ts";
 import { SHELF_FITS } from "./shelf.ts";
-import { BINARY_HEIGHT_TRIALS, EXACT_STRATEGY_NODE_LIMIT, MASONRY_METHOD_IDS, refusal, TREEMAP_METHOD_IDS, type MasonryStrategyOptions, type SideAnchorStrategyOptions, type TreemapStrategyOptions } from "./standalone-strategies.ts";
+import { BINARY_HEIGHT_TRIALS, EXACT_STRATEGY_NODE_LIMIT, MASONRY_METHOD_IDS, refusal, TREEMAP_METHOD_IDS, TREEMAP_PIVOT_IDS, type MasonryStrategyOptions, type SideAnchorStrategyOptions, type TreemapStrategyOptions } from "./standalone-strategies.ts";
 import { packWith } from "./strategy-list.ts";
 import { UnsupportedShape } from "./strategy.ts";
 
@@ -225,7 +225,10 @@ export function baseConfig(id: string, options: Readonly<Record<string, unknown>
   if (STANDALONE_PLACEMENTS.includes(id)) {
     const params = STAGES.find((s) => s.name === "placement")!.options.find((option) => option.id === id)!.params;
     for (const key of Object.keys(options)) if (!params.some((p) => p.name === key)) throw new RangeError(`The space packing has no option ${key} of the strategy ${id}.`);
-    const placement = choice(id, Object.fromEntries(params.map((p) => [p.name, (options[p.name] ?? p.default) as string | number | boolean])));
+    const values = Object.fromEntries(params.map((p) => [p.name, (options[p.name] ?? p.default) as string | number | boolean]));
+    // A param with a condition is in the config only when the param of its condition has one of the values of the condition.
+    const active = params.filter((p) => p.when === undefined || p.when.in.includes(values[p.when.param]!));
+    const placement = choice(id, Object.fromEntries(active.map((p) => [p.name, values[p.name]!])));
     return { space: ENGINE, stages: { order: choice("input"), "size-search": choice("none"), placement, "local-search": choice("none") } };
   }
   const o = { ...(strategy(id).defaults as Record<string, unknown>), ...options };
@@ -351,7 +354,14 @@ const STAGES: readonly SpaceStage[] = [
         ],
         supports: RECT_ONLY,
       },
-      { id: "treemap", params: [{ name: "method", kind: "enum", values: [...TREEMAP_METHOD_IDS], default: "squarified" }], supports: RECT_ONLY },
+      {
+        id: "treemap",
+        params: [
+          { name: "method", kind: "enum", values: [...TREEMAP_METHOD_IDS], default: "squarified" },
+          { name: "pivot", kind: "enum", values: [...TREEMAP_PIVOT_IDS], default: "split", when: { param: "method", in: ["pivot-split"] } },
+        ],
+        supports: RECT_ONLY,
+      },
     ],
   },
   { name: "local-search", options: [{ id: "none", params: [], supports: PASS_THROUGH, identity: true }] },
@@ -434,6 +444,8 @@ const SINGLE: Readonly<Record<string, StrategyConfig>> = {
   "treemap-slice-dice": baseConfig("treemap", { method: "slice-dice" }),
   "treemap-strip": baseConfig("treemap", { method: "strip" }),
   "treemap-pivot-split": baseConfig("treemap", { method: "pivot-split" }),
+  "treemap-pivot-middle": baseConfig("treemap", { method: "pivot-split", pivot: "middle" }),
+  "treemap-pivot-size": baseConfig("treemap", { method: "pivot-split", pivot: "size" }),
   "treemap-spiral": baseConfig("treemap", { method: "spiral" }),
 };
 
@@ -667,7 +679,7 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
   "near-rects": { rounds: "placement.near-rects.rounds", cell: null, seed: null } satisfies Places<NearRectsOptions>,
   "raster-nofit": { trials: "placement.raster-nofit.trials", cell: null, seed: null } satisfies Places<RasterNofitOptions>,
   masonry: { method: "placement.masonry.method", columns: "placement.masonry.columns", columnWidth: null } satisfies Places<MasonryStrategyOptions>,
-  treemap: { method: "placement.treemap.method" } satisfies Places<TreemapStrategyOptions>,
+  treemap: { method: "placement.treemap.method", pivot: "placement.treemap.pivot" } satisfies Places<TreemapStrategyOptions>,
   "side-anchors": {
     first: "combine.side-anchors.side",
     strategy: "combine.side-anchors.members",

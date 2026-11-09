@@ -102,7 +102,7 @@ A shelf packer puts the boxes into rows. Each row is as high as its highest box.
 Notes:
 
 - NFDH uses at most `2 OPT + h_max` of height, and FFDH uses at most `1.7 OPT + h_max`. Coffman 1980 proves these bounds.
-- The sort orders of `SORT_ORDERS` (`height-desc`, `height-asc`, `width-desc`, `area-desc` and `input`) apply to each shelf rule. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
+- The 11 sort orders of `SORT_ORDERS` apply to each shelf rule. The orders by perimeter, longer side, shorter side, side difference and ratio come from Jylänki 2010. A strategy name with an order is `shelf-ffdh` with the option `sortOrder`.
 - Split-Fit sorts by width, not by height. Its bound of 1.5 needs boxes with a height of 1 or less.
 - `shelf-knapsack` uses a knapsack for each row. The `new-shelf-lookahead` idea adds the order to it.
 
@@ -382,13 +382,13 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-slice-dice` | Slice and dice | Cut the rectangle into strips in the input order. Each level of the tree turns the direction of the cut. | Johnson 1991, Shneiderman 1992 | order, speed | `O(n)` | — | implemented | k27 |
 | `treemap-squarified` | Squarified | Sort by weight. Add items to a row along the shorter side while the worst aspect in the row gets better. Then start a new row. | Bruls 2000 | aspect | `O(n log n)` | — | implemented | k27 |
 | `treemap-strip` | Strip | Do `treemap-squarified` in the input order, always in horizontal strips, with the mean aspect of the strip in place of the worst aspect. | Bederson 2002 | order, aspect | `O(n sqrt n)` on average, `O(n^2)` at most | — | implemented | k27 |
-| `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | — | implemented: the function `treemapPivotMiddle`, not a method of the strategy `treemap` | k27 |
-| `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | — | implemented: the function `treemapPivotSize`, not a method of the strategy `treemap` | k27 |
+| `treemap-pivot-middle` | Pivot by middle | Take the item in the middle of the order as pivot. Put the items before it in one region, and divide the items after it into two regions near the pivot. Recurse. | Shneiderman 2001 | order | `O(n log n)` | — | implemented: the param `pivot` of the method `pivot-split`, value `middle` | k27 |
+| `treemap-pivot-size` | Pivot by size | Do `treemap-pivot-middle` with the largest item as pivot. | Shneiderman 2001 | order, aspect | `O(n log n)` | — | implemented: the param `pivot` of the method `pivot-split`, value `size` | k27 |
 | `treemap-pivot-split` | Pivot by split size | Do `treemap-pivot-middle` with the pivot that splits the weight most equally. | Bederson 2002 | order, aspect | `O(n log n)` | — | implemented | k27 |
 | `treemap-split` | Split | Split the ordered list into two parts of near equal weight. Cut the rectangle along its longer side. Recurse. | Engdahl 2005 (unverified) | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | — | implemented | k29 |
-| `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
-| `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` | — | planned | k27 |
+| `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
+| `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
 | `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | — | planned | k27 |
 | `treemap-quantum` | Quantum | Do an ordered treemap with cells that are whole multiples of a unit size, for grids of pictures. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi` | Voronoi | Move weighted sites until the area of each Voronoi cell is its weight. The cells are polygons. | Balzer 2005 | aspect | iterations x `O(n log n)` | — | planned | k27 |
@@ -426,7 +426,7 @@ These are the layouts of pages with many cards or pictures. A masonry layout kee
 | `masonry-multi-span` | Masonry with wide items | An item spans `k` columns. Put it at the place where the highest of its `k` columns is the lowest. | DeSandro, software (the rule is unverified) | density | `O(n c)` | — | implemented: `masonryMultiSpan`, in `O(n c s)` for the largest count `s` of the columns of one box | k28 |
 | `css-grid-sparse` | CSS grid flow | Put each item in the next free area of the grid, in order. Do not go back. | W3C grid | order | `O(n c)` | — | implemented: `cssGridSparse`, in `O((n + m) r s)` for the `m` cells of the grid and the largest spans `r` and `s` of one box | k28 |
 | `css-grid-dense` | CSS grid dense flow | Put each item in the first free area of the grid from the start, as `grid-auto-flow: dense` does. | W3C grid | density | `O(n^2 c)` | — | implemented: `cssGridDense`, in `O(n m r s)` for the `m` cells of the grid and the largest spans `r` and `s` of one box | k28 |
-| `css-grid-lanes` | CSS grid lanes | Do `masonry-shortest` in a grid, with `display: grid-lanes` of the 2026 draft. The earlier drafts called it `masonry`. | W3C grid level 3 draft | order | `O(n log c)` | — | planned | k28 |
+| `css-grid-lanes` | CSS grid lanes | Do `masonry-shortest` in a grid, with `display: grid-lanes` of the 2026 draft. The earlier drafts called it `masonry`. | W3C grid level 3 draft | order | `O(n log c)` | — | implemented: `cssGridLanes`, in `O(n c s)` for the largest count `s` of the columns of one box, with the tie threshold `fitTolerance` | k28 |
 | `justified-greedy` | Justified rows, greedy | Add pictures to a row at a target height. When a picture makes the row too wide, keep it only if the row gets nearer to the target. Scale the row to the width. | Flickr, software | order, raggedness | `O(n)` | — | planned | k28 |
 | `justified-linear-partition` | Justified rows, linear partition | Cut the order into `k` rows of near equal width with dynamic programming. | Treitz 2013 (unverified), Skiena 2008 | order, raggedness | `O(n^2 k)` | the best cuts for its cost (Skiena 2008) | planned | k28 |
 | `justified-line-break` | Justified rows, line breaking | Choose all the row breaks at once with the method of Knuth and Plass. The cost of a row is the change of its scale from the target. | Knuth 1981, Harasymiv 2016 (unverified) | order, raggedness | `O(n w)` for `w` items in a row | the best breaks for its cost (Knuth 1981) | planned | k28 |
@@ -982,4 +982,5 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **W3C flexbox.** "CSS Flexible Box Layout Module Level 1". <https://www.w3.org/TR/css-flexbox-1/>
 - **W3C grid.** "CSS Grid Layout Module Level 1". <https://www.w3.org/TR/css-grid-1/>
 - **W3C grid level 3 draft.** "CSS Grid Layout Module Level 3", a working draft of 2026. <https://www.w3.org/TR/css-grid-3/>
+- **CSS grid level 3 editor's draft.** The editor's draft of 21 October 2026. The code of `cssGridLanes` follows its section 4.4. <https://drafts.csswg.org/css-grid-3/>
 - **W3C multi-column.** "CSS Multi-column Layout Module Level 1". <https://www.w3.org/TR/css-multicol-1/>
