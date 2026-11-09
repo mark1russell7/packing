@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.17.4
+
+The functions `treemapOrdered` and `treemapSpatial` of roadmap item k27 are the ordered squarified treemap and the spatial treemap of Wood and Dykes 2008. They put each cell near a place: a place in the order of the list, or a point of the node.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapOrdered`. The nodes get evenly spaced places in the order of the list, from the corner of the frame. Each row of the squarified treemap takes the free node nearest to a moving position.
+- The function `treemapSpatial` and the type `SpatialNode`. An affine map with no rotation takes the points of the nodes into the free space. Then the rows of `treemapOrdered` take the nearest nodes. The point of a branch is the weighted mean of the points of its children, or the point that it gives.
+- The two functions are in the tests of each treemap method. The cells stay in the frame and do not overlap. Each area is in proportion to its weight.
+- The bench `bench/treemap-spatial.ts` compares the two functions with Tables 1 to 3 of the paper. The report of `bench/treemap-literature.ts` includes its section.
+
+### The bench against the paper
+
+With 1,000 trials in a square of side 100, the 27 published values of Tables 1 to 3 are in the bands of the report. The table gives the rows of the two new functions, as measured and published.
+
+| Table | Function | Aspect | Readability | Distance correlation | dispDIST | dispANG |
+|---|---|---|---|---|---|---|
+| 1, equal sizes | `treemapOrdered` | 1.00 and 1.00 | 0.06 and 0.02 | 0.96 and 0.97 | | |
+| 2, log-normal sizes | `treemapOrdered` | 1.29 and 1.28 | 0.06 and 0.05 | 0.87 and 0.86 | | |
+| 3, Gaussian points | `treemapSpatial` | 2.66 and 2.66 | | | 0.21 and 0.21 | 23.5 and 24.3 |
+
+The paper does not give the frame of the tables. A frame of aspect 2, as in figure 5, puts slice and dice and strip out of the bands. Thus the bench uses a square.
+
+### A difference from the paper
+
+Figure 2 of the paper gives the readability 0.125 for 16 equal nodes in a square. `treemapOrdered` gives 0.1875, because 1 of the 14 steps of the path does not turn. The figure does not give the cells, thus the cause is not known.
+
+### Not changed
+
+- The other treemaps, the strategies, their fingerprints and `packSpace` do not change.
+
 ## 0.16.0
 
 The order stage gets 6 sort keys (roadmap item k210). Five of them come from Jylänki 2010: the perimeter, the longer side, the shorter side, the side difference and the ratio of the sides. The sixth key is the diagonal.

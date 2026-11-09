@@ -4,7 +4,17 @@ import { describe, expect, it } from "vitest";
 import { checkHard } from "./check.ts";
 import type { PackInput } from "./contract.ts";
 import { measure } from "./measures.ts";
+import { treemapOrdered, treemapSpatial, type SpatialNode } from "./treemap-spatial.ts";
 import { treemapHilbert, treemapMoore, treemapPack, treemapPivotMiddle, treemapPivotSize, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
+
+/** This function gives each leaf a made-up point from a seed of its id. */
+function pointed(nodes: readonly TreemapNode[]): SpatialNode[] {
+  return nodes.map((node) => {
+    if (node.children !== undefined) return { id: node.id, children: pointed(node.children) };
+    const stream = random(`point:${node.id}`);
+    return { id: node.id, weight: node.weight, x: stream.next(), y: stream.next() };
+  });
+}
 
 const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["slice-dice", treemapSliceDice],
@@ -17,6 +27,8 @@ const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["pivot-size", treemapPivotSize],
   ["hilbert", treemapHilbert],
   ["moore", treemapMoore],
+  ["ordered", treemapOrdered],
+  ["spatial", (nodes, frame) => treemapSpatial(pointed(nodes), frame)],
 ];
 
 const leaves = (weights: readonly number[]): TreemapNode[] => weights.map((weight, index) => ({ id: `n${index}`, weight }));

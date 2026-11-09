@@ -389,3 +389,4 @@ export {
   type TreemapNode,
   type TreemapStripOptions,
 } from "./treemap.ts";
+export { treemapOrdered, treemapSpatial, type SpatialNode } from "./treemap-spatial.ts";

@@ -1,15 +1,20 @@
 // The check of the treemaps of roadmap item k27 against Tables I to III of Bederson, Shneiderman, Wattenberg 2002.
 // It repeats the Monte Carlo trials of section 2.3.2 of that paper on made-up data: a log-normal start and a log-normal
 // random walk, in a square of side 100. The spiral of Tu and Shen 2007 (roadmap item k29) has no row in that paper, so the
-// report compares it with strip on the same trials. The output is a report, not a gate. The workflow `treemap-literature.yml` starts
+// report compares it with strip on the same trials. The report also has the section of `treemap-spatial.ts`: the ordered and
+// spatial treemaps against Wood and Dykes 2008. The output is a report, not a gate. The workflow `treemap-literature.yml` starts
 // this file. The file reads no clock, so the same arguments give the same bytes.
 
 import fs from "node:fs";
 import path from "node:path";
 import type { Rect } from "@mark1russell7/layout-contract";
 import { random } from "@mark1russell7/rigor-generators";
-import { bootstrap, mean } from "@mark1russell7/rigor-statistics";
+import { mean } from "@mark1russell7/rigor-statistics";
 import { treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "../src/treemap.ts";
+import { compared, meanAspectOf, readabilityOf, type Compared } from "./treemap-measures.ts";
+import { orderRows, placeRows, spatialReportOf } from "./treemap-spatial.ts";
+
+export { compared, meanAspectOf, readabilityOf, type Compared } from "./treemap-measures.ts";
 
 /** The three measures of the paper. */
 export interface TreemapMeasures {
@@ -96,34 +101,12 @@ export const WALKS: readonly { readonly id: string; readonly sd: number }[] = [
 /** The square of the paper. */
 const FRAME: Rect = { x: 0, y: 0, w: 100, h: 100 };
 
-/** The angle in radians above which a turn of the scan path counts (section 2.3.1). */
-const TURN_ANGLE = 0.1;
-
-/** This function gives the unweighted mean aspect of the cells. */
-export function meanAspectOf(cells: readonly Rect[]): number {
-  return mean(cells.map((cell) => Math.max(cell.w / cell.h, cell.h / cell.w)));
-}
-
 /** This function gives the layout distance change: the mean Euclidean distance of the `(x, y, w, h)` of each pair of cells. */
 export function layoutChange(before: readonly Rect[], after: readonly Rect[]): number {
   return mean(before.map((a, index) => {
     const b = after[index]!;
     return Math.hypot(a.x - b.x, a.y - b.y, a.w - b.w, a.h - b.h);
   }));
-}
-
-/** This function gives the readability of one group of cells in the input order: 1 less the share of turns of the scan path. */
-export function readabilityOf(cells: readonly Rect[]): number {
-  const centers = cells.map((cell) => ({ x: cell.x + cell.w / 2, y: cell.y + cell.h / 2 }));
-  let turns = 0;
-  for (let i = 2; i < centers.length; i += 1) {
-    const ax = centers[i - 1]!.x - centers[i - 2]!.x;
-    const ay = centers[i - 1]!.y - centers[i - 2]!.y;
-    const bx = centers[i]!.x - centers[i - 1]!.x;
-    const by = centers[i]!.y - centers[i - 1]!.y;
-    if (Math.abs(Math.atan2(ax * by - ay * bx, ax * bx + ay * by)) > TURN_ANGLE) turns += 1;
-  }
-  return 1 - turns / cells.length;
 }
 
 /** This function gives the readability of a layout: the mean over the groups of leaves, each of `groupSize` cells. */
@@ -152,15 +135,6 @@ export function treeOf(weights: readonly number[], levels: readonly number[]): T
   return level(0, "");
 }
 
-/** One measured value against its published value. An arm with no published row has `null` in `published` and `inBand`. */
-export interface Compared {
-  readonly published: number | null;
-  readonly measured: number;
-  readonly low: number;
-  readonly high: number;
-  readonly inBand: boolean | null;
-}
-
 /** One row of the report. */
 export interface LiteratureRow {
   readonly walk: string;
@@ -169,13 +143,6 @@ export interface LiteratureRow {
   readonly aspect: Compared;
   readonly change: Compared;
   readonly readability: Compared;
-}
-
-/** This function gives the mean of the trials, with a 95 % bootstrap interval over the trials. */
-function compared(trials: readonly number[], published: number | undefined, name: string, inBand: (measured: number, published: number) => boolean): Compared {
-  const interval = bootstrap(trials, mean, { runs: 2000, seed: name });
-  const verdict = published === undefined ? null : inBand(interval.estimate, published);
-  return { published: published ?? null, measured: interval.estimate, low: interval.low, high: interval.high, inBand: verdict };
 }
 
 /** This function gives the rows of one table and one walk. Each arm reads the same trials, so the arms are paired. */
@@ -312,12 +279,16 @@ if (process.argv[1]?.endsWith("treemap-literature.ts") === true) {
   const trials = countOf(args, "--trials", 100);
   const steps = countOf(args, "--steps", 100);
   const rows = literatureRows(trials, steps);
-  const report = reportOf(rows, trials, steps);
+  // Wood and Dykes 2008 take the mean of 1,000 trials, thus the spatial section has its own count.
+  const spatialTrials = countOf(args, "--spatial-trials", 1000);
+  const order = orderRows(spatialTrials);
+  const place = placeRows(spatialTrials);
+  const report = `${reportOf(rows, trials, steps)}\n${spatialReportOf(order, place, spatialTrials)}`;
   const at = args.indexOf("--out");
   if (at !== -1) {
     const out = args[at + 1]!;
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows, spiral: spiralRows(rows) }, null, 2)}\n`);
+    fs.writeFileSync(path.join(out, "treemap-literature.json"), `${JSON.stringify({ trials, steps, rows, spiral: spiralRows(rows), spatialTrials, order, place }, null, 2)}\n`);
     fs.writeFileSync(path.join(out, "treemap-literature.md"), report);
   }
   process.stdout.write(report);

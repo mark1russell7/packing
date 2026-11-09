@@ -269,6 +269,7 @@ type SkylineStrategyOptions: build/layout-strategy.d.ts#SkylineStrategyOptions
 type SleatorResult: build/index.d.ts#SleatorResult
 type SortOrder: build/order.d.ts#SortOrder
 type SpaceRect: build/layout-strategy.d.ts#SpaceRect
+type SpatialNode: build/index.d.ts#SpatialNode
 type Split: build/index.d.ts#Split
 type SpreadBand: build/index.d.ts#SpreadBand
 type StageTrace: @mark1russell7/layout-contract#StageTrace (external)
@@ -513,11 +514,13 @@ toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
 treemapHilbert: build/index.d.ts#treemapHilbert
 treemapMoore: build/index.d.ts#treemapMoore
+treemapOrdered: build/index.d.ts#treemapOrdered
 treemapPack: build/index.d.ts#treemapPack
 treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
 treemapPivotSize: build/index.d.ts#treemapPivotSize
 treemapPivotSplit: build/index.d.ts#treemapPivotSplit
 treemapSliceDice: build/index.d.ts#treemapSliceDice
+treemapSpatial: build/index.d.ts#treemapSpatial
 treemapSpiral: build/index.d.ts#treemapSpiral
 treemapSquarified: build/index.d.ts#treemapSquarified
 treemapStrip: build/index.d.ts#treemapStrip
@@ -1767,6 +1770,21 @@ interface SleatorResult {
   readonly height: number;
 }
 
+### build/index.d.ts#SpatialNode
+type SpatialNode = {
+  readonly id: string;
+  readonly weight: number;
+  readonly x: number;
+  readonly y: number;
+  readonly children?: undefined;
+} | {
+  readonly id: string;
+  readonly children: readonly SpatialNode[];
+  readonly weight?: undefined;
+  readonly x?: number;
+  readonly y?: number;
+};
+
 ### build/index.d.ts#Split
 interface Split {
   readonly id: string;
@@ -2467,6 +2485,9 @@ export declare function treemapHilbert(nodes: readonly TreemapNode[], frame: Tre
 ### build/index.d.ts#treemapMoore
 export declare function treemapMoore(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
+### build/index.d.ts#treemapOrdered
+export declare function treemapOrdered(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
 ### build/index.d.ts#treemapPack
 export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
 
@@ -2481,6 +2502,9 @@ export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: 
 
 ### build/index.d.ts#treemapSliceDice
 export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapSpatial
+export declare function treemapSpatial(nodes: readonly SpatialNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapSpiral
 export declare function treemapSpiral(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
