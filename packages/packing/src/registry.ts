@@ -2,8 +2,10 @@ import { bestFit, bottomLeft, guillotine, maxrects, push, rows, shelf, skyline }
 import { aspectFit } from "./aspect-fit.ts";
 import { bboxStrategy } from "./bbox.ts";
 import { circleQuasiPhysical } from "./circle-quasi-physical.ts";
+import { compactWith, type CompactDirection } from "./compact.ts";
 import { holeDegree } from "./hole-degree.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
+import type { ItemOrder } from "./order.ts";
 import { packRun, type PackRun } from "./pack-run.ts";
 import { annealStrategy, geneticStrategy, tabuStrategy } from "./order-search.ts";
 import { portfolioStrategy } from "./portfolio-strategy.ts";
@@ -13,7 +15,7 @@ import { relaxStrategy } from "./relax.ts";
 import { restartsStrategy } from "./restarts.ts";
 import { ruinRecreateStrategy } from "./ruin-recreate.ts";
 import { selectStrategy } from "./select.ts";
-import { createContext, type PackContext, type Strategy, type Supports } from "./strategy.ts";
+import { assertSupported, createContext, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 
 /**
  * Each single strategy of the package. The benchmark starts each one on each input of the corpus.
@@ -69,15 +71,53 @@ export const aspectFitStrategy: Strategy<AspectFitStrategyOptions> = {
   },
 };
 
+/** The options of the strategy `compact` (roadmap item k213). */
+export interface CompactStrategyOptions {
+  /** The id of the wrapped strategy of the registry. The option is necessary. */
+  strategy?: string;
+  /** The options of the wrapped strategy over its defaults */
+  options?: unknown;
+  /** The direction of the compaction. The default is `up`. */
+  direction?: CompactDirection;
+  /**
+   * The order of the inner strategy, over its options. A search over orders (`restarts`, `ruin-recreate`, `anneal`,
+   * `genetic`, `tabu`) sets it on its member. Without it, the inner strategy uses its own order.
+   */
+  sortOrder?: ItemOrder | undefined;
+}
+
+/**
+ * The strategy `compact` of roadmap item k213: `compactWith` on the output of the strategy of the option `strategy`.
+ * A member of a composite with the stage `compact` of `packSpace` packs with it. Its supports are the union of the
+ * supports of the single strategies, with only the rect container. It refuses pair gaps and an item with a parent.
+ * The strategy throws a `RangeError` without the option `strategy`.
+ */
+export const compactStrategy: Strategy<CompactStrategyOptions> = {
+  id: "compact",
+  family: "compact",
+  catalog: [],
+  supports: { ...unionOf(strategies), containerShape: ["rect"] },
+  defaults: { direction: "up", sortOrder: undefined },
+  deterministic: true,
+  pack(input: PackInput, options: CompactStrategyOptions, context: PackContext): PackOutput {
+    if (options.strategy === undefined) throw new RangeError("The strategy compact needs the option strategy.");
+    assertSupported(compactStrategy.supports, input);
+    const inner = strategy(options.strategy);
+    const order = options.sortOrder === undefined ? {} : { sortOrder: options.sortOrder };
+    const merged: unknown = { ...(inner.defaults as object), ...(options.options as object | undefined), ...order };
+    return compactWith(input, inner.pack(input, merged, context), options.direction ?? "up");
+  },
+};
+
 /**
  * The composite strategies of the registry: each one packs an input with other strategies. They are not in `strategies`.
  * Since 0.2.7, the list has `portfolio` of roadmap item k20. Roadmap item k62 adds `aspect-fit`, and roadmap item k66 adds `select`.
  * Roadmap item k78 adds `restarts`, roadmap item k91 adds `bbox`, and roadmap item k79 adds `ruin-recreate`.
  * Roadmap item k80 adds `overlap-min`, and roadmap item k26 adds `anneal`, `genetic` and `tabu`.
  *
- * Roadmap item k124 adds `relax`, and roadmap item k125 adds `force`.
+ * Roadmap item k124 adds `relax`, and roadmap item k125 adds `force`. Roadmap item k213 adds `compact`.
  */
-export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, relaxStrategy, forceStrategy] as Strategy[]);
+export const composites: readonly Strategy[] = Object.freeze([portfolioStrategy, aspectFitStrategy, selectStrategy, restartsStrategy, bboxStrategy, ruinRecreateStrategy, overlapMinStrategy, annealStrategy, geneticStrategy, tabuStrategy, relaxStrategy, forceStrategy, compactStrategy] as Strategy[]);
 
 /** The kind of a strategy: `single` packs alone, `shape` packs one shape kind that is not `rect`, and `composite` packs with other strategies. */
 export type StrategyKind = "single" | "shape" | "composite";

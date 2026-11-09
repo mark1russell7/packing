@@ -99,6 +99,7 @@ describe("the word of a skip", () => {
     const count = (word: string): number => pairs.filter((p) => skipRead(p.entry, p.reason).word === word).length;
     const counts = { pairs: pairs.length, done: count("not done"), composition: count("composition"), other: count("other algorithm"), meaning: count("no meaning") };
     // Roadmap item k29 adds the entry treemap-spiral. It has 5 skips, each with the word "other algorithm", so 99 pairs become 104.
-    expect(counts).toEqual({ pairs: 104, done: 38, composition: 34, other: 30, meaning: 2 });
+    // Roadmap item k213 adds the entry compact-maxrects-bl. It has 5 skips of the shapes, each with the word "not done", so 104 pairs become 109.
+    expect(counts).toEqual({ pairs: 109, done: 43, composition: 34, other: 30, meaning: 2 });
   });
 });

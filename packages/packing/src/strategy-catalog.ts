@@ -38,7 +38,8 @@ import type { OverlapMinStrategyOptions } from "./overlap-min.ts";
 import type { PortfolioStrategyOptions } from "./portfolio-strategy.ts";
 import type { PushStrategyOptions } from "./push-strategy.ts";
 import type { RasterNofitOptions } from "./raster-nofit.ts";
-import { allStrategies as registered, type AspectFitStrategyOptions, type StrategyListing } from "./registry.ts";
+import { allStrategies as registered, type AspectFitStrategyOptions, type CompactStrategyOptions, type StrategyListing } from "./registry.ts";
+import { COMPACT_DIRECTIONS } from "./compact.ts";
 import type { RelaxStrategyOptions } from "./relax.ts";
 import { RESTART_PERTURBS, type RestartsStrategyOptions } from "./restarts.ts";
 import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
@@ -158,6 +159,26 @@ const ASPECT_FIT = {
   },
 } satisfies OptionSchema<AspectFitStrategyOptions>;
 
+/** The schema of the strategy `compact` of roadmap item k213. */
+const COMPACT = {
+  strategy: {
+    type: "strategy",
+    describe: "The inner strategy.",
+    kinds: ["single"],
+    optionsKey: "options",
+    optIn: false,
+    ...none("required", "The strategy refuses a call without this option."),
+  },
+  options: { type: "object", describe: "The options of the inner strategy.", ...none("unset", "Without options, the inner strategy uses its defaults.") },
+  direction: { type: "enum", describe: "The direction in which the boxes move.", values: COMPACT_DIRECTIONS },
+  sortOrder: {
+    type: "enum",
+    describe: "The order of the inner strategy, over its options.",
+    values: [...SORT_ORDERS, ...GRAPH_ORDERS],
+    ...none("derived", "Without an order, the inner strategy uses its own order."),
+  },
+} satisfies OptionSchema<CompactStrategyOptions>;
+
 /** The schema of a search of orders: the options of `anneal`, `genetic` and `tabu` that are the same. */
 const ORDER_SEARCH = { member: MEMBER, iterations: ITERATIONS, budgetWork: BUDGET_WORK } as const;
 
@@ -240,6 +261,7 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
     key: KEY,
   } satisfies OptionSchema<PortfolioStrategyOptions>,
   "aspect-fit": ASPECT_FIT,
+  compact: COMPACT,
   select: {
     members: { type: "list", describe: "The members. A pick of the table is an index of this list.", of: MEMBER_ITEM, min: 1, default: SELECT_MEMBERS },
     table: { type: "object", describe: "The decision table.", ...none("unset", "Without a table, the strategy uses SELECT_TABLE.") },
@@ -353,6 +375,7 @@ const DESCRIBES: Readonly<Record<string, string>> = {
   "circle-quasi-physical": "This strategy packs circles with a local search that lets them push each other.",
   portfolio: "This strategy packs with each member, and it keeps the best layout.",
   "aspect-fit": "This strategy searches the size that gives the inner strategy the target aspect.",
+  compact: "This strategy packs with the inner strategy, then it moves each free box up or left until it touches a box or a wall.",
   select: "This strategy reads the input, and a decision table picks one member.",
   restarts: "This strategy packs with changed orders of the items, and it keeps the best layout.",
   bbox: "This strategy packs with the member, and it turns the items to make the box of each one smaller.",

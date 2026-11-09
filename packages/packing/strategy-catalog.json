@@ -1,7 +1,7 @@
 {
   "schema": "strategy-catalog/3",
   "engine": "packing",
-  "version": "0.17.0",
+  "version": "0.18.2",
   "strategies": [
     {
       "key": "anneal",
@@ -1019,6 +1019,133 @@
           "min": 0,
           "max": 1024,
           "default": 256
+        }
+      }
+    },
+    {
+      "key": "compact",
+      "id": "compact",
+      "family": "compact",
+      "kind": "composite",
+      "describe": "This strategy packs with the inner strategy, then it moves each free box up or left until it touches a box or a wall.",
+      "supports": {
+        "containerSize": [
+          "fixed",
+          "freeHeight",
+          "freeWidth",
+          "freeAspect",
+          "freeArea"
+        ],
+        "containerShape": [
+          "rect"
+        ],
+        "obstacleMove": [
+          "fixed",
+          "free"
+        ],
+        "itemShape": [
+          "rect"
+        ],
+        "rotation": [
+          "none",
+          "quarter"
+        ],
+        "order": [
+          "free",
+          "soft",
+          "hard"
+        ],
+        "groups": [
+          "none"
+        ],
+        "mode": [
+          "offline",
+          "incremental"
+        ]
+      },
+      "limits": {},
+      "deterministic": true,
+      "optIn": false,
+      "output": [
+        {
+          "property": "position-grid",
+          "class": "whole",
+          "evidence": {
+            "inputs": 240,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "compact-maxrects-bl",
+            "catalogVersion": "0.17.0"
+          }
+        },
+        {
+          "property": "size-grid",
+          "class": "whole",
+          "evidence": {
+            "inputs": 240,
+            "fractionalInputs": 0,
+            "nearWholeInputs": 0,
+            "source": "whole-positions/1",
+            "optionSet": "compact-maxrects-bl",
+            "catalogVersion": "0.17.0"
+          }
+        }
+      ],
+      "fingerprint": "c2cf925152bdb75f",
+      "options": {
+        "strategy": {
+          "type": "strategy",
+          "describe": "The inner strategy.",
+          "kinds": [
+            "single"
+          ],
+          "optionsKey": "options",
+          "optIn": false,
+          "noDefault": {
+            "reason": "required",
+            "describe": "The strategy refuses a call without this option."
+          }
+        },
+        "options": {
+          "type": "object",
+          "describe": "The options of the inner strategy.",
+          "noDefault": {
+            "reason": "unset",
+            "describe": "Without options, the inner strategy uses its defaults."
+          }
+        },
+        "direction": {
+          "type": "enum",
+          "describe": "The direction in which the boxes move.",
+          "values": [
+            "up",
+            "left",
+            "left-up"
+          ],
+          "default": "up"
+        },
+        "sortOrder": {
+          "type": "enum",
+          "describe": "The order of the inner strategy, over its options.",
+          "values": [
+            "height-desc",
+            "height-asc",
+            "width-desc",
+            "area-desc",
+            "perimeter-desc",
+            "long-side-desc",
+            "short-side-desc",
+            "side-diff-desc",
+            "ratio-desc",
+            "diagonal-desc",
+            "input",
+            "graph-bfs"
+          ],
+          "noDefault": {
+            "reason": "derived",
+            "describe": "Without an order, the inner strategy uses its own order."
+          }
         }
       }
     },

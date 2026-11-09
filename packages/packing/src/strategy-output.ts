@@ -60,6 +60,9 @@ export const STRATEGY_OUTPUT: OutputTable = {
   "circle-quasi-physical": [
     {"optionSet":"default","inputs":0,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
   ],
+  "compact": [
+    {"optionSet":"compact-maxrects-bl","inputs":240,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
   "exact-strip": [
     {"optionSet":"default","inputs":2,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
   ],

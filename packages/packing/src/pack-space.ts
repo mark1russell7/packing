@@ -27,7 +27,7 @@ import type { BinaryHeightOptions } from "./binary-height.ts";
 import type { CircleQuasiPhysicalOptions } from "./circle-quasi-physical.ts";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
 import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
-import { compactLeft, compactUp } from "./compact.ts";
+import { COMPACT_DIRECTIONS, compactWith, type CompactDirection } from "./compact.ts";
 import type { ExactStripOptions } from "./exact-strip.ts";
 import { HOLE_DEGREE_MAX_STEPS, type HoleDegreeStrategyOptions } from "./hole-degree.ts";
 import type { NearRectsOptions } from "./near-rects.ts";
@@ -46,7 +46,7 @@ import type { PortfolioEntry } from "./portfolio.ts";
 import { PORTFOLIO_FRAME_MS } from "./portfolio-cell.ts";
 import { PORTFOLIO_SETS } from "./portfolio-sets.ts";
 import type { PortfolioStrategyOptions } from "./portfolio-strategy.ts";
-import { strategy, type AspectFitStrategyOptions } from "./registry.ts";
+import { strategy, type AspectFitStrategyOptions, type CompactStrategyOptions } from "./registry.ts";
 import { RESTART_PERTURBS, type RestartsStrategyOptions } from "./restarts.ts";
 import type { OverlapMinStrategyOptions } from "./overlap-min.ts";
 import { RUIN_KINDS, type RuinRecreateStrategyOptions } from "./ruin-recreate.ts";
@@ -55,7 +55,7 @@ import { PACK_DEFAULT_TABLE, SELECT_TABLE, type SelectNode } from "./select-tabl
 import { SHELF_FITS } from "./shelf.ts";
 import { BINARY_HEIGHT_TRIALS, EXACT_STRATEGY_NODE_LIMIT, MASONRY_METHOD_IDS, refusal, TREEMAP_METHOD_IDS, type MasonryStrategyOptions, type SideAnchorStrategyOptions, type TreemapStrategyOptions } from "./standalone-strategies.ts";
 import { packWith } from "./strategy-list.ts";
-import { UnsupportedShape } from "./strategy.ts";
+import { assertSupported, UnsupportedShape } from "./strategy.ts";
 
 /** The engine name of `packSpace`. Each config of the space has it in `space`. */
 const ENGINE = "packing";
@@ -277,15 +277,6 @@ const POOL: Readonly<Record<string, StrategyConfig>> = Object.fromEntries(
 /** The configs of the entries of `PORTFOLIO_SETS`. They are the one entry of the `pool` of `cell-portfolio` (roadmap item L39 of the contract). */
 const pool: readonly StrategyConfig[] = Object.values(POOL);
 
-/**
- * The options of the stage `compact` of roadmap item k213: `up` (`compactUp`), `left` (`compactLeft`), and `left-up`
- * (`compactLeft`, then `compactUp`).
- */
-export const COMPACT_DIRECTIONS = ["up", "left", "left-up"] as const;
-
-/** The option of the stage `compact`. */
-export type CompactDirection = (typeof COMPACT_DIRECTIONS)[number];
-
 /** The placements that support only circles. The bounding boxes of their circles can overlap, so the stage `compact` does not go with them. */
 const CIRCLE_ONLY_PLACEMENTS: readonly string[] = ["hole-degree", "circle-quasi-physical"];
 
@@ -472,7 +463,7 @@ const single = (id: string): StrategyConfig => SINGLE[id]!;
  * - Each option of each strategy is a param, a stage or the members of a meta option. `PACK_SPACE_OPTIONS` tells the place.
  * - The optional stage `compact` of roadmap item k213 moves the boxes of the output of the other stages. It does not go with
  *   `hole-degree` and `circle-quasi-physical`. A config without it keeps its `configId`.
- * - A composite finds only a member of the registry. Thus `packConfig` refuses a composite with a member that uses `compact`.
+ * - A member with `compact` packs with the strategy `compact` of the registry around the strategy of the member.
  */
 export const packSpace: StrategySpace = Object.freeze({
   schema: STRATEGY_SPACE_SCHEMA,
@@ -508,6 +499,9 @@ export const packSpace: StrategySpace = Object.freeze({
     "portfolio-fill-rows-bl": metaConfig("portfolio", [single("rows"), single("maxrects-bl")], { key: "fill" }),
     portfolio: metaConfig("cell-portfolio", pool),
     "aspect-fit": metaConfig("aspect-fit", [single("maxrects")]),
+    // The named config of the strategy compact (k213): maxrects, then the compaction up.
+    compact: { space: ENGINE, stages: { ...single("maxrects").stages, compact: { option: "up" } } },
+    "compact-maxrects-bl": { space: ENGINE, stages: { ...single("maxrects-bl").stages, compact: { option: "up" } } },
     select: metaConfig("select", [single("rows"), single("maxrects-bl")]),
     pack: metaConfig("select", [single("rows"), single("maxrects-bl")], { table: "pack" }),
     "restarts-maxrects-bl-k16": metaConfig("restarts", [single("maxrects-bl")], { iterations: 16 }),
@@ -606,6 +600,8 @@ export const PACK_SPACE_OPTIONS: Readonly<Record<string, Readonly<Record<string,
     options: "combine.aspect-fit.members",
     targetAspect: "combine.aspect-fit.targetAspect",
   } satisfies Places<AspectFitStrategyOptions>,
+  // The options strategy and options of compact give the other stages of the config, and direction is the option of the stage compact (k213).
+  compact: { strategy: "compact", options: "compact", direction: "compact", sortOrder: "order" } satisfies Places<CompactStrategyOptions>,
   select: { members: "combine.select.members", table: "combine.select.table" } satisfies Places<SelectStrategyOptions>,
   restarts: {
     member: "combine.restarts.members",
@@ -756,6 +752,25 @@ function memberOf(value: unknown): { strategy: string; options: Readonly<Record<
 const notMember = (member: string): string => `The strategy ${member} is not in the registry, and a composite finds only a member of the registry.`;
 
 /**
+ * This function gives the point of the strategy `compact` of roadmap item k213. It is the point of its inner strategy, with
+ * the direction as the option of the stage `compact`. With no inner strategy, the point is the named config `compact`.
+ */
+function compactPoint(options: Readonly<Record<string, unknown>>): StrategyPoint {
+  const { strategy: inner, options: innerOptions, direction = "up", sortOrder, ...rest } = options;
+  const extra = Object.keys(rest)[0];
+  if (extra !== undefined) return { ok: false, reason: `PACK_SPACE_OPTIONS has no place for the option compact.${extra}.` };
+  if (typeof direction !== "string" || !(COMPACT_DIRECTIONS as readonly string[]).includes(direction)) return { ok: false, reason: "The option compact.direction is up, left or left-up." };
+  if (inner === undefined) return innerOptions === undefined && sortOrder === undefined && direction === "up" ? { ok: true, config: packSpace.named!["compact"]! } : { ok: false, reason: "The strategy compact needs the option strategy." };
+  if (typeof inner !== "string") return { ok: false, reason: "The option compact.strategy is a strategy id." };
+  if (STANDALONE_PLACEMENTS.includes(inner)) return { ok: false, reason: notMember(inner) };
+  const order = sortOrder === undefined ? {} : { sortOrder };
+  const point = rawConfig(inner, { ...(isRecord(innerOptions) ? innerOptions : {}), ...order });
+  if (!point.ok) return { ok: false, reason: `The inner strategy ${inner} of compact has no point. ${point.reason}` };
+  if (compactOf(point.config) !== undefined) return { ok: false, reason: "A config has one stage compact, so the inner strategy of compact does not compact." };
+  return { ok: true, config: { ...point.config, stages: { ...point.config.stages, compact: { option: direction } } } };
+}
+
+/**
  * This function gives the point of `side-anchors`. The option `first` gives the params, and `strategy` with `strategyOptions` gives the member.
  * With no `first`, the point has the side `none`. The point is not the config of the member, because `side-anchors` has its own supports (roadmap item k193).
  */
@@ -776,6 +791,7 @@ function rawConfig(id: string, given: Readonly<Record<string, unknown>>): Strate
   let options = Object.fromEntries(Object.entries(given).filter(([, value]) => value !== undefined));
   const places = PACK_SPACE_OPTIONS[id];
   if (places === undefined) return { ok: false, reason: `packSpace has no strategy ${id}.` };
+  if (id === "compact") return compactPoint(options);
   if (id === "pack") {
     if (Object.keys(options).length > 0) return { ok: false, reason: "The point of pack is the choice of pack without options. Give the strategy of options.strategy and its options." };
     return { ok: true, config: packSpace.named!["pack"]! };
@@ -940,10 +956,23 @@ function runOf(config: StrategyConfig): Run {
   return { strategy: place.option, options };
 }
 
+/**
+ * This function gives the run of a member of a meta config. A member with the stage `compact` packs with the strategy
+ * `compact` of the registry around the run of its other stages (roadmap item k213). The order of the run goes to the
+ * option `sortOrder` of `compact`, so a search over orders takes the member.
+ */
+function memberRunOf(member: StrategyConfig): Run {
+  const run = runOf(member);
+  const direction = compactOf(member);
+  if (direction === undefined) return run;
+  const { sortOrder, ...options } = run.options;
+  return { strategy: "compact", options: { strategy: run.strategy, options, direction, ...(sortOrder === undefined ? {} : { sortOrder }) } };
+}
+
 /** This function gives the portfolio entry of a member: the name of a named config, else its `configId`, as the id. */
 function entryOf(member: StrategyConfig): PortfolioEntry {
   const id = configId(packSpace, member);
-  const run = runOf(member);
+  const run = memberRunOf(member);
   return { id: NAMES.get(id) ?? id, strategy: run.strategy, options: run.options };
 }
 
@@ -985,7 +1014,7 @@ function placementOf(config: StrategyConfig): string | undefined {
  * - The output of each named config is equal to the output of the strategy or the benchmark entry of that name.
  * - The stage `compact` moves the boxes of the output of the other stages, with `compactUp`, `compactLeft` or both.
  * - A config with `compact` and a container with a shape, pair gaps or an item with a parent causes `UnsupportedCell`.
- * - A composite with a member that uses `compact` causes `UnsupportedCell`, because a composite finds only a member of the registry.
+ * - A member with `compact` packs with the strategy `compact` of the registry, so each composite takes it.
  */
 export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): PackOutput {
   const boxes = { id: SHAPE_INPUT_ID, boxes: input.items };
@@ -997,24 +1026,17 @@ export function packConfig(input: PackInput, config: StrategyConfig, seed = 0): 
   const shapeBreaks = [...shapes, ...found];
   if (shapeBreaks.length > 0) throw new UnsupportedShape(itemShapeOf(boxes), shapeBreaks);
   const c = canonicalConfig(packSpace, config);
+  const direction = compactOf(c);
+  // The stage compact refuses an input before the other stages pack, as the strategy compact does (k213).
+  if (direction !== undefined) assertSupported(strategy("compact").supports, input);
   const output = packStages(input, c, seed);
-  const compact = c.stages["compact"];
-  return compact === null || compact === undefined ? output : compacted(input, output, compact.option as CompactDirection);
+  return direction === undefined ? output : compactWith(input, output, direction);
 }
 
-/**
- * This function gives the output of a compaction of roadmap item k213. A `RangeError` of `compactUp` or `compactLeft` for
- * an input that they do not take becomes `UnsupportedCell`.
- */
-function compacted(input: PackInput, output: PackOutput, direction: CompactDirection): PackOutput {
-  try {
-    if (direction === "up") return compactUp(input, output);
-    const left = compactLeft(input, output);
-    return direction === "left" ? left : compactUp(input, left);
-  } catch (error) {
-    if (error instanceof RangeError) throw refusal(`The stage compact does not take this input: ${error.message}`);
-    throw error;
-  }
+/** This function gives the option of the stage `compact` of a canonical config, or `undefined` for a config without it. */
+function compactOf(config: StrategyConfig): CompactDirection | undefined {
+  const compact = config.stages["compact"];
+  return compact === null || compact === undefined ? undefined : (compact.option as CompactDirection);
 }
 
 /** This function packs an input with a canonical config of `packSpace`, without the stage `compact`. */
@@ -1028,8 +1050,6 @@ function packStages(input: PackInput, c: StrategyConfig, seed: number): PackOutp
   const members = combine.members ?? [];
   const outside = members.map(placementOf).find((placement) => STANDALONE_PLACEMENTS.includes(String(placement)));
   if (outside !== undefined) throw refusal(notMember(outside));
-  if (members.some((member) => member.stages["compact"] !== undefined && member.stages["compact"] !== null))
-    throw refusal("A member of a composite does not take the stage compact, because a composite finds only a member of the registry.");
   const key = params["key"] === "area" ? { key: AREA_KEY } : params["key"] === "fill" ? { key: FILL_KEY } : {};
   const limits = {
     ...(params["limitMembers"] === true ? { maxMembers: params["maxMembers"] } : {}),
@@ -1072,12 +1092,12 @@ function packStages(input: PackInput, c: StrategyConfig, seed: number): PackOutp
     case "force":
       return packWith("force", input, { member: entryOf(members[0]!), iterations: params["iterations"], rounds: params["rounds"] }, seed);
     case "side-anchors": {
-      const run = runOf(members[0]!);
+      const run = memberRunOf(members[0]!);
       const first = params["side"] === "none" ? {} : { first: { side: params["side"], at: params["at"] } };
       return packWith("side-anchors", input, { strategy: run.strategy, strategyOptions: run.options, ...first }, seed);
     }
     default: {
-      const run = runOf(members[0]!);
+      const run = memberRunOf(members[0]!);
       return wrapped(run.strategy, run.options, { ...params, aspectFit: true }, input, seed);
     }
   }

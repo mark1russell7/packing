@@ -24,7 +24,7 @@ const MAX_SIDE = 41;
 const ROOM = 1.4;
 
 /** The strategies with no defaults that pack. Each entry of the bench for such a strategy gives its rows. */
-const NEEDS_OPTIONS: ReadonlySet<string> = new Set(["aspect-fit"]);
+const NEEDS_OPTIONS: ReadonlySet<string> = new Set(["aspect-fit", "compact"]);
 
 /** One input of the family. */
 export interface WholeCell {

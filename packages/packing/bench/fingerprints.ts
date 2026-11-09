@@ -33,7 +33,7 @@ export const PROBE_SEED = 1;
 export const PROBE_FAMILIES: readonly CorpusFamily<LayoutInput>[] = [RECT_SCATTERED, ...corpusFamilies];
 
 /** The options of a strategy with no default member. The other strategies pack with their defaults. */
-const PROBE_OPTION_ENTRY: Readonly<Record<string, string>> = { "aspect-fit": "aspect-fit-maxrects-bl" };
+const PROBE_OPTION_ENTRY: Readonly<Record<string, string>> = { "aspect-fit": "aspect-fit-maxrects-bl", compact: "compact-maxrects-bl" };
 
 /** One probe: an input of one family at one count. */
 export interface Probe {

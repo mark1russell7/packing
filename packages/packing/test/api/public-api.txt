@@ -59,6 +59,8 @@ CHANGE_WALK_STEPS: build/index.d.ts#CHANGE_WALK_STEPS
 CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_MAX_ITERATIONS
 CIRCLE_QUASI_PHYSICAL_STAGE: build/circle-quasi-physical.d.ts#CIRCLE_QUASI_PHYSICAL_STAGE
 CLASS_COUNTS: build/index.d.ts#CLASS_COUNTS
+COMPACT_DIRECTIONS: build/index.d.ts#COMPACT_DIRECTIONS
+COMPACT_STAGE: build/index.d.ts#COMPACT_STAGE
 type Cell: build/strategy.d.ts#Cell
 type ChangeMeasures: build/index.d.ts#ChangeMeasures
 type ChangeWalkKind: build/index.d.ts#ChangeWalkKind
@@ -67,6 +69,8 @@ type CircleQuasiPhysicalOptions: build/circle-quasi-physical.d.ts#CircleQuasiPhy
 type ClassContainer: build/index.d.ts#ClassContainer
 type ColumnBalance: build/index.d.ts#ColumnBalance
 type ColumnReading: build/index.d.ts#ColumnReading
+type CompactDirection: build/index.d.ts#CompactDirection
+type CompactStrategyOptions: build/index.d.ts#CompactStrategyOptions
 type ConsecutiveSquaresParams: build/index.d.ts#ConsecutiveSquaresParams
 type ContainerTest: @mark1russell7/layout-contract#ContainerTest (external)
 type Corpus: build/index.d.ts#Corpus
@@ -356,7 +360,9 @@ columnReading: build/index.d.ts#columnReading
 columnsCssBalance: build/index.d.ts#columnsCssBalance
 columnsLinearPartition: build/index.d.ts#columnsLinearPartition
 compactLeft: build/index.d.ts#compactLeft
+compactStrategy: build/index.d.ts#compactStrategy
 compactUp: build/index.d.ts#compactUp
+compactWith: build/index.d.ts#compactWith
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
 configOfStrategy: build/index.d.ts#configOfStrategy
@@ -954,6 +960,12 @@ export declare const CHANGE_WALK_STEPS = 5;
 ### build/index.d.ts#CLASS_COUNTS
 export declare const CLASS_COUNTS: readonly number[];
 
+### build/index.d.ts#COMPACT_DIRECTIONS
+export declare const COMPACT_DIRECTIONS: readonly ["up", "left", "left-up"];
+
+### build/index.d.ts#COMPACT_STAGE
+export declare const COMPACT_STAGE = "compact";
+
 ### build/index.d.ts#ChangeMeasures
 interface ChangeMeasures {
   "pack.stability.moved": number;
@@ -988,6 +1000,17 @@ interface ColumnReading {
   readonly footrule: number;
   readonly footruleShare: number;
   readonly largestMove: number;
+}
+
+### build/index.d.ts#CompactDirection
+type CompactDirection = (typeof COMPACT_DIRECTIONS)[number];
+
+### build/index.d.ts#CompactStrategyOptions
+interface CompactStrategyOptions {
+  strategy?: string;
+  options?: unknown;
+  direction?: CompactDirection;
+  sortOrder?: ItemOrder | undefined;
 }
 
 ### build/index.d.ts#ConsecutiveSquaresParams
@@ -2051,8 +2074,14 @@ export declare function columnsLinearPartition(input: PackInput, options: Masonr
 ### build/index.d.ts#compactLeft
 export declare function compactLeft(input: PackInput, output: PackOutput): PackOutput;
 
+### build/index.d.ts#compactStrategy
+export declare const compactStrategy: Strategy<CompactStrategyOptions>;
+
 ### build/index.d.ts#compactUp
 export declare function compactUp(input: PackInput, output: PackOutput): PackOutput;
+
+### build/index.d.ts#compactWith
+export declare function compactWith(input: PackInput, output: PackOutput, direction: CompactDirection): PackOutput;
 
 ### build/index.d.ts#composites
 export declare const composites: readonly Strategy[];

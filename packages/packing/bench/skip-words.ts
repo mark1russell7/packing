@@ -74,6 +74,12 @@ export const SKIP_ROWS: readonly SkipRow[] = [
     why: "The cut reads the height of a column as a sum of boxes. A column with a gap in the shape has no such sum, so it needs another cut.",
   },
   {
+    entries: ["compact-maxrects-bl"],
+    reasons: SHAPES,
+    word: "not done",
+    why: "Each box moves up or left until it touches a box or a wall. The wall of a shape is a curve or a slope, and `FreeSpace` knows each shape. A later slice of item k213 lifts it.",
+  },
+  {
     entries: ["bottom-left", "bottom-left-liu-teng"],
     reasons: SHAPES,
     word: "not done",

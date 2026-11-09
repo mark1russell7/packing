@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.18.2
+
+The stage `compact` of `packSpace` and the strategy `compact` of the registry (roadmap item k213, slice 2). After the other stages, the stage moves each free box up, left, or left and then up.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH. Each old config of `packSpace` keeps its `configId`, because the new stage is optional.
+
+### Added
+
+- The optional stage `compact` of `packSpace`, with the options `up`, `left` and `left-up`. A config without the stage packs as before.
+- The strategy `compact`. It packs with the inner strategy of its option `strategy`, then it compacts in its option `direction`. Its option `sortOrder` gives the order of the inner strategy, so a search over orders takes a member with the stage.
+- The function `compactWith`, the type `CompactDirection`, the list `COMPACT_DIRECTIONS` and the trace stage `COMPACT_STAGE` with the measure `move.compact`: the count of the boxes that moved.
+- The type `CompactStrategyOptions`, the named configs `compact` and `compact-maxrects-bl`, and the bench entry `compact-maxrects-bl`.
+- `configOfStrategy("compact", options)` gives the point of the inner strategy with the stage `compact`.
+- The output row, the output fingerprint and the catalog entry of `compact`. The catalog has 34 entries.
+
+### Changed
+
+- A member of `portfolio`, `cell-portfolio`, `select`, `restarts` and the other composites can have the stage `compact`. Thus the counts of `spaceSize` and of the sampler grow near 4 times for each member.
+- The function `refusal` and its record text move to `strategy.ts`. The old module exports them again, so an import does not change.
+
 ## 0.17.0
 
 Each entry of the strategy catalog gets the output fingerprint of its strategy (roadmap item k201). A chooser can find 2 strategies with the same output and not start them.

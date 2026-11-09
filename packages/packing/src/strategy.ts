@@ -222,3 +222,18 @@ export function assertSupported(supports: Supports, input: PackInput): void {
   const miss = unsupportedOf(supports, cellOf(input));
   if (miss) throw new UnsupportedCell(miss.dimension, miss.value);
 }
+
+/** The start of the message of a refusal. */
+const REFUSES = "The strategy refuses the input: ";
+
+/** This function gives an `UnsupportedCell` for a refusal of an input that no dimension of the taxonomy tells, for example a gap. */
+export function refusal(reason: string): UnsupportedCell {
+  const error = new UnsupportedCell("containerSize", "refused");
+  error.message = `${REFUSES}${reason.replace(/\.$/u, "")}.`;
+  return error;
+}
+
+/** This function gives the text of a bench record for a result of `refusal`: `refused:` and the reason. Each other error gives `undefined`. */
+export function refusalRecord(error: UnsupportedCell): string | undefined {
+  return error.value === "refused" && error.message.startsWith(REFUSES) ? `refused: ${error.message.slice(REFUSES.length, -1)}` : undefined;
+}

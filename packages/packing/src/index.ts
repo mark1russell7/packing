@@ -97,7 +97,7 @@ export {
 export { BEST_FIT_SIDES, type BestFitSide } from "./best-fit.ts";
 export { BOTTOM_LEFT_RULES, type BottomLeftRule } from "./bottom-left.ts";
 export { fromRects, toRects } from "./convert.ts";
-export { aspectFitStrategy, composites, shapeStrategies, strategies, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions } from "./registry.ts";
+export { aspectFitStrategy, compactStrategy, composites, shapeStrategies, strategies, type StrategyKind, type StrategyListing, type AspectFitStrategyOptions, type CompactStrategyOptions } from "./registry.ts";
 export {
   EXACT_STRATEGY_NODE_LIMIT,
   MASONRY_METHOD_IDS,
@@ -136,7 +136,7 @@ export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb
 export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
-export { compactLeft, compactUp } from "./compact.ts";
+export { COMPACT_DIRECTIONS, COMPACT_STAGE, compactLeft, compactUp, compactWith, type CompactDirection } from "./compact.ts";
 export { matchPlaces } from "./match.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
 export { keepPrefix, pinUnchanged, repackPinned, type PinnedInput, type Repacked, type RepackMethod } from "./pin.ts";
@@ -194,7 +194,7 @@ export {
   type SelectStrategyOptions,
 } from "./select.ts";
 export type { Portfolio, PortfolioPick, PortfolioTrace, MemberTrace, SelectLevel } from "@mark1russell7/layout-contract";
-export { COMPACT_DIRECTIONS, configOfStrategy, PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type CompactDirection, type OptionPlace, type StrategyPoint } from "./pack-space.ts";
+export { configOfStrategy, PACK_SPACE_LEFT_OUT, PACK_SPACE_OPTIONS, packConfig, packSpace, type OptionPlace, type StrategyPoint } from "./pack-space.ts";
 export { packOperators } from "./pack-operators.ts";
 export type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 export { checkHard, type ContainerTest, type PackHard } from "./check.ts";

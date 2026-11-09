@@ -50,16 +50,17 @@ describe("packSpace", () => {
   // Roadmap item k29 adds 1 base config with each count of levels: shelf-breaks, with no param. Before k29 the counts were 3830 and 1138.
   // Roadmap item k30 adds shelf-online: 3 levels of r by 2 fits, and 1 level of r by 2 fits. Before k30 the counts were 3831 and 1139.
   // Roadmap item k29 adds treemap-spiral: 1 base config with each count of levels. Before treemap-spiral the counts were 3837 and 1141.
-  it("has 5 stages and 7636 base configs with 3 levels", () => {
-    expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine"]);
+  it("has 6 stages and 30526 base configs with 3 levels", () => {
+    expect(packSpace.stages.map((s) => s.name)).toEqual(["order", "size-search", "placement", "local-search", "combine", "compact"]);
     // Roadmap item k210 adds 6 sort orders, 12 of 6 rect orders before. Before k210 the counts were 3838 and 1142.
-    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(7636n);
-    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(2264n);
+    // Roadmap item k213 adds the optional stage compact with 3 options. Each config but those of hole-degree and circle-quasi-physical has 4 forms. Before k213 the counts were 7636 and 2264.
+    expect(spaceSize(packSpace, { levels: 3 }).base).toBe(30526n);
+    expect(spaceSize(packSpace, { levels: 1 }).base).toBe(9050n);
   });
 
   // Roadmap item L39 of the contract: cell-portfolio has a pool with one entry, the configs of PORTFOLIO_SETS.
   // Roadmap item k137 adds relax-pull: 3 meta configs for each base config with 3 levels, and 1 with 1 level.
-  it("gives cell-portfolio one pool entry, and counts 3.11e22 meta configs with 3 levels", () => {
+  it("gives cell-portfolio one pool entry, and counts 3.18e25 meta configs with 3 levels", () => {
     const cell = packSpace.stages.find((s) => s.name === "combine")!.options.find((o) => o.id === "cell-portfolio")!;
     expect(cell.members!.pool).toHaveLength(1);
     const ids = (list: readonly StrategyConfig[]): string[] => list.map((c) => configId(packSpace, c)).sort();
@@ -94,15 +95,19 @@ describe("packSpace", () => {
     // Before k29 the counts were 995683381705634116776, 345359641400040422, 987919200607642301316 and 342338667185080262.
     // Roadmap item k193 adds the side none to side-anchors: one config for each member. Before k193 the count was 995683381705634112939.
     // Roadmap item k210 doubles the base configs, and a list of up to 5 members grows near 32 times. Before k210 the count was 996982144242458314300.
-    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 23n }).meta).toBe(31117084197503168973256n);
+    // Roadmap item k213 adds the optional stage compact with 3 options. Each config but those of hole-degree and circle-quasi-physical has 4 forms. A member list of up to 5 members grows near 4 to the power 5 times.
+    // Before k213 the counts were 31117084197503168973256, 10664175701624102012, 30994995919746699509020 and 10617118243992897228.
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 23n }).meta).toBe(null);
+    expect(spaceSize(packSpace, { levels: 3, maxMeta: 10n ** 26n }).meta).toBe(31798211764671576231020476n);
     // Roadmap item k193 adds the side none to side-anchors. Before k193 the count with 1 level was 345359641400039281.
     // Roadmap item k210 puts the count with 1 level above the default maxMeta. Before k210 the count was 346878105010926668.
     expect(spaceSize(packSpace, { levels: 1 }).meta).toBe(null);
-    expect(spaceSize(packSpace, { levels: 1, maxMeta: 10n ** 20n }).meta).toBe(10664175701624102012n);
+    expect(spaceSize(packSpace, { levels: 1, maxMeta: 10n ** 20n }).meta).toBe(null);
+    expect(spaceSize(packSpace, { levels: 1, maxMeta: 10n ** 23n }).meta).toBe(10916500786052055392540n);
     // Roadmap item k193 adds the side none to side-anchors. Before k193 the rect counts were 987919200607642297485 and 342338667185079123.
     // Before k210 the rect counts were 3832, 989209855826161117216, 1140 and 343846500125987340.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 23n })).toEqual({ base: 7630n, meta: 30994995919746699509020n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"], maxMeta: 10n ** 20n })).toEqual({ base: 2262n, meta: 10617118243992897228n });
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["rect"], maxMeta: 10n ** 26n })).toEqual({ base: 30520n, meta: 31766971915566993481470880n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["rect"], maxMeta: 10n ** 23n })).toEqual({ base: 9048n, meta: 10904441286872172076668n });
   });
 
   it("gives the entries of PORTFOLIO_SETS as named configs, and as the members of cell-portfolio", () => {
@@ -177,9 +182,10 @@ describe("packSpace and the shape kinds", () => {
     const base1 = spaceSize(packSpace, { levels: 1, shapes: ["rect"] }).base;
     // Roadmap item k200: a polygon input gets the base configs of near-rects and raster-nofit, 3 for each with 3 levels and 1 for each with 1 level.
     // Before k200 the polygon counts were 0 and 0.
+    // Roadmap item k213: the bbox members get the 4 forms of the stage compact. Before k213 the meta counts were 15260 and 4524.
     for (const [kind, three, one] of [["polygon", 6n, 2n], ["free", 0n, 0n]] as const) {
-      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: three, meta: 15260n });
-      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: one, meta: 4524n });
+      expect(spaceSize(packSpace, { levels: 3, shapes: [kind] }), kind).toEqual({ base: three, meta: 61040n });
+      expect(spaceSize(packSpace, { levels: 1, shapes: [kind] }), kind).toEqual({ base: one, meta: 18096n });
     }
     // Roadmap item k25 adds 75 rect configs with 3 levels and 25 with 1 level. Before k25 the rect counts were 2970 and 890, and the bbox counts were 5940 and 1780.
     // Roadmap item k29 adds 1 rect config with each count of levels. Before k29 the rect counts were 3824 and 1136, and the shape counts 7648 and 2272.
@@ -188,9 +194,10 @@ describe("packSpace and the shape kinds", () => {
     // Roadmap items k90 and k94: a circle input also gets the base configs of hole-degree and circle-quasi-physical, 1 for each level. Before k94 the counts were 3 and 1.
     // Roadmap item k200 adds the 6 and 2 base configs of near-rects and raster-nofit. Before k200 the circle counts were 6 and 2.
     // Roadmap item k210 adds 6 sort orders. Before k210 the rect counts were 3832 and 1140, and the shape counts 7664 and 2280.
-    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 12n, meta: 15260n });
-    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 4n, meta: 4524n });
-    expect([base3, base1]).toEqual([7630n, 2262n]);
+    // Roadmap item k213 adds the optional stage compact with 3 options. Each config but those of hole-degree and circle-quasi-physical has 4 forms. Before k213 the rect counts were 7630 and 2262.
+    expect(spaceSize(packSpace, { levels: 3, shapes: ["circle"] })).toEqual({ base: 12n, meta: 61040n });
+    expect(spaceSize(packSpace, { levels: 1, shapes: ["circle"] })).toEqual({ base: 4n, meta: 18096n });
+    expect([base3, base1]).toEqual([30520n, 9048n]);
     // A mix of rect and circle items gets only the configs that support both kinds: near-rects and raster-nofit. Before k200 the base count was 0.
     expect(spaceSize(packSpace, { levels: 3, shapes: ["rect", "circle"] })).toEqual({ base: 6n, meta: 2n * base3 });
     expect(spaceSize(packSpace, { levels: 3 }).base).toBe(base3 + 6n);
@@ -555,9 +562,9 @@ describe("configOfStrategy (k135)", () => {
   });
 
   it("keeps the configId of each named config of main", () => {
-    // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137, of k25, of k94 or of k142. A change of a config or of canonicalConfig changes the hash.
+    // The list of main before k135, with no named config pack and no named config of the rule wire of k136, of k137, of k25, of k94, of k142 or of k213. A change of a config or of canonicalConfig changes the hash.
     const standaloneNames = ["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "masonry-shortest", "masonry-lpt", "columns-linear-partition", "treemap", "treemap-squarified", "treemap-slice-dice", "treemap-strip", "treemap-pivot-split", "treemap-spiral", "side-anchors-first-left"];
-    const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", ...standaloneNames];
+    const added = ["pack", "maxrects-wire", "relax-pull-rows", "relax-pull-maxrects-bl", "bottom-left", "bottom-left-liu-teng", "best-fit", "best-fit-tall", "best-fit-short", "circle-quasi-physical", "compact", "compact-maxrects-bl", ...standaloneNames];
     const list = Object.entries(named).filter(([name]) => !added.includes(name)).map(([name, config]) => `${name}=${configId(packSpace, config)}`);
     expect(createHash("sha256").update(list.sort().join("\n")).digest("hex")).toBe("d83549fe8a13e3f8c5fe8af9fc08dc17ec13b0087dc55f81bc9f948316a67a46");
   });
@@ -603,9 +610,9 @@ describe("the point of side-anchors (k193)", () => {
 
   /**
    * The strategies whose point is not the strategy with no options, with the reason.
-   * `aspect-fit` needs an inner strategy, so `packWith` refuses it, and its point wraps `maxrects`.
+   * `aspect-fit` and `compact` need an inner strategy, so `packWith` refuses them, and their points wrap `maxrects`.
    */
-  const POINT_DIFFERS: Readonly<Record<string, string>> = { "aspect-fit": "wraps maxrects" };
+  const POINT_DIFFERS: Readonly<Record<string, string>> = { "aspect-fit": "wraps maxrects", compact: "wraps maxrects" };
 
   // The limit of each case. A search strategy (`anneal`, `genetic`, `tabu`) packs the 20 inputs two times. On a runner, `anneal` took
   // 3539 ms and 3743 ms on two green runs, and 5322 ms on a red run, over the 5000 ms default. 30 s is approximately 5 times the slowest.

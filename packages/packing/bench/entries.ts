@@ -134,6 +134,14 @@ export const RESTARTS_ENTRIES: readonly BenchEntry[] = Object.freeze([
 ]);
 
 /**
+ * The composite entry of roadmap item k213. It is not in the pool of the oracle. It packs with its base, then it moves each
+ * free box up until the box touches a box or a wall.
+ */
+export const COMPACT_ENTRIES: readonly BenchEntry[] = Object.freeze([
+  { id: "compact-maxrects-bl", strategy: "compact", options: { strategy: "maxrects", options: { rule: "bl" } }, base: "maxrects-bl" },
+]);
+
+/**
  * The composite entries of roadmap item k91. They are not in the pool of the oracle. Each one packs the bounding box of each shape with its member.
  * On an input with only `rect` items, each one gives the output of its base.
  */
@@ -192,7 +200,7 @@ export const FORCE_ENTRIES: readonly BenchEntry[] = Object.freeze([
 ]);
 
 /** The ids of the composite entries. Each one packs an input with other entries. */
-export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES, ...OVERLAP_MIN_ENTRIES, ...ORDER_SEARCH_ENTRIES, ...RELAX_ENTRIES, ...FORCE_ENTRIES].map((e) => e.id));
+export const COMPOSITE_IDS: ReadonlySet<string> = new Set([...PORTFOLIO_ENTRIES, ...ASPECT_FIT_ENTRIES, ...SELECT_ENTRIES, ...RESTARTS_ENTRIES, ...BBOX_ENTRIES, ...RUIN_RECREATE_ENTRIES, ...OVERLAP_MIN_ENTRIES, ...ORDER_SEARCH_ENTRIES, ...RELAX_ENTRIES, ...FORCE_ENTRIES, ...COMPACT_ENTRIES].map((e) => e.id));
 
 /** This function tells if an entry id is a composite entry. */
 export function isComposite(id: string): boolean {
@@ -247,6 +255,7 @@ export const ENTRIES: readonly BenchEntry[] = Object.freeze([
   ...ORDER_SEARCH_ENTRIES,
   ...RELAX_ENTRIES,
   ...FORCE_ENTRIES,
+  ...COMPACT_ENTRIES,
   ...STANDALONE_ENTRIES,
 ]);
 

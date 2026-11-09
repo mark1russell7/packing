@@ -56,7 +56,8 @@ describe("packSpace and the entries of the benchmark", () => {
   it("has a named config for each entry and each id of the registry, and checkConfig accepts it", () => {
     // Roadmap item k25 adds 5 entries. Before k25 the count was 45.
     expect(STANDALONE_IDS.size).toBe(STANDALONE_ENTRIES.length);
-    expect(ENTRIES).toHaveLength(50 + STANDALONE_ENTRIES.length);
+    // Roadmap item k213 adds the entry compact-maxrects-bl. Before k213 the count was 50 and the standalone entries.
+    expect(ENTRIES).toHaveLength(51 + STANDALONE_ENTRIES.length);
     // The strategies of shapeStrategies (k90) have a named config too. `src/hole-degree.test.ts` packs it on circles.
     // The named config `pack` of k135 is the choice of `pack` without a strategy. It is not an entry and not an id of the registry.
     // The named config `maxrects-wire` of k136 is the rule wire of `maxrects`. It is not an entry, because the screen has no links.
@@ -111,8 +112,8 @@ describe("packSpace and the entries of the benchmark", () => {
   });
 
   it.each([...strategies, ...composites].map((s) => s.id))("gives the output of packWith for the id %s of the registry", (id) => {
-    // The strategy aspect-fit needs an inner strategy. Its named config wraps maxrects.
-    const options = id === "aspect-fit" ? { strategy: "maxrects" } : undefined;
+    // The strategies aspect-fit and compact (k213) need an inner strategy. Their named configs wrap maxrects.
+    const options = id === "aspect-fit" || id === "compact" ? { strategy: "maxrects" } : undefined;
     expect(compare(id, (i) => result(() => packWith(id, SPACE_INPUTS[i]!, fastOptions(id, options), i))), id).toBeGreaterThanOrEqual(floorOf(id));
   });
 

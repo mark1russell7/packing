@@ -5,6 +5,16 @@
 import { boundsOf } from "@mark1russell7/layout-contract";
 import { RECORD_EPS, marginOf, turnItem, type Item, type PackInput, type PackOutput, type Placement } from "./contract.ts";
 import { containerBounds, extentOf } from "./frame.ts";
+import { refusal } from "./strategy.ts";
+
+/**
+ * The directions of a compaction of roadmap item k213: `up` (`compactUp`), `left` (`compactLeft`), and `left-up`
+ * (`compactLeft`, then `compactUp`). They are the options of the stage `compact` of `packSpace`.
+ */
+export const COMPACT_DIRECTIONS = ["up", "left", "left-up"] as const;
+
+/** One direction of `COMPACT_DIRECTIONS`. */
+export type CompactDirection = (typeof COMPACT_DIRECTIONS)[number];
 
 /** A rectangle with the margins and half of the gap. */
 export interface Box {
@@ -120,4 +130,33 @@ export function compactUp(input: PackInput, output: PackOutput): PackOutput {
  */
 export function compactLeft(input: PackInput, output: PackOutput): PackOutput {
   return compactAlong(input, output, "x", "compactLeft");
+}
+
+/**
+ * This function compacts a layout in one direction of `COMPACT_DIRECTIONS` (roadmap item k213). The stage `compact` of
+ * `packSpace` and the strategy `compact` of the registry use it. The output gets the trace stage `compact` with the
+ * measure `move.compact`: the count of the boxes that moved.
+ *
+ * @throws UnsupportedCell for an input that `compactUp` or `compactLeft` refuses, with the reason of the refusal.
+ * @throws RangeError for a direction outside `COMPACT_DIRECTIONS`.
+ */
+/** The id of the trace stage of `compactWith`. Its measure `move.compact` is the count of the boxes that moved. */
+export const COMPACT_STAGE = "compact";
+
+export function compactWith(input: PackInput, output: PackOutput, direction: CompactDirection): PackOutput {
+  if (!COMPACT_DIRECTIONS.includes(direction)) throw new RangeError(`The direction of a compaction is up, left or left-up, not ${String(direction)}.`);
+  let compacted: PackOutput;
+  try {
+    compacted = direction === "up" ? compactUp(input, output) : direction === "left" ? compactLeft(input, output) : compactUp(input, compactLeft(input, output));
+  } catch (error) {
+    if (error instanceof RangeError) throw refusal(error.message);
+    throw error;
+  }
+  const before = new Map(output.placements.map((p) => [p.id, p]));
+  const moved = compacted.placements.filter((p) => {
+    const old = before.get(p.id);
+    return old === undefined || old.x !== p.x || old.y !== p.y;
+  }).length;
+  const stage = { id: COMPACT_STAGE, measures: { "move.compact": moved } };
+  return { ...compacted, trace: [...(compacted.trace ?? []), stage] };
 }

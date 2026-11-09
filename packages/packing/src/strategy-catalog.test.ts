@@ -15,6 +15,7 @@ import {
 import { describe, expect, it } from "vitest";
 import pkg from "../package.json" with { type: "json" };
 import { strategyCatalog } from "./strategy-catalog.ts";
+import { COMPACT_DIRECTIONS } from "./compact.ts";
 import { NAMED_VALUES, packSpace } from "./pack-space.ts";
 import type { Item, PackInput, PackOutput } from "./contract.ts";
 import { outputHash } from "./layout-input.ts";
@@ -47,6 +48,7 @@ const FREE: readonly string[] = ["masonry", "treemap"];
 /** The options that keep a search short, or that a strategy needs for a call. */
 const RUN_OPTIONS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
   "aspect-fit": { strategy: "rows" },
+  compact: { strategy: "rows" },
   "overlap-min": { iterations: 256 },
 };
 
@@ -268,6 +270,8 @@ const SPACE_ONLY_REASONS: Readonly<Record<string, string>> = {
 /** The route of each place of the space that does not hold an option value with the name of the option. */
 const paramRoutes: Readonly<Record<string, ParamRoute>> = {
   ...VALUE_ROUTES,
+  // Each option of the stage compact (k213) is the strategy `compact` with one value of its option `direction`.
+  ...Object.fromEntries(COMPACT_DIRECTIONS.map((direction) => [`compact/${direction}`, { strategy: "compact", fixed: { direction } }])),
   ...Object.fromEntries(Object.entries(SPACE_ONLY_REASONS).map(([place, spaceOnly]) => [place, { spaceOnly }])),
 };
 
@@ -277,7 +281,8 @@ const check = checkCatalog(strategyCatalog, live, { spaces: [packSpace], paramRo
 describe("the strategy catalog (k144)", () => {
   it("has each strategy of the engine, with a line and the live fields", () => {
     expect(strategyCatalog.strategies.map((e) => e.id).sort()).toEqual(allStrategies.map((s) => s.id).sort());
-    expect(strategyCatalog.strategies).toHaveLength(33);
+    // Roadmap item k213 adds the strategy compact. Before k213 the count was 33.
+    expect(strategyCatalog.strategies).toHaveLength(34);
     for (const s of allStrategies) {
       const entry = entries.get(s.id)!;
       expect({ family: entry.family, kind: entry.kind, supports: entry.supports, deterministic: entry.deterministic }, s.id).toEqual({ family: s.family, kind: s.kind, supports: s.supports, deterministic: s.deterministic });

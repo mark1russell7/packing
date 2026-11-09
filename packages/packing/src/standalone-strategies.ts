@@ -12,7 +12,7 @@ import { packSideAnchors, type SideAnchor, type SideAnchorOptions } from "./side
 import { shelfBreaks, shelfBreaksRefusal } from "./shelf-breaks.ts";
 import { shelfOnline, shelfOnlineRefusal, type ShelfOnlineOptions } from "./shelf-online.ts";
 import { sleatorRefusal, sleatorStrip } from "./sleator.ts";
-import { assertSupported, UnsupportedCell, type PackContext, type Strategy, type Supports } from "./strategy.ts";
+import { assertSupported, refusal, type PackContext, type Strategy, type Supports } from "./strategy.ts";
 import { treemapPack, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapLayout } from "./treemap.ts";
 
 /** The largest count of items that `binary-height`, `near-rects` and `raster-nofit` take. Their search time grows fast with the count. */
@@ -44,20 +44,8 @@ function cells(changes: Partial<Supports>): Supports {
 /** The cells of a free container. The columns or the frame set its size. */
 const FREE_SUPPORTS: Supports = /* @__PURE__ */ cells({ containerSize: ["freeAspect", "freeArea"] });
 
-/** The start of the message of a refusal. */
-const REFUSES = "The strategy refuses the input: ";
-
-/** This function gives an `UnsupportedCell` for a refusal of an input that no dimension of the taxonomy tells, for example a gap. */
-export function refusal(reason: string): UnsupportedCell {
-  const error = new UnsupportedCell("containerSize", "refused");
-  error.message = `${REFUSES}${reason.replace(/\.$/u, "")}.`;
-  return error;
-}
-
-/** This function gives the text of a bench record for a result of `refusal`: `refused:` and the reason. Each other error gives `undefined`. */
-export function refusalRecord(error: UnsupportedCell): string | undefined {
-  return error.value === "refused" && error.message.startsWith(REFUSES) ? `refused: ${error.message.slice(REFUSES.length, -1)}` : undefined;
-}
+// The function `refusal` and its record text have their home in `strategy.ts`, beside `UnsupportedCell` (k213).
+export { refusal, refusalRecord } from "./strategy.ts";
 
 /**
  * This function starts a standalone function on an input. A `RangeError` of the function becomes an `UnsupportedCell`.
