@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { checkHard } from "./check.ts";
 import type { PackInput, PackOutput } from "./contract.ts";
 import { measure } from "./measures.ts";
-import { packWith } from "./registry.ts";
-import { mulberry32 } from "./strategy.ts";
+import { packWith, strategy } from "./registry.ts";
+import { createContext, mulberry32 } from "./strategy.ts";
 
 /** This function gives an input of `n` random boxes in a fixed container with slack. */
 function scattered(seed: number, n: number, extra: Partial<PackInput> = {}): PackInput {
@@ -108,5 +108,79 @@ describe("force", () => {
   it("throws a RangeError for a bad count", () => {
     expect(() => packWith("force", scattered(6, 5), { iterations: 1.5 })).toThrow(RangeError);
     expect(() => packWith("force", scattered(6, 5), { rounds: -1 })).toThrow(RangeError);
+  });
+});
+
+/** This function packs an input with `force` from a start output (roadmap item k220). */
+function fromStart(input: PackInput, previous: PackOutput, options: object = {}): PackOutput {
+  const s = strategy("force");
+  return s.pack(input, { ...(s.defaults as object), ...options }, createContext(0, { previous }));
+}
+
+/** This function gives the sum of the center moves of the boxes of two outputs, over the ids of both. */
+function moveSum(a: PackOutput, b: PackOutput): number {
+  const at = new Map(a.placements.map((p) => [p.id, p]));
+  return b.placements.reduce((sum, p) => {
+    const q = at.get(p.id);
+    return q === undefined ? sum : sum + Math.hypot(p.x - q.x, p.y - q.y);
+  }, 0);
+}
+
+describe("force from a start frame (k220)", () => {
+  it("has the mode incremental", () => {
+    expect(strategy("force").supports.mode).toContain("incremental");
+  });
+
+  it("gives the same placements for a clean start: a fixed point with 0 steps and 0 moves", () => {
+    for (let seed = 0; seed < 10; seed++) {
+      const input = scattered(300 + seed, 20);
+      const first = packWith("force", input);
+      const again = fromStart(input, first);
+      expect(again.placements, `seed ${seed}`).toEqual(first.placements);
+      expect(moveSum(first, again)).toBe(0);
+      expect(stage(again)?.["force.start"]).toBe(1);
+      expect(stage(again)?.["force.steps"]).toBe(0);
+      expect(stage(again)?.["move.force"]).toBe(0);
+    }
+  });
+
+  it("moves less than a fresh pass when a box comes in, with no hard break", () => {
+    let fewer = 0;
+    for (let seed = 0; seed < 10; seed++) {
+      const input = scattered(400 + seed, 20);
+      const before = packWith("force", input);
+      const grown: PackInput = { ...input, items: [...input.items, { id: "new", w: 12, h: 12 }] };
+      const started = fromStart(grown, before);
+      const fresh = packWith("force", grown);
+      expect(hard(grown, started), `seed ${seed}`).toBe(0);
+      expect(started.placements.map((p) => p.id).toSorted()).toEqual(fresh.placements.map((p) => p.id).toSorted());
+      if (moveSum(before, started) < moveSum(before, fresh)) fewer++;
+    }
+    expect(fewer).toBe(10);
+  });
+
+  it("is a fixed point after one settle: a second pass from its output moves nothing", () => {
+    for (let seed = 0; seed < 10; seed++) {
+      const input = scattered(500 + seed, 20);
+      const random = mulberry32(seed);
+      const base = packWith("force", input);
+      const shaken: PackOutput = { ...base, placements: base.placements.map((p) => ({ ...p, x: p.x + (random() - 0.5) * 10, y: p.y + (random() - 0.5) * 10 })) };
+      const once = fromStart(input, shaken);
+      const twice = fromStart(input, once);
+      expect(hard(input, once), `seed ${seed}`).toBe(0);
+      expect(twice.placements).toEqual(once.placements);
+    }
+  });
+
+  it("gives no hard break from 30 random starts, and starts from the member output when a start has no room", () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const input = scattered(600 + seed, 10 + (seed % 3) * 10);
+      const random = mulberry32(seed);
+      const base = packWith("force", input);
+      const start: PackOutput = { ...base, placements: base.placements.map((p) => ({ ...p, x: random() * 100, y: random() * 100 })) };
+      const out = fromStart(input, start);
+      expect(hard(input, out), `seed ${seed}`).toBe(0);
+      expect(out.placements.length).toBe(base.placements.length);
+    }
   });
 });

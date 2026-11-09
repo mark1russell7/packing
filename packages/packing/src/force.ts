@@ -58,6 +58,9 @@ function forceSupports(): Supports {
   out["containerShape"] = ["rect"];
   out["obstacleMove"] = ["fixed"];
   out["order"] = ["free", "soft"];
+  // The mode `incremental`: `force` settles from `context.previous` (roadmap item k220).
+  const mode = (out["mode"] ??= []);
+  if (!mode.includes("incremental")) mode.push("incremental");
   return out as unknown as Supports;
 }
 
@@ -118,10 +121,10 @@ function clamp(b: Boxes): void {
 /**
  * This function does one force step. Each pair with a clearance below `gap` pushes apart along the line of the
  * centers. A wall pushes a box with a clearance below half of `gap`. A fixed box does not move, so its partner gets
- * the full push. The step of each box is at most `gap`, times `cool`. With `block`, a box whose move makes an
- * overlap goes back to its place before the step.
+ * the full push. The step of each box is at most `reach` (the default is `gap`), times `cool`. With `block`, a box
+ * whose move makes an overlap goes back to its place before the step.
  */
-function forceStep(b: Boxes, gap: number, cool: number, block: boolean): void {
+function forceStep(b: Boxes, gap: number, cool: number, block: boolean, reach = gap): void {
   const count = b.pos[0].length;
   const [px, py] = b.pos;
   const [sx, sy] = b.size;
@@ -158,7 +161,7 @@ function forceStep(b: Boxes, gap: number, cool: number, block: boolean): void {
   const oy = py.slice(0, b.n);
   for (let i = 0; i < b.n; i++) {
     const len = Math.hypot(dx[i]!, dy[i]!);
-    const scale = (len > gap && len > 0 ? gap / len : 1) * cool;
+    const scale = (len > reach && len > 0 ? reach / len : 1) * cool;
     px[i] = px[i]! + dx[i]! * scale;
     py[i] = py[i]! + dy[i]! * scale;
   }
@@ -278,6 +281,66 @@ function framed(input: PackInput, base: PackOutput): Boxes {
   return b;
 }
 
+/**
+ * This function gives the start output of a start frame (roadmap item k220). Each box of the start keeps its place and
+ * its turn. A box that the start does not have takes its place in the member output. Each free side gets the larger
+ * size of the start and the member output.
+ */
+function startOutput(base: PackOutput, previous: PackOutput): PackOutput {
+  const at = new Map(previous.placements.map((p) => [p.id, p]));
+  const placements = base.placements.map((p) => {
+    const q = at.get(p.id);
+    if (q === undefined) return p;
+    const { turn: _turn, ...rest } = p;
+    return q.turn === undefined ? { ...rest, x: q.x, y: q.y } : { ...rest, x: q.x, y: q.y, turn: q.turn };
+  });
+  return { ...base, placements, size: { w: Math.max(base.size.w, previous.size.w), h: Math.max(base.size.h, previous.size.h) } };
+}
+
+/**
+ * This function settles the boxes of a start frame (roadmap item k220). Only the pairs that overlap push apart. Thus a
+ * box with no overlap does not move, and a clean start is a fixed point with 0 steps. The steps stop at the first step
+ * with no overlap, or after `iterations` steps. Then PRISM and VPSC remove the overlaps that are left. It gives the
+ * output, or `undefined` when the start cannot settle. Then `force` packs from the member output.
+ */
+function fromStart(input: PackInput, base: PackOutput, context: PackContext, iterations: number, rounds: number, measures: Record<string, number>): PackOutput | undefined {
+  const previous = context.previous!;
+  const start = startOutput(base, previous);
+  const b = framed(input, start);
+  if (b.n > FORCE_MAX_BOXES || b.pos[0].length - b.n > FORCE_MAX_FIXED) return undefined;
+  const before = b.output();
+  clamp(b);
+  const asOutput = (): PackOutput => {
+    const at = new Map(b.output().map((p) => [p.id, p]));
+    return { ...start, placements: start.placements.map((p) => at.get(p.id) ?? p) };
+  };
+  // The callback of the frames gets the output after each step. A "stop" ends the steps.
+  const step = (): boolean => context.onFrame?.(asOutput()) !== "stop";
+  let steps = 0;
+  for (let going = true; going && steps < iterations && overlapCount(b) > 0; steps++) {
+    forceStep(b, 0, 1, false, Infinity);
+    going = step();
+  }
+  measures["force.start"] = 1;
+  measures["force.steps"] = steps;
+  measures["force.overlaps"] = overlapCount(b);
+  for (let r = 0; r < rounds && prismRound(b, 0) > 0; r++) {
+    measures["force.rounds"]!++;
+    step();
+  }
+  if (overlapCount(b) > 0) {
+    measures["force.vpsc"] = 1;
+    for (const axis of [0, 1] as const) if (b.separate(axis, b.pos[axis].slice(0, b.n), MAX_CONSTRAINTS) === undefined) return undefined;
+  }
+  if (!b.clean()) return undefined;
+  const moved = b.output();
+  const byId = new Map(moved.map((p) => [p.id, p]));
+  measures["move.force"] = moved.filter((p, i) => Math.abs(p.x - before[i]!.x) > TOUCH || Math.abs(p.y - before[i]!.y) > TOUCH).length;
+  const output: PackOutput = { ...start, placements: start.placements.map((p) => byId.get(p.id) ?? p), trace: [...(base.trace ?? []), { id: FORCE_STAGE, measures }] };
+  if (hardSum(input, output) > hardSum(input, base)) return undefined;
+  return output;
+}
+
 /** This function gives the sum of the hard breaks of an output. */
 function hardSum(input: PackInput, output: PackOutput): number {
   return Object.values(checkHard(input, output, undefined, { exactContainer: false })).reduce((a, b) => a + b, 0);
@@ -291,6 +354,10 @@ function hardSum(input: PackInput, output: PackOutput): number {
  * When the pass fails or gives more hard breaks than the member, the output is the output of the member. The trace
  * stage `force` has `move.force`, `force.gap`, `force.tries`, `force.overlaps`, `force.rounds`, `force.vpsc` and `force.fallback`.
  * The measure `force.capped` is 1 when `FORCE_MAX_BOXES` or `FORCE_MAX_FIXED` stops the pass.
+ *
+ * With `context.previous`, the pass starts from the previous output and not from the member output (roadmap item
+ * k220). Only the boxes that overlap move, so a clean start gives the same placements. The trace stage then has
+ * `force.start` 1 and `force.steps`. When the start cannot settle, the pass starts from the member output.
  */
 export const forceStrategy: Strategy<ForceStrategyOptions> = {
   id: "force",
@@ -308,6 +375,10 @@ export const forceStrategy: Strategy<ForceStrategyOptions> = {
     const measures: Record<string, number> = { "move.force": 0, "force.gap": 0, "force.tries": 0, "force.overlaps": 0, "force.rounds": 0, "force.vpsc": 0, "force.fallback": 0, "force.capped": 0 };
     const keep = (fallback: number, capped = 0): PackOutput => ({ ...base, trace: [...(base.trace ?? []), { id: FORCE_STAGE, measures: { ...measures, "force.fallback": fallback, "force.capped": capped } }] });
     if (iterations === 0 || base.placements.length === 0) return keep(0);
+    if (context.previous !== undefined) {
+      const started = fromStart(input, base, context, iterations, rounds, { ...measures });
+      if (started !== undefined) return started;
+    }
     const start = framed(input, base);
     // Each cap bounds the work that it counts: the moving boxes, and the fixed boxes that each moving box examines
     if (start.n > FORCE_MAX_BOXES || start.pos[0].length - start.n > FORCE_MAX_FIXED) return keep(1, 1);
