@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.3
+
+The bench writes each corpus file with the one manifest writer of `@mark1russell7/layout-contract` 0.9.2 (roadmap item k219). Each corpus file keeps the same bytes.
+
+This release raises the PATCH version: a dependency bump with no change of the public API.
+
+### Changed
+
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.2.
+- The 8 corpus writers of the bench use `corpusManifestText` and `manifestText`. The 7 local copies of the function `inline` go.
+- The paired time test of the bench uses `quantile`, `mean` and `sd` of `@mark1russell7/rigor-statistics`. Its local copies go. An empty list keeps the value NaN.
+
 ## 0.17.2
 
 Three level packers of the literature (roadmap item k211). Each one is a strategy and a placement of `packSpace`. No default uses them.
