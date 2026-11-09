@@ -48,6 +48,7 @@ import {
 import { regionSvg } from "./region.ts";
 import { DEMO_STRATEGIES, isCompositeId, isDemoId, optionControls, startValues, type OptionControl, type OptionValues } from "./options.ts";
 import { mountChrome } from "./chrome.ts";
+import { escapeAttribute as esc } from "@mark1russell7/text";
 import "./style.css";
 import "./pages.css";
 
@@ -57,9 +58,6 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
-/** This function escapes text for HTML. */
-const esc = (text: string): string =>
-  text.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch]!);
 
 const num = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const dec = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
@@ -71,6 +69,12 @@ const ORDER_LABELS: Record<SortOrder, string> = {
   "height-asc": "Shortest first",
   "width-desc": "Widest first",
   "area-desc": "Largest first",
+  "perimeter-desc": "Largest perimeter first",
+  "long-side-desc": "Longest side first",
+  "short-side-desc": "Longest short side first",
+  "side-diff-desc": "Most uneven sides first",
+  "ratio-desc": "Most elongated first",
+  "diagonal-desc": "Longest diagonal first",
   input: "List order",
 };
 /** The names of the strategies on the page. An id without a name shows the id. */
@@ -98,6 +102,9 @@ const STRATEGY_LABELS: Record<string, string> = {
   sleator: "Sleator",
   "shelf-breaks": "Shelf with the best breaks",
   "shelf-online": "Online shelf",
+  "shelf-split-fit": "Split-fit shelf",
+  "shelf-floor-ceiling": "Floor-ceiling shelf",
+  "shelf-knapsack": "Knapsack shelf",
   beam: "Beam search",
   "exact-strip": "Exact strip",
   "binary-height": "Binary height",

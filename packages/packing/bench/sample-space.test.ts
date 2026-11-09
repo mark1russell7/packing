@@ -56,18 +56,24 @@ const ENV = { node: "v0", os: "test", arch: "x64", runner: "test", cpu: "test", 
 // The rule wire of k136 adds configs too. Before k136 the pins were ce6d8bf386fbb8a6, 5ff46c2513f1c859, e0392ab28b85d0d0, 90e85a9b3b203375, 71506084854820641670444082160 and 71506084854820640540641605810.
 // The 2 placement options of k25 changed the draws and the counts. Before k25 the pins were 99f077f73ba82661, 8a4c62b086079de4, e764f2c6cdd482e6, c7a8ed52072f03a8, 79943291102292057106200512423 and 79943291102292055949201549490.
 // The 8 placement options of k142 changed one draw. Before k142 the second pin was e824ad73e7edf6a5.
-const DEFAULT_UNIFORM_IDS = ["66db355601b45ab6", "20963f4950107879", "3f8e28feceedef44", "c7a8ed52072f03a8"];
+// The 6 sort orders of k210 changed the draws. Before k210 the pins were 66db355601b45ab6, 20963f4950107879, 3f8e28feceedef44 and c7a8ed52072f03a8.
+const DEFAULT_UNIFORM_IDS = ["43a83b0a6231aa99", "d3f7ab76483b81d6", "864f0e079017563a", "7c8b020a5b34166f"];
 // The table pack of select (k135) gives 2 values of the param table, not 1. Before k135 the count was 28789137749597439775634398876.
 // The option relax-pull of k137 has no clock limit. Before k137 the count was 79943291102292057106200315504.
 // Roadmap item k94 adds the base configs of circle-quasi-physical to the members of the meta configs. Before k94 the counts were 91590358728953040752342089373 and 91590358728953039561241613290.
 // Roadmap item k142 adds the base configs of the standalone placements to the members, and the option side-anchors. Before k142 the counts were 93933758014846374732506608748 and 93933758014846373534955689790.
 // Roadmap item k193 adds the side none to side-anchors. Before k193 the count was 97230737123976843015729743524.
 // Roadmap item k29 adds treemap-spiral. Before k29 the count was 97230737123976843015729948306.
-const CLOCK_FREE_META = 97233111173976344072011118730n;
+// The 6 sort orders of k210 add base configs and members. Before k210 the count was 97233111173976344072011118730.
+// Roadmap item k27 adds the pivots middle and size of pivot-split. Before them the count was 3021312812918614681107660197010.
+// Roadmap item k211 adds the base configs of shelf-split-fit, shelf-floor-ceiling and shelf-knapsack to the members. Before k211 the counts were 3021387017987634467838198973470 and 3021387017987634465274686504810.
+const CLOCK_FREE_META = 3021498328324932091789369582890n;
 // Roadmap item k29 adds the base config of shelf-breaks to the members. Before k29 the counts were 97223615252208789169500820039 and 97223615252208787963100427090.
 // Roadmap item k30 adds the base configs of shelf-online to the members. Before k30 the counts were 97225989163093744903710893550 and 97225989163093743697304199810.
 // The base config of treemap-spiral (k29) adds to the members. Before treemap-spiral the counts were 97230737123976843015729743524 and 97230737123976841809310448190.
-const CLOCK_CONFIGS = 97233111173976342865585317810n;
+// The 6 sort orders of k210 add base configs and members. Before k210 the count was 97233111173976342865585317810.
+// The base configs of the pivots middle and size (k27) add to the members. Before them the count was 3021312812918614678544161949010.
+const CLOCK_CONFIGS = 3021498328324932089225835783210n;
 
 /** A small space: the stage `a` with `x` (a param `b`) or `y`, and an optional meta option `m` with 1 or 2 ordered members. It has 3 base configs and 9 meta configs. */
 const SMALL: StrategySpace = {
@@ -146,8 +152,10 @@ describe("the counts of the configs", () => {
     // Roadmap item k29 adds the standalone placement shelf-breaks with 1 config. Before k29 the base count was 204779.
     // Roadmap item k30 adds the standalone placement shelf-online with 2 configs: the 2 fits, with r at its default. Before k30 the base count was 204780.
     // Roadmap item k29 adds the standalone placement treemap-spiral with 1 config. Before treemap-spiral the base count was 204782.
+    // Roadmap item k27 adds the pivots middle and size of the standalone placement treemap: 2 configs. Before them the base count was 204783.
+    // Roadmap item k211 adds the standalone placements shelf-split-fit, shelf-floor-ceiling and shelf-knapsack with 1 config each. Before k211 the count was 1411.
     const placements = 1 + SKYLINE_RULES.length * 4 + (1 + SHELF_FITS.length) + MAXRECTS_RULES.length * 4 + GUILLOTINE_CHOICES.length * GUILLOTINE_SPLITS.length * 4 + BOTTOM_LEFT_RULES.length + BEST_FIT_SIDES.length;
-    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1409));
+    expect(counts.base).toBe(BigInt((SORT_ORDERS.length + GRAPH_ORDERS.length) * 181 * placements + SORT_ORDERS.length * 64 + HOLE_DEGREE_MAX_STEPS + 1 + 1025 + 1414));
     expect(counts.meta.map((m) => m.option.id)).toEqual(["portfolio", "cell-portfolio", "select", "aspect-fit", "restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu", "relax", "relax-pull", "force", "side-anchors"]);
     expect(counts.meta.find((m) => m.option.id === "cell-portfolio")!.lists).toBe(1n);
   });
@@ -369,7 +377,8 @@ describe("the sample of pairs", () => {
     // The rule wire of k136 changed the first 3. Before k136 they were 3c8559a1a81bd1e1, 9a23adfaf96ff747 and 50c99f6adf729198.
     const a = sampleSpace({ ...options, timing: "mixed", clock: fakeClock() });
     // The 2 placement options of k25 changed the pins. Before k25 they were c284c6797a97ed1e, d4f479379be03745, 7ae4bf3d188259b2 and d991ad41c88721cf.
-    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["eee8418b2d64c90d", "2ac8900a2f37bcb8", "835bcfc36a31e5f3", "d991ad41c88721cf"]);
+    // The 6 sort orders of k210 changed the pins. Before k210 they were eee8418b2d64c90d, 2ac8900a2f37bcb8, 835bcfc36a31e5f3 and d991ad41c88721cf.
+    expect(a.records.map((r) => configId(packSpace, r.config))).toEqual(["43a83b0a6231aa99", "fb76b0734608e7f3", "b9e84572ea5f358b", "25c954ee1b419628"]);
     expect(a.summary.draw).toBe("uniform");
     expect(a.summary.timing).toBe("mixed");
     expect("strata" in a.summary).toBe(false);
@@ -425,7 +434,7 @@ describe("the range of pack.gap on sampled pairs (k118)", () => {
 });
 
 describe("the strata of k115", () => {
-  it("gives 40 strata of packSpace, and their counts sum to the count of the space", () => {
+  it("gives 43 strata of packSpace, and their counts sum to the count of the space", () => {
     const counts = spaceCounts(packSpace);
     const strata = strataOf(packSpace, counts);
     expect(strata.map((s) => s.id)).toEqual([
@@ -442,6 +451,9 @@ describe("the strata of k115", () => {
       "sleator:1",
       "shelf-breaks:1",
       "shelf-online:1",
+      "shelf-split-fit:1",
+      "shelf-floor-ceiling:1",
+      "shelf-knapsack:1",
       "beam:1",
       "exact-strip:1",
       "binary-height:1",
@@ -545,13 +557,14 @@ describe("the strata of k115", () => {
     expect(a.summary.draw).toBe("stratified");
     expect(Object.keys(a.summary.strata!)).toEqual(strata);
     // No sampled input has circles, so the strata hole-degree:1 and circle-quasi-physical:1 get no pairs. Each other stratum gets 1 pair.
-    // The strata masonry:1 and treemap:1 of k142 accept few inputs, and a miss tries only 10 inputs here, so they get no pair too.
+    // The stratum treemap:1 of k142 accepts few inputs, and a miss tries only 10 inputs here, so it gets no pair too.
     // The stratum shelf-online:1 of k30 moves the draws of the seed. Before k30, exact-strip:1 got no pair and masonry:1 got 1 pair.
+    // The 3 strata of k211 and the pivots of k27 move the draws of the seed again: exact-strip:1 gets no pair, and masonry:1 and treemap:1 get 1 pair each.
     // The sample is small, and a miss tries only 10 inputs: the full test is slow on the CI runner.
-    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(["hole-degree:1", "circle-quasi-physical:1", "masonry:1", "treemap:1"].includes(id) ? [id, 0, 1] : [id, 1, 0]);
-    // Before L34 the count of rows:1 was 905.
-    expect(a.summary.strata!["rows:1"]!.configs).toBe("1086");
-    expect(a.records).toHaveLength(strata.length - 4);
+    for (const [id, s] of Object.entries(a.summary.strata!)) expect([id, s.pairs, s.missed]).toEqual(["hole-degree:1", "circle-quasi-physical:1", "exact-strip:1"].includes(id) ? [id, 0, 1] : [id, 1, 0]);
+    // Before L34 the count of rows:1 was 905. The 6 sort orders of k210 double it. Before k210 the count was 1086.
+    expect(a.summary.strata!["rows:1"]!.configs).toBe("2172");
+    expect(a.records).toHaveLength(strata.length - 3);
     // The sampler drew more than 256 moves for overlap-min:1, and the record has the config with 256 moves that it packed.
     const moves = a.records.filter((rec) => stratumOf(packSpace, rec.config) === "overlap-min:1").map((rec) => rec.config.stages["combine"]?.params?.["iterations"]);
     expect(moves).toEqual([256]);
@@ -569,7 +582,7 @@ describe("the strata of k115", () => {
     const at = strata.indexOf("hole-degree:1");
     const tries = 60;
     // Roadmap item k142: a standalone stratum accepts few inputs, so it draws many. This test counts only the draws of hole-degree:1.
-    const outside = new Set<string | null>(["sleator", "shelf-breaks", "shelf-online", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"]);
+    const outside = new Set<string | null>(["sleator", "shelf-breaks", "shelf-online", "shelf-split-fit", "shelf-floor-ceiling", "shelf-knapsack", "beam", "exact-strip", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap"]);
     const space = {
       ...packSpace,
       stages: packSpace.stages.filter((s) => s.name !== "combine").map((s) => ({ ...s, options: s.options.filter((o) => !(s.name === "placement" && outside.has(o.id))) })),

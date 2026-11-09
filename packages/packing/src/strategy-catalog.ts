@@ -1,5 +1,5 @@
 // The strategy catalog of the engine `packing` (roadmap item k144). It gives each strategy and each option as data of the schema
-// `strategy-catalog/2` of `@mark1russell7/layout-contract`, so a chooser renders them with no code for each strategy.
+// `strategy-catalog/3` of `@mark1russell7/layout-contract`, so a chooser renders them with no code for each strategy.
 // The ids, the families, the kinds, the supports and the defaults come from the live strategies. This module holds only the text and the ranges.
 // The subpath `./strategy-catalog` exports the constant, so the root bundle does not pay for the declarations.
 // The range of a number option is the range of a control. A strategy can take a value outside it, as the option comments of each strategy tell.
@@ -16,6 +16,7 @@ import {
   type StrategyCatalogSource,
 } from "@mark1russell7/layout-contract";
 import { BEST_FIT_SIDES } from "./best-fit.ts";
+import { STRATEGY_FINGERPRINT } from "./strategy-fingerprint.ts";
 import { BOTTOM_LEFT_RULES } from "./bottom-left.ts";
 import type { BboxStrategyOptions } from "./bbox.ts";
 import type { BeamOptions } from "./beam.ts";
@@ -48,6 +49,7 @@ import {
   MASONRY_METHOD_IDS,
   STANDALONE_MAX_ITEMS,
   TREEMAP_METHOD_IDS,
+  TREEMAP_PIVOT_IDS,
   type MasonryStrategyOptions,
   type SideAnchorStrategyOptions,
   type TreemapStrategyOptions,
@@ -299,6 +301,9 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
     r: { type: "number", describe: "The ratio of the heights of two classes of shelves that follow each other.", min: 0.1, max: 0.9, default: 0.5 },
     fit: { type: "enum", describe: "The rule to choose a shelf in the class of the item.", values: ["next", "first"], default: "first" },
   } satisfies OptionSchema<ShelfOnlineOptions>,
+  "shelf-split-fit": {},
+  "shelf-floor-ceiling": {},
+  "shelf-knapsack": {},
   sleator: {},
   beam: {
     width: { type: "integer", describe: "The count of the states that each level keeps, and the count of the children of a state.", min: 1, max: 64, scale: "log", default: BEAM_WIDTH },
@@ -328,6 +333,13 @@ const SCHEMAS: Readonly<Record<string, Readonly<Record<string, AnyOption>>>> = {
   } satisfies OptionSchema<MasonryStrategyOptions>,
   treemap: {
     method: { type: "enum", describe: "The layout of the cells.", values: TREEMAP_METHOD_IDS },
+    pivot: {
+      type: "enum",
+      describe: "The pivot rule of the method pivot-split: the most equal split, the middle item or the largest item.",
+      values: TREEMAP_PIVOT_IDS,
+      default: "split",
+      when: { param: "method", in: ["pivot-split"] },
+    },
   } satisfies OptionSchema<TreemapStrategyOptions>,
   "side-anchors": {
     first: { type: "object", describe: "One anchor for the first item of the input.", ...none("unset", "Without it, only the option anchors holds anchors.") },
@@ -364,6 +376,9 @@ const DESCRIBES: Readonly<Record<string, string>> = {
   force: "This strategy moves the boxes of the member layout with forces, then it removes the overlaps.",
   "shelf-breaks": "This strategy packs a strip into rows in the reading order, with the breaks of the least height.",
   "shelf-online": "This strategy packs a strip online: each box takes a shelf of its class of height and does not move later.",
+  "shelf-split-fit": "This strategy packs the wide boxes on levels, then the narrow boxes in a region at the side of those levels.",
+  "shelf-floor-ceiling": "This strategy packs each level on its floor from the left and under its ceiling from the right.",
+  "shelf-knapsack": "This strategy opens each level with the tallest box left, and a knapsack on the area fills the rest of its width.",
   sleator: "This strategy packs a strip with the algorithm of Sleator, with a proved bound of 2.5 times the optimum.",
   beam: "This strategy packs a strip with a beam search over the next item.",
   "exact-strip": "This strategy searches a small strip until it proves the smallest height.",
@@ -433,6 +448,7 @@ function entryOf(listing: StrategyListing): CatalogEntry {
     optIn: !registered.some((s) => s.id === id),
     options: catalogOptions(strategy(id).defaults as Readonly<Record<string, unknown>>, schema),
     output: outputRows(id),
+    ...(STRATEGY_FINGERPRINT[id] === undefined ? {} : { fingerprint: STRATEGY_FINGERPRINT[id] }),
   };
 }
 
@@ -441,5 +457,5 @@ function catalog(): StrategyCatalogSource {
   return { engine: STRATEGY_CATALOG_ENGINE, strategies: allStrategies.map(entryOf).sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)) };
 }
 
-/** Each strategy and each option of the engine, as the source of `strategy-catalog/2`. The file `strategy-catalog.json` holds the same data with the version. */
+/** Each strategy and each option of the engine, with the output fingerprint of each strategy, as the source of `strategy-catalog/3`. The file `strategy-catalog.json` holds the same data with the version. */
 export const strategyCatalog: StrategyCatalogSource = /* @__PURE__ */ catalog();

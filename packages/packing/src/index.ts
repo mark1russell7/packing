@@ -8,7 +8,7 @@ export { packShelf, SHELF_FITS, type ShelfFit, type ShelfOptions } from "./shelf
 export { packMaxRects, MAXRECTS_BANDS, MAXRECTS_RULES, type MaxRectsOptions, type MaxRectsRule, type MaxRectsScore } from "./maxrects.ts";
 export { packGuillotine, GUILLOTINE_CHOICES, GUILLOTINE_SPLITS, type GuillotineChoice, type GuillotineOptions, type GuillotineSplit } from "./guillotine.ts";
 export { packFree, aspectError, type FreeWidthOptions, type FreeWidthResult, type FreeWidthTry } from "./free.ts";
-export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, windowOrder, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
+export { compareRects, GRAPH_ORDERS, graphOrder, isGraphOrder, orderRects, SORT_ORDERS, sortKey, windowOrder, type GraphOrder, type ItemLink, type ItemOrder, type SortOrder } from "./order.ts";
 export { pushCascade, type PushOptions } from "./push.ts";
 export { packingMetrics, type MetricsOptions, type PackingMetrics } from "./metrics.ts";
 export {
@@ -105,10 +105,12 @@ export {
   STANDALONE_MAX_ITEMS,
   standaloneStrategies,
   TREEMAP_METHOD_IDS,
+  TREEMAP_PIVOT_IDS,
   type MasonryMethod,
   type MasonryStrategyOptions,
   type SideAnchorStrategyOptions,
   type TreemapMethod,
+  type TreemapPivot,
   type TreemapStrategyOptions,
 } from "./standalone-strategies.ts";
 export { allStrategies, packFrames, packWith, strategy } from "./strategy-list.ts";
@@ -136,7 +138,7 @@ export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb
 export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
-export { compactUp } from "./compact.ts";
+export { compactLeft, compactUp } from "./compact.ts";
 export { matchPlaces } from "./match.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
 export { keepPrefix, pinUnchanged, repackPinned, type PinnedInput, type Repacked, type RepackMethod } from "./pin.ts";
@@ -215,6 +217,7 @@ export {
 } from "./bounds.ts";
 export { shelfBreaks, shelfBreaksRefusal, type ShelfBreaksResult } from "./shelf-breaks.ts";
 export { shelfOnline, shelfOnlineRefusal, type ShelfOnlineFit, type ShelfOnlineOptions, type ShelfOnlineResult } from "./shelf-online.ts";
+export { SHELF_KNAPSACK_STATES, shelfFloorCeiling, shelfKnapsack, shelfLevelsRefusal, shelfSplitFit, type ShelfLevelsResult } from "./shelf-levels.ts";
 export { sleatorRefusal, sleatorStrip, type SleatorResult } from "./sleator.ts";
 export { BINARY_HEIGHT_STAGE, packBinaryHeight, type BinaryHeightOptions, type BinaryHeightResult } from "./binary-height.ts";
 export { BEAM_WIDTH, beamStrip, type BeamOptions, type BeamResult } from "./beam.ts";
@@ -225,6 +228,7 @@ export {
   columnsCssBalance,
   columnsLinearPartition,
   cssGridDense,
+  cssGridLanes,
   cssGridSparse,
   masonryDifferencing,
   masonryLpt,
@@ -233,6 +237,7 @@ export {
   type ColumnBalance,
   type ColumnReading,
   type GridFlowOptions,
+  type GridLanesOptions,
   type MasonryLayout,
   type MasonryOptions,
 } from "./masonry.ts";
@@ -373,6 +378,8 @@ export {
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
+  treemapHilbert,
+  treemapMoore,
   treemapPack,
   treemapPivotMiddle,
   treemapPivotSize,

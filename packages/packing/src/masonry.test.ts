@@ -8,6 +8,7 @@ import {
   columnsCssBalance,
   columnsLinearPartition,
   cssGridDense,
+  cssGridLanes,
   cssGridSparse,
   masonryDifferencing,
   masonryLpt,
@@ -575,6 +576,108 @@ describe("the CSS grid flow", () => {
     expect(() => cssGridSparse(good, { columns: 1, columnWidth: 1 })).toThrow(RangeError);
     expect(() => cssGridDense({ ...good, container: { fixed: "width", w: 9 } }, { columns: 2 })).toThrow(RangeError);
     expect(cssGridSparse(cards([]), { columns: 3 })).toEqual({ placements: [], overflow: [], size: { w: 0, h: 0 }, moved: [] });
+  });
+});
+
+describe("the CSS grid lanes", () => {
+  /** This function gives a free input of boxes with the widths and the heights. */
+  const cards = (sizes: readonly (readonly [number, number])[], gap = 0): PackInput => ({
+    container: { fixed: "none" },
+    gap,
+    items: sizes.map(([w, h], index) => ({ id: `c${index}`, w, h })),
+  });
+
+  /**
+   * This function is the oracle: the steps of section 4.4 of the CSS grid level 3 draft, over lists of lines.
+   * It gives the first line and the top of each box. Its input is the columns of each box, and its height with the margins and the gap.
+   */
+  const oracle = (boxes: readonly (readonly [number, number])[], columns: number, tolerance: number): [number, number][] => {
+    const running = new Array<number>(columns).fill(0);
+    let cursor = 0;
+    return boxes.map(([span, height]) => {
+      const lines = Array.from({ length: columns - span + 1 }, (_, line) => ({ line, maxPos: Math.max(...running.slice(line, line + span)) }));
+      const least = Math.min(...lines.map((entry) => entry.maxPos));
+      const possible = lines.filter((entry) => entry.maxPos <= least + tolerance);
+      const chosen = possible.find((entry) => entry.line >= cursor) ?? possible[0]!;
+      running.fill(chosen.maxPos + height, chosen.line, chosen.line + span);
+      cursor = chosen.line + span;
+      return [chosen.line, chosen.maxPos];
+    });
+  };
+
+  it("prefers the tied column after the box before it, where masonryMultiSpan takes the left column", () => {
+    // 3 columns of width 1. After d, the columns 0 and 2 have the top 10, and the cursor is at the right edge of d.
+    const input = wall([10, 1, 10, 20, 5]);
+    expect(cssGridLanes(input, { columns: 3 }).placements).toEqual([
+      { id: "i0", x: 0, y: 0 },
+      { id: "i1", x: 1, y: 0 },
+      { id: "i2", x: 2, y: 0 },
+      { id: "i3", x: 1, y: 1 },
+      { id: "i4", x: 2, y: 10 },
+    ]);
+    expect(masonryMultiSpan(input, { columns: 3 }).placements[4]).toEqual({ id: "i4", x: 0, y: 10 });
+    expect(cssGridLanes(input, { columns: 3 }).size).toEqual({ w: 3, h: 21 });
+  });
+
+  it("ties the places within the fit tolerance, and each box goes to the top of its own place", () => {
+    const input = wall([10, 12, 10, 5, 5]);
+    expect(cssGridLanes(input, { columns: 3 }).placements[4]).toEqual({ id: "i4", x: 2, y: 10 });
+    expect(cssGridLanes(input, { columns: 3, fitTolerance: 3 }).placements[4]).toEqual({ id: "i4", x: 1, y: 12 });
+  });
+
+  it("puts the boxes in the columns in strict order with an infinite tolerance", () => {
+    const heights = heightsOf(7, 23, 4, false);
+    const output = cssGridLanes(wall(heights), { columns: 4, fitTolerance: Infinity });
+    expect(output.placements.map((p) => p.x)).toEqual(heights.map((_, index) => index % 4));
+  });
+
+  it("puts a wide box at the tallest top of its columns, with the gaps", () => {
+    // 2 columns of 10 and a gap of 2: b covers the 2 columns, so it goes under a.
+    const input = cards([[10, 5], [22, 3], [10, 1]], 2);
+    expect(cssGridLanes(input, { columns: 2, columnWidth: 10 }).placements).toEqual([
+      { id: "c0", x: 0, y: 0 },
+      { id: "c1", x: 0, y: 7 },
+      { id: "c2", x: 0, y: 12 },
+    ]);
+    expect(cssGridLanes(input, { columns: 2, columnWidth: 10 }).size).toEqual({ w: 22, h: 13 });
+  });
+
+  it("agrees with the steps of the draft, with no overlap, on made-up inputs", () => {
+    for (const [seed, { input, columns }] of mixedInputs().entries()) {
+      const gap = input.gap ?? 0;
+      const widest = Math.max(0, ...input.items.map((item) => item.w + marginWidth(item)));
+      const columnWidth = widest > 0 ? widest / (1 + (seed % columns)) : 1;
+      const fitTolerance = [0, 2, 10, Infinity][seed % 4]!;
+      const order = input.items.map((item, index) => [item.rank ?? index, index] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, index]) => index);
+      const boxes = order.map((index) => {
+        const item = input.items[index]!;
+        const m = item.margin;
+        const [top, bottom] = typeof m === "number" ? [m, m] : [m?.top ?? 0, m?.bottom ?? 0];
+        let span = 1;
+        while (span * columnWidth + (span - 1) * gap < item.w + marginWidth(item)) span += 1;
+        return [span, item.h + top + bottom + gap] as const;
+      });
+      const output = cssGridLanes(input, { columns, columnWidth, fitTolerance });
+      const got = order.map((index) => {
+        const p = output.placements[index]!;
+        const item = input.items[index]!;
+        return [Math.round((p.x - marginLeft(item)) / (columnWidth + gap)), p.y - marginTop(item)];
+      });
+      const want = oracle(boxes, columns, fitTolerance);
+      expect(got.map(([line]) => line)).toEqual(want.map(([line]) => line));
+      for (const [index, [, top]] of want.entries()) expect(got[index]![1]).toBeCloseTo(top, 9);
+      expect(checkHard(input, output)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 0 });
+      if (input.items.length > 0) expect(Math.max(...columnBalance(input, output, { columns, columnWidth }).heights)).toBeCloseTo(output.size.h, 9);
+    }
+  });
+
+  it("refuses a negative or NaN tolerance, and the refusals of masonryMultiSpan", () => {
+    const good = cards([[2, 1]]);
+    expect(() => cssGridLanes(good, { columns: 2, fitTolerance: -1 })).toThrow(RangeError);
+    expect(() => cssGridLanes(good, { columns: 2, fitTolerance: Number.NaN })).toThrow(RangeError);
+    expect(() => cssGridLanes(good, { columns: 1, columnWidth: 1 })).toThrow(RangeError);
+    expect(() => cssGridLanes({ ...good, container: { fixed: "width", w: 9 } }, { columns: 2 })).toThrow(RangeError);
+    expect(cssGridLanes(cards([]), { columns: 3 })).toEqual({ placements: [], overflow: [], size: { w: 0, h: 0 }, moved: [] });
   });
 });
 

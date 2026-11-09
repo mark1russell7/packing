@@ -26,17 +26,21 @@ const FAST: Readonly<Record<string, Record<string, unknown>>> = Object.fromEntri
 /** The combine options with a param `iterations` that the test makes fast. */
 const FAST_COMBINE: Readonly<Record<string, number>> = { "overlap-min": FAST_MOVES, anneal: FAST_ITERATIONS, genetic: FAST_ITERATIONS, tabu: FAST_ITERATIONS };
 
-/** One job: a bench entry or a sampled config, and its pack of an input with a seed. */
+/** One job: a bench entry or a sampled config, and its pack of an input with a seed. A standalone job can refuse each input. */
 interface Job {
   readonly id: string;
+  readonly standalone: boolean;
   readonly pack: (input: PackInput, seed: number) => PackOutput;
 }
+
+/** The strategies of the standalone entries. A sampled config with one of them as its placement is a standalone job. */
+const STANDALONE_STRATEGIES: ReadonlySet<string> = new Set(ENTRIES.filter((e) => STANDALONE_IDS.has(e.id)).map((e) => e.strategy));
 
 /** This function gives the job of a bench entry. As in `runBench`, an entry with options packs them over the defaults of its strategy. */
 function entryJob(e: (typeof ENTRIES)[number]): Job {
   const more = { ...e.options, ...FAST[e.id] };
   const options = Object.keys(more).length === 0 ? undefined : { ...(strategy(e.strategy).defaults as Record<string, unknown>), ...more };
-  return { id: `entry:${e.id}`, pack: (input, seed) => packWith(e.strategy, input, options, seed) };
+  return { id: `entry:${e.id}`, standalone: STANDALONE_IDS.has(e.id), pack: (input, seed) => packWith(e.strategy, input, options, seed) };
 }
 
 /** This function gives a sampled config with the fast params of `FAST_COMBINE`. */
@@ -54,7 +58,7 @@ const SAMPLED: readonly StrategyConfig[] = (() => {
   return Array.from({ length: 24 }, (_, i) => fastConfig(canonicalConfig(packSpace, drawOf(stepRandom(121, `pair-${i}`), plan, plan.strata[i % plan.strata.length]))));
 })();
 
-const JOBS: readonly Job[] = [...ENTRIES.map(entryJob), ...SAMPLED.map((config, i): Job => ({ id: `sampled:${i}`, pack: (input, seed) => packConfig(input, config, seed) }))];
+const JOBS: readonly Job[] = [...ENTRIES.map(entryJob), ...SAMPLED.map((config, i): Job => ({ id: `sampled:${i}`, standalone: STANDALONE_STRATEGIES.has(config.stages["placement"]?.option ?? ""), pack: (input, seed) => packConfig(input, config, seed) }))];
 
 /** This function gives the items in a seeded shuffled order (Fisher and Yates). */
 function shuffled<T>(items: readonly T[], seed: number, key: string): T[] {
@@ -102,7 +106,8 @@ describe("the shuffle test of k121", () => {
     it(`gives one output for each job and input of group ${g + 1} of ${GROUPS.length} (${group[0]!.id} to ${group.at(-1)!.id})`, () => {
       const { unstable, packed } = shuffleRun(group, `group-${g}`);
       expect(unstable).toEqual([]);
-      expect(packed).toBeGreaterThanOrEqual(group.filter((job) => !STANDALONE_IDS.has(job.id.replace(/^entry:/u, ""))).length);
+      // Roadmap item k211 adds 3 strata, so more sampled configs of the seed take a standalone placement. Before k211 the bound counted only the standalone entries.
+      expect(packed).toBeGreaterThanOrEqual(group.filter((job) => !job.standalone).length);
     });
   });
 });

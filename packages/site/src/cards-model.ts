@@ -2,6 +2,7 @@
 // of the benchmark, its rows of `docs/research/CATALOG.md` and its verdicts of the committed snapshots. The page builds
 // the cards at build time, so a new strategy of the registry gets a card with no change to the site.
 
+import { escapeAttribute as escapeHtml } from "@mark1russell7/text";
 import {
   ASPECT_FIT_FACTORS,
   BEST_FIT_SIDES,
@@ -121,6 +122,21 @@ export const STRATEGY_STAGES: Readonly<Record<string, StageInfo>> = {
     stage: "placement",
     rule: "Put each box when it comes on a shelf of its class of height, a power of `r`. Do not move it later.",
     cost: "`O(n s)` for `s` shelves",
+  },
+  "shelf-split-fit": {
+    stage: "placement",
+    rule: "Pack the wide boxes on levels by first fit. Put the levels that are almost full first. Fill the region at the side of the other levels with the narrow boxes.",
+    cost: "`O(n l)` for `l` levels",
+  },
+  "shelf-floor-ceiling": {
+    stage: "placement",
+    rule: "Fill each level on its floor from the left and under its ceiling from the right. A box goes on a ceiling only when it does not fit the floor below.",
+    cost: "`O(n^2)`",
+  },
+  "shelf-knapsack": {
+    stage: "placement",
+    rule: "Open each level with the tallest box left. Fill the rest of the width with the boxes of the largest area, by a 0-1 knapsack.",
+    cost: "`O(n^2 S)` for at most `S` states",
   },
   beam: {
     stage: "placement",
@@ -271,10 +287,8 @@ export function catalogHref(href: string, catalogUrl: string): string | undefine
   return docs === null ? undefined : new URL(`../${docs[1]}`, catalogUrl).href;
 }
 
-/** This function escapes text for HTML: it replaces each of the characters `&`, `<`, `>`, `"` and `'`. */
-export function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch]!);
-}
+/** The escape of text for HTML: `escapeAttribute` of `@mark1russell7/text`. It replaces each of the characters `&`, `<`, `>`, `"` and `'`. */
+export { escapeHtml };
 
 /**
  * This function gives the HTML of a cell of the catalog. It escapes all of the text. It makes each code span a `code`

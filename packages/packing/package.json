@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/packing",
-  "version": "0.16.2",
+  "version": "0.17.3",
   "description": "Rectangle packing: shelf, guillotine and skyline strategies, push cascades and measures of a layout.",
   "keywords": [
     "rectangle-packing",
@@ -112,7 +112,7 @@
     "@mark1russell7/collections": "^0.10.0",
     "@mark1russell7/layout-contract": "^0.9.2",
     "@mark1russell7/rigor-generators": "^0.1.6",
-    "@mark1russell7/strategy-space": "^0.0.3"
+    "@mark1russell7/strategy-space": "^0.0.5"
   },
   "scripts": {
     "bench": "node bench/main.ts",
