@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.3
+
+The strategy `raster-nofit` finds the first free place of a box with fewer checks (roadmap item k223). Each output stays the same.
+
+This release raises the PATCH version. Before 1.0.0, a fix raises PATCH.
+
+### Fixed
+
+- The search of `raster-nofit` tried each column of a row. A slow input of the bench came to the time limit of its job. The search skips each column where a span of the box is on the same blocked cell. On 120 inputs of `pack-classes-v1` with 3 trials, the checks went from 134,964,574 to 12,004,285, and each output hash stayed the same.
+
 ## 0.17.1
 
 The method `pivot-split` of the strategy `treemap` has the param `pivot`. The pivots by middle and by size of Shneiderman 2001 are values of this param.
