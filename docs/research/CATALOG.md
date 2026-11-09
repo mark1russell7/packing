@@ -390,7 +390,7 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
 | `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
 | `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | — | planned | k27 |
-| `treemap-quantum` | Quantum | Do an ordered treemap with cells that are whole multiples of a unit size, for grids of pictures. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
+| `treemap-quantum` | Quantum | Do `treemap-strip` with cells that are whole multiples of a unit size, for grids of pictures. Then give each strip the width of the widest strip. | Bederson 2002 | order, aspect | `O(n sqrt n)` on average, `O(n^2)` at most | — | implemented: the function `treemapQuantum`, not a method of the strategy `treemap` | k27 |
 | `treemap-voronoi` | Voronoi | Move weighted sites until the area of each Voronoi cell is its weight. The cells are polygons. | Balzer 2005 | aspect | iterations x `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi-fast` | Fast Voronoi | Do `treemap-voronoi` with power diagrams and no raster. | Nocaj 2012 | aspect, speed | iterations x `O(n log n)` | — | planned | k27 |
 | `circle-pack-front-chain` | Circle packing | Put each circle against the front chain of the circles before it. | Wang 2006 | aspect | `O(n^2)` | — | planned | k27 |
@@ -408,6 +408,7 @@ Notes:
 
 - Shneiderman 2001 measures the stability as the mean change of distance of the corners of the cells. Bederson 2002 adds a measure of how easy the order is to read. Tu 2007 adds a measure of continuity.
 - Vernier 2020 compares many time-dependent treemaps on the same data. It measures the change with corner travel and relative position change, and it removes the change that the data needs. These measures go into [Measures to add](#measures-to-add).
+- `treemapQuantum` follows the steps of section 3.1 of Bederson 2002, but its mean aspect is worse than that of `treemap-strip`. The paper tells the opposite. The cause is a small group alone in a strip of one row. The comparison is in [`docs/BENCH.md`](../BENCH.md#treemaps-against-the-literature).
 - The cells of the Voronoi and bounded-aspect treemaps are polygons. A box in such a cell needs the largest rectangle in the polygon.
 - `treemapSliceDice`, `treemapSquarified`, `treemapStrip` and `treemapPivotSplit` are standalone functions. They are not strategies of the registry. `treemapPack` is the comparison with a packer of the section [The measures and the families](#the-measures-and-the-families).
 - Tables I to III of Bederson 2002 measure the three pivots of this section. The package has the pivot by split size. The comparison with those tables is in [`docs/BENCH.md`](../BENCH.md#treemaps-against-the-literature).

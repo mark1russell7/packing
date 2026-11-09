@@ -208,6 +208,10 @@ type PortfolioTrace: @mark1russell7/layout-contract#PortfolioTrace (external)
 type PortfolioTrainScore: build/index.d.ts#PortfolioTrainScore
 type PushOptions: build/push-strategy.d.ts#PushOptions
 type PushStrategyOptions: build/push-strategy.d.ts#PushStrategyOptions
+type QuantumCell: build/index.d.ts#QuantumCell
+type QuantumItem: build/index.d.ts#QuantumItem
+type QuantumLayout: build/index.d.ts#QuantumLayout
+type QuantumOptions: build/index.d.ts#QuantumOptions
 RASTER_NOFIT_MAX_CELLS: build/index.d.ts#RASTER_NOFIT_MAX_CELLS
 RASTER_NOFIT_STAGE: build/index.d.ts#RASTER_NOFIT_STAGE
 RECORD_EPS: @mark1russell7/layout-contract#RECORD_EPS (external)
@@ -516,6 +520,7 @@ treemapPack: build/index.d.ts#treemapPack
 treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
 treemapPivotSize: build/index.d.ts#treemapPivotSize
 treemapPivotSplit: build/index.d.ts#treemapPivotSplit
+treemapQuantum: build/index.d.ts#treemapQuantum
 treemapSliceDice: build/index.d.ts#treemapSliceDice
 treemapSpiral: build/index.d.ts#treemapSpiral
 treemapSquarified: build/index.d.ts#treemapSquarified
@@ -1530,6 +1535,36 @@ interface PortfolioTrainScore {
   msMean: number;
 }
 
+### build/index.d.ts#QuantumCell
+interface QuantumCell extends TreemapCell {
+  readonly cols: number;
+  readonly rows: number;
+}
+
+### build/index.d.ts#QuantumItem
+interface QuantumItem {
+  readonly id: string;
+  readonly count: number;
+}
+
+### build/index.d.ts#QuantumLayout
+interface QuantumLayout {
+  readonly cells: QuantumCell[];
+  readonly element: {
+    readonly w: number;
+    readonly h: number;
+  };
+  readonly grid: {
+    readonly cols: number;
+    readonly rows: number;
+  };
+}
+
+### build/index.d.ts#QuantumOptions
+interface QuantumOptions {
+  readonly elementAspect?: number;
+}
+
 ### build/index.d.ts#RASTER_NOFIT_MAX_CELLS
 export declare const RASTER_NOFIT_MAX_CELLS: number;
 
@@ -2477,6 +2512,9 @@ export declare function treemapPivotSize(nodes: readonly TreemapNode[], frame: T
 
 ### build/index.d.ts#treemapPivotSplit
 export declare function treemapPivotSplit(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapQuantum
+export declare function treemapQuantum(items: readonly QuantumItem[], frame: TreemapFrame, options?: QuantumOptions): QuantumLayout;
 
 ### build/index.d.ts#treemapSliceDice
 export declare function treemapSliceDice(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];

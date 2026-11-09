@@ -372,6 +372,7 @@ export {
 } from "./generators.ts";
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
+export { treemapQuantum, type QuantumCell, type QuantumItem, type QuantumLayout, type QuantumOptions } from "./treemap-quantum.ts";
 export {
   treemapHilbert,
   treemapMoore,

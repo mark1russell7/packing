@@ -1735,6 +1735,7 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 - The tables do not tell if the strip row has the lookahead of section 2.2.1. Thus the arms `strip` and `strip-no-lookahead` read the same row.
 - The text of the paper gives a variance of 0.05 for the log of each step. The Change column is near a standard deviation of 0.05. Thus the report has a row for each reading of the walk.
 - Shneiderman 2001 has the pivot by middle and the pivot by size, but not the pivot by split size. Bruls 2000 has no table of means. Its worked example is a unit test in `src/treemap.test.ts`. Shneiderman 1992 has no measured value.
+- Figures 13 and 14 of Bederson 2002 compare the quantum strip treemap with the strip treemap. The section "Quantum strip against strip" has 100 groups in each trial, with uniform counts in five ranges. The figures give no number in the text, thus the section has no published row.
 - Tu and Shen 2007 give no table in the form of Bederson 2002. Thus the arm `spiral` has no published row. The section "Spiral against strip" divides the aspect and the change of `spiral` by those of `strip` on the same trials. It also gives the readability of `spiral` minus that of `strip`.
 
 ## The snapshots of the site

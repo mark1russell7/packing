@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TreemapNode } from "../src/treemap.ts";
-import { ARMS, BANDS, layoutChange, literatureRows, meanAspectOf, PUBLISHED, readabilityOf, reportOf, SPIRAL_LIMITS, spiralRows, treeOf, WALKS, type Compared } from "./treemap-literature.ts";
+import { treemapQuantum } from "../src/treemap-quantum.ts";
+import { ARMS, BANDS, layoutChange, literatureRows, meanAspectOf, PUBLISHED, QUANTUM_RANGES, quantumAspects, quantumRows, readabilityOf, reportOf, SPIRAL_LIMITS, spiralRows, treeOf, WALKS, type Compared } from "./treemap-literature.ts";
 
 describe("the measures of Bederson 2002", () => {
   it("gives the unweighted mean of the aspects", () => {
@@ -99,5 +100,32 @@ describe("spiral against strip", () => {
 
   it("gives no spiral row without a strip row of the same walk and table", () => {
     expect(spiralRows([row("spiral", 1, 1, 1)])).toEqual([]);
+  });
+});
+
+describe("the quantum trials of figures 13 and 14", () => {
+  it("counts a group alone in a strip of one row, and leaves it out of the other aspect", () => {
+    // The groups 100, 4 and 100 give three strips. The 4 is alone in the middle strip, with 13 columns and 1 row.
+    const layout = treemapQuantum([{ id: "a", count: 100 }, { id: "b", count: 4 }, { id: "c", count: 100 }], { x: 0, y: 0, w: 170, h: 170 });
+    const read = quantumAspects(layout);
+    expect(read.lone).toBe(1);
+    expect(read.otherAspect).toBeCloseTo(13 / 8, 12);
+    expect(read.aspect).toBeCloseTo((13 / 8 + 13 + 13 / 8) / 3, 12);
+  });
+
+  it("gives a row for each range, and the report gives the section", () => {
+    const rows = quantumRows(2);
+    expect(rows.map((row) => row.range)).toEqual([...QUANTUM_RANGES]);
+    for (const row of rows) {
+      expect(row.quantumAspect.measured).toBeGreaterThanOrEqual(1);
+      expect(row.stripAspect.measured).toBeGreaterThanOrEqual(1);
+      expect(row.wasted.measured).toBeGreaterThanOrEqual(0);
+      expect(row.wasted.measured).toBeLessThan(1);
+      expect([row.quantumAspect.published, row.quantumAspect.inBand]).toEqual([null, null]);
+    }
+    const report = reportOf([], 2, 2, rows);
+    expect(report).toContain("## Quantum strip against strip (figures 13 and 14)");
+    expect(report).toContain("| 1 to 10 | ");
+    expect(reportOf([], 2, 2)).not.toContain("Quantum strip");
   });
 });
