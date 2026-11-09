@@ -354,6 +354,7 @@ columnBalance: build/index.d.ts#columnBalance
 columnReading: build/index.d.ts#columnReading
 columnsCssBalance: build/index.d.ts#columnsCssBalance
 columnsLinearPartition: build/index.d.ts#columnsLinearPartition
+compactLeft: build/index.d.ts#compactLeft
 compactUp: build/index.d.ts#compactUp
 compareRects: build/order.d.ts#compareRects
 composites: build/index.d.ts#composites
@@ -2038,6 +2039,9 @@ export declare function columnsCssBalance(input: PackInput, options: MasonryOpti
 
 ### build/index.d.ts#columnsLinearPartition
 export declare function columnsLinearPartition(input: PackInput, options: MasonryOptions): PackOutput;
+
+### build/index.d.ts#compactLeft
+export declare function compactLeft(input: PackInput, output: PackOutput): PackOutput;
 
 ### build/index.d.ts#compactUp
 export declare function compactUp(input: PackInput, output: PackOutput): PackOutput;

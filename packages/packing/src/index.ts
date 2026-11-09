@@ -136,7 +136,7 @@ export { RESTART_PERTURBS, RESTARTS_STAGE, restartsStrategy, type RestartPerturb
 export { packWork, WORK_BUDGET, WORK_SPENT, WORK_STOPPED } from "./work.ts";
 export { BBOX_SHAPES, bboxStrategy, type BboxStrategyOptions } from "./bbox.ts";
 export { OVERLAP_MIN_STAGE, overlapMinStrategy, type OverlapMinStrategyOptions } from "./overlap-min.ts";
-export { compactUp } from "./compact.ts";
+export { compactLeft, compactUp } from "./compact.ts";
 export { matchPlaces } from "./match.ts";
 export { keepOrthogonal } from "./orthogonal.ts";
 export { keepPrefix, pinUnchanged, repackPinned, type PinnedInput, type Repacked, type RepackMethod } from "./pin.ts";

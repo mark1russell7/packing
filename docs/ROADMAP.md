@@ -215,7 +215,7 @@ Status: done, done, waiting, next, done.
 | k210 | Order operators: each sort key with its own mechanism. A direction or a tie-break counts as a variant | strategies | later |  |
 | k211 | Placement operators: each published rectangle rule of the survey that is not in `packSpace` | strategies | later |  |
 | k212 | A local-search stage: SA, tabu, GA, GRASP, VNS, ILS, ruin-recreate and beam, with separate moves and acceptance rules | strategies | later |  |
-| k213 | The new stages refine and compact, after each placement | strategies | later |  |
+| k213 | The new stages refine and compact, after each placement. The first slice adds `compactLeft`, the compaction of a constraint graph along `x` | strategies | in progress |  |
 | k214 | A screen by successive halving in a CI matrix: 1,000 configurations | bench | later | k207 |
 | k215 | The pilot measures in `kpi.json`: operators, distinct variants, screened and measured strategies, each with a target and a date. The first slice declares the 38 operators of `packSpace` as `packOperators` and adds the measure `operators` | site | in progress |  |
 | k216 | Each view generated: each measure against each dimension, for all strategies. Milestone M2, due 11-19: the compare page ranks each measured strategy again under a chosen objective. The objective comes from presets (densest, balanced, a spacing of about N px) or a slider for the spacing target. The page shows the Pareto front of two measures. The objective spec comes from `@mark1russell7/layout-contract`. A local adapter of the same shape is removed when that spec releases | site | later | k215 |
