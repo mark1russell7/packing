@@ -1,3 +1,0 @@
-headroom: lease 3f5b1b6d for sp216-438-gen, granted.
-position fractional: 23, position untested: 10, position whole: 56, size fractional: 13, size untested: 13, size whole: 63
-headroom: the job used at most 390 MB of its lease of 1.0 GB. It started 6 processes, and used 1.1 cores on average.
