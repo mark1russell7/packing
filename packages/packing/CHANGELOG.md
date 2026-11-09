@@ -14,6 +14,10 @@ This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
 - The options `climb`, `threshold`, `record` and `late` of the stage `combine` of `packSpace`, each one an operator of `packOperators`. The named configs `walk` and the 4 entries `climb-maxrects-bl-k16`, `threshold-maxrects-bl-k16`, `record-maxrects-bl-k16` and `late-maxrects-bl-k16`.
 - The catalog rows `search-threshold-order`, `search-record-order` and `search-late-order`. The row `search-naive-evolution` is implemented.
 
+### Changed
+
+- The range of `@mark1russell7/layout-contract` goes from `^0.9.1` to `^0.9.7`. The catalog check examines the params of each walk option against the declarations of `walk`.
+
 ## 0.15.1
 
 The functions `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013 lay the items of a treemap along a curve.

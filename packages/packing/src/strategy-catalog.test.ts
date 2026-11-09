@@ -220,8 +220,8 @@ const WORK_FLAG = "This flag of the space turns on the param `budgetWork`.";
 const TARGET_FLAG = "This flag of the space turns on the param `targetAspect`.";
 const ORDER_VALUE = "This value of the stage is a value of the option `sortOrder` of the placement.";
 const STAGE_OFF = "This value turns the stage off.";
-/** This function gives the reason of one walk of roadmap item k212. The params of the walk tests in `walk.test.ts` hold the routes of its params. */
-const walkOption = (accept: string): string => `This option of the space is \`walk\` with the option \`accept\` ${accept}.`;
+/** The walks of roadmap item k212. Each option of the space is the strategy `walk` with one value of its option `accept`. */
+const WALKS: readonly string[] = ["climb", "late", "record", "threshold"];
 
 /** The params of the space that hold another form of an option value, with the function that gives the value. */
 const VALUE_ROUTES: Readonly<Record<string, ParamRoute>> = {
@@ -238,20 +238,19 @@ const SPACE_ONLY_REASONS: Readonly<Record<string, string>> = {
   "combine/anneal.limitWork": WORK_FLAG,
   "combine/aspect-fit.fixedTarget": TARGET_FLAG,
   "combine/cell-portfolio": "This option of the space is a `portfolio` with the members of one portfolio set.",
-  "combine/climb": walkOption("climb"),
+  "combine/climb.limitWork": WORK_FLAG,
   "combine/genetic.limitWork": WORK_FLAG,
-  "combine/late": walkOption("late"),
+  "combine/late.limitWork": WORK_FLAG,
   "combine/portfolio.aspectFit": "This flag of the space puts the strategy `aspect-fit` around the portfolio.",
   "combine/portfolio.fixedTarget": TARGET_FLAG,
   "combine/portfolio.limitMembers": "This flag of the space turns on the param `maxMembers`.",
   "combine/portfolio.limitTime": "This flag of the space turns on the param `budgetMs`.",
   "combine/portfolio.limitWork": WORK_FLAG,
   "combine/portfolio.targetAspect": "This param goes to the strategy `aspect-fit` around the portfolio.",
-  "combine/record": walkOption("record"),
-  "combine/relax-pull": "This option of the space is `relax` with the strength 0 and the option `pull`.",
+  "combine/record.limitWork": WORK_FLAG,
   "combine/restarts.limitWork": WORK_FLAG,
   "combine/tabu.limitWork": WORK_FLAG,
-  "combine/threshold": walkOption("threshold"),
+  "combine/threshold.limitWork": WORK_FLAG,
   "local-search/none": STAGE_OFF,
   "order/area-desc": ORDER_VALUE,
   "order/graph-bfs": ORDER_VALUE,
@@ -267,6 +266,8 @@ const SPACE_ONLY_REASONS: Readonly<Record<string, string>> = {
 /** The route of each place of the space that does not hold an option value with the name of the option. */
 const paramRoutes: Readonly<Record<string, ParamRoute>> = {
   ...VALUE_ROUTES,
+  ...Object.fromEntries(WALKS.map((accept) => [`combine/${accept}`, { strategy: "walk", fixed: { accept } }])),
+  "combine/relax-pull": { strategy: "relax", fixed: { strength: 0 } },
   ...Object.fromEntries(Object.entries(SPACE_ONLY_REASONS).map(([place, spaceOnly]) => [place, { spaceOnly }])),
 };
 
