@@ -501,6 +501,8 @@ tallRow: build/index.d.ts#tallRow
 tallRowFamily: build/index.d.ts#tallRowFamily
 toPackInput: build/index.d.ts#toPackInput
 toRects: build/index.d.ts#toRects
+treemapHilbert: build/index.d.ts#treemapHilbert
+treemapMoore: build/index.d.ts#treemapMoore
 treemapPack: build/index.d.ts#treemapPack
 treemapPivotMiddle: build/index.d.ts#treemapPivotMiddle
 treemapPivotSize: build/index.d.ts#treemapPivotSize
@@ -2413,6 +2415,12 @@ export declare function toPackInput(file: Pick<LayoutInput$1, "container" | "box
 
 ### build/index.d.ts#toRects
 export declare function toRects<T>(output: PackOutput, rects: Rect<T>[], outer: Rect<T>): Rect<T>;
+
+### build/index.d.ts#treemapHilbert
+export declare function treemapHilbert(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
+
+### build/index.d.ts#treemapMoore
+export declare function treemapMoore(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[];
 
 ### build/index.d.ts#treemapPack
 export declare function treemapPack(input: PackInput, layout: TreemapLayout): PackOutput;
