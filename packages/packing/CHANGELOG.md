@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.14.1
+## 0.15.1
 
 The functions `treemapHilbert` and `treemapMoore` of Tak and Cockburn 2013 lay the items of a treemap along a curve.
 
@@ -16,6 +16,54 @@ This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
 ### Not changed
 
 - The strategy `treemap` and its methods. The fingerprints of the catalog stay the same.
+
+## 0.15.0
+
+A pack can start from a start frame, and a run can give its frames (roadmap item k220). The record of a frame is `layout-frame/1` of `@mark1russell7/layout-contract` 0.9.1. The strategy `force` settles from the start, so a box with a good place does not move.
+
+This release raises the MINOR version. The output of `force` with a previous output changes, and `force` gets the mode `incremental`. Before 1.0.0, a break raises MINOR.
+
+### Added
+
+- The parameter `run` of `packWith`: a start frame or a previous output, and a callback of the frames. The run is not part of the options, so the config ids do not change.
+- The function `packFrames`: the output and each frame of a run, from the start frame to the frame of the output.
+- The functions `frameOfOutput` and `startOutputOf`, and the types `PackRun` and `FrameCallback`.
+- The field `onFrame` of `PackContext`. A strategy that moves the boxes step by step gives it the output after each step.
+
+### Changed
+
+- The strategy `force` has the mode `incremental`. With `context.previous`, only the boxes that overlap move, and the steps stop at the first step with no overlap. A start with no overlap gives the same placements. The trace stage has `force.start` and `force.steps`.
+- The dependency `@mark1russell7/layout-contract` moves to 0.9.1.
+- The fingerprint of `force` changes, because its probe of the mode `incremental` packs from a previous output.
+
+### Breaking
+
+- The strategy `force` reads `context.previous`. A caller that gives a previous output gets another output than before.
+
+## 0.14.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/strategy-space, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.9.8` of `@mark1russell7/collections` in `dependencies` does not hold `0.10.0`, so it changes.
+- The range `^0.0.2` of `@mark1russell7/strategy-space` in `dependencies` does not hold `0.0.3`, so it changes.
+
+## 0.13.1
+
+The functions `cssGridSparse` and `cssGridDense` place cards in the CSS grid flow, as `grid-auto-flow: row` and `grid-auto-flow: row dense` do.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `cssGridSparse`. A box covers the least count of columns and of rows that holds it. It goes to the first free place after the place of the box before it.
+- The function `cssGridDense`. The search of each box starts at the first cell, so a small box can fill a hole that a wide box left.
+- The type `GridFlowOptions`: the options of the masonry functions and `rowHeight`. The default row height is the tallest box with its margins.
+
+### Not changed
+
+- The other masonry functions and the strategies of the registry. The fingerprints of the catalog stay the same.
 
 ## 0.13.0
 

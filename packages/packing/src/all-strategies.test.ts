@@ -54,6 +54,7 @@ const NOT_STRATEGIES: Readonly<Record<string, string>> = {
   packFree: "It searches the width around the strategy of an option.",
   packParts: "It packs the parts of a split, each with a strategy of the caller.",
   packWith: "It packs with a strategy of the registry by id.",
+  packFrames: "It packs with a strategy of the registry by id, and gives the frames of the run.",
   packWork: "It is a measure of an output, and it gives no layout.",
   sweepSearch: "It is a size search that a strategy uses.",
   viaAxes: "It turns the axes around a strategy.",

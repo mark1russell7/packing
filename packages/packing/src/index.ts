@@ -111,7 +111,8 @@ export {
   type TreemapMethod,
   type TreemapStrategyOptions,
 } from "./standalone-strategies.ts";
-export { allStrategies, packWith, strategy } from "./strategy-list.ts";
+export { allStrategies, packFrames, packWith, strategy } from "./strategy-list.ts";
+export { frameOfOutput, startOutputOf, type FrameCallback, type PackRun } from "./pack-run.ts";
 export { DEFAULT_STRATEGY, packDefault } from "./default.ts";
 export {
   ANCHOR_GAIN_LIMIT,
@@ -223,12 +224,15 @@ export {
   columnReading,
   columnsCssBalance,
   columnsLinearPartition,
+  cssGridDense,
+  cssGridSparse,
   masonryDifferencing,
   masonryLpt,
   masonryMultiSpan,
   masonryShortest,
   type ColumnBalance,
   type ColumnReading,
+  type GridFlowOptions,
   type MasonryLayout,
   type MasonryOptions,
 } from "./masonry.ts";

@@ -95,6 +95,7 @@ FORCE_MAX_BOXES: build/index.d.ts#FORCE_MAX_BOXES
 FORCE_MAX_FIXED: build/index.d.ts#FORCE_MAX_FIXED
 FORCE_STAGE: build/index.d.ts#FORCE_STAGE
 type ForceStrategyOptions: build/index.d.ts#ForceStrategyOptions
+type FrameCallback: build/index.d.ts#FrameCallback
 type FreeSpace: build/layout-strategy.d.ts#FreeSpace
 type FreeSpan: build/layout-strategy.d.ts#FreeSpan
 type FreeWidthOptions: build/index.d.ts#FreeWidthOptions
@@ -109,6 +110,7 @@ type GeneratorParams: build/index.d.ts#GeneratorParams
 type GeneratorStamp: build/index.d.ts#GeneratorStamp
 type GeneticStrategyOptions: build/index.d.ts#GeneticStrategyOptions
 type GraphOrder: build/order.d.ts#GraphOrder
+type GridFlowOptions: build/index.d.ts#GridFlowOptions
 type GuillotineChoice: build/layout-strategy.d.ts#GuillotineChoice
 type GuillotineOptions: build/layout-strategy.d.ts#GuillotineOptions
 type GuillotineSplit: build/layout-strategy.d.ts#GuillotineSplit
@@ -185,6 +187,7 @@ type PackLayoutOptions: build/layout-strategy.d.ts#PackLayoutOptions
 type PackOptions: build/layout-strategy.d.ts#PackOptions
 type PackOutput: @mark1russell7/layout-contract#PackOutput (external)
 type PackPortfolioOptions: build/index.d.ts#PackPortfolioOptions
+type PackRun: build/index.d.ts#PackRun
 type PackingMetrics: build/index.d.ts#PackingMetrics
 type Part: build/index.d.ts#Part
 type PerfectCutParams: build/index.d.ts#PerfectCutParams
@@ -361,6 +364,8 @@ corpus: build/index.d.ts#corpus
 corpusFamilies: build/index.d.ts#corpusFamilies
 countCell: build/index.d.ts#countCell
 createContext: build/strategy.d.ts#createContext
+cssGridDense: build/index.d.ts#cssGridDense
+cssGridSparse: build/index.d.ts#cssGridSparse
 dashboard: build/index.d.ts#dashboard
 dashboardFamily: build/index.d.ts#dashboardFamily
 defaultLayoutOf: build/index.d.ts#defaultLayoutOf
@@ -370,6 +375,7 @@ exactStrip: build/index.d.ts#exactStrip
 exactStripRefusal: build/index.d.ts#exactStripRefusal
 fnv1a32: build/index.d.ts#fnv1a32
 forceStrategy: build/index.d.ts#forceStrategy
+frameOfOutput: build/index.d.ts#frameOfOutput
 freeSpace: build/layout-strategy.d.ts#freeSpace
 fromRects: build/index.d.ts#fromRects
 gallery: build/index.d.ts#gallery
@@ -426,6 +432,7 @@ pack: build/index.d.ts#pack
 packBinaryHeight: build/index.d.ts#packBinaryHeight
 packConfig: build/index.d.ts#packConfig
 packDefault: build/default.d.ts#packDefault
+packFrames: build/index.d.ts#packFrames
 packFree: build/index.d.ts#packFree
 packGuillotine: build/layout-strategy.d.ts#packGuillotine
 packMaxRects: build/layout-strategy.d.ts#packMaxRects
@@ -491,6 +498,7 @@ spreadBand: build/index.d.ts#spreadBand
 spreadOf: build/index.d.ts#spreadOf
 stabilityUnitOf: build/index.d.ts#stabilityUnitOf
 standaloneStrategies: build/index.d.ts#standaloneStrategies
+startOutputOf: build/index.d.ts#startOutputOf
 strategies: build/index.d.ts#strategies
 strategy: build/index.d.ts#strategy
 stripGenerators: build/index.d.ts#stripGenerators
@@ -1102,6 +1110,9 @@ interface ForceStrategyOptions {
   rounds?: number;
 }
 
+### build/index.d.ts#FrameCallback
+type FrameCallback = (frame: LayoutFrame, step: number) => void | "stop";
+
 ### build/index.d.ts#FreeWidthOptions
 interface FreeWidthOptions extends PackLayoutOptions {
   aspect?: number;
@@ -1159,6 +1170,11 @@ interface GeneticStrategyOptions {
   budgetWork?: number;
   population?: number;
   mutation?: number;
+}
+
+### build/index.d.ts#GridFlowOptions
+interface GridFlowOptions extends MasonryOptions {
+  readonly rowHeight?: number;
 }
 
 ### build/index.d.ts#HALF_WIDE_WIDTH
@@ -1395,6 +1411,12 @@ interface PackPortfolioOptions {
   maxMembers?: number;
   now?: () => number;
   key?: readonly string[];
+}
+
+### build/index.d.ts#PackRun
+interface PackRun {
+  readonly start?: LayoutFrame | PackOutput;
+  readonly onFrame?: FrameCallback;
 }
 
 ### build/index.d.ts#PackingMetrics
@@ -2041,6 +2063,12 @@ export declare const corpusFamilies: readonly CorpusFamily<GeneratedInput>[];
 ### build/index.d.ts#countCell
 export declare function countCell(count: number): CountScale;
 
+### build/index.d.ts#cssGridDense
+export declare function cssGridDense(input: PackInput, options: GridFlowOptions): PackOutput;
+
+### build/index.d.ts#cssGridSparse
+export declare function cssGridSparse(input: PackInput, options: GridFlowOptions): PackOutput;
+
 ### build/index.d.ts#dashboard
 export declare const dashboard: CorpusGenerator<UiParams>;
 
@@ -2067,6 +2095,9 @@ export declare function fnv1a32(text: string): number;
 
 ### build/index.d.ts#forceStrategy
 export declare const forceStrategy: Strategy<ForceStrategyOptions>;
+
+### build/index.d.ts#frameOfOutput
+export declare function frameOfOutput(input: PackInput, output: PackOutput): LayoutFrame;
 
 ### build/index.d.ts#fromRects
 export declare function fromRects<T>(rects: readonly Rect<T>[], outer: Rect<T>): PackInput;
@@ -2216,6 +2247,12 @@ export declare function packBinaryHeight(input: PackInput, options?: BinaryHeigh
 ### build/index.d.ts#packConfig
 export declare function packConfig(input: PackInput, config: StrategyConfig$1, seed?: number): PackOutput;
 
+### build/index.d.ts#packFrames
+export declare function packFrames(id: string, input: PackInput, options?: unknown, seed?: number, run?: Omit<PackRun, "onFrame">): {
+  output: PackOutput;
+  frames: LayoutFrame[];
+};
+
 ### build/index.d.ts#packFree
 export declare function packFree<T>(rects: Rect<T>[], outer?: Rect<T>, options?: FreeWidthOptions): FreeWidthResult<T>;
 
@@ -2241,7 +2278,7 @@ export declare function packSideAnchors(input: PackInput, anchors: readonly Side
 export declare const packSpace: StrategySpace$1;
 
 ### build/index.d.ts#packWith
-export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number): PackOutput;
+export declare function packWith(id: string, input: PackInput, options?: unknown, seed?: number, run?: PackRun): PackOutput;
 
 ### build/index.d.ts#packWork
 export declare function packWork(input: PackInput, output: PackOutput): number;
@@ -2388,6 +2425,9 @@ export declare function stabilityUnitOf(input: PackInput, output: PackOutput): n
 
 ### build/index.d.ts#standaloneStrategies
 export declare const standaloneStrategies: readonly Strategy[];
+
+### build/index.d.ts#startOutputOf
+export declare function startOutputOf(start: LayoutFrame | PackOutput): PackOutput;
 
 ### build/index.d.ts#strategies
 export declare const strategies: readonly Strategy[];
@@ -2772,6 +2812,7 @@ interface PackContext {
     steps?: number;
   };
   previous?: PackOutput;
+  onFrame?: (output: PackOutput) => void | "stop";
 }
 
 ### build/strategy.d.ts#SizeSearch
