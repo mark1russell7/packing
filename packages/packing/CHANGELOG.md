@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.4
+
+The jigsaw map of Wattenberg 2005 (roadmap item k27). The function is standalone. No strategy and no default uses it.
+
+This release raises the PATCH version: a new function. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `treemapJigsaw`. The leaves of a tree, in the depth-first order, get runs of cells along the Hilbert curve of a square grid. Each region is connected, and two leaves in a row have regions with a common side.
+- The run of a leaf ends at the rounded share of the weight up to the leaf. Thus the error of a count is at most one cell, and the errors do not add up.
+- The types `TreemapJigsaw`, `TreemapJigsawOptions` and `JigsawRegion`, and the constants `JIGSAW_MAX_SIDE` and `JIGSAW_DEFAULT_MAX_SIDE`.
+
 ## 0.17.2
 
 Three level packers of the literature (roadmap item k211). Each one is a strategy and a placement of `packSpace`. No default uses them.

@@ -3,6 +3,7 @@
 // of this file are standalone. They are not in the registry or in a default. `treemapPack` is the
 // comparison of the catalog: each box goes to the center of its cell, and the cells scale up until each box fits.
 
+import { curveCells, HILBERT_CURVE } from "@mark1russell7/layout-contract";
 import { marginOf, type PackInput, type PackOutput } from "./contract.ts";
 
 /**
@@ -417,6 +418,98 @@ export function treemapHilbert(nodes: readonly TreemapNode[], frame: TreemapFram
  */
 export function treemapMoore(nodes: readonly TreemapNode[], frame: TreemapFrame): TreemapCell[] {
   return layoutTree(nodes, frame, (weights, area) => curves(weights, area, MOORE));
+}
+
+/** The options of `treemapJigsaw`. */
+export interface TreemapJigsawOptions {
+  /**
+   * The count of cells on each side of the grid: a power of 2 from 1 to `JIGSAW_MAX_SIDE`. The default is the smallest power of 2
+   * that gives each leaf one cell or more by its weight alone, but at most `JIGSAW_DEFAULT_MAX_SIDE`. A grid with fewer cells than leaves is a `RangeError`.
+   */
+  readonly side?: number;
+}
+
+/** The region of a node of a jigsaw map: the cells `from` up to `to` (not included) along the curve. A branch has the cells of its leaves. */
+export interface JigsawRegion {
+  readonly id: string;
+  /** The depth of the node. A node of the top level has the depth 0. */
+  readonly depth: number;
+  readonly from: number;
+  readonly to: number;
+}
+
+/** A jigsaw map: the grid, its cells in the order of the Hilbert curve, and the region of each node in the depth-first order. */
+export interface TreemapJigsaw {
+  readonly side: number;
+  /** The cell `[x, y]` at each place along the curve. The region of a node has the cells `cells.slice(from, to)`. */
+  readonly cells: readonly (readonly [number, number])[];
+  readonly regions: readonly JigsawRegion[];
+}
+
+/** The largest side of a jigsaw grid: 1024, thus 1,048,576 cells. */
+export const JIGSAW_MAX_SIDE = 1024;
+
+/** The largest default side of a jigsaw grid: 256, thus 65,536 cells. */
+export const JIGSAW_DEFAULT_MAX_SIDE = 256;
+
+/**
+ * This function gives the jigsaw map of Wattenberg 2005. The leaves of the tree, in the depth-first order, get the runs of
+ * cells that follow each other along the Hilbert curve on a square grid.
+ *
+ * - The run of a leaf ends at the place `round(N W / T)` along the curve, for the `N` cells of the grid, the weight `W` of the
+ *   leaves up to this leaf and the total weight `T`. Thus the error of a count is at most one cell, and the errors do not add up.
+ * - A leaf gets one cell or more. When the rounding gives a leaf no cell, the run of the leaf moves its end by one cell.
+ * - Each region is connected, and two leaves in a row have regions with a common side. A branch has the cells of its leaves,
+ *   so it is a region too.
+ * - On the same grid, a leaf in two parts with the same total weight keeps the cells of each other leaf (split neutrality).
+ *   This is true when no run moves its end.
+ * - The cost is `O(N log N)` for the curve and `O(n)` for the `n` nodes.
+ */
+export function treemapJigsaw(nodes: readonly TreemapNode[], options: TreemapJigsawOptions = {}): TreemapJigsaw {
+  const sized = nodes.map(sizedOf);
+  const leaves: number[] = [];
+  const collect = (node: Sized): void => {
+    if (node.kids === undefined) leaves.push(node.weight);
+    else node.kids.forEach(collect);
+  };
+  sized.forEach(collect);
+  const side = options.side ?? defaultJigsawSide(leaves);
+  if (!Number.isInteger(side) || side < 1 || side > JIGSAW_MAX_SIDE || (side & (side - 1)) !== 0) {
+    throw new RangeError(`The side of a jigsaw grid must be a power of 2 from 1 to ${JIGSAW_MAX_SIDE}, not ${side}.`);
+  }
+  const count = side * side;
+  if (leaves.length > count) throw new RangeError(`A jigsaw grid of side ${side} has ${count} cells, fewer than the ${leaves.length} leaves.`);
+  // The end of the run of each leaf: the rounded share of the cells, at least one cell after the end before it, and with one
+  // cell or more left for each leaf after it.
+  const prefix = prefixOf(leaves);
+  const total = prefix[leaves.length]!;
+  const ends = [0];
+  for (let i = 1; i <= leaves.length; i += 1) {
+    const share = i === leaves.length ? count : Math.round((count * prefix[i]!) / total);
+    ends.push(Math.min(Math.max(share, ends[i - 1]! + 1), count - (leaves.length - i)));
+  }
+  const regions: JigsawRegion[] = [];
+  let leaf = 0;
+  const visit = (node: Sized, depth: number): void => {
+    const at = regions.length;
+    const from = ends[leaf]!;
+    regions.push({ id: node.id, depth, from, to: from });
+    if (node.kids === undefined) leaf += 1;
+    else for (const kid of node.kids) visit(kid, depth + 1);
+    regions[at] = { id: node.id, depth, from, to: ends[leaf]! };
+  };
+  for (const node of sized) visit(node, 0);
+  return { side, cells: leaves.length === 0 ? [] : curveCells(HILBERT_CURVE, side), regions };
+}
+
+/** This function gives the default side of a jigsaw grid for the weights of the leaves. */
+function defaultJigsawSide(leaves: readonly number[]): number {
+  if (leaves.length === 0) return 1;
+  const need = Math.max(leaves.length, sumOf(leaves) / Math.min(...leaves));
+  let side = 1;
+  while (side * side < need && side < JIGSAW_DEFAULT_MAX_SIDE) side *= 2;
+  while (side * side < leaves.length) side *= 2;
+  return side;
 }
 
 /** This function gives the mean aspect of a list of rectangles. */

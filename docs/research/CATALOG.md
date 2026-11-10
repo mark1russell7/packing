@@ -389,7 +389,7 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 | `treemap-spiral` | Spiral | Lay the strips of `treemap-strip` along a spiral from the outside in. | Tu 2007 | order, stability | `O(n^2)` | — | implemented | k29 |
 | `treemap-hilbert` | Hilbert | Put the items in order along a Hilbert curve, with cells that follow the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
 | `treemap-moore` | Moore | Do `treemap-hilbert` with a Moore curve, a closed form of the curve. | Tak 2013 | order, stability | `O(n log n)` for near equal weights, `O(n^2)` at most | — | implemented | k27 |
-| `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | — | planned | k27 |
+| `treemap-jigsaw` | Jigsaw map | Put the items in order along a space-filling curve on a grid of unit cells. | Wattenberg 2005 | order, stability | `O(n)` | — | implemented: `treemapJigsaw`, in `O(N log N)` for the `N` cells of the grid | k27 |
 | `treemap-quantum` | Quantum | Do an ordered treemap with cells that are whole multiples of a unit size, for grids of pictures. | Bederson 2002 | order, aspect | `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi` | Voronoi | Move weighted sites until the area of each Voronoi cell is its weight. The cells are polygons. | Balzer 2005 | aspect | iterations x `O(n log n)` | — | planned | k27 |
 | `treemap-voronoi-fast` | Fast Voronoi | Do `treemap-voronoi` with power diagrams and no raster. | Nocaj 2012 | aspect, speed | iterations x `O(n log n)` | — | planned | k27 |
@@ -406,6 +406,7 @@ A treemap cuts a rectangle into cells. The area of each cell is the weight of it
 
 Notes:
 
+- `treemapJigsaw` follows Wattenberg 2005. The leaves, in the depth-first order, get runs of cells along the Hilbert curve of the module `curves` of `layout-contract`. The run of a leaf ends at the rounded share of the weight up to the leaf. Thus the errors of the counts do not add up. A leaf gets one cell or more. The tests examine the four properties of the paper: stability, split neutrality, order adjacency and c-locality with `c = 6`.
 - Shneiderman 2001 measures the stability as the mean change of distance of the corners of the cells. Bederson 2002 adds a measure of how easy the order is to read. Tu 2007 adds a measure of continuity.
 - Vernier 2020 compares many time-dependent treemaps on the same data. It measures the change with corner travel and relative position change, and it removes the change that the data needs. These measures go into [Measures to add](#measures-to-add).
 - The cells of the Voronoi and bounded-aspect treemaps are polygons. A box in such a cell needs the largest rectangle in the polygon.
@@ -934,7 +935,7 @@ Each entry gives the key of the tables, the authors, the title, the place of pub
 - **Wang 2006.** Weixin Wang, Hui Wang, Guozhong Dai, Hongan Wang. "Visualization of large hierarchical data by circle packing". Proceedings of the SIGCHI Conference on Human Factors in Computing Systems, pages 517-520. <https://doi.org/10.1145/1124772.1124851>
 - **Wang 2017.** Yingcong Wang, Renbin Xiao, Huimin Wang. "A flexible labour division approach to the polygon packing problem based on space allocation". International Journal of Production Research 55(11):3025-3045. <https://doi.org/10.1080/00207543.2016.1229070> Crossref gives the year 2016 of the online version.
 - **Wäscher 2007.** Gerhard Wäscher, Heike Haußner, Holger Schumann. "An improved typology of cutting and packing problems". European Journal of Operational Research 183(3):1109-1130. <https://doi.org/10.1016/j.ejor.2005.12.047>
-- **Wattenberg 2005.** Martin Wattenberg. "A note on space-filling visualizations and space-filling curves". IEEE InfoVis 2005. The DOI is unverified.
+- **Wattenberg 2005.** Martin Wattenberg. "A note on space-filling visualizations and space-filling curves". IEEE InfoVis 2005. The DOI is unverified. The code of `treemapJigsaw` follows sections 2.2 to 2.5 of the copy of the author.
 - **Wei 2009.** Lijun Wei, Defu Zhang, Qingshan Chen. "A least wasted first heuristic algorithm for the rectangular packing problem". Computers and Operations Research 36(5):1608-1614. <https://doi.org/10.1016/j.cor.2008.03.004>
 - **Wei 2011.** Lijun Wei, Wee-Chong Oon, Wenbin Zhu, Andrew Lim. "A skyline heuristic for the 2D rectangular packing and strip packing problems". European Journal of Operational Research 215(2):337-346. <https://doi.org/10.1016/j.ejor.2011.06.022>
 - **Wei 2013.** Lijun Wei, Wee-Chong Oon, Wenbin Zhu, Andrew Lim. "A goal-driven approach to the 2D bin packing and variable-sized bin packing problems". European Journal of Operational Research 224(1):110-121. <https://doi.org/10.1016/j.ejor.2012.08.005> The rule detail of the table is unverified.

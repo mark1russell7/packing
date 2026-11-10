@@ -378,7 +378,10 @@ export {
 export { corpus, type Corpus, type CorpusEntry, type CorpusManifest, type CorpusSpec } from "./corpus.ts";
 export { legalizeRows, placeRow, type LegalizeOptions } from "./legalize.ts";
 export {
+  JIGSAW_DEFAULT_MAX_SIDE,
+  JIGSAW_MAX_SIDE,
   treemapHilbert,
+  treemapJigsaw,
   treemapMoore,
   treemapPack,
   treemapPivotMiddle,
@@ -389,7 +392,10 @@ export {
   treemapSquarified,
   treemapStrip,
   type TreemapCell,
+  type JigsawRegion,
   type TreemapFrame,
+  type TreemapJigsaw,
+  type TreemapJigsawOptions,
   type TreemapLayout,
   type TreemapNode,
   type TreemapStripOptions,
