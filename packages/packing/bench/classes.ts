@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CLASS_COUNTS, corpus, toPackInput, type CorpusSpec } from "@mark1russell7/packing";
-import type { DeclaredClaim } from "@mark1russell7/layout-contract";
+import { CORPUS_MANIFEST_SCHEMA, corpusManifestText, type DeclaredClaim } from "@mark1russell7/layout-contract";
 import { declaredCounts } from "./claims.ts";
 
 /** The name of the corpus of the bins and the strips. */
@@ -67,27 +67,9 @@ export function classesClaim(specs: readonly CorpusSpec[] = classesSpecs(), name
   return { minCount, thin: Object.keys(counts).filter((id) => counts[id]! < minCount), counts };
 }
 
-/** This function gives a JSON value on one line, with a space after each colon and each comma. */
-function inline(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(inline).join(", ")}]`;
-  if (value !== null && typeof value === "object") return `{${Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${inline(v)}`).join(", ")}}`;
-  return JSON.stringify(value);
-}
-
 /** This function gives the text of a corpus file, in the form of the other files of `bench/corpora`: one spec on each line. */
 function corpusText(name: string, specs: readonly CorpusSpec[]): string {
-  const lines = [
-    "{",
-    `  "schema": "layout-corpus/1",`,
-    `  "corpus": ${JSON.stringify(name)},`,
-    `  "heldOut": "all",`,
-    `  "claims": ${inline({ declared: classesClaim(specs, name) })},`,
-    `  "specs": [`,
-    specs.map((s) => `    ${inline(s)}`).join(",\n"),
-    "  ]",
-    "}",
-  ];
-  return `${lines.join("\n")}\n`;
+  return corpusManifestText({ schema: CORPUS_MANIFEST_SCHEMA, corpus: name, heldOut: "all", claims: { declared: classesClaim(specs, name) }, specs });
 }
 
 /** This function gives the text of the file of `pack-classes-v1`. */

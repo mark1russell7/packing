@@ -23,7 +23,7 @@ export type OutputTable = Readonly<Record<string, readonly OutputRead[]>>;
 export const OUTPUT_SOURCE = "whole-positions/1";
 
 /** The version of the package at the read that wrote this file. A version change alone does not change a row. */
-export const OUTPUT_READ_VERSION = "0.16.3";
+export const OUTPUT_READ_VERSION = "0.17.4";
 
 /** The rows of `strategyCatalog`, by strategy. */
 export const STRATEGY_OUTPUT: OutputTable = {
@@ -149,8 +149,17 @@ export const STRATEGY_OUTPUT: OutputTable = {
   "shelf-breaks": [
     {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
   ],
+  "shelf-floor-ceiling": [
+    {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
+  "shelf-knapsack": [
+    {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
   "shelf-online": [
     {"optionSet":"default","inputs":6,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
+  ],
+  "shelf-split-fit": [
+    {"optionSet":"default","inputs":6,"position":{"fractional":2,"nearWhole":0},"size":{"fractional":0,"nearWhole":0}},
   ],
   "side-anchors": [
     {"optionSet":"default","inputs":144,"position":{"fractional":0,"nearWhole":0},"size":{"fractional":25,"nearWhole":0}},
@@ -171,6 +180,8 @@ export const STRATEGY_OUTPUT: OutputTable = {
   ],
   "treemap": [
     {"optionSet":"default","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
+    {"optionSet":"treemap-pivot-middle","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
+    {"optionSet":"treemap-pivot-size","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":88,"nearWhole":8}},
     {"optionSet":"treemap-pivot-split","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":96,"nearWhole":0}},
     {"optionSet":"treemap-slice-dice","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":72,"nearWhole":4}},
     {"optionSet":"treemap-spiral","inputs":96,"position":{"fractional":96,"nearWhole":0},"size":{"fractional":92,"nearWhole":0}},

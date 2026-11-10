@@ -207,6 +207,9 @@ export const STANDALONE_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "sleator", strategy: "sleator", options: {} },
   { id: "shelf-breaks", strategy: "shelf-breaks", options: {} },
   { id: "shelf-online", strategy: "shelf-online", options: {} },
+  { id: "shelf-split-fit", strategy: "shelf-split-fit", options: {} },
+  { id: "shelf-floor-ceiling", strategy: "shelf-floor-ceiling", options: {} },
+  { id: "shelf-knapsack", strategy: "shelf-knapsack", options: {} },
   { id: "beam", strategy: "beam", options: {} },
   { id: "exact-strip", strategy: "exact-strip", options: {} },
   { id: "binary-height", strategy: "binary-height", options: {} },
@@ -219,6 +222,8 @@ export const STANDALONE_ENTRIES: readonly BenchEntry[] = Object.freeze([
   { id: "treemap-slice-dice", strategy: "treemap", options: { method: "slice-dice" } },
   { id: "treemap-strip", strategy: "treemap", options: { method: "strip" } },
   { id: "treemap-pivot-split", strategy: "treemap", options: { method: "pivot-split" } },
+  { id: "treemap-pivot-middle", strategy: "treemap", options: { method: "pivot-split", pivot: "middle" } },
+  { id: "treemap-pivot-size", strategy: "treemap", options: { method: "pivot-split", pivot: "size" } },
   { id: "treemap-spiral", strategy: "treemap", options: { method: "spiral" } },
   { id: "side-anchors-first-left", strategy: "side-anchors", options: { first: { side: "left", at: 0.5 } } },
 ]);

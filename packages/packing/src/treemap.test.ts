@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { checkHard } from "./check.ts";
 import type { PackInput } from "./contract.ts";
 import { measure } from "./measures.ts";
-import { treemapPack, treemapPivotMiddle, treemapPivotSize, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
+import { treemapHilbert, treemapMoore, treemapPack, treemapPivotMiddle, treemapPivotSize, treemapPivotSplit, treemapSliceDice, treemapSpiral, treemapSquarified, treemapStrip, type TreemapCell, type TreemapLayout, type TreemapNode } from "./treemap.ts";
 
 const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["slice-dice", treemapSliceDice],
@@ -15,6 +15,8 @@ const METHODS: readonly (readonly [string, TreemapLayout])[] = [
   ["spiral", treemapSpiral],
   ["pivot-middle", treemapPivotMiddle],
   ["pivot-size", treemapPivotSize],
+  ["hilbert", treemapHilbert],
+  ["moore", treemapMoore],
 ];
 
 const leaves = (weights: readonly number[]): TreemapNode[] => weights.map((weight, index) => ({ id: `n${index}`, weight }));
@@ -399,5 +401,70 @@ describe("treemapPack", () => {
     const before = JSON.stringify(input);
     treemapPack(input, treemapPivotSplit);
     expect(JSON.stringify(input)).toBe(before);
+  });
+});
+
+describe("Hilbert and Moore", () => {
+  /** This function gives the pairs of cells in a row of the list that share no edge. With `loop`, the last cell and the first cell are a pair too. */
+  const apart = (cells: readonly TreemapCell[], loop: boolean): string[] => {
+    const pairs = cells.map((cell, i) => [cells[i === 0 ? cells.length - 1 : i - 1]!, cell] as const).slice(loop ? 0 : 1);
+    return pairs.filter(([a, b]) => !shareEdge(a, b, 1e-9)).map(([a, b]) => `${a.id}-${b.id}`);
+  };
+
+  it("lays four equal items up the left side and down the right side", () => {
+    const expected = [
+      { id: "n0", x: 0, y: 0, w: 2, h: 2 },
+      { id: "n1", x: 0, y: 2, w: 2, h: 2 },
+      { id: "n2", x: 2, y: 2, w: 2, h: 2 },
+      { id: "n3", x: 2, y: 0, w: 2, h: 2 },
+    ];
+    expect(treemapHilbert(leaves([1, 1, 1, 1]), { x: 0, y: 0, w: 4, h: 4 })).toEqual(expected);
+    expect(treemapMoore(leaves([1, 1, 1, 1]), { x: 0, y: 0, w: 4, h: 4 })).toEqual(expected);
+  });
+
+  it.each([16, 64, 256])("gives the grid of the curve for %i equal items in a square", (count) => {
+    const side = Math.sqrt(count);
+    const frame = { x: 0, y: 0, w: side, h: side };
+    const hilbert = treemapHilbert(leaves(Array.from({ length: count }, () => 1)), frame);
+    const moore = treemapMoore(leaves(Array.from({ length: count }, () => 1)), frame);
+    for (const cell of [...hilbert, ...moore]) {
+      expect(cell.w).toBeCloseTo(1, 9);
+      expect(cell.h).toBeCloseTo(1, 9);
+    }
+    // The Hilbert curve goes in at one corner of the side y = 0 and out at the other corner.
+    expect(hilbert[0]).toMatchObject({ x: 0, y: 0 });
+    expect(hilbert.at(-1)!.x + 1).toBeCloseTo(side, 9);
+    expect(hilbert.at(-1)!.y).toBeCloseTo(0, 9);
+    expect(apart(hilbert, false)).toEqual([]);
+    // The Moore curve is a loop: the last cell and the first cell share an edge too.
+    expect(apart(moore, true)).toEqual([]);
+    expect(apart(hilbert, true)).not.toEqual([]);
+  });
+
+  it("cuts along the long side of the frame first", () => {
+    expect(treemapHilbert(leaves([1, 1]), { x: 0, y: 0, w: 400, h: 100 }).map((cell) => cell.x)).toEqual([0, 200]);
+    expect(treemapHilbert(leaves([1, 1]), { x: 0, y: 0, w: 100, h: 400 }).map((cell) => cell.y)).toEqual([0, 200]);
+  });
+
+  it("gives an edge to most pairs of items in a row, on 200 made-up lists and trees", () => {
+    // The measured counts are 86 (Hilbert) and 61 (Moore) of 6,984 pairs, and 739 for strip. A group of unequal weights
+    // can end at another height than the start of the next group, so the two cells do not touch.
+    let pairs = 0;
+    for (let index = 0; index < 200; index += 1) for (const group of adjacencyCase(index).groups) pairs += group.length - 1;
+    const total = (layout: TreemapLayout): number => Array.from({ length: 200 }, (_, index) => apartPairs(layout, index)).reduce((sum, count) => sum + count, 0);
+    expect(pairs).toBe(6984);
+    expect(total(treemapHilbert)).toBeLessThan(pairs * 0.02);
+    expect(total(treemapMoore)).toBeLessThan(pairs * 0.02);
+    expect(total(treemapStrip)).toBeGreaterThan(pairs * 0.1);
+  });
+
+  it("gives a mean aspect far below slice and dice", () => {
+    const frame = { x: 0, y: 0, w: 300, h: 200 };
+    for (let i = 0; i < 10; i += 1) {
+      const nodes = leaves(weightsOf(`curve-aspect:${i}`, 50));
+      const plain = meanAspect(treemapSliceDice(nodes, frame));
+      expect(meanAspect(treemapHilbert(nodes, frame))).toBeLessThan(plain / 5);
+      expect(meanAspect(treemapMoore(nodes, frame))).toBeLessThan(plain / 5);
+    }
   });
 });

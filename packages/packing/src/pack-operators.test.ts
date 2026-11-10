@@ -17,11 +17,12 @@ describe("packOperators (k215)", () => {
     expect(left).toEqual(["order.input", "size-search.none", "local-search.none", "combine.portfolio", "combine.cell-portfolio", "combine.select"]);
   });
 
-  it("counts 38 operators by stage and by source", () => {
+  // Roadmap item k211 adds 3 placements from the literature. Before k211 the counts were 44, 20 and 29.
+  it("counts 47 operators by stage and by source", () => {
     expect(countOperators(packOperators)).toEqual({
-      total: 38,
-      byStage: { order: 5, "size-search": 1, placement: 20, combine: 12 },
-      bySource: { literature: 24, ours: 10, mutation: 4 },
+      total: 47,
+      byStage: { order: 11, "size-search": 1, placement: 23, combine: 12 },
+      bySource: { literature: 32, ours: 10, mutation: 5 },
     });
   });
 

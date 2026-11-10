@@ -43,6 +43,9 @@ const WRAPPED: Readonly<Record<string, string>> = {
   packSkyline: "skyline",
   shelfBreaks: "shelf-breaks",
   shelfOnline: "shelf-online",
+  shelfSplitFit: "shelf-split-fit",
+  shelfFloorCeiling: "shelf-floor-ceiling",
+  shelfKnapsack: "shelf-knapsack",
   sleatorStrip: "sleator",
   treemapPack: "treemap",
 };

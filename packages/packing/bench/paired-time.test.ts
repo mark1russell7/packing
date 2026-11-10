@@ -24,6 +24,33 @@ describe("quantileOf", () => {
     expect(quantileOf([1, 2, 3, 4, 5], 0.1)).toBeCloseTo(1.4);
     expect(quantileOf([], 0.5)).toBeNaN();
   });
+
+  it("gives the same bits as the local copy before the move to rigor, on made-up lists", () => {
+    // The local copy of quantileOf before k219, as the oracle.
+    const before = (values: readonly number[], q: number): number => {
+      const sorted = values.toSorted((a, b) => a - b);
+      const at = (sorted.length - 1) * q;
+      const low = Math.floor(at);
+      const high = Math.ceil(at);
+      return sorted[low]! + (sorted[high]! - sorted[low]!) * (at - low);
+    };
+    let seed = 7;
+    const next = (): number => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    let checked = 0;
+    for (let list = 0; list < 400; list++) {
+      const count = 1 + Math.floor(next() * 40);
+      // Some lists repeat values, so that two nearest values can be equal.
+      const values = Array.from({ length: count }, () => (next() < 0.3 ? Math.floor(next() * 4) : next() * 1000 - 200));
+      for (const q of [0, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 1, next()]) {
+        expect(Object.is(quantileOf(values, q), before(values, q)), `list ${list} q ${q}`).toBe(true);
+        checked += 1;
+      }
+    }
+    expect(checked).toBe(4000);
+  });
 });
 
 describe("measureIsolated in mode process", () => {

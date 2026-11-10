@@ -14,31 +14,10 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { CORPUS_MANIFEST_SCHEMA, lineJson, manifestText } from "@mark1russell7/layout-contract";
 import { corpusFamilies, generator, hashInput, type GeneratedInput, type GeneratorParams } from "@mark1russell7/packing";
 import { random, stablePick, type Random } from "@mark1russell7/rigor-generators";
-import {
-  ADVERSARY_MAX_COUNT,
-  ADVERSARY_NAME,
-  ADVERSARY_PAIRS,
-  ADVERSARY_SEED,
-  BEST,
-  cellOf,
-  familyOfPair,
-  inline,
-  lossOf,
-  mutateSizes,
-  ORIGINS,
-  PARAM_SHARE,
-  round6,
-  startMove,
-  stateOf,
-  valueOf,
-  type AdversaryStep,
-  type Loss,
-  type Origin,
-  type State,
-  type ValueRead,
-} from "./adversary.ts";
+import { ADVERSARY_MAX_COUNT, ADVERSARY_NAME, ADVERSARY_PAIRS, ADVERSARY_SEED, BEST, cellOf, familyOfPair, lossOf, mutateSizes, ORIGINS, PARAM_SHARE, round6, startMove, stateOf, valueOf, type AdversaryStep, type Loss, type Origin, type State, type ValueRead } from "./adversary.ts";
 import { entry } from "./entries.ts";
 
 /** The name of the corpus of version 2. */
@@ -69,7 +48,12 @@ export const POOL_OUT: Readonly<Record<string, string>> = Object.freeze({
   "exact-strip": "It is an exact search that refuses 60 items.",
   "shelf-breaks": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
   "shelf-online": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "shelf-split-fit": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "shelf-floor-ceiling": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "shelf-knapsack": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
   "treemap-spiral": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "treemap-pivot-middle": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
+  "treemap-pivot-size": "It came to the benchmark after the read of the stored rows. Item k189 adds it to the pool of the next version.",
 });
 
 /**
@@ -316,12 +300,15 @@ export function pairWorst(results: readonly CellResult[]): Partial<Record<Loss["
 }
 
 /** This function gives the line of a cell in the field `found`: the pair, the cell, the loss, the origin and the path. */
-export function foundLineV2(result: CellResult): string {
+export const foundLineV2 = (result: CellResult): string => lineJson(foundRowV2(result));
+
+/** This function gives the row of a cell result in the field `found` of the file. */
+function foundRowV2(result: CellResult): Record<string, unknown> {
   const { a, b, seed, budget, maxCount } = result.options;
   const w = result.worst;
   const head = { a, b, cell: result.cell.key, seed, budget, maxCount };
-  if (w === null) return inline({ ...head, input: null, evaluations: result.evaluations, valid: result.valid, starts: result.starts });
-  return inline({
+  if (w === null) return { ...head, input: null, evaluations: result.evaluations, valid: result.valid, starts: result.starts };
+  return {
     ...head,
     input: w.input.id,
     hash: w.input.hash,
@@ -338,7 +325,7 @@ export function foundLineV2(result: CellResult): string {
     valid: result.valid,
     starts: result.starts,
     path: result.path.map((s) => [s.evaluation, s.move, round6(s.loss)]),
-  });
+  };
 }
 
 /** This function gives the line of the worst input of a cell in the field `inputs` of the file, or `undefined` with no input. */
@@ -346,26 +333,19 @@ export const inputLineV2 = (result: CellResult): string | undefined => (result.w
 
 /** This function gives the text of the corpus file from the results of the cells, pair by pair and cell by cell. */
 export function adversaryV2Text(results: readonly CellResult[], cells: readonly SearchCell[] = searchCells(), pool: readonly string[] = POOL_V2): string {
-  const inputs = results.flatMap((res) => {
-    const line = inputLineV2(res);
-    return line === undefined ? [] : [line];
-  });
+  const inputs = results.flatMap((res) => (res.worst === null ? [] : [res.worst.input]));
   const search = { name: ADVERSARY_NAME, version: ADVERSARY_V2_VERSION, seed: ADVERSARY_SEED, budget: CELL_BUDGET, patience: CELL_PATIENCE, maxCount: ADVERSARY_MAX_COUNT, cells: cells.map((c) => c.key), pool };
-  const lines = [
-    "{",
-    `  "schema": "layout-corpus/1",`,
-    `  "corpus": ${JSON.stringify(ADVERSARY_V2_CORPUS)},`,
-    `  "heldOut": "all",`,
-    `  "search": ${inline(search)},`,
-    `  "found": [`,
-    results.map((res) => `    ${foundLineV2(res)}`).join(",\n"),
-    "  ],",
-    `  "inputs": [`,
-    inputs.map((line) => `    ${line}`).join(",\n"),
-    "  ]",
-    "}",
-  ];
-  return `${lines.join("\n")}\n`;
+  return manifestText(
+    [
+      { key: "schema", value: CORPUS_MANIFEST_SCHEMA },
+      { key: "corpus", value: ADVERSARY_V2_CORPUS },
+      { key: "heldOut", value: "all" },
+      { key: "search", value: search },
+      { key: "found", value: results.map(foundRowV2), rows: true },
+      { key: "inputs", value: inputs, rows: true, style: "compact" },
+    ],
+    { emptyRows: "line" },
+  );
 }
 
 /** The parts of the corpus file of version 2 that a test reads. */
