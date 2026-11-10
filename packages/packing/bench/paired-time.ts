@@ -19,6 +19,7 @@ import { join } from "node:path";
 import { PerformanceObserver } from "node:perf_hooks";
 import { setFlagsFromString } from "node:v8";
 import { armOrder } from "@mark1russell7/rigor-bench";
+import { mean, quantile, sd } from "@mark1russell7/rigor-statistics";
 
 /** The mode of a paired time run. */
 export type Mode = "process" | "fresh";
@@ -190,25 +191,19 @@ export function pairedContext(): string {
   return [where, ...process.execArgv].join(" ");
 }
 
-/** This function gives the quantile `q` of a list, with a linear interpolation between the two nearest values. An empty list gives NaN. */
+/**
+ * This function gives the quantile `q` of a list: `quantile` of `@mark1russell7/rigor-statistics`, with a linear interpolation.
+ * An empty list gives NaN, because a report with no input keeps NaN. `quantile` refuses an empty list.
+ */
 export function quantileOf(values: readonly number[], q: number): number {
-  if (values.length === 0) return Number.NaN;
-  const sorted = values.toSorted((a, b) => a - b);
-  const at = (sorted.length - 1) * q;
-  const low = Math.floor(at);
-  const high = Math.ceil(at);
-  return sorted[low]! + (sorted[high]! - sorted[low]!) * (at - low);
+  return values.length === 0 ? Number.NaN : quantile(values, q);
 }
 
-/** This function gives the mean of a list. An empty list gives NaN. */
-const meanOf = (values: readonly number[]): number => (values.length === 0 ? Number.NaN : values.reduce((a, b) => a + b, 0) / values.length);
+/** This function gives the mean of a list: `mean` of `@mark1russell7/rigor-statistics`. An empty list gives NaN. */
+const meanOf = (values: readonly number[]): number => (values.length === 0 ? Number.NaN : mean(values));
 
-/** This function gives the sample SD of a list. Fewer than 2 values give 0. */
-function sampleSD(values: readonly number[]): number {
-  if (values.length < 2) return 0;
-  const m = meanOf(values);
-  return Math.sqrt(values.reduce((a, b) => a + (b - m) ** 2, 0) / (values.length - 1));
-}
+/** This function gives the sample SD of a list: `sd` of `@mark1russell7/rigor-statistics`. Fewer than 2 values give 0. */
+const sampleSD = (values: readonly number[]): number => (values.length < 2 ? 0 : sd(values));
 
 /** This function checks the options, and gives the arms with the A/A arm. It throws a `RangeError` for a bad option. */
 function armsOf<I>(o: PairedOptions<I>): Arm<I>[] {

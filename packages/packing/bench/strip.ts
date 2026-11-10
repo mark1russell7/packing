@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { BEASLEY_GCUT_COUNTS, BEASLEY_GCUT_SIDES, BURKE_KENDALL_WHITWELL_RULES, corpus, HOPPER_TURTON_RULES, toPackInput, type CorpusSpec } from "@mark1russell7/packing";
-import type { DeclaredClaim } from "@mark1russell7/layout-contract";
+import { CORPUS_MANIFEST_SCHEMA, corpusManifestText, type DeclaredClaim } from "@mark1russell7/layout-contract";
 import { declaredCounts } from "./claims.ts";
 
 /** The name of the corpus. */
@@ -62,28 +62,10 @@ export function stripClaim(specs: readonly CorpusSpec[] = stripSpecs()): Declare
   return { minCount, thin: Object.keys(counts).filter((id) => counts[id]! < minCount), counts };
 }
 
-/** This function gives a JSON value on one line, with a space after each colon and each comma. */
-function inline(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(inline).join(", ")}]`;
-  if (value !== null && typeof value === "object") return `{${Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${inline(v)}`).join(", ")}}`;
-  return JSON.stringify(value);
-}
-
 /** This function gives the text of the corpus file, in the form of the other files of `bench/corpora`: one spec on each line. */
 export function stripCorpusText(): string {
   const specs = stripSpecs();
-  const lines = [
-    "{",
-    `  "schema": "layout-corpus/1",`,
-    `  "corpus": ${JSON.stringify(STRIP_CORPUS)},`,
-    `  "heldOut": "all",`,
-    `  "claims": ${inline({ declared: stripClaim(specs) })},`,
-    `  "specs": [`,
-    specs.map((s) => `    ${inline(s)}`).join(",\n"),
-    "  ]",
-    "}",
-  ];
-  return `${lines.join("\n")}\n`;
+  return corpusManifestText({ schema: CORPUS_MANIFEST_SCHEMA, corpus: STRIP_CORPUS, heldOut: "all", claims: { declared: stripClaim(specs) }, specs });
 }
 
 if (process.argv[1]?.endsWith("strip.ts") === true) {

@@ -29,7 +29,7 @@ The inputs of the workflow:
 | `repeats` | `5` | The timed passes of each pair of a strategy and an input. The record keeps the median in `ms`. |
 | `warmup` | `2` | The passes before the timed passes of each pair. They have no time. |
 | `job-minutes` | `30` | The time limit of each job of the matrix, 1 to 350. A job that this limit stops uploads no records. |
-| `budget` | `false` | The value `true` gives each pair a wall budget. The section "The budget of a pair" tells the rules. |
+| `budget` | `true` | The value `true` gives each pair a wall budget. The section "The budget of a pair" tells the rules. With the value `false`, a job that comes to its time limit stops with no records. |
 
 To start the workflow on a branch, add `--ref <branch>`. GitHub starts a workflow by hand only when the default branch has the file of the workflow.
 
