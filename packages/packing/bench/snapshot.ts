@@ -90,7 +90,16 @@ export interface SnapshotRecord extends VerdictRecord {
 }
 
 /** The measures of the strategy snapshot. `pack.fill` is the win measure, the others are guards. */
-export const SNAPSHOT_MEASURES: readonly MeasureId[] = ["pack.fill", "pack.order.inversions", "pack.aspectError", "pack.overflow.excessArea", "pack.balance.side.right"];
+export const SNAPSHOT_MEASURES: readonly MeasureId[] = [
+  "pack.fill",
+  "pack.order.inversions",
+  "pack.aspectError",
+  "pack.overflow.excessArea",
+  "pack.balance.side.right",
+  "pack.raggedness",
+  "pack.balance.sideRange",
+  "pack.balance.gapCv",
+];
 
 /** The significance level of each verdict. It is the parameter `signP` of `docs/PROMOTION.md`. */
 export const SNAPSHOT_LEVEL = 0.05;
