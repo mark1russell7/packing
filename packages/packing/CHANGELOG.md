@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.3
+## 0.17.4
 
 The function `flexWrap` packs a strip into rows, as a flex container with `flex-wrap: wrap` and no grow (roadmap item k28). The rules of `justify` put the space that is left in each row. The rules of `align` put each box in the height of its row.
 
