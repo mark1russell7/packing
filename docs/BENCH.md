@@ -1744,6 +1744,8 @@ The script writes compact JSON with no indent, because the site bundles each fil
 
 The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A run folder holds the files of one artifact: `records.jsonl`, `run.json` and `corpus.json`. Download it with `gh run download <id>` into a folder outside git.
 
+A file `strategies-*` has a verdict for each measure of `SNAPSHOT_MEASURES`. `pack.fill` is the win measure. The guards are the order, the aspect, the overflow, the right strip, the ragged edge, the side skew and the gap spread (k216). A file of an earlier run keeps its own measures.
+
 | File | Command, from `packages/packing` | The data |
 |---|---|---|
 | `strategies-pack-screen-v1.json` | `node bench/snapshot.ts strategies <folder of 40675490363> --run 40675490363` | Each strategy against `rows`, by family, on `pack-screen-v1`. |
