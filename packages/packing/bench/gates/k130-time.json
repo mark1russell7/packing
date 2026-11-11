@@ -2,7 +2,7 @@
   "schema": "packing-time-gate/3",
   "id": "k130-time",
   "item": "k130",
-  "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded up to 4 decimals (away from the data). Schema 3 (2026-11-03): the ratio of an input is the caseRatios ratio of rigor-bench, and each run has an A/A noise under the noise cap. The schema 2 limit was 1.4624. The gate is on all the inputs, because the slow tail is what a user of the portfolio pays (the strategist, k130). The portfolio arm fails the warm rule at W=5000, so the steady inputs (all 3 arms warm) give a second number, a report.",
+  "rule": "The rule of the gate limits: the limit is the worst value of 5 CI runs plus their spread (max - min), rounded up to 4 decimals (away from the data). Schema 3 (2026-11-03): the ratio of an input is the caseRatios ratio of rigor-bench, and each run has an A/A noise under the noise cap. The schema 2 limit was 1.4624. The gate is on all the inputs, because the slow tail is what a user of the portfolio pays (item k130). The portfolio arm fails the warm rule at W=5000, so the steady inputs (all 3 arms warm) give a second number, a report.",
   "corpus": "pack-classes-v1",
   "mode": "fresh",
   "base": "rows",
