@@ -19,7 +19,7 @@ on:
 permissions:
   contents: read
 
-# The runner budget of the account (strategist, 2026-10-30). Only a true duplicate replaces a run that waits.
+# The runner budget of the account (2026-10-30). Only a true duplicate replaces a run that waits.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.prediction }}-${{ inputs.repeats }}
   cancel-in-progress: false
