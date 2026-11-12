@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.4
+
+The function `flexWrap` packs a strip into rows, as a flex container with `flex-wrap: wrap` and no grow (roadmap item k28). The rules of `justify` put the space that is left in each row. The rules of `align` put each box in the height of its row.
+
+This release raises the PATCH version. Before 1.0.0, a feature raises PATCH.
+
+### Added
+
+- The function `flexWrap`, with the options `justify` (`start`, `center`, `end`, `between`, `around`, `evenly`) and `align` (`start`, `center`, `end`).
+- The function `flexWrapRefusal`, the lists `FLEX_JUSTIFY` and `FLEX_ALIGN`, and the types `FlexJustify`, `FlexAlign`, `FlexWrapOptions` and `FlexWrapResult`.
+
 ## 0.17.3
 
 The bench writes each corpus file with the one manifest writer of `@mark1russell7/layout-contract` 0.9.2 (roadmap item k219). Each corpus file keeps the same bytes.
