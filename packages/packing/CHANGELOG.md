@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.0
+
+The release train changes the range of `@mark1russell7/layout-contract` to a version outside the old range. The public types name @mark1russell7/layout-contract, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.9.2` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.10.0`, so it changes.
+
 ## 0.17.3
 
 The bench writes each corpus file with the one manifest writer of `@mark1russell7/layout-contract` 0.9.2 (roadmap item k219). Each corpus file keeps the same bytes.
