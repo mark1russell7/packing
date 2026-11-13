@@ -8,6 +8,10 @@ The release train changes the range of `@mark1russell7/layout-contract` to a ver
 
 - The range `^0.9.2` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.10.0`, so it changes.
 
+### Added
+
+- The measure `pack.balance.gapMean` of the contract 0.10.0: the mean of the gaps to the nearest box, in layout units. `measure` gives it, `LayoutMeasures` has it, and `MEASURE_SPECS` has its spec. Its role is `diagnostic`, and it has no minimum effect.
+
 ## 0.17.3
 
 The bench writes each corpus file with the one manifest writer of `@mark1russell7/layout-contract` 0.9.2 (roadmap item k219). Each corpus file keeps the same bytes.

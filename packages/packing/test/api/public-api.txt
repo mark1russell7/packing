@@ -1277,6 +1277,7 @@ interface LayoutMeasures {
   "pack.search.widths": number;
   "pack.search.ms": number;
   "pack.balance.gapCv": number;
+  "pack.balance.gapMean": number;
   "pack.balance.centroidOffset": number;
   "pack.balance.side.top": number;
   "pack.balance.side.right": number;

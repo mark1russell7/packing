@@ -87,6 +87,8 @@ export interface LayoutMeasures {
   "pack.search.ms": number;
   /** The balance of the layout (roadmap item k123): `balanceOf` of the contract on the placed boxes and the container. */
   "pack.balance.gapCv": number;
+  /** The mean of the gaps to the nearest box, in layout units. It has no better side, so its role is `diagnostic`. */
+  "pack.balance.gapMean": number;
   "pack.balance.centroidOffset": number;
   "pack.balance.side.top": number;
   "pack.balance.side.right": number;
