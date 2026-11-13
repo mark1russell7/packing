@@ -8,6 +8,10 @@ The release train changes the range of `@mark1russell7/layout-contract` to a ver
 
 - The range `^0.9.2` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.10.0`, so it changes.
 
+### Changed
+
+- The range of `@mark1russell7/layout-contract` is `^0.10.1`, not `^0.10.0`. In a bundle of `0.10.0`, an import of one export also got the curves and the measure registry: approximately 1.3 kB gzip more. Each entry of this package then went above its size budget. The version `0.10.1` removes that code again.
+
 ### Added
 
 - The measure `pack.balance.gapMean` of the contract 0.10.0: the mean of the gaps to the nearest box, in layout units. `measure` gives it, `LayoutMeasures` has it, and `MEASURE_SPECS` has its spec. Its role is `diagnostic`, and it has no minimum effect.
