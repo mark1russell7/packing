@@ -250,6 +250,7 @@ describe("the minimum effects", () => {
     "pack.gap": 0.005,
     "pack.gapToOpt": 0.005,
     "pack.balance.gapCv": 0.01,
+    "pack.balance.gapMean": undefined,
     "pack.balance.centroidOffset": 0.01,
     "pack.balance.side.top": undefined,
     "pack.balance.side.right": undefined,

@@ -354,6 +354,7 @@ Roadmap item k123. A compact pack can put all its boxes in one corner. These mea
 | Id | Unit | Direction | Range |
 |---|---|---|---|
 | `pack.balance.gapCv` | ratio | lower | 0 or more |
+| `pack.balance.gapMean` | layout units | none (`diagnostic`) | 0 or more |
 | `pack.balance.centroidOffset` | half diagonals | lower | 0 to 1 |
 | `pack.balance.side.top`, `.right`, `.bottom`, `.left` | share | lower | 0 to 1 |
 | `pack.balance.sideRange` | share | lower | 0 to 1 |
@@ -363,6 +364,8 @@ Roadmap item k123. A compact pack can put all its boxes in one corner. These mea
 - **The free area** is the container less the boxes.
 
 **`pack.balance.gapCv`** is the standard deviation of the gaps over their mean. The gap of a box is the distance to the nearest other box.
+
+**`pack.balance.gapMean`** is the mean of the gaps, in layout units. It has no better side. An objective gives it a target, so its role is `diagnostic`, and a selector does not rank by it.
 
 **`pack.balance.centroidOffset`** is the distance from the centroid of the free area to the center of the container, over half of the diagonal.
 
