@@ -25,7 +25,7 @@ defaults:
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@4466542421ef76bcb3ccf5b5e1765d4f509f8f4f # main
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@214dbed7b52dac94c0dce1c170162e75672a556d # main
     # The limits come from runs (roadmap item k223): the worst time of the runs, plus the spread of the times.
     # The job checks runs the scripts. 20 runs of pull requests took 201 to 367 s (42602918887 to 42689039900):
     # 367 + 166 = 533 s, so 9 minutes. On a push to main the coverage run is the job coverage, with its own limit.
