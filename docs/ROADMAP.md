@@ -225,6 +225,7 @@ Status: done, done, waiting, next, done.
 | k220 | A start frame and the frames of a run: `packWith` takes a run with a start and a callback of the frames, and `force` settles from the start. The gate: a start that is a fixed point moves nothing, and a start does not make `pack.stability.moved` or `pack.stability.mean` of the change corpus worse for `push` and `force` | core | in progress |  |
 | k222 | The names of the front chart of compare: each name in the chart, with no name on another name or on a dot. A name with no room stays only in the caption list | site | in progress | k123 |
 | k223 | Each CI job ends with a result before its time limit: a faster case, a split, or a measured limit with a record of each case that did not finish. The first slice sets the limits of the shared CI from measured times | ci | in progress |  |
+| k224 | The strategy files of the site have a compact form. The weekly run of 2026-11-11 had 72 strategies and 8 measures, so 4 files were above the limit of 200,000 bytes (the largest had 285,425). The form keeps only the values that the pages read: a row of cells for each verdict, and each text once. The largest file then has 87,486 bytes. A test holds a file with a strategy for each entry and a verdict for each measure below the limit | site | done | k186 |
 
 ## The queue
 

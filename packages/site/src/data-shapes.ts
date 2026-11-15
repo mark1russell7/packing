@@ -41,11 +41,14 @@ import type {
   SkipWord,
   Snapshot,
   SnapshotBudget,
+  StrategyFile,
+  StrategyFileRow,
   StrategyFinished,
   StrategySnapshot,
   StrategySummary,
+  VerdictCells,
 } from "./data.ts";
-import { bool, either, fields, list, nullable, num, oneOf, optional, recordOf, text, type Shape } from "./data-shape.ts";
+import { bool, either, fields, list, nullable, num, oneOf, optional, recordOf, row, text, type Shape } from "./data-shape.ts";
 
 const schema = oneOf("packing-site-snapshot/1");
 const skipWord: Shape<SkipWord> = oneOf("not done", "composition", "other algorithm", "no meaning", "not read");
@@ -58,16 +61,14 @@ const nullText = nullable(text);
 const origin = fields<Origin>({ release: text, commit: text, date: text, run: nullNum, source: text });
 const interval = fields<Interval>({ mean: num, lo: num, hi: num });
 
+const label = oneOf("better", "worse", "depends on the mix", "no verdict", "not measured");
+
 const verdict = fields<MeasureVerdict>({
   measure: text,
   direction,
-  label: oneOf("better", "worse", "depends on the mix", "no verdict", "not measured"),
+  label,
   summary: text,
-  n: num,
-  families: num,
   stratified: optional(interval),
-  pooled: optional(interval),
-  p: optional(num),
   signs: optional(fields<{ wins: number; losses: number; ties: number }>({ wins: num, losses: num, ties: num })),
   means: optional(fields<{ a: number; b: number }>({ a: num, b: num })),
 });
@@ -101,6 +102,8 @@ const budget = fields<SnapshotBudget>({
   noFactor: optional(num),
 });
 
+const strategyMeasure = fields<StrategySnapshot["measures"][number]>({ id: text, direction, tie: either(fields<{ rel: number }>({ rel: num }), num) });
+
 const strategies = fields<StrategySnapshot>({
   schema,
   kind: oneOf("strategies"),
@@ -110,10 +113,50 @@ const strategies = fields<StrategySnapshot>({
   level: num,
   inputs: num,
   families: num,
-  measures: list(
-    fields<StrategySnapshot["measures"][number]>({ id: text, direction, tie: either(fields<{ rel: number }>({ rel: num }), num) }),
-  ),
+  measures: list(strategyMeasure),
   strategies: list(summary),
+  budget: optional(budget),
+});
+
+/**
+ * The names of the cells of a verdict in a strategy file, in their order. The function `strategyFile` of
+ * `packages/packing/bench/snapshot.ts` writes the same list, and the reader refuses a file with another list.
+ */
+export const VERDICT_COLUMNS = ["label", "summary", "mean", "lo", "hi", "wins", "losses", "ties", "a", "b"] as const;
+
+/** The shape of the list of the names of the cells of a verdict: exactly `VERDICT_COLUMNS` */
+const columns: Shape<string[]> = (value, at, out) => {
+  if (!Array.isArray(value) || value.length !== VERDICT_COLUMNS.length || value.some((name, i) => name !== VERDICT_COLUMNS[i])) out.push({ field: at, reason: `is not the list ${VERDICT_COLUMNS.join(" ")}` });
+};
+
+const fileRow = fields<StrategyFileRow>({
+  strategy: text,
+  records: num,
+  skipped: num,
+  msMedian: nullNum,
+  hardBreaks: num,
+  // The label and the summary; with the mean, its interval and the signs; with the mean values too.
+  verdicts: list(row<VerdictCells>([label, num, num, num, num, num, num, num, num, num], [2, 8, 10])),
+  groups: list(row<StrategyFileRow["groups"][number]>([num, num, num, num], [4])),
+  finished: optional(finished),
+  reasons: optional(list(row<NonNullable<StrategyFileRow["reasons"]>[number]>([num, num, skipWord, num], [2, 3, 4]))),
+  oneRun: optional(num),
+});
+
+/** The shape of a strategy file, the compact form of a strategy snapshot. The reader also checks each index in `texts`. */
+export const STRATEGY_FILE_SHAPE: Shape<StrategyFile> = fields<StrategyFile>({
+  schema,
+  kind: oneOf("strategies"),
+  corpus: text,
+  origin: list(origin),
+  baseline: text,
+  level: num,
+  inputs: num,
+  families: num,
+  measures: list(strategyMeasure),
+  columns,
+  texts,
+  strategies: list(fileRow),
   budget: optional(budget),
 });
 

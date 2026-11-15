@@ -8,6 +8,10 @@ import {
   COVERAGE_TOP,
   MEASURED_ENTRIES_FILE,
   snapshotMain,
+  SNAPSHOT_FILE_LIMIT,
+  SNAPSHOT_MEASURES,
+  strategyFile,
+  VERDICT_COLUMNS,
   writtenFiles,
   writeSnapshot,
   coverageMethod,
@@ -43,7 +47,11 @@ import {
   type LeafWins,
   type SnapshotOrigin,
   type SnapshotRecord,
+  type StrategyFile,
+  type StrategySnapshot,
+  type StrategySummary,
 } from "./snapshot.ts";
+import { ENTRIES } from "./entries.ts";
 import { NOT_RUN_JOB, OVER_BUDGET } from "./budget.ts";
 import { SLOW_SET, type PairedRecord } from "./paired.ts";
 import type { CoverageSummary } from "./coverage.ts";
@@ -945,5 +953,108 @@ describe("the writer of the snapshot files (k186)", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("the strategy file of the site", () => {
+  const records: SnapshotRecord[] = [];
+  for (const family of ["f1", "f2", "f3", "f4"]) {
+    for (let seed = 1; seed <= 5; seed++) {
+      const input = `c/rect-grid.fixed.${family}/s${seed}`;
+      const base = 0.5 + seed / 100;
+      records.push(rec("rows", input, seed, base), rec("good", input, seed, base + 0.1), rec("off", input, seed, 0, { measures: {}, skipped: "unsupported mode: offline" }));
+    }
+  }
+  const snap = strategySnapshot(records, { corpus: "c", origin, runs: 200, draws: 200 });
+  const file = strategyFile(snap);
+  const row = (id: string) => file.strategies.find((s) => s.strategy === id)!;
+  const bytes = (value: unknown): number => Buffer.byteLength(`${JSON.stringify(value)}\n`);
+
+  it("keeps each value that a page reads: a row of cells for each verdict, in the order of the measures", () => {
+    expect(file).toMatchObject({ kind: "strategies", corpus: "c", baseline: "rows", inputs: 20, families: 4, columns: VERDICT_COLUMNS });
+    expect(file.measures).toEqual(snap.measures);
+    const verdicts = snap.strategies.find((s) => s.strategy === "good")!.verdicts;
+    expect(row("good").verdicts).toHaveLength(SNAPSHOT_MEASURES.length);
+    snap.measures.forEach((m, i) => {
+      const v = verdicts.find((x) => x.measure === m.id)!;
+      const cells = row("good").verdicts[i]!;
+      expect(cells.slice(0, 2)).toEqual([v.label, file.texts.indexOf(v.summary)]);
+      if (v.stratified !== undefined) expect(cells.slice(2, 8)).toEqual([v.stratified.mean, v.stratified.lo, v.stratified.hi, v.signs!.wins, v.signs!.losses, v.signs!.ties]);
+      if (v.means !== undefined) expect(cells.slice(8)).toEqual([v.means.a, v.means.b]);
+    });
+    expect(row("good").verdicts[0]![0]).toBe("better");
+    expect(row("off").verdicts.every((cells) => cells.length === 2 && cells[0] === "not measured")).toBe(true);
+    expect(row("rows").verdicts).toEqual([]);
+  });
+
+  it("keeps each text once, and each group and reason points to its text", () => {
+    expect(new Set(file.texts).size).toBe(file.texts.length);
+    expect(row("good").groups.map(([g, ...signs]) => [file.texts[g], ...signs])).toEqual([["rect-grid.fixed", 4, 0, 0]]);
+    expect(row("off").reasons).toEqual([[file.texts.indexOf("unsupported mode: offline"), 20, "not read"]]);
+    const skip = { ...snap, strategies: [{ ...snap.strategies[0]!, reasons: [{ reason: "r", count: 2, word: "no meaning" as const, why: "the same reason" }, { reason: "q", count: 1, word: "no meaning" as const, why: "the same reason" }] }] };
+    const out = strategyFile(skip);
+    expect(out.texts.filter((t) => t === "the same reason")).toHaveLength(1);
+    expect(out.strategies[0]!.reasons.map(([reason, count, word, why]) => [out.texts[reason], count, word, out.texts[why!]])).toEqual([
+      ["r", 2, "no meaning", "the same reason"],
+      ["q", 1, "no meaning", "the same reason"],
+    ]);
+  });
+
+  it("refuses a strategy with no verdict of a measure", () => {
+    const short = { ...snap, strategies: snap.strategies.map((s) => (s.strategy === "good" ? { ...s, verdicts: s.verdicts.slice(1) } : s)) };
+    expect(() => strategyFile(short)).toThrow(/good has verdicts of/);
+  });
+
+  it("is the file that the command strategies writes", () => {
+    const dir = mkdtempSync(join(tmpdir(), "strategy-file-"));
+    try {
+      writeFileSync(join(dir, "records.jsonl"), records.map((r) => JSON.stringify(r)).join("\n"));
+      writeFileSync(join(dir, "run.json"), JSON.stringify({ corpus: "c", commit: "HEAD" }));
+      writeFileSync(join(dir, "corpus.json"), JSON.stringify({ specs: [] }));
+      const out = join(dir, "out.json");
+      snapshotMain(["strategies", dir, "--run", "1", "--release", "0.0.1", "--date", "2026-01-01", "--out", out]);
+      const written = JSON.parse(readFileSync(out, "utf8")) as StrategyFile;
+      expect(written.columns).toEqual(VERDICT_COLUMNS);
+      expect(written.strategies.flatMap((s) => s.verdicts).every((cells) => Array.isArray(cells))).toBe(true);
+      expect(written.texts).toEqual(expect.arrayContaining(file.texts.filter((t) => t.startsWith("not measured"))));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // The weekly run of 2026-11-11 had 72 strategies with 8 measures, and its old file of pack-select-v1 had 285,425 bytes.
+  // The made-up snapshot below has a strategy for each entry and a verdict for each measure, at the longest texts and numbers of that run,
+  // with no summary twice: more than the groups and the reasons of an average strategy of that run (8.7 groups, 2.9 reasons).
+  const RUNG = ENTRIES.length;
+  const longest = (i: number): StrategySummary => ({
+    strategy: `entry-${String(i).padStart(4, "0")}-with-a-long-name-k99`,
+    records: 2025,
+    skipped: 1013,
+    msMedian: 21.59,
+    hardBreaks: 0,
+    verdicts: SNAPSHOT_MEASURES.map((measure, j) => ({
+      measure,
+      direction: "lower" as const,
+      label: "depends on the mix" as const,
+      summary: `no verdict: better on the family mean, worse on ${i} of 405 (${j}${i} ties)`,
+      n: 2025,
+      families: 405,
+      stratified: { mean: -0.0007484, lo: -0.003241, hi: -0.0005724 },
+      pooled: { mean: -0.0007484, lo: -0.003644, hi: -0.0001213 },
+      p: 0.03665,
+      signs: { wins: 137, losses: 214, ties: 54 },
+      means: { a: 0.7953, b: 0.8145 },
+    })),
+    groups: Array.from({ length: 9 }, (_, g) => ({ group: `dashboard.freeHeight-${g}`, wins: 137, losses: 214, ties: 54 })),
+    finished: { inputs: 1012, largest: 1024, set: "0123abcd" },
+    reasons: Array.from({ length: 3 }, (_, r) => ({ reason: `unsupported containerSize: freeAspect ${r}`, count: 113, word: "other algorithm" as const, why: `${"w".repeat(158)}-${r}` })),
+    oneRun: 0,
+  });
+  const big: StrategySnapshot = { ...snap, strategies: Array.from({ length: RUNG }, (_, i) => longest(i)) };
+
+  it(`holds a strategy for each of the ${RUNG} entries with each measure under the limit of a file, and the old form does not`, () => {
+    expect(snap.measures.map((m) => m.id)).toEqual([...SNAPSHOT_MEASURES]);
+    expect(bytes(big)).toBeGreaterThan(SNAPSHOT_FILE_LIMIT);
+    expect(bytes(strategyFile(big))).toBeLessThan(SNAPSHOT_FILE_LIMIT);
   });
 });
