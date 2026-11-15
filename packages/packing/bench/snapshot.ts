@@ -418,8 +418,8 @@ export function strategySnapshot(records: readonly SnapshotRecord[], options: St
 export const SNAPSHOT_FILE_LIMIT = 200_000;
 
 /**
- * The names of the cells of a verdict in a strategy file, in their order: the label, the line of `verdict` (an index in `texts`),
- * the stratified mean with its interval, the family signs, and the mean values of the baseline and of the strategy.
+ * The names of the cells of a verdict in a strategy file, in their order. The first cells are the label and the line of `verdict` (an index in `texts`).
+ * The next cells are the stratified mean with its interval, the family signs, and the mean values of the baseline and of the strategy.
  * The pages of the site read only these values of a verdict.
  */
 export const VERDICT_COLUMNS = ["label", "summary", "mean", "lo", "hi", "wins", "losses", "ties", "a", "b"] as const;
@@ -448,8 +448,8 @@ export interface StrategyFileRow {
 }
 
 /**
- * The cells of one reason of skipped records: the reason (an index in `texts`) and the count of its records,
- * then the word of a reason that is no wall budget, and then the reason of that word (an index in `texts`) when the word has one.
+ * The cells of one reason of skipped records. The first cells are the reason (an index in `texts`) and the count of its records.
+ * A reason that is no wall budget has its word as the third cell. The fourth cell is the reason of that word (an index in `texts`), when the word has one.
  */
 export type ReasonCells = [reason: number, count: number, word?: SkipRead["word"], why?: number];
 

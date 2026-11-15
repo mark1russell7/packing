@@ -122,8 +122,8 @@ export interface StrategyFileRow {
 }
 
 /**
- * The cells of one reason of skipped records: the reason (an index in `texts`) and the count of its records,
- * then the word of a reason that is no wall budget, and then the reason of that word (an index in `texts`) when the word has one.
+ * The cells of one reason of skipped records. The first cells are the reason (an index in `texts`) and the count of its records.
+ * A reason that is no wall budget has its word as the third cell. The fourth cell is the reason of that word (an index in `texts`), when the word has one.
  */
 export type ReasonCells = [reason: number, count: number, word?: SkipWord, why?: number];
 
@@ -630,7 +630,7 @@ export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K)
   return (compact ? strategySnapshotOf(value as unknown as StrategyFile) : value) as unknown as Extract<Snapshot, { kind: K }>;
 }
 
-/** This function gives a fault for each index of a strategy file that is not in `texts`, and for each list of verdicts with a wrong count. */
+/** This function gives a fault for each index of a strategy file that is not in `texts`. It also gives a fault for each list of verdicts with a wrong count. */
 function indexFaults(file: StrategyFile): DataFault[] {
   const out: DataFault[] = [];
   const check = (index: number, field: string): void => {

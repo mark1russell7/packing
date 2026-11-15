@@ -58,7 +58,7 @@ const kpiData = () => {
   const measured = parseSnapshot(text("./data/measured-entries.json"), "measured");
   const lawCover = JSON.parse(text("./data/law-cover.json")) as { covered: number; cells: readonly LawCell[] };
   const snapshots = readdirSync(page("./data")).filter((name) => /^strategies-.*\.json$/.test(name));
-  const summaries = snapshots.flatMap((name) => (JSON.parse(text(`./data/${name}`)) as { strategies: readonly SkipSummary[] }).strategies);
+  const summaries: readonly SkipSummary[] = snapshots.flatMap((name) => parseSnapshot(text(`./data/${name}`), "strategies").strategies);
   const facts = {
     picker: DEMO_IDS.length,
     strategies: allStrategies.length,
