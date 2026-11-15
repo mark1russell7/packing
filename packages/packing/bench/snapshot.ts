@@ -411,6 +411,105 @@ export function strategySnapshot(records: readonly SnapshotRecord[], options: St
   };
 }
 
+/**
+ * The limit of the size of each snapshot file, in bytes. The site bundles each file as raw text, so the limit keeps the pages fast.
+ * The test of the files in `packages/site/src/pages.test.ts` has the same limit.
+ */
+export const SNAPSHOT_FILE_LIMIT = 200_000;
+
+/**
+ * The names of the cells of a verdict in a strategy file, in their order: the label, the line of `verdict` (an index in `texts`),
+ * the stratified mean with its interval, the family signs, and the mean values of the baseline and of the strategy.
+ * The pages of the site read only these values of a verdict.
+ */
+export const VERDICT_COLUMNS = ["label", "summary", "mean", "lo", "hi", "wins", "losses", "ties", "a", "b"] as const;
+
+/**
+ * The cells of one verdict, in the order of `VERDICT_COLUMNS`. A verdict with no pair has only the label and the line.
+ * A verdict with no mean values has no cells `a` and `b`.
+ */
+export type VerdictCells = [label: MeasureVerdict["label"], summary: number, ...numbers: number[]];
+
+/** One strategy of a strategy file */
+export interface StrategyFileRow {
+  strategy: string;
+  records: number;
+  skipped: number;
+  msMedian: number | null;
+  hardBreaks: number;
+  /** One verdict for each measure, in the order of `measures` of the file. The baseline has no verdict. */
+  verdicts: VerdictCells[];
+  /** The family signs of the win measure in each group: the name of the group (an index in `texts`), the wins, the losses and the ties. */
+  groups: [group: number, wins: number, losses: number, ties: number][];
+  finished: StrategyFinished;
+  /** The reasons of the skipped records, as rows of cells. */
+  reasons: ReasonCells[];
+  oneRun: number;
+}
+
+/**
+ * The cells of one reason of skipped records: the reason (an index in `texts`) and the count of its records,
+ * then the word of a reason that is no wall budget, and then the reason of that word (an index in `texts`) when the word has one.
+ */
+export type ReasonCells = [reason: number, count: number, word?: SkipRead["word"], why?: number];
+
+/**
+ * The strategy file of one corpus: the form of a strategy snapshot that `site-data.yml` writes and that the site reads.
+ * Each text of a verdict, a group or a reason is in `texts` once, and its cell holds its index.
+ */
+export interface StrategyFile extends Omit<StrategySnapshot, "strategies"> {
+  columns: typeof VERDICT_COLUMNS;
+  texts: string[];
+  strategies: StrategyFileRow[];
+}
+
+/**
+ * This function gives the strategy file of a strategy snapshot. The file keeps only the values that the pages of the site read.
+ * The pooled interval, the p and the counts of a verdict stay out, and the measures of the file give the direction of each verdict.
+ * A verdict takes approximately 60 bytes and its text, so the size of a file grows with the strategies times the measures.
+ */
+export function strategyFile(snap: StrategySnapshot): StrategyFile {
+  const { strategies, budget, ...head } = snap;
+  const texts: string[] = [];
+  const at = new Map<string, number>();
+  const ref = (value: string): number => {
+    const known = at.get(value);
+    if (known !== undefined) return known;
+    texts.push(value);
+    at.set(value, texts.length - 1);
+    return texts.length - 1;
+  };
+  const ids = snap.measures.map((m) => m.id).join(" ");
+  const cellsOf = (v: MeasureVerdict): VerdictCells => {
+    if ((v.stratified === undefined) !== (v.signs === undefined)) throw new RangeError(`The verdict of ${v.measure} has a stratified mean or signs, not both.`);
+    if (v.stratified === undefined || v.signs === undefined) return [v.label, ref(v.summary)];
+    const means = v.means === undefined ? [] : [v.means.a, v.means.b];
+    return [v.label, ref(v.summary), v.stratified.mean, v.stratified.lo, v.stratified.hi, v.signs.wins, v.signs.losses, v.signs.ties, ...means];
+  };
+  const rows = strategies.map((s): StrategyFileRow => {
+    const order = new Map(s.verdicts.map((v) => [v.measure, v]));
+    if (s.verdicts.length !== 0 && (s.verdicts.length !== snap.measures.length || snap.measures.some((m) => !order.has(m.id)))) {
+      throw new RangeError(`The strategy ${s.strategy} has verdicts of ${s.verdicts.map((v) => v.measure).join(" ")}, not one verdict of each measure of ${ids}.`);
+    }
+    return {
+      strategy: s.strategy,
+      records: s.records,
+      skipped: s.skipped,
+      msMedian: s.msMedian,
+      hardBreaks: s.hardBreaks,
+      verdicts: s.verdicts.length === 0 ? [] : snap.measures.map((m) => cellsOf(order.get(m.id)!)),
+      groups: s.groups.map((g) => [ref(g.group), g.wins, g.losses, g.ties]),
+      finished: s.finished,
+      reasons: s.reasons.map((r): ReasonCells => {
+        if (r.word === undefined) return [ref(r.reason), r.count];
+        return r.why === undefined ? [ref(r.reason), r.count, r.word] : [ref(r.reason), r.count, r.word, ref(r.why)];
+      }),
+      oneRun: s.oneRun,
+    };
+  });
+  return { ...head, columns: VERDICT_COLUMNS, texts, strategies: rows, ...(budget === undefined ? {} : { budget }) };
+}
+
 /** The snapshot of a paired time test of two refs */
 export interface PairedSnapshot {
   schema: typeof SNAPSHOT_SCHEMA;
@@ -1702,7 +1801,7 @@ export function snapshotMain(argv: readonly string[]): void {
     const origin = originOf(data.run.commit, run, `bench.yml, the artifact bench-${data.run.corpus}`, optionOf(argv, "--release"), optionOf(argv, "--date"));
     const budget = data.run.budget === undefined ? {} : { budget: snapshotBudget(data.run.budget) };
     const snap = strategySnapshot(data.records, { corpus: data.run.corpus, origin: [origin], baseline: optionOf(argv, "--baseline") ?? "rows", ...budget });
-    writeSnapshot(out ?? new URL(`strategies-${data.run.corpus}.json`, SNAPSHOT_DIR), snap);
+    writeSnapshot(out ?? new URL(`strategies-${data.run.corpus}.json`, SNAPSHOT_DIR), strategyFile(snap));
     return;
   }
   if (kind === "gaps" && folder !== undefined) {

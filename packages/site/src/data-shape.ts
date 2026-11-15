@@ -57,6 +57,19 @@ export const list = <T>(shape: Shape<T>): Shape<T[]> => (value, at, out) => {
   value.forEach((item, index) => shape(item, `${at}[${index}]`, out));
 };
 
+/**
+ * This function gives the shape of a row of cells: a list with the shape of each cell in its order.
+ * `counts` gives the counts of cells that a row can have, so a row can stop after the cells that it needs.
+ */
+export const row = <T extends unknown[]>(cells: readonly Shape<unknown>[], counts: readonly number[]): Shape<T> => (value, at, out) => {
+  if (!Array.isArray(value)) {
+    out.push({ field: at || FILE, reason: "is not a list" });
+    return;
+  }
+  if (!counts.includes(value.length)) out.push({ field: at || FILE, reason: `has ${value.length} cells, not ${counts.join(" or ")}` });
+  value.slice(0, cells.length).forEach((item, index) => cells[index]!(item, `${at}[${index}]`, out));
+};
+
 /** This function gives the shape of an object with free keys. */
 export const recordOf = <T>(shape: Shape<T>): Shape<Record<string, T>> => (value, at, out) => {
   if (!isObject(value)) {

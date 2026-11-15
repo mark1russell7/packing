@@ -1740,7 +1740,15 @@ The file `bench/treemap-literature.ts` compares the treemaps of `src/treemap.ts`
 ## The snapshots of the site
 
 The page `results/` of the site shows measured results. It reads only the snapshot files of `packages/site/data/`. Each file is small JSON with the release, the commit, the date and the CI run of its data. The raw records stay out of git.
-The script writes compact JSON with no indent, because the site bundles each file as raw text. A file of 64 strategies is approximately 140 KB, and the limit of the test is 200,000 bytes for each file.
+The script writes compact JSON with no indent, because the site bundles each file as raw text. The limit of the test is 200,000 bytes for each file.
+
+A file `strategies-*` has the form `StrategyFile` of `bench/snapshot.ts`. It keeps only the values that the pages read:
+
+- Each verdict is a row of cells in the order of `columns`. The verdicts of a strategy are in the order of `measures`.
+- Each text of a verdict, a group or a reason is in `texts` once. Its cell holds the index of the text.
+- The pooled interval, the p and the counts of a verdict stay out, because no page reads them.
+
+The reader `parseSnapshot` of the site makes the full snapshot from the file. It also reads the old form with a full object for each verdict, because the data branch keeps the files of old runs. The weekly run of 2026-11-11 has 72 strategies and 8 measures. Its file of `pack-select-v1` has 285,425 bytes in the old form and 87,486 bytes in this form. A test of `bench/snapshot.test.ts` makes a file with a strategy for each entry and a verdict for each measure, at the longest texts of that run. The test fails when that file is not below the limit.
 
 The script `bench/snapshot.ts` writes the files. Do not edit a file by hand. A run folder holds the files of one artifact: `records.jsonl`, `run.json` and `corpus.json`. Download it with `gh run download <id>` into a folder outside git.
 

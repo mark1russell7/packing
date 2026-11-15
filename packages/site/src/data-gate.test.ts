@@ -4,8 +4,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { regionsOf } from "./atlas-model.ts";
 import { CORPORA_OF_FILE, DATA_READERS, gateLines, NEW_FIELD_ORDER, readDataFiles, replaceLine } from "./data-gate.ts";
-import { SNAPSHOT_SHAPES } from "./data-shapes.ts";
-import { parseLawCover, parseSnapshot, parseSolvedRule, type GapSnapshot, type StrategySnapshot } from "./data.ts";
+import { SNAPSHOT_SHAPES, VERDICT_COLUMNS } from "./data-shapes.ts";
+import { parseLawCover, parseSnapshot, parseSolvedRule, type GapSnapshot, type StrategyFile } from "./data.ts";
 import { DataFileError, faultsOf, fields, either, list, nullable, num, oneOf, optional, recordOf, text, type Shape } from "./data-shape.ts";
 
 const DATA = new URL("../data/", import.meta.url);
@@ -163,10 +163,11 @@ describe("the count of the fields with a value and the state not read", () => {
 
   it("counts one more field for a reason that loses its word, and states the total", () => {
     const name = "strategies-pack-free-v1.json";
-    const snap = JSON.parse(main().get(name)!) as StrategySnapshot;
+    const snap = JSON.parse(main().get(name)!) as StrategyFile;
     const entry = snap.strategies.find((s) => s.skipped > 0)!;
+    const reason = snap.texts.push("refused: a reason of this test") - 1;
     const fieldsWith = (word?: "other algorithm" | "not read"): number => {
-      entry.reasons = [{ reason: "refused: a reason of this test", count: entry.skipped, ...(word === undefined ? {} : { word }) }];
+      entry.reasons = [word === undefined ? [reason, entry.skipped] : [reason, entry.skipped, word]];
       return readDataFiles(new Map([...main(), [name, JSON.stringify(snap)]])).notRead.find((c) => c.file === name)?.fields ?? 0;
     };
     const before = fieldsWith("other algorithm");
@@ -222,9 +223,73 @@ describe("each field of each real file", () => {
 
 describe("the readers of the page", () => {
   it("throws for a deep field, with its path in the message", () => {
-    const snap = JSON.parse(readFileSync(new URL("strategies-pack-free-v1.json", DATA), "utf8")) as StrategySnapshot;
-    delete (snap.strategies[1] as Partial<StrategySnapshot["strategies"][number]>).records;
+    const snap = JSON.parse(readFileSync(new URL("strategies-pack-free-v1.json", DATA), "utf8")) as StrategyFile;
+    delete (snap.strategies[1] as Partial<StrategyFile["strategies"][number]>).records;
     expect(() => parseSnapshot(JSON.stringify(snap), "strategies")).toThrow(/strategies\[1\]\.records is missing/);
+  });
+
+  describe("a strategy file", () => {
+    const text = readFileSync(new URL("strategies-pack-free-v1.json", DATA), "utf8");
+    const read = (t: string): unknown => parseSnapshot(t, "strategies");
+    /** This function gives the fields of the faults of the file after a change. */
+    const faultsAfter = (change: (file: StrategyFile) => void): string[] => {
+      const file = JSON.parse(text) as StrategyFile;
+      change(file);
+      return faultFields(read, JSON.stringify(file));
+    };
+    const file = JSON.parse(text) as StrategyFile;
+    const at = file.strategies.findIndex((s) => s.verdicts.some((v) => v.length === VERDICT_COLUMNS.length));
+    const full = file.strategies[at]!.verdicts.findIndex((v) => v.length === VERDICT_COLUMNS.length);
+
+    it("is the form of each strategy file of main", () => {
+      for (const name of Object.keys(DATA_READERS).filter((n) => n.startsWith("strategies-"))) {
+        expect((JSON.parse(main().get(name)!) as StrategyFile).columns, name).toEqual([...VERDICT_COLUMNS]);
+      }
+      expect(at).toBeGreaterThanOrEqual(0);
+    });
+
+    it("reads to the same snapshot as the old form, and gives each verdict the id and the direction of its measure", () => {
+      const snap = parseSnapshot(text, "strategies");
+      expect(parseSnapshot(JSON.stringify(snap), "strategies")).toEqual(snap);
+      for (const s of snap.strategies) s.verdicts.forEach((v, i) => expect(v).toMatchObject({ measure: snap.measures[i]!.id, direction: snap.measures[i]!.direction }));
+      const v = snap.strategies[at]!.verdicts[full]!;
+      const cells = file.strategies[at]!.verdicts[full]!;
+      expect(v).toEqual({
+        measure: snap.measures[full]!.id,
+        direction: snap.measures[full]!.direction,
+        label: cells[0],
+        summary: file.texts[cells[1]],
+        stratified: { mean: cells[2], lo: cells[3], hi: cells[4] },
+        signs: { wins: cells[5], losses: cells[6], ties: cells[7] },
+        means: { a: cells[8], b: cells[9] },
+      });
+    });
+
+    it("reads an old file with the fields that no page reads", () => {
+      const old = parseSnapshot(text, "strategies");
+      for (const v of old.strategies.flatMap((s) => s.verdicts)) Object.assign(v, { n: 4, families: 2, pooled: { mean: 0, lo: 0, hi: 0 }, p: 1 });
+      expect(parseSnapshot(JSON.stringify(old), "strategies").strategies[at]!.verdicts[full]).toMatchObject({ n: 4, p: 1 });
+    });
+
+    it("gives a fault with its path for each cell of a verdict that turns into a list", () => {
+      for (let cell = 0; cell < VERDICT_COLUMNS.length; cell++) {
+        expect(faultsAfter((f) => void (f.strategies[at]!.verdicts[full]![cell] = [] as unknown as number))).toEqual([`strategies[${at}].verdicts[${full}][${cell}]`]);
+      }
+      expect(faultsAfter((f) => void (f.strategies[at]!.verdicts[full]![0] = "best" as "better"))).toEqual([`strategies[${at}].verdicts[${full}][0]`]);
+    });
+
+    it("gives a fault for a count of cells or of verdicts, an index out of the texts and another list of columns", () => {
+      expect(faultsAfter((f) => void f.strategies[at]!.verdicts[full]!.pop())).toEqual([`strategies[${at}].verdicts[${full}]`]);
+      expect(faultsAfter((f) => void f.strategies[at]!.verdicts.pop())).toEqual([`strategies[${at}].verdicts`]);
+      expect(faultsAfter((f) => void (f.strategies[at]!.verdicts[full]![1] = f.texts.length))).toEqual([`strategies[${at}].verdicts[${full}][1]`]);
+      expect(faultsAfter((f) => void (f.strategies[at]!.verdicts[full]![1] = 0.5))).toEqual([`strategies[${at}].verdicts[${full}][1]`]);
+      expect(faultsAfter((f) => void (f.strategies[at]!.groups = [[-1, 1, 0, 0]]))).toEqual([`strategies[${at}].groups[0][0]`]);
+      expect(faultsAfter((f) => void (f.strategies[at]!.groups = [[0, 1, 0]] as unknown as StrategyFile["strategies"][number]["groups"]))).toEqual([`strategies[${at}].groups[0]`]);
+      expect(faultsAfter((f) => void (f.strategies[at]!.reasons = [[0, 1, "no meaning", f.texts.length]]))).toEqual([`strategies[${at}].reasons[0][3]`]);
+      expect(faultsAfter((f) => void (f.strategies[at]!.reasons = [[f.texts.length, 1]]))).toEqual([`strategies[${at}].reasons[0][0]`]);
+      expect(faultsAfter((f) => void (f.strategies[at]!.reasons = [[0, 1, "a word" as "no meaning"]]))).toEqual([`strategies[${at}].reasons[0][2]`]);
+      expect(faultsAfter((f) => void (f.columns = [...VERDICT_COLUMNS].reverse()))).toEqual(["columns"]);
+    });
   });
 
   it("reads the rule and the law count with a shape", () => {

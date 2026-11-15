@@ -3,8 +3,8 @@
 
 import type { SolvedRule } from "./atlas-model.ts";
 import type { LawCoverCount } from "./corpus-cover-model.ts";
-import { DataFileError, faultsOf, readShape, type Shape } from "./data-shape.ts";
-import { LAW_COVER_SHAPE, SNAPSHOT_SHAPES, SOLVED_RULE_SHAPE } from "./data-shapes.ts";
+import { DataFileError, faultsOf, readShape, type DataFault, type Shape } from "./data-shape.ts";
+import { LAW_COVER_SHAPE, SNAPSHOT_SHAPES, SOLVED_RULE_SHAPE, STRATEGY_FILE_SHAPE } from "./data-shapes.ts";
 import { marginFaults } from "./gap-definition.ts";
 
 /** The schema of each snapshot file */
@@ -30,17 +30,16 @@ export interface Interval {
 /** The labels of a verdict over families, and the label of a strategy without a pair */
 export type Label = "better" | "worse" | "depends on the mix" | "no verdict" | "not measured";
 
-/** The verdict of one measure of one strategy against the baseline */
+/**
+ * The verdict of one measure of one strategy against the baseline, with the values that the pages read.
+ * A file of the old form also has the counts, the pooled interval and the p of each verdict. No page reads them.
+ */
 export interface MeasureVerdict {
   measure: string;
   direction: "higher" | "lower";
   label: Label;
   summary: string;
-  n: number;
-  families: number;
   stratified?: Interval;
-  pooled?: Interval;
-  p?: number;
   signs?: { wins: number; losses: number; ties: number };
   means?: { a: number; b: number };
 }
@@ -96,6 +95,46 @@ export interface StrategySnapshot {
   measures: { id: string; direction: "higher" | "lower"; tie: number | { rel: number } }[];
   strategies: StrategySummary[];
   budget?: SnapshotBudget;
+}
+
+/**
+ * The cells of one verdict, in the order of `VERDICT_COLUMNS` of `data-shapes.ts`. The summary is an index in `texts`.
+ * A verdict with no pair has only the label and the summary, and a verdict with no mean values has no cells `a` and `b`.
+ */
+export type VerdictCells = [label: Label, summary: number, ...numbers: number[]];
+
+/** One strategy of a strategy file */
+export interface StrategyFileRow {
+  strategy: string;
+  records: number;
+  skipped: number;
+  msMedian: number | null;
+  hardBreaks: number;
+  /** One verdict for each measure, in the order of `measures` of the file. The baseline has no verdict. */
+  verdicts: VerdictCells[];
+  /** The name of the group (an index in `texts`), the wins, the losses and the ties */
+  groups: [group: number, wins: number, losses: number, ties: number][];
+  /** As in `StrategySummary`: a file from the snapshot of a run before the wall budget does not have the last three fields. */
+  finished?: StrategyFinished;
+  /** The reasons of the skipped records, as rows of cells. */
+  reasons?: ReasonCells[];
+  oneRun?: number;
+}
+
+/**
+ * The cells of one reason of skipped records: the reason (an index in `texts`) and the count of its records,
+ * then the word of a reason that is no wall budget, and then the reason of that word (an index in `texts`) when the word has one.
+ */
+export type ReasonCells = [reason: number, count: number, word?: SkipWord, why?: number];
+
+/**
+ * The strategy file of one corpus: the compact form of a strategy snapshot that the workflow `Site data` writes.
+ * Each text of a verdict, a group or a reason is in `texts` once, and its cell holds its index. The reader gives the `StrategySnapshot` of the file.
+ */
+export interface StrategyFile extends Omit<StrategySnapshot, "strategies"> {
+  columns: string[];
+  texts: string[];
+  strategies: StrategyFileRow[];
 }
 
 /** A group of a paired time test */
@@ -582,10 +621,74 @@ export function parseSnapshot<K extends Snapshot["kind"]>(text: string, kind: K)
   const lists: Record<Snapshot["kind"], unknown> = { strategies: value["strategies"], gaps: value["strategies"], paired: value["classes"], select: value["leaves"], releases: value["releases"], coverage: value["trend"], measured: value["rows"] };
   const list = lists[kind];
   if (!Array.isArray(list) || list.length === 0) throw new Error(`The snapshot of the kind ${kind} has no entries.`);
-  const faults = faultsOf(SNAPSHOT_SHAPES[kind] as Shape<unknown>, value);
+  // A strategy file has `columns`. A strategy snapshot of the old form has full verdicts: the data branch keeps the files of the old runs.
+  const compact = kind === "strategies" && "columns" in value;
+  const faults = faultsOf((compact ? STRATEGY_FILE_SHAPE : SNAPSHOT_SHAPES[kind]) as Shape<unknown>, value);
+  if (compact && faults.length === 0) faults.push(...indexFaults(value as unknown as StrategyFile));
   if (kind === "gaps" && faults.length === 0) faults.push(...marginFaults(value as unknown as GapSnapshot));
   if (faults.length > 0) throw new DataFileError(faults);
-  return value as unknown as Extract<Snapshot, { kind: K }>;
+  return (compact ? strategySnapshotOf(value as unknown as StrategyFile) : value) as unknown as Extract<Snapshot, { kind: K }>;
+}
+
+/** This function gives a fault for each index of a strategy file that is not in `texts`, and for each list of verdicts with a wrong count. */
+function indexFaults(file: StrategyFile): DataFault[] {
+  const out: DataFault[] = [];
+  const check = (index: number, field: string): void => {
+    if (!Number.isInteger(index) || index < 0 || index >= file.texts.length) out.push({ field, reason: `is not an index of the ${file.texts.length} texts` });
+  };
+  file.strategies.forEach((s, i) => {
+    const at = `strategies[${i}]`;
+    if (s.verdicts.length !== 0 && s.verdicts.length !== file.measures.length) {
+      out.push({ field: `${at}.verdicts`, reason: `has ${s.verdicts.length} verdicts, not 0 or one for each of the ${file.measures.length} measures` });
+    }
+    s.verdicts.forEach((v, j) => check(v[1], `${at}.verdicts[${j}][1]`));
+    s.groups.forEach((g, j) => check(g[0], `${at}.groups[${j}][0]`));
+    s.reasons?.forEach((r, j) => {
+      check(r[0], `${at}.reasons[${j}][0]`);
+      if (r[3] !== undefined) check(r[3], `${at}.reasons[${j}][3]`);
+    });
+  });
+  return out;
+}
+
+/** This function gives the verdict of one row of cells. The measure of the verdict gives its id and its direction. */
+function verdictOfCells(cells: VerdictCells, measure: StrategySnapshot["measures"][number], texts: readonly string[]): MeasureVerdict {
+  const [label, summary, mean, lo, hi, wins, losses, ties, a, b] = cells;
+  const v: MeasureVerdict = { measure: measure.id, direction: measure.direction, label, summary: texts[summary]! };
+  if (mean === undefined || lo === undefined || hi === undefined || wins === undefined || losses === undefined || ties === undefined) return v;
+  return { ...v, stratified: { mean, lo, hi }, signs: { wins, losses, ties }, ...(a === undefined || b === undefined ? {} : { means: { a, b } }) };
+}
+
+/** This function gives the strategy snapshot of a strategy file. The pages read only the snapshot. */
+export function strategySnapshotOf(file: StrategyFile): StrategySnapshot {
+  const { schema, kind, corpus, origin, baseline, level, inputs, families, measures, budget, texts } = file;
+  return {
+    schema,
+    kind,
+    corpus,
+    origin,
+    baseline,
+    level,
+    inputs,
+    families,
+    measures,
+    ...(budget === undefined ? {} : { budget }),
+    strategies: file.strategies.map(({ verdicts, groups, reasons, ...rest }) => ({
+      ...rest,
+      verdicts: verdicts.map((cells, i) => verdictOfCells(cells, measures[i]!, texts)),
+      groups: groups.map(([group, wins, losses, ties]) => ({ group: texts[group]!, wins, losses, ties })),
+      ...(reasons === undefined
+        ? {}
+        : {
+            reasons: reasons.map(([reason, count, word, why]) => ({
+              reason: texts[reason]!,
+              count,
+              ...(word === undefined ? {} : { word }),
+              ...(why === undefined ? {} : { why: texts[why]! }),
+            })),
+          }),
+    })),
+  };
 }
 
 /** This function reads the text of `data/law-cover.json`. It throws a `DataFileError` for a file with a fault. */

@@ -160,7 +160,7 @@ export function readDataFiles(files: ReadonlyMap<string, string>): DataRead {
       faults.push(...regionFaults(name, value as GapSnapshot, rule));
       notRead.push(...notReadRegions(name, value as GapSnapshot, rule));
     }
-    if (value.kind === "strategies") notRead.push(...notReadSkips(name, value as StrategySnapshot));
+    if (value.kind === "strategies") notRead.push(...notReadSkips(name, parseSnapshot(text, "strategies")));
     if (value.kind === "coverage") notRead.push(...notReadOthers(name, value as CoverageSnapshot));
   }
   return { files: files.size, faults, notRead };
