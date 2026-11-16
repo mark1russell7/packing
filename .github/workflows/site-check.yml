@@ -38,7 +38,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The same template commit as pages.yml and ci.yml
-      - uses: mark1russell7/template/.github/actions/setup-playwright@f7e9a04c2e3965d20d1aea5a2e83e96ce8d23d16 # main
+      - uses: mark1russell7/template/.github/actions/setup-playwright@1ed23e779a2e8083ca1473b3d0b0e2f2c90c4d95 # main
         with:
           browsers: chromium
           command: pnpm --filter @packing/site exec playwright
