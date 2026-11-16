@@ -177,7 +177,7 @@ importers:
         version: 0.2.1(@swc/core@1.16.22)(dependency-cruiser@18.7.2)
       '@mark1russell7/conventions':
         specifier: ^0.42.0
-        version: 0.42.0
+        version: 0.42.2
       '@mark1russell7/cue':
         specifier: ^2.1.1
         version: 2.1.4
@@ -541,8 +541,8 @@ packages:
     resolution: {integrity: sha512-z0Js1n8Df/XsS8nGEpBYpZElRxquTcaPZluL5ZSHod14PnGAGLcoQoSkl7AlbSyLk9H0i6MozwX6mYlaYdXq1g==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/conventions@0.42.0':
-    resolution: {integrity: sha512-KWhUSt52Ol7YaL1ut8dUfzXHmDmrnbXdI9BBwNTCf9oibvrRKi5K/PjdvzD8gh6UvRlINq+Kwqe6H/B8ljcS4w==}
+  '@mark1russell7/conventions@0.42.2':
+    resolution: {integrity: sha512-eBY4JGYEqALMfORcQIHr//VFM3W4H+4qYzYJkWkoG+VPEy0nObFU+jYf9OOv48wAou4ZSFBrxl+vOw1ciDEtxA==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -1937,7 +1937,7 @@ snapshots:
 
   '@mark1russell7/api-report@0.5.8':
     dependencies:
-      '@mark1russell7/conventions': 0.42.0
+      '@mark1russell7/conventions': 0.42.2
 
   '@mark1russell7/boundaries@0.2.1(@swc/core@1.16.22)(dependency-cruiser@18.7.2)':
     optionalDependencies:
@@ -1952,7 +1952,7 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@mark1russell7/conventions@0.42.0':
+  '@mark1russell7/conventions@0.42.2':
     dependencies:
       yaml: 2.9.1
 
