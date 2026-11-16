@@ -29,7 +29,7 @@
     "@mark1russell7/packing": "workspace:*",
     "@mark1russell7/rigor-statistics": "^0.1.9",
     "@mark1russell7/site-pages": "^0.5.3",
-    "@mark1russell7/text": "^0.0.5",
+    "@mark1russell7/text": "^0.0.7",
     "marked": "^18.1.2"
   },
   "description": "The GitHub Pages site of packing: a live demo of the strategies, the sort orders and the measures."
