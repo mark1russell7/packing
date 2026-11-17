@@ -131,7 +131,14 @@ describe("the command", () => {
 });
 
 describe("each build that reads the branch", () => {
-  const workflow = (name: string): string => readFileSync(new URL(`../../../.github/workflows/${name}`, import.meta.url), "utf8");
+  const config = new URL("../../../.github/site.json", import.meta.url);
+  // The build of the Pages workflow can be in the site config of the template (.github/site.json, field build).
+  const workflow = (name: string): string => {
+    const text = readFileSync(new URL(`../../../.github/workflows/${name}`, import.meta.url), "utf8");
+    if (name !== "pages.yml" || !existsSync(config)) return text;
+    const { build } = JSON.parse(readFileSync(config, "utf8")) as { build?: string };
+    return `${text}\n${build ?? ""}`;
+  };
 
   it.each(["pages.yml", "site-data.yml"])("uses the overlay in %s, and no direct copy over the data", (name) => {
     const text = workflow(name);
