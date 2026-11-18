@@ -1,7 +1,7 @@
 // The paired time test of two or more arms, to the shared interface paired-time/3 (k127, k130, `docs/BENCH.md`, "A paired time test of strategies").
 //
 // This file imports no type of the packer. highways keeps a copy to the same interface, and the two copies go into the
-// gates package of rigor as one file. The rule is STRATEGY.md 49537337 and 211125cd of the fleet: a comparison runs its
+// gates package of rigor as one file. The rule: a comparison runs its
 // arms in one job, interleaved per input, and an A/A arm (the base against itself) gives the noise floor.
 //
 // - Mode `process`: one process. In each round, the arms run in turn on each input.

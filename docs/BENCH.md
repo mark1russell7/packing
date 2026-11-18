@@ -1445,7 +1445,7 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in 
 - The ratio of an input is the `caseRatios` ratio: the median of the log ratios of its rounds. Each round cancels the drift of the runner. Schema 2 divided the median times.
 - `sum-median` is the median over the inputs of the ratio of the arm to the sum of the times of the `members` in each round.
 - A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A facts of each job.
-- The rule of the gate limits (STRATEGY.md, 2026-11-02): the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
+- The rule of the gate limits (2026-11-02): the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
 - No limit uses a fixed factor. Schema 1 had the old rule, the worst value times 1.1, and a fixed A/A tolerance.
 - A measure that the item does not gate is a report, with the reason in the record.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.
