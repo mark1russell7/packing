@@ -1,6 +1,6 @@
 // The paired time test of two or more arms, to the shared interface paired-time/4 (k127, k130, R13, `docs/BENCH.md`, "A paired time test of strategies").
 //
-// This file imports no type of the packer. The rule is STRATEGY.md 49537337 and 211125cd of the fleet: a comparison runs its
+// This file imports no type of the packer. The rule: a comparison runs its
 // arms in one job, interleaved per input, and an A/A arm (the base against itself) gives the noise floor.
 //
 // - The harness is `@mark1russell7/rigor-bench` (R13). This file keeps only the report of the packer and its statistics.

@@ -1,8 +1,8 @@
 // A time gate on a paired time test (`paired-time.ts`). The gate record gives its limits and their derivation.
 //
 // A limit comes from 5 CI runs of the same test or more. The gate refuses a report that is not of its test.
-// The rule of the gate limits (STRATEGY.md, 2026-11-02): the limit is the worst value plus the spread (max - min) of the values, rounded up to 4 decimals.
-// `runLimit` of rigor-bench gives it (R13).
+// The rule of the gate limits (2026-11-02): the limit is the worst value plus the spread (max - min) of the values, rounded up to 4 decimals.
+// `runLimit` of rigor-bench gives it.
 // Schema 3 (2026-11-03): the measures come from `@mark1russell7/rigor-bench`. Each round of an input is one record of a pair
 // (base, arm), and the ratio of an input is the median of the log ratios of its rounds. So each round cancels the drift of the runner.
 // The noise cap: a run with an A/A noise above 3 times the quiet noise of the derivation runs cannot decide.
