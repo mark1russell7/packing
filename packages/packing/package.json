@@ -124,7 +124,7 @@
   },
   "devDependencies": {
     "@mark1russell7/cue": "^2.1.1",
-    "@mark1russell7/rigor-bench": "^0.2.29",
+    "@mark1russell7/rigor-bench": "^0.2.59",
     "@mark1russell7/rigor-statistics": "^0.2.8",
     "@mark1russell7/site-pages": "^0.7.0",
     "@types/node": "^26.6.4",

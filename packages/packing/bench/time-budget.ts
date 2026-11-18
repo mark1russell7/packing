@@ -2,10 +2,10 @@
 //
 // The rule is the time test of the linked win test (docs/WIN-TEST.md of rigor). This file keeps no verdict logic:
 // the pooled verdict, the balance of the orders and the tail verdict come from `@mark1russell7/rigor-bench`.
-// This file only turns the `paired-time/3` reports into the records of rigor-bench, and writes the record.
+// This file only turns the `paired-time/3` and `paired-time/4` reports into the records of rigor-bench, and writes the record.
 
-import { armOrder, modelTest, balanceOrders, limitVerdict, pooledVerdict, type Arm, type JobRecords, type LimitOutcome, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
-import { aaId, assertPairedOrder, quantileOf, type PairedReport } from "./paired-time.ts";
+import { modelTest, balanceOrders, limitVerdict, pooledVerdict, type JobRecords, type LimitOutcome, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
+import { aaId, assertPairedOrder, firstSide, quantileOf, type PairedReport } from "./paired-time.ts";
 
 /**
  * The settings of the time test, as the settings table of the linked win test names them. A change of a value is a measured decision.
@@ -185,34 +185,21 @@ const pairOf = (i: { low: number; high: number } | undefined): [number, number] 
 const orNull = (x: number | undefined): number | null => (x === undefined ? null : r4(x));
 
 /**
- * This function gives the arm of a pair that started first in one round of mode `fresh`.
- *
- * - The arms of a `paired-time/3` report run in the order of `armOrder` of `@mark1russell7/rigor-bench`.
- * - The pair is the arm `a` at the index `aAt` of `report.arms`, and the arm `b` at the index `bAt`.
- */
-export function firstOfPair(arms: number, aAt: number, bAt: number, round: number): Arm {
-  const order = armOrder(Array.from({ length: arms }, (_, at) => at), round);
-  return order.indexOf(aAt) < order.indexOf(bAt) ? "a" : "b";
-}
-
-/**
  * This function gives the records of one pair of a report, for the pooled verdict of rigor-bench.
  *
  * - Each input gives one record for each round, with the times of the arms `a` and `b` of that round.
- * - The round of a record is `offset` plus the round of the report. The first arm comes from the round of the report.
+ * - The round of a record is `offset` plus the round of the report. The first arm comes from `firstSide` with the round of the report.
  * - An input without the times of the two arms gives no records.
  */
 export function pairRecords(report: PairedReport, a: string, b: string, offset: number): PairedTime[] {
   assertPairedOrder(report);
-  const aAt = report.arms.indexOf(a);
-  const bAt = report.arms.indexOf(b);
-  if (aAt < 0 || bAt < 0) return [];
+  if (!report.arms.includes(a) || !report.arms.includes(b)) return [];
   return report.inputs.flatMap((input) => {
     const as = input.ms[a];
     const bs = input.ms[b];
     if (as === undefined || bs === undefined) return [];
     const rounds = Math.min(as.length, bs.length);
-    return Array.from({ length: rounds }, (_, round) => ({ case: input.id, round: offset + round, first: firstOfPair(report.arms.length, aAt, bAt, round), a: as[round]!, b: bs[round]! }));
+    return Array.from({ length: rounds }, (_, round) => ({ case: input.id, round: offset + round, first: firstSide(report, input, round, [a], b), a: as[round]!, b: bs[round]! }));
   });
 }
 

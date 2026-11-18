@@ -226,6 +226,7 @@ Status: done, done, waiting, next, done.
 | k222 | The names of the front chart of compare: each name in the chart, with no name on another name or on a dot. A name with no room stays only in the caption list | site | in progress | k123 |
 | k223 | Each CI job ends with a result before its time limit: a faster case, a split, or a measured limit with a record of each case that did not finish. The first slice sets the limits of the shared CI from measured times | ci | in progress |  |
 | k224 | The strategy files of the site have a compact form. The weekly run of 2026-11-11 had 72 strategies and 8 measures, so 4 files were above the limit of 200,000 bytes (the largest had 285,425). The form keeps only the values that the pages read: a row of cells for each verdict, and each text once. The largest file then has 87,486 bytes. A test holds a file with a strategy for each entry and a verdict for each measure below the limit | site | done | k186 |
+| k225 | Packing in 3D: boxes in a room or a container, with rules. It comes far later: first the 2D rectangles are solved, then the other 2D shapes (k39) | strategies | later | k39 |
 
 ## The queue
 

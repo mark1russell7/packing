@@ -1,14 +1,15 @@
 // A time gate on a paired time test (`paired-time.ts`). The gate record gives its limits and their derivation.
 //
 // A limit comes from 5 CI runs of the same test or more. The gate refuses a report that is not of its test.
-// The rule of the gate limits (STRATEGY.md, 2026-11-02): the limit is the worst value plus the spread (max - min) of the values, rounded up to 4 decimals.
+// The rule of the gate limits (2026-11-02): the limit is the worst value plus the spread (max - min) of the values, rounded up to 4 decimals.
+// `runLimit` of rigor-bench gives it.
 // Schema 3 (2026-11-03): the measures come from `@mark1russell7/rigor-bench`. Each round of an input is one record of a pair
 // (base, arm), and the ratio of an input is the median of the log ratios of its rounds. So each round cancels the drift of the runner.
 // The noise cap: a run with an A/A noise above 3 times the quiet noise of the derivation runs cannot decide.
 // The A/A noise grows with the spread and with a shift of the A/A ratios, so the cap also replaces the rule of schema 2 that the A/A band contains 1.
 
-import { aaBand, armOrder, caseRatios, orderSize, timeVerdict, type Band, type OrderSize, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
-import { aaId, assertPairedOrder, quantileOf, warmInputs, type PairedInput, type PairedReport } from "./paired-time.ts";
+import { aaBand, caseRatios, orderSize, runLimit, timeVerdict, type Band, type OrderSize, type PairedTime, type TimeOutcome } from "@mark1russell7/rigor-bench";
+import { aaId, assertPairedOrder, firstSide, quantileOf, warmInputs, type PairedInput, type PairedReport } from "./paired-time.ts";
 
 /**
  * A measure of a paired time test over the inputs. The ratio of an input is the `caseRatios` ratio of its rounds.
@@ -18,7 +19,7 @@ import { aaId, assertPairedOrder, quantileOf, warmInputs, type PairedInput, type
  */
 export type GateMeasure = "median" | "q95" | "sum-median";
 
-/** The derivation of a limit: the values of the runs, the worst value and the spread (max - min). The limit is `spreadLimit(values)`. */
+/** The derivation of a limit: the values of the runs, the worst value and the spread (max - min). The limit is `runLimit(values).limit` of rigor-bench. */
 export interface GateDerivation {
   runs: string[];
   cpus: string[];
@@ -124,18 +125,17 @@ export function gateInputs(report: PairedReport, gate: Pick<TimeGate, "steady">)
 /**
  * This function gives the records of rigor-bench of one pair: the base `a` against the arm `b`, one record for each input and round.
  *
- * With `members`, the time `a` of a round is the sum of the times of the members. The arm that started first comes from `armOrder`.
+ * - With `members`, the time `a` of a round is the sum of the times of the members.
+ * - `firstSide` gives the side that started first. It reads the order of the input in schema 4, and `armOrder` in schema 3.
  */
 export function pairRecords(report: PairedReport, inputs: readonly PairedInput[], arm: string, members: readonly string[] = [report.base]): PairedTime[] {
   assertPairedOrder(report);
-  const at = (id: string, round: number): number => armOrder(report.arms, round).indexOf(id);
   const records: PairedTime[] = [];
   for (const input of inputs) {
     const rounds = input.ms[arm]?.length ?? 0;
     for (let round = 0; round < rounds; round++) {
       const a = members.reduce((sum, id) => sum + (input.ms[id]?.[round] ?? Number.NaN), 0);
-      const first = Math.min(...members.map((id) => at(id, round))) < at(arm, round) ? "a" : "b";
-      records.push({ case: input.id, round, first, a, b: input.ms[arm]![round]! });
+      records.push({ case: input.id, round, first: firstSide(report, input, round, members, arm), a, b: input.ms[arm]![round]! });
     }
   }
   return records;
@@ -161,17 +161,6 @@ export function aaNoise(report: PairedReport, level: number): Band | null {
   const aa = aaId(report.base);
   if (!report.arms.includes(aa)) return null;
   return aaBand(pairRecords(report, report.inputs, aa), { kind: "case", level });
-}
-
-/**
- * This function gives the limit of the rule of the gate limits: the worst value plus the spread (max - min), rounded up to `digits` decimals.
- *
- * The rounding goes away from the data. A limit rounded down can fail a value of its own record.
- */
-export function spreadLimit(values: readonly number[], digits = 4): number {
-  const worst = Math.max(...values);
-  const scale = 10 ** digits;
-  return Math.ceil((2 * worst - Math.min(...values)) * scale - 1e-9) / scale;
 }
 
 /** This function gives the noise cap of the A/A noises of the derivation runs: `factor` times their median, rounded up to `digits` decimals. */
@@ -212,8 +201,9 @@ export function deriveTimeGate(gate: TimeGate, reports: readonly PairedReport[],
     schema: "packing-time-gate/3",
     checks: gate.checks.map((c) => {
       const v = values(c);
-      const worst = Math.max(...v);
-      return { ...c, max: spreadLimit(v), derivation: { runs: [...runs], cpus, values: v, worst, spread: roundTo(worst - Math.min(...v)) } };
+      // The rule of the gate limits: runLimit refuses fewer than 5 values and a value that is not finite
+      const limit = runLimit(v);
+      return { ...c, max: limit.limit, derivation: { runs: [...runs], cpus, values: v, worst: limit.worst, spread: roundTo(limit.spread) } };
     }),
     reports: gate.reports.map((r) => ({ ...r, values: values(r) })),
     aa: { median: bands.map((b) => roundTo(b!.median)), noise },
@@ -234,7 +224,7 @@ export function parseTimeGate(text: string): TimeGate {
     if (typeof d.spread !== "number") throw new TypeError(`The derivation of ${c.measure} has no spread.`);
     const spread = worst - Math.min(...d.values);
     if (Math.abs(spread - d.spread) > 1e-6) throw new TypeError(`The spread of ${c.measure} is ${spread}, not ${d.spread}.`);
-    if (Math.abs(c.max - spreadLimit(d.values)) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
+    if (Math.abs(c.max - runLimit(d.values).limit) > 1e-9) throw new TypeError(`The limit of ${c.measure} is not its worst value plus its spread.`);
   }
   if (gate.noise === undefined || gate.aa?.noise === undefined) throw new TypeError("A time gate has a noise cap (the field noise) and the A/A noise of each run.");
   const noise = noiseCap(gate.aa.noise, gate.noise.factor, gate.noise.level);
