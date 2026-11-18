@@ -39,10 +39,12 @@ import {
   pairedInputs,
   pairedPack,
 } from "./run.ts";
+import { timeArm } from "@mark1russell7/rigor-bench";
+import { eventProbe, peakRss } from "@mark1russell7/rigor-bench/fresh";
 import { runBudgeted, runCases } from "./budget.ts";
 import { controlRead, controlReadText } from "./control-read.ts";
 import { fillWidthsJson, fillWidthsOfRuns, fillWidthsText } from "./fill-widths.ts";
-import { eventProbe, measureIsolated, pairedMarkdown, timeChild, type Arm, type PairedReport } from "./paired-time.ts";
+import { measureIsolated, pairedMarkdown, type Arm, type PairedReport } from "./paired-time.ts";
 import { dumpPredicates, NEAR, parseShard } from "./predicates.ts";
 import { deriveSizeGate, measureSizes, parseSizeGate, publishedExports, sizeCoverage, sizeMarkdown, sizeVerdict, type PublishedPackage, type SizeBundler } from "./size-gate.ts";
 import { parseRecords, smokeCheck, smokeMarkdown } from "./smoke-check.ts";
@@ -175,7 +177,13 @@ async function paired(): Promise<number> {
   return 0;
 }
 
-/** This function packs one arm on one input in a fresh process, by the child protocol of `paired-time.ts`. It writes `{"ms": n, "peakRss": bytes, "warm"?: n, "events"?: counts}`. */
+/**
+ * This function packs one arm on one input in a fresh process, by the child protocol of rigor-bench (`childLine`).
+ * It writes `{"ms": n, "peakRss": bytes, "warm"?: n, "events"?: counts}`.
+ *
+ * - `timeArm` of rigor-bench does `--warmup` untimed calls, then times `--passes` samples of one call. The time is their median.
+ * - With `--events`, `eventProbe` of rigor-bench counts the GC events and the deopts of each half of the samples (k130).
+ */
 async function pairedChild(): Promise<number> {
   const { corpus } = corpusOpt();
   const id = opt("--arm");
@@ -189,10 +197,11 @@ async function pairedChild(): Promise<number> {
   const pack = pairedPack(id, at);
   if (pack === undefined) throw new Error(`The arm ${id} does not support the input ${input}.`);
   const passes = count("--passes", 1);
-  const probe = rest.includes("--events") ? eventProbe() : undefined;
-  const result = timeChild(pack, count("--warmup", 1), undefined, passes, probe?.mark);
-  if (probe !== undefined) result.events = await probe.events(passes);
-  process.stdout.write(`${JSON.stringify(result)}\n`);
+  const probe = rest.includes("--events") ? eventProbe({ deopt: true }) : undefined;
+  const timed = timeArm(pack, { samples: passes, calls: 1, warmMs: 0, warmSamples: count("--warmup", 1), ...(probe === undefined ? {} : { mark: probe.mark }) });
+  const events = probe === undefined ? undefined : await probe.events(passes);
+  const line = { ms: timed.ms, peakRss: peakRss(), ...(timed.warm === undefined ? {} : { warm: timed.warm }), ...(events === undefined ? {} : { events }) };
+  process.stdout.write(`${JSON.stringify(line)}\n`);
   return 0;
 }
 

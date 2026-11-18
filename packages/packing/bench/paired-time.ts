@@ -1,24 +1,20 @@
-// The paired time test of two or more arms, to the shared interface paired-time/3 (k127, k130, `docs/BENCH.md`, "A paired time test of strategies").
+// The paired time test of two or more arms, to the shared interface paired-time/4 (k127, k130, R13, `docs/BENCH.md`, "A paired time test of strategies").
 //
-// This file imports no type of the packer. highways keeps a copy to the same interface, and the two copies go into the
-// gates package of rigor as one file. The rule is STRATEGY.md 49537337 and 211125cd of the fleet: a comparison runs its
+// This file imports no type of the packer. The rule is STRATEGY.md 49537337 and 211125cd of the fleet: a comparison runs its
 // arms in one job, interleaved per input, and an A/A arm (the base against itself) gives the noise floor.
 //
-// - Mode `process`: one process. In each round, the arms run in turn on each input.
-// - Mode `fresh`: a fresh process for each arm, each input and each round. Each input takes the arms in turn.
-// - In both modes, the order of the arms in a round comes from `armOrder` of `@mark1russell7/rigor-bench`: each pair has each order about equally often.
+// - The harness is `@mark1russell7/rigor-bench` (R13). This file keeps only the report of the packer and its statistics.
+// - Mode `process`: one process. Each input gets `timeArmRounds`: the arms in turn, in batches of calls, for each round.
+// - Mode `fresh`: a fresh process for each arm, each input and each round, with `freshRun` and the order `arms`.
+// - In both modes, the arms of an input turn by the index of the input, and then `armOrder` gives the order of each round.
 //
-// Schema `paired-time/2` is `paired-time/1` with the fields `passes`, `warm` and `wallMs`. Schema `paired-time/3` is schema 2 in the new order.
-// A pair reader refuses a report of an older schema, because the first arm of a pair in that report is not the first arm of the new order.
-// A run with the event count (`eventProbe`) adds the field `events` to each input.
+// Schema `paired-time/2` is `paired-time/1` with the fields `passes`, `warm` and `wallMs`. Schema `paired-time/3` is schema 2 in the order of `armOrder`.
+// Schema `paired-time/4` is schema 3 with the turn by the input, and each input keeps the order of each round in `orders`.
+// A pair reader reads the first arm of a pair with `armPosition`. It refuses a report of schema 1 or 2, because their order is not known.
+// A run with the event count adds the field `events` to each input.
 
-import { spawn } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
-import { arch, cpus, platform, tmpdir } from "node:os";
-import { join } from "node:path";
-import { PerformanceObserver } from "node:perf_hooks";
-import { setFlagsFromString } from "node:v8";
-import { armOrder } from "@mark1russell7/rigor-bench";
+import { armOrder, timeArmRounds, type PairedTime, type ProcessArm } from "@mark1russell7/rigor-bench";
+import { benchEnv, freshRun, type BenchEnv, type ChildFields, type StartChild } from "@mark1russell7/rigor-bench/fresh";
 import { mean, quantile, sd } from "@mark1russell7/rigor-statistics";
 
 /** The mode of a paired time run. */
@@ -38,31 +34,14 @@ export interface Input<I> {
   value?: I;
 }
 
-/** The result of one child of mode `fresh`: its time in milliseconds, and its memory peak in bytes. */
-export interface ChildResult {
-  ms: number;
-  peakRss?: number;
-  /** The median of the last half of the timed passes over the median of the first half. Only a child with 2 passes or more gives it. */
-  warm?: number;
-  /** The events of the timed passes. Only a child with the event count gives it. */
-  events?: ChildEvents;
-}
-
 /** The events of a child in its timed passes (k130): the GC events and the deopts of each half of the passes. */
 export interface ChildEvents {
   gc: [number, number];
   deopt: [number, number];
 }
 
-/** The computer of a paired time run. The `cpu` is the model of the first CPU. */
-export interface PairedEnv {
-  cpu: string;
-  cores: number;
-  os: string;
-  arch: string;
-  node: string;
-  runner?: string;
-}
+/** The computer of a paired time run: `BenchEnv` of rigor-bench. The `cpu` is the model of the first CPU. */
+export type PairedEnv = BenchEnv;
 
 /** The options of `measureIsolated`. */
 export interface PairedOptions<I> {
@@ -71,7 +50,7 @@ export interface PairedOptions<I> {
   inputs: readonly Input<I>[];
   /** The timed rounds of each arm on each input */
   repeats: number;
-  /** The untimed passes of each arm before its timed pass. The default is 1. */
+  /** The untimed passes of each child of mode `fresh`, or the untimed batches of each arm before its timed batch in mode `process`. The default is 1. */
   warmup?: number;
   /** The timed passes of each child of mode `fresh`. The time is their median. The default is 1. Mode `process` takes only 1. */
   passes?: number;
@@ -80,9 +59,9 @@ export interface PairedOptions<I> {
   aa?: boolean;
   /** The clock in milliseconds for mode `process`. The default is `performance.now`. */
   clock?: () => number;
-  /** The start of a child for mode `fresh`: it gives the result of the child. The default starts a process. A test gives its own. */
-  startChild?: (command: readonly string[], input: string, warmup: number, passes: number) => Promise<ChildResult>;
-  /** The computer. The default is the computer of this process. */
+  /** The start of a child for mode `fresh`: `StartChild` of rigor-bench. The default starts a process. A test gives its own. */
+  start?: StartChild;
+  /** The computer. The default is `benchEnv()` of rigor-bench. */
   env?: PairedEnv;
   /** The context of the run: `ci` or `local` (or `BENCH_MODE`), with the Node.js flags. The default is the context of this process. */
   context?: string;
@@ -114,6 +93,8 @@ export interface PairedInput {
   median: Record<string, number>;
   /** The median time of the arm over the median time of the base, on this input */
   ratio: Record<string, number>;
+  /** The ids of the arms in the order of their start, one list for each round. Only schema 4 has it. */
+  orders?: string[][];
   /** The highest memory peak of each arm over its rounds, in bytes. Only mode `fresh` has it. */
   peakRss?: Record<string, number>;
   /** The median `warm` of the children of each arm over its rounds. Only mode `fresh` with 2 passes or more has it. */
@@ -136,21 +117,47 @@ export interface PairedWarm {
   outside: number | null;
 }
 
-/** The schema of a paired time report. Schema 3 has the order of `armOrder` of `@mark1russell7/rigor-bench`, in both modes. */
-export const PAIRED_SCHEMA = "paired-time/3" as const;
+/** The schema of a new paired time report. Schema 4 keeps the order of the arms of each input and round. */
+export const PAIRED_SCHEMA = "paired-time/4" as const;
+
+/** The schemas that a pair reader reads. Schema 3 has the order of `armOrder` with no turn by the input. */
+export type PairedSchema = "paired-time/3" | typeof PAIRED_SCHEMA;
 
 /**
- * This function refuses a report of an older schema with a `RangeError`.
+ * This function refuses a report of schema 1 or 2 with a `RangeError`.
  *
- * An older report has another order of the arms, so this code cannot read which arm of a pair started first.
+ * Such a report has another order of the arms, so this code cannot read which arm of a pair started first.
  */
 export function assertPairedOrder(report: Pick<PairedReport, "schema">): void {
-  if (report.schema !== PAIRED_SCHEMA) throw new RangeError(`The report has the schema ${String(report.schema)}, and the order of its arms is not the order of ${PAIRED_SCHEMA}. Run it again.`);
+  if (report.schema !== PAIRED_SCHEMA && report.schema !== "paired-time/3") throw new RangeError(`The report has the schema ${String(report.schema)}, and the order of its arms is not the order of paired-time/3 or ${PAIRED_SCHEMA}. Run it again.`);
 }
 
-/** The report of a paired time run: schema `paired-time/3`. A file of version 1 has no `passes`, `warm` and `wallMs`. */
+/**
+ * This function gives the place of an arm in the start order of one input in one round. An arm that is not in the order gives -1.
+ *
+ * - A report of schema 4 keeps the order of each input and round in `orders`. An input without the order of the round is a `RangeError`.
+ * - A report of schema 3 used `armOrder(report.arms, round)` for each input, with no turn by the input.
+ */
+export function armPosition(report: Pick<PairedReport, "schema" | "arms">, input: Pick<PairedInput, "id" | "orders">, round: number, arm: string): number {
+  assertPairedOrder(report);
+  if (report.schema === "paired-time/3") return armOrder(report.arms, round).indexOf(arm);
+  const order = input.orders?.[round];
+  if (order === undefined) throw new RangeError(`The input ${input.id} of the report has no order of the round ${round}.`);
+  return order.indexOf(arm);
+}
+
+/**
+ * This function gives the side of a pair that started first on one input in one round: `a` or `b`.
+ * The side `a` is one arm or more. The first of them counts, as for the sum of the members of a gate.
+ */
+export function firstSide(report: Pick<PairedReport, "schema" | "arms">, input: Pick<PairedInput, "id" | "orders">, round: number, a: readonly string[], b: string): PairedTime["first"] {
+  const at = (id: string): number => armPosition(report, input, round, id);
+  return Math.min(...a.map(at)) < at(b) ? "a" : "b";
+}
+
+/** The report of a paired time run: schema `paired-time/4`, or a stored report of schema 3. A file of version 1 has no `passes`, `warm` and `wallMs`. */
 export interface PairedReport {
-  schema: typeof PAIRED_SCHEMA;
+  schema: PairedSchema;
   mode: Mode;
   /** The context of the run: `ci` or `local` (or `BENCH_MODE`), with the Node.js flags */
   context?: string;
@@ -170,20 +177,11 @@ export interface PairedReport {
   wallMs?: number;
 }
 
-/** The suffix of the id of the A/A arm. */
+/** The suffix of the id of the A/A arm. rigor-bench uses the same suffix. */
 export const AA_SUFFIX = "~aa";
 
 /** This function gives the id of the A/A arm of a base. */
 export const aaId = (base: string): string => `${base}${AA_SUFFIX}`;
-
-/** This function gives the computer of this process. The runner comes from `BENCH_RUNNER`, else `RUNNER_NAME`. An empty value takes the fallback. */
-export function pairedEnv(): PairedEnv {
-  const all = cpus();
-  const env: PairedEnv = { cpu: all[0]?.model.trim() || "unknown", cores: all.length, os: platform(), arch: arch(), node: process.version };
-  const runner = process.env["BENCH_RUNNER"] || process.env["RUNNER_NAME"];
-  if (runner !== undefined && runner !== "") env.runner = runner;
-  return env;
-}
 
 /** This function gives the context of this process: `BENCH_MODE`, else `ci` in CI and `local` on other computers, then the Node.js flags. */
 export function pairedContext(): string {
@@ -228,9 +226,10 @@ function armsOf<I>(o: PairedOptions<I>): Arm<I>[] {
   return arms;
 }
 
-/** The raw times of a run, before the statistics: for each input, the times and the peaks of each arm. */
+/** The raw times of a run, before the statistics: for each input, the times, the orders and the peaks of each arm. */
 interface RawTimes {
   ms: Map<string, Map<string, number[]>>;
+  orders: Map<string, string[][]>;
   peak: Map<string, Map<string, number>>;
   warm: Map<string, Map<string, number[]>>;
   events: Map<string, Map<string, ChildEvents>>;
@@ -240,7 +239,8 @@ interface RawTimes {
 function rawOf(inputs: readonly { id: string }[], arms: readonly { id: string }[]): RawTimes {
   const ms = new Map(inputs.map((i) => [i.id, new Map(arms.map((a) => [a.id, [] as number[]]))]));
   const warm = new Map(inputs.map((i) => [i.id, new Map(arms.map((a) => [a.id, [] as number[]]))]));
-  return { ms, peak: new Map(inputs.map((i) => [i.id, new Map<string, number>()])), warm, events: new Map(inputs.map((i) => [i.id, new Map<string, ChildEvents>()])) };
+  const orders = new Map(inputs.map((i) => [i.id, [] as string[][]]));
+  return { ms, orders, peak: new Map(inputs.map((i) => [i.id, new Map<string, number>()])), warm, events: new Map(inputs.map((i) => [i.id, new Map<string, ChildEvents>()])) };
 }
 
 /** This function gives the statistics of the ratios of one arm. */
@@ -299,6 +299,8 @@ export function pairedReport<I>(
     if (b !== undefined && b > 0) for (const a of arms.slice(1)) if (median[a.id] !== undefined) ratio[a.id] = median[a.id]! / b;
     const row: PairedInput = { id: input.id, ms, median, ratio };
     if (input.group !== undefined) row.group = input.group;
+    const orders = raw.orders.get(input.id)!;
+    if (orders.length > 0) row.orders = orders;
     const peak = raw.peak.get(input.id)!;
     if (mode === "fresh" && peak.size > 0) row.peakRss = Object.fromEntries(peak);
     const warms = raw.warm.get(input.id)!;
@@ -332,167 +334,101 @@ function warmOf(values: readonly number[], band: { p10: number; p90: number } | 
 }
 
 /**
- * This function does the warm-up passes of a child untimed, then the timed passes. It gives the median time and the memory peak of the process.
- * With 2 passes or more, it also gives `warm`: the median of the last half of the passes over the median of the first half.
- * The function `mark` gets the bounds of the halves, outside the timed passes. Its passes are 0, half, passes - half and passes.
- */
-export function timeChild(run: () => unknown, warmup: number, clock: () => number = () => performance.now(), passes = 1, mark?: (pass: number) => void): ChildResult & { peakRss: number } {
-  for (let w = 0; w < warmup; w++) run();
-  const times: number[] = [];
-  const half = Math.floor(passes / 2);
-  const bounds = new Set([0, half, passes - half]);
-  for (let p = 0; p < passes; p++) {
-    if (bounds.has(p)) mark?.(p);
-    const start = clock();
-    run();
-    times.push(clock() - start);
-  }
-  mark?.(passes);
-  const early = quantileOf(times.slice(0, half), 0.5);
-  // The value maxRSS of Node.js is in kilobytes
-  const out: ChildResult & { peakRss: number } = { ms: quantileOf(times, 0.5), peakRss: process.resourceUsage().maxRSS * 1024 };
-  if (half > 0 && early > 0) out.warm = quantileOf(times.slice(passes - half), 0.5) / early;
-  return out;
-}
-
-/**
- * This function starts the event count of a child (k130), and gives the function `mark` of `timeChild` and the function `events`.
+ * This function times the arms in one process with `timeArmRounds` of rigor-bench, one input after the other.
  *
- * - A `PerformanceObserver` records the start of each GC event. The V8 flag `--trace-deopt` writes each deopt to a file of the child.
- * - Each mark records the time and the count of the deopts. The time of a mark is outside the read of the file.
- * - The function `events` gives the counts of each half of the passes, and removes the file.
+ * - The arms of the input at the index `i` turn by `i`. Then `armOrder` gives the order of each round.
+ * - The base sets the count of calls of a batch, so that a batch takes 10 ms or more. Each arm does `warmup` untimed batches before its timed batch.
+ * - A time of the report is the time of a batch over its count of calls.
  */
-export function eventProbe(dir: string = tmpdir()): { mark: (pass: number) => void; events: (passes: number) => Promise<ChildEvents> } {
-  const file = join(dir, `paired-deopt-${process.pid}.txt`);
-  for (const flag of ["--trace-deopt", "--redirect-code-traces", `--redirect-code-traces-to=${file}`]) setFlagsFromString(flag);
-  const gc: number[] = [];
-  const observer = new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) gc.push(entry.startTime);
-  });
-  observer.observe({ entryTypes: ["gc"] });
-  const deopts = (): number => {
-    try {
-      return readFileSync(file, "utf8").split("\n").filter((line) => line.includes("[bailout (kind")).length;
-    } catch {
-      // V8 makes the file at the first deopt
-      return 0;
-    }
-  };
-  const marks = new Map<number, { before: number; deopt: number; after: number }>();
-  return {
-    mark: (pass) => {
-      const before = performance.now();
-      const deopt = deopts();
-      marks.set(pass, { before, deopt, after: performance.now() });
-    },
-    events: async (passes) => {
-      // The observer gets the GC entries after a turn of the event loop
-      await new Promise((done) => setTimeout(done, 10));
-      observer.disconnect();
-      setFlagsFromString("--no-trace-deopt");
-      rmSync(file, { force: true });
-      const half = Math.floor(passes / 2);
-      const span = (from: number, to: number): [number, number] => {
-        const a = marks.get(from);
-        const b = marks.get(to);
-        if (a === undefined || b === undefined) throw new Error(`The event count has no mark at the pass ${a === undefined ? from : to}.`);
-        return [gc.filter((t) => t >= a.after && t < b.before).length, b.deopt - a.deopt];
-      };
-      const early = span(0, half);
-      const late = span(passes - half, passes);
-      return { gc: [early[0], late[0]], deopt: [early[1], late[1]] };
-    },
-  };
-}
-
-/** This function starts a child with the child protocol, and gives its result. A child that exits with a code other than 0 is an error. */
-async function startProcess(command: readonly string[], input: string, warmup: number, passes: number): Promise<ChildResult> {
-  return childResult(await startArgv([...command, "--input", input, "--warmup", String(warmup), ...(passes === 1 ? [] : ["--passes", String(passes)])]));
-}
-
-/** This function starts a process, and gives its stdout. A process that exits with a code other than 0 is an error. */
-function startArgv(argv: readonly string[]): Promise<string> {
-  return new Promise((done, fail) => {
-    const child = spawn(argv[0]!, argv.slice(1), { stdio: ["ignore", "pipe", "inherit"] });
-    let out = "";
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => (out += chunk));
-    child.on("error", fail);
-    child.on("close", (code) => (code === 0 ? done(out) : fail(new Error(`The child ${argv.join(" ")} exited with the code ${code}.`))));
-  });
-}
-
-/**
- * This function reads the result of a child: the last line of its stdout that starts with `{`. It is `{"ms": n, "peakRss"?: bytes, "warm"?: n, "events"?: counts}`.
- * The V8 flag `--trace-deopt` can write lines after the result.
- */
-export function childResult(stdout: string): ChildResult {
-  const lines = stdout.trim().split("\n").map((l) => l.trim());
-  const line = lines.findLast((l) => l.startsWith("{")) ?? lines.at(-1) ?? "";
-  const value = JSON.parse(line) as { ms?: unknown; peakRss?: unknown; warm?: unknown; events?: unknown };
-  if (typeof value.ms !== "number" || !Number.isFinite(value.ms)) throw new Error(`The child gave no time: ${line}`);
-  const out: ChildResult = { ms: value.ms };
-  if (typeof value.peakRss === "number") out.peakRss = value.peakRss;
-  if (typeof value.warm === "number" && Number.isFinite(value.warm)) out.warm = value.warm;
-  const pair = (x: unknown): x is [number, number] => Array.isArray(x) && x.length === 2 && x.every((n) => Number.isInteger(n) && n >= 0);
-  const e = value.events as { gc?: unknown; deopt?: unknown } | undefined;
-  if (e !== undefined && pair(e.gc) && pair(e.deopt)) out.events = { gc: e.gc, deopt: e.deopt };
-  return out;
-}
-
-/** This function times the arms in one process: in each round, the arms in turn on each input, with the order reversed in odd rounds. */
 function measureProcess<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): PairedReport {
   const clock = o.clock ?? (() => performance.now());
   const warmup = o.warmup ?? 1;
   const raw = rawOf(o.inputs, arms);
   const began = performance.now();
-  for (let round = 0; round < o.repeats; round++) {
-    for (const input of o.inputs) {
-      for (const arm of armOrder(arms, round)) {
-        const run = arm.run!;
-        for (let w = 0; w < warmup; w++) run(input.value as I);
-        const start = clock();
-        const out = run(input.value as I);
-        raw.ms.get(input.id)!.get(arm.id)!.push(clock() - start);
+  const base = arms[0]!;
+  for (const [index, input] of o.inputs.entries()) {
+    const arm = (a: Arm<I>): ProcessArm => ({
+      id: a.id,
+      run: () => {
+        const out = a.run!(input.value as I);
         // Mode process has one process, so a memory peak of an arm has no meaning
-        if (typeof out === "object" && out !== null && "peakRss" in out) throw new RangeError(`The arm ${arm.id} gave a peakRss in mode process.`);
+        if (typeof out === "object" && out !== null && "peakRss" in out) throw new RangeError(`The arm ${a.id} gave a peakRss in mode process.`);
+        return out === undefined || out === null ? 0 : 1;
+      },
+    });
+    const result = timeArmRounds({ case: input.id, base: arm(base), candidates: o.arms.slice(1).map(arm), rounds: o.repeats, offset: index, aa: o.aa !== false, warmMs: 0, warmBatches: warmup, now: clock });
+    const own = raw.ms.get(input.id)!;
+    for (const [id, records] of Object.entries(result.pairs)) {
+      for (const r of records) {
+        own.get(base.id)![r.round] = r.a / result.count;
+        own.get(id)![r.round] = r.b / result.count;
       }
     }
+    raw.orders.set(input.id, result.orders.map((order) => [...order]));
   }
-  return pairedReport("process", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw, { wallMs: performance.now() - began });
+  return pairedReport("process", o.env ?? benchEnv(), o.context ?? pairedContext(), arms, o.inputs, raw, { wallMs: performance.now() - began });
 }
 
-/** This function times the arms with a fresh process for each arm, each input and each round. Each input takes the arms in turn, in the order of `armOrder`. */
+/** This function adds the fields of one child to the raw times of an arm on an input. The fields are the warm value, the events and the memory peak. */
+function addFields(raw: RawTimes, input: string, arm: string, fields: ChildFields | undefined): void {
+  if (fields === undefined) return;
+  if (fields.warm !== undefined) raw.warm.get(input)!.get(arm)!.push(fields.warm);
+  const e = fields.events;
+  // A child without the deopt counts gives no events, as before
+  if (e !== undefined && e.deopt !== undefined) {
+    const own = raw.events.get(input)!;
+    const sum = own.get(arm) ?? { gc: [0, 0], deopt: [0, 0] };
+    own.set(arm, { gc: [sum.gc[0] + e.gc[0], sum.gc[1] + e.gc[1]], deopt: [sum.deopt[0] + e.deopt[0], sum.deopt[1] + e.deopt[1]] });
+  }
+  if (fields.peakRss !== undefined) {
+    const peak = raw.peak.get(input)!;
+    peak.set(arm, Math.max(peak.get(arm) ?? 0, fields.peakRss));
+  }
+}
+
+/**
+ * This function times the arms with a fresh process for each arm, each input and each round: `freshRun` of rigor-bench with the order `arms`.
+ *
+ * - The arms of the input at the index `i` turn by `i`. Then `armOrder` gives the order of each round. The report keeps each order.
+ * - A child gets the arguments `--input <id> --warmup <n>`, and `--passes <n>` when the passes are not 1.
+ * - A child that skips an input is an error: the child of the packer does not skip.
+ */
 async function measureFresh<I>(o: PairedOptions<I>, arms: readonly Arm<I>[]): Promise<PairedReport> {
-  const start = o.startChild ?? startProcess;
   const warmup = o.warmup ?? 1;
   const passes = o.passes ?? 1;
   const raw = rawOf(o.inputs, arms);
   const began = performance.now();
-  for (let round = 0; round < o.repeats; round++) {
-    for (const input of o.inputs) {
-      for (const arm of armOrder(arms, round)) {
-        const result = await start(arm.command!, input.id, warmup, passes);
-        raw.ms.get(input.id)!.get(arm.id)!.push(result.ms);
-        if (result.warm !== undefined) raw.warm.get(input.id)!.get(arm.id)!.push(result.warm);
-        if (result.events !== undefined) {
-          const own = raw.events.get(input.id)!;
-          const sum = own.get(arm.id) ?? { gc: [0, 0], deopt: [0, 0] };
-          const e = result.events;
-          own.set(arm.id, { gc: [sum.gc[0] + e.gc[0], sum.gc[1] + e.gc[1]], deopt: [sum.deopt[0] + e.deopt[0], sum.deopt[1] + e.deopt[1]] });
-        }
-        if (result.peakRss !== undefined) {
-          const peak = raw.peak.get(input.id)!;
-          peak.set(arm.id, Math.max(peak.get(arm.id) ?? 0, result.peakRss));
-        }
-      }
+  const base = arms[0]!;
+  const run = await freshRun({
+    base: { id: base.id, command: base.command! },
+    candidates: o.arms.slice(1).map((a) => ({ id: a.id, command: a.command! })),
+    cases: o.inputs.map((i) => i.id),
+    rounds: o.repeats,
+    aa: o.aa !== false,
+    order: "arms",
+    args: (id) => ["--input", id, "--warmup", String(warmup), ...(passes === 1 ? [] : ["--passes", String(passes)])],
+    env: o.env ?? benchEnv(),
+    ...(o.start === undefined ? {} : { start: o.start }),
+  });
+  if (run.skipped.length > 0) throw new Error(`A child skipped an input: ${run.skipped.map((s) => `${s.arm} on ${s.case} (${s.reason})`).join(", ")}.`);
+  const ids = Object.keys(run.pairs);
+  for (const [at, id] of ids.entries()) {
+    for (const r of run.pairs[id]!) {
+      const own = raw.ms.get(r.case)!;
+      own.get(id)![r.round] = r.b;
+      addFields(raw, r.case, id, r.fields?.b);
+      // Each pair has the same child of the base, so only the first pair adds it
+      if (at > 0) continue;
+      own.get(base.id)![r.round] = r.a;
+      addFields(raw, r.case, base.id, r.fields?.a);
     }
   }
-  return pairedReport("fresh", o.env ?? pairedEnv(), o.context ?? pairedContext(), arms, o.inputs, raw, { passes, wallMs: performance.now() - began });
+  for (const order of run.orders ?? []) raw.orders.get(order.case)![order.round] = [...order.arms];
+  return pairedReport("fresh", run.env, o.context ?? pairedContext(), arms, o.inputs, raw, { passes, wallMs: performance.now() - began });
 }
 
 /**
- * This function times the arms of a comparison, and gives the report of schema `paired-time/3`.
+ * This function times the arms of a comparison, and gives the report of schema `paired-time/4`.
  *
  * - Mode `process` gives the report. Mode `fresh` gives a promise of the report.
  * - With `aa` (the default), the report has an A/A arm and the noise floor.

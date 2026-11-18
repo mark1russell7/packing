@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { PairedReport } from "./paired-time.ts";
-import { BUDGET_POLICY, budgetMarkdown, budgetModelLines, budgetModels, firstOfPair, jobRecords, pairRecords, timeBudget, type BudgetInput } from "./time-budget.ts";
+import { firstSide, type PairedReport } from "./paired-time.ts";
+import { BUDGET_POLICY, budgetMarkdown, budgetModelLines, budgetModels, jobRecords, pairRecords, timeBudget, type BudgetInput } from "./time-budget.ts";
 
 // Each report of this file is made-up data. The noise is a fixed pattern of offsets on a log scale, not a random draw.
 const OFFSETS = [-1, 0.5, 0, -0.5, 1];
@@ -49,12 +49,27 @@ function job(name: string, s: Shape = {}, over: Partial<PairedReport> = {}): Bud
 const five = (s: Shape = {}) => [0, 1, 2, 3, 4].map((n) => job(`run${n + 1}`, s));
 
 describe("the records of rigor-bench", () => {
-  it("gives the first arm of each pair from the order of the home", () => {
+  it("gives the first arm of each pair of a stored report of schema 3 from the order of the home", () => {
     // The order of the arms in the rounds 0, 1, 2 and 3 is [a, b, a~aa], [a~aa, b, a], [b, a~aa, a] and [a, a~aa, b].
-    expect([0, 1, 2, 3].map((r) => firstOfPair(3, 0, 1, r))).toEqual(["a", "b", "b", "a"]);
-    expect([0, 1, 2, 3].map((r) => firstOfPair(3, 0, 2, r))).toEqual(["a", "b", "b", "a"]);
+    const three = { schema: "paired-time/3" as const, arms: ARMS };
+    const input = { id: "x" };
+    expect([0, 1, 2, 3].map((r) => firstSide(three, input, r, ["a"], "b"))).toEqual(["a", "b", "b", "a"]);
+    expect([0, 1, 2, 3].map((r) => firstSide(three, input, r, ["a"], "a~aa"))).toEqual(["a", "b", "b", "a"]);
     // With 2 arms, the order of round 2 is the order of round 1.
-    expect([0, 1, 2].map((r) => firstOfPair(2, 0, 1, r))).toEqual(["a", "b", "b"]);
+    expect([0, 1, 2].map((r) => firstSide({ schema: "paired-time/3", arms: ["a", "b"] }, input, r, ["a"], "b"))).toEqual(["a", "b", "b"]);
+  });
+
+  it("gives the first arm of each pair of a report of schema 4 from the order of the input", () => {
+    const report = job("run1", { cases: 1, rounds: 2 }, { schema: "paired-time/4" }).report;
+    report.inputs[0]!.orders = [
+      ["b", "a~aa", "a"],
+      ["a", "a~aa", "b"],
+    ];
+    expect(pairRecords(report, "a", "b", 0).map((r) => r.first)).toEqual(["b", "a"]);
+    expect(pairRecords(report, "a", "a~aa", 0).map((r) => r.first)).toEqual(["b", "a"]);
+    // A report of schema 4 without the order of a round does not give a guess
+    delete report.inputs[0]!.orders;
+    expect(() => pairRecords(report, "a", "b", 0)).toThrow("no order of the round 0");
   });
 
   it("maps the times, the rounds and the first arm of a report to records", () => {
