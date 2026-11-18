@@ -1,0 +1,16 @@
+{
+  "$comment": "The site config of this repository (CI.md of the template, \"The site config\"). The Pages workflow deploys this site from main, and a job of ci.yml checks it on each pull request.",
+  "build": "if git fetch -q origin site-data; then\n  branch=\"$(mktemp -d)\"\n  git archive FETCH_HEAD | tar -x -C \"$branch\"\n  node --no-warnings packages/site/scripts/overlay.ts \"$branch\" packages/site/data\nfi\n(cd packages/packing && node --no-warnings bench/snapshot.ts releases)\npnpm --filter @packing/site run check:data\npnpm --filter @packing/site run build\n",
+  "out": "packages/site/dist",
+  "env": {
+    "SITE_BASE": "/{repo}"
+  },
+  "roadmap": "docs/ROADMAP.md",
+  "group": "@mark1russell7/packing",
+  "packages": "@mark1russell7/packing",
+  "site-name": "packing",
+  "site-check": true,
+  "site-check-pages": "/,/explorer/,/compare/,/results/,/results/studies/,/releases/,/status/",
+  "data-stamps": "packages/site/dist/data-stamps.json",
+  "site-check-probe": "packages/site/src/check-probe.ts"
+}
