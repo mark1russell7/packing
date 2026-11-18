@@ -39,7 +39,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
-const CATALOG_URL = "https://github.com/mark1russell7/packing/blob/main/docs/research/CATALOG.md";
+const CATALOG_URL = "https://github.com/metrograph-labs/packing/blob/main/docs/research/CATALOG.md";
 const catalog = parseCatalog(catalogText);
 const snapshots = strategySnapshots;
 const cards = buildCards({ strategies: [...strategies, ...shapeStrategies, ...standaloneStrategies], composites: [...composites, sideAnchorsStrategy], entries: ENTRIES, catalog, snapshots });

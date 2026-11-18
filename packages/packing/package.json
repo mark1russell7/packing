@@ -12,13 +12,13 @@
     "skyline",
     "typescript"
   ],
-  "homepage": "https://mark1russell7.github.io/packing/",
+  "homepage": "https://metrograph-labs.github.io/packing/",
   "bugs": {
-    "url": "https://github.com/mark1russell7/packing/issues"
+    "url": "https://github.com/metrograph-labs/packing/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mark1russell7/packing.git",
+    "url": "git+https://github.com/metrograph-labs/packing.git",
     "directory": "packages/packing"
   },
   "license": "MIT",

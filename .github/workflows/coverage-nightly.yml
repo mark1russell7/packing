@@ -21,7 +21,7 @@ name: Coverage nightly
 
 on:
   schedule:
-    - cron: "52 2 * * 1"
+    - cron: "59 2 * * 1"
   workflow_dispatch:
     inputs:
       corpus:

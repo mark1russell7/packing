@@ -13,7 +13,7 @@ name: Adversary corpus
 
 on:
   schedule:
-    - cron: "50 3 * * 2"
+    - cron: "59 3 * * 2"
   workflow_call:
   workflow_dispatch:
 
