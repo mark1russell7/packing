@@ -221,13 +221,18 @@ describe("the corpus pack-adversary-v1", () => {
       expect(ci).not.toMatch(/ALLOW_SKIP:.*adversary/);
     });
 
-    it("runs --check on main each week, on a cron minute of its own", () => {
-      const minuteOf = (text: string) => /cron: "(\d+) /.exec(text)?.[1];
+    it("runs --check on main each week, at a start time of its own", () => {
+      // The rule runner-budget gives the minute of each repository and file, so two files can get the same minute. The
+      // start time is what must differ: the minute, the hour and the day of the week.
+      const crons = (text: string) => [...text.matchAll(/cron: "([^"]+)"/g)].map((match) => (match[1] ?? "").split(" "));
+      const fires = (field: string, value: string) =>
+        field === "*" || field.split(",").includes(value) || (field.startsWith("*/") && Number(value) % Number(field.slice(2)) === 0);
       expect(held).toMatch(/\[ "\$EVENT" = schedule \]; then\s+echo "mode=check"/);
-      expect(/cron: "\d+ \d+ \* \* (\d)"/.exec(held)?.[1]).toBeDefined();
-      const others = readdirSync(workflows).filter((name) => name !== "adversary.yml").map((name) => minuteOf(readFileSync(join(workflows, name), "utf8")));
-      expect(others.filter((minute) => minute !== undefined).length).toBeGreaterThan(0);
-      expect(others).not.toContain(minuteOf(held));
+      const [minute = "", hour = "", , , day = ""] = crons(held)[0] ?? [];
+      expect(`${minute} ${hour} ${day}`).toMatch(/^\d+ \d+ \d$/);
+      const others = readdirSync(workflows).filter((name) => name !== "adversary.yml").flatMap((name) => crons(readFileSync(join(workflows, name), "utf8")));
+      expect(others.length).toBeGreaterThan(0);
+      expect(others.filter(([m = "", h = "", , , d = ""]) => fires(m, minute) && fires(h, hour) && fires(d, day))).toEqual([]);
     });
 
     it("runs --check on each file of the search", () => {
