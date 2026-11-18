@@ -1,17 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { aaId, assertPairedOrder, childResult, eventProbe, measureIsolated, pairedMarkdown, quantileOf, timeChild, warmRule, type PairedEnv } from "./paired-time.ts";
+import { armOrder } from "@mark1russell7/rigor-bench";
+import type { StartChild } from "@mark1russell7/rigor-bench/fresh";
+import { aaId, armPosition, assertPairedOrder, firstSide, measureIsolated, pairedMarkdown, quantileOf, warmRule, type PairedEnv } from "./paired-time.ts";
+import { pairRecords as budgetPairs } from "./time-budget.ts";
+import { pairRecords as gatePairs } from "./time-gate.ts";
 
 const ENV: PairedEnv = { cpu: "Test CPU 9000", cores: 4, os: "test", arch: "x64", node: "v0.0.0" };
 
-/** This function makes a made-up clock: each run of an arm adds the cost of the arm on the input to the time. */
+/** This function makes a made-up clock: each call of an arm adds the cost of the arm on the input to the time. */
 function fakeClock() {
   let now = 0;
   return { clock: () => now, spend: (ms: number) => (now += ms) };
 }
 
 describe("assertPairedOrder", () => {
-  it("accepts the report of the home order, and refuses each older schema with its name", () => {
+  it("accepts a report of schema 3 or 4, and refuses each older schema with its name", () => {
     expect(() => assertPairedOrder({ schema: "paired-time/3" })).not.toThrow();
+    expect(() => assertPairedOrder({ schema: "paired-time/4" })).not.toThrow();
     for (const schema of ["paired-time/1", "paired-time/2"]) {
       expect(() => assertPairedOrder({ schema } as unknown as { schema: "paired-time/3" })).toThrow(new RegExp(`the schema ${schema}`));
     }
@@ -61,7 +66,6 @@ describe("measureIsolated in mode process", () => {
     { id: "i3", group: "2", value: { base: 1, b: 3 } },
     { id: "i4", group: "2", value: { base: 1, b: 3 } },
   ];
-  const calls: string[] = [];
   const { clock, spend } = fakeClock();
   const report = measureIsolated({
     mode: "process",
@@ -72,20 +76,27 @@ describe("measureIsolated in mode process", () => {
     env: ENV,
     context: "local",
     arms: [
-      { id: "base", run: (v: { base: number }) => (calls.push("base"), spend(v.base)) },
-      { id: "b", run: (v: { b: number }) => (calls.push("b"), spend(v.b)) },
+      { id: "base", run: (v: { base: number }) => spend(v.base) },
+      { id: "b", run: (v: { b: number }) => spend(v.b) },
     ],
   });
 
-  it("adds the A/A arm, and gives the arms in turn with the warm-up runs not timed", () => {
-    expect(report.schema).toBe("paired-time/3");
+  it("adds the A/A arm, and turns the arms of each input by its index (timeArmRounds of rigor-bench)", () => {
+    expect(report.schema).toBe("paired-time/4");
     expect(report.arms).toEqual(["base", "b", aaId("base")]);
-    // Round 0 on i1: each arm warms up once and then packs once
-    expect(calls.slice(0, 6)).toEqual(["base", "base", "b", "b", "base", "base"]);
-    expect(calls).toHaveLength(2 * 4 * 3 * 2);
+    // The input 0 starts with the base, and the input 1 with the arm b. Round 1 is the reverse of round 0
+    expect(report.inputs[0]!.orders).toEqual([
+      ["base", "b", "base~aa"],
+      ["base~aa", "b", "base"],
+    ]);
+    expect(report.inputs[1]!.orders).toEqual([
+      ["b", "base~aa", "base"],
+      ["base", "base~aa", "b"],
+    ]);
   });
 
-  it("keeps the raw times, the medians and the ratios of each input", () => {
+  it("keeps the time of one call of each round, with the warm-up batches not timed", () => {
+    // The base sets 8 calls for a batch on i2 (8 x 2 ms = 16 ms), so the time of a batch over its calls is the cost of one call
     const i2 = report.inputs.find((i) => i.id === "i2")!;
     expect(i2.ms).toEqual({ base: [2, 2], b: [4, 4], "base~aa": [2, 2] });
     expect(i2.ratio).toEqual({ b: 2, "base~aa": 1 });
@@ -103,7 +114,7 @@ describe("measureIsolated in mode process", () => {
 
   it("writes a table with the arms and the noise floor", () => {
     const md = pairedMarkdown(report);
-    expect(md).toContain("mode `process`, context `local`, on 4 x Test CPU 9000");
+    expect(md).toContain("- Schema `paired-time/4`, mode `process`, context `local`, on 4 x Test CPU 9000");
     expect(md).toContain("Noise floor (the A/A arm): median 1.000, p10 1.000, p90 1.000.");
     expect(md).toContain("| `b` | 4 | 2.500 | 2.000 | 3.000 | 1.000 | 2.000 | 3.000 | 2.500 | 0.707 |");
   });
@@ -118,9 +129,27 @@ describe("measureIsolated in mode process", () => {
   });
 });
 
+/** This function makes the start of a child for a test: it keeps the argv of each child, and prints the line that `line` gives. */
+function fakeStart(line: (argv: readonly string[], started: readonly string[]) => object): { started: string[]; start: StartChild } {
+  const started: string[] = [];
+  const start: StartChild = async (argv) => {
+    started.push(argv.join(" "));
+    return { stdout: `${JSON.stringify(line(argv, started))}\n`, stderr: "", code: 0 };
+  };
+  return { started, start };
+}
+
+/** This function gives the value of an option of the argv of a child. */
+const argOf = (argv: readonly string[], name: string): string => argv[argv.indexOf(name) + 1]!;
+
 describe("measureIsolated in mode fresh", () => {
-  it("starts a child for each arm, input and round, in the order of the home, and keeps the highest peak", async () => {
-    const started: string[] = [];
+  it("starts a child for each arm, input and round with freshRun of rigor-bench, and keeps the order and the highest peak", async () => {
+    const { started, start } = fakeStart((argv, all) => {
+      const arm = argv[2]!;
+      const input = argOf(argv, "--input");
+      const round = all.filter((s) => s.startsWith(`child --arm ${arm} `) && s.includes(`--input ${input} `)).length;
+      return { ms: arm === "b" ? 4 : 2, peakRss: 1000 * round };
+    });
     const report = await measureIsolated({
       mode: "fresh",
       repeats: 2,
@@ -132,33 +161,38 @@ describe("measureIsolated in mode fresh", () => {
         { id: "base", command: ["child", "--arm", "base"] },
         { id: "b", command: ["child", "--arm", "b"] },
       ],
-      startChild: async (command, input, warmup) => {
-        started.push(`${command.join(" ")} --input ${input} --warmup ${warmup}`);
-        const arm = command[2];
-        const round = started.filter((s) => s.startsWith(`child --arm ${arm} `) && s.includes(`--input ${input}`)).length;
-        return { ms: arm === "b" ? 4 : 2, peakRss: 1000 * round };
-      },
+      start,
     });
-    // Round 0: x takes base, b and base (the A/A arm) in turn, then y. Round 1 is the reverse: the A/A arm, b and base.
+    // Round 0: x takes base, b and base (the A/A arm) in turn. The input y turns the arms by 1, so it starts with b
     expect(started.slice(0, 3)).toEqual(["child --arm base --input x --warmup 3", "child --arm b --input x --warmup 3", "child --arm base --input x --warmup 3"]);
-    expect(started[3]).toBe("child --arm base --input y --warmup 3");
+    expect(started[3]).toBe("child --arm b --input y --warmup 3");
+    // Round 1 is the reverse: the A/A arm, b and base
     expect(started.slice(6, 9)).toEqual(["child --arm base --input x --warmup 3", "child --arm b --input x --warmup 3", "child --arm base --input x --warmup 3"]);
     expect(started).toHaveLength(12);
     const x = report.inputs.find((i) => i.id === "x")!;
     expect(x.ratio).toEqual({ b: 2, "base~aa": 1 });
+    expect(x.orders).toEqual([
+      ["base", "b", "base~aa"],
+      ["base~aa", "b", "base"],
+    ]);
+    expect(report.inputs.find((i) => i.id === "y")!.orders).toEqual([
+      ["b", "base~aa", "base"],
+      ["base", "base~aa", "b"],
+    ]);
     // The A/A arm has the command of the base, so the base command packs 4 times on x
     expect(x.peakRss).toEqual({ base: 4000, b: 2000, "base~aa": 3000 });
     expect(report.mode).toBe("fresh");
     expect(report.ratios["b"]!.groups).toEqual({ all: 2 });
     expect(report.context).toBe("ci --flag");
-    expect(report.schema).toBe("paired-time/3");
+    expect(report.schema).toBe("paired-time/4");
     expect([report.passes, report.warm, x.warm]).toEqual([1, undefined, undefined]);
     expect(() => warmRule(report)).toThrow("needs a report of mode fresh");
     expect(report.wallMs).toBeGreaterThanOrEqual(0);
   });
 
   it("gives the passes to each child, and the warm check of each arm and input (k130)", async () => {
-    const started: string[] = [];
+    // The arm b on y does not reach a warm state: its last passes are faster than its first passes
+    const { started, start } = fakeStart((argv) => ({ ms: 1, warm: argv[2] === "b" && argOf(argv, "--input") === "y" ? 0.5 : 1 }));
     const report = await measureIsolated({
       mode: "fresh",
       repeats: 3,
@@ -170,13 +204,9 @@ describe("measureIsolated in mode fresh", () => {
         { id: "base", command: ["child", "--arm", "base"] },
         { id: "b", command: ["child", "--arm", "b"] },
       ],
-      startChild: async (command, input, warmup, passes) => {
-        started.push(`${command[2]} ${input} ${warmup} ${passes}`);
-        // The arm b on y does not reach a warm state: its last passes are faster than its first passes
-        return { ms: 1, warm: command[2] === "b" && input === "y" ? 0.5 : 1 };
-      },
+      start,
     });
-    expect(started.every((x) => x.endsWith(" 50 4"))).toBe(true);
+    expect(started.every((x) => x.endsWith(" --warmup 50 --passes 4"))).toBe(true);
     expect(report.passes).toBe(4);
     const y = report.inputs.find((i) => i.id === "y")!;
     expect(y.warm!["b"]).toBe(0.5);
@@ -198,61 +228,67 @@ describe("measureIsolated in mode fresh", () => {
     expect(warmRule(report, { slack: 0.5, median: [0.7, 1.03] }).ok).toBe(true);
     expect(() => warmRule(report, { arms: ["nope"] })).toThrow("no warm check");
   });
+
+  it("sums the GC events and the deopts of the children of each arm, and keeps no events without the deopt counts (k130)", async () => {
+    const { start } = fakeStart((argv) => ({ ms: 1, events: argv[2] === "b" ? { gc: [1, 2], gcMs: [0.5, 0.5], deopt: [0, 1] } : { gc: [1, 1] } }));
+    const arms = [
+      { id: "base", command: ["child", "--arm", "base"] },
+      { id: "b", command: ["child", "--arm", "b"] },
+    ];
+    const report = await measureIsolated({ mode: "fresh", repeats: 2, env: ENV, inputs: [{ id: "x" }], arms, start });
+    expect(report.inputs[0]!.events).toEqual({ b: { gc: [2, 4], deopt: [0, 2] } });
+  });
+
+  it("stops on a child that skips an input or prints no time", async () => {
+    const arms = [
+      { id: "base", command: ["child", "--arm", "base"] },
+      { id: "b", command: ["child", "--arm", "b"] },
+    ];
+    const skip = fakeStart(() => ({ skipped: "no support" }));
+    await expect(measureIsolated({ mode: "fresh", repeats: 1, env: ENV, inputs: [{ id: "x" }], arms, start: skip.start })).rejects.toThrow("skipped an input");
+    const none = fakeStart(() => ({ peakRss: 10 }));
+    await expect(measureIsolated({ mode: "fresh", repeats: 1, env: ENV, inputs: [{ id: "x" }], arms, start: none.start })).rejects.toThrow("printed no good JSON line");
+  });
 });
 
-describe("the child protocol", () => {
-  it("reads the last line of the stdout of a child", () => {
-    expect(childResult('log\n{"ms": 1.5}\n')).toEqual({ ms: 1.5 });
-    expect(childResult('{"ms": 2, "peakRss": 10}')).toEqual({ ms: 2, peakRss: 10 });
-    expect(childResult('{"ms": 2, "warm": 0.98}')).toEqual({ ms: 2, warm: 0.98 });
-    expect(childResult('{"ms": 2, "warm": null}')).toEqual({ ms: 2 });
-    expect(() => childResult('{"peakRss": 10}')).toThrow("no time");
+describe("the first arm of a pair (R13)", () => {
+  // The bug: a reader that takes the first arm from armOrder(report.arms, round) skips the turn by the input of freshRun.
+  // Each child prints a time 1 ms longer than the child before it, so the arm with the lower time started first.
+  const arms = ["base", "b", "c"].map((id) => ({ id, command: ["child", "--arm", id] }));
+  const inputs = ["x", "y", "z"].map((id) => ({ id }));
+  const made = (async () => {
+    const { start } = fakeStart((_argv, all) => ({ ms: all.length }));
+    return measureIsolated({ mode: "fresh", repeats: 8, env: ENV, inputs, arms, start });
+  })();
+
+  it("gives the arm that started first in each record of the gate and of the time budget", async () => {
+    const report = await made;
+    let checked = 0;
+    for (const arm of ["b", "c", aaId("base")]) {
+      for (const r of [...gatePairs(report, report.inputs, arm), ...budgetPairs(report, "base", arm, 0)]) {
+        expect(r.first, `${arm} on ${r.case}, round ${r.round}`).toBe(r.a < r.b ? "a" : "b");
+        checked += 1;
+      }
+    }
+    expect(checked).toBe(2 * 3 * 3 * 8);
   });
 
-  it("reads the event counts, and skips the trace lines after the result (k130)", () => {
-    expect(childResult('{"ms": 2, "events": {"gc": [1, 3], "deopt": [0, 2]}}\n) (opt id 5) for deoptimization, reason: x]\n')).toEqual({ ms: 2, events: { gc: [1, 3], deopt: [0, 2] } });
-    expect(childResult('{"ms": 2, "events": {"gc": [1], "deopt": [0, 2]}}')).toEqual({ ms: 2 });
+  it("differs from the first arm of armOrder without the turn, so the test finds the bug", async () => {
+    const report = await made;
+    const old = (round: number, arm: string): "a" | "b" => {
+      const order = armOrder(report.arms, round);
+      return order.indexOf("base") < order.indexOf(arm) ? "a" : "b";
+    };
+    const rounds = [0, 1, 2, 3, 4, 5, 6, 7];
+    const wrong = report.inputs.flatMap((input) => rounds.filter((round) => old(round, "b") !== firstSide(report, input, round, ["base"], "b")));
+    expect(wrong.length).toBeGreaterThan(0);
   });
 
-  it("marks the bounds of the halves outside the timed passes (k130)", () => {
-    const at: number[] = [];
-    let runs = 0;
-    timeChild(() => (runs += 1), 1, undefined, 5, (pass) => at.push(pass, runs));
-    // Pass p starts after 1 + p runs. The halves are the passes 0 to 1 and 3 to 4
-    expect(at).toEqual([0, 1, 2, 3, 3, 4, 5, 6]);
-  });
-
-  it("counts the deopts and the GC events of each half of the passes (k130)", async () => {
-    const probe = eventProbe();
-    const f = (o: { x: unknown }): unknown => o.x;
-    let i = 0;
-    const result = timeChild(() => (i++ < 4000 ? f({ x: i }) : f({ x: String(i) })), 4000, undefined, 6, probe.mark);
-    const events = await probe.events(6);
-    expect(result.ms).toBeGreaterThanOrEqual(0);
-    expect(events.gc.every((n) => Number.isInteger(n) && n >= 0)).toBe(true);
-    expect(events.deopt.every((n) => Number.isInteger(n) && n >= 0)).toBe(true);
-  });
-
-  it("times one run after the warm-up runs", () => {
-    let runs = 0;
-    let now = 0;
-    const result = timeChild(() => ((runs += 1), (now += runs)), 2, () => now);
-    expect(runs).toBe(3);
-    expect(result.ms).toBe(3);
-    expect(result.peakRss).toBeGreaterThan(0);
-    expect(result.warm).toBeUndefined();
-  });
-
-  it("times each pass, and gives the median and the warm check (k130)", () => {
-    // The passes take 8, 6, 4, 4 and 4 ms after the warm-up: the time goes down in the first half
-    const steps = [1, 8, 6, 4, 4, 4];
-    let at = 0;
-    let now = 0;
-    const result = timeChild(() => (now += steps[at++]!), 1, () => now, 5);
-    expect(at).toBe(6);
-    expect(result.ms).toBe(4);
-    // The first 2 passes have the median 7, the last 2 have 4
-    expect(result.warm).toBeCloseTo(4 / 7, 12);
+  it("reads a stored report of schema 3 with armOrder, and refuses a report of schema 4 without the order of a round", () => {
+    const three = { schema: "paired-time/3" as const, arms: ["base", "b", "base~aa"] };
+    expect([0, 1, 2, 3].map((r) => armPosition(three, { id: "x" }, r, "b"))).toEqual([0, 1, 2, 3].map((r) => armOrder(three.arms, r).indexOf("b")));
+    expect(() => armPosition({ schema: "paired-time/4", arms: three.arms }, { id: "x" }, 0, "b")).toThrow("The input x of the report has no order of the round 0.");
+    expect(armPosition({ schema: "paired-time/4", arms: three.arms }, { id: "x", orders: [["b", "base"]] }, 0, "base~aa")).toBe(-1);
   });
 });
 

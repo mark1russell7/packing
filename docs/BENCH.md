@@ -1386,7 +1386,7 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `prediction` | | The id of the prediction of the run. |
 | `mode` | `fresh` | `fresh`: a new process for each arm, each input and each round. `process`: one process. |
 | `repeats` | `5` | The timed rounds of each arm on each input. |
-| `warmup` | `2` | The untimed passes of each arm before each timed pass. |
+| `warmup` | `2` | Mode `fresh`: the untimed passes of each child before its timed passes. Mode `process`: the untimed batches of each arm before its timed batch. |
 | `passes` | `1` | Mode `fresh` only: the timed passes of each child. The time of the child is their median. |
 | `events` | `false` | Mode `fresh` with 2 passes or more: each child counts its GC events and its deopts (k130). |
 | `aa` | `true` | The A/A arm: a second copy of the base, for the noise floor. |
@@ -1395,12 +1395,13 @@ gh workflow run paired-time.yml -f arms=select-rows-bl,portfolio-fill-rows-bl -f
 | `budget` | empty | The id of a candidate arm for the time budget of a promotion (k128). It needs `runs` 5 and mode `fresh`. |
 | `runs` | `1` | The count of the same test, from 1 to 9. Each run is a job, at most 3 at one time. |
 
-The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/3`. The two modes are:
+The job starts `node bench/main.ts paired`. The helper `bench/paired-time.ts` writes the report of the shared interface `paired-time/4`. The harness is `@mark1russell7/rigor-bench` (R13). The two modes are:
 
-- Mode `fresh` starts a child `paired-child` for each arm, each input and each round. The child does the warm-up runs, times `passes` runs, and writes their median time and its memory peak.
-- Mode `process` packs each input with the arms in turn in one process.
+- Mode `fresh` uses `freshRun` with the order `arms`. It starts a child `paired-child` for each arm, each input and each round.
+- The child uses `timeArm`: it does the warm-up calls untimed, and times `passes` samples of one call. It writes their median time and its memory peak (`peakRss`).
+- Mode `process` uses `timeArmRounds` for each input in one process. The base sets the count of calls of a batch, so that a batch takes 10 ms or more.
 
-In both modes, the order of the arms in a round comes from `armOrder` of `@mark1russell7/rigor-bench`. Each odd round is the reverse of the round before it, and each even round turns the arms by one more place. After any count of rounds, the two orders of a pair differ by 1 or less.
+In both modes, the arms of the input at the index `i` turn by `i`. Then `armOrder` of rigor-bench gives the order of each round. Each odd round is the reverse of the round before it, and each even round turns the arms by one more place. After any count of rounds, the two orders of a pair differ by 1 or less. The turn by the input moves the first place of a round from arm to arm over the inputs.
 
 The test uses only the inputs that each arm supports. The ratio of an input is the median time of the arm over the median time of the base. A group is a seed of the corpus.
 
@@ -1408,7 +1409,9 @@ The artifact `paired-time-<corpus>-<mode>-run<n>` of each run has `run.json`, `p
 
 A claim gives the median, p10, p90 and `moved` of each arm, and the noise floor. A difference inside the noise floor is not a result.
 
-Schema `paired-time/3` is `paired-time/2` in this order (k165). A pair reader refuses a report of an older schema, because it cannot read which arm of a pair started first. Schema `paired-time/2` is `paired-time/1` with three more fields (k130).
+Schema `paired-time/4` is `paired-time/3` with the turn by the input (R13). Each input keeps the order of the arms of each round in `orders`. A pair reader reads the first arm of a pair from `orders`. A stored report of schema 3 has no turn, so a reader uses `armOrder` of its arms for it.
+
+Schema `paired-time/3` is `paired-time/2` in the order of `armOrder` (k165). A pair reader refuses a report of schema 1 or 2, because it cannot read which arm of a pair started first. Schema `paired-time/2` is `paired-time/1` with three more fields (k130).
 
 - `wallMs` is the time of all the rounds of the job.
 - `passes` is the count of timed passes of each child of mode `fresh`.
@@ -1419,7 +1422,7 @@ Schema `paired-time/3` is `paired-time/2` in this order (k165). A pair reader re
 
 The event count (`events`, k130) finds the cause of a warm value outside the A/A band.
 
-- A `PerformanceObserver` records the start of each GC event of the child. The V8 flag `--trace-deopt` writes each deopt to a file of the child.
+- `eventProbe` of rigor-bench records the start of each GC event of the child. The V8 flag `--trace-deopt` writes each deopt to a file of the child.
 - The child counts the events of the first half and of the last half of its timed passes. The reads of the file are outside the timed passes.
 - The report gives `events` for each input and arm: `{"gc": [first, last], "deopt": [first, last]}`, the sums over the rounds.
 - The observer and the trace add some work to the child. Thus a run with `events` is a diagnosis, not a time gate.
@@ -1445,7 +1448,7 @@ A time gate (`bench/time-gate.ts`, schema `packing-time-gate/3`) is a record in 
 - The ratio of an input is the `caseRatios` ratio: the median of the log ratios of its rounds. Each round cancels the drift of the runner. Schema 2 divided the median times.
 - `sum-median` is the median over the inputs of the ratio of the arm to the sum of the times of the `members` in each round.
 - A limit comes from 5 CI jobs of the same paired test or more. The record keeps the values, the jobs, the CPUs and the A/A facts of each job.
-- The rule of the gate limits (2026-11-02): the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record.
+- The rule of the gate limits (2026-11-02): the limit is the worst value plus the spread (max - min). It is rounded up to 4 decimals, away from the data. A limit rounded down can fail a value of its own record. `runLimit` of rigor-bench gives the limit.
 - No limit uses a fixed factor. Schema 1 had the old rule, the worst value times 1.1, and a fixed A/A tolerance.
 - A measure that the item does not gate is a report, with the reason in the record.
 - `node bench/main.ts paired-gate --gate <file> --dir <out>` applies the gate to a run. It writes `gate.json` and `gate.md`.

@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { PairedReport } from "./paired-time.ts";
-import { checkTimeGate, deriveTimeGate, gateMarkdown, gateValue, noiseCap, pairRecords, parseTimeGate, spreadLimit, type TimeGate } from "./time-gate.ts";
+import { runLimit } from "@mark1russell7/rigor-bench";
+import { checkTimeGate, deriveTimeGate, gateMarkdown, gateValue, noiseCap, pairRecords, parseTimeGate, type TimeGate } from "./time-gate.ts";
 import { pairedArgs } from "./time-gate-run.ts";
 
 const derivation = { runs: ["r1", "r2", "r3", "r4", "r5"], cpus: ["c", "c", "c", "c", "c"], values: [1.8, 2, 1.9, 1.7, 1.95], worst: 2, spread: 0.3 };
@@ -215,7 +216,7 @@ describe("the sum measure on the steady inputs (k130)", () => {
     const gate = deriveTimeGate(SUM, reports, ["u1", "u2", "u3", "u4", "u5"]);
     const values = gate.checks[0]!.derivation.values;
     expect(values.map((v) => +v.toFixed(2))).toEqual([1.4, 1.54, 1.47, 1.33, 1.4]);
-    expect(gate.checks[0]!.max).toBe(spreadLimit(values));
+    expect(gate.checks[0]!.max).toBe(runLimit(values).limit);
     expect(gate.checks[0]!.derivation.runs).toEqual(["u1", "u2", "u3", "u4", "u5"]);
     expect(() => parseTimeGate(JSON.stringify(gate))).not.toThrow();
     expect(() => deriveTimeGate(SUM, reports, ["u1"])).toThrow("5 reports and 1 run ids");
@@ -233,11 +234,14 @@ describe("parseTimeGate", () => {
     expect(() => parseTimeGate(JSON.stringify({ ...GATE, noise: { ...GATE.noise, cap: 0.05 } }))).toThrow("median A/A noise");
   });
 
-  it("gives the worst value plus the spread, rounded up", () => {
-    expect(spreadLimit([1.3, 1.25, 1.35, 1.32, 1.28])).toBe(1.45);
-    expect(spreadLimit([1.298368, 1.379478, 1.370108, 1.380365, 1.306407])).toBe(1.4624);
-    expect(spreadLimit([1.00001, 1])).toBe(1.0001);
-    expect(spreadLimit([1.23456, 1], 2)).toBe(1.47);
+  it("gives the worst value plus the spread, rounded up, with runLimit of rigor-bench (R13)", () => {
+    // The values of the local copy before R13, as the oracle
+    expect(runLimit([1.3, 1.25, 1.35, 1.32, 1.28]).limit).toBe(1.45);
+    expect(runLimit([1.298368, 1.379478, 1.370108, 1.380365, 1.306407]).limit).toBe(1.4624);
+    expect(runLimit([1.00001, 1], { minimum: 1 }).limit).toBe(1.0001);
+    expect(runLimit([1.23456, 1], { minimum: 1, digits: 2 }).limit).toBe(1.47);
+    // The rule of the gate limits: fewer than 5 runs give no limit
+    expect(() => runLimit([1.3, 1.25])).toThrow("5 values or more");
   });
 
   it("refuses a limit that is not its worst value plus its spread", () => {
