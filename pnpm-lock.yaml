@@ -264,8 +264,8 @@ importers:
         specifier: ^0.8.0
         version: 0.8.1
       '@mark1russell7/text':
-        specifier: ^0.0.16
-        version: 0.0.16
+        specifier: ^0.0.17
+        version: 0.0.17
       marked:
         specifier: ^18.1.2
         version: 18.2.0
@@ -639,6 +639,10 @@ packages:
 
   '@mark1russell7/text@0.0.16':
     resolution: {integrity: sha512-hq2AWdtbKtXlibTTcVA/6GQAxgPj+6U3Hdmkh1I4sRMQZn/SiKh1k78UtcMgtcLJxwHHG9GVs2O2VNQxJP7R1Q==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/text@0.0.17':
+    resolution: {integrity: sha512-jFqqVfCTQ0N65qvMP/gANAbnqB7ewpA3IeNxPeQTuF3IoSZkTgTl92PE47F5IOOfgz0Q0dF723crrYB8T6pR3g==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/typeset@0.5.3':
@@ -2048,6 +2052,8 @@ snapshots:
   '@mark1russell7/text@0.0.13': {}
 
   '@mark1russell7/text@0.0.16': {}
+
+  '@mark1russell7/text@0.0.17': {}
 
   '@mark1russell7/typeset@0.5.3':
     dependencies:
