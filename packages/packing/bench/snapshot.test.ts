@@ -250,8 +250,8 @@ describe("snapshot", () => {
       { version: "0.1.1", commit: "aaaaaaa", date: "2026-01-01", subject: "release: 0.1.1" },
     ];
     expect(releaseEntries(changelog, tags)).toEqual([
-      { release: "0.2.0", date: "2026-01-02", title: "A new layout.", breaking: true, commit: "bbbbbbb", pr: 9, link: "https://github.com/mark1russell7/packing/pull/9" },
-      { release: "0.1.1", date: "2026-01-01", title: "`packShelf` packs into shelves.", breaking: false, commit: "aaaaaaa", pr: null, link: "https://github.com/mark1russell7/packing/commit/aaaaaaa" },
+      { release: "0.2.0", date: "2026-01-02", title: "A new layout.", breaking: true, commit: "bbbbbbb", pr: 9, link: "https://github.com/metrograph-labs/packing/pull/9" },
+      { release: "0.1.1", date: "2026-01-01", title: "`packShelf` packs into shelves.", breaking: false, commit: "aaaaaaa", pr: null, link: "https://github.com/metrograph-labs/packing/commit/aaaaaaa" },
     ]);
   });
 });

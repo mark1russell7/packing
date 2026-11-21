@@ -15,7 +15,7 @@ describe("runOf", () => {
   it("gives the run of an origin, with the full commit and the earliest time of its day", () => {
     expect(runOf("a.json", origin(41993720877), known)).toEqual({
       id: "41993720877",
-      url: "https://github.com/mark1russell7/packing/actions/runs/41993720877",
+      url: "https://github.com/metrograph-labs/packing/actions/runs/41993720877",
       date: "2026-11-05T00:00:00Z",
       engines: { [ENGINE]: "0.8.0" },
       commit: FULL,

@@ -871,7 +871,7 @@ A local small run of 2026-10-28 on `pack-anchor-v1`, all 51 inputs. The numbers 
 - `rows` has the smallest medians of `mean` and `max` on the first step. Its loop also jumps, in a later step.
 - An input settles only when each of its locked items settles. At the gain limit 1, few inputs settle.
 
-The CI run [40799160871](https://github.com/mark1russell7/packing/actions/runs/40799160871) of 2026-10-29 packed all 28 entries with `--anchor`. It is the record.
+The CI run [40799160871](https://github.com/metrograph-labs/packing/actions/runs/40799160871) of 2026-10-29 packed all 28 entries with `--anchor`. It is the record.
 
 - The 6 entries of the local run give the same medians in CI.
 - The 1377 measured records have 0 hard breaks, and each one is deterministic.
@@ -2326,7 +2326,7 @@ The nightly control (k120, `coverage-nightly.yml`):
 
 The first valid result of the control (k120):
 
-Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257557) has 5 of 5 valid cells, and each held-out sample has 400 of 400 pairs. A push of commit `92d441a` started it, not the Monday schedule. A positive value tells that the active arm is better than the control.
+Run [41769257557](https://github.com/metrograph-labs/packing/actions/runs/41769257557) has 5 of 5 valid cells, and each held-out sample has 400 of 400 pairs. A push of commit `92d441a` started it, not the Monday schedule. A positive value tells that the active arm is better than the control.
 
 | Measure | mean(d) over the seeds | Floor | Seeds with a Holm change | Outcome |
 | --- | --- | --- | --- | --- |
@@ -2348,10 +2348,10 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - It also starts each Monday at 02:52 UTC as the control. The same seeds and the same code give the same result.
 - Each arm has a work budget of 4 rounds of 100 pairs, the same for both arms. Thus a cell is the same on each runner.
 - The 40 minutes of `--max-minutes` are only a timeout. An arm that the timeout stops, or an arm with no summary, voids its cell.
-- The first timeout was 12 minutes. In run [41735018676](https://github.com/mark1russell7/packing/actions/runs/41735018676), it stopped 4 of the 5 control arms, at 382, 219, 195 and 196 of 400 pairs. Only 1 of 5 cells stayed, so the run has no verdict.
+- The first timeout was 12 minutes. In run [41735018676](https://github.com/metrograph-labs/packing/actions/runs/41735018676), it stopped 4 of the 5 control arms, at 382, 219, 195 and 196 of 400 pairs. Only 1 of 5 cells stayed, so the run has no verdict.
 - The new timeout comes from that run. The slowest arm gives 12 x 400 / 195 = 24.6 minutes, and the arm that finished took approximately 10 minutes. The limit is 24.6 + 14.6 = 39.2, so 40. This is an estimate from arms that the timeout stopped, because the run has no finished slow arm. A later run replaces it.
 - Each pair packs 4 times: the first pack, the determinism pack, the timed pack and the pack of the next seed.
-- In run [42553495678](https://github.com/mark1russell7/packing/actions/runs/42553495678), the job limit of 60 minutes stopped 4 arms, and the arm `control` of seed 4 stopped at 390 of 400 pairs. Only 1 of 5 cells stayed.
+- In run [42553495678](https://github.com/metrograph-labs/packing/actions/runs/42553495678), the job limit of 60 minutes stopped 4 arms, and the arm `control` of seed 4 stopped at 390 of 400 pairs. Only 1 of 5 cells stayed.
 - The 2 finished arms that show the cause are `control` of seeds 2 and 4. In each, one `raster-nofit` config with 163 trials on 179 boxes had a first pack of 600 and 751 seconds. All the arms read the same pool, so each arm can meet that candidate. The stopped arms wrote no records.
 - Thus the active draw sends a candidate back as `slow` when its first pack takes more than 60 seconds (`--max-pair-seconds`). The next slowest first pack of that run was 22 seconds. A slow candidate costs 1 pack, and the reason count `slow` of `sample.json` shows it.
 - The limit reads the clock. The rule is the same for both arms, but a slow candidate does not leave the record.
@@ -2359,7 +2359,7 @@ Run [41769257557](https://github.com/mark1russell7/packing/actions/runs/41769257
 - When the slow shares of the two arms differ, the line of the cell says so. Then the arms measured different sets of candidates, and the cap can favor fast strategies.
 - `bench/nightly-plan.ts cells` writes the record `cells.json`: the commit, the event, each cell and the seeds of the cells that are not void.
 - The job `grid` packs the corpus `pack-classes-v1` with `bench.yml` (by `workflow_call`) and no sample.
-- The grid has the wall budget of each pair and a job limit of 130 minutes, so the pairs stop at 120 minutes. A slow entry keeps the rows that it finished. In run [41949891960](https://github.com/mark1russell7/packing/actions/runs/41949891960), the limit of 120 minutes cut `raster-nofit` with no row, and `near-rects` took 42 minutes. Both are over the earlier limit of 30 minutes, and a cut job fails the grid, so the arms do not start.
+- The grid has the wall budget of each pair and a job limit of 130 minutes, so the pairs stop at 120 minutes. A slow entry keeps the rows that it finished. In run [41949891960](https://github.com/metrograph-labs/packing/actions/runs/41949891960), the limit of 120 minutes cut `raster-nofit` with no row, and `near-rects` took 42 minutes. Both are over the earlier limit of 30 minutes, and a cut job fails the grid, so the arms do not start.
 - The jobs `sample` pack the held-out sample of 400 pairs in 4 shards, with no time limit. The job `held-out` joins them.
 - The merge fails on a missing pair. Thus each arm is tested on all the pairs of the sample.
 - Each job `arm` draws one arm (active or control) with one fold seed (1 to 5) on the same grid and pool.
@@ -2656,7 +2656,7 @@ The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-hei
 Roadmap item k94 compares the strategy `circle-quasi-physical` with the best-known packings. The comparison has its own script and its own workflow, because the corpora of the benchmark have only rectangles.
 
 ```sh
-gh workflow run circles.yml -R mark1russell7/packing --ref main -f sizes=10,20,30,50,100 -f seeds=5 -f iterations=2000
+gh workflow run circles.yml -R metrograph-labs/packing --ref main -f sizes=10,20,30,50,100 -f seeds=5 -f iterations=2000
 ```
 
 The workflow `circles.yml` does these steps:

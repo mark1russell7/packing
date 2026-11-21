@@ -15,7 +15,7 @@ export interface NavLink {
 }
 
 /** The address of the source on GitHub */
-export const SOURCE_URL = "https://github.com/mark1russell7/packing";
+export const SOURCE_URL = "https://github.com/metrograph-labs/packing";
 
 /**
  * This function gives the links of the header for a base path and the current page.

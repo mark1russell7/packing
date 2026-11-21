@@ -156,7 +156,7 @@ describe("navLinks", () => {
       ["What's new", "/packing/whats-new/"],
       ["Status", "/packing/status/"],
       ["Releases", "/packing/releases/"],
-      ["Source on GitHub", "https://github.com/mark1russell7/packing"],
+      ["Source on GitHub", "https://github.com/metrograph-labs/packing"],
     ]);
     expect(links.filter((l) => l.current).map((l) => l.id)).toEqual(["results"]);
   });
@@ -911,7 +911,7 @@ describe("the start of the run of a coverage point (k185)", () => {
   const p = { date: "2026-11-05", run: 41993720877, corpus: "pack-classes-v1", commit: "441bb21", shares: {} };
 
   it("names a dispatch, a weekly run and a push, with the link of the run", () => {
-    expect(triggerText({ ...p, trigger: "dispatch" })).toBe(', <a href="https://github.com/mark1russell7/packing/actions/runs/41993720877">run started by hand</a>');
+    expect(triggerText({ ...p, trigger: "dispatch" })).toBe(', <a href="https://github.com/metrograph-labs/packing/actions/runs/41993720877">run started by hand</a>');
     expect(triggerText({ ...p, trigger: "schedule" })).toContain(">weekly run</a>");
     expect(triggerText({ ...p, trigger: "push" })).toContain(">run of a push</a>");
   });

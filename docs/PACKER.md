@@ -1564,7 +1564,7 @@ A local small run (not a CI run) packed 80 inputs of `pack-classes-v1`: the coun
 | `skyline` | 0.864 | 0.140 |
 | `shelf-best` | 0.879 | 0.109 |
 
-The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/40801208821) of 2026-10-29 packed all 500 inputs of `pack-classes-v1`. It is the record.
+The CI run [40801208821](https://github.com/metrograph-labs/packing/actions/runs/40801208821) of 2026-10-29 packed all 500 inputs of `pack-classes-v1`. It is the record.
 
 | Entry | Median `pack.fill` | Median `pack.gap` |
 |---|---|---|
