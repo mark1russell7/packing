@@ -113,7 +113,7 @@ describe("the order of a new field", () => {
     expect(readDataFiles(main()).faults).toEqual([]);
     const lines = gateLines(readDataFiles(new Map([...main(), [KNOWN, OLD_KNOWN]])));
     expect(lines).toContain(NEW_FIELD_ORDER);
-    expect(lines).toContain('REPLACE gaps-pack-known-v1.json: gh workflow run site-data.yml -R mark1russell7/packing --ref main -f runs="pack-known-v1=<id of a finished bench run on main>"');
+    expect(lines).toContain('REPLACE gaps-pack-known-v1.json: gh workflow run site-data.yml -R metrograph-labs/packing --ref main -f runs="pack-known-v1=<id of a finished bench run on main>"');
     expect(NEW_FIELD_ORDER).toMatch(/accepts a missing field as `not read`\. Merge, start the workflow `Site data`, and then make the reader require the field/);
   });
 

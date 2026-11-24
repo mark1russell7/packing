@@ -1,6 +1,6 @@
 # @mark1russell7/packing
 
-[![npm](https://img.shields.io/npm/v/@mark1russell7/packing?color=2346c4)](https://www.npmjs.com/package/@mark1russell7/packing) [![CI](https://github.com/mark1russell7/packing/actions/workflows/ci.yml/badge.svg)](https://github.com/mark1russell7/packing/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-2346c4)](https://github.com/mark1russell7/packing/blob/main/packages/packing/LICENSE)
+[![npm](https://img.shields.io/npm/v/@mark1russell7/packing?color=2346c4)](https://www.npmjs.com/package/@mark1russell7/packing) [![CI](https://github.com/metrograph-labs/packing/actions/workflows/ci.yml/badge.svg)](https://github.com/metrograph-labs/packing/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-2346c4)](https://github.com/metrograph-labs/packing/blob/main/packages/packing/LICENSE)
 
 Rectangle packing for layouts: a guillotine row packer and a skyline packer that place rectangles in an outer rectangle.
 
@@ -237,7 +237,7 @@ const output = packConfig(input, packSpace.named!["maxrects-cp"]!, 0);
 
 ## More
 
-- [The repository](https://github.com/mark1russell7/packing): the source, the tests and the roadmap.
+- [The repository](https://github.com/metrograph-labs/packing): the source, the tests and the roadmap.
 - This package was `@mark1russell7/render-pack` before 0.1.0. `render-pack` re-exports this package for one more minor, and then it is deprecated.
 
 The package is ESM, has TypeScript declarations, and works in Node.js 22.12 or later and in browsers. The license is MIT.

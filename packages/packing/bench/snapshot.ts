@@ -713,7 +713,7 @@ export interface ReleaseTag {
 }
 
 /** The address of the repository on GitHub */
-export const REPO_URL = "https://github.com/mark1russell7/packing";
+export const REPO_URL = "https://github.com/metrograph-labs/packing";
 
 /**
  * This function gives the entries of the releases of `CHANGELOG.md` that have a tag. The title is the first sentence of the

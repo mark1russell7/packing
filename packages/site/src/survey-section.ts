@@ -5,10 +5,10 @@ import { escapeHtml as esc } from "./cards-model.ts";
 import { CLASSES, countBy, filterMethods, scoreText, STATUSES, type ProblemClass, type SurveyFile, type SurveyMethod, type SurveyStatus } from "./survey-model.ts";
 
 /** The address of the roadmap on GitHub */
-export const ROADMAP_URL = "https://github.com/mark1russell7/packing/blob/main/docs/ROADMAP.md";
+export const ROADMAP_URL = "https://github.com/metrograph-labs/packing/blob/main/docs/ROADMAP.md";
 
 /** The address of the survey on GitHub */
-export const SURVEY_URL = "https://github.com/mark1russell7/packing/blob/main/docs/research/SURVEY.md";
+export const SURVEY_URL = "https://github.com/metrograph-labs/packing/blob/main/docs/research/SURVEY.md";
 
 /** The look of each status: the class of its chip and its note */
 export const STATUS_LOOK: Record<SurveyStatus, { cls: string; note: string }> = {

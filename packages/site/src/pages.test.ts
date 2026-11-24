@@ -156,7 +156,7 @@ describe("navLinks", () => {
       ["What's new", "/packing/whats-new/"],
       ["Status", "/packing/status/"],
       ["Releases", "/packing/releases/"],
-      ["Source on GitHub", "https://github.com/mark1russell7/packing"],
+      ["Source on GitHub", "https://github.com/metrograph-labs/packing"],
     ]);
     expect(links.filter((l) => l.current).map((l) => l.id)).toEqual(["results"]);
   });
