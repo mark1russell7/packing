@@ -135,7 +135,7 @@ export function replaceLine(file: string): string | undefined {
   const corpora = CORPORA_OF_FILE[file];
   if (corpora !== undefined) {
     const runs = corpora.map((corpus) => `${corpus}=<id of a finished bench run on main>`).join(" ");
-    return `REPLACE ${file}: gh workflow run site-data.yml -R mark1russell7/packing --ref main -f runs="${runs}"`;
+    return `REPLACE ${file}: gh workflow run site-data.yml -R metrograph-labs/packing --ref main -f runs="${runs}"`;
   }
   return DATA_READERS[file] === undefined ? undefined : `REPLACE ${file}: this file lands from main, so a pull request replaces it.`;
 }

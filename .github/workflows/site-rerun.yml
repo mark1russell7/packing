@@ -13,7 +13,7 @@ name: Site rerun
 
 on:
   schedule:
-    - cron: "4 3 * * 3"
+    - cron: "21 3 * * 3"
   workflow_dispatch:
 
 permissions:

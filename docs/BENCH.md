@@ -2656,7 +2656,7 @@ The inputs are `seeds` and `trials`. The numbers are in the artifact `binary-hei
 Roadmap item k94 compares the strategy `circle-quasi-physical` with the best-known packings. The comparison has its own script and its own workflow, because the corpora of the benchmark have only rectangles.
 
 ```sh
-gh workflow run circles.yml -R mark1russell7/packing --ref main -f sizes=10,20,30,50,100 -f seeds=5 -f iterations=2000
+gh workflow run circles.yml -R metrograph-labs/packing --ref main -f sizes=10,20,30,50,100 -f seeds=5 -f iterations=2000
 ```
 
 The workflow `circles.yml` does these steps:

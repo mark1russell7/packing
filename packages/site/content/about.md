@@ -19,4 +19,4 @@ There is no single best layout. A dense layout can mix up the order of the boxes
 
 The [strategies page](strategies/) lists each strategy, and the [results page](results/) has the measures. The [What's new page](whats-new/) lists each release.
 
-The source, the tests and the roadmap are in [the repository on GitHub](https://github.com/mark1russell7/packing). The package is [`@mark1russell7/packing` on npm](https://www.npmjs.com/package/@mark1russell7/packing). All of the data on this page is made up.
+The source, the tests and the roadmap are in [the repository on GitHub](https://github.com/metrograph-labs/packing). The package is [`@mark1russell7/packing` on npm](https://www.npmjs.com/package/@mark1russell7/packing). All of the data on this page is made up.

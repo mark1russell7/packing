@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.19.1
+
+PATCH: the repository moved to metrograph-labs. The fields `repository`, `homepage` and `bugs` of `package.json` and the links of the README name the new repository. The code does not change.
+
 ## 0.19.0
 
 The release train changes the range of `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/strategy-space, so its new version outside the old range can change them.
