@@ -504,7 +504,7 @@ PROMOTION is the shared promotion rule: `docs/PROMOTION.md` of `mark1russell7/hi
 
 ### The paired ratio of one input
 
-A comparison of a candidate with the current default uses one ratio for each input and seed. The two values come from the same input and the same seed. The rule is the rule of [PROMOTION](https://github.com/mark1russell7/highways/blob/main/docs/PROMOTION.md#the-paired-ratio). This document does not copy it.
+A comparison of a candidate with the current default uses one ratio for each input and seed. The two values come from the same input and the same seed. The rule is the rule of [PROMOTION](https://github.com/metrograph-labs/highways/blob/main/docs/PROMOTION.md#the-paired-ratio). This document does not copy it.
 
 `ratio = candidate / current` for `lower`, and `ratio = current / candidate` for `higher`
 
@@ -548,7 +548,7 @@ The log of this product is a sum of two terms. Each term has no unit:
 
 ## The guards of a promotion
 
-The promotion rule names the guard measures of the packer in words ([PROMOTION, the measures of each step](https://github.com/mark1russell7/highways/blob/main/docs/PROMOTION.md#the-measures-of-each-step)). These are their ids.
+The promotion rule names the guard measures of the packer in words ([PROMOTION, the measures of each step](https://github.com/metrograph-labs/highways/blob/main/docs/PROMOTION.md#the-measures-of-each-step)). These are their ids.
 
 | PROMOTION | Id | Direction | Where |
 |---|---|---|---|
@@ -569,7 +569,7 @@ The promotion rule names the guard measures of the packer in words ([PROMOTION, 
 
 ### The floors of the guards
 
-The floor rule of PROMOTION ([the floor rule](https://github.com/mark1russell7/highways/blob/main/docs/PROMOTION.md#the-floor-rule)) applies to a guard when the default is at the floor. This document does not copy its tests.
+The floor rule of PROMOTION ([the floor rule](https://github.com/metrograph-labs/highways/blob/main/docs/PROMOTION.md#the-floor-rule)) applies to a guard when the default is at the floor. This document does not copy its tests.
 
 `MEASURE_SPECS` is the source of the floor and the tolerance of each `pack.*` guard. The fields are `floor` and `tol`, as in `MeasureSpec` of `@mark1russell7/layout-contract`.
 

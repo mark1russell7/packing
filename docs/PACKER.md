@@ -1564,7 +1564,7 @@ A local small run (not a CI run) packed 80 inputs of `pack-classes-v1`: the coun
 | `skyline` | 0.864 | 0.140 |
 | `shelf-best` | 0.879 | 0.109 |
 
-The CI run [40801208821](https://github.com/mark1russell7/packing/actions/runs/40801208821) of 2026-10-29 packed all 500 inputs of `pack-classes-v1`. It is the record.
+The CI run [40801208821](https://github.com/metrograph-labs/packing/actions/runs/40801208821) of 2026-10-29 packed all 500 inputs of `pack-classes-v1`. It is the record.
 
 | Entry | Median `pack.fill` | Median `pack.gap` |
 |---|---|---|
@@ -2216,7 +2216,7 @@ The test pins each difference that stays, with its reason:
 - `MeasureSpec` of `packing` has a necessary `family`. Each measure of the packer has a family of `docs/MEASURES.md`.
 - `checkHard` reads a packer input, and `packHard` reads a file (gap 12).
 
-0. The install. `packing`: the specifier `github:mark1russell7/layout-contract#d15b240` installs the root of the repository. The contract: the package is in `packages/layout-contract`. Thus `packing` adds `&path:packages/layout-contract`. No decision applies. The npm release closes this gap.
+0. The install. `packing`: the specifier `github:metrograph-labs/layout-contract#d15b240` installs the root of the repository. The contract: the package is in `packages/layout-contract`. Thus `packing` adds `&path:packages/layout-contract`. No decision applies. The npm release closes this gap.
    - **Closed in `packing` 0.2.0:** the dependency is `^0.2.1` from npm, at run time.
 1. The arrays. `packing`: mutable arrays, for example `Item[]`, `Port[]` and the rings of a polygon. The contract: readonly arrays and fields. The decisions favor the contract, because a packer does not change its input.
    - **Closed in `packing` 0.2.0:** each array and each field of the shared types is `readonly`.

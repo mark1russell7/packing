@@ -1,6 +1,6 @@
 # The corpus format and the run records
 
-This document gives the input format and the record format of the benchmarks of `packing`. The router `highways` uses the same formats. Its twin document is [`docs/LAYOUT-RECORDS.md`](https://github.com/mark1russell7/highways/blob/main/docs/LAYOUT-RECORDS.md) in `mark1russell7/highways`. Change both documents together.
+This document gives the input format and the record format of the benchmarks of `packing`. The router `highways` uses the same formats. Its twin document is [`docs/LAYOUT-RECORDS.md`](https://github.com/metrograph-labs/highways/blob/main/docs/LAYOUT-RECORDS.md) in `mark1russell7/highways`. Change both documents together.
 
 One input file feeds the two stages. A joint run packs an input, and then routes the edges of the same input.
 
