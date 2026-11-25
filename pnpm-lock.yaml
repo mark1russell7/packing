@@ -238,7 +238,7 @@ importers:
         version: 0.2.8
       '@mark1russell7/site-pages':
         specifier: ^0.8.0
-        version: 0.8.4
+        version: 0.8.6
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
@@ -271,10 +271,10 @@ importers:
         version: 0.2.8
       '@mark1russell7/site-pages':
         specifier: ^0.8.0
-        version: 0.8.4
+        version: 0.8.6
       '@mark1russell7/text':
-        specifier: ^0.0.18
-        version: 0.0.18
+        specifier: ^0.0.19
+        version: 0.0.19
       marked:
         specifier: ^18.1.2
         version: 18.2.1
@@ -619,8 +619,8 @@ packages:
     resolution: {integrity: sha512-wPRQe/5351Xr16MIzgHTJyUYeaMh4ScadJ2AHCHZDf5NQdEDD6pG8zhWc0UPKbApTPWU/f7tDqnotSoyWmCqMQ==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/site-pages@0.8.4':
-    resolution: {integrity: sha512-pC0qcQqIsfQg5jTg+peUP/DGBXb4d1PQYiu6TCeCE1ALc5X8nyGhj9vMYKBCdhK7uHm8Chtx7INLKPWPmxpK3w==}
+  '@mark1russell7/site-pages@0.8.6':
+    resolution: {integrity: sha512-WX/2Sna3H1bzLSleYuKQYuzrLF7kQjSMG79Pnysw0v1mNga95t18bS82u/zfQksPiZSicXSLmR+ye5YHfYNx4w==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -648,6 +648,10 @@ packages:
 
   '@mark1russell7/text@0.0.18':
     resolution: {integrity: sha512-sIOsTkBOhWLSDyE4qKyiokUT84NPJgPuhLPDyh2Y+mjGnNbGhF9Q6dt9NnSBtSW8C1D0rZfx8fPJ53g0gQGWfQ==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/text@0.0.19':
+    resolution: {integrity: sha512-pPJV318wzfEcsnnzlqVu+OBp/o9VLKWsAo1Wkf4rNaerOjgINDo+vErhmtPVQw6BzcVmGn4brXmMLcosCT9sAw==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/typeset@0.5.3':
@@ -2031,7 +2035,7 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.19
 
-  '@mark1russell7/site-pages@0.8.4':
+  '@mark1russell7/site-pages@0.8.6':
     dependencies:
       '@mark1russell7/rigor-statistics': 0.2.8
 
@@ -2057,6 +2061,8 @@ snapshots:
   '@mark1russell7/text@0.0.13': {}
 
   '@mark1russell7/text@0.0.18': {}
+
+  '@mark1russell7/text@0.0.19': {}
 
   '@mark1russell7/typeset@0.5.3':
     dependencies:
