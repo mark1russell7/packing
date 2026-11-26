@@ -25,7 +25,7 @@ defaults:
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@734075fad8c45edf8417b0e9412574ca6c2ef7b4 # main
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@7c83f30551e066c06852ea75bf0140eadfc49961 # main
     # The limits come from runs (roadmap item k223): the worst time of the runs, plus the spread of the times.
     # The job checks runs the scripts. 20 runs of pull requests took 201 to 367 s (42602918887 to 42689039900):
     # 367 + 166 = 533 s, so 9 minutes. On a push to main the coverage run is the job coverage, with its own limit.
@@ -115,7 +115,7 @@ jobs:
   # The site of .github/site.json: the build, the site check and the probe, with no deploy (CI.md of the
   # template, "The site config"). The Pages workflow deploys the same site from main.
   site:
-    uses: mark1russell7/template/.github/workflows/reusable-pages-check.yml@a9951441b9f3cc00f71ac3bd79427ef5ee219d71 # main
+    uses: mark1russell7/template/.github/workflows/reusable-pages-check.yml@7c83f30551e066c06852ea75bf0140eadfc49961 # main
     permissions:
       contents: read
 
