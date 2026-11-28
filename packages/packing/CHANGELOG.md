@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.20.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/layout-contract`, `@mark1russell7/rigor-generators`, `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/layout-contract, @mark1russell7/rigor-generators, @mark1russell7/strategy-space, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.10.0` of `@mark1russell7/collections` in `dependencies` does not hold `0.12.1`, so it changes.
+- The range `^0.10.1` of `@mark1russell7/layout-contract` in `dependencies` does not hold `0.12.0`, so it changes.
+- The range `^0.1.6` of `@mark1russell7/rigor-generators` in `dependencies` does not hold `0.2.8`, so it changes.
+- The range `^0.0.6` of `@mark1russell7/strategy-space` in `dependencies` does not hold `0.1.2`, so it changes.
+
 ## 0.19.1
 
 PATCH: the repository moved to metrograph-labs. The fields `repository`, `homepage` and `bugs` of `package.json` and the links of the README name the new repository. The code does not change.
